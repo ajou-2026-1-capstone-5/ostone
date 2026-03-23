@@ -7,7 +7,7 @@
   - github: kang-heewon
 - 강준현, 202126906
 - - email: jhkang0516@ajou.ac.kr
-  - github: jhkang0516@ajou.ac.kr
+  - github: jhkang0516
 - 배성연, 202020776
 - - email: bsy309@ajou.ac.kr
   - github: syeobnn
