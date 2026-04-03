@@ -1,0 +1,7 @@
+{
+  "name": "ajou-2026-1-capstone-5",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  }
+}

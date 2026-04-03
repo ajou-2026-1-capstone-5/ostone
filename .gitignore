@@ -1,0 +1,26 @@
+# Java
+build/
+.gradle/
+*.class
+
+# Node
+node_modules/
+dist/
+
+# Python
+__pycache__/
+.venv/
+*.egg-info
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Docker
+.env
+
+# Sisyphus
+.sisyphus/
