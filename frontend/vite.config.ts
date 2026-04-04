@@ -6,4 +6,9 @@ export default defineConfig({
   fmt: {},
   lint: { options: { typeAware: true, typeCheck: true } },
   plugins: [react()],
+  test: {
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    environment: 'jsdom',
+  },
 });
