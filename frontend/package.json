@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vp dev",
     "build": "tsc -b && vp build",
-    "test": "vp test",
+    "test": "vitest run",
+    "format": "vp fmt",
     "lint": "eslint .",
     "preview": "vp preview"
   },
