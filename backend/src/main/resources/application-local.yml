@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/init
-    username: app
-    password: password
+    username: ${DB_USERNAME:init}
+    password: ${DB_PASSWORD:init1234}
   jpa:
     show-sql: true
     properties:

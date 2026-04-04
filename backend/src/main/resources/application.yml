@@ -3,8 +3,8 @@ spring:
     name: init-backend
   datasource:
     url: jdbc:postgresql://localhost:5432/init
-    username: app
-    password: password
+    username: ${DB_USERNAME:init}
+    password: ${DB_PASSWORD:init1234}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
