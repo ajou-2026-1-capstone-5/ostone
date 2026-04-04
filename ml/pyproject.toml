@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "kang-heewon", email = "heewon.dev@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = []
 
 [build-system]
@@ -26,7 +26,7 @@ line-length = 120
 select = ["E", "F", "I", "W"]
 
 [tool.mypy]
-python_version = "3.14"
+python_version = "3.13"
 strict = false
 
 [tool.pytest.ini_options]
