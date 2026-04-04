@@ -298,7 +298,7 @@ class DomainPackControllerTest {
 
 ## Database
 
-### Migration (Flyway)
+### Migration (Liquibase)
 
 **V1__create_domain_pack.sql**
 

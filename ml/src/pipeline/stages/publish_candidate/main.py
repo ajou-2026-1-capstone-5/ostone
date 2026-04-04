@@ -1,2 +1,2 @@
 def run() -> None:
-    pass
+    raise NotImplementedError("Not yet implemented")
