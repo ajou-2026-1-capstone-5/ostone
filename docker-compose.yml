@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: init-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-init}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-init123}
+      POSTGRES_DB: ${DB_NAME:-init}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - init-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: init-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-init}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-init}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-init123}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-local}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - init-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: init-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - init-network
+
+volumes:
+  postgres_data:
+
+networks:
+  init-network:
+    driver: bridge
