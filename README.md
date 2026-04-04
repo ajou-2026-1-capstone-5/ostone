@@ -10,7 +10,7 @@
 
 - **강희원** (201920717) - kangheewon@ajou.ac.kr - [@kang-heewon](https://github.com/kang-heewon)
 - **강준현** (202126906) - jhkang0516@ajou.ac.kr - [@jhkang0516](https://github.com/jhkang0516)
-- **배성연** (202020776) - bsy309@ajou.ac.kr - [@syeobnn](https://github.com/syeobnn)
+- **배성연** (202020776, **팀장**) - bsy309@ajou.ac.kr - [@syeobnn](https://github.com/syeobnn)
 - **하장한** (202126852) - egnever4434@gmail.com - [@devjhan](https://github.com/devjhan)
 
 ## 기술 스택
