@@ -6,7 +6,7 @@
   position: relative;
   overflow: hidden;
   background-color: var(--bg-color);
-  background: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+  background: radial-gradient(circle at top right, #f1f5f9 0%, #f8fafc 100%);
 }
 
 /* Animated Decorative Orbs */
@@ -15,7 +15,7 @@
   width: 50vw;
   height: 50vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(255,255,255,0) 70%);
   top: -20vh;
   right: -10vw;
   animation: float 20s ease-in-out infinite;
@@ -27,7 +27,7 @@
   width: 60vw;
   height: 60vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.15) 0%, rgba(255,255,255,0) 70%);
   bottom: -30vh;
   left: -20vw;
   animation: float 25s ease-in-out infinite reverse;
@@ -39,7 +39,7 @@
   width: 30vw;
   height: 30vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.15) 0%, rgba(255,255,255,0) 70%);
   top: 40vh;
   left: 20vw;
   animation: float 15s ease-in-out infinite 5s;

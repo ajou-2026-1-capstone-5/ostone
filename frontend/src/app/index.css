@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Premium Dark Mode Colors */
-  --bg-color: #0f172a; /* Slate 900 */
-  --bg-secondary: #1e293b; /* Slate 800 */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  /* Premium Light Mode Colors */
+  --bg-color: #f8fafc; /* Slate 50 */
+  --bg-secondary: #ffffff; /* White */
+  --text-primary: #0f172a; /* Slate 900 */
+  --text-secondary: #64748b; /* Slate 500 */
   
-  /* Primary Brand Concept (Vibrant Electric Blue/Purple) */
-  --brand-primary: #3b82f6; /* Blue 500 */
-  --brand-primary-hover: #60a5fa; /* Blue 400 */
-  --brand-accent: #8b5cf6; /* Violet 500 */
+  /* Primary Brand Concept (Emerald / Teal) */
+  --primary-color: #10b981; /* Emerald 500 */
+  --primary-color-hover: #059669; /* Emerald 600 */
+  --secondary-color: #34d399; /* Emerald 400 */
 
   /* Semantic Colors */
   --error-color: #ef4444;
   --success-color: #10b981;
 
   /* Glassmorphism Tokens */
-  --glass-bg: rgba(30, 41, 59, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
   --glass-blur: blur(16px);
 
   /* Geometry & Transitions */
@@ -47,13 +47,13 @@ body {
 }
 
 a {
-  color: var(--brand-primary);
+  color: var(--primary-color);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--brand-primary-hover);
+  color: var(--primary-color-hover);
 }
 
 /* Common Background Gradient Animation for Login/Signup Pages */

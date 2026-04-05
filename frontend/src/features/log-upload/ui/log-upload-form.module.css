@@ -1,0 +1,93 @@
+.container {
+  width: 100%;
+  max-width: 600px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  padding: 40px;
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 10px;
+}
+
+.header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.uploadArea {
+  margin-bottom: 24px;
+}
+
+.filePreview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  animation: fade-in 0.3s ease;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fileName {
+  font-weight: 500;
+  color: var(--text-color);
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.successActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  animation: fade-in 0.5s ease;
+}
+
+.successActions button {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 24px;
+  }
+  .filePreview {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .fileInfo {
+    width: 100%;
+    align-items: center;
+  }
+  .successActions {
+    flex-direction: column;
+  }
+}
