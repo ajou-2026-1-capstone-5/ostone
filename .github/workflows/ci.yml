@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      ml: ${{ steps.filter.outputs.ml }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+            ml:
+              - 'ml/**'
+              - '.github/workflows/ci.yml'
+
+  backend:
+    needs: paths-filter
+    if: ${{ needs.paths-filter.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build Backend
+        working-directory: ./backend
+        run: ./gradlew build -x checkstyleMain -x checkstyleTest
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+
+  frontend:
+    needs: paths-filter
+    if: ${{ needs.paths-filter.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: './frontend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install
+
+      - name: Run tests
+        working-directory: ./frontend
+        run: pnpm test
+
+      - name: Build
+        working-directory: ./frontend
+        run: pnpm build
+
+  ml:
+    needs: paths-filter
+    if: ${{ needs.paths-filter.outputs.ml == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        working-directory: ./ml
+        run: uv sync
+
+      - name: Run tests
+        working-directory: ./ml
+        run: uv run pytest

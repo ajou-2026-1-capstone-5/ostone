@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: init-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/init
+    username: ${DB_USERNAME:init}
+    password: ${DB_PASSWORD:init1234}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.sql
+    default-schema: public
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+server:
+  port: 8080

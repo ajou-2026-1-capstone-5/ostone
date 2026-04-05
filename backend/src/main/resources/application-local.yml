@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/init
+    username: ${DB_USERNAME:init}
+    password: ${DB_PASSWORD:init1234}
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  liquibase:
+    enabled: true
+
+logging:
+  level:
+    org.springframework.jdbc: DEBUG
+    liquibase: DEBUG
