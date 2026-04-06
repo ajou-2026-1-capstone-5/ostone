@@ -7,11 +7,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+
+import java.time.Clock;
 import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "refresh_token", schema = "app")
 public class RefreshToken {
+  private static Clock clock = Clock.systemDefaultZone();
+
+  // 테스트용 Clock 설정 메서드
+  public static void setClock(Clock testClock) {
+    clock = testClock;
+  }
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,16 +51,16 @@ public class RefreshToken {
     token.userId = userId;
     token.tokenHash = tokenHash;
     token.expiresAt = expiresAt;
-    token.createdAt = OffsetDateTime.now();
+    token.createdAt = OffsetDateTime.now(clock);
     return token;
   }
 
   public void revoke() {
-    this.revokedAt = OffsetDateTime.now();
+    this.revokedAt = OffsetDateTime.now(clock);
   }
 
   public boolean isValid() {
-    return revokedAt == null && expiresAt.isAfter(OffsetDateTime.now());
+    return revokedAt == null && expiresAt.isAfter(OffsetDateTime.now(clock));
   }
 
   public Long getId() {
