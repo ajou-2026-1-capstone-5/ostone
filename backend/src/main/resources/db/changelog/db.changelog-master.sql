@@ -583,7 +583,12 @@ create table runtime.session_outcome (
 
 --changeset devjhan:20260406-add-password-hash-to-app-user
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
-alter table app.app_user add column password_hash varchar(255) default 'temp_hash';
+alter table app.app_user add column password_hash varchar(255);
+
+-- [추가] changeset devjhan:20260406-backfill-password-hash
+--comment: Backfill password_hash for existing users to avoid NOT NULL constraint failure
+--운영 정책에 따라 적절한 초기 해시값 또는 랜덤값을 설정해야 합니다. 여기서는 임시 안전값을 할당합니다.
+update app.app_user set password_hash = 'TEMP_INACTIVE_HASH' where password_hash is null;
 
 --changeset devjhan:20260406-add-password-hash-not-null-constraint
 --comment: Apply NOT NULL constraint after ensuring all rows have a password_hash value
