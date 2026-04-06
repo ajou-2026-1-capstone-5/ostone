@@ -593,6 +593,12 @@ alter table app.app_user add column password_reset_required boolean not null def
 --comment: Flag existing users without a password_hash to require password reset at next login
 update app.app_user set password_reset_required = true where password_hash is null;
 
+--changeset devjhan:20260406-add-password-reset-token-to-app-user
+--comment: Add password reset token columns to support the password-reset recovery flow
+alter table app.app_user
+    add column password_reset_token_hash varchar(255),
+    add column password_reset_token_expires_at timestamptz;
+
 --changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (

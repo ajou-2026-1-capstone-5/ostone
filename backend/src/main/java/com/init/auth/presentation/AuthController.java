@@ -4,6 +4,9 @@ import com.init.auth.application.AuthService;
 import com.init.auth.application.LoginCommand;
 import com.init.auth.application.LoginResult;
 import com.init.auth.application.LogoutCommand;
+import com.init.auth.application.PasswordResetCompleteCommand;
+import com.init.auth.application.PasswordResetInitCommand;
+import com.init.auth.application.PasswordResetInitResult;
 import com.init.auth.application.SignupCommand;
 import com.init.auth.application.SignupResult;
 import com.init.auth.application.TokenRefreshCommand;
@@ -11,6 +14,9 @@ import com.init.auth.application.TokenRefreshResult;
 import com.init.auth.presentation.dto.LoginRequest;
 import com.init.auth.presentation.dto.LoginResponse;
 import com.init.auth.presentation.dto.LogoutRequest;
+import com.init.auth.presentation.dto.PasswordResetCompleteRequest;
+import com.init.auth.presentation.dto.PasswordResetInitRequest;
+import com.init.auth.presentation.dto.PasswordResetInitResponse;
 import com.init.auth.presentation.dto.SignupRequest;
 import com.init.auth.presentation.dto.SignupResponse;
 import com.init.auth.presentation.dto.TokenRefreshRequest;
@@ -67,6 +73,22 @@ public class AuthController {
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
     authService.logout(new LogoutCommand(request.refreshToken()));
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/password-reset/init")
+  public ResponseEntity<PasswordResetInitResponse> passwordResetInit(
+      @Valid @RequestBody PasswordResetInitRequest request) {
+    PasswordResetInitResult result =
+        authService.passwordResetInit(new PasswordResetInitCommand(request.email()));
+    return ResponseEntity.ok(new PasswordResetInitResponse(result.resetToken()));
+  }
+
+  @PostMapping("/password-reset/complete")
+  public ResponseEntity<Void> passwordResetComplete(
+      @Valid @RequestBody PasswordResetCompleteRequest request) {
+    authService.passwordResetComplete(
+        new PasswordResetCompleteCommand(request.resetToken(), request.newPassword()));
     return ResponseEntity.noContent().build();
   }
 }

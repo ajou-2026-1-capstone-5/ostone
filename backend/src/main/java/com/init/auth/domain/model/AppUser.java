@@ -11,6 +11,8 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "app_user", schema = "app")
@@ -40,8 +42,15 @@ public class AppUser {
   @Column(nullable = false)
   private UserStatus status;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "profile_json")
   private String profileJson;
+
+  @Column(name = "password_reset_token_hash")
+  private String passwordResetTokenHash;
+
+  @Column(name = "password_reset_token_expires_at")
+  private OffsetDateTime passwordResetTokenExpiresAt;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
@@ -100,5 +109,23 @@ public class AppUser {
 
   public boolean isPasswordResetRequired() {
     return passwordResetRequired;
+  }
+
+  public void initiatePasswordReset(String tokenHash, OffsetDateTime expiresAt) {
+    this.passwordResetTokenHash = tokenHash;
+    this.passwordResetTokenExpiresAt = expiresAt;
+  }
+
+  public boolean isPasswordResetTokenValid() {
+    return passwordResetTokenHash != null
+        && passwordResetTokenExpiresAt != null
+        && OffsetDateTime.now().isBefore(passwordResetTokenExpiresAt);
+  }
+
+  public void completePasswordReset(String newPasswordHash) {
+    this.passwordHash = newPasswordHash;
+    this.passwordResetRequired = false;
+    this.passwordResetTokenHash = null;
+    this.passwordResetTokenExpiresAt = null;
   }
 }

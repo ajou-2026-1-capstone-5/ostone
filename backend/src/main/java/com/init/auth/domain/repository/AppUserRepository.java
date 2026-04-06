@@ -12,4 +12,6 @@ public interface AppUserRepository {
   Optional<AppUser> findById(Long id);
 
   boolean existsByEmail(String email);
+
+  Optional<AppUser> findByPasswordResetTokenHash(String tokenHash);
 }

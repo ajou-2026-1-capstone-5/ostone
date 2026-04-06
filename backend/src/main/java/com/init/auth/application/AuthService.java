@@ -15,6 +15,8 @@ import io.jsonwebtoken.JwtException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,9 +74,12 @@ public class AuthService {
 
     AppUser user =
         AppUser.create(command.name(), command.email(), passwordEncoder.encode(command.password()));
-    AppUser saved = userRepository.save(user);
-
-    return new SignupResult(saved.getId(), saved.getEmail(), saved.getName());
+    try {
+      AppUser saved = userRepository.save(user);
+      return new SignupResult(saved.getId(), saved.getEmail(), saved.getName());
+    } catch (DataIntegrityViolationException ex) {
+      throw new EmailAlreadyExistsException("이미 사용 중인 이메일입니다.");
+    }
   }
 
   public TokenRefreshResult refresh(TokenRefreshCommand command) {
@@ -106,6 +111,13 @@ public class AuthService {
             .findById(userId)
             .orElseThrow(() -> new InvalidTokenException("사용자를 찾을 수 없습니다."));
 
+    if (user.getStatus() != UserStatus.ACTIVE) {
+      throw new InvalidTokenException("비활성화된 계정입니다.");
+    }
+    if (user.isPasswordResetRequired()) {
+      throw new InvalidTokenException("비밀번호 재설정이 필요합니다.");
+    }
+
     refreshToken.revoke();
     refreshTokenRepository.save(refreshToken);
 
@@ -126,6 +138,38 @@ public class AuthService {
               rt.revoke();
               refreshTokenRepository.save(rt);
             });
+  }
+
+  public PasswordResetInitResult passwordResetInit(PasswordResetInitCommand command) {
+    String rawToken = UUID.randomUUID().toString();
+    String tokenHash = HashUtils.sha256Hex(rawToken);
+    OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
+
+    userRepository
+        .findByEmail(command.email())
+        .ifPresent(
+            user -> {
+              user.initiatePasswordReset(tokenHash, expiresAt);
+              userRepository.save(user);
+            });
+
+    return new PasswordResetInitResult(rawToken);
+  }
+
+  public void passwordResetComplete(PasswordResetCompleteCommand command) {
+    String tokenHash = HashUtils.sha256Hex(command.resetToken());
+
+    AppUser user =
+        userRepository
+            .findByPasswordResetTokenHash(tokenHash)
+            .orElseThrow(() -> new InvalidTokenException("유효하지 않은 비밀번호 재설정 토큰입니다."));
+
+    if (!user.isPasswordResetTokenValid()) {
+      throw new InvalidTokenException("만료된 비밀번호 재설정 토큰입니다.");
+    }
+
+    user.completePasswordReset(passwordEncoder.encode(command.newPassword()));
+    userRepository.save(user);
   }
 
   private LoginResult issueTokens(AppUser user) {
