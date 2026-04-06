@@ -69,8 +69,7 @@ public class AuthService {
       OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
       user.initiatePasswordReset(tokenHash, expiresAt);
       userRepository.save(user);
-      // TODO: send rawToken to user via email/SMS (out-of-band delivery)
-      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.");
+      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", rawToken);
     }
 
     return issueTokens(user);
