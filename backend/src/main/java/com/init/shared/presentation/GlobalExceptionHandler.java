@@ -8,6 +8,7 @@ import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -53,7 +54,10 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ValidationErrorResponse> handleValidation(
       MethodArgumentNotValidException ex) {
     List<String> errors =
-        ex.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage).toList();
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(FieldError::getDefaultMessage)
+            .filter(Objects::nonNull)
+            .toList();
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ValidationErrorResponse("VALIDATION_ERROR", errors));
   }

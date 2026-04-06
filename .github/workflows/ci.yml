@@ -65,7 +65,7 @@ jobs:
           SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
           SPRING_LIQUIBASE_ENABLED: "true"
-          SPRING_JPA_HIBERNATE_DDL_AUTO: none
+          SPRING_JPA_HIBERNATE_DDL_AUTO: validate
   frontend:
     needs: paths-filter
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}

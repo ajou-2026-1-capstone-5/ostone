@@ -6,7 +6,6 @@ import com.init.auth.application.LoginResult;
 import com.init.auth.application.LogoutCommand;
 import com.init.auth.application.PasswordResetCompleteCommand;
 import com.init.auth.application.PasswordResetInitCommand;
-import com.init.auth.application.PasswordResetInitResult;
 import com.init.auth.application.SignupCommand;
 import com.init.auth.application.SignupResult;
 import com.init.auth.application.TokenRefreshCommand;
@@ -79,9 +78,8 @@ public class AuthController {
   @PostMapping("/password-reset/init")
   public ResponseEntity<PasswordResetInitResponse> passwordResetInit(
       @Valid @RequestBody PasswordResetInitRequest request) {
-    PasswordResetInitResult result =
-        authService.passwordResetInit(new PasswordResetInitCommand(request.email()));
-    return ResponseEntity.ok(new PasswordResetInitResponse(result.resetToken()));
+    authService.passwordResetInit(new PasswordResetInitCommand(request.email()));
+    return ResponseEntity.ok(new PasswordResetInitResponse("이메일로 비밀번호 재설정 안내를 발송했습니다."));
   }
 
   @PostMapping("/password-reset/complete")

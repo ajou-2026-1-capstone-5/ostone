@@ -11,6 +11,9 @@ public class Sha256TokenHasher implements TokenHasher {
 
   @Override
   public String hash(String input) {
+    if (input == null) {
+      throw new IllegalArgumentException("input must not be null");
+    }
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
