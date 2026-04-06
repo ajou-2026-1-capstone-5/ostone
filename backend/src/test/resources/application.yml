@@ -1,14 +1,22 @@
 spring:
   datasource:
-    url: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS APP"
+    # 1. H2 옵션 최적화: PostgreSQL 모드와 식별자 대소문자 설정을 맞춥니다.
+    url: "jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
+      # 2. 핵심 수정: ddl-auto를 반드시 설정해야 Liquibase 대신 Hibernate가 테이블을 만듭니다.
       ddl-auto: create-drop
-    show-sql: false
+    properties:
+      hibernate:
+        # 3. 중요: H2의 Postgres 모드에서는 PostgreSQLDialect를 써야 jsonb 타입을 Hibernate가 에러 없이 처리합니다.
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        format_sql: true
+  
+  # 4. Liquibase는 테스트 시에 비활성화 (main의 SQL 파일 충돌 방지)
   liquibase:
     enabled: false
 

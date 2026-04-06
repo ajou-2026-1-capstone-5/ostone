@@ -583,7 +583,7 @@ create table runtime.session_outcome (
 
 --changeset devjhan:20260406-add-password-hash-to-app-user
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
-alter table app.app_user add column password_hash varchar(255);
+alter table app.app_user add column password_hash varchar(255) default 'temp_hash';
 
 --changeset devjhan:20260406-add-password-hash-not-null-constraint
 --comment: Apply NOT NULL constraint after ensuring all rows have a password_hash value
