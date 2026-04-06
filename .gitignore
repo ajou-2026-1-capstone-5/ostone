@@ -26,3 +26,6 @@ __pycache__/
 
 # Sisyphus
 .sisyphus/
+
+# Claude-Code
+CLAUDE.md
