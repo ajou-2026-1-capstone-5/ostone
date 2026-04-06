@@ -582,16 +582,25 @@ create table runtime.session_outcome (
 );
 
 --changeset devjhan:20260406-add-password-hash-to-app-user
---comment: Add password_hash column for JWT-based authentication
-alter table app.app_user add column password_hash varchar(255) not null;
+--comment: Add password_hash column as nullable initially (safe for non-empty tables)
+alter table app.app_user add column password_hash varchar(255);
+
+--changeset devjhan:20260406-add-password-hash-not-null-constraint
+--comment: Apply NOT NULL constraint after ensuring all rows have a password_hash value
+alter table app.app_user alter column password_hash set not null;
 
 --changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (
     id bigserial primary key,
+    version bigint not null default 0,
     user_id bigint not null references app.app_user(id) on delete cascade,
     token_hash varchar(255) not null unique,
     expires_at timestamptz not null,
     created_at timestamptz not null default now(),
     revoked_at timestamptz
 );
+
+--changeset devjhan:20260406-add-refresh-token-user-id-index
+--comment: Add index for efficient user token lookups by user_id
+create index idx_refresh_token_user_id on app.refresh_token(user_id);

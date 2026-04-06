@@ -16,3 +16,6 @@ jwt:
   secret: test-secret-key-for-testing-purposes-only-min-32-bytes
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
+
+cors:
+  allowed-origins: "http://localhost:5173"

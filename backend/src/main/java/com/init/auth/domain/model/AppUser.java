@@ -7,6 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
@@ -54,9 +56,19 @@ public class AppUser {
     user.role = UserRole.OPERATOR;
     user.status = UserStatus.ACTIVE;
     user.profileJson = "{}";
-    user.createdAt = OffsetDateTime.now();
-    user.updatedAt = OffsetDateTime.now();
     return user;
+  }
+
+  @PrePersist
+  protected void onPersist() {
+    OffsetDateTime now = OffsetDateTime.now();
+    this.createdAt = now;
+    this.updatedAt = now;
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    this.updatedAt = OffsetDateTime.now();
   }
 
   public Long getId() {

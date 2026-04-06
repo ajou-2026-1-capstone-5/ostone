@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -15,6 +16,10 @@ public class RefreshToken {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  @Version
+  @Column(nullable = false)
+  private Long version;
 
   @Column(name = "user_id", nullable = false)
   private Long userId;

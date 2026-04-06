@@ -1,6 +1,13 @@
 package com.init.auth.presentation;
 
 import com.init.auth.application.AuthService;
+import com.init.auth.application.LoginCommand;
+import com.init.auth.application.LoginResult;
+import com.init.auth.application.LogoutCommand;
+import com.init.auth.application.SignupCommand;
+import com.init.auth.application.SignupResult;
+import com.init.auth.application.TokenRefreshCommand;
+import com.init.auth.application.TokenRefreshResult;
 import com.init.auth.presentation.dto.LoginRequest;
 import com.init.auth.presentation.dto.LoginResponse;
 import com.init.auth.presentation.dto.LogoutRequest;
@@ -28,23 +35,38 @@ public class AuthController {
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-    return ResponseEntity.ok(authService.login(request));
+    LoginResult result = authService.login(new LoginCommand(request.email(), request.password()));
+    return ResponseEntity.ok(
+        new LoginResponse(
+            result.accessToken(),
+            result.refreshToken(),
+            result.tokenType(),
+            result.expiresIn(),
+            new LoginResponse.UserInfo(
+                result.userId(), result.email(), result.name(), result.role())));
   }
 
   @PostMapping("/signup")
   public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(request));
+    SignupResult result =
+        authService.signup(new SignupCommand(request.name(), request.email(), request.password()));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(new SignupResponse(result.id(), result.email(), result.name()));
   }
 
   @PostMapping("/refresh")
   public ResponseEntity<TokenRefreshResponse> refresh(
       @Valid @RequestBody TokenRefreshRequest request) {
-    return ResponseEntity.ok(authService.refresh(request));
+    TokenRefreshResult result =
+        authService.refresh(new TokenRefreshCommand(request.refreshToken()));
+    return ResponseEntity.ok(
+        new TokenRefreshResponse(
+            result.accessToken(), result.refreshToken(), result.tokenType(), result.expiresIn()));
   }
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
-    authService.logout(request);
+    authService.logout(new LogoutCommand(request.refreshToken()));
     return ResponseEntity.noContent().build();
   }
 }

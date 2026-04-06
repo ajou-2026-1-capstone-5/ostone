@@ -13,6 +13,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtService {
 
+  private static final int MIN_SECRET_BYTES = 32;
+  private static final String TOKEN_TYPE_ACCESS = "access";
+  private static final String TOKEN_TYPE_REFRESH = "refresh";
+
   private final SecretKey signingKey;
   private final long accessTokenExpiration;
   private final long refreshTokenExpiration;
@@ -21,7 +25,12 @@ public class JwtService {
       @Value("${jwt.secret}") String secret,
       @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
       @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
-    this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+    if (keyBytes.length < MIN_SECRET_BYTES) {
+      throw new IllegalArgumentException(
+          "JWT secret must be at least 32 bytes (256 bits). Current: " + keyBytes.length);
+    }
+    this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     this.accessTokenExpiration = accessTokenExpiration;
     this.refreshTokenExpiration = refreshTokenExpiration;
   }
@@ -31,6 +40,7 @@ public class JwtService {
         .subject(String.valueOf(userId))
         .claim("email", email)
         .claim("role", role)
+        .claim("type", TOKEN_TYPE_ACCESS)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
         .signWith(signingKey)
@@ -40,6 +50,7 @@ public class JwtService {
   public String generateRefreshToken(Long userId) {
     return Jwts.builder()
         .subject(String.valueOf(userId))
+        .claim("type", TOKEN_TYPE_REFRESH)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
         .signWith(signingKey)
@@ -57,6 +68,10 @@ public class JwtService {
     } catch (JwtException | IllegalArgumentException ex) {
       return false;
     }
+  }
+
+  public boolean isAccessToken(Claims claims) {
+    return TOKEN_TYPE_ACCESS.equals(claims.get("type", String.class));
   }
 
   public long getAccessTokenExpiration() {
