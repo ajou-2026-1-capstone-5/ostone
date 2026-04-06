@@ -64,7 +64,6 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: postgres
           SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-
   frontend:
     needs: paths-filter
     if: ${{ needs.paths-filter.outputs.frontend == 'true' }}
