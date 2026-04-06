@@ -30,3 +30,8 @@ management:
 
 server:
   port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-for-local-development-only-min-32-bytes}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000

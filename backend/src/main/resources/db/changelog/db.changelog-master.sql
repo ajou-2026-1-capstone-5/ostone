@@ -580,3 +580,18 @@ create table runtime.session_outcome (
     created_at timestamptz not null default now(),
     unique (chat_session_id)
 );
+
+--changeset devjhan:20260406-add-password-hash-to-app-user
+--comment: Add password_hash column for JWT-based authentication
+alter table app.app_user add column password_hash varchar(255) not null;
+
+--changeset devjhan:20260406-create-app-refresh-token-table
+--comment: Create refresh_token table for JWT refresh token management
+create table app.refresh_token (
+    id bigserial primary key,
+    user_id bigint not null references app.app_user(id) on delete cascade,
+    token_hash varchar(255) not null unique,
+    expires_at timestamptz not null,
+    created_at timestamptz not null default now(),
+    revoked_at timestamptz
+);
