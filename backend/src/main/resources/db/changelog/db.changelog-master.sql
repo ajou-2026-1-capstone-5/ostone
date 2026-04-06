@@ -590,7 +590,13 @@ alter table app.app_user add column password_hash varchar(255);
 alter table app.app_user add column password_reset_required boolean not null default false;
 
 --changeset devjhan:20260406-backfill-password-reset-required
---comment: Flag existing users without a password_hash to require password reset at next login
+--comment: Flag existing users without a password_hash to require password reset at next login.
+--comment: Recovery: on next login attempt the auth service auto-issues a 30-min reset token
+--comment: returned in the 403 response body (resetToken field); call POST /api/v1/auth/password-reset/complete
+--comment: with that token and a new password. For service/admin accounts that cannot perform an
+--comment: interactive login, an operator can manually clear the flag via:
+--comment:   UPDATE app.app_user SET password_reset_required = false WHERE email = '<account_email>';
+--comment: Run this only after verifying the account already has a valid password_hash set.
 update app.app_user set password_reset_required = true where password_hash is null;
 
 --changeset devjhan:20260406-add-password-reset-token-to-app-user

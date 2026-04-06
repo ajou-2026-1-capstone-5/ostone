@@ -4,6 +4,7 @@ import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
+import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -28,10 +29,12 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(PasswordResetRequiredException.class)
-  public ResponseEntity<ErrorResponse> handlePasswordResetRequired(
+  public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
       PasswordResetRequiredException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new ErrorResponse("PASSWORD_RESET_REQUIRED", ex.getMessage()));
+        .body(
+            new PasswordResetRequiredResponse(
+                "PASSWORD_RESET_REQUIRED", ex.getMessage(), ex.getResetToken()));
   }
 
   @ExceptionHandler(EmailAlreadyExistsException.class)

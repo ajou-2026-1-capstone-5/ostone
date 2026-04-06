@@ -30,7 +30,7 @@ jobs:
 
   backend:
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.backend == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -66,7 +66,7 @@ jobs:
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   frontend:
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.frontend == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +97,7 @@ jobs:
 
   ml:
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.ml == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

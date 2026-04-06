@@ -53,7 +53,12 @@ public class AuthService {
         userOpt.orElseThrow(() -> new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
     if (user.isPasswordResetRequired()) {
-      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.");
+      String rawToken = UUID.randomUUID().toString();
+      String tokenHash = HashUtils.sha256Hex(rawToken);
+      OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
+      user.initiatePasswordReset(tokenHash, expiresAt);
+      userRepository.save(user);
+      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", rawToken);
     }
 
     if (!passwordMatches) {
@@ -98,6 +103,10 @@ public class AuthService {
     try {
       claims = jwtService.parseClaims(command.refreshToken());
     } catch (JwtException ex) {
+      throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
+    }
+
+    if (!"refresh".equals(claims.get("type", String.class))) {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }
 
