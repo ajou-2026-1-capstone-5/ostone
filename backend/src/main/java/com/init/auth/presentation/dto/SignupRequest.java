@@ -11,5 +11,5 @@ public record SignupRequest(
         @Size(max = 255, message = "이메일은 255자 이하여야 합니다.")
         String email,
     @NotBlank(message = "비밀번호는 필수입니다.")
-        @Size(min = 8, max = 255, message = "비밀번호는 8자 이상 255자 이하여야 합니다.")
+        @Size(min = 8, max = 72, message = "비밀번호는 8자 이상 72자 이하여야 합니다.")
         String password) {}
