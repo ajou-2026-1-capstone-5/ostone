@@ -26,8 +26,11 @@ public class AppUser {
   @Column(nullable = false)
   private String name;
 
-  @Column(name = "password_hash", nullable = false)
+  @Column(name = "password_hash")
   private String passwordHash;
+
+  @Column(name = "password_reset_required", nullable = false)
+  private boolean passwordResetRequired;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -93,5 +96,9 @@ public class AppUser {
 
   public UserStatus getStatus() {
     return status;
+  }
+
+  public boolean isPasswordResetRequired() {
+    return passwordResetRequired;
   }
 }

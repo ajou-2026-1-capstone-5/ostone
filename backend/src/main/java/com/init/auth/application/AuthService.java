@@ -3,6 +3,7 @@ package com.init.auth.application;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
+import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.domain.model.AppUser;
 import com.init.auth.domain.model.RefreshToken;
 import com.init.auth.domain.model.UserStatus;
@@ -48,6 +49,10 @@ public class AuthService {
 
     AppUser user =
         userOpt.orElseThrow(() -> new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
+
+    if (user.isPasswordResetRequired()) {
+      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.");
+    }
 
     if (!passwordMatches) {
       throw new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");

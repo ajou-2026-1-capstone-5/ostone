@@ -3,6 +3,7 @@ package com.init.shared.presentation;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
+import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -24,6 +25,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(new ErrorResponse("INVALID_CREDENTIALS", ex.getMessage()));
+  }
+
+  @ExceptionHandler(PasswordResetRequiredException.class)
+  public ResponseEntity<ErrorResponse> handlePasswordResetRequired(
+      PasswordResetRequiredException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("PASSWORD_RESET_REQUIRED", ex.getMessage()));
   }
 
   @ExceptionHandler(EmailAlreadyExistsException.class)

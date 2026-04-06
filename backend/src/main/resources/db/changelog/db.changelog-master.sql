@@ -585,13 +585,13 @@ create table runtime.session_outcome (
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
 alter table app.app_user add column password_hash varchar(255);
 
---changeset devjhan:20260406-backfill-password-hash
---comment: Backfill existing users with placeholder (requires manual password reset)
-update app.app_user set password_hash = 'MIGRATION_PLACEHOLDER' where password_hash is null;
+--changeset devjhan:20260406-add-password-reset-required
+--comment: Add flag for users with no password set, requiring a forced reset at next login
+alter table app.app_user add column password_reset_required boolean not null default false;
 
---changeset devjhan:20260406-add-password-hash-not-null-constraint
---comment: Apply NOT NULL constraint after ensuring all rows have a password_hash value
-alter table app.app_user alter column password_hash set not null;
+--changeset devjhan:20260406-backfill-password-reset-required
+--comment: Flag existing users without a password_hash to require password reset at next login
+update app.app_user set password_reset_required = true where password_hash is null;
 
 --changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
