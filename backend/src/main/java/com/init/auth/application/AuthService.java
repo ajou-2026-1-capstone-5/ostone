@@ -9,7 +9,7 @@ import com.init.auth.domain.model.RefreshToken;
 import com.init.auth.domain.model.UserStatus;
 import com.init.auth.domain.repository.AppUserRepository;
 import com.init.auth.domain.repository.RefreshTokenRepository;
-import com.init.shared.infrastructure.util.HashUtils;
+import com.init.shared.application.TokenHasher;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import java.time.OffsetDateTime;
@@ -29,17 +29,20 @@ public class AuthService {
   private final RefreshTokenRepository refreshTokenRepository;
   private final JwtService jwtService;
   private final PasswordEncoder passwordEncoder;
+  private final TokenHasher tokenHasher;
   private final String dummyHash;
 
   public AuthService(
       AppUserRepository userRepository,
       RefreshTokenRepository refreshTokenRepository,
       JwtService jwtService,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      TokenHasher tokenHasher) {
     this.userRepository = userRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.jwtService = jwtService;
     this.passwordEncoder = passwordEncoder;
+    this.tokenHasher = tokenHasher;
     this.dummyHash = passwordEncoder.encode("dummy_password_for_timing_prevention");
   }
 
@@ -54,7 +57,7 @@ public class AuthService {
 
     if (user.isPasswordResetRequired()) {
       String rawToken = UUID.randomUUID().toString();
-      String tokenHash = HashUtils.sha256Hex(rawToken);
+      String tokenHash = tokenHasher.hash(rawToken);
       OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
       user.initiatePasswordReset(tokenHash, expiresAt);
       userRepository.save(user);
@@ -88,7 +91,7 @@ public class AuthService {
   }
 
   public TokenRefreshResult refresh(TokenRefreshCommand command) {
-    String tokenHash = HashUtils.sha256Hex(command.refreshToken());
+    String tokenHash = tokenHasher.hash(command.refreshToken());
 
     RefreshToken refreshToken =
         refreshTokenRepository
@@ -139,7 +142,7 @@ public class AuthService {
   }
 
   public void logout(LogoutCommand command) {
-    String tokenHash = HashUtils.sha256Hex(command.refreshToken());
+    String tokenHash = tokenHasher.hash(command.refreshToken());
     refreshTokenRepository
         .findByTokenHash(tokenHash)
         .ifPresent(
@@ -151,7 +154,7 @@ public class AuthService {
 
   public PasswordResetInitResult passwordResetInit(PasswordResetInitCommand command) {
     String rawToken = UUID.randomUUID().toString();
-    String tokenHash = HashUtils.sha256Hex(rawToken);
+    String tokenHash = tokenHasher.hash(rawToken);
     OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
 
     userRepository
@@ -166,7 +169,7 @@ public class AuthService {
   }
 
   public void passwordResetComplete(PasswordResetCompleteCommand command) {
-    String tokenHash = HashUtils.sha256Hex(command.resetToken());
+    String tokenHash = tokenHasher.hash(command.resetToken());
 
     AppUser user =
         userRepository
@@ -189,7 +192,7 @@ public class AuthService {
     OffsetDateTime expiresAt =
         OffsetDateTime.now().plus(jwtService.getRefreshTokenExpiration(), ChronoUnit.MILLIS);
     RefreshToken refreshToken =
-        RefreshToken.create(user.getId(), HashUtils.sha256Hex(refreshTokenValue), expiresAt);
+        RefreshToken.create(user.getId(), tokenHasher.hash(refreshTokenValue), expiresAt);
     refreshTokenRepository.save(refreshToken);
 
     long expiresInSeconds = jwtService.getAccessTokenExpiration() / 1000;
