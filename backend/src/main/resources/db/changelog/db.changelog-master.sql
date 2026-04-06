@@ -605,6 +605,18 @@ alter table app.app_user
     add column password_reset_token_hash varchar(255),
     add column password_reset_token_expires_at timestamptz;
 
+--changeset devjhan:20260407-add-chk-app-user-password-state
+--comment: Enforce invariant: if password_hash is null then password_reset_required must be true
+alter table app.app_user
+    add constraint chk_app_user_password_state
+    check ((password_hash is not null) or (password_reset_required = true));
+
+--changeset devjhan:20260407-add-unique-password-reset-token-hash
+--comment: Ensure password reset token hashes are unique (partial index, non-null only)
+create unique index idx_app_user_password_reset_token_hash
+    on app.app_user (password_reset_token_hash)
+    where password_reset_token_hash is not null;
+
 --changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (

@@ -38,10 +38,9 @@ public class JwtService {
   public String generateAccessToken(Long userId, String email, String role) {
     return Jwts.builder()
         .subject(String.valueOf(userId))
-        .claim("type", "access")
+        .claim("type", TOKEN_TYPE_ACCESS)
         .claim("email", email)
         .claim("role", role)
-        .claim("type", TOKEN_TYPE_ACCESS)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
         .signWith(signingKey)
@@ -51,7 +50,6 @@ public class JwtService {
   public String generateRefreshToken(Long userId) {
     return Jwts.builder()
         .subject(String.valueOf(userId))
-        .claim("type", "refresh")
         .claim("type", TOKEN_TYPE_REFRESH)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))

@@ -1,6 +1,5 @@
 package com.init.shared.infrastructure.security;
 
-import com.init.auth.application.JwtService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,12 +22,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 public class SecurityConfig {
 
-  private final JwtService jwtService;
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final List<String> allowedOrigins;
 
   public SecurityConfig(
-      JwtService jwtService, @Value("${cors.allowed-origins}") List<String> allowedOrigins) {
-    this.jwtService = jwtService;
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      @Value("${cors.allowed-origins}") List<String> allowedOrigins) {
+    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.allowedOrigins = allowedOrigins;
   }
 
@@ -46,8 +46,7 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(
-            new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .exceptionHandling(
             ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
         .build();

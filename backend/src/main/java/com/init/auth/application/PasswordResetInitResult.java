@@ -1,3 +1,3 @@
 package com.init.auth.application;
 
-public record PasswordResetInitResult(boolean accepted, String requestId) {}
+public record PasswordResetInitResult(boolean accepted) {}

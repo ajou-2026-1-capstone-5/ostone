@@ -61,6 +61,15 @@ public class AppUser {
   protected AppUser() {}
 
   public static AppUser create(String name, String email, String passwordHash) {
+    if (name == null || name.isBlank()) {
+      throw new IllegalArgumentException("name must not be null or blank");
+    }
+    if (email == null || email.isBlank()) {
+      throw new IllegalArgumentException("email must not be null or blank");
+    }
+    if (passwordHash == null || passwordHash.isBlank()) {
+      throw new IllegalArgumentException("passwordHash must not be null or blank");
+    }
     AppUser user = new AppUser();
     user.name = name;
     user.email = email;
@@ -123,6 +132,9 @@ public class AppUser {
   }
 
   public void completePasswordReset(String newPasswordHash) {
+    if (newPasswordHash == null || newPasswordHash.isBlank()) {
+      throw new IllegalArgumentException("newPasswordHash must not be null or blank");
+    }
     this.passwordHash = newPasswordHash;
     this.passwordResetRequired = false;
     this.passwordResetTokenHash = null;

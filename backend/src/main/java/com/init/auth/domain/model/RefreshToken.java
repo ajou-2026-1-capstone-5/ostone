@@ -13,10 +13,11 @@ import java.time.OffsetDateTime;
 @Entity
 @Table(name = "refresh_token", schema = "app")
 public class RefreshToken {
-  private static Clock clock = Clock.systemDefaultZone();
+  private static volatile Clock clock = Clock.systemDefaultZone();
 
-  // 테스트용 Clock 설정 메서드
-  public static void setClock(Clock testClock) {
+  // 테스트용 Clock 설정 메서드 (package-private)
+  static void setClock(Clock testClock) {
+    java.util.Objects.requireNonNull(testClock, "testClock must not be null");
     clock = testClock;
   }
 

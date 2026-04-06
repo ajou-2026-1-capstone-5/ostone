@@ -1,5 +1,6 @@
 package com.init.shared.presentation;
 
+import com.init.auth.application.exception.BadRequestException;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
@@ -23,6 +24,12 @@ public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+  @ExceptionHandler(BadRequestException.class)
+  public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("BAD_REQUEST", ex.getMessage()));
+  }
+
   @ExceptionHandler(InvalidCredentialsException.class)
   public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -33,9 +40,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
       PasswordResetRequiredException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(
-            new PasswordResetRequiredResponse(
-                "PASSWORD_RESET_REQUIRED", ex.getMessage(), ex.getResetToken()));
+        .body(new PasswordResetRequiredResponse("PASSWORD_RESET_REQUIRED", ex.getMessage()));
   }
 
   @ExceptionHandler(EmailAlreadyExistsException.class)

@@ -12,5 +12,8 @@ public record PasswordResetCompleteCommand(String resetToken, String newPassword
     if (newPassword.isBlank()) {
       throw new IllegalArgumentException("newPassword must not be blank");
     }
+    if (newPassword.length() < 8 || newPassword.length() > 72) {
+      throw new IllegalArgumentException("newPassword must be between 8 and 72 characters");
+    }
   }
 }
