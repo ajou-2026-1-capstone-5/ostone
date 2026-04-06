@@ -158,15 +158,18 @@ public class AuthService {
     String tokenHash = tokenHasher.hash(rawToken);
     OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
 
-    userRepository
-        .findByEmail(command.email())
-        .ifPresent(
-            user -> {
-              user.initiatePasswordReset(tokenHash, expiresAt);
-              userRepository.save(user);
-            });
+    boolean userExists =
+        userRepository
+            .findByEmail(command.email())
+            .map(
+                user -> {
+                  user.initiatePasswordReset(tokenHash, expiresAt);
+                  userRepository.save(user);
+                  return true;
+                })
+            .orElse(false);
 
-    return new PasswordResetInitResult(true);
+    return new PasswordResetInitResult(userExists, userExists ? rawToken : null);
   }
 
   public void passwordResetComplete(PasswordResetCompleteCommand command) {

@@ -1,3 +1,3 @@
 package com.init.auth.presentation.dto;
 
-public record PasswordResetInitResponse(String message) {}
+public record PasswordResetInitResponse(String message, String resetToken) {}
