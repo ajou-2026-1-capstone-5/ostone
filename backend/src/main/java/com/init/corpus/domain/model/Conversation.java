@@ -83,9 +83,19 @@ public class Conversation {
     }
     Conversation conv = new Conversation();
     conv.datasetId = datasetId;
+    if (externalCaseId != null && externalCaseId.length() > 255) {
+      throw new IllegalArgumentException("externalCaseId must not exceed 255 characters");
+    }
     conv.externalCaseId = externalCaseId;
+    if (channel != null && channel.length() > 50) {
+      throw new IllegalArgumentException("channel must not exceed 50 characters");
+    }
     conv.channel = channel;
-    conv.languageCode = (languageCode == null || languageCode.isBlank()) ? "ko" : languageCode;
+    String resolvedLanguageCode = (languageCode == null || languageCode.isBlank()) ? "ko" : languageCode;
+    if (resolvedLanguageCode.length() > 20) {
+      throw new IllegalArgumentException("languageCode must not exceed 20 characters");
+    }
+    conv.languageCode = resolvedLanguageCode;
     conv.startedAt = startedAt;
     conv.endedAt = endedAt;
     conv.customerText = customerText;
