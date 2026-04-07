@@ -91,7 +91,8 @@ public class Conversation {
       throw new IllegalArgumentException("channel must not exceed 50 characters");
     }
     conv.channel = channel;
-    String resolvedLanguageCode = (languageCode == null || languageCode.isBlank()) ? "ko" : languageCode;
+    String resolvedLanguageCode =
+        (languageCode == null || languageCode.isBlank()) ? "ko" : languageCode;
     if (resolvedLanguageCode.length() > 20) {
       throw new IllegalArgumentException("languageCode must not exceed 20 characters");
     }
