@@ -1,0 +1,130 @@
+.queueWrapper {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.queueHeader {
+  padding: 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.queueTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.queueCount {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.queueList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  margin-bottom: 4px;
+}
+
+.queueItem:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.queueItemActive {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.customerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.customerAvatarActive {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+}
+
+.queueItemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.customerName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handoffPreview {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.waitTime {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.emptyQueue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.emptyIcon {
+  color: #cbd5e1;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  font-size: 0.85rem;
+}

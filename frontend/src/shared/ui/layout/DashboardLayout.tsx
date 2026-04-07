@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import styles from './dashboard-layout.module.css';
 
 interface DashboardLayoutProps {
@@ -18,9 +19,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <span className={styles.logoHighlight}>Ostone</span> Workflow
         </div>
         <nav className={styles.navMenu}>
-          <a href="#" className={`${styles.navItem} ${styles.active}`}>Upload Log</a>
-          <a href="#" className={styles.navItem}>Workflows</a>
-          <a href="#" className={styles.navItem}>Settings</a>
+          <Link to="/upload" className={styles.navItem}>Upload Log</Link>
+          <Link to="/consultation" className={`${styles.navItem} ${styles.active}`}>Consultation</Link>
+          <Link to="#" className={styles.navItem}>Workflows</Link>
+          <Link to="#" className={styles.navItem}>Settings</Link>
         </nav>
         <div className={styles.profileArea}>
           <div className={styles.avatar}>A</div>

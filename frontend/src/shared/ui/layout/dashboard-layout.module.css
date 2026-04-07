@@ -111,11 +111,9 @@
 .mainContent {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
   position: relative;
   z-index: 10;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
