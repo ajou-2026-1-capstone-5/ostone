@@ -1,9 +1,12 @@
 package com.init.corpus.presentation.dto;
 
+import com.init.corpus.domain.model.DatasetStatus;
+import com.init.corpus.domain.model.PiiRedactionStatus;
+
 public record DatasetUploadResponse(
     Long datasetId,
     String datasetKey,
     Long workspaceId,
-    String status,
-    String piiRedactionStatus,
+    DatasetStatus status,
+    PiiRedactionStatus piiRedactionStatus,
     int conversationCount) {}

@@ -2,6 +2,8 @@ package com.init.corpus.domain.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,11 +34,13 @@ public class Dataset {
   @Column(name = "source_type", nullable = false, length = 50)
   private String sourceType;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 50)
-  private String status;
+  private DatasetStatus status;
 
+  @Enumerated(EnumType.STRING)
   @Column(name = "pii_redaction_status", nullable = false, length = 50)
-  private String piiRedactionStatus;
+  private PiiRedactionStatus piiRedactionStatus;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", nullable = false)
@@ -60,8 +64,8 @@ public class Dataset {
     dataset.datasetKey = datasetKey;
     dataset.name = name;
     dataset.sourceType = sourceType;
-    dataset.status = "READY";
-    dataset.piiRedactionStatus = "PENDING";
+    dataset.status = DatasetStatus.READY;
+    dataset.piiRedactionStatus = PiiRedactionStatus.PENDING;
     dataset.metaJson = "{}";
     dataset.createdBy = createdBy;
     return dataset;
@@ -91,11 +95,11 @@ public class Dataset {
     return datasetKey;
   }
 
-  public String getStatus() {
+  public DatasetStatus getStatus() {
     return status;
   }
 
-  public String getPiiRedactionStatus() {
+  public PiiRedactionStatus getPiiRedactionStatus() {
     return piiRedactionStatus;
   }
 }

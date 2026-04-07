@@ -1,10 +1,13 @@
 package com.init.corpus.domain.model;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
@@ -43,6 +46,8 @@ public class Conversation {
   @Column(name = "customer_text", columnDefinition = "text")
   private String customerText;
 
+  @Lob
+  @Basic(fetch = FetchType.LAZY)
   @Column(name = "full_text", columnDefinition = "text")
   private String fullText;
 

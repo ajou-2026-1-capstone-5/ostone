@@ -70,8 +70,8 @@ public class DatasetController {
                 result.datasetId(),
                 result.datasetKey(),
                 result.workspaceId(),
-                "READY",
-                "PENDING",
+                result.status(),
+                result.piiRedactionStatus(),
                 result.conversationCount()));
   }
 }

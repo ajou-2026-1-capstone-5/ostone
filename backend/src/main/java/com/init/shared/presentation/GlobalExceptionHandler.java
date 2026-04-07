@@ -7,6 +7,8 @@ import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.DuplicateTurnIndexException;
+import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
@@ -67,6 +69,19 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleDatasetKeyConflict(DatasetKeyConflictException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT)
         .body(new ErrorResponse("DATASET_KEY_CONFLICT", ex.getMessage()));
+  }
+
+  @ExceptionHandler(UnauthorizedWorkspaceAccessException.class)
+  public ResponseEntity<ErrorResponse> handleUnauthorizedWorkspaceAccess(
+      UnauthorizedWorkspaceAccessException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DuplicateTurnIndexException.class)
+  public ResponseEntity<ErrorResponse> handleDuplicateTurnIndex(DuplicateTurnIndexException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("DUPLICATE_TURN_INDEX", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

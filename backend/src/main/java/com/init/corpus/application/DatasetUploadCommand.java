@@ -18,7 +18,12 @@ public record DatasetUploadCommand(
       String languageCode,
       OffsetDateTime startedAt,
       OffsetDateTime endedAt,
-      List<TurnData> turns) {}
+      List<TurnData> turns) {
+    public ConversationData {
+      Objects.requireNonNull(turns, "turns must not be null");
+      turns = List.copyOf(turns);
+    }
+  }
 
   public record TurnData(
       int turnIndex, String speakerRole, String messageText, OffsetDateTime eventTime) {}
@@ -28,6 +33,7 @@ public record DatasetUploadCommand(
     Objects.requireNonNull(datasetKey, "datasetKey must not be null");
     Objects.requireNonNull(name, "name must not be null");
     Objects.requireNonNull(sourceType, "sourceType must not be null");
+    Objects.requireNonNull(createdBy, "createdBy must not be null");
     Objects.requireNonNull(conversations, "conversations must not be null");
     conversations = List.copyOf(conversations);
   }
