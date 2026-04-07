@@ -76,6 +76,14 @@ public class JwtService {
     }
   }
 
+  public boolean isTokenValid(Claims claims) {
+    if (claims == null) {
+      return false;
+    }
+    Date expiration = claims.getExpiration();
+    return expiration != null && expiration.after(new Date());
+  }
+
   public boolean isAccessToken(Claims claims) {
     return TOKEN_TYPE_ACCESS.equals(claims.get("type", String.class));
   }
