@@ -580,3 +580,71 @@ create table runtime.session_outcome (
     created_at timestamptz not null default now(),
     unique (chat_session_id)
 );
+
+--changeset devjhan:20260406-add-password-hash-to-app-user
+--comment: Add password_hash column as nullable initially (safe for non-empty tables)
+alter table app.app_user add column password_hash varchar(255);
+
+--changeset devjhan:20260406-add-password-reset-required
+--comment: Add flag for users with no password set, requiring a forced reset at next login
+alter table app.app_user add column password_reset_required boolean not null default false;
+
+--changeset devjhan:20260406-backfill-password-reset-required
+--comment: Flag existing users without a password_hash to require password reset at next login.
+--comment: Recovery: on next login attempt the auth service auto-issues a 30-min reset token
+--comment: returned in the 403 response body (resetToken field); call POST /api/v1/auth/password-reset/complete
+--comment: with that token and a new password. For service/admin accounts that cannot perform an
+--comment: interactive login, an operator can manually clear the flag via:
+--comment:   UPDATE app.app_user SET password_reset_required = false WHERE email = '<account_email>';
+--comment: Run this only after verifying the account already has a valid password_hash set.
+update app.app_user set password_reset_required = true where password_hash is null;
+
+--changeset devjhan:20260406-add-password-reset-token-to-app-user
+--comment: Add password reset token columns to support the password-reset recovery flow
+alter table app.app_user
+    add column password_reset_token_hash varchar(255),
+    add column password_reset_token_expires_at timestamptz;
+
+--changeset devjhan:20260407-add-chk-app-user-password-state
+--comment: Enforce invariant: if password_hash is null then password_reset_required must be true
+alter table app.app_user
+    add constraint chk_app_user_password_state
+    check ((password_hash is not null) or (password_reset_required = true));
+
+--changeset devjhan:20260407-add-unique-password-reset-token-hash
+--comment: Ensure password reset token hashes are unique (partial index, non-null only)
+create unique index idx_app_user_password_reset_token_hash
+    on app.app_user (password_reset_token_hash)
+    where password_reset_token_hash is not null;
+
+--changeset devjhan:20260407-backfill-password-hash-sentinel
+--comment: Backfill a sentinel BCrypt value for accounts with no password_hash.
+--comment: These rows already have password_reset_required = true (set by backfill-password-reset-required).
+--comment: The auth service checks password_reset_required before hash verification (returns 403 first),
+--comment: so this sentinel is never evaluated by BCryptPasswordEncoder and cannot be exploited.
+--comment: This backfill is required to satisfy the NOT NULL constraint added in the next changeset.
+update app.app_user
+    set password_hash = '$2a$10$resetrequiredXXXXXXXXXXaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    where password_hash is null and password_reset_required = true;
+
+--changeset devjhan:20260406-add-password-hash-not-null-constraint
+--comment: Enforce NOT NULL on password_hash now that all rows are backfilled.
+--comment: Together with chk_app_user_password_state, all accounts either have a real hash
+--comment: or the sentinel hash with password_reset_required = true.
+alter table app.app_user alter column password_hash set not null;
+
+--changeset devjhan:20260406-create-app-refresh-token-table
+--comment: Create refresh_token table for JWT refresh token management
+create table app.refresh_token (
+    id bigserial primary key,
+    version bigint not null default 0,
+    user_id bigint not null references app.app_user(id) on delete cascade,
+    token_hash varchar(255) not null unique,
+    expires_at timestamptz not null,
+    created_at timestamptz not null default now(),
+    revoked_at timestamptz
+);
+
+--changeset devjhan:20260406-add-refresh-token-user-id-index
+--comment: Add index for efficient user token lookups by user_id
+create index idx_refresh_token_user_id on app.refresh_token(user_id);
