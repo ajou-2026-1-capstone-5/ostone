@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '../../../../shared/ui/input/Input';
 import { Button } from '../../../../shared/ui/button/Button';
+import { loginApi } from '../../api/authApi';
+import { saveAuthSession } from '../../../../shared/lib/auth';
+import { ApiRequestError } from '../../../../shared/api';
 import styles from './login-form.module.css';
 
 export const LoginForm: React.FC = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,11 +25,37 @@ export const LoginForm: React.FC = () => {
     }
 
     setIsLoading(true);
-    // Mock API call
-    setTimeout(() => {
+    try {
+      const result = await loginApi({ email, password });
+
+      saveAuthSession(
+        {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+          tokenType: result.tokenType,
+          expiresIn: result.expiresIn,
+        },
+        result.user,
+      );
+
+      navigate('/upload');
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        if (err.code === 'INVALID_CREDENTIALS') {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        } else if (err.code === 'PASSWORD_RESET_REQUIRED') {
+          setError('비밀번호 재설정이 필요합니다.');
+        } else if (err.code === 'VALIDATION_ERROR') {
+          setError(err.message);
+        } else {
+          setError(err.message || '로그인에 실패했습니다.');
+        }
+      } else {
+        setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      }
+    } finally {
       setIsLoading(false);
-      // alert('로그인 성공!');
-    }, 1500);
+    }
   };
 
   return (
@@ -61,7 +91,7 @@ export const LoginForm: React.FC = () => {
           <input type="checkbox" className={styles.checkbox} />
           <span>아이디 저장</span>
         </label>
-        <Link to="/forgot-password" className={styles.forgotLink}>
+        <Link to="/reset-password" className={styles.forgotLink}>
           비밀번호 찾기
         </Link>
       </div>

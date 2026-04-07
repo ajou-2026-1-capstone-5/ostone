@@ -2,11 +2,18 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './dashboard-layout.module.css';
 
+import { useLogout } from '../../../features/auth/model/useLogout';
+import { getAuthUser } from '../../lib/auth';
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const { logout } = useLogout();
+  const user = getAuthUser();
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+
   return (
     <div className={styles.wrapper}>
       {/* Background elements inherited from global styles or specified here */}
@@ -25,7 +32,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <Link to="#" className={styles.navItem}>Settings</Link>
         </nav>
         <div className={styles.profileArea}>
-          <div className={styles.avatar}>A</div>
+          <div className={styles.avatar}>{userInitial}</div>
+          <button className={styles.logoutButton} onClick={logout}>
+            로그아웃
+          </button>
         </div>
       </header>
 

@@ -1,0 +1,105 @@
+const API_BASE = '/api/v1';
+
+interface ApiError {
+  code: string;
+  message: string;
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  async post<T>(path: string, body: unknown): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({
+        code: 'UNKNOWN_ERROR',
+        message: '요청 처리 중 오류가 발생했습니다.',
+      }))) as ApiError;
+
+      throw new ApiRequestError(response.status, errorData.code, errorData.message);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async get<T>(path: string): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({
+        code: 'UNKNOWN_ERROR',
+        message: '요청 처리 중 오류가 발생했습니다.',
+      }))) as ApiError;
+
+      throw new ApiRequestError(response.status, errorData.code, errorData.message);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async patch<T>(path: string, body: unknown): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({
+        code: 'UNKNOWN_ERROR',
+        message: '요청 처리 중 오류가 발생했습니다.',
+      }))) as ApiError;
+
+      throw new ApiRequestError(response.status, errorData.code, errorData.message);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
+  }
+}
+
+export class ApiRequestError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export const apiClient = new ApiClient(API_BASE);

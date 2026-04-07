@@ -1,6 +1,7 @@
 .pageWrapper {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: calc(100vh - 72px); /* Topbar 높이 제외 */
   overflow: hidden;
 }

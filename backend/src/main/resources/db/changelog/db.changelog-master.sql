@@ -648,3 +648,40 @@ create table app.refresh_token (
 --changeset devjhan:20260406-add-refresh-token-user-id-index
 --comment: Add index for efficient user token lookups by user_id
 create index idx_refresh_token_user_id on app.refresh_token(user_id);
+
+--changeset devjhan:20260407-insert-demo-consultation-data
+--comment: Insert demo data (workspace, domain_pack, sessions, messages) for the Consultation page
+
+INSERT INTO app.workspace (id, workspace_key, name, description)
+VALUES (1, 'WS-DEMO', 'Demo Workspace', 'Demo workspace for consultation')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO pack.domain_pack (id, workspace_id, pack_key, name)
+VALUES (1, 1, 'PACK-DEMO', 'Demo Domain Pack')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO pack.domain_pack_version (id, domain_pack_id, version_no, lifecycle_status)
+VALUES (1, 1, 1, 'PUBLISHED')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO runtime.chat_session (id, workspace_id, domain_pack_version_id, status, channel, meta_json)
+VALUES 
+  (1, 1, 1, 'OPEN', '카카오톡', '{"customerName": "김민지", "handoffReason": "결제 오류 해결 불가"}'::jsonb),
+  (2, 1, 1, 'OPEN', '웹 채팅', '{"customerName": "이준혁", "handoffReason": "환불 규정 문의"}'::jsonb),
+  (3, 1, 1, 'OPEN', '네이버 톡톡', '{"customerName": "박서연", "handoffReason": "배송 지연 불만"}'::jsonb),
+  (4, 1, 1, 'OPEN', '앱 채팅', '{"customerName": "최도윤", "handoffReason": "계정 잠금 해제 요청"}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO runtime.chat_message (chat_session_id, seq_no, sender_role, content)
+VALUES
+  (1, 1, 'SYSTEM', '챗봇에서 상담자에게 연결되었습니다 · 사유: 결제 오류 해결 불가'),
+  (1, 2, 'CUSTOMER', '안녕하세요, 결제가 계속 안 돼요. 카드번호도 맞는데 자꾸 실패한다고 나와요.'),
+  (1, 3, 'CUSTOMER', '챗봇에서는 해결이 안 돼서 연결해달라고 했어요.'),
+  (2, 1, 'SYSTEM', '챗봇에서 상담자에게 연결되었습니다 · 사유: 환불 규정 문의'),
+  (2, 2, 'CUSTOMER', '3일 전에 주문한 건인데 환불 가능한가요?'),
+  (2, 3, 'CUSTOMER', '주문번호는 ORD-20260405-1023입니다.'),
+  (3, 1, 'SYSTEM', '챗봇에서 상담자에게 연결되었습니다 · 사유: 배송 지연 불만'),
+  (3, 2, 'CUSTOMER', '주문한 지 일주일이 넘었는데 아직도 배송이 안 왔어요. 왜 이렇게 오래 걸리나요?'),
+  (4, 1, 'SYSTEM', '챗봇에서 상담자에게 연결되었습니다 · 사유: 계정 잠금 해제 요청'),
+  (4, 2, 'CUSTOMER', '비밀번호를 여러 번 틀려서 계정이 잠겼어요. 풀어주실 수 있나요?')
+ON CONFLICT (chat_session_id, seq_no) DO NOTHING;
