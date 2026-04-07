@@ -81,8 +81,8 @@ public class AuthController {
       @Valid @RequestBody PasswordResetInitRequest request) {
     PasswordResetInitResult result =
         authService.passwordResetInit(new PasswordResetInitCommand(request.email()));
-    return ResponseEntity.ok(
-        new PasswordResetInitResponse("이메일로 비밀번호 재설정 안내를 발송했습니다.", result.rawToken()));
+    // TODO: emailService.sendPasswordResetEmail(request.email(), result.rawToken());
+    return ResponseEntity.ok(new PasswordResetInitResponse("이메일로 비밀번호 재설정 안내를 발송했습니다."));
   }
 
   @PostMapping("/password-reset/complete")

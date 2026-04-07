@@ -41,8 +41,7 @@ public class GlobalExceptionHandler {
       PasswordResetRequiredException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
         .body(
-            new PasswordResetRequiredResponse(
-                "PASSWORD_RESET_REQUIRED", ex.getMessage(), ex.getResetToken()));
+            new PasswordResetRequiredResponse("PASSWORD_RESET_REQUIRED", ex.getMessage()));
   }
 
   @ExceptionHandler(EmailAlreadyExistsException.class)
