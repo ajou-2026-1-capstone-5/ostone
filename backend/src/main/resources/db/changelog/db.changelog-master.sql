@@ -617,6 +617,22 @@ create unique index idx_app_user_password_reset_token_hash
     on app.app_user (password_reset_token_hash)
     where password_reset_token_hash is not null;
 
+--changeset devjhan:20260407-backfill-password-hash-sentinel
+--comment: Backfill a sentinel BCrypt value for accounts with no password_hash.
+--comment: These rows already have password_reset_required = true (set by backfill-password-reset-required).
+--comment: The auth service checks password_reset_required before hash verification (returns 403 first),
+--comment: so this sentinel is never evaluated by BCryptPasswordEncoder and cannot be exploited.
+--comment: This backfill is required to satisfy the NOT NULL constraint added in the next changeset.
+update app.app_user
+    set password_hash = '$2a$10$resetrequiredXXXXXXXXXXaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    where password_hash is null and password_reset_required = true;
+
+--changeset devjhan:20260406-add-password-hash-not-null-constraint
+--comment: Enforce NOT NULL on password_hash now that all rows are backfilled.
+--comment: Together with chk_app_user_password_state, all accounts either have a real hash
+--comment: or the sentinel hash with password_reset_required = true.
+alter table app.app_user alter column password_hash set not null;
+
 --changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (
