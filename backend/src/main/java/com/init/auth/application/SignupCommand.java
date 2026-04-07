@@ -16,5 +16,8 @@ public record SignupCommand(String name, String email, String password) {
     if (password.isBlank()) {
       throw new IllegalArgumentException("password must not be blank");
     }
+    if (password.length() < 8 || password.length() > 72) {
+      throw new IllegalArgumentException("password length must be between 8 and 72");
+    }
   }
 }

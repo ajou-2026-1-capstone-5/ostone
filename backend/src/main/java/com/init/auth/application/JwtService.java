@@ -25,6 +25,12 @@ public class JwtService {
       @Value("${jwt.secret}") String secret,
       @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
       @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
+    if (accessTokenExpiration <= 0) {
+      throw new IllegalArgumentException("jwt.access-token-expiration must be > 0");
+    }
+    if (refreshTokenExpiration <= 0) {
+      throw new IllegalArgumentException("jwt.refresh-token-expiration must be > 0");
+    }
     byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
     if (keyBytes.length < MIN_SECRET_BYTES) {
       throw new IllegalArgumentException(

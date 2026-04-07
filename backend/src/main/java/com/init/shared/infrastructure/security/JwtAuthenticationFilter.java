@@ -40,29 +40,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     String token = authHeader.substring(7);
-    if (jwtService.isTokenValid(token)) {
-      try {
-        Claims claims = jwtService.parseClaims(token);
-        if (jwtService.isAccessToken(claims)) {
-          Long userId = Long.parseLong(claims.getSubject());
-          String role = claims.get("role", String.class);
-          if (role != null) {
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                    userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-          }
+    try {
+      Claims claims = jwtService.parseClaims(token);
+      if (jwtService.isTokenValid(token) && jwtService.isAccessToken(claims)) {
+        Long userId = Long.parseLong(claims.getSubject());
+        String role = claims.get("role", String.class);
+        if (role != null) {
+          UsernamePasswordAuthenticationToken authentication =
+                  new UsernamePasswordAuthenticationToken(
+                          userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+          SecurityContextHolder.getContext().setAuthentication(authentication);
         }
-      } catch (Exception ex) {
-        SecurityContextHolder.clearContext();
-        log.warn(
-            "Failed to process JWT for request [{} {}]: {}",
-            request.getMethod(),
-            request.getRequestURI(),
-            ex.getMessage());
       }
+    } catch (Exception ex) {
+      SecurityContextHolder.clearContext();
+      log.warn(
+              "Failed to process JWT for request [{} {}]: {}",
+              request.getMethod(),
+              request.getRequestURI(),
+              ex.getMessage());
     }
-
     filterChain.doFilter(request, response);
   }
 }

@@ -121,6 +121,12 @@ public class AppUser {
   }
 
   public void initiatePasswordReset(String tokenHash, OffsetDateTime expiresAt) {
+    if (tokenHash == null || tokenHash.isBlank()) {
+      throw new IllegalArgumentException("tokenHash must not be null or blank");
+    }
+    if (expiresAt == null) {
+      throw new IllegalArgumentException("expiresAt must not be null or blank");
+    }
     this.passwordResetTokenHash = tokenHash;
     this.passwordResetTokenExpiresAt = expiresAt;
   }

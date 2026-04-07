@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "refresh_token", schema = "app")
@@ -47,6 +48,11 @@ public class RefreshToken {
   protected RefreshToken() {}
 
   public static RefreshToken create(Long userId, String tokenHash, OffsetDateTime expiresAt) {
+    Objects.requireNonNull(userId, "userId must not be null");
+    Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+    if (tokenHash == null || tokenHash.isBlank()) {
+      throw new IllegalArgumentException("tokenHash must not be null or blank");
+    }
     RefreshToken token = new RefreshToken();
     token.userId = userId;
     token.tokenHash = tokenHash;
