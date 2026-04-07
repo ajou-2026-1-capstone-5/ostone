@@ -92,4 +92,8 @@ public class AuthController {
         new PasswordResetCompleteCommand(request.resetToken(), request.newPassword()));
     return ResponseEntity.noContent().build();
   }
+
+  // AuthController — 현재 TODO
+// TODO: emailService.sendPasswordResetEmail(request.email(), result.rawToken());
+
 }

@@ -28,7 +28,7 @@ public class AppUser {
   @Column(nullable = false)
   private String name;
 
-  @Column(name = "password_hash")
+  @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
   @Column(name = "password_reset_required", nullable = false)
