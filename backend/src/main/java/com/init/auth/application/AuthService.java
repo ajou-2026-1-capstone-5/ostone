@@ -55,10 +55,6 @@ public class AuthService {
     AppUser user =
         userOpt.orElseThrow(() -> new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
-    if (!passwordMatches) {
-      throw new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
-    }
-
     if (user.getStatus() != UserStatus.ACTIVE) {
       throw new InvalidCredentialsException("비활성화된 계정입니다.");
     }
@@ -70,6 +66,10 @@ public class AuthService {
       user.initiatePasswordReset(tokenHash, expiresAt);
       userRepository.save(user);
       throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", rawToken);
+    }
+
+    if (!passwordMatches) {
+      throw new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
     return issueTokens(user);
