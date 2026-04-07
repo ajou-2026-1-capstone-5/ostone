@@ -43,6 +43,8 @@ public class Conversation {
   @Column(name = "turn_count", nullable = false)
   private int turnCount;
 
+  @Lob
+  @Basic(fetch = FetchType.LAZY)
   @Column(name = "customer_text", columnDefinition = "text")
   private String customerText;
 
