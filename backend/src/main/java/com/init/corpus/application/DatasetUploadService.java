@@ -125,8 +125,7 @@ public class DatasetUploadService {
     Set<Integer> seen = new HashSet<>();
     for (TurnData turn : turns) {
       if (!seen.add(turn.turnIndex())) {
-        throw new DuplicateTurnIndexException(
-            "중복된 turnIndex가 존재합니다: " + turn.turnIndex());
+        throw new DuplicateTurnIndexException("중복된 turnIndex가 존재합니다: " + turn.turnIndex());
       }
     }
   }
