@@ -11,6 +11,8 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -72,11 +74,18 @@ public class Conversation {
       String customerText,
       String fullText,
       int turnCount) {
+    Objects.requireNonNull(datasetId, "datasetId must not be null");
+    if (turnCount < 0) {
+      throw new IllegalArgumentException("turnCount must be >= 0");
+    }
+    if (startedAt != null && endedAt != null && endedAt.isBefore(startedAt)) {
+      throw new IllegalArgumentException("endedAt must be greater than or equal to startedAt");
+    }
     Conversation conv = new Conversation();
     conv.datasetId = datasetId;
     conv.externalCaseId = externalCaseId;
     conv.channel = channel;
-    conv.languageCode = languageCode != null ? languageCode : "ko";
+    conv.languageCode = (languageCode == null || languageCode.isBlank()) ? "ko" : languageCode;
     conv.startedAt = startedAt;
     conv.endedAt = endedAt;
     conv.customerText = customerText;
@@ -88,7 +97,7 @@ public class Conversation {
 
   @PrePersist
   protected void onPersist() {
-    this.createdAt = OffsetDateTime.now();
+    this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);
   }
 
   public Long getId() {
