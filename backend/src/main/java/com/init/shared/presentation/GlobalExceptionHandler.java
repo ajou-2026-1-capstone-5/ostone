@@ -6,6 +6,8 @@ import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
+import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -53,6 +55,18 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(new ErrorResponse("INVALID_TOKEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(WorkspaceNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleWorkspaceNotFound(WorkspaceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("WORKSPACE_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DatasetKeyConflictException.class)
+  public ResponseEntity<ErrorResponse> handleDatasetKeyConflict(DatasetKeyConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(new ErrorResponse("DATASET_KEY_CONFLICT", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
