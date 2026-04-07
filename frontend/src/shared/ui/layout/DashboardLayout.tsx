@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import styles from './dashboard-layout.module.css';
 
 import { useLogout } from '../../../features/auth/model/useLogout';
@@ -14,6 +14,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const user = getAuthUser();
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) => 
+    `${styles.navItem} ${isActive ? styles.active : ''}`;
+
   return (
     <div className={styles.wrapper}>
       {/* Background elements inherited from global styles or specified here */}
@@ -26,10 +29,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <span className={styles.logoHighlight}>Ostone</span> Workflow
         </div>
         <nav className={styles.navMenu}>
-          <Link to="/upload" className={styles.navItem}>Upload Log</Link>
-          <Link to="/consultation" className={`${styles.navItem} ${styles.active}`}>Consultation</Link>
-          <Link to="#" className={styles.navItem}>Workflows</Link>
-          <Link to="#" className={styles.navItem}>Settings</Link>
+          <NavLink to="/upload" className={getNavLinkClass}>Upload Log</NavLink>
+          <NavLink to="/consultation" className={getNavLinkClass}>Consultation</NavLink>
+          <NavLink to="/workflows" className={getNavLinkClass}>Workflows</NavLink>
+          <NavLink to="/settings" className={getNavLinkClass}>Settings</NavLink>
         </nav>
         <div className={styles.profileArea}>
           <div className={styles.avatar}>{userInitial}</div>

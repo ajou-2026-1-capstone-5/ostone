@@ -39,6 +39,10 @@ public class ConsultationService {
     ChatSession session = chatSessionRepository.findById(sessionId)
         .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
+    if (session.getId() == null) {
+      throw new IllegalStateException("Session ID cannot be null");
+    }
+
     Integer nextSeqNo = chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
         .map(msg -> msg.getSeqNo() + 1)
         .orElse(1);
@@ -47,6 +51,9 @@ public class ConsultationService {
     String messageType = "TEXT";
 
     ChatMessage newMessage = ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
+    if (newMessage == null) {
+      throw new IllegalStateException("Failed to create ChatMessage");
+    }
     chatMessageRepository.save(newMessage);
 
     return ChatMessageResponse.from(newMessage);
