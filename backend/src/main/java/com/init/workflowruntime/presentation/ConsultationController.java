@@ -50,9 +50,6 @@ public class ConsultationController {
    */
   @GetMapping("/sessions/{sessionId}/messages")
   public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable Long sessionId) {
-    if (sessionId == null) {
-      return ResponseEntity.badRequest().build();
-    }
     return ResponseEntity.ok(consultationService.getMessages(sessionId));
   }
 
@@ -65,10 +62,7 @@ public class ConsultationController {
    */
   @PostMapping("/sessions/{sessionId}/messages")
   public ResponseEntity<ChatMessageResponse> sendMessage(
-      @PathVariable Long sessionId, @RequestBody SendMessageRequest request) {
-    if (sessionId == null || request == null) {
-      return ResponseEntity.badRequest().build();
-    }
+      @PathVariable Long sessionId, @Valid @RequestBody SendMessageRequest request) {
     return ResponseEntity.ok(consultationService.sendMessage(sessionId, request));
   }
 
@@ -82,9 +76,6 @@ public class ConsultationController {
   @PatchMapping("/sessions/{sessionId}/status")
   public ResponseEntity<ChatSessionResponse> updateStatus(
       @PathVariable Long sessionId, @Valid @RequestBody UpdateStatusRequest request) {
-    if (sessionId == null || request == null || request.getStatus() == null) {
-      return ResponseEntity.badRequest().build();
-    }
     return ResponseEntity.ok(
         consultationService.updateSessionStatus(sessionId, request.getStatus()));
   }

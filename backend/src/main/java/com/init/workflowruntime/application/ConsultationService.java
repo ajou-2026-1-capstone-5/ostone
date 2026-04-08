@@ -6,13 +6,10 @@ import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
+import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
-import com.init.workflowruntime.infrastructure.persistence.ChatSessionRepository;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class ConsultationService {
-
-  private static final Logger log = LoggerFactory.getLogger(ConsultationService.class);
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -96,38 +91,17 @@ public class ConsultationService {
     String role = request.isNote() ? "NOTE" : "AGENT";
     String messageType = "TEXT";
 
-    int maxRetries = 3;
-    DataIntegrityViolationException lastException = null;
+    Integer nextSeqNo =
+        chatMessageRepository
+            .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+            .map(msg -> msg.getSeqNo() + 1)
+            .orElse(1);
 
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        Integer nextSeqNo =
-            chatMessageRepository
-                .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
-                .map(msg -> msg.getSeqNo() + 1)
-                .orElse(1);
+    ChatMessage newMessage =
+        ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
+    chatMessageRepository.save(newMessage);
 
-        ChatMessage newMessage =
-            ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
-        if (newMessage == null) {
-          throw new IllegalStateException("Failed to create ChatMessage");
-        }
-        chatMessageRepository.save(newMessage);
-
-        return ChatMessageResponse.from(newMessage);
-      } catch (DataIntegrityViolationException e) {
-        log.warn(
-            "Concurrency conflict for seqNo in session {}. Attempt {}/{}",
-            sessionId,
-            attempt,
-            maxRetries);
-        lastException = e;
-      }
-    }
-
-    throw new IllegalStateException(
-        "Failed to save ChatMessage after " + maxRetries + " retries due to concurrency",
-        lastException);
+    return ChatMessageResponse.from(newMessage);
   }
 
   /**
@@ -145,8 +119,18 @@ public class ConsultationService {
             .findById(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
-    if ("COMPLETED".equalsIgnoreCase(status)) {
-      session.closeSession();
+    ChatSessionStatus newStatus;
+    try {
+      newStatus = ChatSessionStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unsupported status: " + status);
+    }
+
+    switch (newStatus) {
+      case COMPLETED -> session.closeSession();
+      case ACTIVE -> session.setStatus(ChatSessionStatus.ACTIVE);
+      case RESOLVED -> session.setStatus(ChatSessionStatus.RESOLVED);
+      case OPEN -> session.setStatus(ChatSessionStatus.OPEN);
     }
 
     return ChatSessionResponse.from(session);

@@ -35,29 +35,4 @@ public record ChatMessageResponse(
         message.getContent(),
         message.getCreatedAt());
   }
-
-  // 기존 JavaBean 스타일 게터와의 호환성을 위한 메서드들
-  public Long getId() {
-    return id;
-  }
-
-  public Integer getSeqNo() {
-    return seqNo;
-  }
-
-  public String getSenderRole() {
-    return senderRole;
-  }
-
-  public String getMessageType() {
-    return messageType;
-  }
-
-  public String getContent() {
-    return content;
-  }
-
-  public OffsetDateTime getCreatedAt() {
-    return createdAt;
-  }
 }
