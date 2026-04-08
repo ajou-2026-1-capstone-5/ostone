@@ -9,6 +9,7 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +30,22 @@ public class ConsultationService {
     return sessions.stream().map(ChatSessionResponse::from).collect(Collectors.toList());
   }
 
-  public List<ChatMessageResponse> getMessages(Long sessionId) {
-    List<ChatMessage> messages = chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(sessionId);
-    return messages.stream().map(ChatMessageResponse::from).collect(Collectors.toList());
+  public List<ChatMessageResponse> getMessages(@NonNull Long sessionId) {
+    ChatSession session = chatSessionRepository.findById(sessionId)
+        .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+    if (session.getId() == null) {
+      throw new IllegalStateException("Session ID cannot be null");
+    }
+
+    return chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(session.getId())
+        .stream()
+        .map(ChatMessageResponse::from)
+        .collect(Collectors.toList());
   }
 
   @Transactional
-  public ChatMessageResponse sendMessage(Long sessionId, SendMessageRequest request) {
+  public ChatMessageResponse sendMessage(@NonNull Long sessionId, @NonNull SendMessageRequest request) {
     ChatSession session = chatSessionRepository.findById(sessionId)
         .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 

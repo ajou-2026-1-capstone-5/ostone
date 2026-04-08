@@ -599,25 +599,25 @@ alter table app.app_user add column password_reset_required boolean not null def
 --comment: Run this only after verifying the account already has a valid password_hash set.
 update app.app_user set password_reset_required = true where password_hash is null;
 
---changeset devjhan:20260406-add-password-reset-token-to-app-user
+--changeset jhkang0516:20260406-add-password-reset-token-to-app-user
 --comment: Add password reset token columns to support the password-reset recovery flow
 alter table app.app_user
     add column password_reset_token_hash varchar(255),
     add column password_reset_token_expires_at timestamptz;
 
---changeset devjhan:20260407-add-chk-app-user-password-state
+--changeset jhkang0516:20260407-add-chk-app-user-password-state
 --comment: Enforce invariant: if password_hash is null then password_reset_required must be true
 alter table app.app_user
     add constraint chk_app_user_password_state
     check ((password_hash is not null) or (password_reset_required = true));
 
---changeset devjhan:20260407-add-unique-password-reset-token-hash
+--changeset jhkang0516:20260407-add-unique-password-reset-token-hash
 --comment: Ensure password reset token hashes are unique (partial index, non-null only)
 create unique index idx_app_user_password_reset_token_hash
     on app.app_user (password_reset_token_hash)
     where password_reset_token_hash is not null;
 
---changeset devjhan:20260407-backfill-password-hash-sentinel
+--changeset jhkang0516:20260407-backfill-password-hash-sentinel
 --comment: Backfill a sentinel BCrypt value for accounts with no password_hash.
 --comment: These rows already have password_reset_required = true (set by backfill-password-reset-required).
 --comment: The auth service checks password_reset_required before hash verification (returns 403 first),
@@ -627,13 +627,13 @@ update app.app_user
     set password_hash = '$2a$10$resetrequiredXXXXXXXXXXaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     where password_hash is null and password_reset_required = true;
 
---changeset devjhan:20260406-add-password-hash-not-null-constraint
+--changeset jhkang0516:20260406-add-password-hash-not-null-constraint
 --comment: Enforce NOT NULL on password_hash now that all rows are backfilled.
 --comment: Together with chk_app_user_password_state, all accounts either have a real hash
 --comment: or the sentinel hash with password_reset_required = true.
 alter table app.app_user alter column password_hash set not null;
 
---changeset devjhan:20260406-create-app-refresh-token-table
+--changeset jhkang0516:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (
     id bigserial primary key,
@@ -645,11 +645,11 @@ create table app.refresh_token (
     revoked_at timestamptz
 );
 
---changeset devjhan:20260406-add-refresh-token-user-id-index
+--changeset jhkang0516:20260406-add-refresh-token-user-id-index
 --comment: Add index for efficient user token lookups by user_id
 create index idx_refresh_token_user_id on app.refresh_token(user_id);
 
---changeset devjhan:20260407-insert-demo-consultation-data
+--changeset jhkang0516:20260407-insert-demo-consultation-data
 --comment: Insert demo data (workspace, domain_pack, sessions, messages) for the Consultation page
 
 INSERT INTO app.workspace (id, workspace_key, name, description)
