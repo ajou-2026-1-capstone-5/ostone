@@ -19,7 +19,8 @@ public static final int MAX_RETRY_COUNT = 3;
 ### 클래스 구조
 
 ```java
-// 한 클래스는 한 가지 책임만
+// application 계층 서비스는 @Service 어노테이션 사용
+@Service
 public class DomainPackService {
     private final DomainPackRepository repository;
     private final DomainEventPublisher eventPublisher;
