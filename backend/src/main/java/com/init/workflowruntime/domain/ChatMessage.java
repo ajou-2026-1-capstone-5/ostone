@@ -56,14 +56,23 @@ public class ChatMessage {
    */
   public static ChatMessage create(
       Long chatSessionId, Integer seqNo, String senderRole, String messageType, String content) {
-    if (chatSessionId == null || seqNo == null || senderRole == null) {
-      throw new IllegalArgumentException("Session ID, SeqNo, SenderRole missing");
+    if (chatSessionId == null) {
+      throw new IllegalArgumentException("chatSessionId must not be null");
+    }
+    if (seqNo == null || seqNo <= 0) {
+      throw new IllegalArgumentException("seqNo must be a positive integer");
+    }
+    if (senderRole == null || senderRole.isBlank()) {
+      throw new IllegalArgumentException("senderRole must not be blank");
+    }
+    if (messageType == null || messageType.isBlank()) {
+      throw new IllegalArgumentException("messageType must not be blank");
     }
     ChatMessage message = new ChatMessage();
     message.chatSessionId = chatSessionId;
     message.seqNo = seqNo;
-    message.senderRole = senderRole;
-    message.messageType = messageType != null ? messageType : "TEXT";
+    message.senderRole = senderRole.trim();
+    message.messageType = messageType.trim();
     message.content = content;
     message.payloadJson = "{}";
     return message;

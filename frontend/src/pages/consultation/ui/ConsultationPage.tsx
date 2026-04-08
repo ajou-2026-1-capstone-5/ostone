@@ -68,21 +68,23 @@ export const ConsultationPage: React.FC = () => {
 
   useEffect(() => {
     loadQueue();
-    // 주기적으로 폴링(polling)하면 실시간성 확보 가능
-    // const interval = setInterval(loadQueue, 5000);
-    // return () => clearInterval(interval);
+    const interval = setInterval(loadQueue, 5000);
+    return () => clearInterval(interval);
   }, [loadQueue]);
 
-  // Load Messages on select
+  // Load Messages on select (with polling and stale-response guard)
   useEffect(() => {
     if (!activeCustomerId) {
       setMessages([]);
       return;
     }
 
+    let cancelled = false;
+
     const loadMessages = async () => {
       try {
         const msgs = await consultationApi.getMessages(Number(activeCustomerId));
+        if (cancelled) return;
         setMessages(msgs.map(m => ({
           id: String(m.id),
           senderRole: m.senderRole as any,
@@ -90,11 +92,17 @@ export const ConsultationPage: React.FC = () => {
           timestamp: formatTime(m.createdAt),
         })));
       } catch (error) {
-        console.error('Failed to load messages:', error);
+        if (!cancelled) console.error('Failed to load messages:', error);
       }
     };
 
     loadMessages();
+    const interval = setInterval(loadMessages, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [activeCustomerId]);
 
   const handleSelectCustomer = (id: string) => {
@@ -106,14 +114,21 @@ export const ConsultationPage: React.FC = () => {
 
   const handleSendMessage = async (content: string, isNote: boolean) => {
     if (!activeCustomerId) return;
+    const targetId = activeCustomerId;
     try {
-      const newMsg = await consultationApi.sendMessage(Number(activeCustomerId), content, isNote);
-      setMessages(prev => [...prev, {
-        id: String(newMsg.id),
-        senderRole: newMsg.senderRole as any,
-        content: newMsg.content,
-        timestamp: formatTime(newMsg.createdAt),
-      }]);
+      const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
+      // Only update if still viewing the same session
+      setActiveCustomerId(current => {
+        if (current === targetId) {
+          setMessages(prev => [...prev, {
+            id: String(newMsg.id),
+            senderRole: newMsg.senderRole as any,
+            content: newMsg.content,
+            timestamp: formatTime(newMsg.createdAt),
+          }]);
+        }
+        return current;
+      });
     } catch(err) {
       alert('메시지 전송 실패');
     }

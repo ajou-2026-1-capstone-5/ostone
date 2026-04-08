@@ -84,6 +84,12 @@
   background: rgba(16, 185, 129, 0.15);
 }
 
+.navItem.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .profileArea {
   display: flex;
   align-items: center;

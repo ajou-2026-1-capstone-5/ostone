@@ -27,7 +27,8 @@ export const LogUploadForm: React.FC = () => {
 
   const handleFileSelect = (selectedFile: File) => {
     // Only accept csv or json roughly
-    if (!selectedFile.name.endsWith('.csv') && !selectedFile.name.endsWith('.json')) {
+    const name = selectedFile.name.toLowerCase();
+    if (!name.endsWith('.csv') && !name.endsWith('.json')) {
       alert('Please upload a .csv or .json file.');
       return;
     }

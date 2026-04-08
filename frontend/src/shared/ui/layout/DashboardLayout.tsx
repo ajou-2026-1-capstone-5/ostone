@@ -2,8 +2,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './dashboard-layout.module.css';
 
-import { useLogout } from '../../../features/auth/model/useLogout';
-import { getAuthUser } from '../../lib/auth';
+import { useNavigate } from 'react-router-dom';
+import { getAuthUser, clearAuthSession } from '../../lib/auth';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -12,16 +12,16 @@ interface DashboardLayoutProps {
 /**
  * 상담 대시보드를 위한 메인 프레임 레이아웃 컴포넌트입니다.
  * 상단 헤더, 사이드바 내비게이션, 그리고 메인 콘텐츠 영역을 포함합니다.
- * 
+ *
  * @param {DashboardLayoutProps} props - 자식 컴포넌트(children)
  * @returns {JSX.Element} 대시보드 레이아웃
  */
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { logout } = useLogout();
+  const navigate = useNavigate();
   const user = getAuthUser();
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
-  const getNavLinkClass = ({ isActive }: { isActive: boolean }) => 
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     `${styles.navItem} ${isActive ? styles.active : ''}`;
 
   return (
@@ -38,12 +38,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <nav className={styles.navMenu}>
           <NavLink to="/upload" className={getNavLinkClass}>Upload Log</NavLink>
           <NavLink to="/consultation" className={getNavLinkClass}>Consultation</NavLink>
-          <NavLink to="/workflows" className={getNavLinkClass}>Workflows</NavLink>
-          <NavLink to="/settings" className={getNavLinkClass}>Settings</NavLink>
+          <span className={`${styles.navItem} ${styles.disabled}`}>Workflows</span>
+          <span className={`${styles.navItem} ${styles.disabled}`}>Settings</span>
         </nav>
         <div className={styles.profileArea}>
           <div className={styles.avatar}>{userInitial}</div>
-          <button className={styles.logoutButton} onClick={logout}>
+          <button className={styles.logoutButton} onClick={() => { clearAuthSession(); navigate('/login'); }}>
             로그아웃
           </button>
         </div>
