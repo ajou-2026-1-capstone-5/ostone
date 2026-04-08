@@ -1,16 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vite-plus/test';
 import { loginApi, signupApi, passwordResetInitApi, logoutApi } from './authApi';
 
 // fetch API를 Mocking합니다.
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as typeof globalThis & { fetch: typeof fetch }).fetch = mockFetch;
 
 describe('Auth API Integration Tests', () => {
+  let originalGetItem: typeof Storage.prototype.getItem;
+
   beforeEach(() => {
     // 매 테스트 전에 mock 초기화
     mockFetch.mockClear();
     // 로컬 스토리지 모킹 (로그아웃 테스트 등에 활용)
+    originalGetItem = Storage.prototype.getItem;
     Storage.prototype.getItem = vi.fn(() => 'mock-token');
+  });
+
+  afterEach(() => {
+    // 원래 getItem 복원
+    Storage.prototype.getItem = originalGetItem;
   });
 
   it('loginApi 메서드가 올바른 URL(/api/v1/auth/login)과 데이터를 사용하여 fetch를 호출하는지 확인한다', async () => {

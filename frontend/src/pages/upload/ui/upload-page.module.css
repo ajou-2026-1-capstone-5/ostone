@@ -4,5 +4,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: clamp(16px, 5vw, 40px);
+  box-sizing: border-box;
 }

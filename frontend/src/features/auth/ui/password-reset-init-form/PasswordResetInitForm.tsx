@@ -17,11 +17,11 @@ export const PasswordResetInitForm: React.FC = () => {
       setLoading(true);
       setError(null);
       setSuccessMessage(null);
-      
+
       const response = await passwordResetInitApi(email);
       setSuccessMessage(response.message);
     } catch (err: any) {
-      setError(err.response?.data?.message || '요청 처리 중 오류가 발생했습니다.');
+      setError(err.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -39,8 +39,12 @@ export const PasswordResetInitForm: React.FC = () => {
         <>
           <div className={styles.successMessage}>
             {successMessage}
-            <br/><br/>
-            (※ 개발 모드 테스트: API가 정상 처리되었습니다. 로컬 환경이므로 메일 발송은 생략됩니다.)
+            {import.meta.env.MODE !== 'production' && (
+              <>
+                <br/><br/>
+                (※ 개발 모드 테스트: API가 정상 처리되었습니다. 로컬 환경이므로 메일 발송은 생략됩니다.)
+              </>
+            )}
           </div>
           <div className={styles.backLink}>
             <Link to="/login" className={styles.link}>로그인 화면으로 돌아가기</Link>

@@ -74,9 +74,10 @@ export const CustomerInfoPanel: React.FC<CustomerInfoPanelProps> = ({
 
       {/* Memo */}
       <div className={styles.infoSection}>
-        <div className={styles.sectionTitle}>상담 메모</div>
+        <label htmlFor="consultation-memo" className={styles.sectionTitle}>상담 메모</label>
         <div className={styles.memoArea}>
           <textarea
+            id="consultation-memo"
             className={styles.memoTextarea}
             placeholder="상담 메모를 입력하세요..."
             value={memo}

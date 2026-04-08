@@ -49,7 +49,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     return (
       <div className={`${styles.uploaderBox} ${styles.successBox}`}>
         <CheckCircle2 size={48} className={styles.successIcon} />
-        <h3>Upload Complete</h3>
+        <h3 className={styles.title}>Upload Complete</h3>
         <p className={styles.mutedText}>Log data has been successfully processed.</p>
       </div>
     );
@@ -60,13 +60,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       <div className={styles.uploaderBox}>
         <div className={styles.loaderArea}>
           <div className={styles.spinner} />
-          <h3 className={styles.statusText}>
+          <h3 className={`${styles.statusText} ${styles.title}`}>
             {status === 'analyzing' ? 'Analyzing CSV Log...' : 'Uploading File...'}
           </h3>
           <div className={styles.progressBarContainer}>
-            <div 
-              className={styles.progressBar} 
-              style={{ width: `${progress}%` }} 
+            <div
+              className={styles.progressBar}
+              style={{ width: `${progress}%` }}
             />
           </div>
           <span className={styles.progressText}>{Math.round(progress)}%</span>
@@ -94,9 +94,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       <div className={styles.iconWrapper}>
         <UploadCloud size={40} className={styles.uploadIcon} />
       </div>
-      <h3>Click or drag file to this area to upload</h3>
+      <h3 className={styles.title}>Click or drag file to this area to upload</h3>
       <p className={styles.mutedText}>Support for a single {acceptedTypes} file upload.</p>
-      
+
       <div className={styles.fileTypesHint}>
         <span className={styles.badge}><FileType size={14} /> CSV</span>
         <span className={styles.badge}><FileType size={14} /> JSON</span>

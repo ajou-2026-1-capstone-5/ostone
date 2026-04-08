@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mail, Lock, User, KeyRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '../../../../shared/ui/input/Input';
@@ -10,11 +10,12 @@ import styles from './signup-form.module.css';
 /**
  * 새로운 운영자 계정 생성을 위한 회원가입 폼 컴포넌트입니다.
  * 이름, 이메일, 비밀번호 등을 입력받아 계정을 요청합니다.
- * 
+ *
  * @returns {JSX.Element} 회원가입 폼 컴포넌트
  */
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
+  const redirectTimerRef = useRef<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,11 +24,22 @@ export const SignupForm: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isLoading) return;
+
     setError('');
     setSuccess('');
-    
+
     if (!name || !email || !password || !confirmPassword) {
       setError('모든 필드를 입력해주세요.');
       return;
@@ -47,7 +59,10 @@ export const SignupForm: React.FC = () => {
     try {
       await signupApi({ name, email, password });
       setSuccess('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
-      setTimeout(() => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+      redirectTimerRef.current = window.setTimeout(() => {
         navigate('/login');
       }, 1500);
     } catch (err) {

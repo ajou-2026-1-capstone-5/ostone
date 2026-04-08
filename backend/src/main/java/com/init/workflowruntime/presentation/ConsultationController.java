@@ -5,6 +5,7 @@ import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -83,7 +84,7 @@ public class ConsultationController {
    */
   @PatchMapping("/sessions/{sessionId}/status")
   public ResponseEntity<ChatSessionResponse> updateStatus(
-      @PathVariable Long sessionId, @RequestBody UpdateStatusRequest request) {
+      @PathVariable Long sessionId, @Valid @RequestBody UpdateStatusRequest request) {
     if (sessionId == null || request == null || request.getStatus() == null) {
       return ResponseEntity.badRequest().build();
     }

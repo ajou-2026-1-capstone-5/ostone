@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '../../../shared/ui/layout/DashboardLayout';
 import { QueuePanel } from '../../../features/consultation/ui/QueuePanel';
 import type { QueueCustomer } from '../../../features/consultation/ui/QueuePanel';
@@ -41,7 +41,7 @@ export const ConsultationPage: React.FC = () => {
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
 
   // Load Queue
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     try {
       const sessions = await consultationApi.getQueue();
       const formattedQueue = sessions.map((s) => {
@@ -64,14 +64,14 @@ export const ConsultationPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load queue:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadQueue();
     // 주기적으로 폴링(polling)하면 실시간성 확보 가능
     // const interval = setInterval(loadQueue, 5000);
     // return () => clearInterval(interval);
-  }, []);
+  }, [loadQueue]);
 
   // Load Messages on select
   useEffect(() => {
@@ -174,9 +174,11 @@ export const ConsultationPage: React.FC = () => {
           status={activeCustomerId ? (statuses[activeCustomerId] || 'WAITING') : 'WAITING'}
           category={activeCustomerId ? (categories[activeCustomerId] || '') : ''}
           onStatusChange={(val) => {
+            // NOTE: Status changes are intentionally local-only (UI state only)
             if (activeCustomerId) setStatuses((prev) => ({ ...prev, [activeCustomerId]: val }));
           }}
           onCategoryChange={(val) => {
+            // NOTE: Category changes are intentionally local-only (UI state only)
             if (activeCustomerId) setCategories((prev) => ({ ...prev, [activeCustomerId]: val }));
           }}
           onEndSession={handleEndSession}

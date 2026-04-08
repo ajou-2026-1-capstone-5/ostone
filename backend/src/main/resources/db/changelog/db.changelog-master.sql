@@ -649,7 +649,7 @@ create table app.refresh_token (
 --comment: Add index for efficient user token lookups by user_id
 create index idx_refresh_token_user_id on app.refresh_token(user_id);
 
---changeset jhkang0516:20260407-insert-demo-consultation-data
+--changeset jhkang0516:20260407-insert-demo-consultation-data context:dev,test
 --comment: Insert demo data (workspace, domain_pack, sessions, messages) for the Consultation page
 
 INSERT INTO app.workspace (id, workspace_key, name, description)
@@ -665,7 +665,7 @@ VALUES (1, 1, 1, 'PUBLISHED')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO runtime.chat_session (id, workspace_id, domain_pack_version_id, status, channel, meta_json)
-VALUES 
+VALUES
   (1, 1, 1, 'OPEN', '카카오톡', '{"customerName": "김민지", "handoffReason": "결제 오류 해결 불가"}'::jsonb),
   (2, 1, 1, 'OPEN', '웹 채팅', '{"customerName": "이준혁", "handoffReason": "환불 규정 문의"}'::jsonb),
   (3, 1, 1, 'OPEN', '네이버 톡톡', '{"customerName": "박서연", "handoffReason": "배송 지연 불만"}'::jsonb),
@@ -685,3 +685,9 @@ VALUES
   (4, 1, 'SYSTEM', '챗봇에서 상담자에게 연결되었습니다 · 사유: 계정 잠금 해제 요청'),
   (4, 2, 'CUSTOMER', '비밀번호를 여러 번 틀려서 계정이 잠겼어요. 풀어주실 수 있나요?')
 ON CONFLICT (chat_session_id, seq_no) DO NOTHING;
+
+-- Reset sequences to avoid key collisions
+SELECT setval('app.workspace_id_seq', (SELECT COALESCE(MAX(id), 1) FROM app.workspace), true);
+SELECT setval('pack.domain_pack_id_seq', (SELECT COALESCE(MAX(id), 1) FROM pack.domain_pack), true);
+SELECT setval('pack.domain_pack_version_id_seq', (SELECT COALESCE(MAX(id), 1) FROM pack.domain_pack_version), true);
+SELECT setval('runtime.chat_session_id_seq', (SELECT COALESCE(MAX(id), 1) FROM runtime.chat_session), true);

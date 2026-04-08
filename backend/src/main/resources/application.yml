@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/init
     username: ${DB_USERNAME:init}
-    password: ${DB_PASSWORD:init123}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -32,7 +32,7 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-local-development-only}
+  secret: ${JWT_SECRET}
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
 

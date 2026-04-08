@@ -60,7 +60,7 @@
   animation: scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-h3 {
+.title {
   font-size: 1.1rem;
   font-weight: 500;
   margin-bottom: 8px;
@@ -149,4 +149,9 @@ h3 {
 @keyframes pulse-op {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

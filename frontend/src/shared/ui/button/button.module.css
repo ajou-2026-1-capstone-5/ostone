@@ -20,6 +20,11 @@
   cursor: not-allowed;
 }
 
+.button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 .fullWidth {
   width: 100%;
 }
@@ -49,6 +54,10 @@
   transform: translateY(1px);
 }
 
+.primary:focus-visible {
+  outline-color: var(--primary-color);
+}
+
 .secondary {
   background-color: rgba(0, 0, 0, 0.05);
   color: var(--text-primary);
@@ -60,6 +69,10 @@
   border-color: rgba(0, 0, 0, 0.2);
 }
 
+.secondary:focus-visible {
+  outline-color: var(--text-primary);
+}
+
 .ghost {
   background-color: transparent;
   color: var(--text-secondary);
@@ -68,6 +81,10 @@
 .ghost:hover:not(:disabled) {
   color: var(--text-primary);
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.ghost:focus-visible {
+  outline-color: var(--text-secondary);
 }
 
 @keyframes spin {

@@ -1,4 +1,5 @@
-import React, { InputHTMLAttributes } from 'react';
+import React, { useId } from 'react';
+import type { InputHTMLAttributes } from 'react';
 import styles from './input.module.css';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -7,21 +8,26 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
 }
 
-export const Input: React.FC<InputProps> = ({ 
-  label, 
-  error, 
+export const Input: React.FC<InputProps> = ({
+  label,
+  error,
   icon,
   className,
-  ...props 
+  id,
+  ...props
 }) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+
   return (
     <div className={`${styles.wrapper} ${className || ''}`}>
-      {label && <label className={styles.label}>{label}</label>}
+      {label && <label htmlFor={inputId} className={styles.label}>{label}</label>}
       <div className={styles.inputContainer}>
         {icon && <span className={styles.icon}>{icon}</span>}
-        <input 
-          className={`${styles.input} ${error ? styles.errorInput : ''} ${icon ? styles.hasIcon : ''}`} 
-          {...props} 
+        <input
+          id={inputId}
+          className={`${styles.input} ${error ? styles.errorInput : ''} ${icon ? styles.hasIcon : ''}`}
+          {...props}
         />
       </div>
       {error && <span className={styles.errorText}>{error}</span>}

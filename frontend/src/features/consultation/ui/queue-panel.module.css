@@ -48,6 +48,12 @@
   background: rgba(0, 0, 0, 0.03);
 }
 
+.queueItem:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
 .queueItemActive {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.2);

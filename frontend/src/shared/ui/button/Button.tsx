@@ -1,4 +1,5 @@
-import React, { ButtonHTMLAttributes } from 'react';
+import React from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import styles from './button.module.css';
 import { Loader2 } from 'lucide-react';
 
@@ -16,15 +17,17 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   children,
   disabled,
+  type = 'button',
   ...props
 }) => {
   const baseClass = styles.button;
   const variantClass = styles[variant];
   const widthClass = fullWidth ? styles.fullWidth : '';
-  const loadingClass = isLoading ? styles.loading : '';
+  const loadingClass = isLoading ? (styles.loading || '') : '';
 
   return (
     <button
+      type={type}
       className={`${baseClass} ${variantClass} ${widthClass} ${loadingClass} ${className || ''}`}
       disabled={disabled || isLoading}
       {...props}

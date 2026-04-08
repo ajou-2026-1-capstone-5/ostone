@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileUploader } from '../../../shared/ui/file-upload/FileUploader';
 import { Button } from '../../../shared/ui/button/Button';
 import styles from './log-upload-form.module.css';
@@ -6,9 +7,23 @@ import styles from './log-upload-form.module.css';
 type UploadStatus = 'idle' | 'uploading' | 'analyzing' | 'success';
 
 export const LogUploadForm: React.FC = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState(0);
+  const uploadIntervalRef = useRef<number | null>(null);
+  const analyzeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadIntervalRef.current) {
+        clearInterval(uploadIntervalRef.current);
+      }
+      if (analyzeTimeoutRef.current) {
+        clearTimeout(analyzeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleFileSelect = (selectedFile: File) => {
     // Only accept csv or json roughly
@@ -24,19 +39,23 @@ export const LogUploadForm: React.FC = () => {
   const handleUpload = () => {
     if (!file) return;
     setStatus('uploading');
-    
+
     // Simulate Fake Upload Progress
     let currentProgress = 0;
-    const interval = setInterval(() => {
+    uploadIntervalRef.current = window.setInterval(() => {
       currentProgress += Math.random() * 15;
       if (currentProgress >= 100) {
-        clearInterval(interval);
+        if (uploadIntervalRef.current) {
+          clearInterval(uploadIntervalRef.current);
+          uploadIntervalRef.current = null;
+        }
         setProgress(100);
         setStatus('analyzing');
-        
+
         // Simulate analyzing delay
-        setTimeout(() => {
+        analyzeTimeoutRef.current = window.setTimeout(() => {
           setStatus('success');
+          analyzeTimeoutRef.current = null;
         }, 2000);
       } else {
         setProgress(currentProgress);
@@ -45,6 +64,14 @@ export const LogUploadForm: React.FC = () => {
   };
 
   const handleReset = () => {
+    if (uploadIntervalRef.current) {
+      clearInterval(uploadIntervalRef.current);
+      uploadIntervalRef.current = null;
+    }
+    if (analyzeTimeoutRef.current) {
+      clearTimeout(analyzeTimeoutRef.current);
+      analyzeTimeoutRef.current = null;
+    }
     setFile(null);
     setStatus('idle');
     setProgress(0);
@@ -80,7 +107,7 @@ export const LogUploadForm: React.FC = () => {
       {status === 'success' && (
         <div className={styles.successActions}>
           <Button variant="secondary" onClick={handleReset}>Upload Another File</Button>
-          <Button>View Extracted Workflow</Button>
+          <Button onClick={() => navigate('/workflows')}>View Extracted Workflow</Button>
         </div>
       )}
     </div>

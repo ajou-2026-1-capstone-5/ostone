@@ -17,12 +17,31 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return headers;
+  }
+
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({
+        code: 'UNKNOWN_ERROR',
+        message: '요청 처리 중 오류가 발생했습니다.',
+      }))) as ApiError;
+
+      throw new ApiRequestError(response.status, errorData.code, errorData.message);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
@@ -32,20 +51,7 @@ class ApiClient {
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({
-        code: 'UNKNOWN_ERROR',
-        message: '요청 처리 중 오류가 발생했습니다.',
-      }))) as ApiError;
-
-      throw new ApiRequestError(response.status, errorData.code, errorData.message);
-    }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
+    return this.handleResponse<T>(response);
   }
 
   async get<T>(path: string): Promise<T> {
@@ -54,16 +60,7 @@ class ApiClient {
       headers: this.getHeaders(),
     });
 
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({
-        code: 'UNKNOWN_ERROR',
-        message: '요청 처리 중 오류가 발생했습니다.',
-      }))) as ApiError;
-
-      throw new ApiRequestError(response.status, errorData.code, errorData.message);
-    }
-
-    return response.json() as Promise<T>;
+    return this.handleResponse<T>(response);
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
@@ -73,20 +70,7 @@ class ApiClient {
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({
-        code: 'UNKNOWN_ERROR',
-        message: '요청 처리 중 오류가 발생했습니다.',
-      }))) as ApiError;
-
-      throw new ApiRequestError(response.status, errorData.code, errorData.message);
-    }
-
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return response.json() as Promise<T>;
+    return this.handleResponse<T>(response);
   }
 }
 
