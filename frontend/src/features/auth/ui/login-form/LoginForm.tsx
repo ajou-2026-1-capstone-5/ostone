@@ -8,6 +8,12 @@ import { saveAuthSession } from '../../../../shared/lib/auth';
 import { ApiRequestError } from '../../../../shared/api';
 import styles from './login-form.module.css';
 
+/**
+ * 운영자 로그인을 위한 폼 컴포넌트입니다.
+ * 이메일과 비밀번호 입력을 받고, 인증 성공 시 대시보드로 리다이렉트합니다.
+ * 
+ * @returns {JSX.Element} 로그인 폼 컴포넌트
+ */
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -15,6 +21,12 @@ export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * 로그인 폼 제출 핸들러
+   * API를 호출하여 인증을 수행하고 세션을 저장합니다.
+   * 
+   * @param {React.FormEvent} e - 폼 제출 이벤트
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

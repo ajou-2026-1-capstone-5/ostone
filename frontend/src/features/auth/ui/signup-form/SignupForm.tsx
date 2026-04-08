@@ -7,6 +7,12 @@ import { signupApi } from '../../api/authApi';
 import { ApiRequestError } from '../../../../shared/api';
 import styles from './signup-form.module.css';
 
+/**
+ * 새로운 운영자 계정 생성을 위한 회원가입 폼 컴포넌트입니다.
+ * 이름, 이메일, 비밀번호 등을 입력받아 계정을 요청합니다.
+ * 
+ * @returns {JSX.Element} 회원가입 폼 컴포넌트
+ */
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');

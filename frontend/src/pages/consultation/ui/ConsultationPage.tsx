@@ -24,6 +24,12 @@ const calcWaitMinutes = (isoString: string) => {
   return Math.max(0, Math.floor(diffMs / 60000));
 };
 
+/**
+ * 상담 페이지 컴포넌트입니다.
+ * 상담 대기열, 채팅창, 고객 정보 및 상태 관리 기능을 포함하며, 전체적인 상담 워크플로우를 조율합니다.
+ * 
+ * @returns {JSX.Element} 상담 페이지 컴포넌트
+ */
 export const ConsultationPage: React.FC = () => {
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);

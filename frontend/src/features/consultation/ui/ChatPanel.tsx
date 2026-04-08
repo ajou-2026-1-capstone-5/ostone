@@ -16,6 +16,13 @@ interface ChatPanelProps {
   onSendMessage: (content: string, isNote: boolean) => void;
 }
 
+/**
+ * 상담 대화 내용을 표시하고 메시지를 전송하는 패널 컴포넌트입니다.
+ * 실시간 메시지 렌더링, 전송 시 스크롤 관리, 한글 입력 최적화 등을 처리합니다.
+ * 
+ * @param {ChatPanelProps} props - 메시지 목록 및 전송 핸들러
+ * @returns {JSX.Element} 채팅 패널 컴포넌트
+ */
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   customerName,
   channel,
@@ -32,6 +39,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [messages]);
 
+  /**
+   * 메시지 전송 버튼 클릭 또는 엔터 키 입력 시 호출되는 핸들러입니다.
+   * 공백 검사 및 한글 IME 입력 충돌 방지 로직을 포함합니다.
+   */
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(input.trim(), isNoteMode);

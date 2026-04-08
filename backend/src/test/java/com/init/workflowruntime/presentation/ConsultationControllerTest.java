@@ -92,17 +92,22 @@ class ConsultationControllerTest {
 
     ChatMessageResponse response = new ChatMessageResponse();
     response.setId(10L);
-    response.setContent("Reply");
+    response.setContent("Hello Operator");
     response.setSenderRole("AGENT");
 
     given(consultationService.sendMessage(eq(1L), any(SendMessageRequest.class))).willReturn(response);
 
     // when & then
-    mockMvc.perform(post("/api/v1/consultation/sessions/1/messages")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+    String content = objectMapper.writeValueAsString(request);
+    MediaType contentType = MediaType.APPLICATION_JSON;
+
+    mockMvc
+        .perform(
+            post("/api/v1/consultation/sessions/1/messages")
+                .contentType(contentType)
+                .content(content))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.content").value("Reply"))
+        .andExpect(jsonPath("$.content").value("Hello Operator"))
         .andExpect(jsonPath("$.senderRole").value("AGENT"));
   }
 
@@ -115,15 +120,20 @@ class ConsultationControllerTest {
 
     ChatSessionResponse response = new ChatSessionResponse();
     response.setId(1L);
-    response.setStatus("COMPLETED");
+    response.setStatus("RESOLVED");
 
     given(consultationService.updateSessionStatus(eq(1L), eq("COMPLETED"))).willReturn(response);
 
     // when & then
-    mockMvc.perform(patch("/api/v1/consultation/sessions/1/status")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+    String content = objectMapper.writeValueAsString(request);
+    MediaType contentType = MediaType.APPLICATION_JSON;
+
+    mockMvc
+        .perform(
+            patch("/api/v1/consultation/sessions/1/status")
+                .contentType(contentType)
+                .content(content))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("COMPLETED"));
+        .andExpect(jsonPath("$.status").value("RESOLVED"));
   }
 }

@@ -11,6 +11,10 @@ import java.time.OffsetDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * 상담 시스템에서 개별 메시지 데이터를 나타내는 엔티티 클래스입니다.
+ * 세션 정보, 발신자 역할, 메시지 유형 및 내용을 저장합니다.
+ */
 @Entity
 @Table(name = "chat_message", schema = "runtime")
 public class ChatMessage {
@@ -43,7 +47,18 @@ public class ChatMessage {
 
   protected ChatMessage() {}
 
-  public static ChatMessage create(Long chatSessionId, Integer seqNo, String senderRole, String messageType, String content) {
+  /**
+   * 새로운 채팅 메시지 인스턴스를 생성하는 정적 팩토리 메서드입니다.
+   *
+   * @param chatSessionId 연결될 세션 ID
+   * @param seqNo 메시지 순번
+   * @param senderRole 발신자 역할 (USER, AGENT, NOTE 등)
+   * @param messageType 메시지 유형 (TEXT 등)
+   * @param content 메시지 본문
+   * @return 생성된 ChatMessage 인스턴스
+   */
+  public static ChatMessage create(
+      Long chatSessionId, Integer seqNo, String senderRole, String messageType, String content) {
     if (chatSessionId == null || seqNo == null || senderRole == null) {
       throw new IllegalArgumentException("Session ID, SeqNo, SenderRole missing");
     }
@@ -62,12 +77,35 @@ public class ChatMessage {
     this.createdAt = OffsetDateTime.now();
   }
 
-  public Long getId() { return id; }
-  public Long getChatSessionId() { return chatSessionId; }
-  public Integer getSeqNo() { return seqNo; }
-  public String getSenderRole() { return senderRole; }
-  public String getMessageType() { return messageType; }
-  public String getContent() { return content; }
-  public String getPayloadJson() { return payloadJson; }
-  public OffsetDateTime getCreatedAt() { return createdAt; }
+  public Long getId() {
+    return id;
+  }
+
+  public Long getChatSessionId() {
+    return chatSessionId;
+  }
+
+  public Integer getSeqNo() {
+    return seqNo;
+  }
+
+  public String getSenderRole() {
+    return senderRole;
+  }
+
+  public String getMessageType() {
+    return messageType;
+  }
+
+  public String getContent() {
+    return content;
+  }
+
+  public String getPayloadJson() {
+    return payloadJson;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
 }
