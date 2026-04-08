@@ -117,12 +117,12 @@ jobs:
 
   ci-gate:
     if: always()
-    needs: [backend, frontend, ml]
+    needs: [paths-filter, backend, frontend, ml]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI results
         run: |
-          results=("${{ needs.backend.result }}" "${{ needs.frontend.result }}" "${{ needs.ml.result }}")
+          results=("${{ needs.paths-filter.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}" "${{ needs.ml.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "❌ Job failed or cancelled: $r"
