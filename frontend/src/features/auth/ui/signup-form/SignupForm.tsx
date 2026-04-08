@@ -94,7 +94,7 @@ export const SignupForm: React.FC = () => {
           type="text"
           placeholder="홍길동"
           label="이름"
-          icon={<User size={18} />}
+          icon={<UserIcon size={18} />}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -102,7 +102,7 @@ export const SignupForm: React.FC = () => {
           type="email"
           placeholder="admin@ostone.com"
           label="이메일 주소"
-          icon={<Mail size={18} />}
+          icon={<MailIcon size={18} />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -110,7 +110,7 @@ export const SignupForm: React.FC = () => {
           type="password"
           placeholder="••••••••"
           label="비밀번호 (8자 이상)"
-          icon={<Lock size={18} />}
+          icon={<LockIcon size={18} />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -118,7 +118,7 @@ export const SignupForm: React.FC = () => {
           type="password"
           placeholder="••••••••"
           label="비밀번호 확인"
-          icon={<KeyRound size={18} />}
+          icon={<KeyRoundIcon size={18} />}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
         />

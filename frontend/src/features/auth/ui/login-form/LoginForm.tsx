@@ -82,7 +82,7 @@ export const LoginForm: React.FC = () => {
           type="email"
           placeholder="admin@ostone.com"
           label="이메일 주소"
-          icon={<Mail size={18} />}
+          icon={<MailIcon size={18} />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={error && !email ? '이메일을 입력하세요' : undefined}
@@ -91,7 +91,7 @@ export const LoginForm: React.FC = () => {
           type="password"
           placeholder="••••••••"
           label="비밀번호"
-          icon={<Lock size={18} />}
+          icon={<LockIcon size={18} />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={error && !password ? '비밀번호를 입력하세요' : undefined}

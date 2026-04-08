@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileType, CheckCircle2 } from 'lucide-react';
+import { CloudUploadIcon, FileTypeIcon, CircleCheckIcon } from 'lucide-react';
 import styles from './file-uploader.module.css';
 
 interface FileUploaderProps {
@@ -48,7 +48,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   if (status === 'success') {
     return (
       <div className={`${styles.uploaderBox} ${styles.successBox}`}>
-        <CheckCircle2 size={48} className={styles.successIcon} />
+        <CircleCheckIcon size={48} className={styles.successIcon} />
         <h3 className={styles.title}>Upload Complete</h3>
         <p className={styles.mutedText}>Log data has been successfully processed.</p>
       </div>
@@ -92,14 +92,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         onChange={handleChange}
       />
       <div className={styles.iconWrapper}>
-        <UploadCloud size={40} className={styles.uploadIcon} />
+        <CloudUploadIcon size={40} className={styles.uploadIcon} />
       </div>
       <h3 className={styles.title}>Click or drag file to this area to upload</h3>
       <p className={styles.mutedText}>Support for a single {acceptedTypes} file upload.</p>
 
       <div className={styles.fileTypesHint}>
-        <span className={styles.badge}><FileType size={14} /> CSV</span>
-        <span className={styles.badge}><FileType size={14} /> JSON</span>
+        <span className={styles.badge}><FileTypeIcon size={14} /> CSV</span>
+        <span className={styles.badge}><FileTypeIcon size={14} /> JSON</span>
       </div>
     </div>
   );

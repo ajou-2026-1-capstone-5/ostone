@@ -32,7 +32,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
       <div className={styles.queueList}>
         {customers.length === 0 ? (
           <div className={styles.emptyQueue}>
-            <Inbox size={40} className={styles.emptyIcon} />
+            <InboxIcon size={40} className={styles.emptyIcon} />
             <p className={styles.emptyText}>대기중인 고객이 없습니다</p>
           </div>
         ) : (

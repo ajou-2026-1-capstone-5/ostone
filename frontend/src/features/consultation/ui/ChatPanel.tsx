@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, StickyNote, MessageSquare } from 'lucide-react';
+import { SendIcon, StickyNoteIcon, MessageSquareIcon } from 'lucide-react';
 import styles from './chat-panel.module.css';
 
 export interface ChatMessage {
@@ -63,7 +63,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     return (
       <div className={styles.chatWrapper}>
         <div className={styles.emptyChat}>
-          <MessageSquare size={48} className={styles.emptyChatIcon} />
+          <MessageSquareIcon size={48} className={styles.emptyChatIcon} />
           <p className={styles.emptyChatText}>좌측 대기 목록에서 고객을 선택해주세요</p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onClick={() => setIsNoteMode(!isNoteMode)}
           title={isNoteMode ? '일반 메시지로 전환' : '내부 메모 모드'}
         >
-          <StickyNote size={18} />
+          <StickyNoteIcon size={18} />
         </button>
         <textarea
           className={styles.messageInput}
@@ -153,7 +153,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onClick={handleSend}
           disabled={!input.trim()}
         >
-          <Send size={18} />
+          <SendIcon size={18} />
         </button>
       </div>
     </div>
