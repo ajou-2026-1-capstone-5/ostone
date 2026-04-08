@@ -1,5 +1,5 @@
 import React from 'react';
-import { PhoneOffIcon } from 'lucide-react';
+import { PhoneOff } from 'lucide-react';
 import styles from './status-bar.module.css';
 
 interface StatusBarProps {
@@ -79,7 +79,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         onClick={onEndSession}
         disabled={disabled}
       >
-        <PhoneOffIcon size={16} />
+        <PhoneOff size={16} />
         상담 종료
       </button>
     </div>

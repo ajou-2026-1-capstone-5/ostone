@@ -30,7 +30,7 @@ export const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('이메일과 비밀번호를 모두 입력해주세요.');
       return;
@@ -82,7 +82,7 @@ export const LoginForm: React.FC = () => {
           type="email"
           placeholder="admin@ostone.com"
           label="이메일 주소"
-          icon={<MailIcon size={18} />}
+          icon={<Mail size={18} />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={error && !email ? '이메일을 입력하세요' : undefined}
@@ -91,7 +91,7 @@ export const LoginForm: React.FC = () => {
           type="password"
           placeholder="••••••••"
           label="비밀번호"
-          icon={<LockIcon size={18} />}
+          icon={<Lock size={18} />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={error && !password ? '비밀번호를 입력하세요' : undefined}

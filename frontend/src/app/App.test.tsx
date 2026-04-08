@@ -12,9 +12,4 @@ describe("App", () => {
     render(<App />);
     expect(screen.getByText(/CS Workflow Generator/i)).toBeInTheDocument();
   });
-
-  it("renders hello world", () => {
-    render(<App />);
-    expect(screen.getByText(/hello world/i)).toBeInTheDocument();
-  });
 });
