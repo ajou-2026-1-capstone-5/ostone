@@ -31,16 +31,17 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
     value = ConsultationController.class,
-    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
-)
-@AutoConfigureMockMvc(addFilters = false) // Disable spring security filters for simple controller test
+    excludeFilters =
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = JwtAuthenticationFilter.class))
+@AutoConfigureMockMvc(
+    addFilters = false) // Disable spring security filters for simple controller test
 class ConsultationControllerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @Autowired
-  private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
   @SuppressWarnings("removal")
   @MockBean
@@ -55,11 +56,12 @@ class ConsultationControllerTest {
     response.setStatus("OPEN");
     response.setChannel("카카오톡");
     response.setStartedAt(OffsetDateTime.now());
-    
+
     given(consultationService.getActiveQueue()).willReturn(List.of(response));
 
     // when & then
-    mockMvc.perform(get("/api/v1/consultation/queue"))
+    mockMvc
+        .perform(get("/api/v1/consultation/queue"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(1))
         .andExpect(jsonPath("$[0].channel").value("카카오톡"));
@@ -69,12 +71,14 @@ class ConsultationControllerTest {
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
   void getMessages_Success() throws Exception {
     // given
-    ChatMessageResponse msg = new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
-    
+    ChatMessageResponse msg =
+        new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
+
     given(consultationService.getMessages(1L)).willReturn(List.of(msg));
 
     // when & then
-    mockMvc.perform(get("/api/v1/consultation/sessions/1/messages"))
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/1/messages"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].content").value("Hello"));
   }
@@ -87,9 +91,11 @@ class ConsultationControllerTest {
     request.setContent("Reply");
     request.setNote(false);
 
-    ChatMessageResponse response = new ChatMessageResponse(10L, 1, "AGENT", "TEXT", "Hello Operator", OffsetDateTime.now());
+    ChatMessageResponse response =
+        new ChatMessageResponse(10L, 1, "AGENT", "TEXT", "Hello Operator", OffsetDateTime.now());
 
-    given(consultationService.sendMessage(eq(1L), any(SendMessageRequest.class))).willReturn(response);
+    given(consultationService.sendMessage(eq(1L), any(SendMessageRequest.class)))
+        .willReturn(response);
 
     // when & then
     String content = objectMapper.writeValueAsString(request);

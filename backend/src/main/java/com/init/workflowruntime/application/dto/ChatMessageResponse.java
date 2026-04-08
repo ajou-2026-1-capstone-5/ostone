@@ -4,9 +4,8 @@ import com.init.workflowruntime.domain.ChatMessage;
 import java.time.OffsetDateTime;
 
 /**
- * 채팅 메시지 정보를 전달하는 응답 DTO 클래스입니다.
- * Record 형식을 사용하여 불변성을 보장합니다.
- * 
+ * 채팅 메시지 정보를 전달하는 응답 DTO 클래스입니다. Record 형식을 사용하여 불변성을 보장합니다.
+ *
  * @param id 메시지 고유 식별자
  * @param seqNo 메시지 순번
  * @param senderRole 발신자 역할 (USER, AGENT, NOTE 등)
@@ -20,8 +19,7 @@ public record ChatMessageResponse(
     String senderRole,
     String messageType,
     String content,
-    OffsetDateTime createdAt
-) {
+    OffsetDateTime createdAt) {
   /**
    * ChatMessage 엔티티를 ChatMessageResponse DTO로 변환합니다.
    *
@@ -35,15 +33,31 @@ public record ChatMessageResponse(
         message.getSenderRole(),
         message.getMessageType(),
         message.getContent(),
-        message.getCreatedAt()
-    );
+        message.getCreatedAt());
   }
 
   // 기존 JavaBean 스타일 게터와의 호환성을 위한 메서드들
-  public Long getId() { return id; }
-  public Integer getSeqNo() { return seqNo; }
-  public String getSenderRole() { return senderRole; }
-  public String getMessageType() { return messageType; }
-  public String getContent() { return content; }
-  public OffsetDateTime getCreatedAt() { return createdAt; }
+  public Long getId() {
+    return id;
+  }
+
+  public Integer getSeqNo() {
+    return seqNo;
+  }
+
+  public String getSenderRole() {
+    return senderRole;
+  }
+
+  public String getMessageType() {
+    return messageType;
+  }
+
+  public String getContent() {
+    return content;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
 }

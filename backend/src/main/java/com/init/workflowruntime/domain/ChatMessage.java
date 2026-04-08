@@ -11,10 +11,7 @@ import java.time.OffsetDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/**
- * 상담 시스템에서 개별 메시지 데이터를 나타내는 엔티티 클래스입니다.
- * 세션 정보, 발신자 역할, 메시지 유형 및 내용을 저장합니다.
- */
+/** 상담 시스템에서 개별 메시지 데이터를 나타내는 엔티티 클래스입니다. 세션 정보, 발신자 역할, 메시지 유형 및 내용을 저장합니다. */
 @Entity
 @Table(name = "chat_message", schema = "runtime")
 public class ChatMessage {

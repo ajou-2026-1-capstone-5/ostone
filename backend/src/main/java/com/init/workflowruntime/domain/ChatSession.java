@@ -13,10 +13,7 @@ import java.time.OffsetDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/**
- * 상담 시스템에서 개별 대화 세션을 나타내는 엔티티 클래스입니다.
- * 상담의 시작, 종료, 현재 상태 및 채널 정보를 관리합니다.
- */
+/** 상담 시스템에서 개별 대화 세션을 나타내는 엔티티 클래스입니다. 상담의 시작, 종료, 현재 상태 및 채널 정보를 관리합니다. */
 @Entity
 @Table(name = "chat_session", schema = "runtime")
 public class ChatSession {
@@ -119,9 +116,7 @@ public class ChatSession {
     return endedAt;
   }
 
-  /**
-   * 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다.
-   */
+  /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */
   public void closeSession() {
     this.status = ChatSessionStatus.COMPLETED;
     this.endedAt = OffsetDateTime.now();

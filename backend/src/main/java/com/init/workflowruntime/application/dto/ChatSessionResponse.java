@@ -1,13 +1,10 @@
 package com.init.workflowruntime.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.time.OffsetDateTime;
 import com.init.workflowruntime.domain.ChatSession;
+import java.time.OffsetDateTime;
 
-/**
- * 상담 세션 요약 정보를 전달하는 응답 DTO 클래스입니다.
- * 세션 ID, 현재 상태, 채널, 시작 시각 등의 정보를 포함합니다.
- */
+/** 상담 세션 요약 정보를 전달하는 응답 DTO 클래스입니다. 세션 ID, 현재 상태, 채널, 시작 시각 등의 정보를 포함합니다. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatSessionResponse {
   private Long id;

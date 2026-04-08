@@ -16,10 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 상담 운영자 대화 및 세션을 관리하는 REST 컨트롤러입니다.
- * 상담 대기열 조회, 메시지 송수신, 세션 상태 변경 등의 기능을 제공합니다.
- */
+/** 상담 운영자 대화 및 세션을 관리하는 REST 컨트롤러입니다. 상담 대기열 조회, 메시지 송수신, 세션 상태 변경 등의 기능을 제공합니다. */
 @RestController
 @RequestMapping("/api/v1/consultation")
 public class ConsultationController {
