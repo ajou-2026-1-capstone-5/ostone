@@ -15,9 +15,53 @@
 
 ## 기술 스택
 
-- **Backend**: Spring Boot 4.0.5
-- **Frontend**: Vite+ 0.1.15
-- **ML**: uv Python 3.14.3
+| 영역        | 기술                 | 버전   |
+| ----------- | -------------------- | ------ |
+| Backend     | Java 21, Spring Boot | 3.4.5  |
+| Frontend    | Vite+                | 0.1.15 |
+| ML Pipeline | Python 3.13+, uv     | -      |
+
+## 작업 규칙
+
+### SDD 워크플로우
+
+1. Burndown Studio에서 이슈 생성
+2. `spec/{이슈번호}` 브랜치에서 스펙 작성 → PR
+3. `feature/{이슈번호}-{설명}` 브랜치에서 구현 → PR
+
+### 브랜치 규칙
+
+| 패턴                    | 용도        |
+| ----------------------- | ----------- |
+| `spec/{번호}`           | 스펙 작성   |
+| `feature/{번호}-{설명}` | 기능 구현   |
+| `fix/{번호}-{설명}`     | 버그 수정   |
+| `chore/{설명}`          | 인프라/잡일 |
+| `docs/{설명}`           | 문서        |
+
+### 커밋
+
+Conventional Commits: `type(scope): subject` (예: `feat(domain-pack): add publish`)
+
+상세 규칙: [`.agent/rules/git.md`](.agent/rules/git.md)
+
+## 로컬 개발환경 세팅
+
+```bash
+# Docker Compose로 전체 서비스 실행
+docker-compose up -d
+
+# Backend: Gradle build
+cd backend && ./gradlew build
+
+# Frontend: pnpm dev
+cd frontend && pnpm dev
+
+# ML: pytest
+cd ml && pytest
+```
+
+상세 설정: [`backend/README.md`](backend/README.md)
 
 ## 모듈 구조
 
