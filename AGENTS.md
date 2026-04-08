@@ -8,14 +8,14 @@
 
 ## 기술 스택
 
-| 영역 | 기술 | 버전 |
-|------|------|------|
-| Backend | Spring Boot | 4.0.5 |
-| Frontend | Vite+ | 0.1.15 |
-| ML Pipeline | uv Python | 3.14.3 |
-| Database | PostgreSQL | 16+ |
-| Workflow Orchestration | Apache Airflow | 2.10+ |
-| Infrastructure | Docker Compose | - |
+| 영역                   | 기술           | 버전   |
+| ---------------------- | -------------- | ------ |
+| Backend                | Spring Boot    | 3.4.5  |
+| Frontend               | Vite+          | 0.1.15 |
+| ML Pipeline            | uv Python      | 3.13+  |
+| Database               | PostgreSQL     | 16+    |
+| Workflow Orchestration | Apache Airflow | 2.10+  |
+| Infrastructure         | Docker Compose | -      |
 
 ---
 
@@ -25,6 +25,7 @@
 
 ```
 backend/
+├── auth/                 # 인증/인가, JWT 토큰 관리, 리프레시 토큰
 ├── domain-pack/          # Domain Pack 관리 (intent, slot, policy, risk, workflow)
 │   ├── presentation/     # Controller, DTO, WebSocket Handler
 │   ├── application/      # UseCase, Application Service
@@ -40,13 +41,15 @@ backend/
 
 **계층 구조**: `presentation → application → domain → infrastructure`
 
-**6개 Bounded Context**:
-1. **domain-pack**: intent/slot/policy/risk/workflow 버전 관리
-2. **review**: AI 초안 검토, 수정, 승인, 반려
-3. **pipeline-job**: Airflow 파이프라인 실행 요청 및 상태 추적
-4. **workflow-runtime**: publish된 domain pack 실행
-5. **chat-demo**: 시연용 채팅 세션
-6. **shared/infra**: 공통 기술 요소
+**7개 Bounded Context**:
+
+1. **auth**: 인증/인가, JWT 토큰 관리, 리프레시 토큰
+2. **domain-pack**: intent/slot/policy/risk/workflow 버전 관리
+3. **review**: AI 초안 검토, 수정, 승인, 반려
+4. **pipeline-job**: Airflow 파이프라인 실행 요청 및 상태 추적
+5. **workflow-runtime**: publish된 domain pack 실행
+6. **chat-demo**: 시연용 채팅 세션
+7. **shared/infra**: 공통 기술 요소
 
 ### frontend/ — Vite+ FSD (Feature-Sliced Design)
 
@@ -63,6 +66,7 @@ frontend/
 ```
 
 **주요 화면 모듈**:
+
 - domain pack 목록/상세
 - review 작업 화면
 - pipeline 실행/상태 화면
@@ -88,6 +92,7 @@ ml/
 ```
 
 **6개 Pipeline Stage**:
+
 1. **ingestion**: 상담 로그 입력, conversation 단위 묶기, PII 제거
 2. **preprocessing**: boilerplate 제거, canonical text 생성
 3. **intent-discovery**: semantic embedding, graph clustering
@@ -99,34 +104,7 @@ ml/
 
 ## 아키텍처 요약
 
-### 두 축 구조
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    제품 런타임 계층                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │ 운영자 UI   │  │ 검토/승인   │  │ 채팅 데모   │     │
-│  └─────────────┘  └─────────────┘  └─────────────┘     │
-│         │                │                │             │
-│         └────────────────┼────────────────┘             │
-│                          ▼                              │
-│              ┌───────────────────────┐                  │
-│              │   Spring Backend      │                  │
-│              │   (Domain 관리)       │                  │
-│              └───────────────────────┘                  │
-└─────────────────────────────────────────────────────────┘
-                            │ API + Webhook
-┌─────────────────────────────────────────────────────────┐
-│                   도메인 팩 생성 계층                    │
-│              ┌───────────────────────┐                  │
-│              │   Airflow + Python    │                  │
-│              │   (Offline Pipeline)  │                  │
-│              └───────────────────────┘                  │
-│  [ingestion] → [preprocessing] → [intent-discovery]    │
-│       ↓                                               │
-│  [draft-generation] → [evaluation] → [publish]         │
-└─────────────────────────────────────────────────────────┘
-```
+시스템은 '제품 런타임 계층(Spring Backend + Frontend)'과 '도메인 팩 생성 계층(Airflow + Python Pipeline)' 두 축으로 구성된다. 제품 런타임 계층은 운영자 UI, 검토/승인, 채팅 데모를 제공하고 도메인 팩을 관리한다. 도메인 팩 생성 계층은 오프라인 파이프라인을 통해 상담 로그에서 운영 지식을 추출하고 실행 가능한 도메인 팩으로 전환한다. 상세 아키텍처는 `.agent/docs/architecture.md` 참조.
 
 ---
 
@@ -134,14 +112,14 @@ ml/
 
 **6개 PostgreSQL Schema**:
 
-| Schema | 목적 | 주요 테이블 |
-|--------|------|------------|
-| `app` | 워크스페이스, 사용자 | workspace, app_user, workspace_member |
-| `corpus` | 상담 로그 | dataset, conversation, conversation_turn |
-| `pack` | Domain Pack | domain_pack, domain_pack_version, intent_definition, slot_definition, workflow_definition |
-| `review` | 검토/승인 | review_session, review_task, review_decision |
-| `pipeline` | 파이프라인 | pipeline_job, pipeline_artifact, evaluation_run |
-| `runtime` | 실행 기록 | chat_session, workflow_execution, decision_log |
+| Schema     | 목적                 | 주요 테이블                                                                               |
+| ---------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| `app`      | 워크스페이스, 사용자 | workspace, app_user, workspace_member                                                     |
+| `corpus`   | 상담 로그            | dataset, conversation, conversation_turn                                                  |
+| `pack`     | Domain Pack          | domain_pack, domain_pack_version, intent_definition, slot_definition, workflow_definition |
+| `review`   | 검토/승인            | review_session, review_task, review_decision                                              |
+| `pipeline` | 파이프라인           | pipeline_job, pipeline_artifact, evaluation_run                                           |
+| `runtime`  | 실행 기록            | chat_session, workflow_execution, decision_log                                            |
 
 ---
 
@@ -182,21 +160,20 @@ docker-compose up -d airflow-webserver
 │   ├── architecture.md   # 전체 시스템 아키텍처
 │   └── schema.md         # PostgreSQL 스키마 정의
 ├── rules/
-│   └── coding-conventions.md  # KISS/YAGNI/DRY + 언어별 규칙
+│   ├── principles.md     # KISS/YAGNI/DRY 등 핵심 원칙
+│   ├── java.md           # Java/Spring 코딩 규칙
+│   ├── typescript.md     # TypeScript/React 코딩 규칙
+│   ├── python.md         # Python/ML 코딩 규칙
+│   ├── git.md            # Git 워크플로우 및 커밋 규칙
+│   └── code-review.md    # 코드 리뷰 가이드라인
+├── audit/
+│   ├── db-schema-compliance-report.md       # DB 스키마 컴플라이언스 리포트
+│   └── implementation-compliance-report.md  # 구현 컴플라이언스 리포트
 └── specs/
     ├── _TEMPLATE_BE.md   # Backend 스펙 템플릿
     ├── _TEMPLATE_FE.md   # Frontend 스펙 템플릿
     └── _TEMPLATE_ML.md   # ML Pipeline 스펙 템플릿
 ```
-
----
-
-## 연락처
-
-- **강희원** (201920717) - kangheewon@ajou.ac.kr
-- **강준현** (202126906) - jhkang0516@ajou.ac.kr
-- **배성연** (202020776) - bsy309@ajou.ac.kr
-- **하장한** (202126852) - egnever4434@gmail.com
 
 ---
 
