@@ -599,25 +599,25 @@ alter table app.app_user add column password_reset_required boolean not null def
 --comment: Run this only after verifying the account already has a valid password_hash set.
 update app.app_user set password_reset_required = true where password_hash is null;
 
---changeset jhkang0516:20260406-add-password-reset-token-to-app-user
+--changeset devjhan:20260406-add-password-reset-token-to-app-user
 --comment: Add password reset token columns to support the password-reset recovery flow
 alter table app.app_user
     add column password_reset_token_hash varchar(255),
     add column password_reset_token_expires_at timestamptz;
 
---changeset jhkang0516:20260407-add-chk-app-user-password-state
+--changeset devjhan:20260407-add-chk-app-user-password-state
 --comment: Enforce invariant: if password_hash is null then password_reset_required must be true
 alter table app.app_user
     add constraint chk_app_user_password_state
     check ((password_hash is not null) or (password_reset_required = true));
 
---changeset jhkang0516:20260407-add-unique-password-reset-token-hash
+--changeset devjhan:20260407-add-unique-password-reset-token-hash
 --comment: Ensure password reset token hashes are unique (partial index, non-null only)
 create unique index idx_app_user_password_reset_token_hash
     on app.app_user (password_reset_token_hash)
     where password_reset_token_hash is not null;
 
---changeset jhkang0516:20260407-backfill-password-hash-sentinel
+--changeset devjhan:20260407-backfill-password-hash-sentinel
 --comment: Backfill a sentinel BCrypt value for accounts with no password_hash.
 --comment: These rows already have password_reset_required = true (set by backfill-password-reset-required).
 --comment: The auth service checks password_reset_required before hash verification (returns 403 first),
@@ -627,13 +627,13 @@ update app.app_user
     set password_hash = '$2a$10$resetrequiredXXXXXXXXXXaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     where password_hash is null and password_reset_required = true;
 
---changeset jhkang0516:20260406-add-password-hash-not-null-constraint
+--changeset devjhan:20260406-add-password-hash-not-null-constraint
 --comment: Enforce NOT NULL on password_hash now that all rows are backfilled.
 --comment: Together with chk_app_user_password_state, all accounts either have a real hash
 --comment: or the sentinel hash with password_reset_required = true.
 alter table app.app_user alter column password_hash set not null;
 
---changeset jhkang0516:20260406-create-app-refresh-token-table
+--changeset devjhan:20260406-create-app-refresh-token-table
 --comment: Create refresh_token table for JWT refresh token management
 create table app.refresh_token (
     id bigserial primary key,
@@ -645,7 +645,7 @@ create table app.refresh_token (
     revoked_at timestamptz
 );
 
---changeset jhkang0516:20260406-add-refresh-token-user-id-index
+--changeset devjhan:20260406-add-refresh-token-user-id-index
 --comment: Add index for efficient user token lookups by user_id
 create index idx_refresh_token_user_id on app.refresh_token(user_id);
 
@@ -655,14 +655,17 @@ create index idx_refresh_token_user_id on app.refresh_token(user_id);
 INSERT INTO app.workspace (id, workspace_key, name, description)
 VALUES (1, 'WS-DEMO', 'Demo Workspace', 'Demo workspace for consultation')
 ON CONFLICT (id) DO NOTHING;
+SELECT setval('app.workspace_id_seq', (SELECT MAX(id) FROM app.workspace) + 1, false);
 
 INSERT INTO pack.domain_pack (id, workspace_id, pack_key, name)
 VALUES (1, 1, 'PACK-DEMO', 'Demo Domain Pack')
 ON CONFLICT (id) DO NOTHING;
+SELECT setval('pack.domain_pack_id_seq', (SELECT MAX(id) FROM pack.domain_pack) + 1, false);
 
 INSERT INTO pack.domain_pack_version (id, domain_pack_id, version_no, lifecycle_status)
 VALUES (1, 1, 1, 'PUBLISHED')
 ON CONFLICT (id) DO NOTHING;
+SELECT setval('pack.domain_pack_version_id_seq', (SELECT MAX(id) FROM pack.domain_pack_version) + 1, false);
 
 INSERT INTO runtime.chat_session (id, workspace_id, domain_pack_version_id, status, channel, meta_json)
 VALUES
@@ -671,6 +674,7 @@ VALUES
   (3, 1, 1, 'OPEN', '네이버 톡톡', '{"customerName": "박서연", "handoffReason": "배송 지연 불만"}'::jsonb),
   (4, 1, 1, 'OPEN', '앱 채팅', '{"customerName": "최도윤", "handoffReason": "계정 잠금 해제 요청"}'::jsonb)
 ON CONFLICT (id) DO NOTHING;
+SELECT setval('runtime.chat_session_id_seq', (SELECT MAX(id) FROM runtime.chat_session) + 1, false);
 
 INSERT INTO runtime.chat_message (chat_session_id, seq_no, sender_role, content)
 VALUES

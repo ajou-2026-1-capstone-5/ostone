@@ -69,10 +69,7 @@ class ConsultationControllerTest {
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
   void getMessages_Success() throws Exception {
     // given
-    ChatMessageResponse msg = new ChatMessageResponse();
-    msg.setId(1L);
-    msg.setContent("Hello");
-    msg.setSenderRole("CUSTOMER");
+    ChatMessageResponse msg = new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
     
     given(consultationService.getMessages(1L)).willReturn(List.of(msg));
 
@@ -90,10 +87,7 @@ class ConsultationControllerTest {
     request.setContent("Reply");
     request.setNote(false);
 
-    ChatMessageResponse response = new ChatMessageResponse();
-    response.setId(10L);
-    response.setContent("Hello Operator");
-    response.setSenderRole("AGENT");
+    ChatMessageResponse response = new ChatMessageResponse(10L, 1, "AGENT", "TEXT", "Hello Operator", OffsetDateTime.now());
 
     given(consultationService.sendMessage(eq(1L), any(SendMessageRequest.class))).willReturn(response);
 

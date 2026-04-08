@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UpdateStatusRequest {
   /** 변경할 상담 세션의 상태 (ACTIVE, RESOLVED, COMPLETED 등) */
-  @NotBlank
+  @NotBlank(message = "상담 상태는 필수 입력 항목입니다.")
   private String status;
 
   public String getStatus() {

@@ -6,9 +6,13 @@ import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
-import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.infrastructure.persistence.ChatSessionRepository;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class ConsultationService {
+
+  private static final Logger log = LoggerFactory.getLogger(ConsultationService.class);
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -42,7 +48,7 @@ public class ConsultationService {
    * @return 활성 상담 세션 응답 목록
    */
   public List<ChatSessionResponse> getActiveQueue() {
-    List<ChatSession> sessions = chatSessionRepository.findByStatusOrderByStartedAtDesc("OPEN");
+    List<ChatSession> sessions = chatSessionRepository.findByStatusOrderByStartedAtDesc(ChatSessionStatus.OPEN);
     return sessions.stream().map(ChatSessionResponse::from).collect(Collectors.toList());
   }
 
@@ -54,10 +60,9 @@ public class ConsultationService {
    * @throws IllegalArgumentException 세션이 존재하지 않을 경우 발생
    */
   public List<ChatMessageResponse> getMessages(@NonNull Long sessionId) {
-    ChatSession session =
-        chatSessionRepository
-            .findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+    ChatSession session = chatSessionRepository
+        .findById(sessionId)
+        .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
     Long id = session.getId();
     if (id == null) {
@@ -74,57 +79,67 @@ public class ConsultationService {
    * 일반 메시지뿐만 아니라 상담사 전용 '노트' 기능도 지원합니다.
    *
    * @param sessionId 메시지를 전송할 세션 ID
-   * @param request 전송할 메시지 데이터
+   * @param request   전송할 메시지 데이터
    * @return 생성된 메시지 상세 응답
    * @throws IllegalArgumentException 세션이 존재하지 않을 경우 발생
    */
   @Transactional
   public ChatMessageResponse sendMessage(
       @NonNull Long sessionId, @NonNull SendMessageRequest request) {
-    ChatSession session =
-        chatSessionRepository
-            .findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+    ChatSession session = chatSessionRepository
+        .findById(sessionId)
+        .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
     }
 
-    Integer nextSeqNo =
-        chatMessageRepository
+    String role = request.isNote() ? "NOTE" : "AGENT";
+    String messageType = "TEXT";
+
+    int maxRetries = 3;
+    DataIntegrityViolationException lastException = null;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        Integer nextSeqNo = chatMessageRepository
             .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
             .map(msg -> msg.getSeqNo() + 1)
             .orElse(1);
 
-    String role = request.isNote() ? "NOTE" : "AGENT";
-    String messageType = "TEXT";
+        ChatMessage newMessage = ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
+        if (newMessage == null) {
+          throw new IllegalStateException("Failed to create ChatMessage");
+        }
+        chatMessageRepository.save(newMessage);
 
-    ChatMessage newMessage = ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
-    if (newMessage == null) {
-      throw new IllegalStateException("Failed to create ChatMessage");
+        return ChatMessageResponse.from(newMessage);
+      } catch (DataIntegrityViolationException e) {
+        log.warn("Concurrency conflict for seqNo in session {}. Attempt {}/{}", sessionId, attempt, maxRetries);
+        lastException = e;
+      }
     }
-    chatMessageRepository.save(newMessage);
 
-    return ChatMessageResponse.from(newMessage);
+    throw new IllegalStateException("Failed to save ChatMessage after " + maxRetries + " retries due to concurrency", lastException);
   }
 
   /**
    * 상담 세션의 현재 상태(상담중, 해결됨 등)를 물리적으로 업데이트합니다.
    *
    * @param sessionId 상태를 변경할 세션 ID
-   * @param status 새로운 상태 값
+   * @param status    새로운 상태 값
    * @return 업데이트된 세션 상세 응답
    * @throws IllegalArgumentException 세션이 존재하지 않을 경우 발생
    */
   @Transactional
-  public ChatSessionResponse updateSessionStatus(@NonNull Long sessionId, String status) {
+  public ChatSessionResponse updateSessionStatus(@NonNull Long sessionId, @NonNull String status) {
     ChatSession session = chatSessionRepository.findById(sessionId)
         .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
     if ("COMPLETED".equalsIgnoreCase(status)) {
       session.closeSession();
     }
-    
+
     return ChatSessionResponse.from(session);
   }
 }

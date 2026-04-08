@@ -2,6 +2,8 @@ package com.init.workflowruntime.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,8 +31,9 @@ public class ChatSession {
   @Column(name = "domain_pack_version_id", nullable = false)
   private Long domainPackVersionId;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private String status;
+  private ChatSessionStatus status;
 
   @Column(nullable = false)
   private String channel;
@@ -63,7 +66,7 @@ public class ChatSession {
   public static ChatSession create(
       Long workspaceId,
       Long domainPackVersionId,
-      String status,
+      ChatSessionStatus status,
       String channel,
       String metaJson) {
     ChatSession session = new ChatSession();
@@ -92,7 +95,7 @@ public class ChatSession {
     return domainPackVersionId;
   }
 
-  public String getStatus() {
+  public ChatSessionStatus getStatus() {
     return status;
   }
 
@@ -120,7 +123,7 @@ public class ChatSession {
    * 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다.
    */
   public void closeSession() {
-    this.status = "COMPLETED";
+    this.status = ChatSessionStatus.COMPLETED;
     this.endedAt = OffsetDateTime.now();
   }
 }

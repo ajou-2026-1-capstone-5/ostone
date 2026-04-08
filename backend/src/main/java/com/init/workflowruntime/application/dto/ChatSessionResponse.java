@@ -25,7 +25,7 @@ public class ChatSessionResponse {
   public static ChatSessionResponse from(ChatSession session) {
     ChatSessionResponse resp = new ChatSessionResponse();
     resp.id = session.getId();
-    resp.status = session.getStatus();
+    resp.status = session.getStatus() != null ? session.getStatus().name() : null;
     resp.channel = session.getChannel();
     resp.metaJson = session.getMetaJson();
     resp.startedAt = session.getStartedAt();

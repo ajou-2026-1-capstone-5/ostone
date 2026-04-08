@@ -3,7 +3,7 @@ import { loginApi, signupApi, passwordResetInitApi, logoutApi } from './authApi'
 
 // fetch API를 Mocking합니다.
 const mockFetch = vi.fn();
-(globalThis as typeof globalThis & { fetch: typeof fetch }).fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 describe('Auth API Integration Tests', () => {
   let originalGetItem: typeof Storage.prototype.getItem;
