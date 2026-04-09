@@ -91,15 +91,7 @@ public class DatasetController {
             conversations);
 
     DatasetUploadResult result = datasetUploadService.upload(command);
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(
-            new DatasetUploadResponse(
-                result.datasetId(),
-                result.datasetKey(),
-                result.workspaceId(),
-                result.status(),
-                result.piiRedactionStatus(),
-                result.conversationCount()));
+    return buildDatasetUploadResponse(result);
   }
 
   @PostMapping("/raw")
@@ -132,6 +124,11 @@ public class DatasetController {
             conversations);
 
     DatasetUploadResult result = rawDatasetUploadService.upload(command);
+    return buildDatasetUploadResponse(result);
+  }
+
+  private ResponseEntity<DatasetUploadResponse> buildDatasetUploadResponse(
+      DatasetUploadResult result) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             new DatasetUploadResponse(
