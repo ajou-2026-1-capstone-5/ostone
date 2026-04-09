@@ -1,0 +1,155 @@
+.infoWrapper {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.infoSection {
+  padding: 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.infoSection:last-child {
+  border-bottom: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+/* Customer Profile */
+.profileArea {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profileAvatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.profileName {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profileChannel {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Detail Rows */
+.detailRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detailIcon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.detailLabel {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.detailValue {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+/* Handoff Reason Badge */
+.handoffBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Memo Area */
+.memoArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.memoTextarea {
+  flex: 1;
+  min-height: 100px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-color);
+  outline: none;
+  resize: none;
+  transition: border-color var(--transition-fast);
+}
+
+.memoTextarea:focus {
+  border-color: var(--primary-color);
+}
+
+.memoTextarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Empty State */
+.emptyInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 40px 20px;
+  gap: 12px;
+}
+
+.emptyInfoIcon {
+  color: #cbd5e1;
+}
+
+.emptyInfoText {
+  font-size: 0.85rem;
+}

@@ -8,8 +8,8 @@ describe("App", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders hello world", () => {
+  it("renders login page title on initial load", () => {
     render(<App />);
-    expect(screen.getByText(/hello world/i)).toBeInTheDocument();
+    expect(screen.getByText(/CS Workflow Generator/i)).toBeInTheDocument();
   });
 });

@@ -1,0 +1,20 @@
+.pageWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 72px); /* Topbar 높이 제외 */
+  height: calc(100dvh - 72px);
+  overflow: hidden;
+}
+
+.mainArea {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .mainArea {
+    flex-direction: column;
+  }
+}

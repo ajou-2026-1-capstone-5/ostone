@@ -1,0 +1,58 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import styles from './dashboard-layout.module.css';
+
+import { useNavigate } from 'react-router-dom';
+import { getAuthUser, clearAuthSession } from '../../lib/auth';
+
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+}
+
+/**
+ * 상담 대시보드를 위한 메인 프레임 레이아웃 컴포넌트입니다.
+ * 상단 헤더, 사이드바 내비게이션, 그리고 메인 콘텐츠 영역을 포함합니다.
+ *
+ * @param {DashboardLayoutProps} props - 자식 컴포넌트(children)
+ * @returns {JSX.Element} 대시보드 레이아웃
+ */
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const navigate = useNavigate();
+  const user = getAuthUser();
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `${styles.navItem} ${isActive ? styles.active : ''}`;
+
+  return (
+    <div className={styles.wrapper}>
+      {/* Background elements inherited from global styles or specified here */}
+      <div className={styles.decorativeCircle1}></div>
+      <div className={styles.decorativeCircle2}></div>
+
+      {/* Top Navbar */}
+      <header className={styles.topbar}>
+        <div className={styles.logo}>
+          <span className={styles.logoHighlight}>Ostone</span> Workflow
+        </div>
+        <nav className={styles.navMenu}>
+          <NavLink to="/upload" className={getNavLinkClass}>Upload Log</NavLink>
+          <NavLink to="/consultation" className={getNavLinkClass}>Consultation</NavLink>
+          <span className={`${styles.navItem} ${styles.disabled}`}>Workflows</span>
+          <span className={`${styles.navItem} ${styles.disabled}`}>Settings</span>
+        </nav>
+        <div className={styles.profileArea}>
+          <div className={styles.avatar}>{userInitial}</div>
+          <button className={styles.logoutButton} onClick={() => { clearAuthSession(); navigate('/login'); }}>
+            로그아웃
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className={styles.mainContent}>
+        {children}
+      </main>
+    </div>
+  );
+};
