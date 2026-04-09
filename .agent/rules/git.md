@@ -15,7 +15,7 @@
 
 Spec-Driven Development (SDD) 프로세스:
 
-```
+```text
 1. Burndown Studio에서 이슈 생성 (#12)
 2. spec/12 브랜치 → .agent/specs/12.md 작성 → PR
 3. feature/12-auth 브랜치 → 구현 → PR
@@ -30,7 +30,7 @@ Spec-Driven Development (SDD) 프로세스:
 
 Conventional Commits 형식:
 
-```
+```text
 feat(domain-pack): add publish endpoint
 fix(pipeline): handle webhook timeout
 docs(schema): update table definitions
