@@ -32,12 +32,33 @@ public class DatasetController {
     this.rawDatasetUploadService = rawDatasetUploadService;
   }
 
+  /**
+   * Authentication principal을 Long userId로 안전하게 추출한다.
+   *
+   * @throws IllegalStateException authentication이 null이거나 principal이 null 또는 Long 타입이 아닐 때
+   */
+  private Long getUserIdFromAuthentication(Authentication authentication) {
+    if (authentication == null) {
+      throw new IllegalStateException("Authentication must not be null");
+    }
+    Object principal = authentication.getPrincipal();
+    if (principal == null) {
+      throw new IllegalStateException("Authentication principal must not be null");
+    }
+    if (!(principal instanceof Long)) {
+      throw new IllegalStateException(
+          "Authentication principal must be of type Long, but was: "
+              + principal.getClass().getName());
+    }
+    return (Long) principal;
+  }
+
   @PostMapping
   public ResponseEntity<DatasetUploadResponse> uploadDataset(
       @PathVariable Long workspaceId,
       @Valid @RequestBody DatasetUploadRequest request,
       Authentication authentication) {
-    Long userId = (Long) authentication.getPrincipal();
+    Long userId = getUserIdFromAuthentication(authentication);
 
     List<DatasetUploadCommand.ConversationData> conversations =
         request.conversations().stream()
@@ -86,7 +107,7 @@ public class DatasetController {
       @PathVariable Long workspaceId,
       @Valid @RequestBody RawDatasetUploadRequest request,
       Authentication authentication) {
-    Long userId = (Long) authentication.getPrincipal();
+    Long userId = getUserIdFromAuthentication(authentication);
 
     List<RawDatasetUploadCommand.RawConversationInput> conversations =
         request.conversations().stream()
