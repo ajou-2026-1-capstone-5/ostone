@@ -11,6 +11,11 @@ import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.DomainPackVersionConflictException;
+import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
+import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -105,6 +110,41 @@ public class GlobalExceptionHandler {
       ConsultingContentParseException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ErrorResponse("CONSULTING_CONTENT_PARSE_ERROR", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackWorkspaceNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackWorkspaceNotFound(
+      DomainPackWorkspaceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("DOMAIN_PACK_WORKSPACE_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackUnauthorizedWorkspaceAccessException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackUnauthorizedWorkspaceAccess(
+      DomainPackUnauthorizedWorkspaceAccessException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionNotFound(
+      DomainPackVersionNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("DOMAIN_PACK_VERSION_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionConflictException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionConflict(
+      DomainPackVersionConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(new ErrorResponse("DOMAIN_PACK_CONFLICT", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionInvalidStateException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionInvalidState(
+      DomainPackVersionInvalidStateException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("DOMAIN_PACK_INVALID_STATE", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
