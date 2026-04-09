@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -71,20 +72,25 @@ public class RawDatasetUploadService {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
 
-    Dataset savedDataset =
-        Objects.requireNonNull(
-            transactionTemplate.execute(
-                status -> {
-                  Dataset dataset =
-                      Dataset.create(
-                          command.workspaceId(),
-                          command.datasetKey(),
-                          command.name(),
-                          command.sourceType(),
-                          command.createdBy());
-                  dataset.updateMetaJson(buildDatasetMetaJson(command.conversations()));
-                  return datasetRepository.save(dataset);
-                }));
+    Dataset savedDataset;
+    try {
+      savedDataset =
+          Objects.requireNonNull(
+              transactionTemplate.execute(
+                  status -> {
+                    Dataset dataset =
+                        Dataset.create(
+                            command.workspaceId(),
+                            command.datasetKey(),
+                            command.name(),
+                            command.sourceType(),
+                            command.createdBy());
+                    dataset.updateMetaJson(buildDatasetMetaJson(command.conversations()));
+                    return datasetRepository.save(dataset);
+                  }));
+    } catch (DataIntegrityViolationException e) {
+      throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
+    }
 
     Long datasetId = savedDataset.getId();
     List<ParsedConversation> batch = new ArrayList<>(BATCH_SIZE);
