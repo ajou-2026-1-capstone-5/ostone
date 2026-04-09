@@ -36,8 +36,10 @@ class ConsultingContentParser {
     List<TurnData> turns = new ArrayList<>();
     String[] lines = consultingContent.split("\\r?\\n");
     int turnIndex = 0;
+    int lineNumber = 0;
 
     for (String raw : lines) {
+      lineNumber++;
       String line = raw.strip();
       if (line.isEmpty()) {
         continue;
@@ -53,8 +55,8 @@ class ConsultingContentParser {
         String text = line.substring(CUSTOMER_PREFIX_SONNIM.length()).strip();
         turns.add(new TurnData(turnIndex++, "CUSTOMER", text, null));
       } else {
-        String preview = line.length() > 50 ? line.substring(0, 50) + "..." : line;
-        throw new ConsultingContentParseException("인식할 수 없는 화자 prefix입니다: \"" + preview + "\"");
+        throw new ConsultingContentParseException(
+            "인식할 수 없는 화자 prefix입니다. (line=" + lineNumber + ", length=" + line.length() + ")");
       }
     }
 
