@@ -34,6 +34,6 @@ public record RawDatasetUploadRequest(
           String clientAge,
       @JsonProperty("consulting_content")
           @NotBlank(message = "consulting_content는 필수입니다.")
-          @Size(max = 10000, message = "consulting_content는 10000자 이하여야 합니다.")
+          @Size(max = 5000, message = "consulting_content는 5000자 이하여야 합니다.")
           String consultingContent) {}
 }
