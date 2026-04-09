@@ -18,6 +18,10 @@ __pycache__/
 .project
 .settings/
 
+# IDE build artifacts
+backend/.classpath
+backend/bin/
+
 # OS
 .DS_Store
 

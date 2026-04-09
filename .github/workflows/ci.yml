@@ -1,6 +1,13 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - "feature/**"
+      - "spec/**"
+      - "fix/**"
+      - "chore/**"
+      - "docs/**"
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -27,6 +34,42 @@ jobs:
             ml:
               - 'ml/**'
               - '.github/workflows/ci.yml'
+
+  spec-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate branch and check spec
+        run: |
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "✅ main branch — skip"
+            exit 0
+          fi
+
+          if [[ "$BRANCH" =~ ^(chore|docs)/[^/]+$ ]]; then
+            echo "✅ Branch pattern valid (no spec required): $BRANCH"
+            exit 0
+          fi
+
+          if [[ "$BRANCH" =~ ^(feature|fix)/([0-9]+)-[^/]+$ ]]; then
+            ISSUE_NUM="${BASH_REMATCH[2]}"
+          elif [[ "$BRANCH" =~ ^spec/([0-9]+)$ ]]; then
+            ISSUE_NUM="${BASH_REMATCH[1]}"
+          else
+            echo "❌ Branch '$BRANCH' does not match allowed patterns"
+            echo "Allowed: feature/{number}-{desc}, spec/{number}, fix/{number}-{desc}, chore/{desc}, docs/{desc}"
+            exit 1
+          fi
+
+          SPEC_FILE=".agent/specs/${ISSUE_NUM}.md"
+          if [[ ! -f "$SPEC_FILE" ]] || [[ ! -s "$SPEC_FILE" ]]; then
+            echo "❌ Spec file missing or empty: $SPEC_FILE"
+            echo "Required: .agent/specs/${ISSUE_NUM}.md"
+            exit 1
+          fi
+          echo "✅ Spec file found: $SPEC_FILE"
 
   backend:
     needs: paths-filter
@@ -117,12 +160,12 @@ jobs:
 
   ci-gate:
     if: always()
-    needs: [paths-filter, backend, frontend, ml]
+    needs: [paths-filter, spec-check, backend, frontend, ml]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI results
         run: |
-          results=("${{ needs.paths-filter.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}" "${{ needs.ml.result }}")
+          results=("${{ needs.paths-filter.result }}" "${{ needs.spec-check.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}" "${{ needs.ml.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "❌ Job failed or cancelled: $r"
