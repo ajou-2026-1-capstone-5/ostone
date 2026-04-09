@@ -65,6 +65,6 @@ class ConsultingContentParser {
       throw new ConsultingContentParseException("파싱 결과 턴이 없습니다. consulting_content를 확인해주세요.");
     }
 
-    return turns;
+    return List.copyOf(turns);
   }
 }

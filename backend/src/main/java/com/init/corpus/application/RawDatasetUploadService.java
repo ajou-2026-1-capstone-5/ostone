@@ -170,9 +170,7 @@ public class RawDatasetUploadService {
     // D-8: consulting_category, client_gender, client_age → conversation.meta_json
     conversation.updateMetaJson(
         buildConversationMetaJson(
-            input.consultingCategory(),
-            input.clientGender(),
-            input.clientAge()));
+            input.consultingCategory(), input.clientGender(), input.clientAge()));
     conversation = conversationRepository.save(conversation);
 
     List<ConversationTurn> turnEntities = new ArrayList<>(turns.size());
