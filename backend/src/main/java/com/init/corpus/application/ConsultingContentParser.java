@@ -18,7 +18,8 @@ import java.util.List;
  *   <li>인식 불가 prefix → ConsultingContentParseException (→ 400)
  * </ul>
  *
- * turnIndex는 0-based로 자동 부여. eventTime과 channel은 null.
+ * turnIndex는 0-based로 자동 부여. eventTime은 이 파서에서 항상 null (입력 텍스트에
+ * 타임스탬프 없음). channel은 TurnData 필드가 아니며 ConversationData 레벨에서 관리된다.
  */
 class ConsultingContentParser {
 
