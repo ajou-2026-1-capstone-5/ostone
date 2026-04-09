@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -27,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class RawDatasetUploadService {
 
+  private static final Logger log = LoggerFactory.getLogger(RawDatasetUploadService.class);
   private static final int BATCH_SIZE = 500;
 
   private final DatasetRepository datasetRepository;
@@ -144,7 +147,11 @@ public class RawDatasetUploadService {
     // D-8: consulting_category, client_gender, client_age → conversation.meta_json
     conversation.updateMetaJson(
         buildConversationMetaJson(
-            input.consultingCategory(), input.clientGender(), input.clientAge()));
+            datasetId,
+            input.sourceId(),
+            input.consultingCategory(),
+            input.clientGender(),
+            input.clientAge()));
     conversation = conversationRepository.save(conversation);
 
     List<ConversationTurn> turnEntities = new ArrayList<>(turns.size());
@@ -178,12 +185,18 @@ public class RawDatasetUploadService {
     try {
       return objectMapper.writeValueAsString(node);
     } catch (JsonProcessingException e) {
-      return "{}";
+      log.warn(
+          "[buildDatasetMetaJson] Failed to serialize dataset meta JSON: {}", e.getMessage(), e);
+      throw new IllegalStateException("Failed to serialize dataset meta JSON", e);
     }
   }
 
   private String buildConversationMetaJson(
-      String consultingCategory, String clientGender, String clientAge) {
+      Long datasetId,
+      String sourceId,
+      String consultingCategory,
+      String clientGender,
+      String clientAge) {
     ObjectNode node = objectMapper.createObjectNode();
     if (consultingCategory != null && !consultingCategory.isBlank()) {
       node.put("category", consultingCategory);
@@ -197,7 +210,19 @@ public class RawDatasetUploadService {
     try {
       return objectMapper.writeValueAsString(node);
     } catch (JsonProcessingException e) {
-      return "{}";
+      log.warn(
+          "[buildConversationMetaJson] Failed to serialize conversation meta JSON:"
+              + " datasetId={}, sourceId={}: {}",
+          datasetId,
+          sourceId,
+          e.getMessage(),
+          e);
+      throw new IllegalStateException(
+          "Failed to serialize conversation meta JSON for datasetId="
+              + datasetId
+              + ", sourceId="
+              + sourceId,
+          e);
     }
   }
 
