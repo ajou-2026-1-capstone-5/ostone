@@ -35,8 +35,7 @@ public class ActivateDomainPackVersionUseCase {
   public ActivateDomainPackVersionResult execute(ActivateDomainPackVersionCommand command) {
     // workspace 존재 확인 (U-005 Confirmed)
     if (!workspaceExistencePort.existsById(command.workspaceId())) {
-      throw new WorkspaceNotFoundException(
-          "워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
+      throw new WorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
     }
 
     // workspace 멤버십 + 역할 확인: OPERATOR 또는 ADMIN만 허용 (U-005 Confirmed)

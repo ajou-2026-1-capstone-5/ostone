@@ -29,8 +29,8 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * NI-1 Option B 채택 (corpus 선례): {@link WithLongPrincipal} 어노테이션으로 Long principal을 주입한다.
  *
- * <p>SecurityConfig가 @WebMvcTest 스캔 대상이 아니므로 기본 Spring Security 적용. CSRF 활성화로 모든 POST 요청에
- * {@code .with(csrf())} 명시.
+ * <p>SecurityConfig가 @WebMvcTest 스캔 대상이 아니므로 기본 Spring Security 적용. CSRF 활성화로 모든 POST 요청에 {@code
+ * .with(csrf())} 명시.
  */
 @WebMvcTest(
     value = ActivateDomainPackVersionController.class,
@@ -47,8 +47,7 @@ class ActivateDomainPackVersionControllerTest {
   @MockBean
   private ActivateDomainPackVersionUseCase useCase;
 
-  private static final String BASE_URL =
-      "/api/v1/workspaces/1/domain-packs/7/versions/42/activate";
+  private static final String BASE_URL = "/api/v1/workspaces/1/domain-packs/7/versions/42/activate";
 
   @Test
   @DisplayName("유효한 version → 200 OK, lifecycleStatus=PUBLISHED")
@@ -90,7 +89,8 @@ class ActivateDomainPackVersionControllerTest {
   @WithLongPrincipal(10L)
   void activate_alreadyPublished_returns400() throws Exception {
     given(useCase.execute(any()))
-        .willThrow(new DomainPackVersionInvalidStateException("Domain pack version is already published"));
+        .willThrow(
+            new DomainPackVersionInvalidStateException("Domain pack version is already published"));
 
     mockMvc
         .perform(post(BASE_URL).with(csrf()))

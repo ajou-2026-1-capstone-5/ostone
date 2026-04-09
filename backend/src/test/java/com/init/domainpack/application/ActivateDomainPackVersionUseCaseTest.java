@@ -16,10 +16,9 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
 import java.lang.reflect.Constructor;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,9 +49,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("정상 활성화: DRAFT → PUBLISHED, 결과 반환")
   void execute_validDraft_returnsPublishedResult() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(
-            workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-                any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
@@ -86,8 +83,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("workspace 비멤버 → UnauthorizedWorkspaceAccessException")
   void execute_notMember_throws403() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-            any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(false);
 
     assertThatThrownBy(
@@ -101,8 +97,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("존재하지 않는 versionId → DomainPackVersionNotFoundException")
   void execute_versionNotFound_throws404() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-            any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(true);
     given(versionRepository.findById(42L)).willReturn(Optional.empty());
 
@@ -115,8 +110,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("packId 불일치 → DomainPackVersionNotFoundException")
   void execute_packIdMismatch_throws404() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-            any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 99L); // domainPackId=99, not 7
@@ -131,8 +125,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("이미 PUBLISHED 상태 → DomainPackVersionInvalidStateException")
   void execute_alreadyPublished_throws400() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-            any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(true);
 
     DomainPackVersion published = createPublishedVersion(42L, 7L);
@@ -147,8 +140,7 @@ class ActivateDomainPackVersionUseCaseTest {
   @DisplayName("동시 활성화 충돌 → DomainPackVersionConflictException")
   void execute_optimisticLockFailure_throws409() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-            any(), any(), any()))
+    given(workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(any(), any(), any()))
         .willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 7L);

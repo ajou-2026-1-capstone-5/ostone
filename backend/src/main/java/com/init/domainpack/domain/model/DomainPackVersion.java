@@ -33,8 +33,7 @@ public class DomainPackVersion {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 
   protected DomainPackVersion() {}
 
