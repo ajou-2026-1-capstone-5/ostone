@@ -116,8 +116,7 @@ class ActivateDomainPackVersionControllerTest {
   @WithLongPrincipal(10L)
   void activate_workspaceNonMember_returns403() throws Exception {
     given(useCase.execute(any()))
-        .willThrow(
-            new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
+        .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
 
     mockMvc
         .perform(post(BASE_URL).with(csrf()))

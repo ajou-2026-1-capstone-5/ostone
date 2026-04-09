@@ -15,8 +15,7 @@ public interface JpaDomainPackWorkspaceMembershipRepository
       Long workspaceId, Long userId, List<String> memberRoles);
 
   @Override
-  default boolean hasAnyRole(
-      Long workspaceId, Long userId, Set<WorkspaceMemberRole> memberRoles) {
+  default boolean hasAnyRole(Long workspaceId, Long userId, Set<WorkspaceMemberRole> memberRoles) {
     List<String> roleNames = memberRoles.stream().map(Enum::name).toList();
     return existsByWorkspaceIdAndUserIdAndMemberRoleIn(workspaceId, userId, roleNames);
   }
