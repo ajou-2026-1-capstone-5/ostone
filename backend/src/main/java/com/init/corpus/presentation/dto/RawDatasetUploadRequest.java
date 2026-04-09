@@ -16,7 +16,7 @@ public record RawDatasetUploadRequest(
     @NotBlank(message = "sourceType은 필수입니다.") @Size(max = 50, message = "sourceType은 50자 이하여야 합니다.")
         String sourceType,
     @NotNull(message = "conversations는 필수입니다.")
-        @Size(min = 1, max = 10000, message = "대화는 1개 이상 10000개 이하여야 합니다.")
+        @Size(min = 1, max = 1000, message = "대화는 1개 이상 1000개 이하여야 합니다.")
         List<@Valid RawConversationRequest> conversations) {
 
   public record RawConversationRequest(
