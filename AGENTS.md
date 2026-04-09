@@ -93,8 +93,8 @@ ml/
 
 **6개 Pipeline Stage**:
 
-1. **ingestion**: 상담 로그 입력, conversation 단위 묶기, PII 제거
-2. **preprocessing**: boilerplate 제거, canonical text 생성
+1. **ingestion**: 상담 로그 입력, conversation 단위 묶기
+2. **preprocessing**: boilerplate 제거, canonical text 생성, PII 제거
 3. **intent-discovery**: semantic embedding, graph clustering
 4. **draft-generation**: slot/policy/risk/workflow 초안 생성
 5. **evaluation**: mapping rate, outlier rate, workflow separability 평가
