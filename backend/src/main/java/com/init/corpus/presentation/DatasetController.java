@@ -111,12 +111,12 @@ public class DatasetController {
             .map(
                 c ->
                     new RawDatasetUploadCommand.RawConversationInput(
-                        c.source_id(),
+                        c.sourceId(),
                         c.source(),
-                        c.consulting_category(),
-                        c.client_gender(),
-                        c.client_age(),
-                        c.consulting_content()))
+                        c.consultingCategory(),
+                        c.clientGender(),
+                        c.clientAge(),
+                        c.consultingContent()))
             .toList();
 
     RawDatasetUploadCommand command =
