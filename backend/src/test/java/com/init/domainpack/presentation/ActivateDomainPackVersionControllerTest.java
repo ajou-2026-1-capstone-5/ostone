@@ -7,13 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
-import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.domainpack.application.ActivateDomainPackVersionResult;
 import com.init.domainpack.application.ActivateDomainPackVersionUseCase;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.time.OffsetDateTime;
@@ -85,7 +85,7 @@ class ActivateDomainPackVersionControllerTest {
   }
 
   @Test
-  @DisplayName("이미 PUBLISHED 상태 → 400 INVALID_STATE")
+  @DisplayName("이미 PUBLISHED 상태 → 400 DOMAIN_PACK_INVALID_STATE")
   @WithLongPrincipal(10L)
   void activate_alreadyPublished_returns400() throws Exception {
     given(useCase.execute(any()))
@@ -95,20 +95,20 @@ class ActivateDomainPackVersionControllerTest {
     mockMvc
         .perform(post(BASE_URL).with(csrf()))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_STATE"));
+        .andExpect(jsonPath("$.code").value("DOMAIN_PACK_INVALID_STATE"));
   }
 
   @Test
-  @DisplayName("workspace 없음 → 404 WORKSPACE_NOT_FOUND")
+  @DisplayName("workspace 없음 → 404 DOMAIN_PACK_WORKSPACE_NOT_FOUND")
   @WithLongPrincipal(10L)
   void activate_workspaceNotFound_returns404() throws Exception {
     given(useCase.execute(any()))
-        .willThrow(new WorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"));
+        .willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"));
 
     mockMvc
         .perform(post(BASE_URL).with(csrf()))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("WORKSPACE_NOT_FOUND"));
+        .andExpect(jsonPath("$.code").value("DOMAIN_PACK_WORKSPACE_NOT_FOUND"));
   }
 
   @Test
@@ -116,7 +116,8 @@ class ActivateDomainPackVersionControllerTest {
   @WithLongPrincipal(10L)
   void activate_workspaceNonMember_returns403() throws Exception {
     given(useCase.execute(any()))
-        .willThrow(new UnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
+        .willThrow(
+            new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
 
     mockMvc
         .perform(post(BASE_URL).with(csrf()))
@@ -125,7 +126,7 @@ class ActivateDomainPackVersionControllerTest {
   }
 
   @Test
-  @DisplayName("동시 활성화 충돌 → 409 CONFLICT")
+  @DisplayName("동시 활성화 충돌 → 409 DOMAIN_PACK_CONFLICT")
   @WithLongPrincipal(10L)
   void activate_concurrentConflict_returns409() throws Exception {
     given(useCase.execute(any())).willThrow(new DomainPackVersionConflictException(42L));
@@ -133,7 +134,7 @@ class ActivateDomainPackVersionControllerTest {
     mockMvc
         .perform(post(BASE_URL).with(csrf()))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("CONFLICT"));
+        .andExpect(jsonPath("$.code").value("DOMAIN_PACK_CONFLICT"));
   }
 
   @Test

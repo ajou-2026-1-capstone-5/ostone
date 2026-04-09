@@ -1,16 +1,18 @@
 package com.init.domainpack.application;
 
-import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
-import com.init.corpus.application.exception.WorkspaceNotFoundException;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.WorkspaceMemberRole;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.Set;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,29 +21,43 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ActivateDomainPackVersionUseCase {
 
+  private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
+      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
+
   private final DomainPackVersionRepository versionRepository;
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
+  private final Clock clock;
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort) {
+    this(versionRepository, workspaceExistencePort, workspaceMembershipPort, Clock.systemDefaultZone());
+  }
+
+  public ActivateDomainPackVersionUseCase(
+      DomainPackVersionRepository versionRepository,
+      WorkspaceExistencePort workspaceExistencePort,
+      WorkspaceMembershipPort workspaceMembershipPort,
+      Clock clock) {
     this.versionRepository = versionRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
+    this.clock = clock;
   }
 
   public ActivateDomainPackVersionResult execute(ActivateDomainPackVersionCommand command) {
     // workspace 존재 확인 (U-005 Confirmed)
     if (!workspaceExistencePort.existsById(command.workspaceId())) {
-      throw new WorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
+      throw new DomainPackWorkspaceNotFoundException(
+          "워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
     }
 
     // workspace 멤버십 + 역할 확인: OPERATOR 또는 ADMIN만 허용 (U-005 Confirmed)
-    if (!workspaceMembershipPort.existsByWorkspaceIdAndUserIdAndMemberRoleIn(
-        command.workspaceId(), command.userId(), List.of("OPERATOR", "ADMIN"))) {
-      throw new UnauthorizedWorkspaceAccessException(
+    if (!workspaceMembershipPort.hasAnyRole(
+        command.workspaceId(), command.userId(), ALLOWED_WORKSPACE_ROLES)) {
+      throw new DomainPackUnauthorizedWorkspaceAccessException(
           "워크스페이스에 접근 권한이 없습니다. workspaceId=" + command.workspaceId());
     }
 
@@ -57,7 +73,7 @@ public class ActivateDomainPackVersionUseCase {
 
     // lifecycle_status 전이: PUBLISHED가 아닌 모든 상태에서 허용 (U-001 Confirmed)
     try {
-      version.activate(OffsetDateTime.now());
+      version.activate(OffsetDateTime.now(clock));
     } catch (IllegalStateException e) {
       throw new DomainPackVersionInvalidStateException(e.getMessage());
     }

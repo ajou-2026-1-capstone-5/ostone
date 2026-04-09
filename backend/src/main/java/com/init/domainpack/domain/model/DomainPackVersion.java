@@ -14,6 +14,9 @@ import java.time.OffsetDateTime;
 @Table(name = "domain_pack_version", schema = "pack")
 public class DomainPackVersion {
 
+  public static final String STATUS_DRAFT = "DRAFT";
+  public static final String STATUS_PUBLISHED = "PUBLISHED";
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -49,10 +52,10 @@ public class DomainPackVersion {
    * @throws IllegalStateException 이미 PUBLISHED 상태인 경우
    */
   public void activate(OffsetDateTime now) {
-    if ("PUBLISHED".equals(this.lifecycleStatus)) {
+    if (STATUS_PUBLISHED.equals(this.lifecycleStatus)) {
       throw new IllegalStateException("Domain pack version is already published");
     }
-    this.lifecycleStatus = "PUBLISHED";
+    this.lifecycleStatus = STATUS_PUBLISHED;
     this.publishedAt = now;
   }
 
