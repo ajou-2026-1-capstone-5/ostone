@@ -54,14 +54,12 @@ class ConsultingContentParser {
         turns.add(new TurnData(turnIndex++, "CUSTOMER", text, null));
       } else {
         String preview = line.length() > 50 ? line.substring(0, 50) + "..." : line;
-        throw new ConsultingContentParseException(
-            "인식할 수 없는 화자 prefix입니다: \"" + preview + "\"");
+        throw new ConsultingContentParseException("인식할 수 없는 화자 prefix입니다: \"" + preview + "\"");
       }
     }
 
     if (turns.isEmpty()) {
-      throw new ConsultingContentParseException(
-          "파싱 결과 턴이 없습니다. consulting_content를 확인해주세요.");
+      throw new ConsultingContentParseException("파싱 결과 턴이 없습니다. consulting_content를 확인해주세요.");
     }
 
     return turns;

@@ -27,8 +27,7 @@ public class DatasetController {
   private final RawDatasetUploadService rawDatasetUploadService;
 
   public DatasetController(
-      DatasetUploadService datasetUploadService,
-      RawDatasetUploadService rawDatasetUploadService) {
+      DatasetUploadService datasetUploadService, RawDatasetUploadService rawDatasetUploadService) {
     this.datasetUploadService = datasetUploadService;
     this.rawDatasetUploadService = rawDatasetUploadService;
   }
