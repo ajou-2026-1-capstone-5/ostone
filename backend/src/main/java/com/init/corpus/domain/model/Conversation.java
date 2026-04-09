@@ -122,4 +122,8 @@ public class Conversation {
   public int getTurnCount() {
     return turnCount;
   }
+
+  public void updateMetaJson(String metaJson) {
+    this.metaJson = metaJson;
+  }
 }

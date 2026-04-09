@@ -6,6 +6,7 @@ import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
+import com.init.corpus.application.exception.ConsultingContentParseException;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
@@ -82,6 +83,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleDuplicateTurnIndex(DuplicateTurnIndexException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ErrorResponse("DUPLICATE_TURN_INDEX", ex.getMessage()));
+  }
+
+  @ExceptionHandler(ConsultingContentParseException.class)
+  public ResponseEntity<ErrorResponse> handleConsultingContentParse(
+      ConsultingContentParseException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("CONSULTING_CONTENT_PARSE_ERROR", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -102,4 +102,8 @@ public class Dataset {
   public PiiRedactionStatus getPiiRedactionStatus() {
     return piiRedactionStatus;
   }
+
+  public void updateMetaJson(String metaJson) {
+    this.metaJson = metaJson;
+  }
 }
