@@ -124,6 +124,10 @@ public class Conversation {
   }
 
   public void updateMetaJson(String metaJson) {
+    Objects.requireNonNull(metaJson, "metaJson must not be null");
+    if (metaJson.isBlank()) {
+      throw new IllegalArgumentException("metaJson must not be blank");
+    }
     this.metaJson = metaJson;
   }
 }
