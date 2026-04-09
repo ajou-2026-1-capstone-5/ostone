@@ -7,4 +7,6 @@ public interface DatasetRepository {
   Dataset save(Dataset dataset);
 
   boolean existsByWorkspaceIdAndDatasetKey(Long workspaceId, String datasetKey);
+
+  void deleteById(Long id);
 }

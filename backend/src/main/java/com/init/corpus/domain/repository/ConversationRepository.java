@@ -5,4 +5,6 @@ import com.init.corpus.domain.model.Conversation;
 public interface ConversationRepository {
 
   Conversation save(Conversation conversation);
+
+  void deleteAllByDatasetId(Long datasetId);
 }

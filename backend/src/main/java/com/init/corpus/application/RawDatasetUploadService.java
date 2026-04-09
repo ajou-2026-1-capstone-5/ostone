@@ -72,6 +72,15 @@ public class RawDatasetUploadService {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
 
+    // 1. Parse all conversations upfront — any ConsultingContentParseException
+    //    propagates here before any DB write occurs.
+    List<ParsedConversation> allParsed = new ArrayList<>(command.conversations().size());
+    for (RawConversationInput input : command.conversations()) {
+      List<TurnData> turns = ConsultingContentParser.parse(input.consultingContent());
+      allParsed.add(new ParsedConversation(input, turns));
+    }
+
+    // 2. Persist the Dataset in its own transaction.
     Dataset savedDataset;
     try {
       savedDataset =
@@ -92,20 +101,28 @@ public class RawDatasetUploadService {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
 
+    // 3. Flush parsed conversations in batches. On any failure, compensate by
+    //    removing already-persisted conversations and the Dataset itself.
     Long datasetId = savedDataset.getId();
-    List<ParsedConversation> batch = new ArrayList<>(BATCH_SIZE);
-
-    for (RawConversationInput input : command.conversations()) {
-      List<TurnData> turns = ConsultingContentParser.parse(input.consultingContent());
-      batch.add(new ParsedConversation(input, turns));
-
-      if (batch.size() >= BATCH_SIZE) {
-        flushBatch(datasetId, batch);
-        batch.clear();
+    try {
+      List<ParsedConversation> batch = new ArrayList<>(BATCH_SIZE);
+      for (ParsedConversation pc : allParsed) {
+        batch.add(pc);
+        if (batch.size() >= BATCH_SIZE) {
+          flushBatch(datasetId, batch);
+          batch.clear();
+        }
       }
-    }
-    if (!batch.isEmpty()) {
-      flushBatch(datasetId, batch);
+      if (!batch.isEmpty()) {
+        flushBatch(datasetId, batch);
+      }
+    } catch (Exception e) {
+      transactionTemplate.executeWithoutResult(
+          status -> {
+            conversationRepository.deleteAllByDatasetId(datasetId);
+            datasetRepository.deleteById(datasetId);
+          });
+      throw e;
     }
 
     return new DatasetUploadResult(
