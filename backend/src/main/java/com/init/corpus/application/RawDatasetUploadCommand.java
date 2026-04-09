@@ -26,6 +26,9 @@ public record RawDatasetUploadCommand(
     Objects.requireNonNull(sourceType, "sourceType must not be null");
     Objects.requireNonNull(createdBy, "createdBy must not be null");
     Objects.requireNonNull(conversations, "conversations must not be null");
+    if (conversations.isEmpty()) {
+      throw new IllegalArgumentException("conversations must not be empty");
+    }
     conversations = List.copyOf(conversations);
   }
 }
