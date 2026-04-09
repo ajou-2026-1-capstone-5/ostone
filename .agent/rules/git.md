@@ -49,17 +49,22 @@ test(runtime): add workflow execution tests
 - `refactor`: 리팩토링
 - `test`: 테스트
 - `chore`: 잡일
+- `build`: 빌드 시스템/의존성
+- `ci`: CI 설정
+- `perf`: 성능 개선
+- `revert`: 이전 커밋 되돌리기
 
 **스코프**: 변경 모듈 (domain-pack, review, pipeline 등)
 
 **SemVer 버전 매핑**:
 
-| 타입                                         | 버전 변화     | 예시                            |
-| -------------------------------------------- | ------------- | ------------------------------- |
-| `feat`                                       | minor (0.X.0) | `feat(auth): add login` → 0.1.0 |
-| `fix`                                        | patch (0.0.X) | `fix(api): handle null` → 0.0.1 |
-| `feat!` 또는 `BREAKING CHANGE`               | major (X.0.0) | `feat!: redesign API` → 1.0.0   |
-| `docs`, `style`, `refactor`, `test`, `chore` | 변화 없음     | —                               |
+| 타입                                                                  | 버전 변화     | 예시                                  |
+| --------------------------------------------------------------------- | ------------- | ------------------------------------- |
+| `feat`                                                                | minor (0.X.0) | `feat(auth): add login` → 0.1.0       |
+| `fix`                                                                 | patch (0.0.X) | `fix(api): handle null` → 0.0.1       |
+| `perf`                                                                | patch (0.0.X) | `perf(query): optimize index` → 0.0.2 |
+| `feat!` 또는 `BREAKING CHANGE`                                        | major (X.0.0) | `feat!: redesign API` → 1.0.0         |
+| `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `revert` | 변화 없음     | —                                     |
 
 ## CI 연동
 
