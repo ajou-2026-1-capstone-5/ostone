@@ -161,10 +161,19 @@ public class RawDatasetUploadService {
   }
 
   private String buildDatasetMetaJson(List<RawConversationInput> conversations) {
-    String source = conversations.isEmpty() ? null : conversations.get(0).source();
+    List<String> distinctSources =
+        conversations.stream()
+            .map(RawConversationInput::source)
+            .filter(s -> s != null && !s.isBlank())
+            .distinct()
+            .collect(Collectors.toList());
+
     ObjectNode node = objectMapper.createObjectNode();
-    if (source != null && !source.isBlank()) {
-      node.put("source", source);
+    if (distinctSources.size() == 1) {
+      node.put("source", distinctSources.get(0));
+    } else if (distinctSources.size() > 1) {
+      var sourceArray = node.putArray("source");
+      distinctSources.forEach(sourceArray::add);
     }
     try {
       return objectMapper.writeValueAsString(node);
