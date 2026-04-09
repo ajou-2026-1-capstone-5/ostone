@@ -70,10 +70,3 @@ cd ml && pytest
 ├── frontend/  # Vite+ 웹 애플리케이션
 └── ml/        # Python ML 워크플로우 생성 모델
 ```
-
-## 로컬 개발환경 세팅
-
-```bash
-# Docker Compose로 전체 서비스 실행
-docker-compose up -d
-```
