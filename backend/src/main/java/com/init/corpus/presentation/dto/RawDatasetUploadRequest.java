@@ -22,8 +22,7 @@ public record RawDatasetUploadRequest(
           @Size(max = 255, message = "source_id는 255자 이하여야 합니다.")
           String source_id,
       @Size(max = 255, message = "source는 255자 이하여야 합니다.") String source,
-      @Size(max = 100, message = "consulting_category는 100자 이하여야 합니다.")
-          String consulting_category,
+      @Size(max = 100, message = "consulting_category는 100자 이하여야 합니다.") String consulting_category,
       @Size(max = 10, message = "client_gender는 10자 이하여야 합니다.") String client_gender,
       @Size(max = 10, message = "client_age는 10자 이하여야 합니다.") String client_age,
       @NotBlank(message = "consulting_content는 필수입니다.")
