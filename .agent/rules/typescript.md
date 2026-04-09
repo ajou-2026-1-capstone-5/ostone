@@ -74,6 +74,69 @@ import { DomainPack } from "@/entities/domain-pack";
 import { usePublishPack } from "@/features/publish-pack";
 ```
 
+## FSD 의존성 방향 규칙
+
+### 계층 방향 (상위 → 하위만 허용)
+
+```
+app → pages → widgets → features → entities → shared
+```
+
+- 상위 계층은 하위 계층을 import할 수 있다
+- **하위 계층이 상위 계층을 import하는 것은 금지**
+- 같은 계층 내 다른 슬라이스 간 import도 금지 (cross-slice)
+
+### 허용되는 import
+
+```typescript
+// ✅ pages → features (상위 → 하위)
+// frontend/src/pages/consultation/ui/ConsultationPage.tsx
+import { ChatPanel } from "@/features/consultation";
+
+// ✅ features → shared (상위 → 하위)
+// frontend/src/features/auth/api/authApi.ts
+import { apiClient } from "@/shared/api";
+
+// ✅ 같은 슬라이스 내 (internal)
+// features/auth/ui/LoginForm.tsx
+import { useAuth } from "../model/useAuth";
+```
+
+### 금지되는 import
+
+```typescript
+// ❌ shared → features (하위 → 상위)
+// shared/ui/Header.tsx
+import { useAuth } from "@/features/auth";
+
+// ❌ feature 간 cross-import (같은 계층 cross-slice)
+// features/consultation/ui/ChatPanel.tsx
+import { useAuth } from "@/features/auth";
+
+// ❌ entities → features (하위 → 상위)
+// entities/user/model.ts
+import { loginApi } from "@/features/auth";
+
+// ❌ feature → pages (하위 → 상위)
+// features/auth/ui/LoginForm.tsx
+import { Layout } from "@/pages/layout";
+```
+
+### Cross-Slice 통신 방법
+
+feature 간 데이터가 필요하면:
+
+1. **공통 entity 사용**: entities 계층에 공유 모델 정의
+2. **props로 전달**: pages에서 두 feature를 조합할 때 props로 연결
+3. **shared 이벤트**: shared/lib에 이벤트 버스 정의 (복잡한 경우)
+
+### ESLint 검증 (향후 적용)
+
+- `@feature-sliced/layers-slices` 규칙으로 자동 검증 가능
+- 현재는 코드 리뷰로 수동 확인 (`.agent/rules/code-review.md` FSD 컴플라이언스 섹션 참조)
+  - 참조: `frontend/src/features/consultation/ui/ChatPanel.tsx` — features 내부 구조 예시
+  - 참조: `frontend/src/shared/api/index.ts` — shared 계층 API 클라이언트 예시
+
 ---
 
 ## 참고
