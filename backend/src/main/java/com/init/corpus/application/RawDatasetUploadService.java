@@ -18,13 +18,16 @@ import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@Transactional
 public class RawDatasetUploadService {
+
+  private static final int BATCH_SIZE = 500;
 
   private final DatasetRepository datasetRepository;
   private final ConversationRepository conversationRepository;
@@ -32,6 +35,7 @@ public class RawDatasetUploadService {
   private final WorkspaceExistenceRepository workspaceExistenceRepository;
   private final WorkspaceMembershipRepository workspaceMembershipRepository;
   private final ObjectMapper objectMapper;
+  private final TransactionTemplate transactionTemplate;
 
   public RawDatasetUploadService(
       DatasetRepository datasetRepository,
@@ -39,13 +43,15 @@ public class RawDatasetUploadService {
       ConversationTurnRepository conversationTurnRepository,
       WorkspaceExistenceRepository workspaceExistenceRepository,
       WorkspaceMembershipRepository workspaceMembershipRepository,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      PlatformTransactionManager transactionManager) {
     this.datasetRepository = datasetRepository;
     this.conversationRepository = conversationRepository;
     this.conversationTurnRepository = conversationTurnRepository;
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
     this.objectMapper = objectMapper;
+    this.transactionTemplate = new TransactionTemplate(transactionManager);
   }
 
   public DatasetUploadResult upload(RawDatasetUploadCommand command) {
@@ -62,35 +68,53 @@ public class RawDatasetUploadService {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
 
-    // 파싱을 먼저 수행하여 DB 저장 전에 실패를 빠르게 감지 (부분 저장 방지)
-    List<ParsedConversation> parsed = new ArrayList<>(command.conversations().size());
+    Dataset savedDataset =
+        Objects.requireNonNull(
+            transactionTemplate.execute(
+                status -> {
+                  Dataset dataset =
+                      Dataset.create(
+                          command.workspaceId(),
+                          command.datasetKey(),
+                          command.name(),
+                          command.sourceType(),
+                          command.createdBy());
+                  dataset.updateMetaJson(buildDatasetMetaJson(command.conversations()));
+                  return datasetRepository.save(dataset);
+                }));
+
+    Long datasetId = savedDataset.getId();
+    List<ParsedConversation> batch = new ArrayList<>(BATCH_SIZE);
+
     for (RawConversationInput input : command.conversations()) {
       List<TurnData> turns = ConsultingContentParser.parse(input.consultingContent());
-      parsed.add(new ParsedConversation(input, turns));
+      batch.add(new ParsedConversation(input, turns));
+
+      if (batch.size() >= BATCH_SIZE) {
+        flushBatch(datasetId, batch);
+        batch.clear();
+      }
     }
-
-    Dataset dataset =
-        Dataset.create(
-            command.workspaceId(),
-            command.datasetKey(),
-            command.name(),
-            command.sourceType(),
-            command.createdBy());
-    // D-9: source → dataset.meta_json (Assumption: 첫 번째 conversation의 source 사용)
-    dataset.updateMetaJson(buildDatasetMetaJson(command.conversations()));
-    dataset = datasetRepository.save(dataset);
-
-    for (ParsedConversation pc : parsed) {
-      saveConversationWithTurns(dataset.getId(), pc);
+    if (!batch.isEmpty()) {
+      flushBatch(datasetId, batch);
     }
 
     return new DatasetUploadResult(
-        dataset.getId(),
-        dataset.getDatasetKey(),
+        savedDataset.getId(),
+        savedDataset.getDatasetKey(),
         command.workspaceId(),
-        dataset.getStatus(),
-        dataset.getPiiRedactionStatus(),
+        savedDataset.getStatus(),
+        savedDataset.getPiiRedactionStatus(),
         command.conversations().size());
+  }
+
+  private void flushBatch(Long datasetId, List<ParsedConversation> batch) {
+    transactionTemplate.executeWithoutResult(
+        status -> {
+          for (ParsedConversation pc : batch) {
+            saveConversationWithTurns(datasetId, pc);
+          }
+        });
   }
 
   private void saveConversationWithTurns(Long datasetId, ParsedConversation pc) {
