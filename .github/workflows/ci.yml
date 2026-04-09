@@ -48,12 +48,12 @@ jobs:
             exit 0
           fi
 
-          if [[ "$BRANCH" =~ ^(chore|docs)/ ]]; then
+          if [[ "$BRANCH" =~ ^(chore|docs)/[^/]+$ ]]; then
             echo "✅ Branch pattern valid (no spec required): $BRANCH"
             exit 0
           fi
 
-          if [[ "$BRANCH" =~ ^(feature|fix)/([0-9]+)- ]]; then
+          if [[ "$BRANCH" =~ ^(feature|fix)/([0-9]+)-[^/]+ ]]; then
             ISSUE_NUM="${BASH_REMATCH[2]}"
           elif [[ "$BRANCH" =~ ^spec/([0-9]+)$ ]]; then
             ISSUE_NUM="${BASH_REMATCH[1]}"
