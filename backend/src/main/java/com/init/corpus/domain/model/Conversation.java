@@ -1,5 +1,7 @@
 package com.init.corpus.domain.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,6 +21,8 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "conversation", schema = "corpus")
 public class Conversation {
+
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -127,6 +131,12 @@ public class Conversation {
     Objects.requireNonNull(metaJson, "metaJson must not be null");
     if (metaJson.isBlank()) {
       throw new IllegalArgumentException("metaJson must not be blank");
+    }
+    try {
+      JSON_MAPPER.readTree(metaJson);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "metaJson is not valid JSON: " + e.getOriginalMessage(), e);
     }
     this.metaJson = metaJson;
   }
