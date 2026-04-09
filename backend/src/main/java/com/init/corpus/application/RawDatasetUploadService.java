@@ -117,11 +117,19 @@ public class RawDatasetUploadService {
         flushBatch(datasetId, batch);
       }
     } catch (Exception e) {
-      transactionTemplate.executeWithoutResult(
-          status -> {
-            conversationRepository.deleteAllByDatasetId(datasetId);
-            datasetRepository.deleteById(datasetId);
-          });
+      try {
+        transactionTemplate.executeWithoutResult(
+            status -> {
+              conversationRepository.deleteAllByDatasetId(datasetId);
+              datasetRepository.deleteById(datasetId);
+            });
+      } catch (Exception compensationEx) {
+        log.warn(
+            "[upload] Compensation failed for datasetId={}: {}",
+            datasetId,
+            compensationEx.getMessage(),
+            compensationEx);
+      }
       throw e;
     }
 
