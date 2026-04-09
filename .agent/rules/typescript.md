@@ -1,4 +1,4 @@
-## TypeScript/React (Vite+)
+# TypeScript/React (Vite+)
 
 ### 코드 스타일
 
@@ -53,7 +53,7 @@ export function DomainPackCard({ pack, onPublish }: DomainPackCardProps) {
 
 ### FSD (Feature-Sliced Design) 구조
 
-```
+```text
 src/
 ├── app/              # 초기화, 라우팅, 프로바이더
 ├── pages/            # 페이지 컴포넌트
