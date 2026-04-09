@@ -1,5 +1,7 @@
 package com.init.corpus.domain.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,12 +13,15 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "dataset", schema = "corpus")
 public class Dataset {
+
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -101,5 +106,19 @@ public class Dataset {
 
   public PiiRedactionStatus getPiiRedactionStatus() {
     return piiRedactionStatus;
+  }
+
+  public void updateMetaJson(String metaJson) {
+    Objects.requireNonNull(metaJson, "metaJson must not be null");
+    if (metaJson.isBlank()) {
+      throw new IllegalArgumentException("metaJson must not be blank");
+    }
+    try {
+      JSON_MAPPER.readTree(metaJson);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "metaJson is not valid JSON: " + e.getOriginalMessage(), e);
+    }
+    this.metaJson = metaJson;
   }
 }

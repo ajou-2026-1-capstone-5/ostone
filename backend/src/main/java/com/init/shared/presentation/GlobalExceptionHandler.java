@@ -6,6 +6,7 @@ import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
+import com.init.corpus.application.exception.ConsultingContentParseException;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
@@ -18,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +30,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationCredentialsNotFound(
+      AuthenticationCredentialsNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(new ErrorResponse("UNAUTHORIZED", ex.getMessage()));
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
 
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
@@ -82,6 +98,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleDuplicateTurnIndex(DuplicateTurnIndexException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ErrorResponse("DUPLICATE_TURN_INDEX", ex.getMessage()));
+  }
+
+  @ExceptionHandler(ConsultingContentParseException.class)
+  public ResponseEntity<ErrorResponse> handleConsultingContentParse(
+      ConsultingContentParseException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("CONSULTING_CONTENT_PARSE_ERROR", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
