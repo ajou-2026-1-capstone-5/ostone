@@ -52,6 +52,15 @@ test(runtime): add workflow execution tests
 
 **스코프**: 변경 모듈 (domain-pack, review, pipeline 등)
 
+**SemVer 버전 매핑**:
+
+| 타입                                         | 버전 변화     | 예시                            |
+| -------------------------------------------- | ------------- | ------------------------------- |
+| `feat`                                       | minor (0.X.0) | `feat(auth): add login` → 0.1.0 |
+| `fix`                                        | patch (0.0.X) | `fix(api): handle null` → 0.0.1 |
+| `feat!` 또는 `BREAKING CHANGE`               | major (X.0.0) | `feat!: redesign API` → 1.0.0   |
+| `docs`, `style`, `refactor`, `test`, `chore` | 변화 없음     | —                               |
+
 ## CI 연동
 
 GitHub Actions CI가 브랜치 패턴을 검증한다:
