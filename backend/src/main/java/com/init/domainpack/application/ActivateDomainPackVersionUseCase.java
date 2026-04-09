@@ -69,7 +69,7 @@ public class ActivateDomainPackVersionUseCase {
 
     DomainPackVersion version =
         versionRepository
-            .findById(command.versionId())
+            .findByIdAndWorkspaceId(command.workspaceId(), command.versionId())
             .orElseThrow(() -> new DomainPackVersionNotFoundException(command.versionId()));
 
     // packId 일치 검증 (path variable 위·변조 방어)
@@ -88,7 +88,7 @@ public class ActivateDomainPackVersionUseCase {
     // 기존 PUBLISHED 버전 비활성화 없음 (U-003 Confirmed)
     // Domain Event 발행 없음 (U-004 Confirmed)
     try {
-      DomainPackVersion saved = versionRepository.save(version);
+      DomainPackVersion saved = versionRepository.saveAndFlush(version);
       return ActivateDomainPackVersionResult.from(saved);
     } catch (ObjectOptimisticLockingFailureException e) {
       throw new DomainPackVersionConflictException(command.versionId());

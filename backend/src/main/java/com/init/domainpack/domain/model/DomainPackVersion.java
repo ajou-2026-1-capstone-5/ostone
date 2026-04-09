@@ -9,6 +9,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "domain_pack_version", schema = "pack")
@@ -52,6 +53,7 @@ public class DomainPackVersion {
    * @throws IllegalStateException 이미 PUBLISHED 상태인 경우
    */
   public void activate(OffsetDateTime now) {
+    Objects.requireNonNull(now, "publishedAt (now) must not be null");
     if (STATUS_PUBLISHED.equals(this.lifecycleStatus)) {
       throw new IllegalStateException("Domain pack version is already published");
     }

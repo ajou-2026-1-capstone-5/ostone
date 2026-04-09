@@ -58,17 +58,17 @@ class ActivateDomainPackVersionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
-    given(versionRepository.findById(42L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
 
     DomainPackVersion saved = createSavedVersion(42L, 7L);
-    given(versionRepository.save(any())).willReturn(saved);
+    given(versionRepository.saveAndFlush(any())).willReturn(saved);
 
     ActivateDomainPackVersionCommand command =
         new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L);
     ActivateDomainPackVersionResult result = useCase.execute(command);
 
     assertThat(result.id()).isEqualTo(42L);
-    assertThat(result.lifecycleStatus()).isEqualTo("PUBLISHED");
+    assertThat(result.lifecycleStatus()).isEqualTo(DomainPackVersion.STATUS_PUBLISHED);
     assertThat(result.publishedAt()).isNotNull();
   }
 
@@ -102,7 +102,7 @@ class ActivateDomainPackVersionUseCaseTest {
   void execute_versionNotFound_throws404() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
-    given(versionRepository.findById(42L)).willReturn(Optional.empty());
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -116,7 +116,7 @@ class ActivateDomainPackVersionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 99L); // domainPackId=99, not 7
-    given(versionRepository.findById(42L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -130,7 +130,7 @@ class ActivateDomainPackVersionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
     DomainPackVersion published = createPublishedVersion(42L, 7L);
-    given(versionRepository.findById(42L)).willReturn(Optional.of(published));
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(published));
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -144,8 +144,8 @@ class ActivateDomainPackVersionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
-    given(versionRepository.findById(42L)).willReturn(Optional.of(version));
-    given(versionRepository.save(any()))
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(DomainPackVersion.class, 42L));
 
     assertThatThrownBy(
@@ -170,7 +170,7 @@ class ActivateDomainPackVersionUseCaseTest {
     ReflectionTestUtils.setField(version, "id", id);
     ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
     ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", "DRAFT");
+    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_DRAFT);
     ReflectionTestUtils.setField(version, "updatedAt", OffsetDateTime.now(FIXED_CLOCK));
     return version;
   }
@@ -180,7 +180,7 @@ class ActivateDomainPackVersionUseCaseTest {
     ReflectionTestUtils.setField(version, "id", id);
     ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
     ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", "PUBLISHED");
+    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_PUBLISHED);
     ReflectionTestUtils.setField(version, "publishedAt", OffsetDateTime.now(FIXED_CLOCK));
     ReflectionTestUtils.setField(version, "updatedAt", OffsetDateTime.now(FIXED_CLOCK));
     return version;
@@ -191,7 +191,7 @@ class ActivateDomainPackVersionUseCaseTest {
     ReflectionTestUtils.setField(version, "id", id);
     ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
     ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", "PUBLISHED");
+    ReflectionTestUtils.setField(version, "lifecycleStatus", DomainPackVersion.STATUS_PUBLISHED);
     ReflectionTestUtils.setField(
         version, "publishedAt", OffsetDateTime.parse("2026-04-09T12:00:00Z"));
     ReflectionTestUtils.setField(

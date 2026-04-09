@@ -7,5 +7,9 @@ public interface DomainPackVersionRepository {
 
   Optional<DomainPackVersion> findById(Long id);
 
+  Optional<DomainPackVersion> findByIdAndWorkspaceId(Long workspaceId, Long versionId);
+
   DomainPackVersion save(DomainPackVersion version);
+
+  DomainPackVersion saveAndFlush(DomainPackVersion version);
 }
