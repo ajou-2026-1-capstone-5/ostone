@@ -35,4 +35,4 @@ backend/bin/
 CLAUDE.md
 
 # 에이전트 상태 공유 폴더 - 커밋 제외
-.handoff
+.handoff/
