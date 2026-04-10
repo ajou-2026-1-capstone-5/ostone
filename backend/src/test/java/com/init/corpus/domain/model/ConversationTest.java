@@ -20,6 +20,22 @@ class ConversationTest {
   }
 
   @Test
+  @DisplayName("languageCode가 null이면 기본값 'ko'가 적용된다")
+  void should_languageCode_ko_when_null() {
+    Conversation conv = Conversation.create(1L, null, null, null, null, null, null, null, 0);
+
+    assertThat(conv.getLanguageCode()).isEqualTo("ko");
+  }
+
+  @Test
+  @DisplayName("languageCode가 빈 문자열이면 기본값 'ko'가 적용된다")
+  void should_languageCode_ko_when_blank() {
+    Conversation conv = Conversation.create(1L, null, null, "  ", null, null, null, null, 0);
+
+    assertThat(conv.getLanguageCode()).isEqualTo("ko");
+  }
+
+  @Test
   @DisplayName("datasetId가 null이면 NullPointerException을 던진다")
   void should_NPE_when_datasetIdNull() {
     assertThatThrownBy(() -> Conversation.create(null, null, null, null, null, null, null, null, 0))

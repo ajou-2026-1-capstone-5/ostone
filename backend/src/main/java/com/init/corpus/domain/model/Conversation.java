@@ -127,6 +127,10 @@ public class Conversation {
     return turnCount;
   }
 
+  public String getLanguageCode() {
+    return languageCode;
+  }
+
   public void updateMetaJson(String metaJson) {
     Objects.requireNonNull(metaJson, "metaJson must not be null");
     if (metaJson.isBlank()) {
