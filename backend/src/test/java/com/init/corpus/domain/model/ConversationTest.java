@@ -13,8 +13,7 @@ class ConversationTest {
   @Test
   @DisplayName("유효한 입력으로 Conversation을 생성한다")
   void should_생성성공_when_유효한입력() {
-    Conversation conv =
-        Conversation.create(1L, "case-001", null, null, null, null, null, null, 3);
+    Conversation conv = Conversation.create(1L, "case-001", null, null, null, null, null, null, 3);
 
     assertThat(conv.getDatasetId()).isEqualTo(1L);
     assertThat(conv.getTurnCount()).isEqualTo(3);
@@ -23,16 +22,14 @@ class ConversationTest {
   @Test
   @DisplayName("datasetId가 null이면 NullPointerException을 던진다")
   void should_NPE_when_datasetIdNull() {
-    assertThatThrownBy(
-            () -> Conversation.create(null, null, null, null, null, null, null, null, 0))
+    assertThatThrownBy(() -> Conversation.create(null, null, null, null, null, null, null, null, 0))
         .isInstanceOf(NullPointerException.class);
   }
 
   @Test
   @DisplayName("turnCount가 음수이면 IllegalArgumentException을 던진다")
   void should_IAE_when_turnCountNegative() {
-    assertThatThrownBy(
-            () -> Conversation.create(1L, null, null, null, null, null, null, null, -1))
+    assertThatThrownBy(() -> Conversation.create(1L, null, null, null, null, null, null, null, -1))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -42,8 +39,7 @@ class ConversationTest {
     OffsetDateTime start = OffsetDateTime.now();
     OffsetDateTime end = start.minusMinutes(1);
 
-    assertThatThrownBy(
-            () -> Conversation.create(1L, null, null, null, start, end, null, null, 0))
+    assertThatThrownBy(() -> Conversation.create(1L, null, null, null, start, end, null, null, 0))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -81,7 +77,6 @@ class ConversationTest {
   void should_NPE_when_metaJsonNull() {
     Conversation conv = Conversation.create(1L, null, null, null, null, null, null, null, 0);
 
-    assertThatThrownBy(() -> conv.updateMetaJson(null))
-        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(() -> conv.updateMetaJson(null)).isInstanceOf(NullPointerException.class);
   }
 }
