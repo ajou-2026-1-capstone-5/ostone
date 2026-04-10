@@ -78,8 +78,7 @@ class ConversationTest {
   void should_IAE_when_metaJsonBlank() {
     Conversation conv = Conversation.create(1L, null, null, null, null, null, null, null, 0);
 
-    assertThatThrownBy(() -> conv.updateMetaJson(""))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> conv.updateMetaJson("")).isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
