@@ -105,21 +105,14 @@ public class AuthService {
       throw new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다.");
     }
 
-    Claims claims;
-    try {
-      claims = jwtService.parseClaims(command.refreshToken());
-    } catch (JwtException ex) {
-      throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
-    }
-
-    if (!"refresh".equals(claims.get("type", String.class))) {
-      throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
-    }
-
     Long userId;
     try {
+      Claims claims = jwtService.parseClaims(command.refreshToken());
+      if (!"refresh".equals(claims.get("type", String.class))) {
+        throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
+      }
       userId = Long.parseLong(claims.getSubject());
-    } catch (NumberFormatException ex) {
+    } catch (JwtException | NumberFormatException ex) {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }
     if (!userId.equals(refreshToken.getUserId())) {

@@ -108,21 +108,24 @@ public class ChatSession {
 
   public void activate() {
     if (this.status != ChatSessionStatus.OPEN) {
-      throw new IllegalStateException("activate() requires status OPEN but was " + this.status);
+      throw new InvalidSessionStateException(
+          "activate() requires status OPEN but was " + this.status);
     }
     this.status = ChatSessionStatus.ACTIVE;
   }
 
   public void resolve() {
     if (this.status != ChatSessionStatus.ACTIVE) {
-      throw new IllegalStateException("resolve() requires status ACTIVE but was " + this.status);
+      throw new InvalidSessionStateException(
+          "resolve() requires status ACTIVE but was " + this.status);
     }
     this.status = ChatSessionStatus.RESOLVED;
   }
 
   public void reopen() {
     if (this.status != ChatSessionStatus.RESOLVED) {
-      throw new IllegalStateException("reopen() requires status RESOLVED but was " + this.status);
+      throw new InvalidSessionStateException(
+          "reopen() requires status RESOLVED but was " + this.status);
     }
     this.status = ChatSessionStatus.OPEN;
     this.endedAt = null;

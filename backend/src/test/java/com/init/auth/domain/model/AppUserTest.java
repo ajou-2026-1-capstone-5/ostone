@@ -126,6 +126,31 @@ class AppUserTest {
   }
 
   @Test
+  @DisplayName("initiatePasswordReset: tokenHash가 빈 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_tokenHash가빈문자열() {
+    // given
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
+
+    // when & then
+    assertThatThrownBy(() -> user.initiatePasswordReset("", OffsetDateTime.now().plusMinutes(30)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("tokenHash must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("initiatePasswordReset: tokenHash가 공백 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_tokenHash가공백문자열() {
+    // given
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$dummyhash");
+
+    // when & then
+    assertThatThrownBy(
+            () -> user.initiatePasswordReset("   ", OffsetDateTime.now().plusMinutes(30)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("tokenHash must not be null or blank");
+  }
+
+  @Test
   @DisplayName("initiatePasswordReset: expiresAt이 null → IllegalArgumentException 발생")
   void should_예외발생_when_expiresAt이null() {
     // given
@@ -197,6 +222,30 @@ class AppUserTest {
 
     // when & then
     assertThatThrownBy(() -> user.completePasswordReset(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("newPasswordHash must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("completePasswordReset: 빈 문자열 해시 → IllegalArgumentException 발생")
+  void should_예외발생_when_새해시가빈문자열() {
+    // given
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$oldhash");
+
+    // when & then
+    assertThatThrownBy(() -> user.completePasswordReset(""))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("newPasswordHash must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("completePasswordReset: 공백 문자열 해시 → IllegalArgumentException 발생")
+  void should_예외발생_when_새해시가공백문자열() {
+    // given
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$oldhash");
+
+    // when & then
+    assertThatThrownBy(() -> user.completePasswordReset("   "))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("newPasswordHash must not be null or blank");
   }

@@ -114,8 +114,9 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
           DomainPackWorkspaceMemberRef.class.getDeclaredConstructor();
       ctor.setAccessible(true);
       return ctor.newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(
+          "failed to instantiate DomainPackWorkspaceMemberRef via reflection", e);
     }
   }
 }

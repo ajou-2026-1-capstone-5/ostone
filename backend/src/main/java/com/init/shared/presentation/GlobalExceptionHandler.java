@@ -1,6 +1,5 @@
 package com.init.shared.presentation;
 
-import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.BusinessException;
 import com.init.shared.application.exception.DuplicateException;
@@ -9,7 +8,6 @@ import com.init.shared.application.exception.InvalidTokenException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.application.exception.UnauthorizedException;
 import com.init.shared.presentation.dto.ErrorResponse;
-import com.init.shared.presentation.dto.PasswordResetRequiredResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
 import java.util.Objects;
@@ -52,13 +50,6 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
-  }
-
-  @ExceptionHandler(PasswordResetRequiredException.class)
-  public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
-      PasswordResetRequiredException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new PasswordResetRequiredResponse(ex.getCode(), ex.getMessage(), ex.getResetToken()));
   }
 
   @ExceptionHandler(UnauthorizedException.class)

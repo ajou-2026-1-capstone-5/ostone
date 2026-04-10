@@ -124,15 +124,15 @@ class RefreshTokenTest {
   // ── revoke ────────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("revoke: 호출 전 유효 → 호출 후 isValid false")
-  void should_isValid_false_when_revoke호출() {
+  @DisplayName("revoke: 두 번 호출해도 isValid 여전히 false (멱등성)")
+  void should_isValid_여전히false_when_revoke두번호출() {
     // given
     RefreshToken.setClock(FIXED_NOW);
     RefreshToken token =
         RefreshToken.create(1L, "sha256hash", OffsetDateTime.now(FIXED_NOW).plusDays(7));
-    assertThat(token.isValid()).isTrue();
 
     // when
+    token.revoke();
     token.revoke();
 
     // then

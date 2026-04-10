@@ -14,6 +14,7 @@ import com.init.auth.application.TokenRefreshResult;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
+import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,7 +97,7 @@ class AuthControllerTest {
   }
 
   @Test
-  @DisplayName("signup: 입력값 유효성 실패 (짧은 비밀번호) → 400 Bad Request")
+  @DisplayName("signup: 입력값 유효성 실패 (짧은 비밀번호) → 400 Bad Request, VALIDATION_ERROR 코드 반환")
   void should_400반환_when_비밀번호너무짧음() throws Exception {
     // given — password는 8자 이상이어야 함
     mockMvc
@@ -111,7 +112,9 @@ class AuthControllerTest {
                       "password": "short"
                     }
                     """))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors").exists());
   }
 
   // ── login ─────────────────────────────────────────────────────────────────
@@ -176,7 +179,7 @@ class AuthControllerTest {
   }
 
   @Test
-  @DisplayName("login: 입력값 유효성 실패 (이메일 형식 오류) → 400 Bad Request")
+  @DisplayName("login: 입력값 유효성 실패 (이메일 형식 오류) → 400 Bad Request, VALIDATION_ERROR 코드 반환")
   void should_400반환_when_이메일형식오류() throws Exception {
     mockMvc
         .perform(
@@ -189,7 +192,33 @@ class AuthControllerTest {
                       "password": "password123"
                     }
                     """))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors").exists());
+  }
+
+  @Test
+  @DisplayName("login: 비밀번호 재설정 필요 → 403 Forbidden, PASSWORD_RESET_REQUIRED 코드 반환")
+  void should_403반환_when_비밀번호재설정필요() throws Exception {
+    // given
+    given(authService.login(any()))
+        .willThrow(new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", "reset-token-123"));
+
+    // when & then
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "email": "hong@example.com",
+                      "password": "password123"
+                    }
+                    """))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("PASSWORD_RESET_REQUIRED"))
+        .andExpect(jsonPath("$.resetToken").value("reset-token-123"));
   }
 
   // ── refresh ───────────────────────────────────────────────────────────────

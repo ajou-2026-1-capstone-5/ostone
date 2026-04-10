@@ -207,7 +207,7 @@ class RawDatasetUploadServiceTest {
 
   /**
    * Assumption adopted from Recommended Default (NI-3, Option A): Mockito 기반으로
-   * conversationRepository.save() 호출 횟수를 1000번 검증. BATCH_SIZE=500 경계를 2회 배치로 통과함을 확인.
+   * conversationRepository.save() 호출 횟수를 1000번 검증.
    */
   @Test
   @DisplayName("1000건 업로드 시 conversationRepository.save() 1000회 호출 [Assumption: NI-3 Default A]")
