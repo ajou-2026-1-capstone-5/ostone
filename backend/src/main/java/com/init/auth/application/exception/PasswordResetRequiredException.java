@@ -1,14 +1,13 @@
 package com.init.auth.application.exception;
 
-import java.util.Objects;
+import com.init.shared.application.exception.UnauthorizedException;
 
-public class PasswordResetRequiredException extends AuthException {
-
+public class PasswordResetRequiredException extends UnauthorizedException {
   private final String resetToken;
 
   public PasswordResetRequiredException(String message, String resetToken) {
-    super(Objects.requireNonNull(message, "message must not be null"));
-    this.resetToken = Objects.requireNonNull(resetToken, "resetToken must not be null");
+    super("PASSWORD_RESET_REQUIRED", message);
+    this.resetToken = resetToken;
   }
 
   public String getResetToken() {

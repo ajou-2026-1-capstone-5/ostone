@@ -3,6 +3,7 @@ package com.init.workflowruntime.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -10,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.ConsultationService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
@@ -49,7 +52,7 @@ class ConsultationControllerTest {
 
   @Test
   @DisplayName("GET /api/v1/consultation/queue - 대기열 조회 성공")
-  void getActiveQueue_Success() throws Exception {
+  void should_대기열반환_when_정상조회() throws Exception {
     // given
     ChatSessionResponse response = new ChatSessionResponse();
     response.setId(1L);
@@ -69,7 +72,7 @@ class ConsultationControllerTest {
 
   @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
-  void getMessages_Success() throws Exception {
+  void should_메시지목록반환_when_정상조회() throws Exception {
     // given
     ChatMessageResponse msg =
         new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
@@ -85,7 +88,7 @@ class ConsultationControllerTest {
 
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/messages - 메시지 전송 성공")
-  void sendMessage_Success() throws Exception {
+  void should_메시지반환_when_정상전송() throws Exception {
     // given
     SendMessageRequest request = new SendMessageRequest();
     request.setContent("Reply");
@@ -113,7 +116,7 @@ class ConsultationControllerTest {
 
   @Test
   @DisplayName("PATCH /api/v1/consultation/sessions/{id}/status - 상태 업데이트 성공")
-  void updateStatus_Success() throws Exception {
+  void should_세션응답반환_when_정상상태변경() throws Exception {
     // given
     UpdateStatusRequest request = new UpdateStatusRequest();
     request.setStatus("COMPLETED");
@@ -135,5 +138,59 @@ class ConsultationControllerTest {
                 .content(content))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("RESOLVED"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/messages - content 빈 문자열 → 400 Bad Request")
+  void should_400반환_when_contentBlank() throws Exception {
+    // given
+    SendMessageRequest request = new SendMessageRequest();
+    request.setContent(""); // @NotBlank 위반
+
+    // when & then
+    mockMvc
+        .perform(
+            post("/api/v1/consultation/sessions/1/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors").isArray())
+        .andExpect(jsonPath("$.errors").isNotEmpty());
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 세션 없음 → 404 Not Found")
+  void should_404반환_when_세션없음() throws Exception {
+    // given
+    given(consultationService.getMessages(999L))
+        .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/999/messages"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("PATCH /api/v1/consultation/sessions/{id}/status - 유효하지 않은 상태값 → 400 Bad Request")
+  void should_400반환_when_유효하지않은상태값() throws Exception {
+    // given
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("INVALID_STATUS");
+
+    willThrow(new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: INVALID_STATUS"))
+        .given(consultationService)
+        .updateSessionStatus(eq(1L), eq("INVALID_STATUS"));
+
+    // when & then
+    mockMvc
+        .perform(
+            patch("/api/v1/consultation/sessions/1/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
   }
 }

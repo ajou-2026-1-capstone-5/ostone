@@ -1,8 +1,9 @@
 package com.init.corpus.application.exception;
 
-public class UnauthorizedWorkspaceAccessException extends RuntimeException {
+import com.init.shared.application.exception.UnauthorizedException;
 
+public class UnauthorizedWorkspaceAccessException extends UnauthorizedException {
   public UnauthorizedWorkspaceAccessException(String message) {
-    super(message);
+    super("FORBIDDEN", message);
   }
 }

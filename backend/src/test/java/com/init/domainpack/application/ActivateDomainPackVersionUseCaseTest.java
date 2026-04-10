@@ -53,7 +53,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("정상 활성화: DRAFT → PUBLISHED, 결과 반환")
-  void execute_validDraft_returnsPublishedResult() {
+  void should_PUBLISHED반환_when_유효한DRAFT() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
@@ -74,7 +74,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
-  void execute_workspaceNotFound_throws404() {
+  void should_워크스페이스없음예외발생_when_워크스페이스없음() {
     given(workspaceExistencePort.existsById(1L)).willReturn(false);
 
     assertThatThrownBy(
@@ -86,7 +86,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("workspace 비멤버 → DomainPackUnauthorizedWorkspaceAccessException")
-  void execute_notMember_throws403() {
+  void should_권한없음예외발생_when_비멤버() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
@@ -99,7 +99,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("존재하지 않는 versionId → DomainPackVersionNotFoundException")
-  void execute_versionNotFound_throws404() {
+  void should_버전없음예외발생_when_존재하지않는versionId() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.empty());
@@ -111,7 +111,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("packId 불일치 → DomainPackVersionNotFoundException")
-  void execute_packIdMismatch_throws404() {
+  void should_버전없음예외발생_when_packId불일치() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
@@ -125,7 +125,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("이미 PUBLISHED 상태 → DomainPackVersionInvalidStateException")
-  void execute_alreadyPublished_throws400() {
+  void should_잘못된상태예외발생_when_이미PUBLISHED() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 
@@ -139,7 +139,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Test
   @DisplayName("동시 활성화 충돌 → DomainPackVersionConflictException")
-  void execute_optimisticLockFailure_throws409() {
+  void should_충돌예외발생_when_동시활성화충돌() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
 

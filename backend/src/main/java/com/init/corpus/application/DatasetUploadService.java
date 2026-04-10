@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class DatasetUploadService {
 
   private final DatasetRepository datasetRepository;
@@ -45,6 +45,7 @@ public class DatasetUploadService {
     this.workspaceMembershipRepository = workspaceMembershipRepository;
   }
 
+  @Transactional
   public DatasetUploadResult upload(DatasetUploadCommand command) {
     if (!workspaceExistenceRepository.existsById(command.workspaceId())) {
       throw new WorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());

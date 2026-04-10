@@ -1,8 +1,9 @@
 package com.init.corpus.application.exception;
 
-public class ConsultingContentParseException extends RuntimeException {
+import com.init.shared.application.exception.BadRequestException;
 
+public class ConsultingContentParseException extends BadRequestException {
   public ConsultingContentParseException(String message) {
-    super(message);
+    super("CONSULTING_CONTENT_PARSE_ERROR", message);
   }
 }
