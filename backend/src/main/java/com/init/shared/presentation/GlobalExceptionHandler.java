@@ -6,6 +6,16 @@ import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
+import com.init.corpus.application.exception.ConsultingContentParseException;
+import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.DuplicateTurnIndexException;
+import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
+import com.init.corpus.application.exception.WorkspaceNotFoundException;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.DomainPackVersionConflictException;
+import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
+import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -14,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +35,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationCredentialsNotFound(
+      AuthenticationCredentialsNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(new ErrorResponse("UNAUTHORIZED", ex.getMessage()));
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
 
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
@@ -53,6 +78,73 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(new ErrorResponse("INVALID_TOKEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(WorkspaceNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleWorkspaceNotFound(WorkspaceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("WORKSPACE_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DatasetKeyConflictException.class)
+  public ResponseEntity<ErrorResponse> handleDatasetKeyConflict(DatasetKeyConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(new ErrorResponse("DATASET_KEY_CONFLICT", ex.getMessage()));
+  }
+
+  @ExceptionHandler(UnauthorizedWorkspaceAccessException.class)
+  public ResponseEntity<ErrorResponse> handleUnauthorizedWorkspaceAccess(
+      UnauthorizedWorkspaceAccessException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DuplicateTurnIndexException.class)
+  public ResponseEntity<ErrorResponse> handleDuplicateTurnIndex(DuplicateTurnIndexException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("DUPLICATE_TURN_INDEX", ex.getMessage()));
+  }
+
+  @ExceptionHandler(ConsultingContentParseException.class)
+  public ResponseEntity<ErrorResponse> handleConsultingContentParse(
+      ConsultingContentParseException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("CONSULTING_CONTENT_PARSE_ERROR", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackWorkspaceNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackWorkspaceNotFound(
+      DomainPackWorkspaceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("DOMAIN_PACK_WORKSPACE_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackUnauthorizedWorkspaceAccessException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackUnauthorizedWorkspaceAccess(
+      DomainPackUnauthorizedWorkspaceAccessException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionNotFound(
+      DomainPackVersionNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("DOMAIN_PACK_VERSION_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionConflictException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionConflict(
+      DomainPackVersionConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(new ErrorResponse("DOMAIN_PACK_CONFLICT", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackVersionInvalidStateException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackVersionInvalidState(
+      DomainPackVersionInvalidStateException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("DOMAIN_PACK_INVALID_STATE", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

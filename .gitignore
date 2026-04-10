@@ -18,6 +18,10 @@ __pycache__/
 .project
 .settings/
 
+# IDE build artifacts
+backend/.classpath
+backend/bin/
+
 # OS
 .DS_Store
 
@@ -29,3 +33,6 @@ __pycache__/
 
 # Claude-Code — 로컬 AI 컨텍스트 파일, 커밋 제외
 CLAUDE.md
+
+# 에이전트 상태 공유 폴더 - 커밋 제외
+.handoff/

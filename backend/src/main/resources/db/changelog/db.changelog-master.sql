@@ -581,6 +581,10 @@ create table runtime.session_outcome (
     unique (chat_session_id)
 );
 
+--changeset devjhan:20260409-add-version-to-domain-pack-version
+--comment: Add optimistic locking version column to pack.domain_pack_version
+alter table pack.domain_pack_version add column version bigint not null default 0;
+
 --changeset devjhan:20260406-add-password-hash-to-app-user
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
 alter table app.app_user add column password_hash varchar(255);
