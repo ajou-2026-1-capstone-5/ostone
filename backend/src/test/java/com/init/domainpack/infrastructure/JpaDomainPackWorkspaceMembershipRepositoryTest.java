@@ -40,7 +40,7 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
   @DisplayName("hasAnyRole: 멤버가 OPERATOR 역할 보유 → true 반환")
   void should_true반환_when_OPERATOR역할보유() {
     // given
-    createAndPersistMember(1L, 10L, WorkspaceMemberRole.OPERATOR);
+    createAndPersistMember(1L, 10L, WorkspaceMemberRole.OPERATOR.name());
 
     // when
     boolean result =
@@ -55,7 +55,7 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
   @DisplayName("hasAnyRole: 멤버가 VIEWER 역할만 보유 → false 반환")
   void should_false반환_when_허용되지않은역할보유() {
     // given
-    createAndPersistMember(1L, 20L, WorkspaceMemberRole.VIEWER);
+    createAndPersistMember(1L, 20L, "VIEWER");
 
     // when
     boolean result =
@@ -99,11 +99,11 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
   // ── helper ─────────────────────────────────────────────────────────────────
 
   private DomainPackWorkspaceMemberRef createAndPersistMember(
-      long workspaceId, long userId, WorkspaceMemberRole memberRole) {
+      long workspaceId, long userId, String memberRole) {
     DomainPackWorkspaceMemberRef member = newMember();
     ReflectionTestUtils.setField(member, "workspaceId", workspaceId);
     ReflectionTestUtils.setField(member, "userId", userId);
-    ReflectionTestUtils.setField(member, "memberRole", memberRole.name());
+    ReflectionTestUtils.setField(member, "memberRole", memberRole);
     em.persist(member);
     em.flush();
     return member;
