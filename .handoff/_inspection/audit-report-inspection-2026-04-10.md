@@ -162,7 +162,7 @@
 - **Expected**: public 생성자에서 `@Autowired` 제거. Spring이 단일 public 생성자를 자동으로 주입.
 - **Actual**: `@Autowired public ActivateDomainPackVersionUseCase(...)` — 라인 33.
 - **Fix Direction**: `@Autowired` 어노테이션 제거.
-- **Fix Result**: Blocked — 클래스에 두 개의 생성자(3-arg 프로덕션용, 4-arg Clock 주입 테스트용)가 존재하여 `@Autowired` 제거 시 Spring이 생성자를 선택할 수 없음(`NoSuchMethodException` 발생, `ApplicationTest` 실패). 기존 `ActivateDomainPackVersionUseCaseTest`가 4-arg 생성자를 사용하므로 기존 테스트 수정 없이는 생성자 통합 불가. 롤백 완료 — `@Autowired` 원상 복구.
+- **Fix Result**: Fixed (approved) — `shared/infrastructure/ClockConfig.java` 추가하여 `Clock.systemDefaultZone()`을 `@Bean`으로 등록. `ActivateDomainPackVersionUseCase`에서 3-arg 생성자 및 `@Autowired` 제거. 4-arg 단일 생성자로 통합 — Spring이 `Clock` Bean을 자동 주입. 기존 `ActivateDomainPackVersionUseCaseTest`는 4-arg 생성자를 이미 사용 중이어서 수정 불필요. 테스트 통과 확인.
 
 ---
 

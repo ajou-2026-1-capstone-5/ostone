@@ -13,7 +13,6 @@ import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,18 +28,6 @@ public class ActivateDomainPackVersionUseCase {
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
-
-  @Autowired
-  public ActivateDomainPackVersionUseCase(
-      DomainPackVersionRepository versionRepository,
-      WorkspaceExistencePort workspaceExistencePort,
-      WorkspaceMembershipPort workspaceMembershipPort) {
-    this(
-        versionRepository,
-        workspaceExistencePort,
-        workspaceMembershipPort,
-        Clock.systemDefaultZone());
-  }
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
