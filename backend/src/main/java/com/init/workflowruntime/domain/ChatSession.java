@@ -67,7 +67,9 @@ public class ChatSession {
 
   @PrePersist
   protected void onPersist() {
-    this.startedAt = OffsetDateTime.now();
+    if (this.startedAt == null) {
+      this.startedAt = OffsetDateTime.now();
+    }
   }
 
   public Long getId() {
@@ -137,6 +139,9 @@ public class ChatSession {
       throw new InvalidSessionStateException("closeSession() requires status not COMPLETED");
     }
     this.status = ChatSessionStatus.COMPLETED;
+    if (this.startedAt == null) {
+      this.startedAt = OffsetDateTime.now();
+    }
     this.endedAt = OffsetDateTime.now();
   }
 }
