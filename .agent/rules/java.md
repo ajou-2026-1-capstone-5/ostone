@@ -205,7 +205,9 @@ public void initiatePasswordReset() { ... }
 
 근거: `backend/src/main/java/com/init/workflowruntime/application/ConsultationService.java` — 모든 메서드에 자명한 Javadoc이 달려있음. 가독성 저하.
 
-### 8. @Transactional(readOnly=true) 권장 패턴
+## 권장 패턴
+
+### @Transactional(readOnly = true) 기본값 설정
 
 ```java
 // ✅ 올바름: 클래스 기본 readOnly=true, 쓰기 메서드만 개별 오버라이드

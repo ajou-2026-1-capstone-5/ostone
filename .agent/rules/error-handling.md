@@ -10,7 +10,7 @@
 
 ### 예외 계층 구조
 
-```
+```text
 BusinessException (추상) — 비즈니스 규칙 위반
 ├── NotFoundException — 404: 리소스 없음
 ├── DuplicateException — 409: 중복
@@ -22,16 +22,18 @@ BusinessException (추상) — 비즈니스 규칙 위반
 
 ### HTTP 상태 코드 매핑
 
-| Exception                              | HTTP Status | 사용 시점              |
-| -------------------------------------- | ----------- | ---------------------- |
-| `NotFoundException`                    | 404         | findById 실패          |
-| `EmailAlreadyExistsException`          | 409         | unique constraint 위반 |
-| `InvalidCredentialsException`          | 401         | 로그인 실패            |
-| `InvalidTokenException`                | 401         | 토큰 검증 실패         |
-| `UnauthorizedWorkspaceAccessException` | 403         | 권한 부족              |
-| `BadRequestException`                  | 400         | 비즈니스 검증 실패     |
-| `MethodArgumentNotValidException`      | 400         | @Valid 실패            |
-| `Exception` (fallback)                 | 500         | 예상치 못한 오류       |
+| Exception                              | HTTP Status | 사용 시점                                                  |
+| -------------------------------------- | ----------- | ---------------------------------------------------------- |
+| `NotFoundException`                    | 404         | findById 실패                                              |
+| `DuplicateException`                   | 409         | unique constraint 위반 (예: `EmailAlreadyExistsException`) |
+| `InvalidCredentialsException`          | 401         | 로그인 실패                                                |
+| `InvalidTokenException`                | 401         | 토큰 검증 실패                                             |
+| `UnauthorizedWorkspaceAccessException` | 403         | 권한 부족                                                  |
+| `BadRequestException`                  | 400         | 비즈니스 검증 실패                                         |
+| `MethodArgumentNotValidException`      | 400         | @Valid 실패                                                |
+| `Exception` (fallback)                 | 500         | 예상치 못한 오류                                           |
+
+구체 예외는 `DuplicateException` 계층 아래에서 세분화할 수 있다.
 
 ### 에러 응답 DTO
 
@@ -61,6 +63,7 @@ public class GlobalExceptionHandler {
         .body(new ErrorResponse("EMAIL_ALREADY_EXISTS", ex.getMessage()));
   }
 
+  // ✅ GlobalExceptionHandler 전용: fallback 경계에서만 허용
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
     log.error("Unhandled exception", ex);
@@ -149,6 +152,6 @@ try {
 
 - **catch 블록 비우기 금지**: 최소 로깅 필요
 - **예외 삼키기 금지**: catch 후 무시하지 않음
-- **일반 Exception catch 금지**: 구체적 예외 사용
+- **서비스/도메인 레이어에서 일반 Exception catch 금지**: 구체적 예외 사용. `GlobalExceptionHandler`의 fallback `@ExceptionHandler(Exception.class)` 전용 경계에서만 허용.
 - **에러 메시지에 기술 용어 금지**: 사용자 친화적 한글
 - **console.log를 프로덕션 에러 처리로 사용 금지**: 적절한 로깅 프레임워크 사용

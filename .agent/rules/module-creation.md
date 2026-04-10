@@ -12,8 +12,8 @@
 
 ## 디렉토리 구조
 
-```
-backend/src/main/java/com/init/{module-name}/
+```text
+backend/src/main/java/com/init/{module}/
 ├── presentation/       # Controller, DTO, WebSocket Handler
 │   ├── {Module}Controller.java
 │   ├── dto/
@@ -89,7 +89,7 @@ backend/src/main/java/com/init/{module-name}/
 
 ### auth 모듈 (완성된 모범 사례)
 
-```
+```text
 backend/src/main/java/com/init/auth/
 ├── presentation/
 │   ├── AuthController.java (99L) — @Valid, HTTP 상태 코드
@@ -116,7 +116,7 @@ backend/src/main/java/com/init/auth/
 
 ### domainpack 모듈 (스켈레톤 상태)
 
-```
+```text
 backend/src/main/java/com/init/domainpack/
 ├── presentation/package-info.java (1L)
 ├── application/package-info.java (1L)

@@ -35,7 +35,7 @@
 ```java
 @Test
 @DisplayName("GET /api/v1/consultation/queue - 대기열 조회 성공")
-void getActiveQueue_Success() throws Exception {
+void should_대기열반환_when_인증된사용자요청() throws Exception {
     // given
     ChatSessionResponse response = new ChatSessionResponse();
     response.setId(1L);
