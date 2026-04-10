@@ -46,7 +46,7 @@ public class AuthService {
     this.dummyHash = passwordEncoder.encode("dummy_password_for_timing_prevention");
   }
 
-  @Transactional
+  @Transactional(noRollbackFor = PasswordResetRequiredException.class)
   public LoginResult login(LoginCommand command) {
     Optional<AppUser> userOpt = userRepository.findByEmail(command.email());
 
@@ -116,7 +116,12 @@ public class AuthService {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }
 
-    Long userId = Long.parseLong(claims.getSubject());
+    Long userId;
+    try {
+      userId = Long.parseLong(claims.getSubject());
+    } catch (NumberFormatException ex) {
+      throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
+    }
     if (!userId.equals(refreshToken.getUserId())) {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }

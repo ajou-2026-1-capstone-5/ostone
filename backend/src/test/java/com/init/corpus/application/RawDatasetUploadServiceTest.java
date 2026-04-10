@@ -183,6 +183,32 @@ class RawDatasetUploadServiceTest {
         .isInstanceOf(DatasetKeyConflictException.class);
   }
 
+  @Test
+  @DisplayName("conversationRepository.save() 실패 시 dataset/conversation 보상 삭제 실행")
+  void upload_conversationSaveFailure_compensationExecuted() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(savedDataset.getDatasetKey()).willReturn("test-dataset-key");
+    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
+    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+
+    given(conversationRepository.save(any()))
+        .willThrow(new RuntimeException("flush failed"));
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(RuntimeException.class);
+
+    verify(conversationRepository).deleteAllByDatasetId(1L);
+    verify(datasetRepository).deleteById(1L);
+  }
+
   /**
    * Assumption adopted from Recommended Default (NI-3, Option A): Mockito 기반으로
    * conversationRepository.save() 호출 횟수를 1000번 검증. BATCH_SIZE=500 경계를 2회 배치로 통과함을 확인.

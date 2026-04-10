@@ -3,7 +3,6 @@ package com.init.auth.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,11 +14,11 @@ import com.init.auth.application.TokenRefreshResult;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
-import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -30,9 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * AuthController 슬라이스 테스트.
  *
- * <p>ActivateDomainPackVersionControllerTest와 동일한 패턴 채택: JwtAuthenticationFilter를 스캔 대상에서 제외하고,
- * Spring Security 기본 설정(CSRF 활성화, 모든 엔드포인트 인증 필요)을 사용한다. 인증이 필요 없는 auth 엔드포인트는 {@link
- * WithLongPrincipal}로 SecurityContext를 채워 200/201을 받는다.
+ * <p>보안 필터를 비활성화하여 컨트롤러 직렬화/역직렬화만 검증한다. SecurityConfig 검증은 별도 통합 테스트에서 수행한다.
  */
 @WebMvcTest(
     value = AuthController.class,
@@ -40,6 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
         @ComponentScan.Filter(
             type = FilterType.ASSIGNABLE_TYPE,
             classes = JwtAuthenticationFilter.class))
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AuthController")
 class AuthControllerTest {
 
@@ -51,7 +49,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("signup: 신규 이메일 → 201 Created, 사용자 정보 반환")
-  @WithLongPrincipal(1L)
   void should_201반환_when_회원가입성공() throws Exception {
     // given
     given(authService.signup(any())).willReturn(new SignupResult(1L, "hong@example.com", "홍길동"));
@@ -60,7 +57,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/signup")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -78,7 +74,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("signup: 중복 이메일 → 409 Conflict, EMAIL_ALREADY_EXISTS 코드 반환")
-  @WithLongPrincipal(1L)
   void should_409반환_when_이메일중복() throws Exception {
     // given
     given(authService.signup(any())).willThrow(new EmailAlreadyExistsException("이미 사용 중인 이메일입니다."));
@@ -87,7 +82,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/signup")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -103,13 +97,11 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("signup: 입력값 유효성 실패 (짧은 비밀번호) → 400 Bad Request")
-  @WithLongPrincipal(1L)
   void should_400반환_when_비밀번호너무짧음() throws Exception {
     // given — password는 8자 이상이어야 함
     mockMvc
         .perform(
             post("/api/v1/auth/signup")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -126,7 +118,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("login: 올바른 이메일·비밀번호 → 200 OK, 토큰 반환")
-  @WithLongPrincipal(1L)
   void should_200반환_when_로그인성공() throws Exception {
     // given
     LoginResult loginResult =
@@ -145,7 +136,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/login")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -164,7 +154,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("login: 잘못된 비밀번호 → 401 Unauthorized, INVALID_CREDENTIALS 코드 반환")
-  @WithLongPrincipal(1L)
   void should_401반환_when_잘못된비밀번호() throws Exception {
     // given
     given(authService.login(any()))
@@ -174,7 +163,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/login")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -189,12 +177,10 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("login: 입력값 유효성 실패 (이메일 형식 오류) → 400 Bad Request")
-  @WithLongPrincipal(1L)
   void should_400반환_when_이메일형식오류() throws Exception {
     mockMvc
         .perform(
             post("/api/v1/auth/login")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -210,7 +196,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("refresh: 유효한 리프레시 토큰 → 200 OK, 새 토큰 반환")
-  @WithLongPrincipal(1L)
   void should_200반환_when_토큰갱신성공() throws Exception {
     // given
     TokenRefreshResult refreshResult =
@@ -221,7 +206,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -237,7 +221,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("refresh: 만료된 리프레시 토큰 → 401 Unauthorized, INVALID_TOKEN 코드 반환")
-  @WithLongPrincipal(1L)
   void should_401반환_when_만료된리프레시토큰() throws Exception {
     // given
     given(authService.refresh(any())).willThrow(new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다."));
@@ -246,7 +229,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -262,7 +244,6 @@ class AuthControllerTest {
 
   @Test
   @DisplayName("logout: 유효한 리프레시 토큰 → 204 No Content")
-  @WithLongPrincipal(1L)
   void should_204반환_when_로그아웃성공() throws Exception {
     // given
     willDoNothing().given(authService).logout(any());
@@ -271,7 +252,6 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/logout")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -280,27 +260,5 @@ class AuthControllerTest {
                     }
                     """))
         .andExpect(status().isNoContent());
-  }
-
-  // ── unauthenticated ───────────────────────────────────────────────────────
-
-  @Test
-  @DisplayName("인증 없는 요청 (Spring Security 기본 설정) → 401")
-  void should_401반환_when_인증없는요청() throws Exception {
-    // @WebMvcTest의 기본 Spring Security는 모든 요청에 인증을 요구한다.
-    // 실제 SecurityConfig가 로드되지 않으므로 permitAll()이 적용되지 않음.
-    mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "email": "hong@example.com",
-                      "password": "password123"
-                    }
-                    """))
-        .andExpect(status().isUnauthorized());
   }
 }

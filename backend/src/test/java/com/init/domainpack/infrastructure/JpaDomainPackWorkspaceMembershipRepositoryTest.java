@@ -86,6 +86,26 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
     assertThat(result).isFalse();
   }
 
+  @Test
+  @DisplayName("hasAnyRole: memberRoles가 null → false 반환")
+  void should_false반환_when_memberRoles가null() {
+    // when
+    boolean result = repository.hasAnyRole(999L, 999L, null);
+
+    // then
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  @DisplayName("hasAnyRole: memberRoles가 빈 Set → false 반환")
+  void should_false반환_when_memberRoles가빈Set() {
+    // when
+    boolean result = repository.hasAnyRole(999L, 999L, Set.of());
+
+    // then
+    assertThat(result).isFalse();
+  }
+
   // ── helper ─────────────────────────────────────────────────────────────────
 
   private DomainPackWorkspaceMemberRef newMember() {

@@ -107,15 +107,28 @@ public class ChatSession {
   }
 
   public void activate() {
+    if (this.status != ChatSessionStatus.OPEN) {
+      throw new IllegalStateException(
+          "activate() requires status OPEN but was " + this.status);
+    }
     this.status = ChatSessionStatus.ACTIVE;
   }
 
   public void resolve() {
+    if (this.status != ChatSessionStatus.ACTIVE) {
+      throw new IllegalStateException(
+          "resolve() requires status ACTIVE but was " + this.status);
+    }
     this.status = ChatSessionStatus.RESOLVED;
   }
 
   public void reopen() {
+    if (this.status != ChatSessionStatus.RESOLVED) {
+      throw new IllegalStateException(
+          "reopen() requires status RESOLVED but was " + this.status);
+    }
     this.status = ChatSessionStatus.OPEN;
+    this.endedAt = null;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */

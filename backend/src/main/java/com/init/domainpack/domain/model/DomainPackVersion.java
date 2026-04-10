@@ -43,7 +43,9 @@ public class DomainPackVersion {
 
   @PreUpdate
   protected void onUpdate() {
-    this.updatedAt = OffsetDateTime.now();
+    if (this.updatedAt == null) {
+      this.updatedAt = OffsetDateTime.now();
+    }
   }
 
   /**

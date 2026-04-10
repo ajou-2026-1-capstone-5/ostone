@@ -57,9 +57,41 @@ class AppUserTest {
   }
 
   @Test
+  @DisplayName("create: 이메일이 빈 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_이메일이빈문자열() {
+    assertThatThrownBy(() -> AppUser.create("홍길동", "", "hash"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("email must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("create: 이메일이 공백 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_이메일이공백문자열() {
+    assertThatThrownBy(() -> AppUser.create("홍길동", "   ", "hash"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("email must not be null or blank");
+  }
+
+  @Test
   @DisplayName("create: passwordHash가 null → IllegalArgumentException 발생")
   void should_예외발생_when_해시가null() {
     assertThatThrownBy(() -> AppUser.create("홍길동", "hong@example.com", null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("passwordHash must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("create: passwordHash가 빈 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_해시가빈문자열() {
+    assertThatThrownBy(() -> AppUser.create("홍길동", "hong@example.com", ""))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("passwordHash must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("create: passwordHash가 공백 문자열 → IllegalArgumentException 발생")
+  void should_예외발생_when_해시가공백문자열() {
+    assertThatThrownBy(() -> AppUser.create("홍길동", "hong@example.com", "   "))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("passwordHash must not be null or blank");
   }

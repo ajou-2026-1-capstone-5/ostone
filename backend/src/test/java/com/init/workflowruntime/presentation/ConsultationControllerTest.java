@@ -153,7 +153,10 @@ class ConsultationControllerTest {
             post("/api/v1/consultation/sessions/1/messages")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors").isArray())
+        .andExpect(jsonPath("$.errors").isNotEmpty());
   }
 
   @Test
@@ -166,7 +169,8 @@ class ConsultationControllerTest {
     // when & then
     mockMvc
         .perform(get("/api/v1/consultation/sessions/999/messages"))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
   }
 
   @Test
@@ -186,6 +190,7 @@ class ConsultationControllerTest {
             patch("/api/v1/consultation/sessions/1/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
   }
 }

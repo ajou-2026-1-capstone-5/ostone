@@ -10,8 +10,11 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 @DisplayName("RefreshToken 도메인 모델")
+@ResourceLock(value = "RefreshToken.clock", mode = ResourceAccessMode.READ_WRITE)
 class RefreshTokenTest {
 
   private static final Clock FIXED_NOW =
