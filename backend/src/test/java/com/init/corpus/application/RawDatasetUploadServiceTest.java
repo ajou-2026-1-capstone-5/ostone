@@ -199,7 +199,8 @@ class RawDatasetUploadServiceTest {
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("flush failed");
 
     verify(conversationRepository).deleteAllByDatasetId(1L);
     verify(datasetRepository).deleteById(1L);

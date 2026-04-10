@@ -133,6 +133,9 @@ public class ChatSession {
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */
   public void closeSession() {
+    if (this.status == ChatSessionStatus.COMPLETED) {
+      throw new InvalidSessionStateException("closeSession() requires status not COMPLETED");
+    }
     this.status = ChatSessionStatus.COMPLETED;
     this.endedAt = OffsetDateTime.now();
   }

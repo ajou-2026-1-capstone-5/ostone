@@ -1,7 +1,7 @@
 package com.init.auth.presentation;
 
 import com.init.auth.application.exception.PasswordResetRequiredException;
-import com.init.shared.presentation.dto.PasswordResetRequiredResponse;
+import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

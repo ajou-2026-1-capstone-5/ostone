@@ -1,3 +1,3 @@
-package com.init.shared.presentation.dto;
+package com.init.auth.presentation.dto;
 
 public record PasswordResetRequiredResponse(String code, String message, String resetToken) {}
