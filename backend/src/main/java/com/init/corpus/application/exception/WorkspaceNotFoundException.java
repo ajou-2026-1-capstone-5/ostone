@@ -1,8 +1,9 @@
 package com.init.corpus.application.exception;
 
-public class WorkspaceNotFoundException extends RuntimeException {
+import com.init.shared.application.exception.NotFoundException;
 
+public class WorkspaceNotFoundException extends NotFoundException {
   public WorkspaceNotFoundException(String message) {
-    super(message);
+    super("WORKSPACE_NOT_FOUND", message);
   }
 }

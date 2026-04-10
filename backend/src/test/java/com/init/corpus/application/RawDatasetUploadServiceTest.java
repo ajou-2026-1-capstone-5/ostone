@@ -71,8 +71,10 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("워크스페이스 없음 → WorkspaceNotFoundException, DB write 없음")
   void upload_workspaceNotFound_throwsException() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
         .isInstanceOf(WorkspaceNotFoundException.class);
 
@@ -82,9 +84,11 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("멤버십 없음 → UnauthorizedWorkspaceAccessException, DB write 없음")
   void upload_notMember_throwsException() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
         .isInstanceOf(UnauthorizedWorkspaceAccessException.class);
 
@@ -94,11 +98,13 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("데이터셋 키 중복 (사전 검증) → DatasetKeyConflictException, DB write 없음")
   void upload_datasetKeyConflict_throwsException() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
         .willReturn(true);
 
+    // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
         .isInstanceOf(DatasetKeyConflictException.class);
 
@@ -108,6 +114,7 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("파싱 실패 시 DB write 없음 → ConsultingContentParseException")
   void upload_parseFailure_noDbWrite() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
@@ -123,6 +130,7 @@ class RawDatasetUploadServiceTest {
                 new RawConversationInput(
                     "id-1", null, null, null, null, Fixtures.invalidPrefixConsultingContent())));
 
+    // when & then
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(ConsultingContentParseException.class);
 
@@ -132,6 +140,7 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("정상 업로드 → DatasetUploadResult 반환, conversation/turn 저장 확인")
   void upload_success_returnsResult() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
@@ -148,8 +157,10 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
+    // when
     DatasetUploadResult result = service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L));
 
+    // then
     assertThat(result.datasetId()).isEqualTo(1L);
     assertThat(result.datasetKey()).isEqualTo("test-dataset-key");
     assertThat(result.conversationCount()).isEqualTo(1);
@@ -160,23 +171,49 @@ class RawDatasetUploadServiceTest {
   @Test
   @DisplayName("Dataset 저장 시 DataIntegrityViolationException → DatasetKeyConflictException")
   void upload_dataIntegrityViolation_throwsDatasetKeyConflict() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
     given(datasetRepository.save(any()))
         .willThrow(new DataIntegrityViolationException("duplicate key"));
 
+    // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
         .isInstanceOf(DatasetKeyConflictException.class);
   }
 
+  @Test
+  @DisplayName("conversationRepository.save() 실패 시 dataset/conversation 보상 삭제 실행")
+  void upload_conversationSaveFailure_compensationExecuted() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+
+    given(conversationRepository.save(any())).willThrow(new RuntimeException("flush failed"));
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("flush failed");
+
+    verify(conversationRepository).deleteAllByDatasetId(1L);
+    verify(datasetRepository).deleteById(1L);
+  }
+
   /**
    * Assumption adopted from Recommended Default (NI-3, Option A): Mockito 기반으로
-   * conversationRepository.save() 호출 횟수를 1000번 검증. BATCH_SIZE=500 경계를 2회 배치로 통과함을 확인.
+   * conversationRepository.save() 호출 횟수를 1000번 검증.
    */
   @Test
   @DisplayName("1000건 업로드 시 conversationRepository.save() 1000회 호출 [Assumption: NI-3 Default A]")
   void upload_1000Conversations_batchesCorrectly() {
+    // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
@@ -201,8 +238,10 @@ class RawDatasetUploadServiceTest {
     RawDatasetUploadCommand command =
         new RawDatasetUploadCommand(1L, "batch-key", "Batch Dataset", "csv", 1L, conversations);
 
+    // when
     service.upload(command);
 
+    // then
     verify(conversationRepository, times(1000)).save(any());
   }
 }

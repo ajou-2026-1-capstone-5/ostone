@@ -116,7 +116,7 @@ public class RawDatasetUploadService {
       if (!batch.isEmpty()) {
         flushBatch(datasetId, batch);
       }
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       try {
         transactionTemplate.executeWithoutResult(
             status -> {

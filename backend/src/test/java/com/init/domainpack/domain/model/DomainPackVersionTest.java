@@ -13,7 +13,7 @@ class DomainPackVersionTest {
 
   @Test
   @DisplayName("activate: PUBLISHED 아닌 상태에서 호출 시 lifecycleStatus가 PUBLISHED로 변경된다")
-  void activate_fromNonPublished_setsPublished() {
+  void should_PUBLISHED반환_when_비PUBLISHED상태() {
     DomainPackVersion version = createDraftVersion();
     OffsetDateTime now = OffsetDateTime.parse("2026-04-09T12:00:00Z");
 
@@ -21,12 +21,12 @@ class DomainPackVersionTest {
 
     assertThat(version.getLifecycleStatus()).isEqualTo("PUBLISHED");
     assertThat(version.getPublishedAt()).isEqualTo(now);
-    // updatedAt은 @PreUpdate(JPA 저장 시점)에서 갱신되므로 도메인 단위 테스트에서는 검증하지 않는다
+    assertThat(version.getUpdatedAt()).isEqualTo(now);
   }
 
   @Test
   @DisplayName("activate: 이미 PUBLISHED 상태에서 호출 시 IllegalStateException 발생")
-  void activate_fromPublished_throwsException() {
+  void should_예외발생_when_이미PUBLISHED() {
     DomainPackVersion version = createPublishedVersion();
 
     assertThatThrownBy(() -> version.activate(OffsetDateTime.now()))

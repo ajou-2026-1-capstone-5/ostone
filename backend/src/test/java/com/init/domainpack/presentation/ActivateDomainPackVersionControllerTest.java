@@ -50,7 +50,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("유효한 version → 200 OK, lifecycleStatus=PUBLISHED")
   @WithLongPrincipal(10L)
-  void activate_validVersion_returns200() throws Exception {
+  void should_200반환_when_유효한버전() throws Exception {
     ActivateDomainPackVersionResult result =
         new ActivateDomainPackVersionResult(
             42L,
@@ -73,7 +73,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("존재하지 않는 versionId → 404 DOMAIN_PACK_VERSION_NOT_FOUND")
   @WithLongPrincipal(10L)
-  void activate_nonExistentVersion_returns404() throws Exception {
+  void should_404반환_when_존재하지않는버전() throws Exception {
     given(useCase.execute(any())).willThrow(new DomainPackVersionNotFoundException(42L));
 
     mockMvc
@@ -85,7 +85,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("이미 PUBLISHED 상태 → 400 DOMAIN_PACK_INVALID_STATE")
   @WithLongPrincipal(10L)
-  void activate_alreadyPublished_returns400() throws Exception {
+  void should_400반환_when_이미PUBLISHED() throws Exception {
     given(useCase.execute(any()))
         .willThrow(
             new DomainPackVersionInvalidStateException("Domain pack version is already published"));
@@ -99,7 +99,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("workspace 없음 → 404 DOMAIN_PACK_WORKSPACE_NOT_FOUND")
   @WithLongPrincipal(10L)
-  void activate_workspaceNotFound_returns404() throws Exception {
+  void should_404반환_when_워크스페이스없음() throws Exception {
     given(useCase.execute(any()))
         .willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"));
 
@@ -112,7 +112,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("workspace 비멤버 → 403 FORBIDDEN")
   @WithLongPrincipal(10L)
-  void activate_workspaceNonMember_returns403() throws Exception {
+  void should_403반환_when_비멤버() throws Exception {
     given(useCase.execute(any()))
         .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
 
@@ -125,7 +125,7 @@ class ActivateDomainPackVersionControllerTest {
   @Test
   @DisplayName("동시 활성화 충돌 → 409 DOMAIN_PACK_CONFLICT")
   @WithLongPrincipal(10L)
-  void activate_concurrentConflict_returns409() throws Exception {
+  void should_409반환_when_동시충돌() throws Exception {
     given(useCase.execute(any())).willThrow(new DomainPackVersionConflictException(42L));
 
     mockMvc
@@ -136,7 +136,7 @@ class ActivateDomainPackVersionControllerTest {
 
   @Test
   @DisplayName("인증 없는 요청 → 401")
-  void activate_unauthenticated_returns401() throws Exception {
+  void should_401반환_when_인증없음() throws Exception {
     mockMvc.perform(post(BASE_URL).with(csrf())).andExpect(status().isUnauthorized());
   }
 }

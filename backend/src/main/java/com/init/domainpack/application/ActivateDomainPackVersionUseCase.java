@@ -13,13 +13,12 @@ import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class ActivateDomainPackVersionUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
@@ -29,18 +28,6 @@ public class ActivateDomainPackVersionUseCase {
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
-
-  @Autowired
-  public ActivateDomainPackVersionUseCase(
-      DomainPackVersionRepository versionRepository,
-      WorkspaceExistencePort workspaceExistencePort,
-      WorkspaceMembershipPort workspaceMembershipPort) {
-    this(
-        versionRepository,
-        workspaceExistencePort,
-        workspaceMembershipPort,
-        Clock.systemDefaultZone());
-  }
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
@@ -53,6 +40,7 @@ public class ActivateDomainPackVersionUseCase {
     this.clock = clock;
   }
 
+  @Transactional
   public ActivateDomainPackVersionResult execute(ActivateDomainPackVersionCommand command) {
     // workspace 존재 확인 (U-005 Confirmed)
     if (!workspaceExistencePort.existsById(command.workspaceId())) {

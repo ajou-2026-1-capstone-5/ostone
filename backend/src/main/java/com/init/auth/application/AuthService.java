@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class AuthService {
 
   private final AppUserRepository userRepository;
@@ -46,6 +46,7 @@ public class AuthService {
     this.dummyHash = passwordEncoder.encode("dummy_password_for_timing_prevention");
   }
 
+  @Transactional(noRollbackFor = PasswordResetRequiredException.class)
   public LoginResult login(LoginCommand command) {
     Optional<AppUser> userOpt = userRepository.findByEmail(command.email());
 
@@ -75,6 +76,7 @@ public class AuthService {
     return issueTokens(user);
   }
 
+  @Transactional
   public SignupResult signup(SignupCommand command) {
     if (userRepository.existsByEmail(command.email())) {
       throw new EmailAlreadyExistsException("이미 사용 중인 이메일입니다.");
@@ -90,6 +92,7 @@ public class AuthService {
     }
   }
 
+  @Transactional
   public TokenRefreshResult refresh(TokenRefreshCommand command) {
     String tokenHash = tokenHasher.hash(command.refreshToken());
 
@@ -102,18 +105,16 @@ public class AuthService {
       throw new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다.");
     }
 
-    Claims claims;
+    Long userId;
     try {
-      claims = jwtService.parseClaims(command.refreshToken());
-    } catch (JwtException ex) {
+      Claims claims = jwtService.parseClaims(command.refreshToken());
+      if (!"refresh".equals(claims.get("type", String.class))) {
+        throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
+      }
+      userId = Long.parseLong(claims.getSubject());
+    } catch (JwtException | NumberFormatException ex) {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }
-
-    if (!"refresh".equals(claims.get("type", String.class))) {
-      throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
-    }
-
-    Long userId = Long.parseLong(claims.getSubject());
     if (!userId.equals(refreshToken.getUserId())) {
       throw new InvalidTokenException("유효하지 않은 리프레시 토큰입니다.");
     }
@@ -141,6 +142,7 @@ public class AuthService {
         newTokens.expiresIn());
   }
 
+  @Transactional
   public void logout(LogoutCommand command) {
     String tokenHash = tokenHasher.hash(command.refreshToken());
     refreshTokenRepository
@@ -152,6 +154,7 @@ public class AuthService {
             });
   }
 
+  @Transactional
   public PasswordResetInitResult passwordResetInit(PasswordResetInitCommand command) {
     String rawToken = UUID.randomUUID().toString();
     String tokenHash = tokenHasher.hash(rawToken);
@@ -171,6 +174,7 @@ public class AuthService {
     return new PasswordResetInitResult(userExists, userExists ? rawToken : null);
   }
 
+  @Transactional
   public void passwordResetComplete(PasswordResetCompleteCommand command) {
     String tokenHash = tokenHasher.hash(command.resetToken());
 

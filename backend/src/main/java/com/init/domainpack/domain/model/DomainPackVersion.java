@@ -43,7 +43,9 @@ public class DomainPackVersion {
 
   @PreUpdate
   protected void onUpdate() {
-    this.updatedAt = OffsetDateTime.now();
+    if (this.updatedAt == null) {
+      this.updatedAt = OffsetDateTime.now();
+    }
   }
 
   /**
@@ -59,6 +61,7 @@ public class DomainPackVersion {
     }
     this.lifecycleStatus = STATUS_PUBLISHED;
     this.publishedAt = now;
+    this.updatedAt = now;
   }
 
   public Long getId() {
