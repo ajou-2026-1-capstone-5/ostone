@@ -106,8 +106,16 @@ public class ChatSession {
     return endedAt;
   }
 
-  public void setStatus(ChatSessionStatus status) {
-    this.status = status;
+  public void activate() {
+    this.status = ChatSessionStatus.ACTIVE;
+  }
+
+  public void resolve() {
+    this.status = ChatSessionStatus.RESOLVED;
+  }
+
+  public void reopen() {
+    this.status = ChatSessionStatus.OPEN;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */

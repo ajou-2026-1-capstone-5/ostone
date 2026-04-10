@@ -1,8 +1,9 @@
 package com.init.corpus.application.exception;
 
-public class DuplicateTurnIndexException extends RuntimeException {
+import com.init.shared.application.exception.BadRequestException;
 
+public class DuplicateTurnIndexException extends BadRequestException {
   public DuplicateTurnIndexException(String message) {
-    super(message);
+    super("DUPLICATE_TURN_INDEX", message);
   }
 }

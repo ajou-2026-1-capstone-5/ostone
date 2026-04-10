@@ -1,8 +1,9 @@
 package com.init.domainpack.application.exception;
 
-public class DomainPackUnauthorizedWorkspaceAccessException extends RuntimeException {
+import com.init.shared.application.exception.UnauthorizedException;
 
+public class DomainPackUnauthorizedWorkspaceAccessException extends UnauthorizedException {
   public DomainPackUnauthorizedWorkspaceAccessException(String message) {
-    super(message);
+    super("FORBIDDEN", message);
   }
 }

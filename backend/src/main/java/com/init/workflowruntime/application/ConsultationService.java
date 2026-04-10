@@ -1,5 +1,7 @@
 package com.init.workflowruntime.application;
 
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
@@ -38,7 +40,7 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     Long id = session.getId();
     if (id == null) {
@@ -56,7 +58,7 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
@@ -83,20 +85,20 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     ChatSessionStatus newStatus;
     try {
       newStatus = ChatSessionStatus.valueOf(status.toUpperCase());
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Unsupported status: " + status);
+      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
     }
 
     switch (newStatus) {
       case COMPLETED -> session.closeSession();
-      case ACTIVE -> session.setStatus(ChatSessionStatus.ACTIVE);
-      case RESOLVED -> session.setStatus(ChatSessionStatus.RESOLVED);
-      case OPEN -> session.setStatus(ChatSessionStatus.OPEN);
+      case ACTIVE -> session.activate();
+      case RESOLVED -> session.resolve();
+      case OPEN -> session.reopen();
     }
 
     return ChatSessionResponse.from(session);

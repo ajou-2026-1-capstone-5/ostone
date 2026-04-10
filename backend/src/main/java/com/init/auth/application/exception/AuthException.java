@@ -1,8 +1,9 @@
 package com.init.auth.application.exception;
 
-public class AuthException extends RuntimeException {
+import com.init.shared.application.exception.BusinessException;
 
-  public AuthException(String message) {
-    super(message);
+public class AuthException extends BusinessException {
+  protected AuthException(String code, String message) {
+    super(code, message);
   }
 }

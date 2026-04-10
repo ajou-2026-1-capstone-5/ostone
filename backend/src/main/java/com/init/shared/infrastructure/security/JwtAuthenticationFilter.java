@@ -2,6 +2,7 @@ package com.init.shared.infrastructure.security;
 
 import com.init.auth.application.JwtService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           log.warn("JWT token missing role claim, userId={}", userId);
         }
       }
-    } catch (Exception ex) {
+    } catch (JwtException | IllegalArgumentException ex) {
       SecurityContextHolder.clearContext();
       log.warn(
           "Failed to process JWT for request [{} {}]: {}",

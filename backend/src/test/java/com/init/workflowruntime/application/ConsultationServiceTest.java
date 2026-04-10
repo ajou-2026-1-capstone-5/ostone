@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
@@ -39,14 +41,14 @@ class ConsultationServiceTest {
   }
 
   @Test
-  @DisplayName("getMessages: 세션 없음 → IllegalArgumentException 발생")
-  void should_IllegalArgumentException발생_when_세션없음() {
+  @DisplayName("getMessages: 세션 없음 → NotFoundException 발생")
+  void should_NotFoundException발생_when_세션없음() {
     // given
     given(chatSessionRepository.findById(999L)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> service.getMessages(999L))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("Session not found");
   }
 
@@ -106,15 +108,15 @@ class ConsultationServiceTest {
   }
 
   @Test
-  @DisplayName("updateSessionStatus: 알 수 없는 상태 → IllegalArgumentException 발생")
-  void should_IllegalArgumentException발생_when_알수없는상태() {
+  @DisplayName("updateSessionStatus: 알 수 없는 상태 → BadRequestException 발생")
+  void should_BadRequestException발생_when_알수없는상태() {
     // given
     ChatSession session = createSession(1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     // when & then
     assertThatThrownBy(() -> service.updateSessionStatus(1L, "INVALID_STATUS"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(BadRequestException.class);
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
