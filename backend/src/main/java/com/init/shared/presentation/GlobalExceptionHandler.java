@@ -58,9 +58,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
       PasswordResetRequiredException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(
-            new PasswordResetRequiredResponse(
-                ex.getCode(), ex.getMessage(), ex.getResetToken()));
+        .body(new PasswordResetRequiredResponse(ex.getCode(), ex.getMessage(), ex.getResetToken()));
   }
 
   @ExceptionHandler(UnauthorizedException.class)
