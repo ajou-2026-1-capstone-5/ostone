@@ -193,13 +193,9 @@ class RawDatasetUploadServiceTest {
 
     Dataset savedDataset = mock(Dataset.class);
     given(savedDataset.getId()).willReturn(1L);
-    given(savedDataset.getDatasetKey()).willReturn("test-dataset-key");
-    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
-    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
     given(datasetRepository.save(any())).willReturn(savedDataset);
 
-    given(conversationRepository.save(any()))
-        .willThrow(new RuntimeException("flush failed"));
+    given(conversationRepository.save(any())).willThrow(new RuntimeException("flush failed"));
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
