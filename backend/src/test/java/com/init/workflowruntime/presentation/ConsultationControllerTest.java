@@ -3,6 +3,7 @@ package com.init.workflowruntime.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -135,5 +136,54 @@ class ConsultationControllerTest {
                 .content(content))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("RESOLVED"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/messages - content 빈 문자열 → 400 Bad Request")
+  void should_400반환_when_contentBlank() throws Exception {
+    // given
+    SendMessageRequest request = new SendMessageRequest();
+    request.setContent(""); // @NotBlank 위반
+
+    // when & then
+    mockMvc
+        .perform(
+            post("/api/v1/consultation/sessions/1/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 세션 없음 → 5xx (V-006 수정 전 현재 동작)")
+  void should_5xx반환_when_세션없음() throws Exception {
+    // given
+    given(consultationService.getMessages(999L))
+        .willThrow(new IllegalArgumentException("Session not found: 999"));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/999/messages"))
+        .andExpect(status().is5xxServerError());
+  }
+
+  @Test
+  @DisplayName("PATCH /api/v1/consultation/sessions/{id}/status - 유효하지 않은 상태값 → 5xx (V-006 수정 전 현재 동작)")
+  void should_5xx반환_when_유효하지않은상태값() throws Exception {
+    // given
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("INVALID_STATUS");
+
+    willThrow(new IllegalArgumentException("Unsupported status: INVALID_STATUS"))
+        .given(consultationService)
+        .updateSessionStatus(eq(1L), eq("INVALID_STATUS"));
+
+    // when & then
+    mockMvc
+        .perform(
+            patch("/api/v1/consultation/sessions/1/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().is5xxServerError());
   }
 }

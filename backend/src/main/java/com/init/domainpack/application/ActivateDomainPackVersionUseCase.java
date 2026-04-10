@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class ActivateDomainPackVersionUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
@@ -53,6 +53,7 @@ public class ActivateDomainPackVersionUseCase {
     this.clock = clock;
   }
 
+  @Transactional
   public ActivateDomainPackVersionResult execute(ActivateDomainPackVersionCommand command) {
     // workspace 존재 확인 (U-005 Confirmed)
     if (!workspaceExistencePort.existsById(command.workspaceId())) {

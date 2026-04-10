@@ -31,4 +31,16 @@ public class DomainPackWorkspaceMemberRef {
   private String memberRole;
 
   protected DomainPackWorkspaceMemberRef() {}
+
+  public Long getWorkspaceId() {
+    return workspaceId;
+  }
+
+  public Long getUserId() {
+    return userId;
+  }
+
+  public String getMemberRole() {
+    return memberRole;
+  }
 }

@@ -50,16 +50,6 @@ public class ChatSession {
 
   protected ChatSession() {}
 
-  /**
-   * 새로운 상담 세션 인스턴스를 생성하는 정적 팩토리 메서드입니다.
-   *
-   * @param workspaceId 워크스페이스 ID
-   * @param domainPackVersionId 도메인 팩 버전 ID
-   * @param status 세션 상태 (OPEN, ACTIVE, COMPLETED 등)
-   * @param channel 세션 채널 (WEB, MOBILE 등)
-   * @param metaJson 추가 메타데이터
-   * @return 생성된 ChatSession 인스턴스
-   */
   public static ChatSession create(
       Long workspaceId,
       Long domainPackVersionId,
