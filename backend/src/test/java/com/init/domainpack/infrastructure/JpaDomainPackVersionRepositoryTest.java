@@ -55,8 +55,7 @@ class JpaDomainPackVersionRepositoryTest {
     em.flush();
 
     // when
-    Optional<DomainPackVersion> result =
-        repository.findByIdAndWorkspaceId(1L, version.getId());
+    Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(1L, version.getId());
 
     // then
     assertThat(result).isPresent();
@@ -81,8 +80,7 @@ class JpaDomainPackVersionRepositoryTest {
     em.flush();
 
     // when — workspaceId=99L은 해당 pack의 workspaceId(1L)가 아님
-    Optional<DomainPackVersion> result =
-        repository.findByIdAndWorkspaceId(99L, version.getId());
+    Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(99L, version.getId());
 
     // then
     assertThat(result).isEmpty();

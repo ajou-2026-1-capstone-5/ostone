@@ -40,7 +40,9 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     Long id = session.getId();
     if (id == null) {
@@ -58,7 +60,9 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
@@ -85,7 +89,9 @@ public class ConsultationService {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
-            .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     ChatSessionStatus newStatus;
     try {

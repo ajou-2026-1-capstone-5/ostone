@@ -3,7 +3,6 @@ package com.init.auth.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
-import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,8 +31,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * AuthController 슬라이스 테스트.
  *
  * <p>ActivateDomainPackVersionControllerTest와 동일한 패턴 채택: JwtAuthenticationFilter를 스캔 대상에서 제외하고,
- * Spring Security 기본 설정(CSRF 활성화, 모든 엔드포인트 인증 필요)을 사용한다. 인증이 필요 없는 auth 엔드포인트는
- * {@link WithLongPrincipal}로 SecurityContext를 채워 200/201을 받는다.
+ * Spring Security 기본 설정(CSRF 활성화, 모든 엔드포인트 인증 필요)을 사용한다. 인증이 필요 없는 auth 엔드포인트는 {@link
+ * WithLongPrincipal}로 SecurityContext를 채워 200/201을 받는다.
  */
 @WebMvcTest(
     value = AuthController.class,
@@ -55,8 +54,7 @@ class AuthControllerTest {
   @WithLongPrincipal(1L)
   void should_201반환_when_회원가입성공() throws Exception {
     // given
-    given(authService.signup(any()))
-        .willReturn(new SignupResult(1L, "hong@example.com", "홍길동"));
+    given(authService.signup(any())).willReturn(new SignupResult(1L, "hong@example.com", "홍길동"));
 
     // when & then
     mockMvc
@@ -83,8 +81,7 @@ class AuthControllerTest {
   @WithLongPrincipal(1L)
   void should_409반환_when_이메일중복() throws Exception {
     // given
-    given(authService.signup(any()))
-        .willThrow(new EmailAlreadyExistsException("이미 사용 중인 이메일입니다."));
+    given(authService.signup(any())).willThrow(new EmailAlreadyExistsException("이미 사용 중인 이메일입니다."));
 
     // when & then
     mockMvc
@@ -133,7 +130,15 @@ class AuthControllerTest {
   void should_200반환_when_로그인성공() throws Exception {
     // given
     LoginResult loginResult =
-        new LoginResult("access-token", "refresh-token", "Bearer", 3600L, 1L, "hong@example.com", "홍길동", "OPERATOR");
+        new LoginResult(
+            "access-token",
+            "refresh-token",
+            "Bearer",
+            3600L,
+            1L,
+            "hong@example.com",
+            "홍길동",
+            "OPERATOR");
     given(authService.login(any())).willReturn(loginResult);
 
     // when & then
@@ -235,8 +240,7 @@ class AuthControllerTest {
   @WithLongPrincipal(1L)
   void should_401반환_when_만료된리프레시토큰() throws Exception {
     // given
-    given(authService.refresh(any()))
-        .willThrow(new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다."));
+    given(authService.refresh(any())).willThrow(new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다."));
 
     // when & then
     mockMvc

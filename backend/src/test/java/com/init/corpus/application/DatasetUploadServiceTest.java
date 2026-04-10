@@ -133,8 +133,7 @@ class DatasetUploadServiceTest {
     given(datasetRepository.save(any())).willReturn(savedDataset);
 
     List<TurnData> duplicateTurns =
-        List.of(
-            new TurnData(0, "AGENT", "Hello", null), new TurnData(0, "CUSTOMER", "Hi", null));
+        List.of(new TurnData(0, "AGENT", "Hello", null), new TurnData(0, "CUSTOMER", "Hi", null));
     DatasetUploadCommand command =
         new DatasetUploadCommand(
             1L,
