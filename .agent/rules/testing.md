@@ -18,6 +18,15 @@
 - **도메인 로직**: 90% 이상 (비즈니스 규칙은 반드시)
 - **새 코드**: 80% 이상 (레거시 제외)
 
+### 커버리지 측정 절차
+
+| 스택              | 로컬 실행 명령                    | 생성되는 리포트                             |
+| ----------------- | --------------------------------- | ------------------------------------------- |
+| Backend (JaCoCo)  | `./gradlew test jacocoTestReport` | `build/reports/jacoco/test/html/index.html` |
+| Frontend (Vitest) | `vp test --coverage`              | `coverage/index.html`, `coverage/lcov.info` |
+
+**PR 체크포인트**: CI에서 `./gradlew test jacocoTestCoverageVerification`(Backend) 및 `vp test --coverage`(Frontend) 통과 여부 확인. 커버리지 미달 시 빌드 실패로 처리한다.
+
 ## Backend (JUnit 5 + Spring Boot Test)
 
 ### 테스트 파일 위치

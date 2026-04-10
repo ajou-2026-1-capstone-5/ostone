@@ -22,18 +22,20 @@ BusinessException (추상) — 비즈니스 규칙 위반
 
 ### HTTP 상태 코드 매핑
 
-| Exception                              | HTTP Status | 사용 시점                                                  |
-| -------------------------------------- | ----------- | ---------------------------------------------------------- |
-| `NotFoundException`                    | 404         | findById 실패                                              |
-| `DuplicateException`                   | 409         | unique constraint 위반 (예: `EmailAlreadyExistsException`) |
-| `InvalidCredentialsException`          | 401         | 로그인 실패                                                |
-| `InvalidTokenException`                | 401         | 토큰 검증 실패                                             |
-| `UnauthorizedWorkspaceAccessException` | 403         | 권한 부족                                                  |
-| `BadRequestException`                  | 400         | 비즈니스 검증 실패                                         |
-| `MethodArgumentNotValidException`      | 400         | @Valid 실패                                                |
-| `Exception` (fallback)                 | 500         | 예상치 못한 오류                                           |
+아래 표는 base exception class 기준이다. 구체 예외는 해당 base class를 상속하여 세분화한다.
 
-구체 예외는 `DuplicateException` 계층 아래에서 세분화할 수 있다.
+| Exception                         | HTTP Status | 사용 시점              |
+| --------------------------------- | ----------- | ---------------------- |
+| `NotFoundException`               | 404         | findById 실패          |
+| `DuplicateException`              | 409         | unique constraint 위반 |
+| `InvalidCredentialsException`     | 401         | 로그인 실패            |
+| `InvalidTokenException`           | 401         | 토큰 검증 실패         |
+| `UnauthorizedException`           | 403         | 권한 부족              |
+| `BadRequestException`             | 400         | 비즈니스 검증 실패     |
+| `MethodArgumentNotValidException` | 400         | @Valid 실패            |
+| `Exception` (fallback)            | 500         | 예상치 못한 오류       |
+
+예: `DuplicateException` → `EmailAlreadyExistsException`, `UnauthorizedException` → `UnauthorizedWorkspaceAccessException`와 같이 구체 예외를 정의한다.
 
 ### 에러 응답 DTO
 
