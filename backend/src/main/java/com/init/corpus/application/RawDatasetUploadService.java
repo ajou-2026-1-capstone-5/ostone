@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -195,8 +196,14 @@ public class RawDatasetUploadService {
     try {
       conversationTurnRepository.saveAll(turnEntities);
     } catch (DataIntegrityViolationException e) {
-      throw new DuplicateTurnIndexException(
-          "중복된 턴 인덱스가 감지되었습니다: conversationId=" + conversation.getId());
+      if (e.getCause() instanceof ConstraintViolationException constraintEx) {
+        String constraintName = constraintEx.getConstraintName();
+        if (constraintName != null && constraintName.contains("turn_index")) {
+          throw new DuplicateTurnIndexException(
+              "중복된 턴 인덱스가 감지되었습니다: conversationId=" + conversation.getId());
+        }
+      }
+      throw e;
     }
   }
 
