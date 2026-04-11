@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.corpus.application.DatasetUploadCommand.TurnData;
 import com.init.corpus.application.RawDatasetUploadCommand.RawConversationInput;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.corpus.domain.model.Conversation;
@@ -191,7 +192,12 @@ public class RawDatasetUploadService {
               turnData.messageText(),
               null)); // D-7: eventTime = null (원본 데이터에 없음)
     }
-    conversationTurnRepository.saveAll(turnEntities);
+    try {
+      conversationTurnRepository.saveAll(turnEntities);
+    } catch (DataIntegrityViolationException e) {
+      throw new DuplicateTurnIndexException(
+          "중복된 턴 인덱스가 감지되었습니다: conversationId=" + conversation.getId());
+    }
   }
 
   private String buildDatasetMetaJson(List<RawConversationInput> conversations) {
