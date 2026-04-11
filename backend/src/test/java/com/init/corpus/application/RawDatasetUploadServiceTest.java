@@ -19,6 +19,7 @@ import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.corpus.domain.model.Conversation;
+import com.init.corpus.domain.model.ConversationTurn;
 import com.init.corpus.domain.model.Dataset;
 import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.model.PiiRedactionStatus;
@@ -211,8 +212,8 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName(
-      "conversationTurnRepository.saveAll() DataIntegrityViolationException → DuplicateTurnIndexException, 보상 삭제 실행")
-  void should_DuplicateTurnIndexException발생_when_saveAllDataIntegrityViolation() {
+      "conversationTurnRepository.flush() DataIntegrityViolationException(uq_turn_index) → DuplicateTurnIndexException, 보상 삭제 실행")
+  void should_DuplicateTurnIndexException발생_when_flushDataIntegrityViolation() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -226,10 +227,11 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
+    given(conversationTurnRepository.saveAll(anyList())).willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_turn_index");
-    given(conversationTurnRepository.saveAll(anyList()))
-        .willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx));
+    org.mockito.BDDMockito.willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
+        .given(conversationTurnRepository).flush();
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
@@ -241,8 +243,8 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName(
-      "conversationTurnRepository.saveAll() 비turn_index 제약 위반 → DataIntegrityViolationException 전파, 보상 삭제 실행")
-  void should_DataIntegrityViolationException전파_when_saveAll비turnIndex제약위반() {
+      "conversationTurnRepository.flush() 비turn_index 제약 위반 → DataIntegrityViolationException 전파, 보상 삭제 실행")
+  void should_DataIntegrityViolationException전파_when_flush비turnIndex제약위반() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -256,10 +258,11 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
+    given(conversationTurnRepository.saveAll(anyList())).willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_other_constraint");
-    given(conversationTurnRepository.saveAll(anyList()))
-        .willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx));
+    org.mockito.BDDMockito.willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx))
+        .given(conversationTurnRepository).flush();
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
