@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.sql.SQLException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -224,8 +226,10 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
+    ConstraintViolationException constraintEx =
+        new ConstraintViolationException("duplicate", new SQLException(), "uq_turn_index");
     given(conversationTurnRepository.saveAll(anyList()))
-        .willThrow(new DataIntegrityViolationException("duplicate key: turn_index"));
+        .willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx));
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
