@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -170,6 +171,7 @@ class RawDatasetUploadServiceTest {
     assertThat(result.conversationCount()).isEqualTo(1);
     verify(conversationRepository).save(any());
     verify(conversationTurnRepository).saveAll(anyList());
+    verify(conversationTurnRepository).flush();
   }
 
   @Test
@@ -231,8 +233,7 @@ class RawDatasetUploadServiceTest {
         .willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_turn_index");
-    org.mockito.BDDMockito.willThrow(
-            new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
+    willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
         .given(conversationTurnRepository)
         .flush();
 
@@ -265,8 +266,7 @@ class RawDatasetUploadServiceTest {
         .willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_other_constraint");
-    org.mockito.BDDMockito.willThrow(
-            new DataIntegrityViolationException("duplicate key: other", constraintEx))
+    willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx))
         .given(conversationTurnRepository)
         .flush();
 
