@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -31,8 +32,20 @@ public class DomainPackVersion {
   @Column(name = "lifecycle_status", nullable = false)
   private String lifecycleStatus;
 
+  @Column(name = "source_pipeline_job_id")
+  private Long sourcePipelineJobId;
+
+  @Column(name = "summary_json", columnDefinition = "jsonb", nullable = false)
+  private String summaryJson;
+
   @Column(name = "published_at")
   private OffsetDateTime publishedAt;
+
+  @Column(name = "created_by")
+  private Long createdBy;
+
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private OffsetDateTime createdAt;
 
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
@@ -41,9 +54,49 @@ public class DomainPackVersion {
 
   protected DomainPackVersion() {}
 
+  @PrePersist
+  protected void onCreate() {
+    OffsetDateTime now = OffsetDateTime.now();
+    if (this.createdAt == null) {
+      this.createdAt = now;
+    }
+    if (this.updatedAt == null) {
+      this.updatedAt = now;
+    }
+  }
+
   @PreUpdate
   protected void onUpdate() {
     this.updatedAt = OffsetDateTime.now();
+  }
+
+  /**
+   * 새로운 DRAFT 버전을 생성한다.
+   *
+   * @param domainPackId 도메인 팩 ID
+   * @param versionNo 버전 번호
+   * @param createdBy 생성자 ID
+   * @param sourcePipelineJobId 파이프라인 Job ID (nullable)
+   * @param summaryJson 요약 JSON
+   * @return 새로운 DRAFT 상태의 DomainPackVersion
+   */
+  public static DomainPackVersion createDraft(
+      Long domainPackId,
+      Integer versionNo,
+      Long createdBy,
+      Long sourcePipelineJobId,
+      String summaryJson) {
+    Objects.requireNonNull(domainPackId, "domainPackId must not be null");
+    Objects.requireNonNull(versionNo, "versionNo must not be null");
+
+    DomainPackVersion v = new DomainPackVersion();
+    v.domainPackId = domainPackId;
+    v.versionNo = versionNo;
+    v.lifecycleStatus = STATUS_DRAFT;
+    v.createdBy = createdBy;
+    v.sourcePipelineJobId = sourcePipelineJobId;
+    v.summaryJson = summaryJson != null ? summaryJson : "{}";
+    return v;
   }
 
   /**
@@ -77,8 +130,24 @@ public class DomainPackVersion {
     return lifecycleStatus;
   }
 
+  public Long getSourcePipelineJobId() {
+    return sourcePipelineJobId;
+  }
+
+  public String getSummaryJson() {
+    return summaryJson;
+  }
+
   public OffsetDateTime getPublishedAt() {
     return publishedAt;
+  }
+
+  public Long getCreatedBy() {
+    return createdBy;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
   }
 
   public OffsetDateTime getUpdatedAt() {

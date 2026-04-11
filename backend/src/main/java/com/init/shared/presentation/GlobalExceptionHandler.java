@@ -11,6 +11,8 @@ import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
+import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
@@ -133,6 +135,12 @@ public class GlobalExceptionHandler {
         .body(new ErrorResponse("DOMAIN_PACK_VERSION_NOT_FOUND", ex.getMessage()));
   }
 
+  @ExceptionHandler(DomainPackNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackNotFound(DomainPackNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("DOMAIN_PACK_NOT_FOUND", ex.getMessage()));
+  }
+
   @ExceptionHandler(DomainPackVersionConflictException.class)
   public ResponseEntity<ErrorResponse> handleDomainPackVersionConflict(
       DomainPackVersionConflictException ex) {
@@ -145,6 +153,13 @@ public class GlobalExceptionHandler {
       DomainPackVersionInvalidStateException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ErrorResponse("DOMAIN_PACK_INVALID_STATE", ex.getMessage()));
+  }
+
+  @ExceptionHandler(DomainPackDraftRequestInvalidException.class)
+  public ResponseEntity<ErrorResponse> handleDomainPackDraftRequestInvalid(
+      DomainPackDraftRequestInvalidException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("DOMAIN_PACK_DRAFT_INVALID_REQUEST", ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

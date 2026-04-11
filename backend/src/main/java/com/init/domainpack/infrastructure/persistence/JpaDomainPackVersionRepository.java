@@ -17,4 +17,7 @@ public interface JpaDomainPackVersionRepository
           + " AND EXISTS (SELECT p FROM DomainPackRef p WHERE p.id = v.domainPackId AND p.workspaceId = :workspaceId)")
   Optional<DomainPackVersion> findByIdAndWorkspaceId(
       @Param("workspaceId") Long workspaceId, @Param("versionId") Long versionId);
+
+  @Query("SELECT MAX(v.versionNo) FROM DomainPackVersion v WHERE v.domainPackId = :domainPackId")
+  Optional<Integer> findMaxVersionNoByDomainPackId(@Param("domainPackId") Long domainPackId);
 }

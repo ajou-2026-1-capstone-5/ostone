@@ -9,6 +9,8 @@ public interface DomainPackVersionRepository {
 
   Optional<DomainPackVersion> findByIdAndWorkspaceId(Long workspaceId, Long versionId);
 
+  Optional<Integer> findMaxVersionNoByDomainPackId(Long domainPackId);
+
   DomainPackVersion save(DomainPackVersion version);
 
   DomainPackVersion saveAndFlush(DomainPackVersion version);
