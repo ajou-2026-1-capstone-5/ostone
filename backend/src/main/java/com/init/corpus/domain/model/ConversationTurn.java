@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -68,7 +69,7 @@ public class ConversationTurn {
 
   @PrePersist
   protected void onPersist() {
-    this.createdAt = OffsetDateTime.now();
+    this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);
   }
 
   public Long getId() {

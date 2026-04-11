@@ -12,9 +12,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,36 +32,11 @@ public class DatasetController {
     this.rawDatasetUploadService = rawDatasetUploadService;
   }
 
-  /**
-   * Authentication principal을 Long userId로 안전하게 추출한다.
-   *
-   * @throws AuthenticationCredentialsNotFoundException authentication이 null이거나 principal이 null일 때
-   *     (401)
-   * @throws AccessDeniedException principal이 Long 타입이 아닐 때 (403)
-   */
-  private Long getUserIdFromAuthentication(Authentication authentication) {
-    if (authentication == null) {
-      throw new AuthenticationCredentialsNotFoundException("Authentication must not be null");
-    }
-    Object principal = authentication.getPrincipal();
-    if (principal == null) {
-      throw new AuthenticationCredentialsNotFoundException(
-          "Authentication principal must not be null");
-    }
-    if (!(principal instanceof Long)) {
-      throw new AccessDeniedException(
-          "Authentication principal must be of type Long, but was: "
-              + principal.getClass().getName());
-    }
-    return (Long) principal;
-  }
-
   @PostMapping
   public ResponseEntity<DatasetUploadResponse> uploadDataset(
       @PathVariable Long workspaceId,
       @Valid @RequestBody DatasetUploadRequest request,
-      Authentication authentication) {
-    Long userId = getUserIdFromAuthentication(authentication);
+      @AuthenticationPrincipal Long userId) {
 
     List<DatasetUploadCommand.ConversationData> conversations =
         request.conversations().stream()
@@ -103,8 +76,7 @@ public class DatasetController {
   public ResponseEntity<DatasetUploadResponse> uploadRawDataset(
       @PathVariable Long workspaceId,
       @Valid @RequestBody RawDatasetUploadRequest request,
-      Authentication authentication) {
-    Long userId = getUserIdFromAuthentication(authentication);
+      @AuthenticationPrincipal Long userId) {
 
     List<RawDatasetUploadCommand.RawConversationInput> conversations =
         request.conversations().stream()

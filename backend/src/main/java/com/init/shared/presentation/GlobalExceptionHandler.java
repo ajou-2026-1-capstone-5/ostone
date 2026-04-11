@@ -1,23 +1,12 @@
 package com.init.shared.presentation;
 
-import com.init.auth.application.exception.BadRequestException;
-import com.init.auth.application.exception.EmailAlreadyExistsException;
-import com.init.auth.application.exception.InvalidCredentialsException;
-import com.init.auth.application.exception.InvalidTokenException;
-import com.init.auth.application.exception.PasswordResetRequiredException;
-import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
-import com.init.corpus.application.exception.ConsultingContentParseException;
-import com.init.corpus.application.exception.DatasetKeyConflictException;
-import com.init.corpus.application.exception.DuplicateTurnIndexException;
-import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
-import com.init.corpus.application.exception.WorkspaceNotFoundException;
-import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
-import com.init.domainpack.application.exception.DomainPackNotFoundException;
-import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
-import com.init.domainpack.application.exception.DomainPackVersionConflictException;
-import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
-import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
-import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.BusinessException;
+import com.init.shared.application.exception.DuplicateException;
+import com.init.shared.application.exception.InvalidCredentialsException;
+import com.init.shared.application.exception.InvalidTokenException;
+import com.init.shared.application.exception.NotFoundException;
+import com.init.shared.application.exception.UnauthorizedException;
 import com.init.shared.presentation.dto.ErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
@@ -51,115 +40,47 @@ public class GlobalExceptionHandler {
         .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
   }
 
-  @ExceptionHandler(BadRequestException.class)
-  public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("BAD_REQUEST", ex.getMessage()));
-  }
-
   @ExceptionHandler(InvalidCredentialsException.class)
   public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(new ErrorResponse("INVALID_CREDENTIALS", ex.getMessage()));
-  }
-
-  @ExceptionHandler(PasswordResetRequiredException.class)
-  public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
-      PasswordResetRequiredException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new PasswordResetRequiredResponse("PASSWORD_RESET_REQUIRED", ex.getMessage()));
-  }
-
-  @ExceptionHandler(EmailAlreadyExistsException.class)
-  public ResponseEntity<ErrorResponse> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
-    return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(new ErrorResponse("EMAIL_ALREADY_EXISTS", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
   @ExceptionHandler(InvalidTokenException.class)
   public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(new ErrorResponse("INVALID_TOKEN", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
-  @ExceptionHandler(WorkspaceNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleWorkspaceNotFound(WorkspaceNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(new ErrorResponse("WORKSPACE_NOT_FOUND", ex.getMessage()));
-  }
-
-  @ExceptionHandler(DatasetKeyConflictException.class)
-  public ResponseEntity<ErrorResponse> handleDatasetKeyConflict(DatasetKeyConflictException ex) {
-    return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(new ErrorResponse("DATASET_KEY_CONFLICT", ex.getMessage()));
-  }
-
-  @ExceptionHandler(UnauthorizedWorkspaceAccessException.class)
-  public ResponseEntity<ErrorResponse> handleUnauthorizedWorkspaceAccess(
-      UnauthorizedWorkspaceAccessException ex) {
+  @ExceptionHandler(UnauthorizedException.class)
+  public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
-  @ExceptionHandler(DuplicateTurnIndexException.class)
-  public ResponseEntity<ErrorResponse> handleDuplicateTurnIndex(DuplicateTurnIndexException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("DUPLICATE_TURN_INDEX", ex.getMessage()));
-  }
-
-  @ExceptionHandler(ConsultingContentParseException.class)
-  public ResponseEntity<ErrorResponse> handleConsultingContentParse(
-      ConsultingContentParseException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("CONSULTING_CONTENT_PARSE_ERROR", ex.getMessage()));
-  }
-
-  @ExceptionHandler(DomainPackWorkspaceNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackWorkspaceNotFound(
-      DomainPackWorkspaceNotFoundException ex) {
+  @ExceptionHandler(NotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(new ErrorResponse("DOMAIN_PACK_WORKSPACE_NOT_FOUND", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
-  @ExceptionHandler(DomainPackUnauthorizedWorkspaceAccessException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackUnauthorizedWorkspaceAccess(
-      DomainPackUnauthorizedWorkspaceAccessException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
-  }
-
-  @ExceptionHandler(DomainPackVersionNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackVersionNotFound(
-      DomainPackVersionNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(new ErrorResponse("DOMAIN_PACK_VERSION_NOT_FOUND", ex.getMessage()));
-  }
-
-  @ExceptionHandler(DomainPackNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackNotFound(DomainPackNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(new ErrorResponse("DOMAIN_PACK_NOT_FOUND", ex.getMessage()));
-  }
-
-  @ExceptionHandler(DomainPackVersionConflictException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackVersionConflict(
-      DomainPackVersionConflictException ex) {
+  @ExceptionHandler(DuplicateException.class)
+  public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(new ErrorResponse("DOMAIN_PACK_CONFLICT", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
-  @ExceptionHandler(DomainPackVersionInvalidStateException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackVersionInvalidState(
-      DomainPackVersionInvalidStateException ex) {
+  @ExceptionHandler(BadRequestException.class)
+  public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("DOMAIN_PACK_INVALID_STATE", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
-  @ExceptionHandler(DomainPackDraftRequestInvalidException.class)
-  public ResponseEntity<ErrorResponse> handleDomainPackDraftRequestInvalid(
-      DomainPackDraftRequestInvalidException ex) {
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex) {
+    log.warn("Unhandled business exception: {}", ex.getCode(), ex);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("DOMAIN_PACK_DRAFT_INVALID_REQUEST", ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -44,6 +44,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/health")
                     .permitAll()
+                    .requestMatchers("/api/v1/consultation/**")
+                    .hasRole("OPERATOR")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -1,8 +1,10 @@
 package com.init.domainpack.application.exception;
 
-public class DomainPackDraftRequestInvalidException extends RuntimeException {
+import com.init.shared.application.exception.BadRequestException;
+
+public class DomainPackDraftRequestInvalidException extends BadRequestException {
 
   public DomainPackDraftRequestInvalidException(String message) {
-    super(message);
+    super("DOMAIN_PACK_DRAFT_INVALID_REQUEST", message);
   }
 }

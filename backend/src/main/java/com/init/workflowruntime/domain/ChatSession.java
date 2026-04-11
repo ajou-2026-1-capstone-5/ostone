@@ -50,16 +50,6 @@ public class ChatSession {
 
   protected ChatSession() {}
 
-  /**
-   * 새로운 상담 세션 인스턴스를 생성하는 정적 팩토리 메서드입니다.
-   *
-   * @param workspaceId 워크스페이스 ID
-   * @param domainPackVersionId 도메인 팩 버전 ID
-   * @param status 세션 상태 (OPEN, ACTIVE, COMPLETED 등)
-   * @param channel 세션 채널 (WEB, MOBILE 등)
-   * @param metaJson 추가 메타데이터
-   * @return 생성된 ChatSession 인스턴스
-   */
   public static ChatSession create(
       Long workspaceId,
       Long domainPackVersionId,
@@ -77,7 +67,9 @@ public class ChatSession {
 
   @PrePersist
   protected void onPersist() {
-    this.startedAt = OffsetDateTime.now();
+    if (this.startedAt == null) {
+      this.startedAt = OffsetDateTime.now();
+    }
   }
 
   public Long getId() {
@@ -116,13 +108,40 @@ public class ChatSession {
     return endedAt;
   }
 
-  public void setStatus(ChatSessionStatus status) {
-    this.status = status;
+  public void activate() {
+    if (this.status != ChatSessionStatus.OPEN) {
+      throw new InvalidSessionStateException(
+          "activate() requires status OPEN but was " + this.status);
+    }
+    this.status = ChatSessionStatus.ACTIVE;
+  }
+
+  public void resolve() {
+    if (this.status != ChatSessionStatus.ACTIVE) {
+      throw new InvalidSessionStateException(
+          "resolve() requires status ACTIVE but was " + this.status);
+    }
+    this.status = ChatSessionStatus.RESOLVED;
+  }
+
+  public void reopen() {
+    if (this.status != ChatSessionStatus.RESOLVED) {
+      throw new InvalidSessionStateException(
+          "reopen() requires status RESOLVED but was " + this.status);
+    }
+    this.status = ChatSessionStatus.OPEN;
+    this.endedAt = null;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */
   public void closeSession() {
+    if (this.status == ChatSessionStatus.COMPLETED) {
+      throw new InvalidSessionStateException("closeSession() requires status not COMPLETED");
+    }
     this.status = ChatSessionStatus.COMPLETED;
+    if (this.startedAt == null) {
+      this.startedAt = OffsetDateTime.now();
+    }
     this.endedAt = OffsetDateTime.now();
   }
 }

@@ -1,8 +1,9 @@
 package com.init.domainpack.application.exception;
 
-public class DomainPackVersionInvalidStateException extends RuntimeException {
+import com.init.shared.application.exception.BadRequestException;
 
+public class DomainPackVersionInvalidStateException extends BadRequestException {
   public DomainPackVersionInvalidStateException(String message) {
-    super(message);
+    super("DOMAIN_PACK_INVALID_STATE", message);
   }
 }
