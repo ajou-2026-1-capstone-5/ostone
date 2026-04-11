@@ -195,6 +195,7 @@ public class RawDatasetUploadService {
     }
     try {
       conversationTurnRepository.saveAll(turnEntities);
+      conversationTurnRepository.flush();
     } catch (DataIntegrityViolationException e) {
       if (e.getCause() instanceof ConstraintViolationException constraintEx) {
         String constraintName = constraintEx.getConstraintName();

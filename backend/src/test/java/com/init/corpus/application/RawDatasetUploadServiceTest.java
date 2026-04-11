@@ -239,6 +239,36 @@ class RawDatasetUploadServiceTest {
     verify(datasetRepository).deleteById(1L);
   }
 
+  @Test
+  @DisplayName(
+      "conversationTurnRepository.saveAll() 비turn_index 제약 위반 → DataIntegrityViolationException 전파, 보상 삭제 실행")
+  void should_DataIntegrityViolationException전파_when_saveAll비turnIndex제약위반() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+
+    Conversation savedConversation = mock(Conversation.class);
+    given(savedConversation.getId()).willReturn(100L);
+    given(conversationRepository.save(any())).willReturn(savedConversation);
+
+    ConstraintViolationException constraintEx =
+        new ConstraintViolationException("duplicate", new SQLException(), "uq_other_constraint");
+    given(conversationTurnRepository.saveAll(anyList()))
+        .willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx));
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    verify(conversationRepository).deleteAllByDatasetId(1L);
+    verify(datasetRepository).deleteById(1L);
+  }
+
   /**
    * Assumption adopted from Recommended Default (NI-3, Option A): Mockito 기반으로
    * conversationRepository.save() 호출 횟수를 1000번 검증.
