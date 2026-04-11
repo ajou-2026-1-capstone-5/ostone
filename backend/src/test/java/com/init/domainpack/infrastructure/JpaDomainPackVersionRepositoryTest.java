@@ -3,10 +3,10 @@ package com.init.domainpack.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.infrastructure.persistence.DomainPackRef;
 import com.init.domainpack.infrastructure.persistence.JpaDomainPackVersionRepository;
 import java.lang.reflect.Constructor;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,15 +46,9 @@ class JpaDomainPackVersionRepositoryTest {
     ReflectionTestUtils.setField(pack, "workspaceId", 1L);
     em.persist(pack);
 
-    DomainPackVersion version = newVersion();
-    ReflectionTestUtils.setField(version, "domainPackId", 1L);
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", "DRAFT");
-    ReflectionTestUtils.setField(version, "summaryJson", "{}");
-    ReflectionTestUtils.setField(version, "createdAt", OffsetDateTime.now());
-    ReflectionTestUtils.setField(version, "updatedAt", OffsetDateTime.now());
-    em.persist(version);
-    em.flush();
+    DomainPackVersion version =
+        ((DomainPackVersionRepository) repository)
+            .saveAndFlush(DomainPackVersion.createDraft(1L, 1, null, null, "{}"));
 
     // when
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(1L, version.getId());
@@ -62,6 +56,7 @@ class JpaDomainPackVersionRepositoryTest {
     // then
     assertThat(result).isPresent();
     assertThat(result.get().getId()).isEqualTo(version.getId());
+    assertThat(result.get().getCreatedAt()).isNotNull();
   }
 
   @Test
@@ -73,15 +68,9 @@ class JpaDomainPackVersionRepositoryTest {
     ReflectionTestUtils.setField(pack, "workspaceId", 1L);
     em.persist(pack);
 
-    DomainPackVersion version = newVersion();
-    ReflectionTestUtils.setField(version, "domainPackId", 2L);
-    ReflectionTestUtils.setField(version, "versionNo", 1);
-    ReflectionTestUtils.setField(version, "lifecycleStatus", "DRAFT");
-    ReflectionTestUtils.setField(version, "summaryJson", "{}");
-    ReflectionTestUtils.setField(version, "createdAt", OffsetDateTime.now());
-    ReflectionTestUtils.setField(version, "updatedAt", OffsetDateTime.now());
-    em.persist(version);
-    em.flush();
+    DomainPackVersion version =
+        ((DomainPackVersionRepository) repository)
+            .saveAndFlush(DomainPackVersion.createDraft(2L, 1, null, null, "{}"));
 
     // when — workspaceId=99L은 해당 pack의 workspaceId(1L)가 아님
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(99L, version.getId());
@@ -95,16 +84,6 @@ class JpaDomainPackVersionRepositoryTest {
   private DomainPackRef newRef() {
     try {
       Constructor<DomainPackRef> ctor = DomainPackRef.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      return ctor.newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private DomainPackVersion newVersion() {
-    try {
-      Constructor<DomainPackVersion> ctor = DomainPackVersion.class.getDeclaredConstructor();
       ctor.setAccessible(true);
       return ctor.newInstance();
     } catch (Exception e) {

@@ -11,6 +11,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "domain_pack_version", schema = "pack")
@@ -35,6 +37,7 @@ public class DomainPackVersion {
   @Column(name = "source_pipeline_job_id")
   private Long sourcePipelineJobId;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "summary_json", columnDefinition = "jsonb", nullable = false)
   private String summaryJson;
 
