@@ -23,4 +23,9 @@ public class ConversationTurnRepositoryAdapter implements ConversationTurnReposi
   public List<ConversationTurn> saveAll(List<ConversationTurn> turns) {
     return jpa.saveAll(turns);
   }
+
+  @Override
+  public void flush() {
+    jpa.flush();
+  }
 }

@@ -13,6 +13,7 @@ import com.init.corpus.application.DatasetUploadService;
 import com.init.corpus.application.RawDatasetUploadService;
 import com.init.corpus.application.exception.ConsultingContentParseException;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.corpus.domain.model.DatasetStatus;
@@ -164,6 +165,23 @@ class RawDatasetUploadControllerTest {
                 .with(csrf()))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+  }
+
+  @Test
+  @DisplayName("중복 턴 인덱스 → 400 DUPLICATE_TURN_INDEX")
+  @WithLongPrincipal(1L)
+  void uploadRawDataset_duplicateTurnIndex_returns400() throws Exception {
+    given(rawDatasetUploadService.upload(any()))
+        .willThrow(new DuplicateTurnIndexException("중복된 턴 인덱스"));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/1/datasets/raw")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestBody())
+                .with(csrf()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("DUPLICATE_TURN_INDEX"));
   }
 
   @Test

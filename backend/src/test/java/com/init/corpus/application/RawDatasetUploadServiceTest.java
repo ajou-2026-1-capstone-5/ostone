@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,9 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.corpus.application.RawDatasetUploadCommand.RawConversationInput;
 import com.init.corpus.application.exception.ConsultingContentParseException;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
+import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
 import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.corpus.domain.model.Conversation;
+import com.init.corpus.domain.model.ConversationTurn;
 import com.init.corpus.domain.model.Dataset;
 import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.model.PiiRedactionStatus;
@@ -27,8 +30,10 @@ import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import com.init.fixtures.Fixtures;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,7 +75,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("워크스페이스 없음 → WorkspaceNotFoundException, DB write 없음")
-  void upload_workspaceNotFound_throwsException() {
+  void should_WorkspaceNotFoundException발생_when_워크스페이스없음() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(false);
 
@@ -83,7 +88,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("멤버십 없음 → UnauthorizedWorkspaceAccessException, DB write 없음")
-  void upload_notMember_throwsException() {
+  void should_UnauthorizedWorkspaceAccessException발생_when_멤버십없음() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(false);
@@ -97,7 +102,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("데이터셋 키 중복 (사전 검증) → DatasetKeyConflictException, DB write 없음")
-  void upload_datasetKeyConflict_throwsException() {
+  void should_DatasetKeyConflictException발생_when_데이터셋키중복사전검증() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -113,7 +118,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("파싱 실패 시 DB write 없음 → ConsultingContentParseException")
-  void upload_parseFailure_noDbWrite() {
+  void should_ConsultingContentParseException발생_when_파싱실패() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -139,7 +144,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("정상 업로드 → DatasetUploadResult 반환, conversation/turn 저장 확인")
-  void upload_success_returnsResult() {
+  void should_DatasetUploadResult반환_when_정상업로드() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -166,11 +171,12 @@ class RawDatasetUploadServiceTest {
     assertThat(result.conversationCount()).isEqualTo(1);
     verify(conversationRepository).save(any());
     verify(conversationTurnRepository).saveAll(anyList());
+    verify(conversationTurnRepository).flush();
   }
 
   @Test
   @DisplayName("Dataset 저장 시 DataIntegrityViolationException → DatasetKeyConflictException")
-  void upload_dataIntegrityViolation_throwsDatasetKeyConflict() {
+  void should_DatasetKeyConflictException발생_when_Dataset저장DataIntegrityViolation() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -185,7 +191,7 @@ class RawDatasetUploadServiceTest {
 
   @Test
   @DisplayName("conversationRepository.save() 실패 시 dataset/conversation 보상 삭제 실행")
-  void upload_conversationSaveFailure_compensationExecuted() {
+  void should_보상삭제실행_when_conversationSave실패() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -206,13 +212,79 @@ class RawDatasetUploadServiceTest {
     verify(datasetRepository).deleteById(1L);
   }
 
+  @Test
+  @DisplayName(
+      "conversationTurnRepository.flush() DataIntegrityViolationException(uq_turn_index) → DuplicateTurnIndexException, 보상 삭제 실행")
+  void should_DuplicateTurnIndexException발생_when_flushDataIntegrityViolation() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+
+    Conversation savedConversation = mock(Conversation.class);
+    given(savedConversation.getId()).willReturn(100L);
+    given(conversationRepository.save(any())).willReturn(savedConversation);
+
+    given(conversationTurnRepository.saveAll(anyList()))
+        .willReturn(List.of(mock(ConversationTurn.class)));
+    ConstraintViolationException constraintEx =
+        new ConstraintViolationException("duplicate", new SQLException(), "uq_turn_index");
+    willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
+        .given(conversationTurnRepository)
+        .flush();
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(DuplicateTurnIndexException.class);
+
+    verify(conversationRepository).deleteAllByDatasetId(1L);
+    verify(datasetRepository).deleteById(1L);
+  }
+
+  @Test
+  @DisplayName(
+      "conversationTurnRepository.flush() 비turn_index 제약 위반 → DataIntegrityViolationException 전파, 보상 삭제 실행")
+  void should_DataIntegrityViolationException전파_when_flush비turnIndex제약위반() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+
+    Conversation savedConversation = mock(Conversation.class);
+    given(savedConversation.getId()).willReturn(100L);
+    given(conversationRepository.save(any())).willReturn(savedConversation);
+
+    given(conversationTurnRepository.saveAll(anyList()))
+        .willReturn(List.of(mock(ConversationTurn.class)));
+    ConstraintViolationException constraintEx =
+        new ConstraintViolationException("duplicate", new SQLException(), "uq_other_constraint");
+    willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx))
+        .given(conversationTurnRepository)
+        .flush();
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    verify(conversationRepository).deleteAllByDatasetId(1L);
+    verify(datasetRepository).deleteById(1L);
+  }
+
   /**
    * Assumption adopted from Recommended Default (NI-3, Option A): Mockito 기반으로
    * conversationRepository.save() 호출 횟수를 1000번 검증.
    */
   @Test
   @DisplayName("1000건 업로드 시 conversationRepository.save() 1000회 호출 [Assumption: NI-3 Default A]")
-  void upload_1000Conversations_batchesCorrectly() {
+  void should_1000회저장호출_when_1000건업로드() {
     // given
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);

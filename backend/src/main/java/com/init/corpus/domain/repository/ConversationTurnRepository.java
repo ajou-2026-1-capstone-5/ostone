@@ -8,4 +8,6 @@ public interface ConversationTurnRepository {
   ConversationTurn save(ConversationTurn turn);
 
   List<ConversationTurn> saveAll(List<ConversationTurn> turns);
+
+  void flush();
 }
