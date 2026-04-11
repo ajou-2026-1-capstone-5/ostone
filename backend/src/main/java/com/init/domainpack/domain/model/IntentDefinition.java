@@ -151,4 +151,20 @@ public class IntentDefinition {
   public String getMetaJson() {
     return metaJson;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof IntentDefinition that)) {
+      return false;
+    }
+    return id != null && id.equals(that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return getClass().hashCode();
+  }
 }

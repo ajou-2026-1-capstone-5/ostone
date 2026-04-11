@@ -8,13 +8,16 @@ import java.util.List;
 public record CreateDomainPackDraftRequest(
     Long sourcePipelineJobId,
     @Size(max = 10000, message = "summaryJson은 10000자 이하여야 합니다.") String summaryJson,
-    List<@Valid IntentDraftRequest> intents,
-    List<@Valid SlotDraftRequest> slots,
-    List<@Valid IntentSlotBindingDraftRequest> intentSlotBindings,
-    List<@Valid PolicyDraftRequest> policies,
-    List<@Valid RiskDraftRequest> risks,
-    List<@Valid WorkflowDraftRequest> workflows,
-    List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings) {
+    @Size(max = 200, message = "intents는 200개 이하여야 합니다.") List<@Valid IntentDraftRequest> intents,
+    @Size(max = 500, message = "slots는 500개 이하여야 합니다.") List<@Valid SlotDraftRequest> slots,
+    @Size(max = 1000, message = "intentSlotBindings는 1000개 이하여야 합니다.")
+        List<@Valid IntentSlotBindingDraftRequest> intentSlotBindings,
+    @Size(max = 200, message = "policies는 200개 이하여야 합니다.") List<@Valid PolicyDraftRequest> policies,
+    @Size(max = 200, message = "risks는 200개 이하여야 합니다.") List<@Valid RiskDraftRequest> risks,
+    @Size(max = 200, message = "workflows는 200개 이하여야 합니다.")
+        List<@Valid WorkflowDraftRequest> workflows,
+    @Size(max = 500, message = "intentWorkflowBindings는 500개 이하여야 합니다.")
+        List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings) {
 
   public record IntentDraftRequest(
       @NotBlank(message = "intentCode는 필수입니다.")

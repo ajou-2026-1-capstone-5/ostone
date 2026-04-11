@@ -86,12 +86,20 @@ public class RiskDefinition {
     entity.riskCode = riskCode;
     entity.name = name;
     entity.description = description;
-    entity.riskLevel = riskLevel;
+    entity.riskLevel = normalizeRiskLevel(riskLevel);
     entity.triggerConditionJson = triggerConditionJson != null ? triggerConditionJson : "{}";
     entity.handlingActionJson = handlingActionJson != null ? handlingActionJson : "{}";
     entity.evidenceJson = evidenceJson != null ? evidenceJson : "[]";
     entity.metaJson = metaJson != null ? metaJson : "{}";
     return entity;
+  }
+
+  private static String normalizeRiskLevel(String riskLevel) {
+    try {
+      return RiskLevel.normalize(riskLevel);
+    } catch (IllegalArgumentException ex) {
+      throw new IllegalArgumentException("Invalid riskLevel: " + riskLevel, ex);
+    }
   }
 
   public Long getId() {

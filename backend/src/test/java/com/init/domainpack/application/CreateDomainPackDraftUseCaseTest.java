@@ -16,15 +16,15 @@ import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
+import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.RiskDefinitionRepository;
+import com.init.domainpack.domain.repository.SlotDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import com.init.domainpack.infrastructure.persistence.JpaIntentDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaIntentSlotBindingRepository;
-import com.init.domainpack.infrastructure.persistence.JpaIntentWorkflowBindingRepository;
-import com.init.domainpack.infrastructure.persistence.JpaPolicyDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaRiskDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaSlotDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaWorkflowDefinitionRepository;
 import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -43,13 +43,13 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private DomainPackRepository domainPackRepository;
-  @Mock private JpaIntentDefinitionRepository intentDefinitionRepository;
-  @Mock private JpaSlotDefinitionRepository slotDefinitionRepository;
-  @Mock private JpaPolicyDefinitionRepository policyDefinitionRepository;
-  @Mock private JpaRiskDefinitionRepository riskDefinitionRepository;
-  @Mock private JpaWorkflowDefinitionRepository workflowDefinitionRepository;
-  @Mock private JpaIntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private JpaIntentWorkflowBindingRepository intentWorkflowBindingRepository;
+  @Mock private IntentDefinitionRepository intentDefinitionRepository;
+  @Mock private SlotDefinitionRepository slotDefinitionRepository;
+  @Mock private PolicyDefinitionRepository policyDefinitionRepository;
+  @Mock private RiskDefinitionRepository riskDefinitionRepository;
+  @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
+  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
@@ -85,6 +85,8 @@ class CreateDomainPackDraftUseCaseTest {
     given(intentDefinitionRepository.saveAll(any()))
         .willAnswer(
             invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L, 1002L)));
+    given(intentDefinitionRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
     given(slotDefinitionRepository.saveAll(any()))
         .willAnswer(invocation -> assignSlotIds(invocation.getArgument(0), List.of(2001L)));
     given(policyDefinitionRepository.saveAll(any()))

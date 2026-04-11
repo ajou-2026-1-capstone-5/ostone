@@ -16,15 +16,15 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
+import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.RiskDefinitionRepository;
+import com.init.domainpack.domain.repository.SlotDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import com.init.domainpack.infrastructure.persistence.JpaIntentDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaIntentSlotBindingRepository;
-import com.init.domainpack.infrastructure.persistence.JpaIntentWorkflowBindingRepository;
-import com.init.domainpack.infrastructure.persistence.JpaPolicyDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaRiskDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaSlotDefinitionRepository;
-import com.init.domainpack.infrastructure.persistence.JpaWorkflowDefinitionRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,26 +45,26 @@ public class CreateDomainPackDraftUseCase {
 
   private final DomainPackVersionRepository domainPackVersionRepository;
   private final DomainPackRepository domainPackRepository;
-  private final JpaIntentDefinitionRepository intentDefinitionRepository;
-  private final JpaSlotDefinitionRepository slotDefinitionRepository;
-  private final JpaPolicyDefinitionRepository policyDefinitionRepository;
-  private final JpaRiskDefinitionRepository riskDefinitionRepository;
-  private final JpaWorkflowDefinitionRepository workflowDefinitionRepository;
-  private final JpaIntentSlotBindingRepository intentSlotBindingRepository;
-  private final JpaIntentWorkflowBindingRepository intentWorkflowBindingRepository;
+  private final IntentDefinitionRepository intentDefinitionRepository;
+  private final SlotDefinitionRepository slotDefinitionRepository;
+  private final PolicyDefinitionRepository policyDefinitionRepository;
+  private final RiskDefinitionRepository riskDefinitionRepository;
+  private final WorkflowDefinitionRepository workflowDefinitionRepository;
+  private final IntentSlotBindingRepository intentSlotBindingRepository;
+  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
 
   public CreateDomainPackDraftUseCase(
       DomainPackVersionRepository domainPackVersionRepository,
       DomainPackRepository domainPackRepository,
-      JpaIntentDefinitionRepository intentDefinitionRepository,
-      JpaSlotDefinitionRepository slotDefinitionRepository,
-      JpaPolicyDefinitionRepository policyDefinitionRepository,
-      JpaRiskDefinitionRepository riskDefinitionRepository,
-      JpaWorkflowDefinitionRepository workflowDefinitionRepository,
-      JpaIntentSlotBindingRepository intentSlotBindingRepository,
-      JpaIntentWorkflowBindingRepository intentWorkflowBindingRepository,
+      IntentDefinitionRepository intentDefinitionRepository,
+      SlotDefinitionRepository slotDefinitionRepository,
+      PolicyDefinitionRepository policyDefinitionRepository,
+      RiskDefinitionRepository riskDefinitionRepository,
+      WorkflowDefinitionRepository workflowDefinitionRepository,
+      IntentSlotBindingRepository intentSlotBindingRepository,
+      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort) {
     this.domainPackVersionRepository = domainPackVersionRepository;
@@ -100,7 +100,7 @@ public class CreateDomainPackDraftUseCase {
     try {
       savedVersion = domainPackVersionRepository.saveAndFlush(draftVersion);
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
-      throw new DomainPackVersionConflictException(command.packId());
+      throw new DomainPackVersionConflictException(command.packId(), ex);
     }
 
     List<IntentDefinition> intents =
@@ -140,7 +140,7 @@ public class CreateDomainPackDraftUseCase {
       child.setParentIntentId(parent.getId());
     }
     if (hasParentIntent) {
-      intentDefinitionRepository.saveAll(intents);
+      intents = intentDefinitionRepository.saveAllAndFlush(intents);
     }
 
     List<SlotDefinition> slots =

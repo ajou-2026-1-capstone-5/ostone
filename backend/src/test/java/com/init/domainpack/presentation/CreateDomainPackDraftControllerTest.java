@@ -11,6 +11,9 @@ import com.init.domainpack.application.CreateDomainPackDraftResult;
 import com.init.domainpack.application.CreateDomainPackDraftUseCase;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.DomainPackVersionConflictException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.time.OffsetDateTime;
@@ -103,6 +106,56 @@ class CreateDomainPackDraftControllerTest {
                 .content(validRequestJson()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("DOMAIN_PACK_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("권한이 없으면 403을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unauthorized_returns403() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+  }
+
+  @Test
+  @DisplayName("workspace가 없으면 404를 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_workspaceNotFound_returns404() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("DOMAIN_PACK_WORKSPACE_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("버전 충돌이면 409를 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_conflict_returns409() throws Exception {
+    given(useCase.execute(any())).willThrow(new DomainPackVersionConflictException(7L));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("DOMAIN_PACK_CONFLICT"));
   }
 
   @Test
