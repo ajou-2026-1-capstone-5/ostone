@@ -227,11 +227,14 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
-    given(conversationTurnRepository.saveAll(anyList())).willReturn(List.of(mock(ConversationTurn.class)));
+    given(conversationTurnRepository.saveAll(anyList()))
+        .willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_turn_index");
-    org.mockito.BDDMockito.willThrow(new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
-        .given(conversationTurnRepository).flush();
+    org.mockito.BDDMockito.willThrow(
+            new DataIntegrityViolationException("duplicate key: turn_index", constraintEx))
+        .given(conversationTurnRepository)
+        .flush();
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
@@ -258,11 +261,14 @@ class RawDatasetUploadServiceTest {
     given(savedConversation.getId()).willReturn(100L);
     given(conversationRepository.save(any())).willReturn(savedConversation);
 
-    given(conversationTurnRepository.saveAll(anyList())).willReturn(List.of(mock(ConversationTurn.class)));
+    given(conversationTurnRepository.saveAll(anyList()))
+        .willReturn(List.of(mock(ConversationTurn.class)));
     ConstraintViolationException constraintEx =
         new ConstraintViolationException("duplicate", new SQLException(), "uq_other_constraint");
-    org.mockito.BDDMockito.willThrow(new DataIntegrityViolationException("duplicate key: other", constraintEx))
-        .given(conversationTurnRepository).flush();
+    org.mockito.BDDMockito.willThrow(
+            new DataIntegrityViolationException("duplicate key: other", constraintEx))
+        .given(conversationTurnRepository)
+        .flush();
 
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
