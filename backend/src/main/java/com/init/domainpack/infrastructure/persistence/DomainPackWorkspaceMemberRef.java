@@ -5,7 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.time.OffsetDateTime;
 
 /**
  * domainpack bounded context의 workspace_member 읽기 전용 참조 모델.
@@ -30,6 +32,9 @@ public class DomainPackWorkspaceMemberRef {
   @Column(name = "member_role", nullable = false)
   private String memberRole;
 
+  @Column(name = "joined_at", nullable = false, updatable = false)
+  private OffsetDateTime joinedAt;
+
   protected DomainPackWorkspaceMemberRef() {}
 
   public Long getWorkspaceId() {
@@ -42,5 +47,12 @@ public class DomainPackWorkspaceMemberRef {
 
   public String getMemberRole() {
     return memberRole;
+  }
+
+  @PrePersist
+  protected void onPersist() {
+    if (joinedAt == null) {
+      joinedAt = OffsetDateTime.now();
+    }
   }
 }
