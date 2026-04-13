@@ -3,14 +3,6 @@ name: CI
 on:
   push:
     branches:
-      - "feature/**"
-      - "spec/**"
-      - "fix/**"
-      - "chore/**"
-      - "docs/**"
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
 
 jobs:
   paths-filter:
