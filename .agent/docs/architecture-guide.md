@@ -283,9 +283,12 @@ mapping rate, outlier rate, workflow separability를 평가한다. 산출물은 
 
 **Spring ↔ Airflow 연동**: API 호출 + 웹훅 방식으로 연동한다. Spring이 Airflow에 파이프라인 실행을 API로 요청하고, Airflow가 완료 후 Spring으로 웹훅을 전송한다. pipeline-job BC가 이 경계를 담당하며, 외부 payload를 내부 모델로 번역한다.
 
-**Frontend ↔ Backend 통신**: REST API를 기본으로 사용한다. 실시간 상태 변경과 채팅 이벤트는 WebSocket으로 반영한다.
+**Frontend ↔ Backend 통신**
 
-**Backend 내부 BC 간 통신**: 현재는 직접 참조가 없으며, 각 BC가 독립적으로 동작한다. workspace 관련 데이터 접근은 Port 인터페이스를 통해 인프라 레이어에서 해결한다.
+- **현재 구현**: REST API를 기본으로 사용한다. `ConsultationController`를 포함한 모든 서버 통신이 REST 엔드포인트로 구현되어 있다.
+- **목표(계획)**: 실시간 상태 변경과 채팅 이벤트를 WebSocket으로 반영한다.
+
+**Backend 내부 BC 간 통신**: 도메인 BC 간 직접 참조 없음(단, shared 보안 계층 예외 존재). 각 BC는 독립적으로 동작하며, `shared`의 `JwtAuthenticationFilter`가 `auth`의 `JwtService`를 직접 참조하는 예외가 존재한다. workspace 관련 데이터 접근은 Port 인터페이스를 통해 인프라 레이어에서 해결한다.
 
 📖 **Dictionary**
 
@@ -365,7 +368,7 @@ mapping rate, outlier rate, workflow separability를 평가한다. 산출물은 
 
 🟡 **잠재적 위험**: `shared` → `auth` 의존
 
-`JwtAuthenticationFilter`(`com.init.shared.infrastructure.security`)가 `JwtService`(`com.init.auth.application`)를 직접 import한다. shared는 모든 BC가 의존하는 기술 공통 계층인데, shared 자체가 특정 BC(auth)에 의존하면 논리적 순환 위험이 존재한다. 현재 다른 BC가 auth를 직접 참조하지 않으므로 실질적 순환은 아니지만, 구조적으로 shared의 독립성이 깨진 상태이다.
+`JwtAuthenticationFilter`(`com.init.shared.infrastructure.security`)가 `JwtService`(`com.init.auth.application`)를 직접 import한다. shared는 모든 BC가 의존하는 기술 공통 계층인데, shared 자체가 특정 BC(auth)에 의존하면 논리적 순환 위험이 존재한다. 도메인 BC 간 직접 참조 없음(단, shared 보안 계층 예외 존재)이므로 실질적 순환은 아니지만, 구조적으로 shared의 독립성이 깨진 상태이다.
 
 ### 4.3 개선 제안
 
@@ -530,7 +533,9 @@ sequenceDiagram
     WS-->>CL: "상태 변경 알림"
 ```
 
-> 현재 `ConsultationController`는 REST API로 구현되어 있다. 아키텍처 문서에서 명시한 WebSocket 기반 실시간 이벤트 처리는 아직 구현되지 않은 것으로 보인다.
+> **현재 구현**: `ConsultationController`는 REST API로 구현되어 있다.
+>
+> **목표(계획)**: WebSocket 기반 실시간 이벤트 처리를 구현한다.
 
 #### 5.8 Pipeline 단계 간 artifact 전달
 
