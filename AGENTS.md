@@ -123,35 +123,6 @@ ml/
 
 ---
 
-## 개발 환경
-
-### Docker Compose
-
-```bash
-# 전체 서비스 실행
-docker-compose up -d
-
-# 개별 서비스
-docker-compose up -d postgres
-docker-compose up -d backend
-docker-compose up -d frontend
-docker-compose up -d airflow-webserver
-```
-
-### CI/CD
-
-- **Backend**: Gradle build, JUnit tests, Spotless formatting
-- **Frontend**: pnpm build, Vitest, ESLint, Prettier
-- **ML**: pytest, black, ruff
-
-### Pre-commit Hooks
-
-- Backend: Spotless (Java formatting)
-- Frontend: Prettier, ESLint
-- ML: black, ruff
-
----
-
 ## 문서 구조
 
 ```
@@ -165,7 +136,10 @@ docker-compose up -d airflow-webserver
 │   ├── typescript.md     # TypeScript/React 코딩 규칙
 │   ├── python.md         # Python/ML 코딩 규칙
 │   ├── git.md            # Git 워크플로우 및 커밋 규칙
-│   └── code-review.md    # 코드 리뷰 가이드라인
+│   ├── code-review.md    # 코드 리뷰 가이드라인
+│   ├── error-handling.md # 에러 핸들링 패턴
+│   ├── module-creation.md # 모듈 생성 가이드
+│   └── testing.md        # 테스트 전략
 ├── audit/
 │   ├── db-schema-compliance-report.md       # DB 스키마 컴플라이언스 리포트
 │   └── implementation-compliance-report.md  # 구현 컴플라이언스 리포트
@@ -177,8 +151,248 @@ docker-compose up -d airflow-webserver
 
 ---
 
+## COMMANDS
+
+### Docker Compose
+
+```bash
+# 전체 서비스 실행 (postgres + backend + frontend)
+docker-compose up -d
+
+# 개별 서비스
+docker-compose up -d postgres
+docker-compose up -d backend
+docker-compose up -d frontend
+
+# 로그 확인
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+**참고**: docker-compose에 Airflow 서비스 없음 (현재 미구현)
+
+### Backend (Gradle)
+
+| 목적            | 커맨드                                    |
+| --------------- | ----------------------------------------- |
+| 빌드            | `./gradlew build`                         |
+| 테스트          | `./gradlew test`                          |
+| 실행            | `./gradlew bootRun`                       |
+| JAR 패키징      | `./gradlew bootJar`                       |
+| 코드 포맷팅     | `./gradlew spotlessApply`                 |
+| 체크스타일 검사 | `./gradlew checkstyleMain checkstyleTest` |
+| 전체 검사       | `./gradlew check`                         |
+
+**프로필** (env: `SPRING_PROFILES_ACTIVE=local`):
+
+- `default`: PostgreSQL + Liquibase
+- `local`: SQL 로깅 활성화 (`application-local.yml`)
+- `test`: H2 인메모리 + Liquibase 비활성화
+
+### Frontend (pnpm)
+
+| 목적      | 커맨드         |
+| --------- | -------------- |
+| 개발 서버 | `pnpm dev`     |
+| 빌드      | `pnpm build`   |
+| 테스트    | `pnpm test`    |
+| 린트      | `pnpm lint`    |
+| 포맷      | `pnpm format`  |
+| 미리보기  | `pnpm preview` |
+
+**Vite+ 플러그인**: `vp` 커맨드 사용 (dev/build/test/fmt)
+
+### ML Pipeline (uv)
+
+| 목적          | 커맨드                                                                          |
+| ------------- | ------------------------------------------------------------------------------- |
+| 의존성 동기화 | `cd ml && uv sync`                                                              |
+| 테스트        | `cd ml && uv run pytest`                                                        |
+| Lint          | `cd ml && uv run ruff check .`                                                  |
+| 포맷          | `cd ml && uv run ruff format .`                                                 |
+| 타입 검사     | `cd ml && uv run mypy .`                                                        |
+| 전체 검사     | `cd ml && uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
+
+**참고**: ml/dags/ 미구현 (Airflow 파이프라인 아직 작성 안됨)
+
+### Root Scripts
+
+| 목적       | 커맨드            |
+| ---------- | ----------------- |
+| Husky 설치 | `npm run prepare` |
+| 전체 포맷  | `npm run format`  |
+
+---
+
+## NOTES
+
+### Pre-commit Hooks
+
+```
+.husky/
+├── pre-commit    # npx lint-staged
+└── commit-msg   # npx commitlint --edit
+```
+
+**lint-staged 설정** (`lint-staged.config.js`):
+
+| 패턴                     | 실행 작업                             |
+| ------------------------ | ------------------------------------- |
+| `backend/**/*.java`      | `./gradlew spotlessCheck`             |
+| `frontend/**/*.{ts,tsx}` | `pnpm lint` → `pnpm format`           |
+| `ml/**/*.py`             | `ruff check` → `ruff format` → `mypy` |
+
+### CI/CD
+
+**paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트
+
+```yaml
+backend: # ./gradlew build (checkstyle 스킵)
+frontend: # pnpm install && pnpm test && pnpm build
+ml: # uv sync && uv run pytest
+```
+
+**Gotchas**:
+
+- CI: `./gradlew build -x checkstyleMain -x checkstyleTest` (체크스타일 스킵)
+  - 실제 빌드 영향 없음, CI 속도 최적화를 위한 건너뛰기
+  - 로컬에서는 `./gradlew check`로 전체 검사 권장
+- 테스트: H2 인메모리 (`jdbc:h2:mem:testdb`) 사용, Liquibase 비활성화
+- CORS 기본 허용: `http://localhost:5173` (프론트 개발 서버)
+
+### Docker 이미지 빌드
+
+```bash
+# Backend
+cd backend && ./gradlew bootJar && docker build -t init-backend .
+
+# Frontend
+cd frontend && pnpm build && docker build -t init-frontend .
+```
+
+### 환경 변수
+
+| 변수                                | 설명                 | 기본값                |
+| ----------------------------------- | -------------------- | --------------------- |
+| `DB_USER`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
+| `SPRING_PROFILE`                    | Spring 프로필        | `local`               |
+| `JWT_SECRET`                        | JWT 서명 키          | (필수)                |
+| `CORS_ALLOWED_ORIGINS`              | CORS 허용 오리진     | `localhost:5173~5176` |
+
+---
+
+## CONVENTIONS & ANTI-PATTERNS
+
+### 공통 원칙
+
+- **KISS**: 가장 단순한 해결책 먼저. "나중에 필요할 수도 있으니까"는 추가 이유가 아님
+- **YAGNI**: 실제로 필요한 기능만 구현
+- **DRY**: 중복 허용 안 함, 3번 반복 시 추출
+- **Rule of Three**: 복잡한 추상화는 3번 반복 후 도입
+
+### Backend (Java/Spring)
+
+**금지 패턴**:
+
+- **도메인 엔티티 public setter**: 상태 변경은 의미 있는 도메인 메서드로만 (`close()`, `publish()` 등)
+- **@Autowired 필드 주입**: 생성자 주입 + final 필드 필수
+- **Controller 비즈니스 로직**: Service에 위임, Controller는 HTTP 처리만
+- **JPA 엔티티 직접 반환**: DTO 변환 필수 (lazy loading, 순환 참조 방지)
+- **일반 Exception catch**: 구체적 예외 사용 (`GlobalExceptionHandler` fallback 제외)
+- **빈 catch 블록**: 최소 로깅 필요
+- **과도한 Javadoc**: 비자명한 동작에만 간결하게
+
+**권장 패턴**:
+
+- 클래스 레벨 `@Transactional(readOnly = true)` 기본값, 쓰기 메서드만 개별 오버라이드
+- BusinessException 계층 구조: `NotFoundException`, `DuplicateException`, `BadRequestException` 등
+- Command/Result 객체로 서비스 메서드 파라미터/반환 정리
+
+**계층 의존성 방향** (DDD):
+
+```
+presentation → application → domain ← infrastructure
+```
+
+### Frontend (TypeScript/React)
+
+**FSD 의존성 방향** (상위 → 하위만 허용):
+
+```
+app → pages → widgets → features → entities → shared
+```
+
+**금지 패턴**:
+
+- **shared → features/entities import**: shared는 하위 계층이므로 상위 import 불가
+- **feature 간 cross-slice import**: 같은 계층 cross-slice 금지
+- **entities → features import**: entities는 하위 계층
+- **alert() 사용**: UX 저하, Toast/Notification 컴포넌트 사용 필수
+
+**권장 패턴**:
+
+- 프론트엔드에서 **디자인/UI/스타일링 작업을 시작하기 전에 반드시 `frontend/DESIGN.md`를 먼저 읽고 준수한다**
+- `frontend/DESIGN.md`의 타이포그래피, 색상, radius, focus outline, 반응형 규칙을 임의 해석으로 대체하지 않는다
+- 디자인 가이드와 구현 사이에 충돌이 있으면 기존 UI 관성보다 `frontend/DESIGN.md`를 우선 기준으로 삼는다
+- 컴포넌트당 단일 책임
+- loading/error/empty 3종 세트 처리 필수
+- API 에러는 toast.error() 사용
+- React ErrorBoundary로 렌더링 에러 포착
+
+### ML (Python)
+
+**파이프라인 구조**: 6개 Stage 순서 강제
+
+```
+ingestion → preprocessing → intent_discovery → draft_generation → evaluation → publish_candidate
+```
+
+**파이프라인 규칙**:
+
+- 각 Stage는 독립적 DAG 태스크로 구현
+- Stage 간 데이터는 artifact(JSON/Parquet)로 전달
+- PII 제거는 preprocessing Stage에서 필수
+
+### Git 워크플로우
+
+**브랜치 패턴**:
+
+| 용도        | 패턴                    | 스펙 필요      |
+| ----------- | ----------------------- | -------------- |
+| 스펙 작성   | `spec/{번호}`           | 아니오         |
+| 기능 구현   | `feature/{번호}-{설명}` | 예             |
+| 버그 수정   | `fix/{번호}-{설명}`     | 예             |
+| 인프라/잡일 | `chore/{설명}`          | 아니오         |
+| 문서        | `docs/{설명}`           | 아니오         |
+| main        | 보호                    | 직접 push 금지 |
+
+**커밋 형식**: Conventional Commits
+
+```
+type(scope): subject
+예: feat(domain-pack): add publish endpoint
+```
+
+**SemVer 매핑**:
+
+- `feat` → minor (0.X.0)
+- `fix`, `perf` → patch (0.0.X)
+- `feat!` → major (X.0.0)
+- `docs`, `style`, `refactor`, `test`, `chore` → 변화 없음
+
+### CI/CD
+
+**paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트
+
+- `feature/*`, `fix/*`, `spec/*` → 스펙 파일 필수 검증
+- `chore/*`, `docs/*` → 스펙 불필요
+- `main` → 직접 push 금지
+
+---
+
 ## 참고
 
+- `.agent/rules/`: 상세 코딩 규칙 (principles, java, typescript, python, git, code-review)
 - `.agent/docs/architecture.md`: 상세 아키텍처 문서
 - `.agent/docs/schema.md`: PostgreSQL 스키마 DDL
 - `.sisyphus/plans/`: 프로젝트 계획 문서
