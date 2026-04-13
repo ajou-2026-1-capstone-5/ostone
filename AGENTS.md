@@ -242,11 +242,11 @@ docker-compose logs -f frontend
 
 **lint-staged 설정** (`lint-staged.config.js`):
 
-| 패턴                     | 실행 작업                             |
-| ------------------------ | ------------------------------------- |
-| `backend/**/*.java`      | `./gradlew spotlessCheck`             |
-| `frontend/**/*.{ts,tsx}` | `pnpm lint` → `pnpm format`           |
-| `ml/**/*.py`             | `ruff check` → `ruff format` → `mypy` |
+| 패턴                     | 실행 작업                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `backend/**/*.java`      | `cd backend && ./gradlew spotlessCheck`                                                 |
+| `frontend/**/*.{ts,tsx}` | `cd frontend && pnpm run lint` → `cd frontend && pnpm run format`                       |
+| `ml/**/*.py`             | `cd ml && uv run ruff check` → `cd ml && uv run ruff format` → `cd ml && uv run mypy .` |
 
 ### CI/CD
 
@@ -278,12 +278,12 @@ cd frontend && pnpm build && docker build -t init-frontend .
 
 ### 환경 변수
 
-| 변수                                | 설명                 | 기본값                |
-| ----------------------------------- | -------------------- | --------------------- |
-| `DB_USER`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
-| `SPRING_PROFILE`                    | Spring 프로필        | `local`               |
-| `JWT_SECRET`                        | JWT 서명 키          | (필수)                |
-| `CORS_ALLOWED_ORIGINS`              | CORS 허용 오리진     | `localhost:5173~5176` |
+| 변수                                    | 설명                 | 기본값                |
+| --------------------------------------- | -------------------- | --------------------- |
+| `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
+| `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`               |
+| `JWT_SECRET`                            | JWT 서명 키          | (필수)                |
+| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `localhost:5173~5176` |
 
 ---
 
@@ -371,6 +371,10 @@ ingestion → preprocessing → intent_discovery → draft_generation → evalua
 | 인프라/잡일 | `chore/{설명}`          | 아니오         |
 | 문서        | `docs/{설명}`           | 아니오         |
 | main        | 보호                    | 직접 push 금지 |
+
+**이슈 관리 규칙**:
+
+- `fix/*` 작업은 Burndown Studio가 아니라 **GitHub Issue**에 등록하고 관리한다.
 
 **커밋 형식**: Conventional Commits
 
