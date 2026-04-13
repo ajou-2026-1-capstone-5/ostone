@@ -26,6 +26,7 @@
 ```
 backend/
 ├── auth/                 # 인증/인가, JWT 토큰 관리, 리프레시 토큰
+├── workspace/            # 워크스페이스 CRUD, 멤버십 기반 접근 제어
 ├── domain-pack/          # Domain Pack 관리 (intent, slot, policy, risk, workflow)
 │   ├── presentation/     # Controller, DTO, WebSocket Handler
 │   ├── application/      # UseCase, Application Service
@@ -41,15 +42,16 @@ backend/
 
 **계층 구조**: `presentation → application → domain → infrastructure`
 
-**7개 Bounded Context**:
+**8개 Bounded Context**:
 
 1. **auth**: 인증/인가, JWT 토큰 관리, 리프레시 토큰
-2. **domain-pack**: intent/slot/policy/risk/workflow 버전 관리
-3. **review**: AI 초안 검토, 수정, 승인, 반려
-4. **pipeline-job**: Airflow 파이프라인 실행 요청 및 상태 추적
-5. **workflow-runtime**: publish된 domain pack 실행
-6. **chat-demo**: 시연용 채팅 세션
-7. **shared/infra**: 공통 기술 요소
+2. **workspace**: 워크스페이스 생성/조회/수정/보관, 멤버십 기반 접근 제어
+3. **domain-pack**: intent/slot/policy/risk/workflow 버전 관리
+4. **review**: AI 초안 검토, 수정, 승인, 반려
+5. **pipeline-job**: Airflow 파이프라인 실행 요청 및 상태 추적
+6. **workflow-runtime**: publish된 domain pack 실행
+7. **chat-demo**: 시연용 채팅 세션
+8. **shared/infra**: 공통 기술 요소
 
 ### frontend/ — Vite+ FSD (Feature-Sliced Design)
 
