@@ -20,7 +20,8 @@ public class CreateWorkspaceUseCase {
   private final WorkspaceMemberRepository workspaceMemberRepository;
 
   public CreateWorkspaceUseCase(
-      WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository) {
+      WorkspaceRepository workspaceRepository,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.workspaceRepository = workspaceRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
   }

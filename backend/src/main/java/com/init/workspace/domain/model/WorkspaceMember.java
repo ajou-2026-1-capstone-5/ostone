@@ -34,7 +34,8 @@ public class WorkspaceMember {
 
   protected WorkspaceMember() {}
 
-  public static WorkspaceMember create(Long workspaceId, Long userId, WorkspaceMemberRole memberRole) {
+  public static WorkspaceMember create(
+      Long workspaceId, Long userId, WorkspaceMemberRole memberRole) {
     if (workspaceId == null) {
       throw new IllegalArgumentException("workspaceId must not be null");
     }

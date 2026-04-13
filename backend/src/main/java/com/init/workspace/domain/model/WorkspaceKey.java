@@ -10,8 +10,7 @@ public class WorkspaceKey {
 
   private static final int MIN_LENGTH = 3;
   private static final int MAX_LENGTH = 100;
-  private static final Pattern PATTERN =
-      Pattern.compile("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$");
+  private static final Pattern PATTERN = Pattern.compile("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$");
 
   @Column(name = "workspace_key", nullable = false, unique = true, length = 100)
   private String value;
@@ -40,8 +39,7 @@ public class WorkspaceKey {
           "workspaceKey length must be between " + MIN_LENGTH + " and " + MAX_LENGTH);
     }
     if (!PATTERN.matcher(value).matches()) {
-      throw new IllegalArgumentException(
-          "workspaceKey must match pattern " + PATTERN.pattern());
+      throw new IllegalArgumentException("workspaceKey must match pattern " + PATTERN.pattern());
     }
   }
 

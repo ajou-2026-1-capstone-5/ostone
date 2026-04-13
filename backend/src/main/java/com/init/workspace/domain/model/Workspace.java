@@ -21,14 +21,12 @@ public class Workspace {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Embedded
-  private WorkspaceKey workspaceKey;
+  @Embedded private WorkspaceKey workspaceKey;
 
   @Column(nullable = false)
   private String name;
 
-  @Column
-  private String description;
+  @Column private String description;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

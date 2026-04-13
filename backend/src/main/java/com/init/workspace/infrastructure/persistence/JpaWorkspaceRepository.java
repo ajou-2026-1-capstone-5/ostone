@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface JpaWorkspaceRepository extends JpaRepository<Workspace, Long>, WorkspaceRepository {
+public interface JpaWorkspaceRepository
+    extends JpaRepository<Workspace, Long>, WorkspaceRepository {
 
   boolean existsByWorkspaceKey(WorkspaceKey workspaceKey);
 

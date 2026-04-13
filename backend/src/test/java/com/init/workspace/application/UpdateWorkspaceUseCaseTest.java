@@ -73,18 +73,21 @@ class UpdateWorkspaceUseCaseTest {
   @Test
   @DisplayName("name null 명시 전달 → WorkspaceInvalidNameException")
   void should_WorkspaceInvalidNameException_when_nameNull전달() {
-    given(workspaceRepository.findById(1L)).willReturn(Optional.of(buildWorkspace("Old Name", "old")));
+    given(workspaceRepository.findById(1L))
+        .willReturn(Optional.of(buildWorkspace("Old Name", "old")));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OWNER)));
 
-    assertThatThrownBy(() -> useCase.execute(new UpdateWorkspaceCommand(1L, 7L, true, null, false, null)))
+    assertThatThrownBy(
+            () -> useCase.execute(new UpdateWorkspaceCommand(1L, 7L, true, null, false, null)))
         .isInstanceOf(WorkspaceInvalidNameException.class);
   }
 
   @Test
   @DisplayName("description 2000자 초과 → WorkspaceInvalidDescriptionException")
   void should_WorkspaceInvalidDescriptionException_when_description길이초과() {
-    given(workspaceRepository.findById(1L)).willReturn(Optional.of(buildWorkspace("Old Name", "old")));
+    given(workspaceRepository.findById(1L))
+        .willReturn(Optional.of(buildWorkspace("Old Name", "old")));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OWNER)));
 
@@ -98,20 +101,24 @@ class UpdateWorkspaceUseCaseTest {
   @Test
   @DisplayName("REVIEWER 수정 시도 → WorkspaceAccessDeniedException")
   void should_WorkspaceAccessDeniedException_when_reviewer() {
-    given(workspaceRepository.findById(1L)).willReturn(Optional.of(buildWorkspace("Old Name", "old")));
+    given(workspaceRepository.findById(1L))
+        .willReturn(Optional.of(buildWorkspace("Old Name", "old")));
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.REVIEWER)));
 
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkspaceCommand(1L, 7L, true, "New Name", false, null)))
+            () ->
+                useCase.execute(new UpdateWorkspaceCommand(1L, 7L, true, "New Name", false, null)))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
   }
 
   private Workspace buildWorkspace(String name, String description) {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), name, description);
     ReflectionTestUtils.setField(workspace, "id", 1L);
-    ReflectionTestUtils.setField(workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }
 }

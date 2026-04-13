@@ -69,7 +69,8 @@ class CreateWorkspaceUseCaseTest {
   @Test
   @DisplayName("잘못된 key 형식 → WorkspaceInvalidKeyException")
   void should_WorkspaceInvalidKeyException_when_key형식위반() {
-    assertThatThrownBy(() -> useCase.execute(new CreateWorkspaceCommand("BAD_KEY", "CS Team", null, 7L)))
+    assertThatThrownBy(
+            () -> useCase.execute(new CreateWorkspaceCommand("BAD_KEY", "CS Team", null, 7L)))
         .isInstanceOf(WorkspaceInvalidKeyException.class);
   }
 
@@ -78,7 +79,8 @@ class CreateWorkspaceUseCaseTest {
   void should_WorkspaceKeyAlreadyExistsException_when_save시DataIntegrityViolation() {
     given(workspaceRepository.existsByWorkspaceKey(any())).willReturn(false);
     given(workspaceRepository.save(any()))
-        .willThrow(new DataIntegrityViolationException("duplicate key value violates workspace_key"));
+        .willThrow(
+            new DataIntegrityViolationException("duplicate key value violates workspace_key"));
 
     assertThatThrownBy(
             () -> useCase.execute(new CreateWorkspaceCommand("cs-team-alpha", "CS Team", null, 7L)))
@@ -88,8 +90,10 @@ class CreateWorkspaceUseCaseTest {
   private Workspace buildWorkspace(Long id, String key, String name, String description) {
     Workspace workspace = Workspace.create(WorkspaceKey.of(key), name, description);
     ReflectionTestUtils.setField(workspace, "id", id);
-    ReflectionTestUtils.setField(workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }
 

@@ -150,8 +150,16 @@ class WorkspaceControllerTest {
   @Test
   @DisplayName("PATCH description null 전달 → 200 OK")
   void should_200반환_when_descriptionNull전달() throws Exception {
-    WorkspaceResult result = new WorkspaceResult(1L, "cs-team-alpha", "CS Team", null, "ACTIVE", "OWNER",
-        OffsetDateTime.parse("2026-04-14T00:00:00Z"), OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    WorkspaceResult result =
+        new WorkspaceResult(
+            1L,
+            "cs-team-alpha",
+            "CS Team",
+            null,
+            "ACTIVE",
+            "OWNER",
+            OffsetDateTime.parse("2026-04-14T00:00:00Z"),
+            OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     given(updateWorkspaceUseCase.execute(any())).willReturn(result);
 
     mockMvc

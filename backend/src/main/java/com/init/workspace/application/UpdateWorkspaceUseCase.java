@@ -20,7 +20,8 @@ public class UpdateWorkspaceUseCase {
   private final WorkspaceMemberRepository workspaceMemberRepository;
 
   public UpdateWorkspaceUseCase(
-      WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository) {
+      WorkspaceRepository workspaceRepository,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.workspaceRepository = workspaceRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
   }
@@ -35,8 +36,7 @@ public class UpdateWorkspaceUseCase {
     WorkspaceMember member =
         workspaceMemberRepository
             .findByWorkspaceIdAndUserId(command.workspaceId(), command.userId())
-            .orElseThrow(
-                () -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+            .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
 
     if (member.getMemberRole() != WorkspaceMemberRole.OWNER
         && member.getMemberRole() != WorkspaceMemberRole.ADMIN) {

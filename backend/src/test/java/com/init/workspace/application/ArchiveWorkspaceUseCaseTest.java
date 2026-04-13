@@ -1,16 +1,15 @@
 package com.init.workspace.application;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.BDDMockito.given;
 
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.Workspace;
 import com.init.workspace.domain.model.WorkspaceKey;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
-import com.init.workspace.domain.model.WorkspaceStatus;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import com.init.workspace.domain.repository.WorkspaceRepository;
 import java.util.Optional;

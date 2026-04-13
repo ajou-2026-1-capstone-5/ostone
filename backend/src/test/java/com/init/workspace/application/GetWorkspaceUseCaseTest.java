@@ -56,7 +56,8 @@ class GetWorkspaceUseCaseTest {
   void should_WorkspaceNotFoundException_when_workspace없음() {
     given(workspaceRepository.findById(1L)).willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> useCase.execute(1L, 7L)).isInstanceOf(WorkspaceNotFoundException.class);
+    assertThatThrownBy(() -> useCase.execute(1L, 7L))
+        .isInstanceOf(WorkspaceNotFoundException.class);
   }
 
   @Test
@@ -73,8 +74,10 @@ class GetWorkspaceUseCaseTest {
   private Workspace buildWorkspace() {
     Workspace workspace = Workspace.create(WorkspaceKey.of("cs-team-alpha"), "CS Team", "desc");
     ReflectionTestUtils.setField(workspace, "id", 1L);
-    ReflectionTestUtils.setField(workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
-    ReflectionTestUtils.setField(workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "createdAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+    ReflectionTestUtils.setField(
+        workspace, "updatedAt", OffsetDateTime.parse("2026-04-14T00:00:00Z"));
     return workspace;
   }
 }

@@ -17,7 +17,8 @@ public class GetWorkspaceUseCase {
   private final WorkspaceMemberRepository workspaceMemberRepository;
 
   public GetWorkspaceUseCase(
-      WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository) {
+      WorkspaceRepository workspaceRepository,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.workspaceRepository = workspaceRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
   }
@@ -31,8 +32,7 @@ public class GetWorkspaceUseCase {
     WorkspaceMember member =
         workspaceMemberRepository
             .findByWorkspaceIdAndUserId(workspaceId, userId)
-            .orElseThrow(
-                () -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+            .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
 
     return WorkspaceResult.from(workspace, member);
   }

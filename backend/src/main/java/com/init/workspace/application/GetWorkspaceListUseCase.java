@@ -18,7 +18,8 @@ public class GetWorkspaceListUseCase {
   private final WorkspaceRepository workspaceRepository;
 
   public GetWorkspaceListUseCase(
-      WorkspaceMemberRepository workspaceMemberRepository, WorkspaceRepository workspaceRepository) {
+      WorkspaceMemberRepository workspaceMemberRepository,
+      WorkspaceRepository workspaceRepository) {
     this.workspaceMemberRepository = workspaceMemberRepository;
     this.workspaceRepository = workspaceRepository;
   }
