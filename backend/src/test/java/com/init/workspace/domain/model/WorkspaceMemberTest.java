@@ -25,4 +25,18 @@ class WorkspaceMemberTest {
     assertThatThrownBy(() -> WorkspaceMember.create(null, 2L, WorkspaceMemberRole.OWNER))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  @DisplayName("userId null → IllegalArgumentException")
+  void should_IllegalArgumentException_when_userIdNull() {
+    assertThatThrownBy(() -> WorkspaceMember.create(1L, null, WorkspaceMemberRole.OWNER))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("memberRole null → IllegalArgumentException")
+  void should_IllegalArgumentException_when_memberRoleNull() {
+    assertThatThrownBy(() -> WorkspaceMember.create(1L, 2L, null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }

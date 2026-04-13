@@ -8,6 +8,8 @@ import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import com.init.workspace.domain.repository.WorkspaceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class CreateWorkspaceUseCase {
+
+  private static final Logger logger = LoggerFactory.getLogger(CreateWorkspaceUseCase.class);
 
   private final WorkspaceRepository workspaceRepository;
   private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -41,8 +45,14 @@ public class CreateWorkspaceUseCase {
               Workspace.create(workspaceKey, command.name(), command.description()));
     } catch (DataIntegrityViolationException ex) {
       if (isWorkspaceKeyConstraintViolation(ex)) {
+        logger.warn(
+            "Workspace create failed due to duplicate workspaceKey={}",
+            workspaceKey.getValue(),
+            ex);
         throw new WorkspaceKeyAlreadyExistsException("이미 사용 중인 워크스페이스 키입니다.", ex);
       }
+      logger.warn(
+          "Workspace create failed during save for workspaceKey={}", workspaceKey.getValue(), ex);
       throw ex;
     }
 
