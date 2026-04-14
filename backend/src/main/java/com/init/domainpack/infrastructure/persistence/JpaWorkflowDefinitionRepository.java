@@ -2,7 +2,9 @@ package com.init.domainpack.infrastructure.persistence;
 
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,5 +12,9 @@ import org.springframework.stereotype.Repository;
 public interface JpaWorkflowDefinitionRepository
     extends JpaRepository<WorkflowDefinition, Long>, WorkflowDefinitionRepository {
 
-  List<WorkflowDefinition> findByDomainPackVersionId(Long domainPackVersionId);
+  @Override
+  List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionId(Long domainPackVersionId);
+
+  @Override
+  Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 }
