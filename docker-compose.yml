@@ -1,3 +1,34 @@
+x-airflow-common: &airflow-common
+  build:
+    context: ./ml/airflow
+    dockerfile: Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD}@postgres:5432/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_ASYNC: postgresql+asyncpg://airflow:${AIRFLOW_DB_PASSWORD}@postgres:5432/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY}
+    AIRFLOW__API__BASE_URL: http://airflow-apiserver:8080
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin,viewer:viewer
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+    PIPELINE_BACKEND_BASE_URL: ${PIPELINE_BACKEND_BASE_URL:-http://backend:8080}
+    PIPELINE_ARTIFACT_ROOT: ${PIPELINE_ARTIFACT_ROOT:-/opt/airflow/artifacts}
+    PYTHONPATH: /opt/airflow/src
+  volumes:
+    - ./ml/dags:/opt/airflow/dags
+    - ./ml/src:/opt/airflow/src
+    - airflow_logs:/opt/airflow/logs
+    - airflow_artifacts:/opt/airflow/artifacts
+    - airflow_auth:/opt/airflow/auth
+  user: "${AIRFLOW_UID:-50000}:0"
+  networks:
+    - init-network
+
 services:
   postgres:
     image: postgres:17
@@ -6,12 +37,14 @@ services:
       POSTGRES_USER: ${DB_USER:-init}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-init}
+      AIRFLOW_DB_PASSWORD: ${AIRFLOW_DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,6 +65,8 @@ services:
       STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       STORAGE_S3_PATH_STYLE: "true"
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176}
     ports:
       - "8080:8080"
     depends_on:
@@ -40,7 +75,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -54,9 +89,10 @@ services:
       dockerfile: Dockerfile
     container_name: init-frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     networks:
       - init-network
 
@@ -73,16 +109,83 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - init-network
 
+  airflow-init:
+    <<: *airflow-common
+    container_name: init-airflow-init
+    entrypoint: [ "/opt/airflow/scripts/init-airflow.sh" ]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-apiserver:
+    <<: *airflow-common
+    container_name: init-airflow-apiserver
+    command: [ "airflow", "api-server" ]
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/version" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: init-airflow-scheduler
+    command: [ "airflow", "scheduler" ]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: init-airflow-dag-processor
+    command: [ "airflow", "dag-processor" ]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    container_name: init-airflow-triggerer
+    command: [ "airflow", "triggerer" ]
+    restart: unless-stopped
+    profiles:
+      - triggerer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:
   minio_data:
+  airflow_logs:
+  airflow_artifacts:
+  airflow_auth:
+
 
 networks:
   init-network:
