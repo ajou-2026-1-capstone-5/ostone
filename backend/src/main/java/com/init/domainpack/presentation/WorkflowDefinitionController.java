@@ -6,10 +6,9 @@ import com.init.domainpack.application.GetWorkflowDefinitionQuery;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
 import com.init.domainpack.application.WorkflowDefinitionSummary;
+import com.init.shared.presentation.AuthenticationUtils;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +35,7 @@ public class WorkflowDefinitionController {
       @PathVariable Long packId,
       @PathVariable Long versionId,
       Authentication authentication) {
-    Long userId = getUserId(authentication);
+    Long userId = AuthenticationUtils.getUserId(authentication);
     List<WorkflowDefinitionSummary> result =
         listUseCase.execute(
             new GetWorkflowDefinitionListQuery(workspaceId, packId, versionId, userId));
@@ -50,27 +49,10 @@ public class WorkflowDefinitionController {
       @PathVariable Long versionId,
       @PathVariable Long workflowId,
       Authentication authentication) {
-    Long userId = getUserId(authentication);
+    Long userId = AuthenticationUtils.getUserId(authentication);
     WorkflowDefinitionDetail result =
         detailUseCase.execute(
             new GetWorkflowDefinitionQuery(workspaceId, packId, versionId, workflowId, userId));
     return ResponseEntity.ok(result);
-  }
-
-  private Long getUserId(Authentication authentication) {
-    if (authentication == null) {
-      throw new AuthenticationCredentialsNotFoundException("Authentication must not be null");
-    }
-    Object principal = authentication.getPrincipal();
-    if (principal == null) {
-      throw new AuthenticationCredentialsNotFoundException(
-          "Authentication principal must not be null");
-    }
-    if (!(principal instanceof Long)) {
-      throw new AccessDeniedException(
-          "Authentication principal must be of type Long, but was: "
-              + principal.getClass().getName());
-    }
-    return (Long) principal;
   }
 }

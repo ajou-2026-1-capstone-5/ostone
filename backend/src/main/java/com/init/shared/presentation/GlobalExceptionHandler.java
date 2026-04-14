@@ -79,9 +79,9 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(InternalException.class)
   public ResponseEntity<ErrorResponse> handleInternal(InternalException ex) {
-    log.error("Internal exception: {}", ex.getCode(), ex);
+    log.error("Internal exception: {}, message={}", ex.getCode(), ex.getMessage(), ex);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), "Internal server error"));
   }
 
   @ExceptionHandler(BusinessException.class)

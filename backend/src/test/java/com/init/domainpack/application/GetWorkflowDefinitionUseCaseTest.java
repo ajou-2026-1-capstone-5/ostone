@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
@@ -13,7 +17,6 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,13 +48,13 @@ class GetWorkflowDefinitionUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new GetWorkflowDefinitionUseCase(
+    DomainPackValidator validator =
+        new DomainPackValidator(
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository,
-            workflowDefinitionRepository);
+            domainPackVersionRepository);
+    useCase = new GetWorkflowDefinitionUseCase(validator, workflowDefinitionRepository);
   }
 
   @Test
@@ -76,6 +79,65 @@ class GetWorkflowDefinitionUseCaseTest {
   }
 
   @Test
+  @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
+  void execute_workspaceNotFound_throwsException() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetWorkflowDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
+        .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
+  void execute_unauthorized_throwsException() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetWorkflowDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
+        .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
+  }
+
+  @Test
+  @DisplayName("domain pack 소속 불일치 → DomainPackNotFoundException")
+  void execute_packNotInWorkspace_throwsException() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetWorkflowDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
+        .isInstanceOf(DomainPackNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("version 소속 불일치 → DomainPackVersionNotFoundException")
+  void execute_versionNotInPack_throwsException() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, 999L)));
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetWorkflowDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
+        .isInstanceOf(DomainPackVersionNotFoundException.class);
+  }
+
+  @Test
   @DisplayName("workflowId가 versionId에 속하지 않음 → WorkflowDefinitionNotFoundException")
   void execute_workflowNotInVersion_throwsException() {
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
@@ -95,17 +157,7 @@ class GetWorkflowDefinitionUseCaseTest {
   }
 
   private DomainPackVersion createVersion(Long id, Long packId) {
-    try {
-      Constructor<DomainPackVersion> ctor = DomainPackVersion.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      DomainPackVersion version = ctor.newInstance();
-      ReflectionTestUtils.setField(version, "id", id);
-      ReflectionTestUtils.setField(version, "domainPackId", packId);
-      ReflectionTestUtils.setField(version, "lifecycleStatus", "DRAFT");
-      return version;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return DomainPackVersion.ofForTest(id, packId, DomainPackVersion.STATUS_DRAFT);
   }
 
   private WorkflowDefinition createWorkflow(Long id, String code, String graphJson) {

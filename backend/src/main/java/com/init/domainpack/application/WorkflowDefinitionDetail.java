@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import com.init.domainpack.domain.model.WorkflowDefinition;
+import java.io.IOException;
 import java.time.OffsetDateTime;
 
 public record WorkflowDefinitionDetail(
@@ -58,8 +59,8 @@ public record WorkflowDefinitionDetail(
       }
     } catch (WorkflowGraphJsonInvalidException e) {
       throw e;
-    } catch (Exception e) {
-      throw new WorkflowGraphJsonInvalidException();
+    } catch (IOException e) {
+      throw new WorkflowGraphJsonInvalidException(e);
     }
   }
 }

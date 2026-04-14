@@ -16,7 +16,6 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetWorkflowDefinitionListUseCase")
@@ -47,13 +45,13 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new GetWorkflowDefinitionListUseCase(
+    DomainPackValidator validator =
+        new DomainPackValidator(
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository,
-            workflowDefinitionRepository);
+            domainPackVersionRepository);
+    useCase = new GetWorkflowDefinitionListUseCase(validator, workflowDefinitionRepository);
   }
 
   @Test
@@ -150,17 +148,7 @@ class GetWorkflowDefinitionListUseCaseTest {
   }
 
   private DomainPackVersion createVersion(Long id, Long packId) {
-    try {
-      Constructor<DomainPackVersion> ctor = DomainPackVersion.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      DomainPackVersion version = ctor.newInstance();
-      ReflectionTestUtils.setField(version, "id", id);
-      ReflectionTestUtils.setField(version, "domainPackId", packId);
-      ReflectionTestUtils.setField(version, "lifecycleStatus", "DRAFT");
-      return version;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return DomainPackVersion.ofForTest(id, packId, DomainPackVersion.STATUS_DRAFT);
   }
 
   private WorkflowDefinitionSummaryRow createSummaryRow(Long id, String code, String name) {
