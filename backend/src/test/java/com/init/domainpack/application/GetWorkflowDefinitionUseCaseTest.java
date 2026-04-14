@@ -147,8 +147,7 @@ class GetWorkflowDefinitionUseCaseTest {
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
-        .willReturn(
-            Optional.of(createWorkflow(WORKFLOW_ID, "refund_flow", "not-valid-json")));
+        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, "refund_flow", "not-valid-json")));
 
     assertThatThrownBy(
             () ->
