@@ -25,7 +25,7 @@
 
 ### SDD 워크플로우
 
-1. Burndown Studio에서 이슈 생성
+1. GitHub Issue에서 이슈 생성
 2. `spec/{이슈번호}` 브랜치에서 스펙 작성 → PR
 3. `feature/{이슈번호}-{설명}` 브랜치에서 구현 → PR
 
