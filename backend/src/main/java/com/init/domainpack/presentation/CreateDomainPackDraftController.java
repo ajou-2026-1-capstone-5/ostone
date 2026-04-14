@@ -114,8 +114,8 @@ public class CreateDomainPackDraftController {
                                 workflow.name(),
                                 workflow.description(),
                                 workflow.graphJson(),
-                                workflow.initialState(),
-                                workflow.terminalStatesJson(),
+                                null, // server-extracted from graphJson post-validation
+                                null, // server-extracted from graphJson post-validation
                                 workflow.evidenceJson(),
                                 workflow.metaJson()))
                     .toList(),
