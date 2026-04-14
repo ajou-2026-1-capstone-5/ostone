@@ -14,6 +14,8 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin,viewer:viewer
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
+    AIRFLOW_SIMPLE_ADMIN_PASSWORD: ${AIRFLOW_SIMPLE_ADMIN_PASSWORD:-admin}
+    AIRFLOW_SIMPLE_VIEWER_PASSWORD: ${AIRFLOW_SIMPLE_VIEWER_PASSWORD:-viewer}
     AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
     PIPELINE_BACKEND_BASE_URL: ${PIPELINE_BACKEND_BASE_URL:-http://backend:8080}
