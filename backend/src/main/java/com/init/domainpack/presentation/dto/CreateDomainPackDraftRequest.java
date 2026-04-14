@@ -1,6 +1,7 @@
 package com.init.domainpack.presentation.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -99,8 +100,10 @@ public record CreateDomainPackDraftRequest(
       @NotBlank(message = "graphJson은 필수입니다.")
           @Size(max = 20000, message = "graphJson은 20000자 이하여야 합니다.")
           String graphJson,
-      @Size(max = 100, message = "initialState는 100자 이하여야 합니다.") String initialState,
-      @Size(max = 5000, message = "terminalStatesJson은 5000자 이하여야 합니다.") String terminalStatesJson,
+      @Null(message = "initialState는 서버에서 자동 추출됩니다. 요청에 포함하지 마십시오.")
+          String initialState,
+      @Null(message = "terminalStatesJson은 서버에서 자동 추출됩니다. 요청에 포함하지 마십시오.")
+          String terminalStatesJson,
       @Size(max = 5000, message = "evidenceJson은 5000자 이하여야 합니다.") String evidenceJson,
       @Size(max = 5000, message = "metaJson은 5000자 이하여야 합니다.") String metaJson) {}
 

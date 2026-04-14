@@ -173,6 +173,32 @@ class CreateDomainPackDraftControllerTest {
   }
 
   @Test
+  @DisplayName("요청에 initialState 필드 포함 시 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unexpectedInitialStateField_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workflows": [
+                        {
+                          "workflowCode": "refund_flow",
+                          "name": "환불 플로우",
+                          "graphJson": "{\\"nodes\\":[]}",
+                          "initialState": "start"
+                        }
+                      ]
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
   @DisplayName("인증 없는 요청이면 401을 반환한다")
   void createDraft_unauthenticated_returns401() throws Exception {
     mockMvc
