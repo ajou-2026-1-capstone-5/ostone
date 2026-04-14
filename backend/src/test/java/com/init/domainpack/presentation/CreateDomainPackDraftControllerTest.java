@@ -14,6 +14,12 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
+import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
+import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
+import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
+import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
+import com.init.domainpack.application.exception.WorkflowUnreachableNodeException;
 import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.time.OffsetDateTime;
@@ -196,6 +202,129 @@ class CreateDomainPackDraftControllerTest {
                     """))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
+  @DisplayName("요청에 terminalStatesJson 필드 포함 시 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unexpectedTerminalStatesJsonField_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workflows": [
+                        {
+                          "workflowCode": "refund_flow",
+                          "name": "환불 플로우",
+                          "graphJson": "{\\"nodes\\":[]}",
+                          "terminalStatesJson": "[\\"end\\"]"
+                        }
+                      ]
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
+  @DisplayName("graphJson V1 위반 (START 노드 없음/복수) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_invalidStartNode_returns400() throws Exception {
+    given(useCase.execute(any())).willThrow(new WorkflowInvalidStartNodeException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_INVALID_START_NODE"));
+  }
+
+  @Test
+  @DisplayName("graphJson V2 위반 (TERMINAL 노드 없음) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_invalidTerminalNode_returns400() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new WorkflowInvalidTerminalNodeException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_INVALID_TERMINAL_NODE"));
+  }
+
+  @Test
+  @DisplayName("graphJson V3 위반 (dangling edge) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_danglingEdge_returns400() throws Exception {
+    given(useCase.execute(any())).willThrow(new WorkflowDanglingEdgeException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_DANGLING_EDGE"));
+  }
+
+  @Test
+  @DisplayName("graphJson V4 위반 (도달 불가 노드) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unreachableNode_returns400() throws Exception {
+    given(useCase.execute(any())).willThrow(new WorkflowUnreachableNodeException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_UNREACHABLE_NODE"));
+  }
+
+  @Test
+  @DisplayName("graphJson V5 위반 (사이클 존재) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_cycleDetected_returns400() throws Exception {
+    given(useCase.execute(any())).willThrow(new WorkflowCycleDetectedException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_CYCLE_DETECTED"));
+  }
+
+  @Test
+  @DisplayName("graphJson V6 위반 (DECISION 무레이블 분기) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unlabeledBranch_returns400() throws Exception {
+    given(useCase.execute(any())).willThrow(new WorkflowUnlabeledBranchException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_UNLABELED_BRANCH"));
   }
 
   @Test
