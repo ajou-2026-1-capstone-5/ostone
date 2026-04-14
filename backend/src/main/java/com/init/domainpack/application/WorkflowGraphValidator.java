@@ -86,7 +86,13 @@ final class WorkflowGraphValidator {
   private static List<GraphNode> parseNodes(JsonNode root) {
     List<GraphNode> nodes = new ArrayList<>();
     for (JsonNode n : root.path("nodes")) {
-      nodes.add(new GraphNode(n.path("id").asText(), n.path("type").asText()));
+      String id = n.path("id").asText().trim();
+      String type = n.path("type").asText().trim();
+      if (id.isEmpty() || type.isEmpty()) {
+        throw new DomainPackDraftRequestInvalidException(
+            "노드의 id 또는 type이 비어 있습니다. id='" + id + "', type='" + type + "'");
+      }
+      nodes.add(new GraphNode(id, type));
     }
     return nodes;
   }
