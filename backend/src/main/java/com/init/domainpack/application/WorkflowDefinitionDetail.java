@@ -40,9 +40,12 @@ public record WorkflowDefinitionDetail(
   }
 
   private static void validateGraphJson(String graphJson) {
+    if (graphJson == null || graphJson.isBlank()) {
+      throw new WorkflowGraphJsonInvalidException();
+    }
     try {
       JsonNode root = MAPPER.readTree(graphJson);
-      if (!root.isObject()) {
+      if (root == null || !root.isObject()) {
         throw new WorkflowGraphJsonInvalidException();
       }
       JsonNode direction = root.get("direction");
@@ -59,7 +62,7 @@ public record WorkflowDefinitionDetail(
       }
     } catch (WorkflowGraphJsonInvalidException e) {
       throw e;
-    } catch (IOException e) {
+    } catch (IOException | IllegalArgumentException | NullPointerException e) {
       throw new WorkflowGraphJsonInvalidException(e);
     }
   }

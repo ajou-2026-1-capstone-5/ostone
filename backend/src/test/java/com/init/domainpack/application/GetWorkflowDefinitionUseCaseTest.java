@@ -10,6 +10,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
+import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -135,6 +136,26 @@ class GetWorkflowDefinitionUseCaseTest {
                     new GetWorkflowDefinitionQuery(
                         WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
         .isInstanceOf(DomainPackVersionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("graphJson이 유효하지 않음 → WorkflowGraphJsonInvalidException")
+  void execute_invalidGraphJson_throwsException() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+        .willReturn(
+            Optional.of(createWorkflow(WORKFLOW_ID, "refund_flow", "not-valid-json")));
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetWorkflowDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID)))
+        .isInstanceOf(WorkflowGraphJsonInvalidException.class);
   }
 
   @Test
