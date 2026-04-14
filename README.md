@@ -48,20 +48,25 @@ Conventional Commits: `type(scope): subject` (예: `feat(domain-pack): add publi
 ## 로컬 개발환경 세팅
 
 ```bash
-# Docker Compose로 전체 서비스 실행
-docker-compose up -d
+# 1) 최초 1회 env 파일 준비
+cp .env.example .env
 
-# Backend: Gradle build
+# 2) Docker Compose로 전체 로컬 스택 실행
+docker compose up -d
+
+# Backend: 빌드/테스트
 cd backend && ./gradlew build
 
-# Frontend: pnpm dev
+# Frontend: 개발 서버
 cd frontend && pnpm dev
 
-# ML: pytest
-cd ml && pytest
+# ML: 테스트
+cd ml && uv run pytest
 ```
 
-상세 설정: [`backend/README.md`](backend/README.md)
+`docker compose up -d`는 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`까지 포함한 로컬 스택을 실행한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
+
+상세 설정: [`backend/README.md`](backend/README.md), [`.agent/specs/113.md`](.agent/specs/113.md)
 
 ## 모듈 구조
 

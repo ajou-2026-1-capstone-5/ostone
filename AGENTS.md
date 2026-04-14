@@ -161,20 +161,29 @@ ml/
 ### Docker Compose
 
 ```bash
-# 전체 서비스 실행 (postgres + backend + frontend)
-docker-compose up -d
+# 최초 1회 env 파일 준비
+cp .env.example .env
+
+# 전체 서비스 실행
+docker compose up -d
 
 # 개별 서비스
-docker-compose up -d postgres
-docker-compose up -d backend
-docker-compose up -d frontend
+docker compose up -d postgres
+docker compose up -d backend
+docker compose up -d frontend
+docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
 
 # 로그 확인
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f airflow-apiserver
 ```
 
-**참고**: docker-compose에 Airflow 서비스 없음 (현재 미구현)
+기본 원칙:
+
+- 로컬 전체 스택은 `docker compose up -d` 한 번으로 실행 가능해야 한다.
+- `backend`와 `frontend` 이미지는 선행 `jar`/`dist` 빌드를 요구하지 않도록 유지한다.
+- Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
 
 ### Backend (Gradle)
 
@@ -218,7 +227,7 @@ docker-compose logs -f frontend
 | 타입 검사     | `cd ml && uv run mypy .`                                                        |
 | 전체 검사     | `cd ml && uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
 
-**참고**: ml/dags/ 미구현 (Airflow 파이프라인 아직 작성 안됨)
+**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
 
 ### Root Scripts
 
