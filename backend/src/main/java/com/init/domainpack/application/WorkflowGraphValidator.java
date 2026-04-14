@@ -1,7 +1,9 @@
 package com.init.domainpack.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
@@ -15,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 final class WorkflowGraphValidator {
@@ -34,8 +37,9 @@ final class WorkflowGraphValidator {
     JsonNode root;
     try {
       root = OBJECT_MAPPER.readTree(graphJson);
-    } catch (Exception e) {
-      throw new WorkflowInvalidStartNodeException(workflowCode);
+    } catch (JsonProcessingException e) {
+      throw new DomainPackDraftRequestInvalidException(
+          "graphJson 파싱 실패. workflowCode=" + workflowCode, e);
     }
 
     List<GraphNode> nodes = parseNodes(root);
@@ -70,13 +74,11 @@ final class WorkflowGraphValidator {
   static String extractTerminalStatesJson(ParsedGraph graph) {
     List<String> terminalIds =
         graph.nodes().stream().filter(n -> "TERMINAL".equals(n.type())).map(GraphNode::id).toList();
-    StringBuilder sb = new StringBuilder("[");
-    for (int i = 0; i < terminalIds.size(); i++) {
-      if (i > 0) sb.append(",");
-      sb.append("\"").append(terminalIds.get(i)).append("\"");
+    try {
+      return OBJECT_MAPPER.writeValueAsString(terminalIds);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to serialize terminal states", e);
     }
-    sb.append("]");
-    return sb.toString();
   }
 
   // --- parse helpers ---
@@ -203,6 +205,6 @@ final class WorkflowGraphValidator {
         .filter(n -> "START".equals(n.type()))
         .findFirst()
         .map(GraphNode::id)
-        .orElseThrow();
+        .orElseThrow(() -> new NoSuchElementException("Start node not found in workflow graph"));
   }
 }

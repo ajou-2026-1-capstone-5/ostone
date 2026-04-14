@@ -205,6 +205,32 @@ class CreateDomainPackDraftControllerTest {
   }
 
   @Test
+  @DisplayName("요청에 terminalStatesJson 필드 포함 시 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_unexpectedTerminalStatesJsonField_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "workflows": [
+                        {
+                          "workflowCode": "refund_flow",
+                          "name": "환불 플로우",
+                          "graphJson": "{\\"nodes\\":[]}",
+                          "terminalStatesJson": "[\\"end\\"]"
+                        }
+                      ]
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
   @DisplayName("graphJson V1 위반 (START 노드 없음/복수) 이면 400을 반환한다")
   @WithLongPrincipal(10L)
   void createDraft_invalidStartNode_returns400() throws Exception {
