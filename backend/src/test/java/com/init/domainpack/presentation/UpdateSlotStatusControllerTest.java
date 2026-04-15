@@ -37,10 +37,16 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("UpdateSlotStatusController")
 class UpdateSlotStatusControllerTest {
 
-  @Autowired private MockMvc mockMvc;
-  @Autowired private ObjectMapper objectMapper;
+  private final MockMvc mockMvc;
+  private final ObjectMapper objectMapper;
 
   @MockitoBean private UpdateSlotStatusUseCase useCase;
+
+  @Autowired
+  UpdateSlotStatusControllerTest(MockMvc mockMvc, ObjectMapper objectMapper) {
+    this.mockMvc = mockMvc;
+    this.objectMapper = objectMapper;
+  }
 
   private static final String BASE_URL =
       "/api/v1/workspaces/1/domain-packs/7/versions/10/slots/99/status";
