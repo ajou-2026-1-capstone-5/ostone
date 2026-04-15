@@ -135,6 +135,7 @@ artifact는 named volume 기반으로 저장합니다.
 - `pipeline.common.config.PipelineRuntimeConfig`
 - `pipeline.common.context.StageContext`
 - `pipeline.common.artifacts.write_stage_manifest`
+- `domain_pack_generation` DAG는 각 stage의 `artifact_manifest_path`를 XCom으로 다음 stage에 전달합니다.
 
 새 Stage/DAG를 만들 때는 가능하면 이 helper를 재사용합니다.
 

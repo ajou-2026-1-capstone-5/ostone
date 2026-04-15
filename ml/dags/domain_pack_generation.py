@@ -34,12 +34,19 @@ def _build_stage_context(stage_name: str) -> StageContext:
     )
 
 
-def _run_stage(stage_name: str, stage_callable: Callable[[], None]) -> dict[str, str]:
+def _run_stage(
+    stage_name: str,
+    stage_callable: Callable[[str | None], None],
+    upstream_manifest_path: str | None = None,
+) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
-    manifest_payload: dict[str, object] = {"backend_base_url": runtime_config.backend_base_url}
+    manifest_payload: dict[str, object] = {
+        "backend_base_url": runtime_config.backend_base_url,
+        "upstream_manifest_path": upstream_manifest_path,
+    }
     try:
-        stage_callable()
+        stage_callable(upstream_manifest_path)
     except Exception as exc:
         manifest_payload["status"] = "failed"
         manifest_payload["error"] = {
@@ -79,40 +86,54 @@ def domain_pack_generation() -> None:
         return _run_stage("ingestion", ingestion_run)
 
     @task(task_id="preprocessing")
-    def preprocessing() -> dict[str, str]:
-        return _run_stage("preprocessing", preprocessing_run)
+    def preprocessing(ingestion_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "preprocessing",
+            preprocessing_run,
+            ingestion_result["artifact_manifest_path"],
+        )
 
     @task(task_id="intent_discovery")
-    def intent_discovery() -> dict[str, str]:
-        return _run_stage("intent_discovery", intent_discovery_run)
+    def intent_discovery(preprocessing_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "intent_discovery",
+            intent_discovery_run,
+            preprocessing_result["artifact_manifest_path"],
+        )
 
     @task(task_id="draft_generation")
-    def draft_generation() -> dict[str, str]:
-        return _run_stage("draft_generation", draft_generation_run)
+    def draft_generation(intent_discovery_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "draft_generation",
+            draft_generation_run,
+            intent_discovery_result["artifact_manifest_path"],
+        )
 
     @task(task_id="evaluation")
-    def evaluation() -> dict[str, str]:
-        return _run_stage("evaluation", evaluation_run)
+    def evaluation(draft_generation_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "evaluation",
+            evaluation_run,
+            draft_generation_result["artifact_manifest_path"],
+        )
 
     @task(task_id="publish_candidate")
-    def publish_candidate() -> dict[str, str]:
-        return _run_stage("publish_candidate", publish_candidate_run)
+    def publish_candidate(evaluation_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "publish_candidate",
+            publish_candidate_run,
+            evaluation_result["artifact_manifest_path"],
+        )
 
     ingestion_task = ingestion()
-    preprocessing_task = preprocessing()
-    intent_discovery_task = intent_discovery()
-    draft_generation_task = draft_generation()
-    evaluation_task = evaluation()
-    publish_candidate_task = publish_candidate()
+    preprocessing_task = preprocessing(ingestion_task)
+    intent_discovery_task = intent_discovery(preprocessing_task)
+    draft_generation_task = draft_generation(intent_discovery_task)
+    evaluation_task = evaluation(draft_generation_task)
+    publish_candidate_task = publish_candidate(evaluation_task)
 
-    (
-        ingestion_task
-        >> preprocessing_task
-        >> intent_discovery_task
-        >> draft_generation_task
-        >> evaluation_task
-        >> publish_candidate_task
-    )
+    ingestion_task >> preprocessing_task >> intent_discovery_task >> draft_generation_task
+    draft_generation_task >> evaluation_task >> publish_candidate_task
 
 
 domain_pack_generation()
