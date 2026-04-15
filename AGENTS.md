@@ -78,10 +78,11 @@ frontend/
 
 ```
 ml/
-├── src/pipeline/
+├── src/
 │   ├── dags/             # Airflow runtime DAG 엔트리
-│   ├── stages/           # 파이프라인 단계 구현
-│   └── common/           # 공통 유틸리티/설정
+│   └── pipeline/
+│       ├── stages/       # 파이프라인 단계 구현
+│       └── common/       # 공통 유틸리티/설정
 ├── tests/
 │   └── dags/             # 개발/검증 전용 DAG
 └── pyproject.toml
@@ -227,7 +228,7 @@ docker compose logs -f airflow-apiserver
 | 타입 검사     | `cd ml && uv run mypy .`                                                        |
 | 전체 검사     | `cd ml && uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
 
-**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/src/pipeline/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
+**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/src/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
 
 ### Root Scripts
 

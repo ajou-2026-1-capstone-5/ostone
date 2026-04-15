@@ -83,17 +83,18 @@ docker compose logs -f airflow-dag-processor
 ```text
 ml/
 ├── airflow/                  # Airflow 런타임 이미지 및 init 스크립트
-├── src/pipeline/             # 실제 파이프라인 코드
+├── src/
 │   ├── dags/                 # Airflow runtime DAG 엔트리
-│   ├── common/               # 공통 설정, artifact, context, logging
-│   └── stages/               # stage 구현
+│   └── pipeline/             # 실제 파이프라인 코드
+│       ├── common/           # 공통 설정, artifact, context, logging
+│       └── stages/           # stage 구현
 └── tests/                    # pytest 테스트
     └── dags/                 # 개발/검증 전용 DAG
 ```
 
 역할 구분:
 
-- `ml/src/pipeline/dags/`: Airflow runtime이 기본 mount 하는 orchestration entrypoint
+- `ml/src/dags/`: Airflow runtime이 기본 mount 하는 orchestration entrypoint
 - `ml/src/pipeline/stages/`: 실제 stage 처리 로직
 - `ml/src/pipeline/common/`: DAG와 stage가 함께 쓰는 공통 코드
 - `ml/tests/dags/`: 개발/검증 전용 DAG
@@ -142,7 +143,7 @@ artifact는 named volume 기반으로 저장합니다.
 
 ## 새 DAG를 추가할 때 규칙
 
-- 파일 위치: `ml/src/pipeline/dags/*.py`
+- 파일 위치: `ml/src/dags/*.py`
 - import는 `from pipeline...` 형태를 사용합니다.
 - relative import는 사용하지 않습니다.
 - DAG 파일은 orchestration에만 집중하고, 실제 처리는 `ml/src/pipeline/...`로 위임합니다.
@@ -151,7 +152,7 @@ artifact는 named volume 기반으로 저장합니다.
 
 예시 체크리스트:
 
-- 파일이 `ml/src/pipeline/dags/` 아래에 있는가
+- 파일이 `ml/src/dags/` 아래에 있는가
 - Airflow 컨테이너 안 `/opt/airflow/dags/`에 bind mount 되는가
 - `airflow dags list`에 보이는가
 - UI에서 task 성공/실패 로그가 읽히는가

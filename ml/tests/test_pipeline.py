@@ -20,7 +20,7 @@ def test_should_import_all_stages():
 def test_should_import_runtime_dags():
     pytest.importorskip("airflow.sdk")
 
-    from pipeline.dags.domain_pack_generation import domain_pack_generation
+    from dags.domain_pack_generation import domain_pack_generation
 
     assert callable(domain_pack_generation)
 

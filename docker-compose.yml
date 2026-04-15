@@ -23,7 +23,7 @@ x-airflow-common: &airflow-common
     PYTHONPATH: /opt/airflow/src
   volumes:
     # Keep only runtime DAG entrypoints mounted into Airflow; test-only DAGs live under ml/tests/dags.
-    - ./ml/src/pipeline/dags:/opt/airflow/dags
+    - ./ml/src/dags:/opt/airflow/dags
     - ./ml/src:/opt/airflow/src
     - airflow_logs:/opt/airflow/logs
     - airflow_artifacts:/opt/airflow/artifacts
