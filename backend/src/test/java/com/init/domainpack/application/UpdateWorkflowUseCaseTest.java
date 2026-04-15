@@ -7,16 +7,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import com.init.domainpack.domain.model.DomainPackVersion;
-import com.init.domainpack.domain.model.WorkflowDefinition;
-import com.init.domainpack.domain.repository.DomainPackVersionRepository;
-import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
 import com.init.domainpack.application.exception.WorkflowUnreachableNodeException;
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.Optional;
@@ -79,7 +79,9 @@ class UpdateWorkflowUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
         .isInstanceOf(NotFoundException.class);
 
     verify(workflowRepository, never()).save(any());
@@ -92,7 +94,9 @@ class UpdateWorkflowUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
         .isInstanceOf(NotFoundException.class);
 
     verify(workflowRepository, never()).save(any());
@@ -105,7 +109,9 @@ class UpdateWorkflowUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("DRAFT");
 
@@ -120,7 +126,9 @@ class UpdateWorkflowUseCaseTest {
 
     String oversizedGraph = "x".repeat(100_001);
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, oversizedGraph)))
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, oversizedGraph)))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("허용 크기");
 
@@ -132,11 +140,12 @@ class UpdateWorkflowUseCaseTest {
   void should_404_when_workflowNotFound() {
     DomainPackVersion version = draftVersion(10L, 7L);
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
-        .willReturn(Optional.empty());
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
-            () -> useCase.execute(new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH)))
         .isInstanceOf(NotFoundException.class);
 
     verify(workflowRepository, never()).save(any());
@@ -184,8 +193,7 @@ class UpdateWorkflowUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateWorkflowCommand(
-                        1L, 7L, 10L, 99L, 5L, "이름", null, noTerminalGraph)))
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, noTerminalGraph)))
         .isInstanceOf(WorkflowInvalidTerminalNodeException.class);
   }
 
@@ -234,8 +242,7 @@ class UpdateWorkflowUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateWorkflowCommand(
-                        1L, 7L, 10L, 99L, 5L, "이름", null, unreachableGraph)))
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, unreachableGraph)))
         .isInstanceOf(WorkflowUnreachableNodeException.class);
   }
 
@@ -315,7 +322,8 @@ class UpdateWorkflowUseCaseTest {
             + "\"nodes\":[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
             + "\"edges\":[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
     WorkflowDefinition wf =
-        WorkflowDefinition.create(versionId, "wf_refund", "환불 플로우", null, graph, "start", "[\"end\"]", "[]", "{}");
+        WorkflowDefinition.create(
+            versionId, "wf_refund", "환불 플로우", null, graph, "start", "[\"end\"]", "[]", "{}");
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }

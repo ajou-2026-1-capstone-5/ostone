@@ -37,21 +37,17 @@ public class UpdateWorkflowUseCase {
         versionRepository
             .findById(command.versionId())
             .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        "NOT_FOUND", "버전을 찾을 수 없습니다: " + command.versionId()));
+                () -> new NotFoundException("NOT_FOUND", "버전을 찾을 수 없습니다: " + command.versionId()));
     if (!version.getDomainPackId().equals(command.packId())) {
       throw new NotFoundException("NOT_FOUND", "버전을 찾을 수 없습니다: " + command.versionId());
     }
     if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
-      throw new BadRequestException(
-          "WORKFLOW_NOT_EDITABLE", "DRAFT 상태의 버전에서만 수정할 수 있습니다.");
+      throw new BadRequestException("WORKFLOW_NOT_EDITABLE", "DRAFT 상태의 버전에서만 수정할 수 있습니다.");
     }
 
     if (command.graphJson().length() > MAX_GRAPH_JSON_CHARS) {
       throw new BadRequestException(
-          "GRAPH_JSON_TOO_LARGE",
-          "graphJson이 허용 크기(" + MAX_GRAPH_JSON_CHARS + "자)를 초과합니다.");
+          "GRAPH_JSON_TOO_LARGE", "graphJson이 허용 크기(" + MAX_GRAPH_JSON_CHARS + "자)를 초과합니다.");
     }
 
     WorkflowDefinition workflow =

@@ -72,7 +72,8 @@ class WorkflowDefinitionUpdateControllerTest {
   @WithLongPrincipal(5L)
   void should_400_when_name누락() throws Exception {
     ObjectNode body = objectMapper.createObjectNode();
-    body.set("graphJson", objectMapper.readTree("{\"direction\":\"LR\",\"nodes\":[],\"edges\":[]}"));
+    body.set(
+        "graphJson", objectMapper.readTree("{\"direction\":\"LR\",\"nodes\":[],\"edges\":[]}"));
 
     mockMvc
         .perform(
@@ -92,7 +93,8 @@ class WorkflowDefinitionUpdateControllerTest {
   void should_400_when_nameBlank() throws Exception {
     ObjectNode body = objectMapper.createObjectNode();
     body.put("name", "");
-    body.set("graphJson", objectMapper.readTree("{\"direction\":\"LR\",\"nodes\":[],\"edges\":[]}"));
+    body.set(
+        "graphJson", objectMapper.readTree("{\"direction\":\"LR\",\"nodes\":[],\"edges\":[]}"));
 
     mockMvc
         .perform(
@@ -191,10 +193,12 @@ class WorkflowDefinitionUpdateControllerTest {
   private String validRequestBody() throws Exception {
     ObjectNode graphJson = objectMapper.createObjectNode();
     graphJson.put("direction", "LR");
-    graphJson.set("nodes", objectMapper.readTree(
-        "[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}]"));
-    graphJson.set("edges", objectMapper.readTree(
-        "[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]"));
+    graphJson.set(
+        "nodes",
+        objectMapper.readTree(
+            "[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}]"));
+    graphJson.set(
+        "edges", objectMapper.readTree("[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]"));
 
     ObjectNode body = objectMapper.createObjectNode();
     body.put("name", "수정된 이름");
