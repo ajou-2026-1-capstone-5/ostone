@@ -4,7 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -125,6 +129,80 @@ class UpdateSlotStatusUseCaseTest {
                 useCase.execute(
                     new UpdateSlotStatusCommand(
                         1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
+  void should_워크스페이스없음예외_when_워크스페이스없음() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
+
+    verify(versionRepository, never()).findById(any());
+  }
+
+  @Test
+  @DisplayName("workspace 비멤버 → DomainPackUnauthorizedWorkspaceAccessException")
+  void should_권한없음예외_when_비멤버() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
+
+    verify(versionRepository, never()).findById(any());
+  }
+
+  @Test
+  @DisplayName("버전 미존재 → NotFoundException")
+  void should_버전없음예외_when_버전미존재() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(versionRepository.findById(10L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("packId 불일치 → NotFoundException")
+  void should_버전없음예외_when_packId불일치() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+
+    DomainPackVersion version = draftVersion(10L, 99L); // domainPackId=99, not 7
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("슬롯 미존재 → NotFoundException")
+  void should_슬롯없음예외_when_슬롯미존재() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
+    given(slotRepository.findById(99L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(NotFoundException.class);
   }
 

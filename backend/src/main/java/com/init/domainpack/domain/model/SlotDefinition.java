@@ -113,10 +113,10 @@ public class SlotDefinition {
       throw new IllegalArgumentException("name은 비워둘 수 없습니다.");
     }
     this.name = name;
-    this.description = description;
+    if (description != null) this.description = description;
     if (isSensitive != null) this.isSensitive = isSensitive;
     if (validationRuleJson != null) this.validationRuleJson = validationRuleJson;
-    this.defaultValueJson = defaultValueJson;
+    if (defaultValueJson != null) this.defaultValueJson = defaultValueJson;
     if (metaJson != null) this.metaJson = metaJson;
   }
 

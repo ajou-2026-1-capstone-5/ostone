@@ -183,9 +183,7 @@ class UpdateSlotUseCaseTest {
   // ── factories ──────────────────────────────────────────────────────────────
 
   private DomainPackVersion draftVersion(Long id, Long domainPackId) {
-    DomainPackVersion v =
-        DomainPackVersion.ofForTest(id, domainPackId, DomainPackVersion.STATUS_DRAFT);
-    return v;
+    return DomainPackVersion.ofForTest(id, domainPackId, DomainPackVersion.STATUS_DRAFT);
   }
 
   private DomainPackVersion publishedVersion(Long id, Long domainPackId) {

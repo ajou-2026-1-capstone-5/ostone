@@ -703,4 +703,5 @@ SELECT setval('runtime.chat_session_id_seq', (SELECT COALESCE(MAX(id), 1) FROM r
 --changeset devjhan:20260415-add-status-to-slot-definition
 --comment: Add status column to pack.slot_definition for slot lifecycle management (ACTIVE/INACTIVE)
 ALTER TABLE pack.slot_definition
-    ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE';
+    ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    ADD CONSTRAINT chk_slot_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
