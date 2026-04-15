@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -36,15 +37,10 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("UpdateSlotStatusController")
 class UpdateSlotStatusControllerTest {
 
-  private final MockMvc mockMvc;
-  private final ObjectMapper objectMapper;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
 
   @MockitoBean private UpdateSlotStatusUseCase useCase;
-
-  public UpdateSlotStatusControllerTest(MockMvc mockMvc, ObjectMapper objectMapper) {
-    this.mockMvc = mockMvc;
-    this.objectMapper = objectMapper;
-  }
 
   private static final String BASE_URL =
       "/api/v1/workspaces/1/domain-packs/7/versions/10/slots/99/status";
