@@ -22,7 +22,7 @@ public record PipelineIntentDraftCallbackRequest(
       @NotBlank(message = "intent name은 필수입니다.")
           @Size(max = 255, message = "intent name은 255자 이하여야 합니다.")
           String name,
-      String description,
+      @Size(max = 1000, message = "description은 1000자 이하여야 합니다.") String description,
       Integer taxonomyLevel,
       @Size(max = 100, message = "parentIntentCode는 100자 이하여야 합니다.") String parentIntentCode,
       @Size(max = 5000, message = "sourceClusterRef는 5000자 이하여야 합니다.") String sourceClusterRef,

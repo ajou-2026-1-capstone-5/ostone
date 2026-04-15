@@ -120,10 +120,8 @@ class CreateDomainPackDraftUseCaseTest {
         .willReturn(Optional.of(2));
     given(domainPackVersionRepository.saveAndFlush(any()))
         .willAnswer(invocation -> createSavedVersion(101L, 7L, 3));
-    given(intentDefinitionRepository.saveAll(any()))
-        .willAnswer(
-            invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L, 1002L)));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L, 1002L)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(slotDefinitionRepository.saveAll(any()))
         .willAnswer(invocation -> assignSlotIds(invocation.getArgument(0), List.of(2001L)));
@@ -183,7 +181,7 @@ class CreateDomainPackDraftUseCaseTest {
         .willReturn(Optional.empty());
     given(domainPackVersionRepository.saveAndFlush(any()))
         .willAnswer(invocation -> createSavedVersion(101L, 7L, 1));
-    given(intentDefinitionRepository.saveAll(any()))
+    given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L)));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(invocation -> List.of());
     given(policyDefinitionRepository.saveAll(any()))
@@ -200,8 +198,7 @@ class CreateDomainPackDraftUseCaseTest {
             null,
             "{}",
             List.of(
-                new CreateDomainPackDraftCommand.IntentDraft(
-                    "refund_request", "환불 요청", null, 1, null, null, null, null, null)),
+                new IntentDraft("refund_request", "환불 요청", null, 1, null, null, null, null, null)),
             List.of(),
             List.of(
                 new CreateDomainPackDraftCommand.IntentSlotBindingDraft(
@@ -400,7 +397,7 @@ class CreateDomainPackDraftUseCaseTest {
         .willReturn(Optional.of(2));
     given(domainPackVersionRepository.saveAndFlush(any()))
         .willAnswer(invocation -> createSavedVersion(101L, 7L, 3));
-    given(intentDefinitionRepository.saveAll(any()))
+    given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(slotDefinitionRepository.saveAll(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
@@ -442,9 +439,8 @@ class CreateDomainPackDraftUseCaseTest {
         55L,
         "{\"summary\":\"draft\"}",
         List.of(
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "refund_request", "환불 요청", "환불 문의", 1, null, null, null, null, null),
-            new CreateDomainPackDraftCommand.IntentDraft(
+            new IntentDraft("refund_request", "환불 요청", "환불 문의", 1, null, null, null, null, null),
+            new IntentDraft(
                 "refund_request_cancel",
                 "환불 요청 취소",
                 null,

@@ -2,6 +2,8 @@ package com.init.domainpack.application;
 
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
+import com.init.domainpack.application.exception.DomainPackVersionNotDraftException;
+import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
@@ -79,18 +81,12 @@ public class DomainPackDraftPersistenceService {
 
   /** 기존 DRAFT 버전에 intent를 추가 저장한다. 이미 존재하는 intentCode는 건너뛴다. Airflow 파이프라인 콜백의 2단계에서 사용한다. */
   public AddIntentsToDraftVersionResult persistIntents(
-      Long domainPackVersionId, List<CreateDomainPackDraftCommand.IntentDraft> intents) {
-    DomainPackVersion version =
-        domainPackVersionRepository
-            .findById(domainPackVersionId)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Domain pack version을 찾을 수 없습니다. id=" + domainPackVersionId));
-    List<CreateDomainPackDraftCommand.IntentDraft> safeIntents = safeList(intents);
-    ensureUnique(safeIntents, CreateDomainPackDraftCommand.IntentDraft::intentCode, "intentCode");
+      Long domainPackVersionId, List<IntentDraft> intents) {
+    DomainPackVersion version = requireDraftVersion(domainPackVersionId);
+    List<IntentDraft> safeIntents = safeList(intents);
+    ensureUnique(safeIntents, IntentDraft::intentCode, "intentCode");
 
-    List<CreateDomainPackDraftCommand.IntentDraft> newIntents =
+    List<IntentDraft> newIntents =
         safeIntents.stream()
             .filter(
                 intent ->
@@ -100,7 +96,7 @@ public class DomainPackDraftPersistenceService {
     int skippedCount = safeIntents.size() - newIntents.size();
 
     List<IntentDefinition> savedIntents =
-        intentDefinitionRepository.saveAll(
+        intentDefinitionRepository.saveAllAndFlush(
             newIntents.stream()
                 .map(
                     intent ->
@@ -119,7 +115,7 @@ public class DomainPackDraftPersistenceService {
         indexByCode(savedIntents, IntentDefinition::getIntentCode);
 
     boolean hasParentIntent = false;
-    for (CreateDomainPackDraftCommand.IntentDraft draft : newIntents) {
+    for (IntentDraft draft : newIntents) {
       if (draft.parentIntentCode() == null || draft.parentIntentCode().isBlank()) {
         continue;
       }
@@ -155,7 +151,7 @@ public class DomainPackDraftPersistenceService {
       Long createdBy,
       Long sourcePipelineJobId,
       String summaryJson,
-      List<CreateDomainPackDraftCommand.IntentDraft> intents,
+      List<IntentDraft> intents,
       List<CreateDomainPackDraftCommand.SlotDraft> slots,
       List<CreateDomainPackDraftCommand.IntentSlotBindingDraft> intentSlotBindings,
       List<CreateDomainPackDraftCommand.PolicyDraft> policies,
@@ -181,7 +177,7 @@ public class DomainPackDraftPersistenceService {
     }
 
     List<IntentDefinition> savedIntents =
-        intentDefinitionRepository.saveAll(
+        intentDefinitionRepository.saveAllAndFlush(
             safeList(intents).stream()
                 .map(
                     intent ->
@@ -200,7 +196,7 @@ public class DomainPackDraftPersistenceService {
         indexByCode(savedIntents, IntentDefinition::getIntentCode);
 
     boolean hasParentIntent = false;
-    for (CreateDomainPackDraftCommand.IntentDraft draft : safeList(intents)) {
+    for (IntentDraft draft : safeList(intents)) {
       if (draft.parentIntentCode() == null || draft.parentIntentCode().isBlank()) {
         continue;
       }
@@ -325,15 +321,14 @@ public class DomainPackDraftPersistenceService {
   }
 
   private List<CreateDomainPackDraftCommand.WorkflowDraft> validateDraftPayload(
-      List<CreateDomainPackDraftCommand.IntentDraft> intents,
+      List<IntentDraft> intents,
       List<CreateDomainPackDraftCommand.SlotDraft> slots,
       List<CreateDomainPackDraftCommand.IntentSlotBindingDraft> intentSlotBindings,
       List<CreateDomainPackDraftCommand.PolicyDraft> policies,
       List<CreateDomainPackDraftCommand.RiskDraft> risks,
       List<CreateDomainPackDraftCommand.WorkflowDraft> workflows,
       List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
-    ensureUnique(
-        safeList(intents), CreateDomainPackDraftCommand.IntentDraft::intentCode, "intentCode");
+    ensureUnique(safeList(intents), IntentDraft::intentCode, "intentCode");
     ensureUnique(safeList(slots), CreateDomainPackDraftCommand.SlotDraft::slotCode, "slotCode");
     ensureUnique(
         safeList(policies), CreateDomainPackDraftCommand.PolicyDraft::policyCode, "policyCode");
@@ -415,5 +410,16 @@ public class DomainPackDraftPersistenceService {
     return intentDefinitionRepository
         .findByDomainPackVersionIdAndIntentCode(domainPackVersionId, parentIntentCode)
         .orElse(null);
+  }
+
+  private DomainPackVersion requireDraftVersion(Long domainPackVersionId) {
+    DomainPackVersion version =
+        domainPackVersionRepository
+            .findById(domainPackVersionId)
+            .orElseThrow(() -> new DomainPackVersionNotFoundException(domainPackVersionId));
+    if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
+      throw new DomainPackVersionNotDraftException(domainPackVersionId);
+    }
+    return version;
   }
 }

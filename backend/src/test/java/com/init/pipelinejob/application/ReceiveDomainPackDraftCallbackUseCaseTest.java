@@ -106,8 +106,10 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 처리한 externalEventId면 duplicate ignored를 반환한다")
   void execute_duplicateReceipt_returnsDuplicateIgnored() {
+    WebhookReceipt processedReceipt = webhookReceipt(11L, "evt-draft-1");
+    processedReceipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
-        .willReturn(Optional.of(webhookReceipt(11L, "evt-draft-1")));
+        .willReturn(Optional.of(processedReceipt));
 
     ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -119,6 +121,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 재조회되면 duplicate ignored를 반환한다")
   void execute_duplicateOnReceiptInsert_returnsDuplicateIgnored() {
     WebhookReceipt receipt = webhookReceipt(11L, "evt-draft-1");
+    receipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
     given(pipelineJobRepository.findById(11L))
@@ -130,6 +133,27 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
     verify(createDomainPackDraftFromPipelineUseCase, never()).execute(any());
+  }
+
+  @Test
+  @DisplayName("FAILED receipt면 중복으로 무시하지 않고 재처리한다")
+  void execute_failedReceipt_retriesProcessing() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
+    WebhookReceipt failedReceipt = webhookReceipt(11L, "evt-draft-1");
+    failedReceipt.markFailed(OffsetDateTime.now(fixedClock));
+    given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
+        .willReturn(Optional.of(failedReceipt), Optional.of(failedReceipt));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(createDomainPackDraftFromPipelineUseCase.execute(any()))
+        .willReturn(
+            new CreateDomainPackDraftFromPipelineResult(7L, 101L, 3, "refund-pack", true, 11L));
+
+    ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
+
+    assertThat(result.status()).isEqualTo("CREATED");
+    assertThat(failedReceipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
   }
 
   @Test

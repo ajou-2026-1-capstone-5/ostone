@@ -15,3 +15,7 @@ logging:
   level:
     org.springframework.jdbc: DEBUG
     liquibase: DEBUG
+
+airflow:
+  webhook:
+    secret: ${AIRFLOW_WEBHOOK_SECRET:local-airflow-webhook-secret}

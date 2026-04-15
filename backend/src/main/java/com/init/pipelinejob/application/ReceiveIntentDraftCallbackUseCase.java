@@ -14,8 +14,11 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -55,7 +58,9 @@ public class ReceiveIntentDraftCallbackUseCase {
   public ReceiveIntentDraftCallbackResult execute(ReceiveIntentDraftCallbackCommand command) {
     validateWebhookSecret(command.providedWebhookSecret());
 
-    if (webhookReceiptRepository.findByExternalEventId(command.externalEventId()).isPresent()) {
+    Optional<WebhookReceipt> existingReceipt =
+        webhookReceiptRepository.findByExternalEventId(command.externalEventId());
+    if (isProcessed(existingReceipt.orElse(null))) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
 
@@ -71,7 +76,8 @@ public class ReceiveIntentDraftCallbackUseCase {
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
 
-    if (!persistReceivedReceipt(command)) {
+    WebhookReceipt receipt = ensureReceivedReceipt(command, existingReceipt.orElse(null));
+    if (isProcessed(receipt)) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
 
@@ -125,9 +131,14 @@ public class ReceiveIntentDraftCallbackUseCase {
         command.jobId());
   }
 
-  private boolean persistReceivedReceipt(ReceiveIntentDraftCallbackCommand command) {
+  private WebhookReceipt ensureReceivedReceipt(
+      ReceiveIntentDraftCallbackCommand command, WebhookReceipt existingReceipt) {
+    if (existingReceipt != null) {
+      return existingReceipt;
+    }
+
     try {
-      transactionTemplate.executeWithoutResult(
+      return transactionTemplate.execute(
           status ->
               webhookReceiptRepository.saveAndFlush(
                   WebhookReceipt.receive(
@@ -137,10 +148,11 @@ public class ReceiveIntentDraftCallbackUseCase {
                       command.requestHeadersJson(),
                       command.requestBodyJson(),
                       OffsetDateTime.now(clock))));
-      return true;
     } catch (DataIntegrityViolationException ex) {
-      if (webhookReceiptRepository.findByExternalEventId(command.externalEventId()).isPresent()) {
-        return false;
+      Optional<WebhookReceipt> concurrentReceipt =
+          webhookReceiptRepository.findByExternalEventId(command.externalEventId());
+      if (concurrentReceipt.isPresent()) {
+        return concurrentReceipt.get();
       }
       throw ex;
     }
@@ -178,9 +190,19 @@ public class ReceiveIntentDraftCallbackUseCase {
   }
 
   private void validateWebhookSecret(String providedSecret) {
-    if (providedSecret == null || !providedSecret.equals(airflowWebhookSecret)) {
+    byte[] expected =
+        airflowWebhookSecret == null
+            ? new byte[0]
+            : airflowWebhookSecret.getBytes(StandardCharsets.UTF_8);
+    byte[] actual =
+        providedSecret == null ? new byte[0] : providedSecret.getBytes(StandardCharsets.UTF_8);
+    if (!MessageDigest.isEqual(actual, expected)) {
       throw new AirflowWebhookUnauthorizedException();
     }
+  }
+
+  private boolean isProcessed(WebhookReceipt receipt) {
+    return receipt != null && WebhookReceipt.STATUS_PROCESSED.equals(receipt.getProcessingStatus());
   }
 
   private String resolveErrorMessage(RuntimeException exception) {

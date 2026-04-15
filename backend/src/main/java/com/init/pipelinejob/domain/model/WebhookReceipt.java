@@ -73,11 +73,13 @@ public class WebhookReceipt {
   }
 
   public void markProcessed(OffsetDateTime processedAt) {
+    validateTransition(STATUS_PROCESSED);
     this.processingStatus = STATUS_PROCESSED;
     this.processedAt = processedAt;
   }
 
   public void markFailed(OffsetDateTime processedAt) {
+    validateTransition(STATUS_FAILED);
     this.processingStatus = STATUS_FAILED;
     this.processedAt = processedAt;
   }
@@ -96,5 +98,12 @@ public class WebhookReceipt {
 
   public String getProcessingStatus() {
     return processingStatus;
+  }
+
+  private void validateTransition(String targetStatus) {
+    if (STATUS_PROCESSED.equals(this.processingStatus) && !STATUS_PROCESSED.equals(targetStatus)) {
+      throw new IllegalStateException(
+          "Webhook receipt 상태를 PROCESSED에서 " + targetStatus + "로 변경할 수 없습니다.");
+    }
   }
 }

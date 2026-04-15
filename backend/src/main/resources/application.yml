@@ -41,4 +41,4 @@ cors:
 
 airflow:
   webhook:
-    secret: ${AIRFLOW_WEBHOOK_SECRET:local-airflow-webhook-secret}
+    secret: ${AIRFLOW_WEBHOOK_SECRET}

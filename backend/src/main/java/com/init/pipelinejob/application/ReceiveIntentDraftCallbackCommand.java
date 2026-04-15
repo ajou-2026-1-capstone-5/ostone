@@ -1,6 +1,6 @@
 package com.init.pipelinejob.application;
 
-import com.init.domainpack.application.CreateDomainPackDraftCommand;
+import com.init.domainpack.application.IntentDraft;
 import java.util.List;
 
 public record ReceiveIntentDraftCallbackCommand(
@@ -8,6 +8,6 @@ public record ReceiveIntentDraftCallbackCommand(
     String providedWebhookSecret,
     String externalEventId,
     Long domainPackVersionId,
-    List<CreateDomainPackDraftCommand.IntentDraft> intents,
+    List<IntentDraft> intents,
     String requestHeadersJson,
     String requestBodyJson) {}

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -46,9 +47,11 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/health")
                     .permitAll()
-                    .requestMatchers("/api/v1/pipeline-jobs/*/callbacks/domain-pack-drafts")
+                    .requestMatchers(
+                        HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/domain-pack-drafts")
                     .permitAll()
-                    .requestMatchers("/api/v1/pipeline-jobs/*/callbacks/intent-drafts")
+                    .requestMatchers(
+                        HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/intent-drafts")
                     .permitAll()
                     .requestMatchers("/api/v1/consultation/**")
                     .hasRole("OPERATOR")

@@ -12,6 +12,7 @@ import com.init.pipelinejob.application.ReceiveIntentDraftCallbackResult;
 import com.init.pipelinejob.application.ReceiveIntentDraftCallbackUseCase;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
+import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.shared.infrastructure.web.WebhookHeaderNames;
@@ -129,6 +130,25 @@ class PipelineIntentDraftCallbackControllerTest {
                 .content(validIntentRequestJson()))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("PIPELINE_JOB_ALREADY_FINALIZED"));
+  }
+
+  @Test
+  @DisplayName("현재 상태에서 허용되지 않은 callback이면 409를 반환한다")
+  @WithMockUser
+  void receiveIntentDraftCallback_notAllowed_returns409() throws Exception {
+    given(intentUseCase.execute(any()))
+        .willThrow(
+            new PipelineJobCallbackNotAllowedException(11L, "RUNNING", "INTENT_DRAFT_CALLBACK"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .header(WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET, "secret-123")
+                .contentType("application/json")
+                .content(validIntentRequestJson()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("PIPELINE_JOB_CALLBACK_NOT_ALLOWED"));
   }
 
   @Test

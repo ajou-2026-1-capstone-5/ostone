@@ -35,12 +35,10 @@ class AddIntentsToDraftVersionUseCaseTest {
     given(domainPackDraftPersistenceService.persistIntents(eq(101L), any()))
         .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 2, 0, 5));
 
-    List<CreateDomainPackDraftCommand.IntentDraft> intents =
+    List<IntentDraft> intents =
         List.of(
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "refund_request", "환불 요청", null, 1, null, null, null, null, null),
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "refund_cancel", "환불 취소", null, 1, null, null, null, null, null));
+            new IntentDraft("refund_request", "환불 요청", null, 1, null, null, null, null, null),
+            new IntentDraft("refund_cancel", "환불 취소", null, 1, null, null, null, null, null));
 
     AddIntentsToDraftVersionResult result =
         useCase.execute(new AddIntentsToDraftVersionCommand(101L, intents));
@@ -59,12 +57,10 @@ class AddIntentsToDraftVersionUseCaseTest {
     given(domainPackDraftPersistenceService.persistIntents(eq(101L), any()))
         .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 1, 1, 4));
 
-    List<CreateDomainPackDraftCommand.IntentDraft> intents =
+    List<IntentDraft> intents =
         List.of(
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "existing_intent", "기존 의도", null, 1, null, null, null, null, null),
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "new_intent", "새 의도", null, 1, null, null, null, null, null));
+            new IntentDraft("existing_intent", "기존 의도", null, 1, null, null, null, null, null),
+            new IntentDraft("new_intent", "새 의도", null, 1, null, null, null, null, null));
 
     AddIntentsToDraftVersionResult result =
         useCase.execute(new AddIntentsToDraftVersionCommand(101L, intents));

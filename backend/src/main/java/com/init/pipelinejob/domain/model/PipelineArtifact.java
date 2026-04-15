@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -57,7 +58,7 @@ public class PipelineArtifact {
     artifact.artifactUri = artifactUri;
     artifact.contentHash = contentHash;
     artifact.payloadJson = payloadJson != null ? payloadJson : "{}";
-    artifact.createdAt = createdAt;
+    artifact.createdAt = Objects.requireNonNullElseGet(createdAt, OffsetDateTime::now);
     return artifact;
   }
 }

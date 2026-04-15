@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.AddIntentsToDraftVersionResult;
 import com.init.domainpack.application.AddIntentsToDraftVersionUseCase;
-import com.init.domainpack.application.CreateDomainPackDraftCommand;
+import com.init.domainpack.application.IntentDraft;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
@@ -101,8 +101,10 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @Test
   @DisplayName("이미 처리한 externalEventId면 duplicate ignored를 반환한다")
   void execute_duplicateReceipt_returnsDuplicateIgnored() {
+    WebhookReceipt processedReceipt = webhookReceipt(11L, "evt-1");
+    processedReceipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-1"))
-        .willReturn(Optional.of(webhookReceipt(11L, "evt-1")));
+        .willReturn(Optional.of(processedReceipt));
 
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -114,6 +116,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   @DisplayName("receipt 저장 충돌 후 재조회되면 duplicate ignored를 반환한다")
   void execute_duplicateOnReceiptInsert_returnsDuplicateIgnored() {
     WebhookReceipt receipt = webhookReceipt(11L, "evt-1");
+    receipt.markProcessed(OffsetDateTime.now(fixedClock));
     given(webhookReceiptRepository.findByExternalEventId("evt-1"))
         .willReturn(Optional.empty(), Optional.of(receipt));
     given(pipelineJobRepository.findById(11L))
@@ -125,6 +128,26 @@ class ReceiveIntentDraftCallbackUseCaseTest {
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
     verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+  }
+
+  @Test
+  @DisplayName("FAILED receipt면 중복으로 무시하지 않고 재처리한다")
+  void execute_failedReceipt_retriesProcessing() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
+    WebhookReceipt failedReceipt = webhookReceipt(11L, "evt-1");
+    failedReceipt.markFailed(OffsetDateTime.now(fixedClock));
+    given(webhookReceiptRepository.findByExternalEventId("evt-1"))
+        .willReturn(Optional.of(failedReceipt), Optional.of(failedReceipt));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(addIntentsToDraftVersionUseCase.execute(any()))
+        .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 1, 0, 3));
+
+    ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
+
+    assertThat(result.status()).isEqualTo("CREATED");
+    assertThat(failedReceipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
   }
 
   @Test
@@ -212,9 +235,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
         "secret-123",
         "evt-1",
         101L,
-        List.of(
-            new CreateDomainPackDraftCommand.IntentDraft(
-                "refund_request", "환불 요청", null, 1, null, null, null, null, null)),
+        List.of(new IntentDraft("refund_request", "환불 요청", null, 1, null, null, null, null, null)),
         "{\"content-type\":\"application/json\"}",
         "{\"domainPackVersionId\":101}");
   }
