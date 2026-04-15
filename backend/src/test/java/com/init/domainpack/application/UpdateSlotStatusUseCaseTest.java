@@ -140,7 +140,8 @@ class UpdateSlotStatusUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+                    new UpdateSlotStatusCommand(
+                        1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
 
     verify(versionRepository, never()).findById(any());
@@ -155,7 +156,8 @@ class UpdateSlotStatusUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+                    new UpdateSlotStatusCommand(
+                        1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
 
     verify(versionRepository, never()).findById(any());
@@ -171,7 +173,8 @@ class UpdateSlotStatusUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+                    new UpdateSlotStatusCommand(
+                        1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(NotFoundException.class);
   }
 
@@ -187,7 +190,8 @@ class UpdateSlotStatusUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+                    new UpdateSlotStatusCommand(
+                        1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(NotFoundException.class);
   }
 
@@ -202,7 +206,8 @@ class UpdateSlotStatusUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new UpdateSlotStatusCommand(1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
+                    new UpdateSlotStatusCommand(
+                        1L, 7L, 10L, 99L, 5L, SlotDefinition.STATUS_INACTIVE)))
         .isInstanceOf(NotFoundException.class);
   }
 
