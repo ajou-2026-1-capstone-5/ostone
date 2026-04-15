@@ -133,4 +133,12 @@ public class WorkflowDefinition {
   public String getMetaJson() {
     return metaJson;
   }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
+  }
 }

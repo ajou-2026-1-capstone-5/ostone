@@ -3,6 +3,7 @@ package com.init.shared.presentation;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.BusinessException;
 import com.init.shared.application.exception.DuplicateException;
+import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.InvalidCredentialsException;
 import com.init.shared.application.exception.InvalidTokenException;
 import com.init.shared.application.exception.NotFoundException;
@@ -74,6 +75,13 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
+  }
+
+  @ExceptionHandler(InternalException.class)
+  public ResponseEntity<ErrorResponse> handleInternal(InternalException ex) {
+    log.error("Internal exception: {}, message={}", ex.getCode(), ex.getMessage(), ex);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(new ErrorResponse(ex.getCode(), "Internal server error"));
   }
 
   @ExceptionHandler(BusinessException.class)

@@ -75,6 +75,15 @@ public class DomainPackVersion {
     }
   }
 
+  /** For test use only — creates a minimal instance with id, domainPackId, lifecycleStatus set. */
+  public static DomainPackVersion ofForTest(Long id, Long domainPackId, String lifecycleStatus) {
+    DomainPackVersion v = new DomainPackVersion();
+    v.id = id;
+    v.domainPackId = domainPackId;
+    v.lifecycleStatus = lifecycleStatus;
+    return v;
+  }
+
   /**
    * 새로운 DRAFT 버전을 생성한다.
    *

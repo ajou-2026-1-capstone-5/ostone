@@ -83,7 +83,8 @@ public class CreateDomainPackDraftUseCase {
   public CreateDomainPackDraftResult execute(CreateDomainPackDraftCommand command) {
     validateWorkspaceAccess(command);
     validateDomainPack(command);
-    validateDraftPayload(command);
+    List<CreateDomainPackDraftCommand.WorkflowDraft> validatedWorkflows =
+        validateDraftPayload(command);
 
     int nextVersionNo =
         domainPackVersionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0) + 1;
@@ -197,7 +198,7 @@ public class CreateDomainPackDraftUseCase {
 
     List<WorkflowDefinition> workflows =
         workflowDefinitionRepository.saveAll(
-            safeList(command.workflows()).stream()
+            validatedWorkflows.stream()
                 .map(
                     workflow ->
                         WorkflowDefinition.create(
@@ -266,7 +267,8 @@ public class CreateDomainPackDraftUseCase {
     }
   }
 
-  private void validateDraftPayload(CreateDomainPackDraftCommand command) {
+  private List<CreateDomainPackDraftCommand.WorkflowDraft> validateDraftPayload(
+      CreateDomainPackDraftCommand command) {
     ensureUnique(
         safeList(command.intents()),
         CreateDomainPackDraftCommand.IntentDraft::intentCode,
@@ -292,6 +294,25 @@ public class CreateDomainPackDraftUseCase {
         safeList(command.intentWorkflowBindings()),
         binding -> binding.intentCode() + "::" + binding.workflowCode(),
         "intentWorkflowBinding");
+
+    return safeList(command.workflows()).stream()
+        .map(
+            w -> {
+              WorkflowGraphValidator.ParsedGraph graph =
+                  WorkflowGraphValidator.parseAndValidate(w.graphJson(), w.workflowCode());
+              String initialState = WorkflowGraphValidator.extractInitialState(graph);
+              String terminalStatesJson = WorkflowGraphValidator.extractTerminalStatesJson(graph);
+              return new CreateDomainPackDraftCommand.WorkflowDraft(
+                  w.workflowCode(),
+                  w.name(),
+                  w.description(),
+                  w.graphJson(),
+                  initialState,
+                  terminalStatesJson,
+                  w.evidenceJson(),
+                  w.metaJson());
+            })
+        .toList();
   }
 
   private <T> List<T> safeList(List<T> list) {

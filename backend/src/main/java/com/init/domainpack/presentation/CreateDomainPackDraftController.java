@@ -5,12 +5,11 @@ import com.init.domainpack.application.CreateDomainPackDraftResult;
 import com.init.domainpack.application.CreateDomainPackDraftUseCase;
 import com.init.domainpack.presentation.dto.CreateDomainPackDraftRequest;
 import com.init.domainpack.presentation.dto.CreateDomainPackDraftResponse;
+import com.init.shared.presentation.AuthenticationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +33,7 @@ public class CreateDomainPackDraftController {
       @PathVariable Long packId,
       @Valid @RequestBody CreateDomainPackDraftRequest request,
       Authentication authentication) {
-    Long userId = getUserIdFromAuthentication(authentication);
+    Long userId = AuthenticationUtils.getUserId(authentication);
     CreateDomainPackDraftResult result =
         useCase.execute(
             new CreateDomainPackDraftCommand(
@@ -115,8 +114,8 @@ public class CreateDomainPackDraftController {
                                 workflow.name(),
                                 workflow.description(),
                                 workflow.graphJson(),
-                                workflow.initialState(),
-                                workflow.terminalStatesJson(),
+                                null, // server-extracted from graphJson post-validation
+                                null, // server-extracted from graphJson post-validation
                                 workflow.evidenceJson(),
                                 workflow.metaJson()))
                     .toList(),
@@ -148,22 +147,5 @@ public class CreateDomainPackDraftController {
 
   private <T> List<T> safeList(List<T> values) {
     return values == null ? List.of() : values;
-  }
-
-  private Long getUserIdFromAuthentication(Authentication authentication) {
-    if (authentication == null) {
-      throw new AuthenticationCredentialsNotFoundException("Authentication must not be null");
-    }
-    Object principal = authentication.getPrincipal();
-    if (principal == null) {
-      throw new AuthenticationCredentialsNotFoundException(
-          "Authentication principal must not be null");
-    }
-    if (!(principal instanceof Long)) {
-      throw new AccessDeniedException(
-          "Authentication principal must be of type Long, but was: "
-              + principal.getClass().getName());
-    }
-    return (Long) principal;
   }
 }
