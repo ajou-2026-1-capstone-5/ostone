@@ -78,18 +78,12 @@ frontend/
 
 ```
 ml/
-├── dags/                 # Airflow DAG 정의
-│   ├── ingestion/        # 상담 로그 입력 및 전처리
-│   ├── preprocessing/    # boilerplate 제거, canonical text 생성
-│   ├── intent_discovery/ # 의도 클러스터링
-│   ├── draft_generation/ # 초안 생성
-│   ├── evaluation/       # 품질 평가
-│   └── publish_candidate/# 결과 전달
-├── src/
+├── src/pipeline/
+│   ├── dags/             # Airflow runtime DAG 엔트리
 │   ├── stages/           # 파이프라인 단계 구현
-│   ├── models/           # ML 모델
-│   └── utils/            # 공통 유틸리티
+│   └── common/           # 공통 유틸리티/설정
 ├── tests/
+│   └── dags/             # 개발/검증 전용 DAG
 └── pyproject.toml
 ```
 
@@ -233,7 +227,7 @@ docker compose logs -f airflow-apiserver
 | 타입 검사     | `cd ml && uv run mypy .`                                                        |
 | 전체 검사     | `cd ml && uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
 
-**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
+**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/src/pipeline/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
 
 ### Root Scripts
 
@@ -372,7 +366,7 @@ ingestion → preprocessing → intent_discovery → draft_generation → evalua
 - 각 Stage는 독립적 DAG 태스크로 구현
 - Stage 간 데이터는 artifact(JSON/Parquet)로 전달
 - PII 제거는 preprocessing Stage에서 필수
-- `dev_bootstrap`, `dev_replay`는 smoke/retry 검증용 예외 DAG로서 6-stage production 체인을 그대로 따르지 않아도 된다
+- `dev_bootstrap`, `dev_replay`는 `ml/tests/dags/`에서 관리하는 smoke/retry 검증용 예외 DAG다
 
 ### Git 워크플로우
 

@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_should_import_all_stages():
     from pipeline.stages.draft_generation.main import run as draft_generation_run
     from pipeline.stages.evaluation.main import run as evaluation_run
@@ -12,3 +15,21 @@ def test_should_import_all_stages():
     assert callable(draft_generation_run)
     assert callable(evaluation_run)
     assert callable(publish_candidate_run)
+
+
+def test_should_import_runtime_dags():
+    pytest.importorskip("airflow.sdk")
+
+    from pipeline.dags.domain_pack_generation import domain_pack_generation
+
+    assert callable(domain_pack_generation)
+
+
+def test_should_import_test_only_dags():
+    pytest.importorskip("airflow.sdk")
+
+    from tests.dags.dev_bootstrap import dev_bootstrap
+    from tests.dags.dev_replay import dev_replay
+
+    assert callable(dev_bootstrap)
+    assert callable(dev_replay)

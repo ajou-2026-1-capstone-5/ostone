@@ -83,46 +83,45 @@ docker compose logs -f airflow-dag-processor
 ```text
 ml/
 ├── airflow/                  # Airflow 런타임 이미지 및 init 스크립트
-├── dags/                     # Airflow DAG 정의
 ├── src/pipeline/             # 실제 파이프라인 코드
+│   ├── dags/                 # Airflow runtime DAG 엔트리
 │   ├── common/               # 공통 설정, artifact, context, logging
 │   └── stages/               # stage 구현
 └── tests/                    # pytest 테스트
+    └── dags/                 # 개발/검증 전용 DAG
 ```
 
 역할 구분:
 
-- `ml/dags/`: orchestration only
+- `ml/src/pipeline/dags/`: Airflow runtime이 기본 mount 하는 orchestration entrypoint
 - `ml/src/pipeline/stages/`: 실제 stage 처리 로직
 - `ml/src/pipeline/common/`: DAG와 stage가 함께 쓰는 공통 코드
+- `ml/tests/dags/`: 개발/검증 전용 DAG
 
 ## 현재 제공되는 DAG
 
-- `hello_local`
-  - 가장 단순한 smoke-test DAG
-  - Airflow가 새 DAG를 파싱하고 task를 성공시키는지 확인할 때 사용
 - `dev_bootstrap`
   - artifact 디렉터리 생성과 manifest write를 확인하는 개발용 DAG
-  - 6-stage production 체인의 예외로 유지하는 smoke-test DAG
+  - 기본 compose mount 대상은 아니며 `ml/tests/dags/`에서 관리
 - `dev_replay`
   - retry / failed 상태를 확인하기 위한 의도적 실패 DAG
-  - 6-stage production 체인의 예외로 유지하는 retry-test DAG
+  - 기본 compose mount 대상은 아니며 `ml/tests/dags/`에서 관리
 - `domain_pack_generation`
   - 현재 stage 체인을 한 번에 묶어둔 기본 개발용 DAG
 
 ## DAG 검증 방법
 
-가장 빠른 확인은 `hello_local`입니다.
+기본 확인은 `domain_pack_generation` 기준으로 진행합니다.
 
-1. Airflow UI에서 `hello_local`을 찾습니다.
+1. Airflow UI에서 `domain_pack_generation`을 찾습니다.
 2. `Trigger DAG`로 수동 실행합니다.
-3. `say_hello`, `say_goodbye` task가 모두 성공하는지 확인합니다.
+3. 각 stage task가 순서대로 성공하는지 확인합니다.
 
 CLI로도 검증할 수 있습니다.
 
 ```bash
 docker exec init-airflow-apiserver airflow dags list
-docker exec init-airflow-apiserver airflow dags test hello_local 2026-04-15
+docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
 ```
 
 ## artifact 규칙
@@ -143,15 +142,16 @@ artifact는 named volume 기반으로 저장합니다.
 
 ## 새 DAG를 추가할 때 규칙
 
-- 파일 위치: `ml/dags/*.py`
+- 파일 위치: `ml/src/pipeline/dags/*.py`
 - import는 `from pipeline...` 형태를 사용합니다.
 - relative import는 사용하지 않습니다.
 - DAG 파일은 orchestration에만 집중하고, 실제 처리는 `ml/src/pipeline/...`로 위임합니다.
 - 로컬 개발용 DAG는 `schedule=None`으로 시작하는 편이 안전합니다.
+- 테스트 전용 DAG는 `ml/tests/dags/`에 두고 기본 Airflow compose mount 대상에서는 제외합니다.
 
 예시 체크리스트:
 
-- 파일이 `ml/dags/` 아래에 있는가
+- 파일이 `ml/src/pipeline/dags/` 아래에 있는가
 - Airflow 컨테이너 안 `/opt/airflow/dags/`에 bind mount 되는가
 - `airflow dags list`에 보이는가
 - UI에서 task 성공/실패 로그가 읽히는가
@@ -182,7 +182,7 @@ cd ml && uv run mypy .
 docker exec init-airflow-apiserver airflow dags list
 
 # 특정 DAG 테스트 실행
-docker exec init-airflow-apiserver airflow dags test hello_local 2026-04-15
+docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
 ```
 
 ## 문제 해결
