@@ -88,22 +88,26 @@ class CreateDomainPackDraftUseCaseTest {
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
   private CreateDomainPackDraftUseCase useCase;
+  private DomainPackDraftPersistenceService domainPackDraftPersistenceService;
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new CreateDomainPackDraftUseCase(
+    domainPackDraftPersistenceService =
+        new DomainPackDraftPersistenceService(
             domainPackVersionRepository,
-            domainPackRepository,
             intentDefinitionRepository,
             slotDefinitionRepository,
             policyDefinitionRepository,
             riskDefinitionRepository,
             workflowDefinitionRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository,
+            intentWorkflowBindingRepository);
+    useCase =
+        new CreateDomainPackDraftUseCase(
+            domainPackRepository,
             workspaceExistencePort,
-            workspaceMembershipPort);
+            workspaceMembershipPort,
+            domainPackDraftPersistenceService);
   }
 
   @Test
