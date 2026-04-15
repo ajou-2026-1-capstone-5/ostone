@@ -1,5 +1,6 @@
 package com.init.shared.infrastructure.security;
 
+import com.init.shared.infrastructure.web.WebhookHeaderNames;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -45,6 +46,10 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/health")
                     .permitAll()
+                    .requestMatchers("/api/v1/pipeline-jobs/*/callbacks/domain-pack-drafts")
+                    .permitAll()
+                    .requestMatchers("/api/v1/pipeline-jobs/*/callbacks/intent-drafts")
+                    .permitAll()
                     .requestMatchers("/api/v1/consultation/**")
                     .hasRole("OPERATOR")
                     .anyRequest()
@@ -59,7 +64,8 @@ public class SecurityConfig {
     CorsConfiguration config = new CorsConfiguration();
     config.setAllowedOrigins(allowedOrigins);
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    config.setAllowedHeaders(
+        List.of("Authorization", "Content-Type", WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET));
     config.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
