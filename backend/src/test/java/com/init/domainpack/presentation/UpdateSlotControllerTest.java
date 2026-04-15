@@ -2,6 +2,7 @@ package com.init.domainpack.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,10 +38,16 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("UpdateSlotController")
 class UpdateSlotControllerTest {
 
-  @Autowired private MockMvc mockMvc;
-  @Autowired private ObjectMapper objectMapper;
+  private final MockMvc mockMvc;
+  private final ObjectMapper objectMapper;
 
   @MockitoBean private UpdateSlotUseCase useCase;
+
+  @Autowired
+  UpdateSlotControllerTest(MockMvc mockMvc, ObjectMapper objectMapper) {
+    this.mockMvc = mockMvc;
+    this.objectMapper = objectMapper;
+  }
 
   private static final String BASE_URL = "/api/v1/workspaces/1/domain-packs/7/versions/10/slots/99";
 
@@ -110,6 +117,8 @@ class UpdateSlotControllerTest {
                 .content(objectMapper.writeValueAsString(Map.of("name", ""))))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+    verifyNoInteractions(useCase);
   }
 
   @Test
@@ -154,6 +163,8 @@ class UpdateSlotControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", "이름"))))
         .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(useCase);
   }
 
   private SlotDefinitionResponse sampleResponse() {

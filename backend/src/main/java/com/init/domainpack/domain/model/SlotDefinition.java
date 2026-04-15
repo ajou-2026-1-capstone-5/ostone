@@ -85,6 +85,9 @@ public class SlotDefinition {
     Objects.requireNonNull(domainPackVersionId, "domainPackVersionId must not be null");
     Objects.requireNonNull(slotCode, "slotCode must not be null");
     Objects.requireNonNull(name, "name must not be null");
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name은 비워둘 수 없습니다.");
+    }
     Objects.requireNonNull(dataType, "dataType must not be null");
 
     SlotDefinition entity = new SlotDefinition();

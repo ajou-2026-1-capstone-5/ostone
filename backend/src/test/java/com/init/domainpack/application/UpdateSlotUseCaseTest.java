@@ -78,6 +78,7 @@ class UpdateSlotUseCaseTest {
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
 
     verify(versionRepository, never()).findById(any());
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -94,6 +95,7 @@ class UpdateSlotUseCaseTest {
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
 
     verify(versionRepository, never()).findById(any());
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -109,6 +111,8 @@ class UpdateSlotUseCaseTest {
                     new UpdateSlotCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, null, null, null, null)))
         .isInstanceOf(NotFoundException.class);
+
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -126,6 +130,8 @@ class UpdateSlotUseCaseTest {
                     new UpdateSlotCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, null, null, null, null)))
         .isInstanceOf(NotFoundException.class);
+
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -144,6 +150,8 @@ class UpdateSlotUseCaseTest {
                         1L, 7L, 10L, 99L, 5L, "이름", null, null, null, null, null)))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("DRAFT");
+
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -160,6 +168,8 @@ class UpdateSlotUseCaseTest {
                     new UpdateSlotCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, null, null, null, null)))
         .isInstanceOf(NotFoundException.class);
+
+    verify(slotRepository, never()).save(any());
   }
 
   @Test
@@ -178,6 +188,8 @@ class UpdateSlotUseCaseTest {
                     new UpdateSlotCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, null, null, null, null)))
         .isInstanceOf(NotFoundException.class);
+
+    verify(slotRepository, never()).save(any());
   }
 
   // ── factories ──────────────────────────────────────────────────────────────
