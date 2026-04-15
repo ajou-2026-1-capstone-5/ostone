@@ -47,12 +47,12 @@ uv run mypy .
 Airflow는 루트 `docker-compose.yml` 기준으로 함께 실행됩니다.
 
 - UI 주소: `http://localhost:8081`
-- 관리자 계정: `admin / ${AIRFLOW_SIMPLE_ADMIN_PASSWORD}`
-- 조회 전용 계정: `viewer / ${AIRFLOW_SIMPLE_VIEWER_PASSWORD}`
+- 관리자 계정: 기본 `admin / admin`
+- 조회 전용 계정: 기본 `viewer / viewer`
 
 Airflow metadata는 로컬 Postgres의 기존 `init` DB와 `init` 계정을 그대로 사용합니다. 별도 Airflow 전용 DB/user를 생성하지 않습니다.
 
-기본 로컬 개발값은 `admin / admin`, `viewer / viewer`입니다. 필요하면 루트 `.env`에서 덮어쓸 수 있습니다.
+기본 로컬 개발값은 compose fallback으로 `admin / admin`, `viewer / viewer`입니다. 필요하면 루트 `.env`에서 덮어쓸 수 있습니다.
 
 Airflow 관련 컨테이너:
 
@@ -153,7 +153,7 @@ artifact는 named volume 기반으로 저장합니다.
 예시 체크리스트:
 
 - 파일이 `ml/src/dags/` 아래에 있는가
-- Airflow 컨테이너 안 `/opt/airflow/dags/`에 bind mount 되는가
+- Airflow 컨테이너 안 `/opt/airflow/src/dags/`에서 읽히는가
 - `airflow dags list`에 보이는가
 - UI에서 task 성공/실패 로그가 읽히는가
 

@@ -16,14 +16,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
     AIRFLOW_SIMPLE_ADMIN_PASSWORD: ${AIRFLOW_SIMPLE_ADMIN_PASSWORD:-admin}
     AIRFLOW_SIMPLE_VIEWER_PASSWORD: ${AIRFLOW_SIMPLE_VIEWER_PASSWORD:-viewer}
-    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/src/dags
     AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
     PIPELINE_BACKEND_BASE_URL: ${PIPELINE_BACKEND_BASE_URL:-http://backend:8080}
     PIPELINE_ARTIFACT_ROOT: ${PIPELINE_ARTIFACT_ROOT:-/opt/airflow/artifacts}
     PYTHONPATH: /opt/airflow/src
   volumes:
-    # Keep only runtime DAG entrypoints mounted into Airflow; test-only DAGs live under ml/tests/dags.
-    - ./ml/src/dags:/opt/airflow/dags
+    # Mount the whole ML source tree once and let Airflow read runtime DAGs from /opt/airflow/src/dags.
     - ./ml/src:/opt/airflow/src
     - airflow_logs:/opt/airflow/logs
     - airflow_artifacts:/opt/airflow/artifacts

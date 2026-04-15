@@ -72,7 +72,7 @@ docker compose up -d
 
 `docker compose up -d`는 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`를 함께 실행한다. 다만 `backend`와 `frontend` 컨테이너는 기존 방식대로 선행 산출물(`bootJar`, `pnpm build`)을 전제한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
 
-상세 설정: [`backend/README.md`](backend/README.md), [`.agent/specs/113.md`](.agent/specs/113.md)
+상세 설정: [`backend/README.md`](backend/README.md)
 
 ## 모듈 구조
 
