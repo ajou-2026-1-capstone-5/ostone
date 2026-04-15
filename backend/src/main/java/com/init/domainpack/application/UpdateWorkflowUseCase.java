@@ -46,6 +46,9 @@ public class UpdateWorkflowUseCase {
       throw new BadRequestException("WORKFLOW_NOT_EDITABLE", "DRAFT 상태의 버전에서만 수정할 수 있습니다.");
     }
 
+    if (command.graphJson() == null) {
+      throw new BadRequestException("GRAPH_JSON_REQUIRED", "graphJson은 필수입니다.");
+    }
     if (command.graphJson().length() > MAX_GRAPH_JSON_CHARS) {
       throw new BadRequestException(
           "GRAPH_JSON_TOO_LARGE", "graphJson이 허용 크기(" + MAX_GRAPH_JSON_CHARS + "자)를 초과합니다.");

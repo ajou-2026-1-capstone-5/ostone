@@ -70,6 +70,13 @@ class WorkflowDefinitionUpdateGraphTest {
   }
 
   @Test
+  @DisplayName("terminalStatesJson이 null이면 NullPointerException")
+  void should_예외_when_terminalStatesJsonNull() {
+    assertThatThrownBy(() -> workflow.updateGraph("이름", null, VALID_GRAPH, "start", null))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
   @DisplayName("workflowCode, domainPackVersionId는 수정되지 않는다")
   void should_불변필드유지_when_updateGraph() {
     workflow.updateGraph("새 이름", "새 설명", VALID_GRAPH, "start", "[\"end\"]");

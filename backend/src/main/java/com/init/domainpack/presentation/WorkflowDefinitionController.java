@@ -1,7 +1,5 @@
 package com.init.domainpack.presentation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.GetWorkflowDefinitionListQuery;
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionQuery;
@@ -31,17 +29,14 @@ public class WorkflowDefinitionController {
   private final GetWorkflowDefinitionListUseCase listUseCase;
   private final GetWorkflowDefinitionUseCase detailUseCase;
   private final UpdateWorkflowUseCase updateUseCase;
-  private final ObjectMapper objectMapper;
 
   public WorkflowDefinitionController(
       GetWorkflowDefinitionListUseCase listUseCase,
       GetWorkflowDefinitionUseCase detailUseCase,
-      UpdateWorkflowUseCase updateUseCase,
-      ObjectMapper objectMapper) {
+      UpdateWorkflowUseCase updateUseCase) {
     this.listUseCase = listUseCase;
     this.detailUseCase = detailUseCase;
     this.updateUseCase = updateUseCase;
-    this.objectMapper = objectMapper;
   }
 
   @GetMapping
@@ -78,10 +73,9 @@ public class WorkflowDefinitionController {
       @PathVariable Long versionId,
       @PathVariable Long workflowId,
       @Valid @RequestBody UpdateWorkflowRequest request,
-      Authentication authentication)
-      throws JsonProcessingException {
+      Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
-    String graphJsonStr = objectMapper.writeValueAsString(request.graphJson());
+    String graphJsonStr = request.graphJson().toString();
     WorkflowDefinitionDetail result =
         updateUseCase.execute(
             new UpdateWorkflowCommand(

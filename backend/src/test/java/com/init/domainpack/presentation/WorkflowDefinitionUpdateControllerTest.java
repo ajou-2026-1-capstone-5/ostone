@@ -1,7 +1,9 @@
 package com.init.domainpack.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -12,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
+import com.init.domainpack.application.UpdateWorkflowCommand;
 import com.init.domainpack.application.UpdateWorkflowUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
@@ -22,6 +25,7 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -59,6 +63,8 @@ class WorkflowDefinitionUpdateControllerTest {
   @DisplayName("유효한 요청 시 200 OK + WorkflowDefinitionDetail 반환")
   @WithLongPrincipal(5L)
   void should_200OK_when_유효한요청() throws Exception {
+    ArgumentCaptor<UpdateWorkflowCommand> captor =
+        ArgumentCaptor.forClass(UpdateWorkflowCommand.class);
     given(updateUseCase.execute(any())).willReturn(sampleDetail());
 
     mockMvc
@@ -71,6 +77,15 @@ class WorkflowDefinitionUpdateControllerTest {
         .andExpect(jsonPath("$.id").value(99))
         .andExpect(jsonPath("$.name").value("수정된 이름"))
         .andExpect(jsonPath("$.workflowCode").value("wf_refund"));
+
+    verify(updateUseCase).execute(captor.capture());
+    UpdateWorkflowCommand cmd = captor.getValue();
+    assertThat(cmd.workspaceId()).isEqualTo(1L);
+    assertThat(cmd.packId()).isEqualTo(7L);
+    assertThat(cmd.versionId()).isEqualTo(10L);
+    assertThat(cmd.workflowId()).isEqualTo(99L);
+    assertThat(cmd.requesterId()).isEqualTo(5L);
+    assertThat(cmd.name()).isEqualTo("수정된 이름");
   }
 
   @Test
@@ -177,7 +192,8 @@ class WorkflowDefinitionUpdateControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validRequestBody()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
   }
 
   @Test
