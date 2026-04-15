@@ -7,6 +7,7 @@
 
 .label {
   font-size: 0.875rem;
+  letter-spacing: -0.1px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: color var(--transition-fast);
@@ -36,8 +37,10 @@
   color: var(--text-primary);
   font-family: inherit;
   font-size: 0.95rem;
+  letter-spacing: -0.1px;
   outline: none;
   transition: all var(--transition-normal);
+}
   backdrop-filter: none;
 }
 
@@ -67,6 +70,7 @@
 
 .errorText {
   font-size: 0.8rem;
+  letter-spacing: normal;
   color: var(--error-color);
   animation: slide-up 0.2s ease-out;
 }

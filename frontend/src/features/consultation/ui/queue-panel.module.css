@@ -16,6 +16,7 @@
 
 .queueTitle {
   font-size: 1rem;
+  letter-spacing: -0.14px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -23,6 +24,7 @@
 
 .queueCount {
   font-size: 0.8rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
 }
 
@@ -49,7 +51,7 @@
 }
 
 .queueItem:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px dashed var(--primary-color);
   outline-offset: 2px;
   background: rgba(0, 0, 0, 0.05);
 }
@@ -69,6 +71,7 @@
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
+  letter-spacing: -0.1px;
   color: rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
@@ -89,6 +92,7 @@
 
 .customerName {
   font-size: 0.9rem;
+  letter-spacing: -0.1px;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -98,6 +102,7 @@
 
 .handoffPreview {
   font-size: 0.78rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -107,6 +112,7 @@
 
 .waitTime {
   font-size: 0.72rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
@@ -137,4 +143,5 @@
 
 .emptyText {
   font-size: 0.85rem;
+  letter-spacing: normal;
 }
