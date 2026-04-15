@@ -699,3 +699,9 @@ SELECT setval('app.workspace_id_seq', (SELECT COALESCE(MAX(id), 1) FROM app.work
 SELECT setval('pack.domain_pack_id_seq', (SELECT COALESCE(MAX(id), 1) FROM pack.domain_pack), true);
 SELECT setval('pack.domain_pack_version_id_seq', (SELECT COALESCE(MAX(id), 1) FROM pack.domain_pack_version), true);
 SELECT setval('runtime.chat_session_id_seq', (SELECT COALESCE(MAX(id), 1) FROM runtime.chat_session), true);
+
+--changeset devjhan:20260415-add-status-to-slot-definition
+--comment: Add status column to pack.slot_definition for slot lifecycle management (ACTIVE/INACTIVE)
+ALTER TABLE pack.slot_definition
+    ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    ADD CONSTRAINT chk_slot_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
