@@ -2,30 +2,27 @@
   width: 100%;
   min-height: 280px;
   border: 2px dashed var(--glass-border);
-  border-radius: var(--radius-lg);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #ffffff;
+  cursor: pointer;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
 }
 
-.uploaderBox:hover, .dragActive {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
-.successBox {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
   cursor: default;
 }
 
@@ -47,7 +44,7 @@
 
 .uploaderBox:hover .iconWrapper {
   transform: scale(1.1);
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .uploadIcon {
@@ -55,7 +52,7 @@
 }
 
 .successIcon {
-  color: #10b981;
+  color: #000000;
   margin-bottom: 20px;
   animation: scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -125,16 +122,16 @@
 
 .progressBar {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  color: #000000;
   border-radius: 4px;
   transition: width 0.3s ease-out;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  box-shadow: none;
 }
 
 .progressText {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--primary-color);
+  color: #000000;
 }
 
 @keyframes spin {

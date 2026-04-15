@@ -106,9 +106,6 @@
   flex-shrink: 0;
 }
 
-.msgAvatarCustomer {
-  background: #e2e8f0;
-  color: #475569;
 }
 
 .msgAvatarAgent {
@@ -124,8 +121,6 @@
   word-break: break-word;
 }
 
-.msgBubbleCustomer {
-  background: #f1f5f9;
   color: var(--text-primary);
   border-bottom-left-radius: 6px;
 }
@@ -160,21 +155,12 @@
 }
 
 /* Internal Note */
-.internalNote {
+  background: rgba(0,0,0,0.04);
+  border: 1px dashed #000000;
+  color: rgba(0,0,0,0.7);
   align-self: flex-end;
   max-width: 75%;
-  padding: 10px 14px;
-  background: #fffbeb;
-  border: 1px dashed #f59e0b;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  color: #92400e;
 }
-
-.noteLabel {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #d97706;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
@@ -210,10 +196,6 @@
   color: var(--text-primary);
 }
 
-.noteToggleActive {
-  background: #fffbeb;
-  border-color: #f59e0b;
-  color: #d97706;
 }
 
 .messageInput {
@@ -236,8 +218,6 @@
   border-color: var(--primary-color);
 }
 
-.messageInput::placeholder {
-  color: #94a3b8;
 }
 
 .sendBtn {
@@ -277,8 +257,6 @@
   gap: 12px;
 }
 
-.emptyChatIcon {
-  color: #cbd5e1;
 }
 
 .emptyChatText {

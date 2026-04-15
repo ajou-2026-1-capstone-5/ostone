@@ -31,10 +31,10 @@
 
 .errorMessage {
   padding: 10px 14px;
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
-  color: #fca5a5;
+  color: rgba(0, 0, 0, 0.15);
   font-size: 0.85rem;
   animation: slide-up 0.2s ease-out;
 }
@@ -57,10 +57,10 @@
 
 .successMessage {
   padding: 10px 14px;
-  background-color: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
-  color: #86efac;
+  color: rgba(0, 0, 0, 0.5);
   font-size: 0.85rem;
   animation: slide-up 0.2s ease-out;
 }

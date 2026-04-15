@@ -55,26 +55,30 @@
 }
 
 .queueItemActive {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .customerAvatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.15));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
-  color: #475569;
+  color: rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
 
 .customerAvatarActive {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   color: white;
 }
 
@@ -127,7 +131,7 @@
 }
 
 .emptyIcon {
-  color: #cbd5e1;
+  color: rgba(0, 0, 0, 0.15);
   margin-bottom: 12px;
 }
 

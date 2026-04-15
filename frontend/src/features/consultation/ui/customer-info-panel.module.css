@@ -41,7 +41,11 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,8 +99,8 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.7);
   border-radius: 20px;
   font-size: 0.82rem;
   font-weight: 500;
@@ -130,7 +134,7 @@
 }
 
 .memoTextarea::placeholder {
-  color: #94a3b8;
+  color: rgba(0, 0, 0, 0.35);
 }
 
 /* Empty State */
@@ -147,7 +151,7 @@
 }
 
 .emptyInfoIcon {
-  color: #cbd5e1;
+  color: rgba(0, 0, 0, 0.15);
 }
 
 .emptyInfoText {

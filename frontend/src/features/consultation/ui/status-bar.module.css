@@ -56,7 +56,7 @@
   padding: 8px 20px;
   border: none;
   border-radius: 8px;
-  background: #ef4444;
+  background: #000000;
   color: white;
   font-family: inherit;
   font-size: 0.85rem;
@@ -66,13 +66,8 @@
 }
 
 .endBtn:hover {
-  background: #dc2626;
+  background: rgba(0, 0, 0, 0.8);
   transform: translateY(-1px);
-}
-
-.endBtn:focus-visible {
-  outline: 2px solid #dc2626;
-  outline-offset: 2px;
 }
 
 .endBtn:disabled {

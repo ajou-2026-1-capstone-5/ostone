@@ -5,35 +5,10 @@
   position: relative;
   overflow: hidden;
   background-color: var(--bg-color);
-  background: radial-gradient(circle at center, #f1f5f9 0%, #f8fafc 100%);
+  background: #ffffff;
   color: var(--text-color);
 }
 
-.decorativeCircle1 {
-  position: absolute;
-  width: 40vw;
-  height: 40vw;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(255,255,255,0) 70%);
-  top: -10vh;
-  right: -5vw;
-  animation: float 20s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.decorativeCircle2 {
-  position: absolute;
-  width: 50vw;
-  height: 50vw;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.12) 0%, rgba(255,255,255,0) 70%);
-  bottom: -20vh;
-  left: -20vw;
-  animation: float 25s ease-in-out infinite reverse;
-  pointer-events: none;
-}
-
-/* Glass Navbar */
 .topbar {
   position: sticky;
   top: 0;
@@ -43,10 +18,8 @@
   justify-content: space-between;
   padding: 0 40px;
   height: 72px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--glass-border);
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .logo {
@@ -81,7 +54,7 @@
 
 .navItem.active {
   color: var(--primary-color);
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .navItem.disabled {
@@ -98,7 +71,7 @@
 
 .logoutButton {
   background: white;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   padding: 6px 12px;
   color: var(--text-muted);
@@ -106,20 +79,20 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .logoutButton:hover {
-  background: #fef2f2;
-  color: #ef4444;
-  border-color: #fca5a5;
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(135deg, #000000, #666666);
   display: flex;
   align-items: center;
   justify-content: center;
