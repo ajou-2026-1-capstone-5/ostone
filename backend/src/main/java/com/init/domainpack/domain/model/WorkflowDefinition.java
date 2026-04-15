@@ -102,6 +102,7 @@ public class WorkflowDefinition {
       String terminalStatesJson) {
     Objects.requireNonNull(name, "name must not be null");
     Objects.requireNonNull(graphJson, "graphJson must not be null");
+    Objects.requireNonNull(terminalStatesJson, "terminalStatesJson must not be null");
     if (name.isBlank()) {
       throw new IllegalArgumentException("name cannot be blank");
     }

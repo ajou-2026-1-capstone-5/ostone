@@ -171,6 +171,7 @@ class UpdateWorkflowUseCaseTest {
                 useCase.execute(
                     new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, noStartGraph)))
         .isInstanceOf(WorkflowInvalidStartNodeException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
@@ -195,6 +196,7 @@ class UpdateWorkflowUseCaseTest {
                 useCase.execute(
                     new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, noTerminalGraph)))
         .isInstanceOf(WorkflowInvalidTerminalNodeException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
@@ -219,6 +221,7 @@ class UpdateWorkflowUseCaseTest {
                 useCase.execute(
                     new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, danglingGraph)))
         .isInstanceOf(WorkflowDanglingEdgeException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
@@ -244,6 +247,7 @@ class UpdateWorkflowUseCaseTest {
                 useCase.execute(
                     new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, unreachableGraph)))
         .isInstanceOf(WorkflowUnreachableNodeException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
@@ -273,6 +277,7 @@ class UpdateWorkflowUseCaseTest {
                 useCase.execute(
                     new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, cycleGraph)))
         .isInstanceOf(WorkflowCycleDetectedException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
@@ -304,6 +309,7 @@ class UpdateWorkflowUseCaseTest {
                     new UpdateWorkflowCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, unlabeledDecisionGraph)))
         .isInstanceOf(WorkflowUnlabeledBranchException.class);
+    verify(workflowRepository, never()).save(any());
   }
 
   // ── factories ──────────────────────────────────────────────────────────────

@@ -42,8 +42,14 @@ class WorkflowDefinitionUpdateControllerTest {
   private static final String BASE_URL =
       "/api/v1/workspaces/1/domain-packs/7/versions/10/workflows/99";
 
-  @Autowired private MockMvc mockMvc;
-  @Autowired private ObjectMapper objectMapper;
+  private final MockMvc mockMvc;
+  private final ObjectMapper objectMapper;
+
+  @Autowired
+  WorkflowDefinitionUpdateControllerTest(MockMvc mockMvc, ObjectMapper objectMapper) {
+    this.mockMvc = mockMvc;
+    this.objectMapper = objectMapper;
+  }
 
   @MockitoBean private GetWorkflowDefinitionListUseCase listUseCase;
   @MockitoBean private GetWorkflowDefinitionUseCase detailUseCase;

@@ -1,5 +1,6 @@
 package com.init.domainpack.application;
 
+import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -62,7 +63,12 @@ public class UpdateWorkflowUseCase {
     WorkflowGraphValidator.ParsedGraph parsed =
         WorkflowGraphValidator.parseAndValidate(command.graphJson(), workflow.getWorkflowCode());
     String initialState = WorkflowGraphValidator.extractInitialState(parsed);
-    String terminalStatesJson = WorkflowGraphValidator.extractTerminalStatesJson(parsed);
+    String terminalStatesJson;
+    try {
+      terminalStatesJson = WorkflowGraphValidator.extractTerminalStatesJson(parsed);
+    } catch (IllegalStateException e) {
+      throw new DomainPackDraftRequestInvalidException("Failed to serialize terminal states", e);
+    }
 
     try {
       workflow.updateGraph(
