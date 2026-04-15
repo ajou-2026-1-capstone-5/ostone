@@ -37,7 +37,7 @@ services:
     container_name: init-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-init}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-init-db-password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-init}
     ports:
       - "5432:5432"
@@ -64,6 +64,7 @@ services:
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       STORAGE_S3_ENDPOINT: http://minio:9000
       STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -79,6 +80,9 @@ services:
 >>>>>>> 22b206c (build(pipeline): harden airflow local runtime)
 =======
 >>>>>>> 1b112d4 (build(project): restore app compose envs)
+=======
+      JWT_SECRET: ${JWT_SECRET}
+>>>>>>> c765850 (fix(project): restore compose env forwarding)
     ports:
       - "8080:8080"
     depends_on:
