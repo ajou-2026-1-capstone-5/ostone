@@ -7,8 +7,21 @@ for path in /opt/airflow/logs /opt/airflow/artifacts /opt/airflow/auth; do
 done
 
 passwords_file="${AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE:-/opt/airflow/auth/simple_auth_manager_passwords.json.generated}"
-cat > "${passwords_file}" <<EOF
-{"admin": "${AIRFLOW_SIMPLE_ADMIN_PASSWORD:-admin}", "viewer": "${AIRFLOW_SIMPLE_VIEWER_PASSWORD:-viewer}"}
-EOF
+AIRFLOW_SIMPLE_ADMIN_PASSWORD="${AIRFLOW_SIMPLE_ADMIN_PASSWORD:?AIRFLOW_SIMPLE_ADMIN_PASSWORD is required}"
+AIRFLOW_SIMPLE_VIEWER_PASSWORD="${AIRFLOW_SIMPLE_VIEWER_PASSWORD:?AIRFLOW_SIMPLE_VIEWER_PASSWORD is required}"
+python3 - <<'PY' > "${passwords_file}"
+import json
+import os
+import sys
+
+json.dump(
+    {
+        "admin": os.environ["AIRFLOW_SIMPLE_ADMIN_PASSWORD"],
+        "viewer": os.environ["AIRFLOW_SIMPLE_VIEWER_PASSWORD"],
+    },
+    sys.stdout,
+)
+PY
+printf '\n' >> "${passwords_file}"
 
 /entrypoint airflow db migrate

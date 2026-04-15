@@ -1,9 +1,9 @@
-FROM apache/airflow:3.1.7-python3.13
+FROM apache/airflow:3.1.8-python3.13
 
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl=7.88.1-10+deb12u14 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

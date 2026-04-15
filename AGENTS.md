@@ -14,7 +14,7 @@
 | Frontend               | Vite+          | 0.1.15 |
 | ML Pipeline            | uv Python      | 3.13+  |
 | Database               | PostgreSQL     | 16+    |
-| Workflow Orchestration | Apache Airflow | 2.10+  |
+| Workflow Orchestration | Apache Airflow | 3.1.8  |
 | Infrastructure         | Docker Compose | -      |
 
 ---
@@ -291,7 +291,7 @@ cd frontend && pnpm build && docker build -t init-frontend .
 | `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
 | `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`               |
 | `JWT_SECRET`                            | JWT 서명 키          | (필수)                |
-| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `localhost:5173~5176` |
+| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `localhost:3000,5173~5176` |
 
 ---
 

@@ -9,8 +9,7 @@ COPY tsconfig.app.json tsconfig.json tsconfig.node.json vite.config.ts eslint.co
 COPY public public
 COPY src src
 
-RUN pnpm install --frozen-lockfile
-RUN pnpm build
+RUN pnpm install --frozen-lockfile && pnpm build
 
 FROM nginx:alpine
 

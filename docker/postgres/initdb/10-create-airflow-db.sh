@@ -2,19 +2,27 @@
 set -eu
 
 AIRFLOW_DB_USER="${AIRFLOW_DB_USER:-airflow}"
+AIRFLOW_DB_PASSWORD="${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD is required}"
 AIRFLOW_DB_NAME="${AIRFLOW_DB_NAME:-airflow}"
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
-DO \$\$
+psql \
+  -v ON_ERROR_STOP=1 \
+  -v airflow_db_user="${AIRFLOW_DB_USER}" \
+  -v airflow_db_password="${AIRFLOW_DB_PASSWORD}" \
+  -v airflow_db_name="${AIRFLOW_DB_NAME}" \
+  --username "$POSTGRES_USER" \
+  --dbname "$POSTGRES_DB" <<'SQL'
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${AIRFLOW_DB_USER}') THEN
-        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '${AIRFLOW_DB_USER}', '${AIRFLOW_DB_PASSWORD}');
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'airflow_db_user') THEN
+        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password');
     ELSE
-        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', '${AIRFLOW_DB_USER}', '${AIRFLOW_DB_PASSWORD}');
+        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password');
     END IF;
 END
-\$\$;
-SELECT format('CREATE DATABASE %I OWNER %I', '${AIRFLOW_DB_NAME}', '${AIRFLOW_DB_USER}')
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${AIRFLOW_DB_NAME}') \gexec
-GRANT ALL PRIVILEGES ON DATABASE "${AIRFLOW_DB_NAME}" TO "${AIRFLOW_DB_USER}";
+$$;
+SELECT format('CREATE DATABASE %I OWNER %I', :'airflow_db_name', :'airflow_db_user')
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'airflow_db_name') \gexec
+SELECT format('ALTER DATABASE %I OWNER TO %I', :'airflow_db_name', :'airflow_db_user') \gexec
+SELECT format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', :'airflow_db_name', :'airflow_db_user') \gexec
 SQL

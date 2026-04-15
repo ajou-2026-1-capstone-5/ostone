@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from pathlib import Path
+from traceback import format_exc
 
 from airflow.sdk import dag, get_current_context, task
 
 from pipeline.common.artifacts import write_stage_manifest
+from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.stages.draft_generation.main import run as draft_generation_run
@@ -14,12 +17,6 @@ from pipeline.stages.ingestion.main import run as ingestion_run
 from pipeline.stages.intent_discovery.main import run as intent_discovery_run
 from pipeline.stages.preprocessing.main import run as preprocessing_run
 from pipeline.stages.publish_candidate.main import run as publish_candidate_run
-
-DEFAULT_DAG_ARGS = {
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-    "execution_timeout": timedelta(minutes=30),
-}
 
 
 def _build_stage_context(stage_name: str) -> StageContext:
@@ -37,12 +34,26 @@ def _build_stage_context(stage_name: str) -> StageContext:
 def _run_stage(stage_name: str, stage_callable: Callable[[], None]) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
-    stage_callable()
-    manifest_path = write_stage_manifest(
-        stage_context,
-        runtime_config,
-        {"status": "completed", "backend_base_url": runtime_config.backend_base_url},
-    )
+    manifest_payload: dict[str, object] = {"backend_base_url": runtime_config.backend_base_url}
+    manifest_path: Path | None = None
+
+    try:
+        stage_callable()
+        manifest_payload["status"] = "completed"
+    except Exception as exc:
+        manifest_payload["status"] = "failed"
+        manifest_payload["error"] = {
+            "type": type(exc).__name__,
+            "message": str(exc),
+            "traceback": format_exc(),
+        }
+        raise
+    finally:
+        manifest_path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
+
+    if manifest_path is None:
+        raise RuntimeError("Stage manifest path was not generated")
+
     return {"artifact_manifest_path": str(manifest_path)}
 
 
