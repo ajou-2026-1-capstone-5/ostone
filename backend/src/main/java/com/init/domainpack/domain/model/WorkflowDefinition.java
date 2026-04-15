@@ -94,6 +94,24 @@ public class WorkflowDefinition {
     return entity;
   }
 
+  public void updateGraph(
+      String name,
+      String description,
+      String graphJson,
+      String initialState,
+      String terminalStatesJson) {
+    Objects.requireNonNull(name, "name must not be null");
+    Objects.requireNonNull(graphJson, "graphJson must not be null");
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name cannot be blank");
+    }
+    this.name = name;
+    this.description = description;
+    this.graphJson = graphJson;
+    this.initialState = initialState;
+    this.terminalStatesJson = terminalStatesJson;
+  }
+
   public Long getId() {
     return id;
   }

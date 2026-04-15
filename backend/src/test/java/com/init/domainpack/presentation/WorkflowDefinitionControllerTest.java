@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
+import com.init.domainpack.application.UpdateWorkflowUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
 import com.init.domainpack.application.WorkflowDefinitionSummary;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
@@ -42,6 +43,7 @@ class WorkflowDefinitionControllerTest {
 
   @MockitoBean private GetWorkflowDefinitionListUseCase listUseCase;
   @MockitoBean private GetWorkflowDefinitionUseCase detailUseCase;
+  @MockitoBean private UpdateWorkflowUseCase updateUseCase;
 
   @Test
   @DisplayName("GET .../workflows → 200 OK, 목록 반환")
