@@ -131,10 +131,9 @@ services:
       dockerfile: Dockerfile
     container_name: init-frontend
     ports:
-      - "3000:8080"
+      - "3000:3000"
     depends_on:
-      backend:
-        condition: service_started
+      - backend
     networks:
       - init-network
 

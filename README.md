@@ -51,20 +51,26 @@ Conventional Commits: `type(scope): subject` (예: `feat(domain-pack): add publi
 # 1) 최초 1회 env 파일 준비
 cp .env.example .env
 
-# 2) Docker Compose로 전체 로컬 스택 실행
+# 2) Backend 컨테이너 사용 시 선행 빌드
+(cd backend && ./gradlew bootJar)
+
+# 3) Frontend 컨테이너 사용 시 선행 빌드
+(cd frontend && pnpm build)
+
+# 4) Docker Compose로 전체 로컬 스택 실행
 docker compose up -d
 
 # Backend: 빌드/테스트
-cd backend && ./gradlew build
+(cd backend && ./gradlew build)
 
 # Frontend: 개발 서버
-cd frontend && pnpm dev
+(cd frontend && pnpm dev)
 
 # ML: 테스트
-cd ml && uv run pytest
+(cd ml && uv run pytest)
 ```
 
-`docker compose up -d`는 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`까지 포함한 로컬 스택을 실행한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
+`docker compose up -d`는 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`를 함께 실행한다. 다만 `backend`와 `frontend` 컨테이너는 기존 방식대로 선행 산출물(`bootJar`, `pnpm build`)을 전제한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
 
 상세 설정: [`backend/README.md`](backend/README.md), [`.agent/specs/113.md`](.agent/specs/113.md)
 

@@ -164,6 +164,12 @@ ml/
 # 최초 1회 env 파일 준비
 cp .env.example .env
 
+# backend 컨테이너 사용 시 선행 빌드
+(cd backend && ./gradlew bootJar)
+
+# frontend 컨테이너 사용 시 선행 빌드
+(cd frontend && pnpm build)
+
 # 전체 서비스 실행
 docker compose up -d
 
@@ -181,8 +187,8 @@ docker compose logs -f airflow-apiserver
 
 기본 원칙:
 
-- 로컬 전체 스택은 `docker compose up -d` 한 번으로 실행 가능해야 한다.
-- `backend`와 `frontend` 이미지는 선행 `jar`/`dist` 빌드를 요구하지 않도록 유지한다.
+- Airflow 로컬 런타임은 루트 `docker compose` 기준으로 함께 관리한다.
+- `backend`와 `frontend` 이미지는 기존 방식대로 선행 `jar`/`dist` 빌드를 전제한다.
 - Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
 
 ### Backend (Gradle)

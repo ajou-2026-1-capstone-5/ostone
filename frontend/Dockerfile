@@ -1,21 +1,9 @@
-FROM node:22-alpine AS builder
+FROM nginx:alpine
 
-WORKDIR /app
-
-RUN corepack enable
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml components.json ./
-COPY tsconfig.app.json tsconfig.json tsconfig.node.json vite.config.ts eslint.config.js index.html ./
-COPY public public
-COPY src src
-
-RUN pnpm install --frozen-lockfile && pnpm build
-
-FROM nginxinc/nginx-unprivileged:stable-alpine
-
-COPY --from=builder /app/dist/ /usr/share/nginx/html/
+# Note: Run `pnpm build` before docker build to generate dist/
+COPY dist/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 8080
+EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080 || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 CMD ["nginx", "-g", "daemon off;"]
