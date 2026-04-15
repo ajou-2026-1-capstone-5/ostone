@@ -12,15 +12,10 @@ psql \
   -v airflow_db_name="${AIRFLOW_DB_NAME}" \
   --username "$POSTGRES_USER" \
   --dbname "$POSTGRES_DB" <<'SQL'
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'airflow_db_user') THEN
-        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password');
-    ELSE
-        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password');
-    END IF;
-END
-$$;
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password')
+WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'airflow_db_user') \gexec
+SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'airflow_db_user', :'airflow_db_password')
+WHERE EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'airflow_db_user') \gexec
 SELECT format('CREATE DATABASE %I OWNER %I', :'airflow_db_name', :'airflow_db_user')
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'airflow_db_name') \gexec
 SELECT format('ALTER DATABASE %I OWNER TO %I', :'airflow_db_name', :'airflow_db_user') \gexec

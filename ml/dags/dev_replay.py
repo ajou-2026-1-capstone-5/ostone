@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Development-only retry/failure DAG.
+
+This DAG is an explicit exception to the six-stage production pipeline rule and
+exists only to validate retry and failed-state handling in the local Airflow
+runtime.
+"""
+
 from datetime import datetime, timedelta
 
 from airflow.sdk import dag, get_current_context, task

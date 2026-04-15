@@ -14,7 +14,7 @@
 | Frontend               | Vite+          | 0.1.15 |
 | ML Pipeline            | uv Python      | 3.13+  |
 | Database               | PostgreSQL     | 16+    |
-| Workflow Orchestration | Apache Airflow | 3.1.8  |
+| Workflow Orchestration | Apache Airflow | 3.2.0  |
 | Infrastructure         | Docker Compose | -      |
 
 ---
@@ -291,7 +291,7 @@ cd frontend && pnpm build && docker build -t init-frontend .
 | `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
 | `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`               |
 | `JWT_SECRET`                            | JWT 서명 키          | (필수)                |
-| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `localhost:3000,5173~5176` |
+| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176` |
 
 ---
 
@@ -366,6 +366,7 @@ ingestion → preprocessing → intent_discovery → draft_generation → evalua
 - 각 Stage는 독립적 DAG 태스크로 구현
 - Stage 간 데이터는 artifact(JSON/Parquet)로 전달
 - PII 제거는 preprocessing Stage에서 필수
+- `dev_bootstrap`, `dev_replay`는 smoke/retry 검증용 예외 DAG로서 6-stage production 체인을 그대로 따르지 않아도 된다
 
 ### Git 워크플로우
 

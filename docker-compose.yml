@@ -46,7 +46,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}" ]
       interval: 10s
@@ -69,7 +68,7 @@ services:
       AIRFLOW_DB_NAME: ${AIRFLOW_DB_NAME:-airflow}
     entrypoint: ["/bin/sh", "/scripts/10-create-airflow-db.sh"]
     volumes:
-      - ./docker/postgres/initdb:/scripts:ro
+      - ./docker/postgres/reconcile:/scripts:ro
     restart: "no"
     depends_on:
       postgres:
@@ -104,12 +103,15 @@ services:
       postgres:
         condition: service_healthy
 <<<<<<< HEAD
+<<<<<<< HEAD
       minio:
         condition: service_healthy
 =======
       postgres-reconcile:
         condition: service_completed_successfully
 >>>>>>> 22b206c (build(pipeline): harden airflow local runtime)
+=======
+>>>>>>> cfad7d8 (build(pipeline): tighten airflow runtime safeguards)
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 30s
@@ -125,7 +127,7 @@ services:
       dockerfile: Dockerfile
     container_name: init-frontend
     ports:
-      - "3000:80"
+      - "3000:8080"
     depends_on:
       backend:
         condition: service_started

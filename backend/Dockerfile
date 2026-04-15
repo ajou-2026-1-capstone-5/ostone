@@ -15,7 +15,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl=8.5.0-2ubuntu10.8 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/build/libs/backend-*.jar app.jar

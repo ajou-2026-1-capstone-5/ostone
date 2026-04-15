@@ -1,2 +1,2 @@
 def run() -> None:
-    return None
+    pass

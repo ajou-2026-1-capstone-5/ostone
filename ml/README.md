@@ -10,7 +10,7 @@
 - Airflow 로컬 런타임에서 DAG 파싱, 수동 실행, 로그 확인, artifact 생성 흐름을 검증한다.
 - Stage 로직과 DAG orchestration 코드를 분리해서 관리한다.
 
-## 요구 사항
+## 사전 준비
 
 - Python `3.13+`
 - `uv`
@@ -47,8 +47,10 @@ uv run mypy .
 Airflow는 루트 `docker-compose.yml` 기준으로 함께 실행됩니다.
 
 - UI 주소: `http://localhost:8081`
-- 관리자 계정: `admin / admin`
-- 조회 전용 계정: `viewer / viewer`
+- 관리자 계정: `admin / ${AIRFLOW_SIMPLE_ADMIN_PASSWORD}`
+- 조회 전용 계정: `viewer / ${AIRFLOW_SIMPLE_VIEWER_PASSWORD}`
+
+`.env.example`의 Airflow 비밀번호는 placeholder입니다. 로컬 `.env`에 테스트 전용 비밀번호를 직접 지정한 뒤 사용합니다.
 
 Airflow 관련 컨테이너:
 
@@ -99,8 +101,10 @@ ml/
   - Airflow가 새 DAG를 파싱하고 task를 성공시키는지 확인할 때 사용
 - `dev_bootstrap`
   - artifact 디렉터리 생성과 manifest write를 확인하는 개발용 DAG
+  - 6-stage production 체인의 예외로 유지하는 smoke-test DAG
 - `dev_replay`
   - retry / failed 상태를 확인하기 위한 의도적 실패 DAG
+  - 6-stage production 체인의 예외로 유지하는 retry-test DAG
 - `domain_pack_generation`
   - 현재 stage 체인을 한 번에 묶어둔 기본 개발용 DAG
 

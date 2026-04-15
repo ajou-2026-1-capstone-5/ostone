@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
+import logging
 from pathlib import Path
 from traceback import format_exc
 
@@ -17,6 +18,8 @@ from pipeline.stages.ingestion.main import run as ingestion_run
 from pipeline.stages.intent_discovery.main import run as intent_discovery_run
 from pipeline.stages.preprocessing.main import run as preprocessing_run
 from pipeline.stages.publish_candidate.main import run as publish_candidate_run
+
+logger = logging.getLogger(__name__)
 
 
 def _build_stage_context(stage_name: str) -> StageContext:
@@ -35,11 +38,8 @@ def _run_stage(stage_name: str, stage_callable: Callable[[], None]) -> dict[str,
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
     manifest_payload: dict[str, object] = {"backend_base_url": runtime_config.backend_base_url}
-    manifest_path: Path | None = None
-
     try:
         stage_callable()
-        manifest_payload["status"] = "completed"
     except Exception as exc:
         manifest_payload["status"] = "failed"
         manifest_payload["error"] = {
@@ -47,13 +47,14 @@ def _run_stage(stage_name: str, stage_callable: Callable[[], None]) -> dict[str,
             "message": str(exc),
             "traceback": format_exc(),
         }
+        try:
+            write_stage_manifest(stage_context, runtime_config, manifest_payload)
+        except Exception:
+            logger.exception("Failed to write failure manifest for stage '%s'", stage_name)
         raise
-    finally:
-        manifest_path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
-
-    if manifest_path is None:
-        raise RuntimeError("Stage manifest path was not generated")
-
+    else:
+        manifest_payload["status"] = "completed"
+        manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
     return {"artifact_manifest_path": str(manifest_path)}
 
 

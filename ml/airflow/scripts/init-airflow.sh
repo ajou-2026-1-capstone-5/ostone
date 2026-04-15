@@ -23,5 +23,6 @@ json.dump(
 )
 PY
 printf '\n' >> "${passwords_file}"
+chmod 600 "${passwords_file}"
 
 /entrypoint airflow db migrate

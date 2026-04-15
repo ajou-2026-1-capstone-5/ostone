@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Development-only smoke-test DAG.
+
+This DAG is an explicit exception to the six-stage production pipeline rule and
+exists only to validate local Airflow parsing, artifact directory creation, and
+manifest writes.
+"""
+
 from datetime import datetime, timedelta
 
 from airflow.sdk import dag, get_current_context, task
