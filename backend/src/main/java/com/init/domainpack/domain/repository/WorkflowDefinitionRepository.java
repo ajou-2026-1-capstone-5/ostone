@@ -8,6 +8,8 @@ public interface WorkflowDefinitionRepository {
 
   <S extends WorkflowDefinition> List<S> saveAll(Iterable<S> entities);
 
+  WorkflowDefinition save(WorkflowDefinition workflow);
+
   List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionId(Long domainPackVersionId);
 
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
