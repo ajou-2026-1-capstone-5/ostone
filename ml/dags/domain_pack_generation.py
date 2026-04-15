@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
-import logging
 from pathlib import Path
 from traceback import format_exc
 
 from airflow.sdk import dag, get_current_context, task
 
 from pipeline.common.artifacts import write_stage_manifest
-from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
+from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
 from pipeline.stages.draft_generation.main import run as draft_generation_run
 from pipeline.stages.evaluation.main import run as evaluation_run
 from pipeline.stages.ingestion.main import run as ingestion_run
@@ -105,7 +105,14 @@ def domain_pack_generation() -> None:
     evaluation_task = evaluation()
     publish_candidate_task = publish_candidate()
 
-    ingestion_task >> preprocessing_task >> intent_discovery_task >> draft_generation_task >> evaluation_task >> publish_candidate_task
+    (
+        ingestion_task
+        >> preprocessing_task
+        >> intent_discovery_task
+        >> draft_generation_task
+        >> evaluation_task
+        >> publish_candidate_task
+    )
 
 
 domain_pack_generation()
