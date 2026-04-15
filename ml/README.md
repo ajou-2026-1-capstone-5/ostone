@@ -50,7 +50,7 @@ Airflow는 루트 `docker-compose.yml` 기준으로 함께 실행됩니다.
 - 관리자 계정: `admin / ${AIRFLOW_SIMPLE_ADMIN_PASSWORD}`
 - 조회 전용 계정: `viewer / ${AIRFLOW_SIMPLE_VIEWER_PASSWORD}`
 
-`.env.example`의 Airflow 비밀번호는 placeholder입니다. 로컬 `.env`에 테스트 전용 비밀번호를 직접 지정한 뒤 사용합니다.
+기본 로컬 개발값은 `admin / admin`, `viewer / viewer`입니다. 필요하면 루트 `.env`에서 덮어쓸 수 있습니다.
 
 Airflow 관련 컨테이너:
 
