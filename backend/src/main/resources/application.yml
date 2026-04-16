@@ -18,6 +18,19 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.sql
     default-schema: public
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+storage:
+  s3:
+    bucket-name: ${STORAGE_S3_BUCKET:init-raw-files-dev}
+    region: ${STORAGE_S3_REGION:ap-northeast-2}
+    endpoint: ${STORAGE_S3_ENDPOINT:}
+    access-key: ${STORAGE_S3_ACCESS_KEY:}
+    secret-key: ${STORAGE_S3_SECRET_KEY:}
+    path-style-access: ${STORAGE_S3_PATH_STYLE:false}
 
 management:
   endpoints:
