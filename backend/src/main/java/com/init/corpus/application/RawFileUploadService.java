@@ -86,6 +86,10 @@ public class RawFileUploadService {
     storagePort.put(objectKey, command.fileBytes(), command.contentType());
 
     // 4. DB operations with orphan cleanup on failure (U-05: Confirmed)
+    // catch(Exception) is intentional here: this is a best-effort compensating transaction
+    // that must intercept any throwable — parse errors, DB errors, runtime errors — to delete
+    // the already-uploaded S3 object before re-throwing. Restricting to specific types would
+    // silently skip orphan cleanup for uncaught subtypes. (spec/114 U-05, error-handling.md 예외)
     try {
       List<RawConversationInput> conversations = parseConversations(command.fileBytes());
 
