@@ -961,10 +961,13 @@ create index idx_taxonomy_drift_pack
 - `PUBLISHED`
 - `ARCHIVED`
 
-### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status`
+### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status` / `pack.risk_definition.status`
 
 - `ACTIVE`
 - `INACTIVE`
+
+위 상태값은 각각 `pack.slot_definition.status`, `pack.policy_definition.status`,
+`pack.risk_definition.status`에 저장된다.
 
 ### 11.3 `review.review_session.status`
 
