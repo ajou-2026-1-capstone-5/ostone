@@ -81,7 +81,8 @@ class RawFileUploadServiceTest {
     given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
 
     DatasetRawFile savedFile =
-        DatasetRawFile.create(42L, "some-key", "test.json", "application/json", 100L, "hash");
+        DatasetRawFile.create(
+            42L, "some-key", "test.json", "application/json", 100L, "a".repeat(64));
     given(rawFileRepository.save(any())).willReturn(savedFile);
 
     RawFileUploadCommand command =
