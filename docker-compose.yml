@@ -28,6 +28,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-init}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-local}
+      STORAGE_S3_ENDPOINT: http://minio:9000
     ports:
       - "8080:8080"
     depends_on:

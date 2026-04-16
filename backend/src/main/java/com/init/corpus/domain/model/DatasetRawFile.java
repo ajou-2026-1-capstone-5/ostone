@@ -47,15 +47,27 @@ public class DatasetRawFile {
       String contentType,
       Long sizeBytes,
       String checksumSha256) {
+    Objects.requireNonNull(datasetId, "datasetId must not be null");
     Objects.requireNonNull(objectKey, "objectKey must not be null");
     Objects.requireNonNull(originalFilename, "originalFilename must not be null");
+    Objects.requireNonNull(contentType, "contentType must not be null");
     Objects.requireNonNull(checksumSha256, "checksumSha256 must not be null");
     Objects.requireNonNull(sizeBytes, "sizeBytes must not be null");
+    if (datasetId < 0) {
+      throw new IllegalArgumentException("datasetId must be >= 0");
+    }
     if (objectKey.isBlank()) {
       throw new IllegalArgumentException("objectKey must not be blank");
     }
-    if (checksumSha256.isBlank()) {
-      throw new IllegalArgumentException("checksumSha256 must not be blank");
+    if (originalFilename.isBlank()) {
+      throw new IllegalArgumentException("originalFilename must not be blank");
+    }
+    if (contentType.isBlank()) {
+      throw new IllegalArgumentException("contentType must not be blank");
+    }
+    if (!checksumSha256.matches("[0-9a-fA-F]{64}")) {
+      throw new IllegalArgumentException(
+          "checksumSha256 must be a 64-character hexadecimal string");
     }
     if (sizeBytes < 0) {
       throw new IllegalArgumentException("sizeBytes must be >= 0");
