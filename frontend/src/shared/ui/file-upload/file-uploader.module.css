@@ -21,6 +21,11 @@
   box-shadow: none;
 }
 
+.dragActive {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+}
+
   .uploaderBox.dragging {
   border-color: rgba(0, 0, 0, 0.2);
   background: rgba(0, 0, 0, 0.05);
@@ -55,6 +60,18 @@
   color: #000000;
   margin-bottom: 20px;
   animation: scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.successBox {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.04);
+  cursor: default;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fade-in 0.3s ease;
 }
 
 .title {
@@ -125,7 +142,7 @@
 
 .progressBar {
   height: 100%;
-  color: #000000;
+  background: #000000;
   border-radius: 4px;
   transition: width 0.3s ease-out;
   box-shadow: none;
