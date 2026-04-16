@@ -19,10 +19,8 @@ public class StorageConfig {
   public S3Client s3Client(StorageProperties properties) {
     S3ClientBuilder builder = S3Client.builder().region(Region.of(properties.region()));
 
-    boolean accessKeyPresent =
-        properties.accessKey() != null && !properties.accessKey().isBlank();
-    boolean secretKeyPresent =
-        properties.secretKey() != null && !properties.secretKey().isBlank();
+    boolean accessKeyPresent = properties.accessKey() != null && !properties.accessKey().isBlank();
+    boolean secretKeyPresent = properties.secretKey() != null && !properties.secretKey().isBlank();
 
     if (accessKeyPresent != secretKeyPresent) {
       throw new IllegalArgumentException(
