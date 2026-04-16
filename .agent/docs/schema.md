@@ -191,7 +191,7 @@
 
 ### `pack.risk_definition`
 - 위험 요소 정의
-- trigger condition, handling action, risk level 저장
+- trigger condition, handling action, risk level, status 저장
 
 ### `pack.workflow_definition`
 - 상태 기반 graph 정의
@@ -505,6 +505,7 @@ create table pack.risk_definition (
     handling_action_json jsonb not null default '{}'::jsonb,
     evidence_json       jsonb not null default '[]'::jsonb,
     meta_json           jsonb not null default '{}'::jsonb,
+    status              varchar(50) not null default 'ACTIVE',
     created_at          timestamptz not null default now(),
     updated_at          timestamptz not null default now(),
     unique (domain_pack_version_id, risk_code)

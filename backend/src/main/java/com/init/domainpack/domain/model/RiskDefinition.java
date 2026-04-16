@@ -15,6 +15,9 @@ import java.util.Objects;
 @Table(name = "risk_definition", schema = "pack")
 public class RiskDefinition {
 
+  public static final String STATUS_ACTIVE = "ACTIVE";
+  public static final String STATUS_INACTIVE = "INACTIVE";
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -45,6 +48,9 @@ public class RiskDefinition {
 
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
+
+  @Column(name = "status", nullable = false)
+  private String status;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
@@ -78,20 +84,57 @@ public class RiskDefinition {
       String metaJson) {
     Objects.requireNonNull(domainPackVersionId, "domainPackVersionId must not be null");
     Objects.requireNonNull(riskCode, "riskCode must not be null");
-    Objects.requireNonNull(name, "name must not be null");
     Objects.requireNonNull(riskLevel, "riskLevel must not be null");
 
     RiskDefinition entity = new RiskDefinition();
     entity.domainPackVersionId = domainPackVersionId;
     entity.riskCode = riskCode;
-    entity.name = name;
+    entity.name = validateName(name);
     entity.description = description;
     entity.riskLevel = normalizeRiskLevel(riskLevel);
     entity.triggerConditionJson = triggerConditionJson != null ? triggerConditionJson : "{}";
     entity.handlingActionJson = handlingActionJson != null ? handlingActionJson : "{}";
     entity.evidenceJson = evidenceJson != null ? evidenceJson : "[]";
     entity.metaJson = metaJson != null ? metaJson : "{}";
+    entity.status = STATUS_ACTIVE;
     return entity;
+  }
+
+  public void updateFields(
+      String name,
+      String description,
+      String riskLevel,
+      String triggerConditionJson,
+      String handlingActionJson,
+      String evidenceJson,
+      String metaJson) {
+    String validatedName = validateName(name);
+    String normalizedRiskLevel = riskLevel != null ? normalizeRiskLevel(riskLevel) : this.riskLevel;
+
+    this.name = validatedName;
+    if (description != null) this.description = description;
+    this.riskLevel = normalizedRiskLevel;
+    if (triggerConditionJson != null) this.triggerConditionJson = triggerConditionJson;
+    if (handlingActionJson != null) this.handlingActionJson = handlingActionJson;
+    if (evidenceJson != null) this.evidenceJson = evidenceJson;
+    if (metaJson != null) this.metaJson = metaJson;
+  }
+
+  public void changeStatus(String newStatus) {
+    if (!STATUS_ACTIVE.equals(newStatus) && !STATUS_INACTIVE.equals(newStatus)) {
+      throw new IllegalArgumentException("허용되지 않는 status 값입니다: " + newStatus);
+    }
+    this.status = newStatus;
+  }
+
+  private static String validateName(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name은 필수 항목입니다.");
+    }
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name은 비워둘 수 없습니다.");
+    }
+    return name;
   }
 
   private static String normalizeRiskLevel(String riskLevel) {
@@ -140,5 +183,17 @@ public class RiskDefinition {
 
   public String getMetaJson() {
     return metaJson;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
   }
 }
