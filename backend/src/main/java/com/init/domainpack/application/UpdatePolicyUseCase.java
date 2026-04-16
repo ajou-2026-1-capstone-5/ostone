@@ -1,17 +1,11 @@
 package com.init.domainpack.application;
 
-import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
-import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
-import com.init.domainpack.domain.model.WorkspaceMemberRole;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
-import com.init.domainpack.domain.repository.WorkspaceExistencePort;
-import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
-import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,37 +13,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UpdatePolicyUseCase {
 
-  private static final Set<WorkspaceMemberRole> ALLOWED_ROLES =
-      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
-
+  private final DomainPackValidator validator;
   private final PolicyDefinitionRepository policyRepository;
   private final DomainPackVersionRepository versionRepository;
-  private final WorkspaceExistencePort workspaceExistencePort;
-  private final WorkspaceMembershipPort workspaceMembershipPort;
 
   public UpdatePolicyUseCase(
+      DomainPackValidator validator,
       PolicyDefinitionRepository policyRepository,
-      DomainPackVersionRepository versionRepository,
-      WorkspaceExistencePort workspaceExistencePort,
-      WorkspaceMembershipPort workspaceMembershipPort) {
+      DomainPackVersionRepository versionRepository) {
+    this.validator = validator;
     this.policyRepository = policyRepository;
     this.versionRepository = versionRepository;
-    this.workspaceExistencePort = workspaceExistencePort;
-    this.workspaceMembershipPort = workspaceMembershipPort;
   }
 
   @Transactional
   public PolicyDefinitionResponse execute(UpdatePolicyCommand command) {
-    if (!workspaceExistencePort.existsById(command.workspaceId())) {
-      throw new DomainPackWorkspaceNotFoundException(
-          "워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
-    }
-
-    if (!workspaceMembershipPort.hasAnyRole(
-        command.workspaceId(), command.requesterId(), ALLOWED_ROLES)) {
-      throw new DomainPackUnauthorizedWorkspaceAccessException(
-          "워크스페이스에 접근 권한이 없습니다. workspaceId=" + command.workspaceId());
-    }
+    validator.validateWorkspaceAccess(command.workspaceId(), command.requesterId());
+    validator.validateDomainPack(command.packId(), command.workspaceId());
 
     DomainPackVersion version =
         versionRepository

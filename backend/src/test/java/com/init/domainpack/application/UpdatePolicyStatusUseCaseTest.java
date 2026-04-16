@@ -7,14 +7,13 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
-import com.init.domainpack.domain.repository.WorkspaceExistencePort;
-import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.Optional;
@@ -30,25 +29,20 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("UpdatePolicyStatusUseCase")
 class UpdatePolicyStatusUseCaseTest {
 
+  @Mock private DomainPackValidator validator;
   @Mock private PolicyDefinitionRepository policyRepository;
   @Mock private DomainPackVersionRepository versionRepository;
-  @Mock private WorkspaceExistencePort workspaceExistencePort;
-  @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
   private UpdatePolicyStatusUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new UpdatePolicyStatusUseCase(
-            policyRepository, versionRepository, workspaceExistencePort, workspaceMembershipPort);
+    useCase = new UpdatePolicyStatusUseCase(validator, policyRepository, versionRepository);
   }
 
   @Test
   @DisplayName("정상 전환: ACTIVE → INACTIVE")
   void should_INACTIVE전환성공_when_DRAFT버전정책() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 10L);
@@ -66,8 +60,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("정상 전환: INACTIVE → ACTIVE")
   void should_ACTIVE전환성공_when_INACTIVE정책() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 10L);
@@ -86,8 +78,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("허용되지 않는 status 값 → BadRequestException(VALIDATION_ERROR)")
   void should_VALIDATION_ERROR예외_when_잘못된status() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 10L);
@@ -102,8 +92,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("PUBLISHED 버전 → BadRequestException(POLICY_NOT_EDITABLE)")
   void should_POLICY_NOT_EDITABLE예외_when_PUBLISHED버전() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(publishedVersion(10L, 7L)));
 
     assertThatThrownBy(
@@ -118,8 +106,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("정책의 versionId 불일치 → NotFoundException")
   void should_정책없음예외_when_versionId불일치() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 999L);
@@ -136,7 +122,9 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
   void should_워크스페이스없음예외_when_워크스페이스없음() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(false);
+    org.mockito.Mockito.doThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"))
+        .when(validator)
+        .validateWorkspaceAccess(1L, 5L);
 
     assertThatThrownBy(
             () ->
@@ -151,8 +139,10 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("workspace 비멤버 → DomainPackUnauthorizedWorkspaceAccessException")
   void should_권한없음예외_when_비멤버() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
+    org.mockito.Mockito.doThrow(
+            new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."))
+        .when(validator)
+        .validateWorkspaceAccess(1L, 5L);
 
     assertThatThrownBy(
             () ->
@@ -165,10 +155,26 @@ class UpdatePolicyStatusUseCaseTest {
   }
 
   @Test
+  @DisplayName("pack이 다른 workspace에 속함 → DomainPackNotFoundException")
+  void should_도메인팩없음예외_when_workspace경계위반() {
+    org.mockito.Mockito.doThrow(new DomainPackNotFoundException(7L))
+        .when(validator)
+        .validateDomainPack(7L, 1L);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdatePolicyStatusCommand(
+                        1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(DomainPackNotFoundException.class);
+
+    verify(versionRepository, never()).findById(any());
+    verify(policyRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("버전 미존재 → NotFoundException")
   void should_버전없음예외_when_버전미존재() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -182,8 +188,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("packId 불일치 → NotFoundException")
   void should_버전없음예외_when_packId불일치() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 99L)));
 
     assertThatThrownBy(
@@ -197,8 +201,6 @@ class UpdatePolicyStatusUseCaseTest {
   @Test
   @DisplayName("정책 미존재 → NotFoundException")
   void should_정책없음예외_when_정책미존재() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
     given(policyRepository.findById(55L)).willReturn(Optional.empty());
 
