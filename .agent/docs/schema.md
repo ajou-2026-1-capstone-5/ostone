@@ -191,7 +191,7 @@
 
 ### `pack.risk_definition`
 - 위험 요소 정의
-- trigger condition, handling action, risk level 저장
+- trigger condition, handling action, risk level, status 저장
 
 ### `pack.workflow_definition`
 - 상태 기반 graph 정의
@@ -505,8 +505,11 @@ create table pack.risk_definition (
     handling_action_json jsonb not null default '{}'::jsonb,
     evidence_json       jsonb not null default '[]'::jsonb,
     meta_json           jsonb not null default '{}'::jsonb,
+    status              varchar(50) not null default 'ACTIVE',
     created_at          timestamptz not null default now(),
     updated_at          timestamptz not null default now(),
+    constraint chk_risk_definition_status
+        check (status in ('ACTIVE', 'INACTIVE')),
     unique (domain_pack_version_id, risk_code)
 );
 
@@ -958,10 +961,13 @@ create index idx_taxonomy_drift_pack
 - `PUBLISHED`
 - `ARCHIVED`
 
-### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status`
+### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status` / `pack.risk_definition.status`
 
 - `ACTIVE`
 - `INACTIVE`
+
+위 상태값은 각각 `pack.slot_definition.status`, `pack.policy_definition.status`,
+`pack.risk_definition.status`에 저장된다.
 
 ### 11.3 `review.review_session.status`
 

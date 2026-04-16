@@ -715,3 +715,9 @@ ALTER TABLE pack.slot_definition
 ALTER TABLE pack.policy_definition
     ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     ADD CONSTRAINT chk_policy_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
+
+--changeset devjhan:20260416-add-status-to-risk-definition
+--comment: Add status column to pack.risk_definition for risk lifecycle management (ACTIVE/INACTIVE)
+ALTER TABLE pack.risk_definition
+    ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    ADD CONSTRAINT chk_risk_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
