@@ -31,3 +31,9 @@ cors:
 airflow:
   webhook:
     secret: test-airflow-webhook-secret
+
+storage:
+  s3:
+    bucket-name: test-bucket
+    region: us-east-1
+    endpoint: ""

@@ -721,3 +721,19 @@ ALTER TABLE pack.policy_definition
 ALTER TABLE pack.risk_definition
     ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     ADD CONSTRAINT chk_risk_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
+
+--changeset devjhan:20260416-create-corpus-dataset-raw-file-table
+--comment: S3 원본 파일 메타데이터 보관 테이블 신설 (archive + audit 목적)
+CREATE TABLE corpus.dataset_raw_file (
+    id                BIGSERIAL     PRIMARY KEY,
+    dataset_id        BIGINT        NOT NULL REFERENCES corpus.dataset(id) ON DELETE CASCADE,
+    object_key        VARCHAR(1024) NOT NULL,
+    original_filename VARCHAR(255)  NOT NULL,
+    content_type      VARCHAR(100)  NOT NULL,
+    size_bytes        BIGINT        NOT NULL,
+    checksum_sha256   VARCHAR(64)   NOT NULL,
+    uploaded_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_dataset_raw_file_dataset_id
+    ON corpus.dataset_raw_file(dataset_id);

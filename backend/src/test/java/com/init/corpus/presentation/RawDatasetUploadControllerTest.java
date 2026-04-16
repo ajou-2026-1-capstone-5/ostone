@@ -64,6 +64,10 @@ class RawDatasetUploadControllerTest {
   @MockBean
   private DatasetUploadService datasetUploadService;
 
+  @SuppressWarnings("removal")
+  @MockBean
+  private com.init.corpus.application.RawFileUploadService rawFileUploadService;
+
   private String validRequestBody() throws Exception {
     return objectMapper.writeValueAsString(
         Map.of(

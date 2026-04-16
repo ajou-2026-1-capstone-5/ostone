@@ -210,8 +210,7 @@ class RawFileUploadServiceTest {
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
 
     DatasetUploadResult uploadResult =
-        new DatasetUploadResult(
-            42L, "key", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1);
+        new DatasetUploadResult(42L, "key", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1);
     given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
     given(rawFileRepository.save(any())).willThrow(new RuntimeException("DB save error"));
 
