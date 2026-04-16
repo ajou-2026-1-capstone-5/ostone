@@ -182,6 +182,9 @@ volumes:
 >>>>>>> 546d2ba (build(pipeline): integrate airflow into root compose stack)
 
 
+include:
+  - ./ml/docker-compose.yml
+
 networks:
   init-network:
     driver: bridge

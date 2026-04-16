@@ -1,6 +1,6 @@
 x-airflow-common: &airflow-common
   build:
-    context: ./ml/airflow
+    context: ./airflow
     dockerfile: Dockerfile
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -22,7 +22,7 @@ x-airflow-common: &airflow-common
     PIPELINE_ARTIFACT_ROOT: ${PIPELINE_ARTIFACT_ROOT:-/opt/airflow/artifacts}
     PYTHONPATH: /opt/airflow/src
   volumes:
-    - ./ml/src:/opt/airflow/src
+    - ./src:/opt/airflow/src
     - airflow_logs:/opt/airflow/logs
     - airflow_artifacts:/opt/airflow/artifacts
     - airflow_auth:/opt/airflow/auth
@@ -34,7 +34,7 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: init-airflow-init
-    entrypoint: [ "/opt/airflow/scripts/init-airflow.sh" ]
+    entrypoint: ["/opt/airflow/scripts/init-airflow.sh"]
     restart: "no"
     depends_on:
       postgres:
@@ -43,7 +43,7 @@ services:
   airflow-apiserver:
     <<: *airflow-common
     container_name: init-airflow-apiserver
-    command: [ "airflow", "api-server" ]
+    command: ["airflow", "api-server"]
     restart: unless-stopped
     ports:
       - "127.0.0.1:8081:8080"
@@ -53,7 +53,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
     healthcheck:
-      test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/version" ]
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -62,7 +62,7 @@ services:
   airflow-scheduler:
     <<: *airflow-common
     container_name: init-airflow-scheduler
-    command: [ "airflow", "scheduler" ]
+    command: ["airflow", "scheduler"]
     restart: unless-stopped
     depends_on:
       postgres:
@@ -73,7 +73,7 @@ services:
   airflow-dag-processor:
     <<: *airflow-common
     container_name: init-airflow-dag-processor
-    command: [ "airflow", "dag-processor" ]
+    command: ["airflow", "dag-processor"]
     restart: unless-stopped
     depends_on:
       postgres:

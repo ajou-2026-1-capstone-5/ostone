@@ -48,16 +48,19 @@ Conventional Commits: `type(scope): subject` (예: `feat(domain-pack): add publi
 ## 로컬 개발환경 세팅
 
 ```bash
-# 1) 최초 1회 env 파일 준비
+# 최초 1회 env 파일 준비
 cp .env.example .env
 
-# 2) Backend 컨테이너 사용 시 선행 빌드
+# ML 개발 의존성 동기화
+(cd ml && uv sync)
+
+# Backend 컨테이너 사용 시 선행 빌드
 (cd backend && ./gradlew bootJar)
 
-# 3) Frontend 컨테이너 사용 시 선행 빌드
+# Frontend 컨테이너 사용 시 선행 빌드
 (cd frontend && pnpm build)
 
-# 4) Docker Compose로 전체 로컬 스택 실행
+# 전체 로컬 스택 실행
 docker compose up -d
 
 # Backend: 빌드/테스트
@@ -70,15 +73,22 @@ docker compose up -d
 (cd ml && uv run pytest)
 ```
 
-루트 `docker compose up -d`는 `docker-compose.yml`과 `docker-compose.override.yml`을 함께 읽어서 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`를 같이 실행한다. `backend`와 `frontend` 컨테이너는 기존 방식대로 선행 산출물(`bootJar`, `pnpm build`)을 전제한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
+전체 스택:
 
-Airflow/ML 파이프라인도 같은 루트 compose 스택에 포함된다. ML 관련 서비스만 따로 올리고 싶다면 루트에서 아래처럼 서비스 이름을 지정하면 된다.
+- 루트 `docker-compose.yml`에서 `ml/docker-compose.yml` include
+- 기동 서비스: `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`
+- `backend`, `frontend`는 선행 산출물(`bootJar`, `pnpm build`) 전제
+- 강제 리빌드: `docker compose up --build -d`
+
+ML 관련 서비스만 실행:
 
 ```bash
 docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
 ```
 
-상세 설정: [`backend/README.md`](backend/README.md)
+- `depends_on`에 따라 공유 `postgres` 함께 기동
+- ML 세부 가이드: `ml/README.md`
+- 상세 설정: `backend/README.md`
 
 ## 모듈 구조
 
