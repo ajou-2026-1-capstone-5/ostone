@@ -16,6 +16,7 @@ import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidEx
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
+import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -148,6 +150,27 @@ class ReceiveIntentDraftCallbackUseCaseTest {
 
     assertThat(result.status()).isEqualTo("CREATED");
     assertThat(failedReceipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+  }
+
+  @Test
+  @DisplayName("job 저장 중 optimistic lock 충돌이 나면 409 예외를 던지고 receipt만 FAILED로 남긴다")
+  void execute_jobOptimisticLockFailure_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK);
+    WebhookReceipt receipt = webhookReceipt(11L, "evt-1");
+    given(webhookReceiptRepository.findByExternalEventId("evt-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt), Optional.of(receipt));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(addIntentsToDraftVersionUseCase.execute(any()))
+        .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 2, 0, 5));
+    given(pipelineJobRepository.saveAndFlush(any()))
+        .willThrow(new ObjectOptimisticLockingFailureException(PipelineJob.class, 11L));
+
+    assertThatThrownBy(() -> useCase.execute(validCommand()))
+        .isInstanceOf(PipelineJobConflictException.class);
+
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_FAILED);
   }
 
   @Test

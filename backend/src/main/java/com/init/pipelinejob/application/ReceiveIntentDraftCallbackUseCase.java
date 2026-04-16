@@ -9,6 +9,7 @@ import com.init.domainpack.application.AddIntentsToDraftVersionUseCase;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
+import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
@@ -21,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -113,7 +115,7 @@ public class ReceiveIntentDraftCallbackUseCase {
 
     OffsetDateTime now = OffsetDateTime.now(clock);
     job.markSucceeded(intentResult.domainPackId(), buildSuccessSummaryJson(intentResult), now);
-    pipelineJobRepository.saveAndFlush(job);
+    savePipelineJobOrThrowConflict(job, command.jobId());
 
     WebhookReceipt receipt =
         webhookReceiptRepository
@@ -177,6 +179,10 @@ public class ReceiveIntentDraftCallbackUseCase {
             return;
           }
 
+          if (exception instanceof PipelineJobConflictException) {
+            return;
+          }
+
           pipelineJobRepository
               .findById(jobId)
               .ifPresent(
@@ -203,6 +209,14 @@ public class ReceiveIntentDraftCallbackUseCase {
 
   private boolean isProcessed(WebhookReceipt receipt) {
     return receipt != null && WebhookReceipt.STATUS_PROCESSED.equals(receipt.getProcessingStatus());
+  }
+
+  private void savePipelineJobOrThrowConflict(PipelineJob job, Long jobId) {
+    try {
+      pipelineJobRepository.saveAndFlush(job);
+    } catch (ObjectOptimisticLockingFailureException ex) {
+      throw new PipelineJobConflictException(jobId);
+    }
   }
 
   private String resolveErrorMessage(RuntimeException exception) {

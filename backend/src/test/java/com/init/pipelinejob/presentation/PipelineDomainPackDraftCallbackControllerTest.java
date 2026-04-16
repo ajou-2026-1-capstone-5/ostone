@@ -12,6 +12,7 @@ import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackUseCase;
 import com.init.pipelinejob.application.ReceiveIntentDraftCallbackUseCase;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
+import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.shared.infrastructure.web.WebhookHeaderNames;
@@ -134,6 +135,23 @@ class PipelineDomainPackDraftCallbackControllerTest {
                 .content(validDomainPackRequestJson()))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("PIPELINE_JOB_ALREADY_FINALIZED"));
+  }
+
+  @Test
+  @DisplayName("동시 업데이트 충돌이면 409를 반환한다")
+  @WithMockUser
+  void receiveDomainPackDraftCallback_conflict_returns409() throws Exception {
+    given(domainPackUseCase.execute(any())).willThrow(new PipelineJobConflictException(11L));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .header(WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET, "secret-123")
+                .contentType("application/json")
+                .content(validDomainPackRequestJson()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("PIPELINE_JOB_CONFLICT"));
   }
 
   @Test
