@@ -130,7 +130,8 @@ docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026
 artifact는 named volume 기반으로 저장합니다.
 
 - 컨테이너 경로: `/opt/airflow/artifacts`
-- 기본 규칙: `/opt/airflow/artifacts/{dag_id}/{run_id}/{stage_name}/`
+- 기본 규칙: `/opt/airflow/artifacts/{dag_id}/{safe_run_id}/{stage_name}/`
+- `safe_run_id`는 `run_id`의 `/`를 `__`로 치환한 값입니다.
 
 공통 helper:
 
