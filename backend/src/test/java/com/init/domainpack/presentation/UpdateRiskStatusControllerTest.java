@@ -188,11 +188,7 @@ class UpdateRiskStatusControllerTest {
   @WithLongPrincipal(5L)
   void should_400반환_when_statusMissing() throws Exception {
     mockMvc
-        .perform(
-            patch(BASE_URL)
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+        .perform(patch(BASE_URL).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(useCase);
