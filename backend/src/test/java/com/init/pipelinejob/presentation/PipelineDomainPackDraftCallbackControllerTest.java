@@ -12,6 +12,7 @@ import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackUseCase;
 import com.init.pipelinejob.application.ReceiveIntentDraftCallbackUseCase;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
+import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
@@ -37,7 +38,12 @@ class PipelineDomainPackDraftCallbackControllerTest {
 
   private static final String BASE_URL = "/api/v1/pipeline-jobs/11/callbacks/domain-pack-drafts";
 
-  @Autowired private MockMvc mockMvc;
+  private final MockMvc mockMvc;
+
+  @Autowired
+  PipelineDomainPackDraftCallbackControllerTest(MockMvc mockMvc) {
+    this.mockMvc = mockMvc;
+  }
 
   @MockitoBean private ReceiveDomainPackDraftCallbackUseCase domainPackUseCase;
   @MockitoBean private ReceiveIntentDraftCallbackUseCase intentUseCase;
@@ -152,6 +158,26 @@ class PipelineDomainPackDraftCallbackControllerTest {
                 .content(validDomainPackRequestJson()))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("PIPELINE_JOB_CONFLICT"));
+  }
+
+  @Test
+  @DisplayName("현재 상태에서 허용되지 않은 callback이면 409를 반환한다")
+  @WithMockUser
+  void receiveDomainPackDraftCallback_notAllowed_returns409() throws Exception {
+    given(domainPackUseCase.execute(any()))
+        .willThrow(
+            new PipelineJobCallbackNotAllowedException(
+                11L, "WAITING_INTENT_CALLBACK", "DOMAIN_PACK_DRAFT_CALLBACK"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .header(WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET, "secret-123")
+                .contentType("application/json")
+                .content(validDomainPackRequestJson()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("PIPELINE_JOB_CALLBACK_NOT_ALLOWED"));
   }
 
   @Test

@@ -38,7 +38,12 @@ class PipelineIntentDraftCallbackControllerTest {
 
   private static final String BASE_URL = "/api/v1/pipeline-jobs/11/callbacks/intent-drafts";
 
-  @Autowired private MockMvc mockMvc;
+  private final MockMvc mockMvc;
+
+  @Autowired
+  PipelineIntentDraftCallbackControllerTest(MockMvc mockMvc) {
+    this.mockMvc = mockMvc;
+  }
 
   @MockitoBean private ReceiveIntentDraftCallbackUseCase intentUseCase;
   @MockitoBean private ReceiveDomainPackDraftCallbackUseCase domainPackUseCase;

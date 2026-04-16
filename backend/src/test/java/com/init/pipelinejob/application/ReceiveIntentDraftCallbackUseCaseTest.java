@@ -277,8 +277,8 @@ class ReceiveIntentDraftCallbackUseCaseTest {
       Constructor<PipelineJob> constructor = PipelineJob.class.getDeclaredConstructor();
       constructor.setAccessible(true);
       return constructor.newInstance();
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (ReflectiveOperationException ex) {
+      throw new RuntimeException("PipelineJob 테스트 인스턴스 생성 실패", ex);
     }
   }
 

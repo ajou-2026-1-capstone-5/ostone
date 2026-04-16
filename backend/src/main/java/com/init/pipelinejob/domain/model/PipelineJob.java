@@ -118,6 +118,7 @@ public class PipelineJob {
 
   public void markSucceeded(
       Long domainPackId, String resultSummaryJson, OffsetDateTime finishedAt) {
+    Objects.requireNonNull(finishedAt, "finishedAt must not be null");
     this.domainPackId = domainPackId;
     this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
     this.status = STATUS_SUCCEEDED;
