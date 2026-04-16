@@ -2,11 +2,10 @@ package com.init.domainpack.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
-import com.init.domainpack.infrastructure.persistence.DomainPackRef;
 import com.init.domainpack.infrastructure.persistence.JpaDomainPackVersionRepository;
-import java.lang.reflect.Constructor;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -41,14 +39,12 @@ class JpaDomainPackVersionRepositoryTest {
   @DisplayName("findByIdAndWorkspaceId: 올바른 workspaceId + versionId → version 반환")
   void should_version반환_when_올바른workspaceId와versionId() {
     // given
-    DomainPackRef pack = newRef();
-    ReflectionTestUtils.setField(pack, "id", 1L);
-    ReflectionTestUtils.setField(pack, "workspaceId", 1L);
-    em.persist(pack);
+    DomainPack pack = DomainPack.create(1L, "refund-pack-1", "환불 Pack 1", null, null);
+    em.persistAndFlush(pack);
 
     DomainPackVersion version =
         ((DomainPackVersionRepository) repository)
-            .saveAndFlush(DomainPackVersion.createDraft(1L, 1, null, null, "{}"));
+            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}"));
 
     // when
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(1L, version.getId());
@@ -63,31 +59,17 @@ class JpaDomainPackVersionRepositoryTest {
   @DisplayName("findByIdAndWorkspaceId: 다른 workspaceId → empty 반환")
   void should_empty반환_when_다른workspaceId() {
     // given
-    DomainPackRef pack = newRef();
-    ReflectionTestUtils.setField(pack, "id", 2L);
-    ReflectionTestUtils.setField(pack, "workspaceId", 1L);
-    em.persist(pack);
+    DomainPack pack = DomainPack.create(1L, "refund-pack-2", "환불 Pack 2", null, null);
+    em.persistAndFlush(pack);
 
     DomainPackVersion version =
         ((DomainPackVersionRepository) repository)
-            .saveAndFlush(DomainPackVersion.createDraft(2L, 1, null, null, "{}"));
+            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}"));
 
     // when — workspaceId=99L은 해당 pack의 workspaceId(1L)가 아님
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(99L, version.getId());
 
     // then
     assertThat(result).isEmpty();
-  }
-
-  // ── helpers ────────────────────────────────────────────────────────────────
-
-  private DomainPackRef newRef() {
-    try {
-      Constructor<DomainPackRef> ctor = DomainPackRef.class.getDeclaredConstructor();
-      ctor.setAccessible(true);
-      return ctor.newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 }

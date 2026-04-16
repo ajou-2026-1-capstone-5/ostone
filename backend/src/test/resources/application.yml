@@ -27,3 +27,7 @@ jwt:
 
 cors:
   allowed-origins: "http://localhost:5173"
+
+airflow:
+  webhook:
+    secret: test-airflow-webhook-secret

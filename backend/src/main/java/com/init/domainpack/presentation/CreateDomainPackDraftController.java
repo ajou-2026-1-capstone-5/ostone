@@ -3,6 +3,7 @@ package com.init.domainpack.presentation;
 import com.init.domainpack.application.CreateDomainPackDraftCommand;
 import com.init.domainpack.application.CreateDomainPackDraftResult;
 import com.init.domainpack.application.CreateDomainPackDraftUseCase;
+import com.init.domainpack.application.IntentDraft;
 import com.init.domainpack.presentation.dto.CreateDomainPackDraftRequest;
 import com.init.domainpack.presentation.dto.CreateDomainPackDraftResponse;
 import com.init.shared.presentation.AuthenticationUtils;
@@ -45,7 +46,7 @@ public class CreateDomainPackDraftController {
                 safeList(request.intents()).stream()
                     .map(
                         intent ->
-                            new CreateDomainPackDraftCommand.IntentDraft(
+                            new IntentDraft(
                                 intent.intentCode(),
                                 intent.name(),
                                 intent.description(),

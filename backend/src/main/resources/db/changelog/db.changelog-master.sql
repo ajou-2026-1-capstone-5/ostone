@@ -585,6 +585,10 @@ create table runtime.session_outcome (
 --comment: Add optimistic locking version column to pack.domain_pack_version
 alter table pack.domain_pack_version add column version bigint not null default 0;
 
+--changeset devjhan:20260416-add-version-to-pipeline-job
+--comment: Add optimistic locking version column to pipeline.pipeline_job
+alter table pipeline.pipeline_job add column version bigint not null default 0;
+
 --changeset devjhan:20260406-add-password-hash-to-app-user
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
 alter table app.app_user add column password_hash varchar(255);

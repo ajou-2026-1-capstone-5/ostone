@@ -16,17 +16,6 @@ public record CreateDomainPackDraftCommand(
     List<WorkflowDraft> workflows,
     List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
 
-  public record IntentDraft(
-      String intentCode,
-      String name,
-      String description,
-      Integer taxonomyLevel,
-      String parentIntentCode,
-      String sourceClusterRef,
-      String entryConditionJson,
-      String evidenceJson,
-      String metaJson) {}
-
   public record SlotDraft(
       String slotCode,
       String name,

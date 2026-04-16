@@ -617,6 +617,7 @@ create table review.review_summary_metric (
 ```sql
 create table pipeline.pipeline_job (
     id                  bigserial primary key,
+    version             bigint not null default 0,
     workspace_id        bigint not null references app.workspace(id),
     dataset_id          bigint references corpus.dataset(id),
     domain_pack_id      bigint references pack.domain_pack(id),
