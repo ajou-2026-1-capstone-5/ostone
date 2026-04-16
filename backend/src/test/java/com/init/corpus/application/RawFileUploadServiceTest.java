@@ -114,7 +114,15 @@ class RawFileUploadServiceTest {
 
     RawFileUploadCommand command =
         new RawFileUploadCommand(
-            1L, "key", "name", "src", 1L, VALID_JSON, "f.json", "application/json", 10L);
+            1L,
+            "key",
+            "name",
+            "src",
+            1L,
+            VALID_JSON,
+            "f.json",
+            "application/json",
+            (long) VALID_JSON.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(WorkspaceNotFoundException.class);
@@ -130,7 +138,15 @@ class RawFileUploadServiceTest {
 
     RawFileUploadCommand command =
         new RawFileUploadCommand(
-            1L, "key", "name", "src", 1L, VALID_JSON, "f.json", "application/json", 10L);
+            1L,
+            "key",
+            "name",
+            "src",
+            1L,
+            VALID_JSON,
+            "f.json",
+            "application/json",
+            (long) VALID_JSON.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(UnauthorizedWorkspaceAccessException.class);
@@ -147,7 +163,15 @@ class RawFileUploadServiceTest {
 
     RawFileUploadCommand command =
         new RawFileUploadCommand(
-            1L, "dup-key", "name", "src", 1L, VALID_JSON, "f.json", "application/json", 10L);
+            1L,
+            "dup-key",
+            "name",
+            "src",
+            1L,
+            VALID_JSON,
+            "f.json",
+            "application/json",
+            (long) VALID_JSON.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(DatasetKeyConflictException.class);

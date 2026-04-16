@@ -1,7 +1,6 @@
 package com.init.corpus.application;
 
 import com.init.shared.application.exception.BadRequestException;
-import java.util.Objects;
 
 public record RawFileUploadCommand(
     Long workspaceId,
@@ -15,9 +14,15 @@ public record RawFileUploadCommand(
     long sizeBytes) {
 
   public RawFileUploadCommand {
-    Objects.requireNonNull(workspaceId, "workspaceId must not be null");
-    Objects.requireNonNull(createdBy, "createdBy must not be null");
-    Objects.requireNonNull(fileBytes, "fileBytes must not be null");
+    if (workspaceId == null) {
+      throw new BadRequestException("VALIDATION_ERROR", "workspaceId must not be null");
+    }
+    if (createdBy == null) {
+      throw new BadRequestException("VALIDATION_ERROR", "createdBy must not be null");
+    }
+    if (fileBytes == null) {
+      throw new BadRequestException("VALIDATION_ERROR", "fileBytes must not be null");
+    }
     if (datasetKey == null || datasetKey.isBlank()) {
       throw new BadRequestException("VALIDATION_ERROR", "datasetKey must not be blank");
     }
@@ -50,6 +55,13 @@ public record RawFileUploadCommand(
     if (contentType.length() > 100) {
       throw new BadRequestException(
           "VALIDATION_ERROR", "contentType must not exceed 100 characters");
+    }
+    if (sizeBytes < 0) {
+      throw new BadRequestException("VALIDATION_ERROR", "sizeBytes must be non-negative");
+    }
+    if (sizeBytes != fileBytes.length) {
+      throw new BadRequestException(
+          "VALIDATION_ERROR", "sizeBytes must match actual fileBytes length");
     }
   }
 }
