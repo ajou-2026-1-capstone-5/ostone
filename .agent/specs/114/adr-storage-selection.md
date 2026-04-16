@@ -40,8 +40,13 @@
 
 ### MinIO 선택 이유 (로컬 개발)
 
-- AWS S3 API 완전 호환 → 동일 SDK, 동일 코드로 전환 가능
-- docker-compose 단일 서비스로 추가 (공식 이미지: `minio/minio`)
+- AWS S3 API **높은 호환성** → 동일 SDK(`software.amazon.awssdk:s3`), 동일 코드로 전환 가능
+  - **호환성 주의 사항**:
+    - Presigned URL: 헤더/서명 방식 일부 차이 — MinIO는 `x-amz-*` 헤더 처리 방식이 S3와 상이할 수 있음
+    - Multipart Upload 제한: `ListMultipartUploads`는 정확한 object name 필요, `AbortIncompleteMultipartUpload` 정책 미지원, `aws-chunked` 인코딩 16 MiB 초과 시 업로드 오류 가능
+    - `putObject` 메타데이터/헤더 권한: 커스텀 헤더(`x-amz-meta-*`) 처리 및 권한 모델 일부 차이 있음
+  - **이 스펙 범위(단순 `putObject`)는 위 edge case 해당 없음** — 향후 presigned URL·multipart 도입 시 재검토 필요
+- docker-compose 단일 서비스로 추가 (공식 이미지: `minio/minio`, 호환성 주의 사항은 위 참조)
 - 로컬/CI에서 실제 AWS 자격증명 불필요
 - 무료 오픈소스
 

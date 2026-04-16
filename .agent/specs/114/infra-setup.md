@@ -11,7 +11,7 @@
 
 ```yaml
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-01-20T14-49-07Z   # floating :latest 금지 — 재현성 보장을 위해 버전 고정
     container_name: init-minio
     command: server /data --console-address ":9001"
     environment:
@@ -23,8 +23,8 @@
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
@@ -102,7 +102,7 @@ storage:
 ## 5. docker-compose 시작 및 MinIO 버킷 초기화 (로컬)
 
 ```bash
-# docker-compose 전체 시작 (MinIO 포함)
+# docker-compose MinIO 시작
 docker-compose up -d minio
 
 # MinIO Web Console로 버킷 생성: http://localhost:9001
@@ -119,8 +119,17 @@ docker-compose up -d minio
 
 아래 항목은 이 스펙의 범위 밖이며 인프라 담당자가 별도로 수행한다.
 
-- `aws s3api create-bucket --bucket init-raw-files --region ap-northeast-2`
-- IAM Policy 생성 (`s3:PutObject`, `s3:GetObject` on `init-raw-files/*`)
+- 환경별 버킷 생성 (환경에 따라 해당 명령 실행):
+  ```bash
+  # 개발 환경
+  aws s3api create-bucket --bucket init-raw-files-dev --region ap-northeast-2 \
+      --create-bucket-configuration LocationConstraint=ap-northeast-2
+  # 운영 환경
+  aws s3api create-bucket --bucket init-raw-files-prod --region ap-northeast-2 \
+      --create-bucket-configuration LocationConstraint=ap-northeast-2
+  # (로컬 MinIO 버킷 init-raw-files-local은 위 섹션 5의 mc 명령으로 생성)
+  ```
+- IAM Policy 생성 (개발: `s3:PutObject`, `s3:GetObject` on `init-raw-files-dev/*`; 운영: 동일 패턴으로 `init-raw-files-prod/*`)
 - Fargate Task Role에 위 Policy attach
 - KMS 서버 사이드 암호화 (SSE-S3 or SSE-KMS) 설정
 - S3 Lifecycle 정책 (장기 보관 → Glacier 전환 등) 설정
