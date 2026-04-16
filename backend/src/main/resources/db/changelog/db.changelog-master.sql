@@ -709,3 +709,9 @@ SELECT setval('runtime.chat_session_id_seq', (SELECT COALESCE(MAX(id), 1) FROM r
 ALTER TABLE pack.slot_definition
     ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     ADD CONSTRAINT chk_slot_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
+
+--changeset devjhan:20260416-add-status-to-policy-definition
+--comment: Add status column to pack.policy_definition for policy lifecycle management (ACTIVE/INACTIVE)
+ALTER TABLE pack.policy_definition
+    ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    ADD CONSTRAINT chk_policy_definition_status CHECK (status IN ('ACTIVE', 'INACTIVE'));
