@@ -460,6 +460,7 @@ create table pack.slot_definition (
     validation_rule_json jsonb not null default '{}'::jsonb,
     default_value_json  jsonb,
     meta_json           jsonb not null default '{}'::jsonb,
+    status              varchar(50) not null default 'ACTIVE',
     created_at          timestamptz not null default now(),
     updated_at          timestamptz not null default now(),
     unique (domain_pack_version_id, slot_code)
@@ -487,6 +488,7 @@ create table pack.policy_definition (
     action_json         jsonb not null default '{}'::jsonb,
     evidence_json       jsonb not null default '[]'::jsonb,
     meta_json           jsonb not null default '{}'::jsonb,
+    status              varchar(50) not null default 'ACTIVE',
     created_at          timestamptz not null default now(),
     updated_at          timestamptz not null default now(),
     unique (domain_pack_version_id, policy_code)
@@ -955,20 +957,24 @@ create index idx_taxonomy_drift_pack
 - `PUBLISHED`
 - `ARCHIVED`
 
-### 11.2 `review.review_session.status`
+### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status`
+- `ACTIVE`
+- `INACTIVE`
+
+### 11.3 `review.review_session.status`
 - `OPEN`
 - `IN_PROGRESS`
 - `COMPLETED`
 - `CLOSED`
 
-### 11.3 `pipeline.pipeline_job.status`
+### 11.4 `pipeline.pipeline_job.status`
 - `QUEUED`
 - `RUNNING`
 - `FAILED`
 - `SUCCEEDED`
 - `CANCELLED`
 
-### 11.4 `runtime.workflow_execution.status`
+### 11.5 `runtime.workflow_execution.status`
 - `RUNNING`
 - `WAITING_INPUT`
 - `COMPLETED`
@@ -976,7 +982,7 @@ create index idx_taxonomy_drift_pack
 - `BLOCKED`
 - `FAILED`
 
-### 11.5 `runtime.session_outcome.outcome_type`
+### 11.6 `runtime.session_outcome.outcome_type`
 - `RESOLVED`
 - `HANDED_OFF`
 - `BLOCKED`
