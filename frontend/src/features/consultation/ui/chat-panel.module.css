@@ -111,7 +111,6 @@
   flex-shrink: 0;
 }
 
-}
 
 .msgAvatarAgent {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -127,6 +126,7 @@
   word-break: break-word;
 }
 
+.msgBubbleCustomer {
   color: var(--text-primary);
   border-bottom-left-radius: 6px;
 }
@@ -174,10 +174,6 @@
   align-self: flex-end;
   max-width: 75%;
 }
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
 
 /* Input Area */
 .inputArea {
@@ -209,7 +205,6 @@
   color: var(--text-primary);
 }
 
-}
 
 .messageInput {
   flex: 1;
@@ -232,7 +227,6 @@
   border-color: var(--primary-color);
 }
 
-}
 
 .sendBtn {
   display: flex;
@@ -271,7 +265,6 @@
   gap: 12px;
 }
 
-}
 
 .emptyChatText {
   font-size: 0.95rem;

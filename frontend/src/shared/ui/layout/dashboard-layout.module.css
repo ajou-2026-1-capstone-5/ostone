@@ -4,7 +4,6 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background-color: var(--bg-color);
   background: #ffffff;
   color: var(--text-color);
 }
@@ -25,7 +24,6 @@
 .logo {
   font-weight: 700;
   font-size: 1.25rem;
-  letter-spacing: -0.14px;
   letter-spacing: -0.5px;
 }
 
@@ -95,7 +93,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #000000, #666666);
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
