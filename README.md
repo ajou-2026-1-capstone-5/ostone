@@ -70,7 +70,13 @@ docker compose up -d
 (cd ml && uv run pytest)
 ```
 
-`docker compose up -d`는 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`를 함께 실행한다. 다만 `backend`와 `frontend` 컨테이너는 기존 방식대로 선행 산출물(`bootJar`, `pnpm build`)을 전제한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
+루트 `docker compose up -d`는 `docker-compose.yml`과 `docker-compose.override.yml`을 함께 읽어서 `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`를 같이 실행한다. `backend`와 `frontend` 컨테이너는 기존 방식대로 선행 산출물(`bootJar`, `pnpm build`)을 전제한다. Dockerfile이나 의존성 변경을 강제로 다시 반영하려면 `docker compose up --build -d`를 사용한다.
+
+Airflow/ML 파이프라인도 같은 루트 compose 스택에 포함된다. ML 관련 서비스만 따로 올리고 싶다면 루트에서 아래처럼 서비스 이름을 지정하면 된다.
+
+```bash
+docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
+```
 
 상세 설정: [`backend/README.md`](backend/README.md)
 

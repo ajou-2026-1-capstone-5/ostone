@@ -1,36 +1,3 @@
-x-airflow-common: &airflow-common
-  build:
-    context: ./ml/airflow
-    dockerfile: Dockerfile
-  environment: &airflow-common-env
-    AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${DB_USER:-init}:${DB_PASSWORD:-init-db-password}@postgres:5432/${DB_NAME:-init}
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_ASYNC: postgresql+asyncpg://${DB_USER:-init}:${DB_PASSWORD:-init-db-password}@postgres:5432/${DB_NAME:-init}
-    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-ilPjQSBqt-pN_Ci6T-DDa5PQFIfEvGBdc-jiv0StvLk=}
-    AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-init-airflow-api-secret-key}
-    AIRFLOW__API__BASE_URL: http://airflow-apiserver:8080
-    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
-    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-init-airflow-jwt-secret-key}
-    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin,viewer:viewer
-    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
-    AIRFLOW_SIMPLE_ADMIN_PASSWORD: ${AIRFLOW_SIMPLE_ADMIN_PASSWORD:-admin}
-    AIRFLOW_SIMPLE_VIEWER_PASSWORD: ${AIRFLOW_SIMPLE_VIEWER_PASSWORD:-viewer}
-    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/src/dags
-    AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
-    PIPELINE_BACKEND_BASE_URL: ${PIPELINE_BACKEND_BASE_URL:-http://backend:8080}
-    PIPELINE_ARTIFACT_ROOT: ${PIPELINE_ARTIFACT_ROOT:-/opt/airflow/artifacts}
-    PYTHONPATH: /opt/airflow/src
-  volumes:
-    # Mount the whole ML source tree once and let Airflow read runtime DAGs from /opt/airflow/src/dags.
-    - ./ml/src:/opt/airflow/src
-    - airflow_logs:/opt/airflow/logs
-    - airflow_artifacts:/opt/airflow/artifacts
-    - airflow_auth:/opt/airflow/auth
-  user: "${AIRFLOW_UID:-50000}:0"
-  networks:
-    - init-network
-
 services:
   postgres:
     image: postgres:17
@@ -119,6 +86,7 @@ services:
     networks:
       - init-network
 
+<<<<<<< HEAD
   minio:
     image: minio/minio:RELEASE.2025-01-20T14-49-07Z
     container_name: init-minio
@@ -208,6 +176,10 @@ volumes:
   airflow_logs:
   airflow_artifacts:
   airflow_auth:
+=======
+volumes:
+  postgres_data:
+>>>>>>> 546d2ba (build(pipeline): integrate airflow into root compose stack)
 
 
 networks:

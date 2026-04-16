@@ -19,40 +19,43 @@
 
 ## 빠른 시작
 
-루트 경로에서 먼저 로컬 공통 스택을 올립니다.
+루트 경로에서 Airflow 관련 서비스를 먼저 올립니다.
 
 ```bash
 cp .env.example .env
-docker compose up -d
+docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
 ```
+
+backend/frontend까지 포함한 전체 통합 스택이 필요하면 루트에서 `docker compose up -d`를 사용합니다.
 
 파이썬 개발 의존성을 맞춥니다.
 
 ```bash
-cd ml
-uv sync
+cd ml && uv sync
 ```
 
 테스트와 정적 검사를 실행합니다.
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run ruff format .
-uv run mypy .
+cd ml && uv run pytest
+cd ml && uv run ruff check .
+cd ml && uv run ruff format .
+cd ml && uv run mypy .
 ```
 
 ## Airflow 로컬 실행
 
-Airflow는 루트 `docker-compose.yml` 기준으로 함께 실행됩니다.
+Airflow는 루트 `docker-compose.yml`과 `docker-compose.override.yml` 기준으로 함께 실행됩니다.
 
 - UI 주소: `http://localhost:8081`
 - 관리자 계정: 기본 `admin / admin`
 - 조회 전용 계정: 기본 `viewer / viewer`
 
-Airflow metadata는 로컬 Postgres의 기존 `init` DB와 `init` 계정을 그대로 사용합니다. 별도 Airflow 전용 DB/user를 생성하지 않습니다.
+Airflow metadata는 루트 Postgres 서비스의 기존 `init` DB와 `init` 계정을 그대로 사용합니다. 별도 Airflow 전용 DB/user를 따로 올리지 않습니다.
 
-기본 로컬 개발값은 compose fallback으로 `admin / admin`, `viewer / viewer`입니다. 필요하면 루트 `.env`에서 덮어쓸 수 있습니다.
+기본 로컬 개발값은 compose fallback으로 `admin / admin`, `viewer / viewer`입니다. 필요하면 루트 `.env` 또는 shell env에서 덮어쓸 수 있습니다.
+
+루트 `docker compose up -d` 한 번으로 backend/frontend와 Airflow가 같이 올라옵니다. ML 관련 서비스만 따로 보고 싶으면 루트에서 서비스 이름만 지정해 실행하면 됩니다.
 
 Airflow 관련 컨테이너:
 
@@ -63,6 +66,8 @@ Airflow 관련 컨테이너:
 
 `airflow-init`가 `Exited` 상태로 보이는 것은 정상입니다.  
 초기화가 끝나면 종료되고, 실제 런타임은 나머지 3개 서비스가 담당합니다.
+
+아래 `docker compose` 명령은 모두 저장소 루트 경로 기준입니다.
 
 상태 확인:
 
@@ -121,8 +126,8 @@ ml/
 CLI로도 검증할 수 있습니다.
 
 ```bash
-docker exec init-airflow-apiserver airflow dags list
-docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
+docker compose exec airflow-apiserver airflow dags list
+docker compose exec airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
 ```
 
 ## artifact 규칙
@@ -181,10 +186,10 @@ cd ml && uv run ruff format .
 cd ml && uv run mypy .
 
 # Airflow DAG 목록 확인
-docker exec init-airflow-apiserver airflow dags list
+docker compose exec airflow-apiserver airflow dags list
 
 # 특정 DAG 테스트 실행
-docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
+docker compose exec airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
 ```
 
 ## 문제 해결
@@ -194,7 +199,7 @@ docker exec init-airflow-apiserver airflow dags test domain_pack_generation 2026
 먼저 DAG 목록을 확인합니다.
 
 ```bash
-docker exec init-airflow-apiserver airflow dags list
+docker compose exec airflow-apiserver airflow dags list
 ```
 
 여전히 안 보이면 parser 쪽을 재시작합니다.
@@ -221,7 +226,7 @@ docker compose up -d
 
 주의:
 
-- `down -v`는 Postgres 데이터와 Airflow 로그/artifact/auth 볼륨까지 삭제합니다.
+- `down -v`는 Postgres 데이터와 Airflow 로그/artifact/auth 볼륨까지 함께 삭제합니다.
 
 ## 협업 팁
 
