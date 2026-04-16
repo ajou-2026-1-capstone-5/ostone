@@ -37,3 +37,6 @@ storage:
     bucket-name: test-bucket
     region: us-east-1
     endpoint: ""
+    access-key: ""
+    secret-key: ""
+    path-style-access: false

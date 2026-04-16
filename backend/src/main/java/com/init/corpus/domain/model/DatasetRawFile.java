@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "dataset_raw_file", schema = "corpus")
@@ -46,6 +47,19 @@ public class DatasetRawFile {
       String contentType,
       Long sizeBytes,
       String checksumSha256) {
+    Objects.requireNonNull(objectKey, "objectKey must not be null");
+    Objects.requireNonNull(originalFilename, "originalFilename must not be null");
+    Objects.requireNonNull(checksumSha256, "checksumSha256 must not be null");
+    Objects.requireNonNull(sizeBytes, "sizeBytes must not be null");
+    if (objectKey.isBlank()) {
+      throw new IllegalArgumentException("objectKey must not be blank");
+    }
+    if (checksumSha256.isBlank()) {
+      throw new IllegalArgumentException("checksumSha256 must not be blank");
+    }
+    if (sizeBytes < 0) {
+      throw new IllegalArgumentException("sizeBytes must be >= 0");
+    }
     DatasetRawFile file = new DatasetRawFile();
     file.datasetId = datasetId;
     file.objectKey = objectKey;

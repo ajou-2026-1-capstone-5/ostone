@@ -19,13 +19,17 @@ public class StorageConfig {
   public S3Client s3Client(StorageProperties properties) {
     S3ClientBuilder builder = S3Client.builder().region(Region.of(properties.region()));
 
-    boolean hasExplicitCredentials =
-        properties.accessKey() != null
-            && !properties.accessKey().isBlank()
-            && properties.secretKey() != null
-            && !properties.secretKey().isBlank();
+    boolean accessKeyPresent =
+        properties.accessKey() != null && !properties.accessKey().isBlank();
+    boolean secretKeyPresent =
+        properties.secretKey() != null && !properties.secretKey().isBlank();
 
-    if (hasExplicitCredentials) {
+    if (accessKeyPresent != secretKeyPresent) {
+      throw new IllegalArgumentException(
+          "Both accessKey and secretKey must be provided together, or neither should be set");
+    }
+
+    if (accessKeyPresent) {
       builder.credentialsProvider(
           StaticCredentialsProvider.create(
               AwsBasicCredentials.create(properties.accessKey(), properties.secretKey())));

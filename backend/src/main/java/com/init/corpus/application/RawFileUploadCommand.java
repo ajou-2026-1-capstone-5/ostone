@@ -38,5 +38,14 @@ public record RawFileUploadCommand(
     if (originalFilename == null || originalFilename.isBlank()) {
       throw new IllegalArgumentException("originalFilename must not be blank");
     }
+    if (originalFilename.length() > 255) {
+      throw new IllegalArgumentException("originalFilename must not exceed 255 characters");
+    }
+    if (contentType == null || contentType.isBlank()) {
+      throw new IllegalArgumentException("contentType must not be blank");
+    }
+    if (contentType.length() > 100) {
+      throw new IllegalArgumentException("contentType must not exceed 100 characters");
+    }
   }
 }

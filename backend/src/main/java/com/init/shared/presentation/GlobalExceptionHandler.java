@@ -104,8 +104,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MissingServletRequestPartException.class)
   public ResponseEntity<ErrorResponse> handleMissingRequestPart(
       MissingServletRequestPartException ex) {
+    String partName = ex.getRequestPartName();
+    String message =
+        (partName != null && !partName.isBlank())
+            ? "파일 파트 '" + partName + "'이(가) 누락되었습니다."
+            : "파일 파트가 누락되었습니다.";
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(new ErrorResponse("VALIDATION_ERROR", "파일 파트가 누락되었습니다."));
+        .body(new ErrorResponse("VALIDATION_ERROR", message));
   }
 
   @ExceptionHandler(MissingServletRequestParameterException.class)

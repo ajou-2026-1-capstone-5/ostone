@@ -23,8 +23,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
@@ -45,17 +45,11 @@ class DatasetControllerRawFileTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @SuppressWarnings("removal")
-  @MockBean
-  private RawFileUploadService rawFileUploadService;
+  @MockitoBean private RawFileUploadService rawFileUploadService;
 
-  @SuppressWarnings("removal")
-  @MockBean
-  private RawDatasetUploadService rawDatasetUploadService;
+  @MockitoBean private RawDatasetUploadService rawDatasetUploadService;
 
-  @SuppressWarnings("removal")
-  @MockBean
-  private DatasetUploadService datasetUploadService;
+  @MockitoBean private DatasetUploadService datasetUploadService;
 
   private static final byte[] VALID_JSON =
       "[{\"source_id\":\"001\",\"consulting_content\":\"상담사: hi\\n고객: hello\"}]".getBytes();
