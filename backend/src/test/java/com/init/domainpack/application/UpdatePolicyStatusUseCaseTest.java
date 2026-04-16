@@ -55,6 +55,7 @@ class UpdatePolicyStatusUseCaseTest {
     PolicyDefinitionResponse result = useCase.execute(command);
 
     assertThat(result.status()).isEqualTo(PolicyDefinition.STATUS_INACTIVE);
+    verify(policyRepository).save(policy);
   }
 
   @Test
@@ -73,6 +74,7 @@ class UpdatePolicyStatusUseCaseTest {
     PolicyDefinitionResponse result = useCase.execute(command);
 
     assertThat(result.status()).isEqualTo(PolicyDefinition.STATUS_ACTIVE);
+    verify(policyRepository).save(policy);
   }
 
   @Test

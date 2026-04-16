@@ -951,6 +951,7 @@ create index idx_taxonomy_drift_pack
 ## 11. 상태값 예시
 
 ### 11.1 `domain_pack_version.lifecycle_status`
+
 - `DRAFT`
 - `IN_REVIEW`
 - `APPROVED`
@@ -958,16 +959,19 @@ create index idx_taxonomy_drift_pack
 - `ARCHIVED`
 
 ### 11.2 `pack.slot_definition.status` / `pack.policy_definition.status`
+
 - `ACTIVE`
 - `INACTIVE`
 
 ### 11.3 `review.review_session.status`
+
 - `OPEN`
 - `IN_PROGRESS`
 - `COMPLETED`
 - `CLOSED`
 
 ### 11.4 `pipeline.pipeline_job.status`
+
 - `QUEUED`
 - `RUNNING`
 - `FAILED`
@@ -975,6 +979,7 @@ create index idx_taxonomy_drift_pack
 - `CANCELLED`
 
 ### 11.5 `runtime.workflow_execution.status`
+
 - `RUNNING`
 - `WAITING_INPUT`
 - `COMPLETED`
@@ -983,6 +988,7 @@ create index idx_taxonomy_drift_pack
 - `FAILED`
 
 ### 11.6 `runtime.session_outcome.outcome_type`
+
 - `RESOLVED`
 - `HANDED_OFF`
 - `BLOCKED`
