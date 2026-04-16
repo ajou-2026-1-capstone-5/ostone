@@ -508,6 +508,8 @@ create table pack.risk_definition (
     status              varchar(50) not null default 'ACTIVE',
     created_at          timestamptz not null default now(),
     updated_at          timestamptz not null default now(),
+    constraint chk_risk_definition_status
+        check (status in ('ACTIVE', 'INACTIVE')),
     unique (domain_pack_version_id, risk_code)
 );
 

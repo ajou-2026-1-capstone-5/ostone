@@ -56,6 +56,19 @@ class RiskDefinitionTest {
   }
 
   @Test
+  @DisplayName("changeStatus는 유효한 값으로 상태를 변경한다")
+  void changeStatus_withValidValue_updatesStatus() {
+    RiskDefinition riskDefinition =
+        RiskDefinition.create(1L, "refund_risk", "환불 리스크", null, "medium", null, null, null, null);
+
+    riskDefinition.changeStatus(RiskDefinition.STATUS_INACTIVE);
+    assertThat(riskDefinition.getStatus()).isEqualTo(RiskDefinition.STATUS_INACTIVE);
+
+    riskDefinition.changeStatus(RiskDefinition.STATUS_ACTIVE);
+    assertThat(riskDefinition.getStatus()).isEqualTo(RiskDefinition.STATUS_ACTIVE);
+  }
+
+  @Test
   @DisplayName("changeStatus는 ACTIVE/INACTIVE만 허용한다")
   void changeStatus_withInvalidValue_throwsException() {
     RiskDefinition riskDefinition =

@@ -69,6 +69,22 @@ class UpdateRiskStatusControllerTest {
   }
 
   @Test
+  @DisplayName("PATCH /risks/{riskId}/status: ACTIVE 전환 → 200")
+  @WithLongPrincipal(5L)
+  void should_200반환_when_ACTIVE전환() throws Exception {
+    given(useCase.execute(any())).willReturn(sampleResponse("ACTIVE"));
+
+    mockMvc
+        .perform(
+            patch(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("status", "ACTIVE"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("ACTIVE"));
+  }
+
+  @Test
   @DisplayName("PATCH /risks/{riskId}/status: 허용되지 않는 status 값이면 400")
   @WithLongPrincipal(5L)
   void should_400반환_when_잘못된status() throws Exception {
@@ -153,7 +169,7 @@ class UpdateRiskStatusControllerTest {
   }
 
   @Test
-  @DisplayName("PATCH /risks/{riskId}/status: status 미전송 시 400")
+  @DisplayName("PATCH /risks/{riskId}/status: status 공백값이면 400")
   @WithLongPrincipal(5L)
   void should_400반환_when_statusBlank() throws Exception {
     mockMvc
@@ -162,6 +178,21 @@ class UpdateRiskStatusControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("status", ""))))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(useCase);
+  }
+
+  @Test
+  @DisplayName("PATCH /risks/{riskId}/status: status 키 누락 시 400")
+  @WithLongPrincipal(5L)
+  void should_400반환_when_statusMissing() throws Exception {
+    mockMvc
+        .perform(
+            patch(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(useCase);
