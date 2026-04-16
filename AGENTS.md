@@ -142,9 +142,6 @@ ml/
 │   ├── error-handling.md # 에러 핸들링 패턴
 │   ├── module-creation.md # 모듈 생성 가이드
 │   └── testing.md        # 테스트 전략
-├── audit/
-│   ├── db-schema-compliance-report.md       # DB 스키마 컴플라이언스 리포트
-│   └── implementation-compliance-report.md  # 구현 컴플라이언스 리포트
 └── specs/
     ├── _TEMPLATE_BE.md   # Backend 스펙 템플릿
     ├── _TEMPLATE_FE.md   # Frontend 스펙 템플릿
