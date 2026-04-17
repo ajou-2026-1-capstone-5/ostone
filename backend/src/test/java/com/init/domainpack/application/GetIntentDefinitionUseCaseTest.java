@@ -58,7 +58,8 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("유효한 query로 intent 단건 전체 필드 반환")
-  void execute_withValidQuery_returnsDetail() {
+  void should_returnDetail_when_validQuery() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
@@ -67,10 +68,12 @@ class GetIntentDefinitionUseCaseTest {
     given(intentDefinitionRepository.findByIdAndDomainPackVersionId(INTENT_ID, VERSION_ID))
         .willReturn(Optional.of(createIntent(INTENT_ID, "INTENT_001", "배송 조회 문의")));
 
+    // when
     IntentDefinitionDetail result =
         useCase.execute(
             new GetIntentDefinitionQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, INTENT_ID, USER_ID));
 
+    // then
     assertThat(result.id()).isEqualTo(INTENT_ID);
     assertThat(result.intentCode()).isEqualTo("INTENT_001");
     assertThat(result.entryConditionJson()).isEqualTo("{}");
@@ -80,7 +83,8 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("존재하지 않는 intentId → IntentDefinitionNotFoundException")
-  void execute_withUnknownIntentId_throwsNotFoundException() {
+  void should_throwNotFoundException_when_unknownIntentId() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
@@ -89,6 +93,7 @@ class GetIntentDefinitionUseCaseTest {
     given(intentDefinitionRepository.findByIdAndDomainPackVersionId(INTENT_ID, VERSION_ID))
         .willReturn(Optional.empty());
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -99,9 +104,11 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
-  void execute_workspaceNotFound_throwsException() {
+  void should_throwWorkspaceNotFoundException_when_workspaceNotFound() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -112,10 +119,12 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
-  void execute_unauthorized_throwsException() {
+  void should_throwUnauthorizedException_when_unauthorized() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -126,11 +135,13 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("domain pack 소속 불일치 → DomainPackNotFoundException")
-  void execute_packNotInWorkspace_throwsException() {
+  void should_throwDomainPackNotFoundException_when_packNotInWorkspace() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -141,13 +152,15 @@ class GetIntentDefinitionUseCaseTest {
 
   @Test
   @DisplayName("version 소속 불일치 → DomainPackVersionNotFoundException")
-  void execute_versionNotInPack_throwsException() {
+  void should_throwVersionNotFoundException_when_versionNotInPack() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, 999L)));
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
