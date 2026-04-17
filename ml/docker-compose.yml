@@ -4,8 +4,8 @@ x-airflow-common: &airflow-common
     dockerfile: Dockerfile
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${DB_USER:-init}:${DB_PASSWORD:-init-db-password}@postgres:5432/${DB_NAME:-init}
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_ASYNC: postgresql+asyncpg://${DB_USER:-init}:${DB_PASSWORD:-init-db-password}@postgres:5432/${DB_NAME:-init}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${DB_USER:-init}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-init}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_ASYNC: postgresql+asyncpg://${DB_USER:-init}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-init}
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-ilPjQSBqt-pN_Ci6T-DDa5PQFIfEvGBdc-jiv0StvLk=}
     AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-init-airflow-api-secret-key}
     AIRFLOW__API__BASE_URL: http://airflow-apiserver:8080
@@ -34,7 +34,7 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: init-airflow-init
-    entrypoint: ["/opt/airflow/scripts/init-airflow.sh"]
+    entrypoint: [ "/opt/airflow/scripts/init-airflow.sh" ]
     restart: "no"
     depends_on:
       postgres:
@@ -43,7 +43,7 @@ services:
   airflow-apiserver:
     <<: *airflow-common
     container_name: init-airflow-apiserver
-    command: ["airflow", "api-server"]
+    command: [ "airflow", "api-server" ]
     restart: unless-stopped
     ports:
       - "127.0.0.1:8081:8080"
@@ -53,7 +53,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/version" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -62,7 +62,7 @@ services:
   airflow-scheduler:
     <<: *airflow-common
     container_name: init-airflow-scheduler
-    command: ["airflow", "scheduler"]
+    command: [ "airflow", "scheduler" ]
     restart: unless-stopped
     depends_on:
       postgres:
@@ -73,7 +73,7 @@ services:
   airflow-dag-processor:
     <<: *airflow-common
     container_name: init-airflow-dag-processor
-    command: ["airflow", "dag-processor"]
+    command: [ "airflow", "dag-processor" ]
     restart: unless-stopped
     depends_on:
       postgres:

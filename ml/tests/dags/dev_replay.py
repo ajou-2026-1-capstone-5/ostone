@@ -22,7 +22,7 @@ from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    default_args=DEFAULT_DAG_ARGS,
+    default_args=default_dag_args(),
     dagrun_timeout=timedelta(hours=2),
     max_active_runs=1,
     tags=["dev", "retry-test"],
