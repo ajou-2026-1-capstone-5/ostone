@@ -128,7 +128,10 @@ public class IntentDefinition {
     return parentIntentId;
   }
 
-  public void setParentIntentId(Long parentIntentId) {
+  public void assignParent(Long parentIntentId) {
+    if (Objects.equals(this.id, parentIntentId)) {
+      throw new IllegalArgumentException("Intent cannot be its own parent: id=" + this.id);
+    }
     this.parentIntentId = parentIntentId;
   }
 
@@ -150,6 +153,14 @@ public class IntentDefinition {
 
   public String getMetaJson() {
     return metaJson;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
   }
 
   @Override
