@@ -159,12 +159,6 @@ docker compose exec airflow-apiserver airflow dags test domain_pack_generation 2
 ```bash
 # ML 검사
 uv run pytest && uv run ruff check . && uv run ruff format . && uv run mypy .
-
-# Airflow DAG 목록 확인
-cd .. && docker compose exec airflow-apiserver airflow dags list
-
-# 특정 DAG 테스트 실행
-cd .. && docker compose exec airflow-apiserver airflow dags test domain_pack_generation 2026-04-15
 ```
 
 저장소 루트에서:
