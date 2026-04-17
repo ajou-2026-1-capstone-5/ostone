@@ -27,7 +27,7 @@ docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-da
 `ml/` 디렉터리에서:
 
 ```bash
-uv sync && uv run pytest && uv run ruff check . && uv run ruff format . && uv run mypy .
+uv sync && uv run pytest && uv run ruff check . && uv run ruff format --check . && uv run mypy .
 ```
 
 - 위 명령으로 공유 `postgres`도 함께 기동
@@ -158,7 +158,7 @@ docker compose exec airflow-apiserver airflow dags test domain_pack_generation 2
 
 ```bash
 # ML 검사
-uv run pytest && uv run ruff check . && uv run ruff format . && uv run mypy .
+uv run pytest && uv run ruff check . && uv run ruff format --check . && uv run mypy .
 
 # Airflow DAG 목록 확인
 cd .. && docker compose exec airflow-apiserver airflow dags list
