@@ -152,6 +152,14 @@ public class IntentDefinition {
     return metaJson;
   }
 
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
