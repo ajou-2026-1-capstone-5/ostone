@@ -141,8 +141,7 @@ class IntentDefinitionControllerTest {
   @WithLongPrincipal(10L)
   void should_return404_when_intentBelongsToWrongVersion() throws Exception {
     // given
-    given(detailUseCase.execute(any()))
-        .willThrow(new IntentDefinitionNotFoundException(1L, 101L));
+    given(detailUseCase.execute(any())).willThrow(new IntentDefinitionNotFoundException(1L, 101L));
 
     // when & then
     mockMvc
