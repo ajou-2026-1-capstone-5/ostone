@@ -183,18 +183,4 @@ class SlotDefinitionControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("DOMAIN_PACK_NOT_FOUND"));
   }
-
-  @Test
-  @DisplayName("GET .../slots/{slotId} → 404 다른 version 소속 slotId")
-  @WithLongPrincipal(10L)
-  void should_return404_when_slotBelongsToOtherVersion() throws Exception {
-    // given
-    given(detailUseCase.execute(any())).willThrow(new SlotDefinitionNotFoundException(1L));
-
-    // when & then
-    mockMvc
-        .perform(get(BASE_URL + "/1"))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("SLOT_DEFINITION_NOT_FOUND"));
-  }
 }

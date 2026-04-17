@@ -19,9 +19,8 @@ public class GetSlotDefinitionUseCase {
   }
 
   public SlotDefinitionResponse execute(GetSlotDefinitionQuery query) {
-    validator.validateWorkspaceAccess(query.workspaceId(), query.userId());
-    validator.validateDomainPack(query.packId(), query.workspaceId());
-    validator.validateVersion(query.versionId(), query.packId());
+    validator.validateForWorkspacePackVersion(
+        query.workspaceId(), query.userId(), query.packId(), query.versionId());
 
     return slotDefinitionRepository
         .findByIdAndDomainPackVersionId(query.slotId(), query.versionId())

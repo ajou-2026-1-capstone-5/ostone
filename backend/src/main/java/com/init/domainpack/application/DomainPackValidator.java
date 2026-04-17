@@ -59,4 +59,11 @@ public class DomainPackValidator {
       throw new DomainPackVersionNotFoundException(versionId);
     }
   }
+
+  public void validateForWorkspacePackVersion(
+      Long workspaceId, Long userId, Long packId, Long versionId) {
+    validateWorkspaceAccess(workspaceId, userId);
+    validateDomainPack(packId, workspaceId);
+    validateVersion(versionId, packId);
+  }
 }

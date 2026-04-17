@@ -82,7 +82,7 @@ class GetSlotDefinitionUseCaseTest {
 
   @Test
   @DisplayName("존재하지 않는 slotId → SlotDefinitionNotFoundException")
-  void execute_slotNotFound_throwsNotFoundException() {
+  void should_throwNotFoundException_when_slotNotFound() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
@@ -103,7 +103,7 @@ class GetSlotDefinitionUseCaseTest {
 
   @Test
   @DisplayName("다른 version 소속 slotId → SlotDefinitionNotFoundException")
-  void execute_slotBelongsToOtherVersion_throwsNotFoundException() {
+  void should_throwNotFoundException_when_slotBelongsToOtherVersion() {
     // given — slotId exists but belongs to a different versionId, so composite lookup returns empty
     Long otherVersionId = VERSION_ID + 1L;
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
