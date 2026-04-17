@@ -14,7 +14,7 @@ from airflow.sdk import dag, get_current_context, task
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
-from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
+from pipeline.common.dag_defaults import default_dag_args
 
 
 @dag(
@@ -50,9 +50,7 @@ def dev_replay() -> None:
     @task(task_id="force_failure")
     def force_failure() -> None:
         context = get_current_context()
-        raise RuntimeError(
-            f"Intentional failure for retry and failed-state verification: run_id={context['run_id']}"
-        )
+        raise RuntimeError(f"Intentional failure for retry and failed-state verification: run_id={context['run_id']}")
 
     prepare_replay() >> force_failure()
 

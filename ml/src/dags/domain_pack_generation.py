@@ -11,7 +11,7 @@ from airflow.sdk import dag, get_current_context, task
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
-from pipeline.common.dag_defaults import DEFAULT_DAG_ARGS
+from pipeline.common.dag_defaults import default_dag_args
 from pipeline.stages.draft_generation.main import run as draft_generation_run
 from pipeline.stages.evaluation.main import run as evaluation_run
 from pipeline.stages.ingestion.main import run as ingestion_run

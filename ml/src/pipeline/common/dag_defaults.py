@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+
 def default_dag_args() -> dict[str, object]:
     return {
         "retries": 1,
