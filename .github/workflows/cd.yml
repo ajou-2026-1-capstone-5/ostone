@@ -1,0 +1,22 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-backend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Backend to Render
+        run: curl -sf "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}"
+
+  deploy-frontend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Frontend to Render
+        run: curl -sf "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}"
