@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,6 +32,8 @@ services:
       STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       STORAGE_S3_PATH_STYLE: "true"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+
     ports:
       - "8080:8080"
     depends_on:
@@ -40,7 +42,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -73,7 +75,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -83,6 +85,10 @@ services:
 volumes:
   postgres_data:
   minio_data:
+
+
+include:
+  - ./ml/docker-compose.yml
 
 networks:
   init-network:
