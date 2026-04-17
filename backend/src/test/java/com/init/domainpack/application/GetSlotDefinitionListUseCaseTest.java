@@ -66,9 +66,7 @@ class GetSlotDefinitionListUseCaseTest {
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
     given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(VERSION_ID))
         .willReturn(
-            List.of(
-                createSlot(1L, "aaa_slot", "첫번째 슬롯"),
-                createSlot(2L, "zzz_slot", "두번째 슬롯")));
+            List.of(createSlot(1L, "aaa_slot", "첫번째 슬롯"), createSlot(2L, "zzz_slot", "두번째 슬롯")));
 
     // when
     List<SlotDefinitionSummary> result =

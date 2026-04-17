@@ -36,8 +36,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("SlotDefinitionController")
 class SlotDefinitionControllerTest {
 
-  private static final String BASE_URL =
-      "/api/v1/workspaces/1/domain-packs/7/versions/101/slots";
+  private static final String BASE_URL = "/api/v1/workspaces/1/domain-packs/7/versions/101/slots";
 
   @Autowired private MockMvc mockMvc;
 

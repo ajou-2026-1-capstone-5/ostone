@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(
-    "/api/v1/workspaces/{workspaceId}/domain-packs/{packId}/versions/{versionId}/slots")
+@RequestMapping("/api/v1/workspaces/{workspaceId}/domain-packs/{packId}/versions/{versionId}/slots")
 public class SlotDefinitionController {
 
   private final GetSlotDefinitionListUseCase listUseCase;
@@ -37,7 +36,8 @@ public class SlotDefinitionController {
       Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(
-        listUseCase.execute(new GetSlotDefinitionListQuery(workspaceId, packId, versionId, userId)));
+        listUseCase.execute(
+            new GetSlotDefinitionListQuery(workspaceId, packId, versionId, userId)));
   }
 
   @GetMapping("/{slotId}")
