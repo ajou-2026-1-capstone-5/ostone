@@ -7,7 +7,7 @@
 **배포 아키텍처**:
 
 ```
-GitHub (main push) → CI 워크플로우 (품질 게이트) → CD 워크플로우 → Render Deploy Hook → Render 빌드 → Neon DB
+GitHub (main push) → CI 워크플로우 (품질 게이트) → CD 워크플로우 → Render API → Render 빌드 → Neon DB
 ```
 
 **사용 서비스**:
@@ -104,7 +104,7 @@ Blueprint 대신 대시보드에서 수동 생성:
 
 | 변수                         | 값                                      | 설명                                      |
 | ---------------------------- | --------------------------------------- | ----------------------------------------- |
-| `SPRING_PROFILES_ACTIVE`     | `render`                                | Render용 Spring 프로파일 활성화           |
+| `SPRING_PROFILES_ACTIVE`     | `dev`                                   | dev용 Spring 프로파일 활성화              |
 | `SERVER_PORT`                | `10000`                                 | Render 기본 포트                          |
 | `SPRING_DATASOURCE_URL`      | `jdbc:postgresql://...?sslmode=require` | Neon Direct Connection String             |
 | `SPRING_DATASOURCE_USERNAME` | (Neon 유저명)                           | Neon DB 사용자                            |
@@ -122,25 +122,27 @@ Blueprint 대신 대시보드에서 수동 생성:
 
 GitHub 저장소 → Settings → Secrets and variables → Actions → New repository secret
 
-| Secret Name                       | 값                              | 설명                   |
-| --------------------------------- | ------------------------------- | ---------------------- |
-| `RENDER_BACKEND_DEPLOY_HOOK_URL`  | Render backend Deploy Hook URL  | 백엔드 배포 트리거     |
-| `RENDER_FRONTEND_DEPLOY_HOOK_URL` | Render frontend Deploy Hook URL | 프론트엔드 배포 트리거 |
+| Secret Name                  | 값                 | 설명                                 |
+| ---------------------------- | ------------------ | ------------------------------------ |
+| `RENDER_API_KEY`             | Render API Key     | API 인증용 키 (Dashboard → API Keys) |
+| `RENDER_BACKEND_SERVICE_ID`  | Backend 서비스 ID  | 서비스 URL의 srv-xxx 부분            |
+| `RENDER_FRONTEND_SERVICE_ID` | Frontend 서비스 ID | 서비스 URL의 srv-xxx 부분            |
 
-### Deploy Hook URL 확인 방법
+### Render API Key 확인 방법
 
-1. Render Dashboard → 서비스 선택 → Settings
-2. Deploy Hook 섹션에서 "Generate URL" 클릭
-3. 생성된 URL 복사 → GitHub Secrets에 등록
+1. Render Dashboard → Account Settings → API Keys
+2. "Create API Key" 클릭
+3. 이름 입력 후 생성
+4. 생성된 키 복사 → GitHub Secrets에 등록
 
-**주의**: Deploy Hook URL은 API 키 수준으로 간주한다. 코드에 절대 노출하지 않는다.
+**주의**: Render API Key는 비밀이다. 코드에 절대 노출하지 않는다.
 
 ## 6. CD 파이프라인 동작 순서
 
 1. 개발자가 `main` 브랜치에 push (또는 PR merge)
 2. CI 워크플로우 자동 실행 (빌드, 테스트, 린트)
 3. CI 성공 시 → CD 워크플로우 자동 실행
-4. CD가 Render Deploy Hook URL에 `curl` 요청 전송
+4. CD가 Render API로 배포 요청 전송
 5. Render가 새 빌드 시작
 6. 빌드 성공 시 → 새 버전으로 자동 전환
 7. 이전 버전은 Render에서 보관 (rollback 가능)
@@ -209,11 +211,11 @@ GitHub 저장소 → Settings → Secrets and variables → Actions → New repo
 
 ## 9. FAQ
 
-### Q: Deploy Hook URL을 재발급해야 합니다
+### Q: Render API Key를 재발급해야 합니다
 
-1. Render Dashboard → 서비스 → Settings → Deploy Hook
-2. "Regenerate URL" 클릭
-3. 새 URL을 GitHub Secrets에 업데이트
+1. Render Dashboard → Account Settings → API Keys
+2. 기존 키 삭제 또는 새 키 생성
+3. 새 키를 GitHub Secrets에 업데이트
 
 ### Q: Neon에서 새 브랜치를 만들 수 있나요
 
