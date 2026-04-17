@@ -82,7 +82,7 @@ class GetIntentDefinitionUseCaseTest {
   }
 
   @Test
-  @DisplayName("존재하지 않는 intentId → IntentDefinitionNotFoundException")
+  @DisplayName("존재하지 않는 intentId 또는 다른 version 소속 intentId → IntentDefinitionNotFoundException")
   void should_throwNotFoundException_when_unknownIntentId() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);

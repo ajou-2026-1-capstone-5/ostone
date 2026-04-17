@@ -129,7 +129,7 @@ public class IntentDefinition {
   }
 
   public void assignParent(Long parentIntentId) {
-    if (Objects.equals(this.id, parentIntentId)) {
+    if (this.id != null && parentIntentId != null && Objects.equals(this.id, parentIntentId)) {
       throw new IllegalArgumentException("Intent cannot be its own parent: id=" + this.id);
     }
     this.parentIntentId = parentIntentId;
