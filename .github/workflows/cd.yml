@@ -11,12 +11,44 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy Backend to Render
-        run: curl -sf "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}"
+        run: |
+          RESOLVE_RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"commitId\": \"${{ github.event.workflow_run.head_commit.id }}\"}")
+
+          if [ "$RESOLVE_RESPONSE" != "200" ]; then
+            echo "Deployment failed with status: $RESOLVE_RESPONSE"
+            cat response.json
+            exit 1
+          fi
+
+          echo "Deployment triggered successfully"
+          cat response.json
 
   deploy-frontend:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy Frontend to Render
-        run: curl -sf "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}"
+        run: |
+          RESOLVE_RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"commitId\": \"${{ github.event.workflow_run.head_commit.id }}\"}")
+
+          if [ "$RESOLVE_RESPONSE" != "200" ]; then
+            echo "Deployment failed with status: $RESOLVE_RESPONSE"
+            cat response.json
+            exit 1
+          fi
+
+          echo "Deployment triggered successfully"
+          cat response.json
