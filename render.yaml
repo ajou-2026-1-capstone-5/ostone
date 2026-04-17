@@ -25,7 +25,7 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: SPRING_PROFILES_ACTIVE
-        value: render
+        value: dev
       - key: SERVER_PORT
         value: "10000"
       - key: SPRING_DATASOURCE_URL
