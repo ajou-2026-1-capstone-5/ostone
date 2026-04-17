@@ -1,2 +1,2 @@
-def run() -> None:
-    raise NotImplementedError("Not yet implemented")
+def run(upstream_manifest_path: str | None = None) -> None:
+    pass
