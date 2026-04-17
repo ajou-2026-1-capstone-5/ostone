@@ -137,20 +137,6 @@ class IntentDefinitionControllerTest {
   }
 
   @Test
-  @DisplayName("GET .../intents/{id} → 404 다른 versionId 소속 intent")
-  @WithLongPrincipal(10L)
-  void should_return404_when_intentBelongsToWrongVersion() throws Exception {
-    // given
-    given(detailUseCase.execute(any())).willThrow(new IntentDefinitionNotFoundException(1L, 101L));
-
-    // when & then
-    mockMvc
-        .perform(get(BASE_URL + "/1"))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("INTENT_DEFINITION_NOT_FOUND"));
-  }
-
-  @Test
   @DisplayName("GET .../intents → 403 권한 없음")
   @WithLongPrincipal(10L)
   void should_return403_when_unauthorized() throws Exception {

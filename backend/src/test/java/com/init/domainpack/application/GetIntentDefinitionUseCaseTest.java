@@ -82,6 +82,28 @@ class GetIntentDefinitionUseCaseTest {
   }
 
   @Test
+  @DisplayName("다른 versionId 소속 intentId → IntentDefinitionNotFoundException")
+  void should_throwNotFoundException_when_intentBelongsToOtherVersion() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    // intent exists but belongs to a different version → repository filters it out
+    given(intentDefinitionRepository.findByIdAndDomainPackVersionId(INTENT_ID, VERSION_ID))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetIntentDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, INTENT_ID, USER_ID)))
+        .isInstanceOf(IntentDefinitionNotFoundException.class);
+  }
+
+  @Test
   @DisplayName("존재하지 않는 intentId → IntentDefinitionNotFoundException")
   void should_throwNotFoundException_when_unknownIntentId() {
     // given
