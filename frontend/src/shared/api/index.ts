@@ -1,4 +1,4 @@
-const API_BASE = '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 interface ApiError {
   code: string;
@@ -14,13 +14,13 @@ class ApiClient {
 
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("accessToken");
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
     }
 
@@ -30,11 +30,15 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({
-        code: 'UNKNOWN_ERROR',
-        message: '요청 처리 중 오류가 발생했습니다.',
+        code: "UNKNOWN_ERROR",
+        message: "요청 처리 중 오류가 발생했습니다.",
       }))) as ApiError;
 
-      throw new ApiRequestError(response.status, errorData.code, errorData.message);
+      throw new ApiRequestError(
+        response.status,
+        errorData.code,
+        errorData.message,
+      );
     }
 
     if (response.status === 204) {
@@ -46,7 +50,7 @@ class ApiClient {
 
   async post<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
+      method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(body),
     });
@@ -56,7 +60,7 @@ class ApiClient {
 
   async get<T>(path: string): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'GET',
+      method: "GET",
       headers: this.getHeaders(),
     });
 
@@ -65,7 +69,7 @@ class ApiClient {
 
   async patch<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: this.getHeaders(),
       body: JSON.stringify(body),
     });
@@ -89,7 +93,7 @@ export class ApiRequestError extends Error {
 
   constructor(status: number, code: string, message: string) {
     super(message);
-    this.name = 'ApiRequestError';
+    this.name = "ApiRequestError";
     this.status = status;
     this.code = code;
   }
