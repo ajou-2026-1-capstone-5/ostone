@@ -82,7 +82,7 @@ class GetSlotDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("목록 응답에 validationRuleJson, defaultValueJson, metaJson 미포함")
-  void should_excludeJsonFields_in_summary() {
+  void should_notIncludeJsonFields_when_summaryIsReturned() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
@@ -96,9 +96,12 @@ class GetSlotDefinitionListUseCaseTest {
     List<SlotDefinitionSummary> result =
         useCase.execute(new GetSlotDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
 
-    // then — SlotDefinitionSummary does not expose JSON fields
+    // then — SlotDefinitionSummary record must not expose JSON fields
     assertThat(result).hasSize(1);
     assertThat(result.get(0).slotCode()).isEqualTo("customer_name");
+    assertThat(SlotDefinitionSummary.class.getRecordComponents())
+        .extracting(java.lang.reflect.RecordComponent::getName)
+        .doesNotContain("validationRuleJson", "defaultValueJson", "metaJson");
   }
 
   @Test

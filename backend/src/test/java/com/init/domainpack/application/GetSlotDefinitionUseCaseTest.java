@@ -81,8 +81,8 @@ class GetSlotDefinitionUseCaseTest {
   }
 
   @Test
-  @DisplayName("존재하지 않는 slotId 또는 다른 version 소속 slotId → SlotDefinitionNotFoundException")
-  void should_throwNotFoundException_when_unknownSlotId() {
+  @DisplayName("존재하지 않는 slotId → SlotDefinitionNotFoundException")
+  void execute_slotNotFound_throwsNotFoundException() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
@@ -98,6 +98,28 @@ class GetSlotDefinitionUseCaseTest {
                 useCase.execute(
                     new GetSlotDefinitionQuery(
                         WORKSPACE_ID, PACK_ID, VERSION_ID, SLOT_ID, USER_ID)))
+        .isInstanceOf(SlotDefinitionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("다른 version 소속 slotId → SlotDefinitionNotFoundException")
+  void execute_slotBelongsToOtherVersion_throwsNotFoundException() {
+    // given — slotId exists but belongs to a different versionId, so composite lookup returns empty
+    Long otherVersionId = VERSION_ID + 1L;
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(otherVersionId))
+        .willReturn(Optional.of(createVersion(otherVersionId, PACK_ID)));
+    given(slotDefinitionRepository.findByIdAndDomainPackVersionId(SLOT_ID, otherVersionId))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetSlotDefinitionQuery(
+                        WORKSPACE_ID, PACK_ID, otherVersionId, SLOT_ID, USER_ID)))
         .isInstanceOf(SlotDefinitionNotFoundException.class);
   }
 
