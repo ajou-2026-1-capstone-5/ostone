@@ -9,6 +9,9 @@ function layout(i: number, graph: WorkflowGraph): { x: number; y: number } {
   const cols = Math.max(1, Math.ceil(Math.sqrt(total)));
   const col = i % cols;
   const row = Math.floor(i / cols);
+  if (graph.direction === 'TB') {
+    return { x: col * V_SPACING, y: row * H_SPACING };
+  }
   return { x: col * H_SPACING, y: row * V_SPACING };
 }
 

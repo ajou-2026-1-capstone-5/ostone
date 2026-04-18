@@ -23,6 +23,8 @@
 }
 
 .label {
+  position: relative;
+  z-index: 1;
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -97,6 +99,7 @@
 .answer::before {
   content: '';
   position: absolute;
+  z-index: 0;
   inset: 1.5px;
   background: var(--bg-color);
   pointer-events: none;
@@ -115,6 +118,7 @@
 .handoff::before {
   content: '';
   position: absolute;
+  z-index: 0;
   inset: 1.5px;
   background: var(--bg-color);
   pointer-events: none;

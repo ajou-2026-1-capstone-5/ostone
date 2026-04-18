@@ -90,7 +90,7 @@ export function WorkflowListPanel({
         {listState.status === 'error' && (
           <div className={styles.errorState}>
             <AlertCircle size={32} className={styles.errorIcon} />
-            <p className={styles.errorText}>{listState.message}</p>
+            <p className={styles.errorText}>워크플로우를 불러오는 중 오류가 발생했습니다. 다시 시도해 주세요.</p>
           </div>
         )}
 

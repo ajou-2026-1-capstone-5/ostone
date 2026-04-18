@@ -59,6 +59,13 @@
   50% { opacity: 0.35; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .skeletonBlock {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Error */
 .errorState {
   flex: 1;
@@ -159,7 +166,7 @@
 
 .tab:focus-visible {
   outline: dashed 2px;
-  outline-color: var(--text-primary);
+  outline-color: var(--focus-ring, currentColor);
   outline-offset: 2px;
 }
 

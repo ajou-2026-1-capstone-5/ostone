@@ -52,8 +52,8 @@ export function WorkflowDetailPanel({
     if (detailState.status === 'error' && detailState.code !== 'WORKFLOW_DEFINITION_NOT_FOUND') {
       toast.error(detailState.message);
     }
-  // discriminated-union: status change always co-changes code/message
-  }, [detailState.status]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // discriminated-union: status/code always change together; message intentionally omitted
+  }, [detailState.status, detailState.code]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (workflowId === null) {
     return (
@@ -81,14 +81,14 @@ export function WorkflowDetailPanel({
   }
 
   if (detailState.status === 'error') {
-    const isNotFound = detailState.code === 'WORKFLOW_DEFINITION_NOT_FOUND';
+    if (detailState.code !== 'WORKFLOW_DEFINITION_NOT_FOUND') {
+      return <div className={styles.panel} />;
+    }
     return (
       <div className={styles.panel}>
         <div className={styles.errorState}>
           <AlertCircle size={36} className={styles.errorIcon} />
-          <p className={styles.errorTitle}>
-            {isNotFound ? 'Workflow를 찾을 수 없습니다' : '오류가 발생했습니다'}
-          </p>
+          <p className={styles.errorTitle}>Workflow를 찾을 수 없습니다</p>
           <p className={styles.errorMessage}>{detailState.message}</p>
         </div>
       </div>
