@@ -1,8 +1,8 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { WorkflowGraph } from '../../../entities/workflow/model/types';
 
-const H_SPACING = 220;
-const V_SPACING = 130;
+const ALONG_FLOW_SPACING = 220;
+const CROSS_FLOW_SPACING = 130;
 
 function layout(i: number, graph: WorkflowGraph): { x: number; y: number } {
   const total = graph.nodes.length;
@@ -10,9 +10,9 @@ function layout(i: number, graph: WorkflowGraph): { x: number; y: number } {
   const col = i % cols;
   const row = Math.floor(i / cols);
   if (graph.direction === 'TB') {
-    return { x: col * V_SPACING, y: row * H_SPACING };
+    return { x: col * CROSS_FLOW_SPACING, y: row * ALONG_FLOW_SPACING };
   }
-  return { x: col * H_SPACING, y: row * V_SPACING };
+  return { x: col * ALONG_FLOW_SPACING, y: row * CROSS_FLOW_SPACING };
 }
 
 const KNOWN_NODE_TYPES = new Set(['start', 'action', 'decision', 'answer', 'handoff', 'terminal']);
@@ -36,7 +36,7 @@ export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
 
   const edgeIdCounts = new Map<string, number>();
   const edges: Edge[] = graph.edges.map((e) => {
-    const baseId = `${e.from}->${e.to}:${e.label ?? 'unlabeled'}`;
+    const baseId = `${encodeURIComponent(e.from)}->${encodeURIComponent(e.to)}:${encodeURIComponent(e.label ?? 'unlabeled')}`;
     const count = edgeIdCounts.get(baseId) ?? 0;
     edgeIdCounts.set(baseId, count + 1);
 

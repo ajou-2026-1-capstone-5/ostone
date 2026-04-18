@@ -9,12 +9,12 @@ interface PageHeaderProps {
 export function PageHeader({ wsId, pId, vId }: PageHeaderProps) {
   return (
     <header className={styles.pageHeader}>
-      <nav className={styles.breadcrumb}>
+      <nav className={styles.breadcrumb} aria-label="breadcrumb">
         <span>워크스페이스 {wsId}</span>
         <span className={styles.breadcrumbSep}>/</span>
         <span>팩 {pId}</span>
         <span className={styles.breadcrumbSep}>/</span>
-        <span>버전 {vId}</span>
+        <span aria-current="page">버전 {vId}</span>
       </nav>
       <span className={styles.versionBadge}>v{vId}</span>
     </header>

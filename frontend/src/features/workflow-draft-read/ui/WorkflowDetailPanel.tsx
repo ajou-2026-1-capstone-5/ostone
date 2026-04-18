@@ -34,7 +34,7 @@ function tryParseJson(json: string): unknown {
   try {
     return JSON.parse(json);
   } catch (e) {
-    console.warn('[tryParseJson] JSON 파싱 실패. raw 반환:', json, e);
+    console.warn('[tryParseJson] JSON parsing failed');
     return null;
   }
 }
@@ -70,7 +70,7 @@ export function WorkflowDetailPanel({
   if (detailState.status === 'loading') {
     return (
       <div className={styles.panel}>
-        <div className={styles.loadingState}>
+        <div className={styles.loadingState} role="status" aria-label="Loading workflow details">
           <div className={styles.spinnerRow}>
             {[...Array(3)].map((_, i) => (
               <div key={i} className={styles.skeletonBlock} style={{ animationDelay: `${i * 0.15}s` }} />

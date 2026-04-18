@@ -62,12 +62,11 @@ export function WorkflowListPanel({
 }: WorkflowListPanelProps) {
   const listState = useWorkflowList(wsId, packId, versionId);
 
-  // discriminated-union: status change always co-changes message
   useEffect(() => {
     if (listState.status === 'error') {
       toast.error(listState.message);
     }
-  }, [listState.status]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [listState]);
 
   return (
     <aside className={styles.panel}>
