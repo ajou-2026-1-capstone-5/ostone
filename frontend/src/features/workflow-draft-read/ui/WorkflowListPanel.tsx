@@ -15,7 +15,7 @@ interface WorkflowListPanelProps {
 
 function terminalCount(json: string): number | null {
   const parsed = parseTerminalStates(json);
-  return Array.isArray(parsed) ? parsed.length : null;
+  return parsed.ok ? parsed.value.length : null;
 }
 
 export function WorkflowListPanel({
@@ -26,13 +26,13 @@ export function WorkflowListPanel({
   onSelect,
 }: WorkflowListPanelProps) {
   const state = useWorkflowList(wsId, packId, versionId);
-  const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
+  const errorMessage = state.status === "error" ? state.message : undefined;
 
   useEffect(() => {
-    if (state.status === "error" && errorHttpStatus === 403) {
-      toast.error("접근 권한 없음");
+    if (state.status === "error") {
+      toast.error(errorMessage ?? "목록을 불러오지 못했습니다.");
     }
-  }, [state.status, errorHttpStatus]);
+  }, [state.status, errorMessage]);
 
   return (
     <aside className={styles.panel} aria-label="workflow 목록">
@@ -53,9 +53,8 @@ export function WorkflowListPanel({
         )}
 
         {state.status === "error" && (
-          <div className={styles.errorState} role="alert">
-            <span className={styles.errorCode}>{state.code}</span>
-            <span>{state.message || "목록을 불러오지 못했습니다."}</span>
+          <div className={styles.emptyState}>
+            <span>목록을 불러오지 못했습니다.</span>
           </div>
         )}
 

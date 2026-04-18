@@ -4,6 +4,7 @@ import type { WorkflowGraph } from "../../../entities/workflow";
 const NODE_GAP_X = 200;
 const NODE_GAP_Y = 120;
 const COLUMNS_FOR_TB = 4;
+const ROWS_FOR_LR = 4;
 
 function computePosition(
   index: number,
@@ -14,7 +15,9 @@ function computePosition(
     const row = Math.floor(index / COLUMNS_FOR_TB);
     return { x: col * NODE_GAP_X, y: row * NODE_GAP_Y };
   }
-  return { x: index * NODE_GAP_X, y: (index % 2) * NODE_GAP_Y };
+  const col = Math.floor(index / ROWS_FOR_LR);
+  const row = index % ROWS_FOR_LR;
+  return { x: col * NODE_GAP_X, y: row * NODE_GAP_Y };
 }
 
 export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {

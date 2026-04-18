@@ -1,4 +1,5 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
 import type { WorkflowDetail } from "../../../entities/workflow";
@@ -7,6 +8,9 @@ import styles from "./WorkflowDetailPanel.module.css";
 const GraphRenderer = lazy(() => import("./GraphRenderer"));
 
 type Tab = "graph" | "json" | "meta";
+
+const TABS = ["graph", "json", "meta"] as const;
+const TAB_LABELS: Record<Tab, string> = { graph: "Graph", json: "JSON", meta: "Meta" };
 
 interface WorkflowDetailPanelProps {
   wsId: number;
@@ -23,6 +27,33 @@ export function WorkflowDetailPanel({
 }: WorkflowDetailPanelProps) {
   const state = useWorkflowDetail(wsId, packId, versionId, workflowId);
   const [tab, setTab] = useState<Tab>("graph");
+
+  const errorCode = state.status === "error" ? state.code : undefined;
+  const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
+  const errorMessage = state.status === "error" ? state.message : undefined;
+
+  useEffect(() => {
+    if (state.status !== "error") return;
+    const msg =
+      errorHttpStatus === 404
+        ? "workflow를 찾을 수 없습니다."
+        : errorCode === "WORKFLOW_GRAPH_JSON_INVALID"
+          ? "graph 데이터가 손상되어 시각화를 표시할 수 없습니다."
+          : errorMessage || "상세 정보를 불러오지 못했습니다.";
+    toast.error(msg);
+  }, [state.status, errorCode, errorHttpStatus, errorMessage]);
+
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let next = index;
+    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = TABS.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(TABS[next]);
+    document.getElementById(`tab-${TABS[next]}`)?.focus();
+  };
 
   if (state.status === "idle") {
     return (
@@ -47,15 +78,8 @@ export function WorkflowDetailPanel({
   if (state.status === "error") {
     return (
       <section className={styles.panel} aria-label="workflow 상세">
-        <div className={styles.stateMessage} role="alert">
-          <span className={styles.errorCode}>{state.code}</span>
-          <span>
-            {state.httpStatus === 404
-              ? "workflow를 찾을 수 없습니다."
-              : state.code === "WORKFLOW_GRAPH_JSON_INVALID"
-                ? "graphJson이 손상되어 시각화를 표시할 수 없습니다."
-                : state.message || "상세 정보를 불러오지 못했습니다."}
-          </span>
+        <div className={styles.placeholder}>
+          <span>상세 정보를 불러오지 못했습니다.</span>
         </div>
       </section>
     );
@@ -67,32 +91,56 @@ export function WorkflowDetailPanel({
     <section className={styles.panel} aria-label="workflow 상세">
       <DetailHeader detail={detail} />
       <nav className={styles.tabs} role="tablist" aria-label="workflow 상세 뷰">
-        {(["graph", "json", "meta"] as const).map((t) => (
+        {TABS.map((t, i) => (
           <button
             key={t}
+            id={`tab-${t}`}
             type="button"
             role="tab"
             aria-selected={tab === t}
+            aria-controls={`panel-${t}`}
+            tabIndex={tab === t ? 0 : -1}
             className={`${styles.tab} ${tab === t ? styles.tabActive : ""}`}
             onClick={() => setTab(t)}
+            onKeyDown={(e) => handleTabKeyDown(e, i)}
           >
-            {t === "graph" ? "Graph" : t === "json" ? "JSON" : "Meta"}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </nav>
 
-      <div className={styles.body} role="tabpanel">
-        {tab === "graph" && (
-          <Suspense fallback={<div className={styles.skeleton} />}>
-            <GraphRenderer graph={detail.graphJson} />
-          </Suspense>
-        )}
-        {tab === "json" && (
-          <pre className={styles.jsonBlock}>
-            <code>{JSON.stringify(detail.graphJson, null, 2)}</code>
-          </pre>
-        )}
-        {tab === "meta" && <MetaTab detail={detail} />}
+      <div
+        id="panel-graph"
+        role="tabpanel"
+        aria-labelledby="tab-graph"
+        className={styles.body}
+        hidden={tab !== "graph"}
+      >
+        <Suspense fallback={<div className={styles.skeleton} />}>
+          <GraphRenderer graph={detail.graph} />
+        </Suspense>
+      </div>
+
+      <div
+        id="panel-json"
+        role="tabpanel"
+        aria-labelledby="tab-json"
+        className={styles.body}
+        hidden={tab !== "json"}
+      >
+        <pre className={styles.jsonBlock}>
+          <code>{JSON.stringify(detail.graph, null, 2)}</code>
+        </pre>
+      </div>
+
+      <div
+        id="panel-meta"
+        role="tabpanel"
+        aria-labelledby="tab-meta"
+        className={styles.body}
+        hidden={tab !== "meta"}
+      >
+        <MetaTab detail={detail} />
       </div>
     </section>
   );
@@ -123,12 +171,12 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
       </div>
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Terminal States</span>
-        {Array.isArray(terminals) ? (
-          terminals.length === 0 ? (
+        {terminals.ok ? (
+          terminals.value.length === 0 ? (
             <span>—</span>
           ) : (
             <div className={styles.badgeRow}>
-              {terminals.map((t) => (
+              {terminals.value.map((t) => (
                 <span key={t} className={styles.badge}>
                   {t}
                 </span>
@@ -136,7 +184,7 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
             </div>
           )
         ) : (
-          <code className={styles.rawCode}>{terminals}</code>
+          <code className={styles.rawCode}>{terminals.raw}</code>
         )}
       </div>
       <div className={styles.metaItem}>

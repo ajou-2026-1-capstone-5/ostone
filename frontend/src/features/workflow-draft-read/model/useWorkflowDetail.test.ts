@@ -19,7 +19,7 @@ const stubDetail = {
   workflowCode: "W001",
   name: "테스트",
   description: null,
-  graphJson: { direction: "LR" as const, nodes: [], edges: [] },
+  graph: { direction: "LR" as const, nodes: [], edges: [] },
   initialState: null,
   terminalStatesJson: "[]",
   evidenceJson: "{}",
@@ -36,6 +36,7 @@ describe("useWorkflowDetail", () => {
   it("workflowId가 null이면 idle 상태다", () => {
     const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, null));
     expect(result.current.status).toBe("idle");
+    expect(mockedDetail).not.toHaveBeenCalled();
   });
 
   it("workflowId가 주어지면 loading 상태로 시작한다", () => {

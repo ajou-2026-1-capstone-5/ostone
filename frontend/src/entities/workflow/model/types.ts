@@ -34,7 +34,7 @@ export interface WorkflowDetail {
   workflowCode: string;
   name: string;
   description: string | null;
-  graphJson: WorkflowGraph;
+  graph: WorkflowGraph;
   initialState: string | null;
   terminalStatesJson: string;
   evidenceJson: string;

@@ -21,4 +21,25 @@ describe("parseRouteId", () => {
   it('"0" → 0', () => {
     expect(parseRouteId("0")).toBe(0);
   });
+
+  it('빈 문자열 → null', () => {
+    expect(parseRouteId("")).toBeNull();
+  });
+
+  it('공백 문자열 → null', () => {
+    expect(parseRouteId(" ")).toBeNull();
+    expect(parseRouteId("  ")).toBeNull();
+  });
+
+  it('소수점 → null', () => {
+    expect(parseRouteId("1.5")).toBeNull();
+  });
+
+  it('음수 → null', () => {
+    expect(parseRouteId("-1")).toBeNull();
+  });
+
+  it('지수 표기법 → null', () => {
+    expect(parseRouteId("1e3")).toBeNull();
+  });
 });

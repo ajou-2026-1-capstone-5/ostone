@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { workflowApi } from "../api/workflowApi";
-import { ApiRequestError } from "../../../shared/api";
+import { mapApiError } from "./mapApiError";
 import type { WorkflowDetail } from "../../../entities/workflow";
 
 export type WorkflowDetailState =
@@ -15,9 +15,7 @@ export function useWorkflowDetail(
   versionId: number,
   workflowId: number | null,
 ): WorkflowDetailState {
-  const [state, setState] = useState<WorkflowDetailState>(
-    workflowId === null ? { status: "idle" } : { status: "loading" },
-  );
+  const [state, setState] = useState<WorkflowDetailState>({ status: "idle" });
 
   useEffect(() => {
     if (workflowId === null) {
@@ -32,21 +30,7 @@ export function useWorkflowDetail(
         if (!cancelled) setState({ status: "ready", data });
       })
       .catch((e: unknown) => {
-        if (cancelled) return;
-        if (e instanceof ApiRequestError) {
-          setState({
-            status: "error",
-            code: e.code,
-            message: e.message,
-            httpStatus: e.status,
-          });
-        } else {
-          setState({
-            status: "error",
-            code: "UNKNOWN_ERROR",
-            message: "알 수 없는 오류가 발생했습니다.",
-          });
-        }
+        if (!cancelled) setState(mapApiError(e));
       });
     return () => {
       cancelled = true;
