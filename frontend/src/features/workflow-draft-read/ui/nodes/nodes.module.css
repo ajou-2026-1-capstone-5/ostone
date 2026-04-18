@@ -1,0 +1,111 @@
+.handle {
+  background: var(--text-primary) !important;
+  border: none !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-color);
+  border: 1.5px solid var(--text-primary);
+  color: var(--text-primary);
+  font-family: 'Pretendard Variable', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  padding: 8px 14px;
+  min-width: 100px;
+  text-align: center;
+  cursor: default;
+}
+
+.label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+/* START — stadium */
+.start {
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+  min-width: 80px;
+}
+
+/* ACTION — rectangle */
+.action {
+  border-radius: var(--radius-md);
+}
+
+/* DECISION — diamond: outer wrapper is square, inner element rotated 45deg */
+.decisionWrapper {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 110px;
+  height: 110px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: unset;
+}
+
+.diamond {
+  width: 78px;
+  height: 78px;
+  border: 1.5px solid var(--text-primary);
+  background: var(--bg-color);
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.diamondLabel {
+  transform: rotate(-45deg);
+  font-family: 'Pretendard Variable', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  color: var(--text-primary);
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  text-align: center;
+}
+
+/* ANSWER — asymmetric rectangle (left cut via clip-path) */
+.answer {
+  border-radius: 0;
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
+  border: none;
+  outline: 1.5px solid var(--text-primary);
+}
+
+/* HANDOFF — trapezoid */
+.handoff {
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+  border: none;
+  outline: 1.5px solid var(--text-primary);
+}
+
+/* TERMINAL — circle */
+.terminal {
+  border-radius: var(--radius-full);
+  background: var(--glass-dark);
+  min-width: 80px;
+  width: 80px;
+  height: 80px;
+  padding: 0;
+}

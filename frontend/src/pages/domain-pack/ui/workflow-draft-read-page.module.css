@@ -1,0 +1,22 @@
+.twoPane {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.invalidParams {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 767px) {
+  .twoPane {
+    flex-direction: column;
+  }
+}

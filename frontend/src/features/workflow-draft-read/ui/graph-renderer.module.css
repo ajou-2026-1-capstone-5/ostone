@@ -1,0 +1,22 @@
+.container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background: var(--bg-color);
+}
+
+.controls {
+  background: var(--bg-color) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.controls button {
+  background: var(--bg-color) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.controls button:hover {
+  background: var(--bg-secondary) !important;
+}
