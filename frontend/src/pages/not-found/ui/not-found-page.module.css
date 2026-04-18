@@ -5,15 +5,16 @@
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
-  background-color: var(--bg-secondary, #f9fafb);
+  background-color: var(--bg-secondary, #ffffff);
   text-align: center;
 }
 
 .title {
   font-size: 8rem;
+  letter-spacing: -0.96px;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(135deg, var(--primary-color, #10b981), #3b82f6);
+  background: var(--primary-color, #000000);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1;
@@ -21,14 +22,16 @@
 
 .message {
   font-size: 1.5rem;
+  letter-spacing: -0.26px;
   font-weight: 600;
-  color: var(--text-primary, #111827);
+  color: var(--text-primary, #000000);
   margin: 16px 0 8px;
 }
 
 .description {
   font-size: 1rem;
-  color: var(--text-secondary, #6b7280);
+  letter-spacing: -0.14px;
+  color: var(--text-secondary, rgba(0,0,0,0.5));
   max-width: 400px;
   margin-bottom: 32px;
   line-height: 1.5;

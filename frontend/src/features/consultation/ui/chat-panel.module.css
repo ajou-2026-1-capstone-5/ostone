@@ -35,15 +35,18 @@
   color: white;
   font-weight: 600;
   font-size: 0.85rem;
+  letter-spacing: normal;
 }
 
 .chatCustomerName {
   font-weight: 600;
   font-size: 0.95rem;
+  letter-spacing: -0.1px;
 }
 
 .chatChannel {
   font-size: 0.78rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
 }
 
@@ -52,6 +55,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.8rem;
+  letter-spacing: normal;
   color: var(--primary-color);
   font-weight: 500;
 }
@@ -102,14 +106,11 @@
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
+  letter-spacing: normal;
   font-weight: 600;
   flex-shrink: 0;
 }
 
-.msgAvatarCustomer {
-  background: #e2e8f0;
-  color: #475569;
-}
 
 .msgAvatarAgent {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -120,12 +121,13 @@
   padding: 12px 16px;
   border-radius: 18px;
   font-size: 0.9rem;
+  letter-spacing: -0.1px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .msgBubbleCustomer {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
   border-bottom-left-radius: 6px;
 }
@@ -138,6 +140,7 @@
 
 .msgTime {
   font-size: 0.7rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   margin-top: 4px;
   padding: 0 4px;
@@ -151,33 +154,26 @@
 .systemMessage {
   text-align: center;
   font-size: 0.78rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   padding: 8px 16px;
   background: rgba(0, 0, 0, 0.02);
   border-radius: 20px;
   align-self: center;
   max-width: 80%;
-}
-
-/* Internal Note */
-.internalNote {
-  align-self: flex-end;
-  max-width: 75%;
-  padding: 10px 14px;
-  background: #fffbeb;
-  border: 1px dashed #f59e0b;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  color: #92400e;
-}
-
-.noteLabel {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #d97706;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+}
+
+.internalNote {
+
+/* Internal Note */
+  background: rgba(0,0,0,0.04);
+  border: 1px dashed #000000;
+  color: rgba(0,0,0,0.7);
+  align-self: flex-end;
+  max-width: 75%;
 }
 
 /* Input Area */
@@ -211,10 +207,20 @@
 }
 
 .noteToggleActive {
-  background: #fffbeb;
-  border-color: #f59e0b;
-  color: #d97706;
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
 }
+
+.noteLabel {
+  font-size: 0.72rem;
+  letter-spacing: normal;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 6px;
+}
+
 
 .messageInput {
   flex: 1;
@@ -225,6 +231,7 @@
   border-radius: 20px;
   font-family: inherit;
   font-size: 0.9rem;
+  letter-spacing: -0.1px;
   color: var(--text-primary);
   background: var(--bg-color);
   outline: none;
@@ -236,9 +243,6 @@
   border-color: var(--primary-color);
 }
 
-.messageInput::placeholder {
-  color: #94a3b8;
-}
 
 .sendBtn {
   display: flex;
@@ -278,9 +282,11 @@
 }
 
 .emptyChatIcon {
-  color: #cbd5e1;
+  color: rgba(0, 0, 0, 0.2);
 }
+
 
 .emptyChatText {
   font-size: 0.95rem;
+  letter-spacing: -0.1px;
 }

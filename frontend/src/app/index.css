@@ -1,31 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@font-face {
+  font-family: 'Pretendard Variable';
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/npm/geist@1/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2-variations');
+}
 
 :root {
-  /* Premium Light Mode Colors */
-  --bg-color: #f8fafc; /* Slate 50 */
-  --bg-secondary: #ffffff; /* White */
-  --text-primary: #0f172a; /* Slate 900 */
-  --text-secondary: #64748b; /* Slate 500 */
-  
-  /* Primary Brand Concept (Emerald / Teal) */
-  --primary-color: #10b981; /* Emerald 500 */
-  --primary-color-hover: #059669; /* Emerald 600 */
-  --secondary-color: #34d399; /* Emerald 400 */
-
-  /* Semantic Colors */
-  --error-color: #ef4444;
-  --success-color: #10b981;
-
-  /* Glassmorphism Tokens */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.05);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
-  --glass-blur: blur(16px);
-
-  /* Geometry & Transitions */
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --bg-color: #ffffff;
+  --bg-secondary: rgba(0, 0, 0, 0.02);
+  --text-primary: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.5);
+  --text-color: #000000;
+  --text-muted: rgba(0, 0, 0, 0.35);
+  --brand-primary: #000000;
+  --primary-color: #000000;
+  --primary-color-hover: #000000;
+  --secondary-color: rgba(0, 0, 0, 0.5);
+  --error-color: #000000;
+  --success-color: #000000;
+  --glass-dark: rgba(0, 0, 0, 0.08);
+  --glass-light: rgba(255, 255, 255, 0.16);
+  --glass-bg: #ffffff;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: none;
+  --glass-blur: none;
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 50px;
+  --radius-full: 50%;
   --transition-fast: 0.15s ease-in-out;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -36,8 +47,16 @@
   padding: 0;
 }
 
+*:focus-visible {
+  outline: dashed 2px;
+  outline-offset: 2px;
+}
+
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 340;
+  font-feature-settings: "kern";
+  letter-spacing: -0.14px;
   background-color: var(--bg-color);
   color: var(--text-primary);
   min-height: 100vh;
@@ -54,19 +73,6 @@ a {
 
 a:hover {
   color: var(--primary-color-hover);
-}
-
-/* Common Background Gradient Animation for Login/Signup Pages */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-20px) scale(1.05); }
-  100% { transform: translateY(0px) scale(1); }
 }
 
 @keyframes slide-up {
