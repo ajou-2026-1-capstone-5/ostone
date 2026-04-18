@@ -57,7 +57,7 @@
 
 .listItemActive {
   background: var(--glass-dark);
-  border-color: rgba(0, 0, 0, 0.12);
+  border-color: var(--glass-border);
 }
 
 .itemCode {

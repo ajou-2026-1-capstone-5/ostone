@@ -33,7 +33,8 @@ function formatDate(iso: string) {
 function tryParseJson(json: string): unknown {
   try {
     return JSON.parse(json);
-  } catch {
+  } catch (e) {
+    console.warn('[tryParseJson] JSON 파싱 실패. raw 반환:', json, e);
     return null;
   }
 }
@@ -51,6 +52,7 @@ export function WorkflowDetailPanel({
     if (detailState.status === 'error' && detailState.code !== 'WORKFLOW_DEFINITION_NOT_FOUND') {
       toast.error(detailState.message);
     }
+  // discriminated-union: status change always co-changes code/message
   }, [detailState.status]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (workflowId === null) {

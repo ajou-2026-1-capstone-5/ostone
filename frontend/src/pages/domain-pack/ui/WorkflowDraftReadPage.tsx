@@ -28,20 +28,32 @@ export function WorkflowDraftReadPage() {
 
   return (
     <DashboardLayout>
-      <div className={styles.twoPane}>
-        <WorkflowListPanel
-          wsId={wsId}
-          packId={pId}
-          versionId={vId}
-          selectedId={wfId}
-          onSelect={handleSelect}
-        />
-        <WorkflowDetailPanel
-          wsId={wsId}
-          packId={pId}
-          versionId={vId}
-          workflowId={wfId}
-        />
+      <div className={styles.pageWrapper}>
+        <header className={styles.pageHeader}>
+          <nav className={styles.breadcrumb}>
+            <span>워크스페이스 {wsId}</span>
+            <span className={styles.breadcrumbSep}>/</span>
+            <span>팩 {pId}</span>
+            <span className={styles.breadcrumbSep}>/</span>
+            <span>버전 {vId}</span>
+          </nav>
+          <span className={styles.versionBadge}>v{vId}</span>
+        </header>
+        <div className={styles.twoPane}>
+          <WorkflowListPanel
+            wsId={wsId}
+            packId={pId}
+            versionId={vId}
+            selectedId={wfId}
+            onSelect={handleSelect}
+          />
+          <WorkflowDetailPanel
+            wsId={wsId}
+            packId={pId}
+            versionId={vId}
+            workflowId={wfId}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );

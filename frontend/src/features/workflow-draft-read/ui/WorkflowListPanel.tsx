@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { Inbox, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkflowList } from '../model/useWorkflowList';
+import { parseTerminalStates } from '../model/parseTerminalStates';
 import type { WorkflowSummary } from '../../../entities/workflow/model/types';
 import styles from './workflow-list-panel.module.css';
-import { useEffect } from 'react';
 
 interface WorkflowListPanelProps {
   wsId: number;
@@ -11,15 +12,6 @@ interface WorkflowListPanelProps {
   versionId: number;
   selectedId: number | null;
   onSelect: (id: number) => void;
-}
-
-function parseTerminalCount(json: string): number {
-  try {
-    const parsed: unknown = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed.length : 0;
-  } catch {
-    return 0;
-  }
 }
 
 function WorkflowListItem({
@@ -31,7 +23,8 @@ function WorkflowListItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const terminalCount = parseTerminalCount(item.terminalStatesJson);
+  const parsed = parseTerminalStates(item.terminalStatesJson);
+  const terminalCount = Array.isArray(parsed) ? parsed.length : 0;
 
   return (
     <div
@@ -69,6 +62,7 @@ export function WorkflowListPanel({
 }: WorkflowListPanelProps) {
   const listState = useWorkflowList(wsId, packId, versionId);
 
+  // discriminated-union: status change always co-changes message
   useEffect(() => {
     if (listState.status === 'error') {
       toast.error(listState.message);
