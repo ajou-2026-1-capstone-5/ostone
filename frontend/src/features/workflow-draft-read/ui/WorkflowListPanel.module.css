@@ -1,0 +1,152 @@
+.panel {
+  width: 360px;
+  min-width: 280px;
+  border-right: 1px solid var(--glass-border);
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.headerTitle {
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 540;
+  font-size: 15px;
+  color: var(--text-primary);
+  letter-spacing: -0.14px;
+}
+
+.headerMeta {
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--bg-color);
+  cursor: pointer;
+  font-family: "Pretendard Variable", sans-serif;
+  color: var(--text-primary);
+}
+
+.item:hover {
+  background: var(--bg-secondary);
+}
+
+.itemActive {
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.itemActive:hover {
+  background: var(--text-primary);
+}
+
+.code {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  color: inherit;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  color: inherit;
+}
+
+.skeletonGroup {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeletonRow {
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.emptyState,
+.errorState {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: -0.14px;
+}
+
+.errorCode {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+@media (max-width: 1023px) {
+  .panel {
+    width: 280px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    width: 100%;
+    min-width: 0;
+    border-right: 0;
+  }
+}

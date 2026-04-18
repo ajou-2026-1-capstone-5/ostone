@@ -1,0 +1,119 @@
+.pageWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+
+.pageHeader {
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-color);
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.breadcrumbSeparator {
+  color: var(--text-muted);
+}
+
+.versionMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.versionTitle {
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 540;
+  font-size: 18px;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+}
+
+.versionBadge {
+  display: inline-flex;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+}
+
+.twoPane {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.invalidParams {
+  padding: 32px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  letter-spacing: -0.14px;
+}
+
+@media (max-width: 767px) {
+  .twoPane {
+    flex-direction: column;
+  }
+
+  .twoPane.hasSelection .listSlot {
+    display: none;
+  }
+
+  .twoPane:not(.hasSelection) .detailSlot {
+    display: none;
+  }
+
+  .backButton {
+    display: inline-flex;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.54px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    margin: 12px 16px 0;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--text-primary);
+    background: var(--bg-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    align-self: flex-start;
+  }
+}
+
+@media (min-width: 768px) {
+  .backButton {
+    display: none;
+  }
+}
+
+.listSlot,
+.detailSlot {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.listSlot {
+  flex: 0 0 auto;
+}
