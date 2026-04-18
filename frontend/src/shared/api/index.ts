@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+export function resolveApiBase(apiBaseUrl: string | undefined): string {
+  return apiBaseUrl || "/api/v1";
+}
+
+const API_BASE = resolveApiBase(import.meta.env.VITE_API_BASE_URL);
 
 interface ApiError {
   code: string;

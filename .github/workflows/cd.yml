@@ -19,13 +19,17 @@ jobs:
             -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "{\"commitId\": \"${{ github.event.workflow_run.head_commit.id }}\"}")
+            -d "{\"commitId\": \"${{ github.event.workflow_run.head_sha }}\"}")
 
-          if [ "$RESOLVE_RESPONSE" != "200" ]; then
-            echo "Deployment failed with status: $RESOLVE_RESPONSE"
-            cat response.json
-            exit 1
-          fi
+          case "$RESOLVE_RESPONSE" in
+            2??)
+              ;;
+            *)
+              echo "Deployment failed with status: $RESOLVE_RESPONSE"
+              cat response.json
+              exit 1
+              ;;
+          esac
 
           echo "Deployment triggered successfully"
           cat response.json
@@ -42,13 +46,17 @@ jobs:
             -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "{\"commitId\": \"${{ github.event.workflow_run.head_commit.id }}\"}")
+            -d "{\"commitId\": \"${{ github.event.workflow_run.head_sha }}\"}")
 
-          if [ "$RESOLVE_RESPONSE" != "200" ]; then
-            echo "Deployment failed with status: $RESOLVE_RESPONSE"
-            cat response.json
-            exit 1
-          fi
+          case "$RESOLVE_RESPONSE" in
+            2??)
+              ;;
+            *)
+              echo "Deployment failed with status: $RESOLVE_RESPONSE"
+              cat response.json
+              exit 1
+              ;;
+          esac
 
           echo "Deployment triggered successfully"
           cat response.json

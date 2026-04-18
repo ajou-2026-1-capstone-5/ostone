@@ -1,5 +1,5 @@
 # Render 배포용 Spring Boot 프로필
-# 환경변수는 Render Dashboard 또는 GitHub Secrets에서 설정
+# 환경변수는 Render Dashboard 또는 Blueprint에서 설정
 
 server:
   port: ${SERVER_PORT:10000}
