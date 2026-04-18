@@ -159,6 +159,7 @@
 
 .tab:focus-visible {
   outline: dashed 2px;
+  outline-color: var(--text-primary);
   outline-offset: 2px;
 }
 

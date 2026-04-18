@@ -89,7 +89,17 @@
   border-radius: 0;
   clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
   border: none;
-  outline: 1.5px solid var(--text-primary);
+  outline: none;
+  position: relative;
+  background: var(--text-primary);
+}
+
+.answer::before {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  background: var(--bg-color);
+  pointer-events: none;
 }
 
 /* HANDOFF — trapezoid */
@@ -97,7 +107,17 @@
   border-radius: 0;
   clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
   border: none;
-  outline: 1.5px solid var(--text-primary);
+  outline: none;
+  position: relative;
+  background: var(--text-primary);
+}
+
+.handoff::before {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  background: var(--bg-color);
+  pointer-events: none;
 }
 
 /* TERMINAL — circle */

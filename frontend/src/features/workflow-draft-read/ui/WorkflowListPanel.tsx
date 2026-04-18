@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Inbox, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkflowList } from '../model/useWorkflowList';
@@ -23,16 +23,16 @@ function WorkflowListItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const parsed = parseTerminalStates(item.terminalStatesJson);
-  const terminalCount = Array.isArray(parsed) ? parsed.length : 0;
+  const terminalCount = useMemo(() => {
+    const parsed = parseTerminalStates(item.terminalStatesJson);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  }, [item.terminalStatesJson]);
 
   return (
-    <div
+    <button
+      type="button"
       className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
       onClick={onSelect}
-      onKeyDown={(e) => e.key === 'Enter' && onSelect()}
-      tabIndex={0}
-      role="button"
       aria-pressed={isSelected}
     >
       <div className={styles.itemCode}>{item.workflowCode}</div>
@@ -49,7 +49,7 @@ function WorkflowListItem({
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

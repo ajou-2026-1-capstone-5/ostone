@@ -1,12 +1,6 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import styles from './nodes.module.css';
+import { type NodeProps } from '@xyflow/react';
+import { BasicNode } from './BasicNode';
 
-export function StartNode({ data }: NodeProps) {
-  return (
-    <div className={`${styles.node} ${styles.start}`}>
-      <Handle type="target" position={Position.Left} isConnectable={false} className={styles.handle} />
-      <span className={styles.label}>{String(data.label)}</span>
-      <Handle type="source" position={Position.Right} isConnectable={false} className={styles.handle} />
-    </div>
-  );
+export function StartNode(props: NodeProps) {
+  return <BasicNode {...props} variant="start" />;
 }

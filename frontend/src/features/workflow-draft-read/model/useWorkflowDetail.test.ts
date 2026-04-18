@@ -60,7 +60,7 @@ describe('useWorkflowDetail', () => {
     }
   });
 
-  it('404 ApiRequestError 발생 시 WORKFLOW_DEFINITION_NOT_FOUND 코드를 반환한다', async () => {
+  it('ApiRequestError의 code/message를 그대로 전달한다', async () => {
     // given
     const error = new ApiRequestError(404, 'WORKFLOW_DEFINITION_NOT_FOUND', 'Workflow를 찾을 수 없습니다.');
     mockDetail.mockRejectedValue(error);

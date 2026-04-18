@@ -14,7 +14,7 @@ export function WorkflowDraftReadPage() {
   const vId = parseRouteId(versionId);
   const wfId = workflowId ? parseRouteId(workflowId) : null;
 
-  if (wsId === null || pId === null || vId === null) {
+  if (wsId === null || pId === null || vId === null || (workflowId !== undefined && wfId === null)) {
     return (
       <DashboardLayout>
         <div className={styles.invalidParams}>잘못된 URL 파라미터입니다.</div>

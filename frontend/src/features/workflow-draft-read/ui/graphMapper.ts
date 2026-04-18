@@ -12,7 +12,16 @@ function layout(i: number, graph: WorkflowGraph): { x: number; y: number } {
   return { x: col * H_SPACING, y: row * V_SPACING };
 }
 
-const mapNodeType = (type: WorkflowGraph['nodes'][number]['type']) => type.toLowerCase();
+const KNOWN_NODE_TYPES = new Set(['start', 'action', 'decision', 'answer', 'handoff', 'terminal']);
+
+function mapNodeType(type: WorkflowGraph['nodes'][number]['type']): string {
+  const lower = type.toLowerCase();
+  if (!KNOWN_NODE_TYPES.has(lower)) {
+    console.warn('[graphMapper] 알 수 없는 노드 타입:', type);
+    return 'action';
+  }
+  return lower;
+}
 
 export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = graph.nodes.map((n, i) => ({

@@ -115,14 +115,32 @@ export function WorkflowDetailPanel({
         )}
       </div>
 
-      <div className={styles.tabs} role="tablist">
+      <div
+        className={styles.tabs}
+        role="tablist"
+        onKeyDown={(e) => {
+          const allTabs: Tab[] = ['graph', 'json', 'meta'];
+          const idx = allTabs.indexOf(tab);
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            const dir = e.key === 'ArrowRight' ? 1 : -1;
+            const next = (idx + dir + allTabs.length) % allTabs.length;
+            setTab(allTabs[next]);
+            const tabList = e.currentTarget;
+            (tabList.querySelectorAll('[role="tab"]')[next] as HTMLButtonElement)?.focus();
+          }
+        }}
+      >
         {(['graph', 'json', 'meta'] as Tab[]).map((t) => (
           <button
             key={t}
+            id={`tab-${t}`}
             className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`}
             onClick={() => setTab(t)}
             role="tab"
             aria-selected={tab === t}
+            aria-controls={`panel-${t}`}
+            tabIndex={tab === t ? 0 : -1}
           >
             {t === 'graph' ? 'Graph' : t === 'json' ? 'JSON' : 'Meta'}
           </button>
@@ -131,13 +149,15 @@ export function WorkflowDetailPanel({
 
       <div className={styles.tabContent}>
         {tab === 'graph' && (
-          <Suspense fallback={<div className={styles.graphLoading}>그래프 로드 중...</div>}>
-            <GraphRenderer graph={data.graphJson} />
-          </Suspense>
+          <div role="tabpanel" id="panel-graph" aria-labelledby="tab-graph" tabIndex={0}>
+            <Suspense fallback={<div className={styles.graphLoading}>그래프 로드 중...</div>}>
+              <GraphRenderer graph={data.graphJson} />
+            </Suspense>
+          </div>
         )}
 
         {tab === 'json' && (
-          <div className={styles.jsonView}>
+          <div role="tabpanel" id="panel-json" aria-labelledby="tab-json" tabIndex={0} className={styles.jsonView}>
             <pre className={styles.jsonPre}>
               <code>{JSON.stringify(data.graphJson, null, 2)}</code>
             </pre>
@@ -145,7 +165,7 @@ export function WorkflowDetailPanel({
         )}
 
         {tab === 'meta' && (
-          <div className={styles.metaView}>
+          <div role="tabpanel" id="panel-meta" aria-labelledby="tab-meta" tabIndex={0} className={styles.metaView}>
             <section className={styles.metaSection}>
               <h3 className={styles.metaSectionTitle}>초기 상태</h3>
               <p className={styles.metaValue}>{data.initialState ?? '—'}</p>
