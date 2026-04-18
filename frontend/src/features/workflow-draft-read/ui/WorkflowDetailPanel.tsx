@@ -47,13 +47,14 @@ export function WorkflowDetailPanel({
 }: WorkflowDetailPanelProps) {
   const [tab, setTab] = useState<Tab>('graph');
   const detailState = useWorkflowDetail(wsId, packId, versionId, workflowId);
+  const errorCode = detailState.status === 'error' ? detailState.code : undefined;
 
   useEffect(() => {
-    if (detailState.status === 'error' && detailState.code !== 'WORKFLOW_DEFINITION_NOT_FOUND') {
+    if (detailState.status === 'error' && errorCode !== 'WORKFLOW_DEFINITION_NOT_FOUND') {
       toast.error(detailState.message);
     }
-  // discriminated-union: status/code always change together; message intentionally omitted
-  }, [detailState.status, detailState.code]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // discriminated-union: status/errorCode always change together; message intentionally omitted
+  }, [detailState.status, errorCode]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (workflowId === null) {
     return (
