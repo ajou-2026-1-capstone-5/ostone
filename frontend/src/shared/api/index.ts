@@ -72,6 +72,15 @@ class ApiClient {
 
     return this.handleResponse<T>(response);
   }
+
+  async delete<T>(path: string): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<T>(response);
+  }
 }
 
 export class ApiRequestError extends Error {
