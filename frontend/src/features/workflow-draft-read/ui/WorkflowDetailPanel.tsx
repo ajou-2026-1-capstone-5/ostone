@@ -125,7 +125,7 @@ export function WorkflowDetailPanel({
           aria-labelledby={`${idPrefix}-tab-graph`}
           className={styles.body}
         >
-          <ErrorBoundary fallback={<div className={styles.placeholder}><span>그래프를 표시할 수 없습니다.</span></div>}>
+          <ErrorBoundary key={workflowId} fallback={<div className={styles.placeholder}><span>그래프를 표시할 수 없습니다.</span></div>}>
             <Suspense fallback={<div className={styles.skeleton} />}>
               <GraphRenderer graph={detail.graph} />
             </Suspense>
