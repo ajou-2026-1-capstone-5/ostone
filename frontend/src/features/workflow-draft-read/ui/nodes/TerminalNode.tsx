@@ -6,7 +6,7 @@ export function TerminalNode({ data }: NodeProps) {
   return (
     <div className={styles.terminal}>
       <Handle type="target" position={Position.Left} />
-      {label}
+      <span className={styles.label}>{label}</span>
     </div>
   );
 }

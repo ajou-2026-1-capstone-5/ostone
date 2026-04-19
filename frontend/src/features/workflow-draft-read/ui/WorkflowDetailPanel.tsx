@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
 import type { WorkflowDetail } from "../../../entities/workflow";
+import { ErrorBoundary } from "../../../shared/ui/ErrorBoundary";
 import styles from "./WorkflowDetailPanel.module.css";
 
 const GraphRenderer = lazy(() => import("./GraphRenderer"));
@@ -60,6 +61,9 @@ export function WorkflowDetailPanel({
     document.getElementById(`${idPrefix}-tab-${TABS[next]}`)?.focus();
   };
 
+  const detail = state.status === "success" ? state.data : undefined;
+  const jsonText = useMemo(() => JSON.stringify(detail?.graph, null, 2), [detail?.graph]);
+
   if (state.status === "idle") {
     return (
       <section className={styles.panel} aria-label="workflow 상세">
@@ -90,8 +94,7 @@ export function WorkflowDetailPanel({
     );
   }
 
-  const detail = state.data;
-  const jsonText = useMemo(() => JSON.stringify(detail.graph, null, 2), [detail.graph]);
+  if (!detail) return null;
 
   return (
     <section className={styles.panel} aria-label="workflow 상세">
@@ -122,9 +125,11 @@ export function WorkflowDetailPanel({
           aria-labelledby={`${idPrefix}-tab-graph`}
           className={styles.body}
         >
-          <Suspense fallback={<div className={styles.skeleton} />}>
-            <GraphRenderer graph={detail.graph} />
-          </Suspense>
+          <ErrorBoundary fallback={<div className={styles.placeholder}><span>그래프를 표시할 수 없습니다.</span></div>}>
+            <Suspense fallback={<div className={styles.skeleton} />}>
+              <GraphRenderer graph={detail.graph} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
 
