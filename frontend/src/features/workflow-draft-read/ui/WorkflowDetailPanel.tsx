@@ -61,7 +61,7 @@ export function WorkflowDetailPanel({
     document.getElementById(`${idPrefix}-tab-${TABS[next]}`)?.focus();
   };
 
-  const detail = state.status === "success" ? state.data : undefined;
+  const detail = state.status === "ready" ? state.data : undefined;
   const jsonText = useMemo(() => JSON.stringify(detail?.graph, null, 2), [detail?.graph]);
 
   if (state.status === "idle") {
