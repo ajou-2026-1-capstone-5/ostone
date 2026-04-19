@@ -41,24 +41,31 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
   font-size: 1.2rem;
+  letter-spacing: -0.14px;
   flex-shrink: 0;
 }
 
 .profileName {
   font-size: 1.05rem;
+  letter-spacing: -0.14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .profileChannel {
   font-size: 0.82rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -79,11 +86,13 @@
 
 .detailLabel {
   font-size: 0.78rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
 }
 
 .detailValue {
   font-size: 0.88rem;
+  letter-spacing: -0.1px;
   color: var(--text-primary);
   font-weight: 500;
   margin-top: 1px;
@@ -95,10 +104,11 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.7);
   border-radius: 20px;
   font-size: 0.82rem;
+  letter-spacing: normal;
   font-weight: 500;
   margin-top: 4px;
 }
@@ -118,6 +128,7 @@
   padding: 12px;
   font-family: inherit;
   font-size: 0.85rem;
+  letter-spacing: normal;
   color: var(--text-primary);
   background: var(--bg-color);
   outline: none;
@@ -130,7 +141,7 @@
 }
 
 .memoTextarea::placeholder {
-  color: #94a3b8;
+  color: rgba(0, 0, 0, 0.35);
 }
 
 /* Empty State */
@@ -147,9 +158,10 @@
 }
 
 .emptyInfoIcon {
-  color: #cbd5e1;
+  color: rgba(0, 0, 0, 0.15);
 }
 
 .emptyInfoText {
   font-size: 0.85rem;
+  letter-spacing: normal;
 }

@@ -6,6 +6,7 @@ import { PasswordResetInitPage } from '../pages/password-reset/ui/PasswordResetI
 import { PasswordResetCompletePage } from '../pages/password-reset/ui/PasswordResetCompletePage';
 import { ConsultationPage } from '../pages/consultation/ui/ConsultationPage';
 import { NotFoundPage } from '../pages/not-found/ui/NotFoundPage';
+import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
 import { PrivateRoute } from '../shared/ui/PrivateRoute';
 
 export function App() {
@@ -19,6 +20,8 @@ export function App() {
         <Route path="/reset-password/complete" element={<PasswordResetCompletePage />} />
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

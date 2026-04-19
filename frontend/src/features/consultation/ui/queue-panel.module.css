@@ -16,6 +16,7 @@
 
 .queueTitle {
   font-size: 1rem;
+  letter-spacing: -0.14px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -23,6 +24,7 @@
 
 .queueCount {
   font-size: 0.8rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
 }
 
@@ -49,32 +51,37 @@
 }
 
 .queueItem:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px dashed var(--primary-color);
   outline-offset: 2px;
   background: rgba(0, 0, 0, 0.05);
 }
 
 .queueItemActive {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .customerAvatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.15));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
-  color: #475569;
+  letter-spacing: -0.1px;
+  color: rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
 
 .customerAvatarActive {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   color: white;
 }
 
@@ -85,6 +92,7 @@
 
 .customerName {
   font-size: 0.9rem;
+  letter-spacing: -0.1px;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -94,6 +102,7 @@
 
 .handoffPreview {
   font-size: 0.78rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -103,6 +112,7 @@
 
 .waitTime {
   font-size: 0.72rem;
+  letter-spacing: normal;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
@@ -127,10 +137,11 @@
 }
 
 .emptyIcon {
-  color: #cbd5e1;
+  color: rgba(0, 0, 0, 0.15);
   margin-bottom: 12px;
 }
 
 .emptyText {
   font-size: 0.85rem;
+  letter-spacing: normal;
 }
