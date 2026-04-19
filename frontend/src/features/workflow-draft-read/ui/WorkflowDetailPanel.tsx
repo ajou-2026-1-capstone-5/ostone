@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect } from "react";
+import { Suspense, lazy, useState, useEffect, useId } from "react";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
@@ -27,6 +27,11 @@ export function WorkflowDetailPanel({
 }: WorkflowDetailPanelProps) {
   const state = useWorkflowDetail(wsId, packId, versionId, workflowId);
   const [tab, setTab] = useState<Tab>("graph");
+  const idPrefix = useId();
+
+  useEffect(() => {
+    setTab("graph");
+  }, [workflowId]);
 
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
@@ -52,7 +57,7 @@ export function WorkflowDetailPanel({
     else return;
     e.preventDefault();
     setTab(TABS[next]);
-    document.getElementById(`tab-${TABS[next]}`)?.focus();
+    document.getElementById(`${idPrefix}-tab-${TABS[next]}`)?.focus();
   };
 
   if (state.status === "idle") {
@@ -94,11 +99,11 @@ export function WorkflowDetailPanel({
         {TABS.map((t, i) => (
           <button
             key={t}
-            id={`tab-${t}`}
+            id={`${idPrefix}-tab-${t}`}
             type="button"
             role="tab"
             aria-selected={tab === t}
-            aria-controls={`panel-${t}`}
+            aria-controls={`${idPrefix}-panel-${t}`}
             tabIndex={tab === t ? 0 : -1}
             className={`${styles.tab} ${tab === t ? styles.tabActive : ""}`}
             onClick={() => setTab(t)}
@@ -110,9 +115,9 @@ export function WorkflowDetailPanel({
       </nav>
 
       <div
-        id="panel-graph"
+        id={`${idPrefix}-panel-graph`}
         role="tabpanel"
-        aria-labelledby="tab-graph"
+        aria-labelledby={`${idPrefix}-tab-graph`}
         className={styles.body}
         hidden={tab !== "graph"}
       >
@@ -122,9 +127,9 @@ export function WorkflowDetailPanel({
       </div>
 
       <div
-        id="panel-json"
+        id={`${idPrefix}-panel-json`}
         role="tabpanel"
-        aria-labelledby="tab-json"
+        aria-labelledby={`${idPrefix}-tab-json`}
         className={styles.body}
         hidden={tab !== "json"}
       >
@@ -134,9 +139,9 @@ export function WorkflowDetailPanel({
       </div>
 
       <div
-        id="panel-meta"
+        id={`${idPrefix}-panel-meta`}
         role="tabpanel"
-        aria-labelledby="tab-meta"
+        aria-labelledby={`${idPrefix}-tab-meta`}
         className={styles.body}
         hidden={tab !== "meta"}
       >
