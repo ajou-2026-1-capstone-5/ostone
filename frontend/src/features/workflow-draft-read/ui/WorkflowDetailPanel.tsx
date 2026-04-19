@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, useId, type KeyboardEvent } from "react";
+import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
@@ -91,6 +91,7 @@ export function WorkflowDetailPanel({
   }
 
   const detail = state.data;
+  const jsonText = useMemo(() => JSON.stringify(detail.graph, null, 2), [detail.graph]);
 
   return (
     <section className={styles.panel} aria-label="workflow 상세">
@@ -114,39 +115,42 @@ export function WorkflowDetailPanel({
         ))}
       </nav>
 
-      <div
-        id={`${idPrefix}-panel-graph`}
-        role="tabpanel"
-        aria-labelledby={`${idPrefix}-tab-graph`}
-        className={styles.body}
-        hidden={tab !== "graph"}
-      >
-        <Suspense fallback={<div className={styles.skeleton} />}>
-          <GraphRenderer graph={detail.graph} />
-        </Suspense>
-      </div>
+      {tab === "graph" && (
+        <div
+          id={`${idPrefix}-panel-graph`}
+          role="tabpanel"
+          aria-labelledby={`${idPrefix}-tab-graph`}
+          className={styles.body}
+        >
+          <Suspense fallback={<div className={styles.skeleton} />}>
+            <GraphRenderer graph={detail.graph} />
+          </Suspense>
+        </div>
+      )}
 
-      <div
-        id={`${idPrefix}-panel-json`}
-        role="tabpanel"
-        aria-labelledby={`${idPrefix}-tab-json`}
-        className={styles.body}
-        hidden={tab !== "json"}
-      >
-        <pre className={styles.jsonBlock}>
-          <code>{JSON.stringify(detail.graph, null, 2)}</code>
-        </pre>
-      </div>
+      {tab === "json" && (
+        <div
+          id={`${idPrefix}-panel-json`}
+          role="tabpanel"
+          aria-labelledby={`${idPrefix}-tab-json`}
+          className={styles.body}
+        >
+          <pre className={styles.jsonBlock}>
+            <code>{jsonText}</code>
+          </pre>
+        </div>
+      )}
 
-      <div
-        id={`${idPrefix}-panel-meta`}
-        role="tabpanel"
-        aria-labelledby={`${idPrefix}-tab-meta`}
-        className={styles.body}
-        hidden={tab !== "meta"}
-      >
-        <MetaTab detail={detail} />
-      </div>
+      {tab === "meta" && (
+        <div
+          id={`${idPrefix}-panel-meta`}
+          role="tabpanel"
+          aria-labelledby={`${idPrefix}-tab-meta`}
+          className={styles.body}
+        >
+          <MetaTab detail={detail} />
+        </div>
+      )}
     </section>
   );
 }
