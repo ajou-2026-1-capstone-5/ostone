@@ -6,7 +6,7 @@ export function HandoffNode({ data }: NodeProps) {
   return (
     <div className={styles.handoff}>
       <Handle type="target" position={Position.Left} />
-      {label}
+      <span className={styles.label}>{label}</span>
       <Handle type="source" position={Position.Right} />
     </div>
   );

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, useId } from "react";
+import { Suspense, lazy, useState, useEffect, useId, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
@@ -48,7 +48,7 @@ export function WorkflowDetailPanel({
     toast.error(msg);
   }, [state.status, errorCode, errorHttpStatus, errorMessage]);
 
-  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+  const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next = index;
     if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
     else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
@@ -157,9 +157,17 @@ function DetailHeader({ detail }: { detail: WorkflowDetail }) {
       <span className={styles.code}>{detail.workflowCode}</span>
       <span className={styles.name}>{detail.name}</span>
       {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {detail.updatedAt}</span>
+      <span className={styles.updatedAt}>UPDATED · {new Date(detail.updatedAt).toLocaleString()}</span>
     </header>
   );
+}
+
+function formatJsonForDisplay(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
 }
 
 function MetaTab({ detail }: { detail: WorkflowDetail }) {
@@ -194,11 +202,15 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
       </div>
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Evidence (raw)</span>
-        <code className={styles.rawCode}>{detail.evidenceJson}</code>
+        <pre className={styles.rawCode}>
+          <code>{formatJsonForDisplay(detail.evidenceJson)}</code>
+        </pre>
       </div>
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Meta (raw)</span>
-        <code className={styles.rawCode}>{detail.metaJson}</code>
+        <pre className={styles.rawCode}>
+          <code>{formatJsonForDisplay(detail.metaJson)}</code>
+        </pre>
       </div>
     </div>
   );

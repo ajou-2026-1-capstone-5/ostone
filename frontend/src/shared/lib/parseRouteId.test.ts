@@ -18,8 +18,8 @@ describe("parseRouteId", () => {
     expect(parseRouteId("42")).toBe(42);
   });
 
-  it('"0" → 0', () => {
-    expect(parseRouteId("0")).toBe(0);
+  it('"0" → null (백엔드 ID는 양의 정수)', () => {
+    expect(parseRouteId("0")).toBeNull();
   });
 
   it('빈 문자열 → null', () => {

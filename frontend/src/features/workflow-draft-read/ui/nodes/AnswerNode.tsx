@@ -6,7 +6,7 @@ export function AnswerNode({ data }: NodeProps) {
   return (
     <div className={styles.answer}>
       <Handle type="target" position={Position.Left} />
-      {label}
+      <span className={styles.label}>{label}</span>
       <Handle type="source" position={Position.Right} />
     </div>
   );

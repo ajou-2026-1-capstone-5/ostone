@@ -11,8 +11,13 @@
   max-width: 100%;
   text-align: center;
   white-space: nowrap;
+}
+
+.label {
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .start {
@@ -88,7 +93,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   background: var(--text-primary);
   color: var(--bg-color);
 }
