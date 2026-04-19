@@ -1,0 +1,125 @@
+.base {
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  padding: 8px 16px;
+  min-width: 120px;
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.label {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.start {
+  composes: base;
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.action {
+  composes: base;
+  border-radius: var(--radius-md);
+}
+
+.decision {
+  composes: base;
+  position: relative;
+  width: 96px;
+  height: 96px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.decision::before {
+  content: "";
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.decisionLabel {
+  display: block;
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.answer {
+  composes: base;
+  position: relative;
+  border: none;
+  background: transparent;
+  padding-left: 20px;
+}
+
+.answer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
+  border-radius: var(--radius-md);
+  background: var(--glass-dark);
+  border: 1px solid var(--text-primary);
+  z-index: -1;
+}
+
+.handoff {
+  composes: base;
+  position: relative;
+  border: none;
+  background: transparent;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.handoff::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--text-primary);
+  z-index: -1;
+}
+
+.terminal {
+  composes: base;
+  border-radius: var(--radius-full);
+  width: 80px;
+  height: 80px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
