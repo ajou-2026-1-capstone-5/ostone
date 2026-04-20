@@ -12,5 +12,7 @@ public interface PolicyDefinitionRepository {
 
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 
+  List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);
+
   PolicyDefinition save(PolicyDefinition policy);
 }

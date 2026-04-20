@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface JpaPolicyDefinitionRepository
     extends JpaRepository<PolicyDefinition, Long>, PolicyDefinitionRepository {
 
-  List<PolicyDefinition> findByDomainPackVersionId(Long domainPackVersionId);
+  List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);
 
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 }
