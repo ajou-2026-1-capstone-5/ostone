@@ -1,9 +1,19 @@
+FROM eclipse-temurin:21-jdk AS builder
+
+WORKDIR /workspace
+
+COPY gradlew gradlew
+COPY gradle gradle
+COPY build.gradle.kts settings.gradle.kts ./
+COPY src src
+
+RUN chmod +x gradlew && ./gradlew bootJar --no-daemon
+
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Note: Run `./gradlew bootJar` before docker build to generate app.jar
-COPY build/libs/backend-*.jar app.jar
+COPY --from=builder /workspace/build/libs/backend-*.jar app.jar
 
 RUN addgroup --system appgroup && adduser --system --group appuser
 USER appuser
