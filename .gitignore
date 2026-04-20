@@ -27,6 +27,7 @@ backend/bin/
 
 # Docker
 .env
+**/.env
 
 # Sisyphus
 .sisyphus/

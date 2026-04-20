@@ -1,0 +1,24 @@
+from pipeline.common.artifacts import write_stage_manifest
+from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.context import StageContext
+
+
+def test_should_write_stage_manifest(tmp_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+    )
+    stage_context = StageContext(
+        dag_id="dev_bootstrap",
+        run_id="manual__2026-04-15T00:00:00+00:00",
+        stage_name="bootstrap_smoke",
+        workspace_id="workspace-1",
+        dataset_id="dataset-1",
+        pipeline_job_id="pipeline-job-1",
+    )
+
+    manifest_path = write_stage_manifest(stage_context, runtime_config, {"status": "ok"})
+
+    assert manifest_path.exists()
+    assert manifest_path.parent == tmp_path / "dev_bootstrap" / "manual__2026-04-15T00:00:00+00:00" / "bootstrap_smoke"
+    assert '"stage_name": "bootstrap_smoke"' in manifest_path.read_text(encoding="utf-8")

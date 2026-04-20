@@ -6,6 +6,12 @@
 
 상담 로그 데이터를 분석하여 자동으로 CS 워크플로우를 생성하는 시스템
 
+## 배포 (CD)
+
+main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 자동으로 Render에 배포된다.
+
+자세한 배포 가이드: [`.agent/docs/deployment.md`](.agent/docs/deployment.md)
+
 ## 팀원
 
 - **강희원** (201920717) - kangheewon@ajou.ac.kr - [@kang-heewon](https://github.com/kang-heewon)
@@ -48,20 +54,47 @@ Conventional Commits: `type(scope): subject` (예: `feat(domain-pack): add publi
 ## 로컬 개발환경 세팅
 
 ```bash
-# Docker Compose로 전체 서비스 실행
-docker-compose up -d
+# 최초 1회 env 파일 준비
+cp .env.example .env
 
-# Backend: Gradle build
-cd backend && ./gradlew build
+# ML 개발 의존성 동기화
+(cd ml && uv sync)
 
-# Frontend: pnpm dev
-cd frontend && pnpm dev
+# Backend 컨테이너 사용 시 선행 빌드
+(cd backend && ./gradlew bootJar)
 
-# ML: pytest
-cd ml && pytest
+# Frontend 컨테이너 사용 시 선행 빌드
+(cd frontend && pnpm build)
+
+# 전체 로컬 스택 실행
+docker compose up -d
+
+# Backend: 빌드/테스트
+(cd backend && ./gradlew build)
+
+# Frontend: 개발 서버
+(cd frontend && pnpm dev)
+
+# ML: 테스트
+(cd ml && uv run pytest)
 ```
 
-상세 설정: [`backend/README.md`](backend/README.md)
+전체 스택:
+
+- 루트 `docker-compose.yml`에서 `ml/docker-compose.yml` include
+- 기동 서비스: `postgres`, `backend`, `frontend`, `airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`
+- `backend`, `frontend`는 선행 산출물(`bootJar`, `pnpm build`) 전제
+- 강제 리빌드: `docker compose up --build -d`
+
+ML 관련 서비스만 실행:
+
+```bash
+docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
+```
+
+- `depends_on`에 따라 공유 `postgres` 함께 기동
+- ML 세부 가이드: `ml/README.md`
+- 상세 설정: `backend/README.md`
 
 ## 모듈 구조
 

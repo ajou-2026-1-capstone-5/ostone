@@ -7,6 +7,7 @@
 
 .label {
   font-size: 0.875rem;
+  letter-spacing: -0.1px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: color var(--transition-fast);
@@ -21,7 +22,7 @@
 .icon {
   position: absolute;
   left: 14px;
-  color: #64748b;
+  color: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -31,14 +32,22 @@
   width: 100%;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
   color: var(--text-primary);
   font-family: inherit;
   font-size: 0.95rem;
+  letter-spacing: -0.1px;
   outline: none;
   transition: all var(--transition-normal);
-  backdrop-filter: blur(8px);
+}
+
+.input:focus-visible {
+  outline: dashed 2px;
+  outline-offset: 2px;
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
 }
 
 .hasIcon {
@@ -46,14 +55,9 @@
 }
 
 .input::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+  color: rgba(0, 0, 0, 0.35);
 }
 
-.input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-  background: #ffffff;
-}
 
 .input:hover:not(:focus) {
   border-color: rgba(0, 0, 0, 0.2);
@@ -63,12 +67,15 @@
   border-color: var(--error-color);
 }
 
-.errorInput:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  .errorInput:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  outline: dashed 2px;
+  outline-offset: 2px;
 }
 
 .errorText {
   font-size: 0.8rem;
+  letter-spacing: normal;
   color: var(--error-color);
   animation: slide-up 0.2s ease-out;
 }

@@ -14,7 +14,7 @@
 | Frontend               | Vite+          | 0.1.15 |
 | ML Pipeline            | uv Python      | 3.13+  |
 | Database               | PostgreSQL     | 16+    |
-| Workflow Orchestration | Apache Airflow | 2.10+  |
+| Workflow Orchestration | Apache Airflow | 3.2.0  |
 | Infrastructure         | Docker Compose | -      |
 
 ---
@@ -78,18 +78,13 @@ frontend/
 
 ```
 ml/
-├── dags/                 # Airflow DAG 정의
-│   ├── ingestion/        # 상담 로그 입력 및 전처리
-│   ├── preprocessing/    # boilerplate 제거, canonical text 생성
-│   ├── intent_discovery/ # 의도 클러스터링
-│   ├── draft_generation/ # 초안 생성
-│   ├── evaluation/       # 품질 평가
-│   └── publish_candidate/# 결과 전달
 ├── src/
-│   ├── stages/           # 파이프라인 단계 구현
-│   ├── models/           # ML 모델
-│   └── utils/            # 공통 유틸리티
+│   ├── dags/             # Airflow runtime DAG 엔트리
+│   └── pipeline/
+│       ├── stages/       # 파이프라인 단계 구현
+│       └── common/       # 공통 유틸리티/설정
 ├── tests/
+│   └── dags/             # 개발/검증 전용 DAG
 └── pyproject.toml
 ```
 
@@ -131,7 +126,8 @@ ml/
 .agent/
 ├── docs/
 │   ├── architecture.md   # 전체 시스템 아키텍처
-│   └── schema.md         # PostgreSQL 스키마 정의
+│   ├── schema.md         # PostgreSQL 스키마 정의
+│   └── deployment.md     # Render + Neon 배포 가이드
 ├── rules/
 │   ├── principles.md     # KISS/YAGNI/DRY 등 핵심 원칙
 │   ├── java.md           # Java/Spring 코딩 규칙
@@ -161,20 +157,35 @@ ml/
 ### Docker Compose
 
 ```bash
-# 전체 서비스 실행 (postgres + backend + frontend)
-docker-compose up -d
+# 최초 1회 env 파일 준비
+cp .env.example .env
+
+# backend 컨테이너 사용 시 선행 빌드
+(cd backend && ./gradlew bootJar)
+
+# frontend 컨테이너 사용 시 선행 빌드
+(cd frontend && pnpm build)
+
+# 전체 서비스 실행
+docker compose up -d
 
 # 개별 서비스
-docker-compose up -d postgres
-docker-compose up -d backend
-docker-compose up -d frontend
+docker compose up -d postgres
+docker compose up -d backend
+docker compose up -d frontend
+docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
 
 # 로그 확인
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f airflow-apiserver
 ```
 
-**참고**: docker-compose에 Airflow 서비스 없음 (현재 미구현)
+기본 원칙:
+
+- Airflow 로컬 런타임은 루트 `docker compose` 기준으로 함께 관리한다.
+- `backend`와 `frontend` 이미지는 기존 방식대로 선행 `jar`/`dist` 빌드를 전제한다.
+- Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
 
 ### Backend (Gradle)
 
@@ -218,7 +229,7 @@ docker-compose logs -f frontend
 | 타입 검사     | `cd ml && uv run mypy .`                                                        |
 | 전체 검사     | `cd ml && uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
 
-**참고**: ml/dags/ 미구현 (Airflow 파이프라인 아직 작성 안됨)
+**참고**: Airflow 로컬 런타임 관련 구성은 `ml/airflow/`, `ml/src/dags/`, 루트 `docker-compose.yml` 기준으로 관리한다.
 
 ### Root Scripts
 
@@ -282,7 +293,7 @@ cd frontend && pnpm build && docker build -t init-frontend .
 | `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
 | `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`               |
 | `JWT_SECRET`                            | JWT 서명 키          | (필수)                |
-| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `localhost:5173~5176` |
+| `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176` |
 
 ---
 
@@ -357,6 +368,7 @@ ingestion → preprocessing → intent_discovery → draft_generation → evalua
 - 각 Stage는 독립적 DAG 태스크로 구현
 - Stage 간 데이터는 artifact(JSON/Parquet)로 전달
 - PII 제거는 preprocessing Stage에서 필수
+- `dev_bootstrap`, `dev_replay`는 `ml/tests/dags/`에서 관리하는 smoke/retry 검증용 예외 DAG다
 
 ### Git 워크플로우
 
@@ -404,4 +416,5 @@ type(scope): subject
 - `.agent/rules/`: 상세 코딩 규칙 (principles, java, typescript, python, git, code-review)
 - `.agent/docs/architecture.md`: 상세 아키텍처 문서
 - `.agent/docs/schema.md`: PostgreSQL 스키마 DDL
+- `.agent/docs/deployment.md`: Render + Neon 배포 가이드
 - `.sisyphus/plans/`: 프로젝트 계획 문서

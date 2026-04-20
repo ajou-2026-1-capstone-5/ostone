@@ -130,7 +130,7 @@ public class DomainPackDraftPersistenceService {
                 + ", parentIntentCode="
                 + draft.parentIntentCode());
       }
-      child.setParentIntentId(parent.getId());
+      child.assignParent(parent.getId());
     }
     if (hasParentIntent) {
       intentDefinitionRepository.saveAllAndFlush(savedIntents);
@@ -210,7 +210,7 @@ public class DomainPackDraftPersistenceService {
                 + ", parentIntentCode="
                 + draft.parentIntentCode());
       }
-      child.setParentIntentId(parent.getId());
+      child.assignParent(parent.getId());
     }
     if (hasParentIntent) {
       savedIntents = intentDefinitionRepository.saveAllAndFlush(savedIntents);

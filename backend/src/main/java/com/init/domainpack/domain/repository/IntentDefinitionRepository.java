@@ -16,4 +16,8 @@ public interface IntentDefinitionRepository {
 
   Optional<IntentDefinition> findByDomainPackVersionIdAndIntentCode(
       Long domainPackVersionId, String intentCode);
+
+  List<IntentDefinition> findByDomainPackVersionId(Long domainPackVersionId);
+
+  Optional<IntentDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 }

@@ -23,11 +23,17 @@ dev = [
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
 [tool.mypy]
 python_version = "3.13"
 strict = false
+
+[[tool.mypy.overrides]]
+module = ["airflow", "airflow.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
