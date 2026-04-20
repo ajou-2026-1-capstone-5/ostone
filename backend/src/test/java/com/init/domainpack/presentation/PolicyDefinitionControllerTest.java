@@ -76,8 +76,8 @@ class PolicyDefinitionControllerTest {
         .andExpect(jsonPath("$.evidenceJson").value("[]"))
         .andExpect(jsonPath("$.metaJson").value("{}"))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
-        .andExpect(jsonPath("$.createdAt").exists())
-        .andExpect(jsonPath("$.updatedAt").exists());
+        .andExpect(jsonPath("$.createdAt").value("2026-04-10T10:00:00Z"))
+        .andExpect(jsonPath("$.updatedAt").value("2026-04-10T10:00:00Z"));
   }
 
   @Test

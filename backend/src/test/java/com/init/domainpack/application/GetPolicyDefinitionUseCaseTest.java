@@ -75,12 +75,18 @@ class GetPolicyDefinitionUseCaseTest {
 
     // then
     assertThat(result.id()).isEqualTo(POLICY_ID);
+    assertThat(result.domainPackVersionId()).isEqualTo(VERSION_ID);
     assertThat(result.policyCode()).isEqualTo("POL_RETURN");
     assertThat(result.name()).isEqualTo("반품 처리 정책");
+    assertThat(result.description()).isEqualTo("7일 이내 반품 허용");
+    assertThat(result.severity()).isEqualTo("HIGH");
     assertThat(result.conditionJson()).isEqualTo("{}");
     assertThat(result.actionJson()).isEqualTo("{}");
     assertThat(result.evidenceJson()).isEqualTo("[]");
     assertThat(result.metaJson()).isEqualTo("{}");
+    assertThat(result.status()).isEqualTo("ACTIVE");
+    assertThat(result.createdAt()).isEqualTo(OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    assertThat(result.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-04-10T10:00:00Z"));
   }
 
   @Test
@@ -200,7 +206,8 @@ class GetPolicyDefinitionUseCaseTest {
 
   private PolicyDefinition createPolicy(Long id, String policyCode, String name) {
     PolicyDefinition policy =
-        PolicyDefinition.create(VERSION_ID, policyCode, name, null, "HIGH", "{}", "{}", "[]", "{}");
+        PolicyDefinition.create(
+            VERSION_ID, policyCode, name, "7일 이내 반품 허용", "HIGH", "{}", "{}", "[]", "{}");
     ReflectionTestUtils.setField(policy, "id", id);
     ReflectionTestUtils.setField(policy, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
     ReflectionTestUtils.setField(policy, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
