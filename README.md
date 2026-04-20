@@ -6,6 +6,12 @@
 
 상담 로그 데이터를 분석하여 자동으로 CS 워크플로우를 생성하는 시스템
 
+## 배포 (CD)
+
+main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 자동으로 Render에 배포된다.
+
+자세한 배포 가이드: [`.agent/docs/deployment.md`](.agent/docs/deployment.md)
+
 ## 팀원
 
 - **강희원** (201920717) - kangheewon@ajou.ac.kr - [@kang-heewon](https://github.com/kang-heewon)
