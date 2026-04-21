@@ -10,5 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface JpaRiskDefinitionRepository
     extends JpaRepository<RiskDefinition, Long>, RiskDefinitionRepository {
 
-  List<RiskDefinition> findByDomainPackVersionId(Long domainPackVersionId);
+  List<RiskDefinition> findAllByDomainPackVersionIdOrderByRiskCodeAsc(Long domainPackVersionId);
 }
