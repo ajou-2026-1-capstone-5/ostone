@@ -12,8 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(
-    "/api/v1/workspaces/{workspaceId}/domain-packs/{packId}/versions/{versionId}/risks")
+@RequestMapping("/api/v1/workspaces/{workspaceId}/domain-packs/{packId}/versions/{versionId}/risks")
 public class RiskDefinitionController {
 
   private final GetRiskDefinitionUseCase useCase;

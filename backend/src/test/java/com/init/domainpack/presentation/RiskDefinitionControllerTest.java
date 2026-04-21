@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.init.domainpack.application.GetRiskDefinitionUseCase;
 import com.init.domainpack.application.RiskDefinitionResponse;
-import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.RiskDefinitionNotFoundException;
@@ -33,8 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("RiskDefinitionController")
 class RiskDefinitionControllerTest {
 
-  private static final String BASE_URL =
-      "/api/v1/workspaces/1/domain-packs/7/versions/101/risks";
+  private static final String BASE_URL = "/api/v1/workspaces/1/domain-packs/7/versions/101/risks";
 
   @Autowired private MockMvc mockMvc;
 
