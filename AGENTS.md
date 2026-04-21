@@ -126,7 +126,8 @@ ml/
 .agent/
 ├── docs/
 │   ├── architecture.md   # 전체 시스템 아키텍처
-│   └── schema.md         # PostgreSQL 스키마 정의
+│   ├── schema.md         # PostgreSQL 스키마 정의
+│   └── deployment.md     # Render + Neon 배포 가이드
 ├── rules/
 │   ├── principles.md     # KISS/YAGNI/DRY 등 핵심 원칙
 │   ├── java.md           # Java/Spring 코딩 규칙
@@ -415,4 +416,5 @@ type(scope): subject
 - `.agent/rules/`: 상세 코딩 규칙 (principles, java, typescript, python, git, code-review)
 - `.agent/docs/architecture.md`: 상세 아키텍처 문서
 - `.agent/docs/schema.md`: PostgreSQL 스키마 DDL
+- `.agent/docs/deployment.md`: Render + Neon 배포 가이드
 - `.sisyphus/plans/`: 프로젝트 계획 문서

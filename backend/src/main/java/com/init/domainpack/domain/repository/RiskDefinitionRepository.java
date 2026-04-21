@@ -10,5 +10,9 @@ public interface RiskDefinitionRepository {
 
   Optional<RiskDefinition> findById(Long id);
 
+  Optional<RiskDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
+
+  List<RiskDefinition> findAllByDomainPackVersionIdOrderByRiskCodeAsc(Long domainPackVersionId);
+
   RiskDefinition save(RiskDefinition risk);
 }

@@ -10,10 +10,10 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
-import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
-import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
+import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.time.OffsetDateTime;
@@ -25,18 +25,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GetWorkflowDefinitionListUseCase")
-class GetWorkflowDefinitionListUseCaseTest {
+@DisplayName("GetRiskDefinitionListUseCase")
+class GetRiskDefinitionListUseCaseTest {
 
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DomainPackRepository domainPackRepository;
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
-  @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private RiskDefinitionRepository riskDefinitionRepository;
 
-  private GetWorkflowDefinitionListUseCase useCase;
+  private GetRiskDefinitionListUseCase useCase;
 
   private static final Long WORKSPACE_ID = 1L;
   private static final Long PACK_ID = 7L;
@@ -51,59 +52,75 @@ class GetWorkflowDefinitionListUseCaseTest {
             workspaceMembershipPort,
             domainPackRepository,
             domainPackVersionRepository);
-    useCase = new GetWorkflowDefinitionListUseCase(validator, workflowDefinitionRepository);
+    useCase = new GetRiskDefinitionListUseCase(validator, riskDefinitionRepository);
   }
 
   @Test
-  @DisplayName("정상 조회 시 version 내 workflow 목록 반환")
-  void should_workflow목록반환_when_유효한쿼리() {
+  @DisplayName("유효한 query → riskCode ASC 순 RiskDefinitionSummary 목록 반환")
+  void should_returnOrderedSummaryList_when_validQuery() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(
-            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
-                VERSION_ID))
-        .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불 플로우")));
+    given(riskDefinitionRepository.findAllByDomainPackVersionIdOrderByRiskCodeAsc(VERSION_ID))
+        .willReturn(
+            List.of(createRisk(1L, "RISK_FRAUD", "사기 위험"), createRisk(2L, "RISK_RETURN", "반품 위험")));
 
-    // when & then
-    List<WorkflowDefinitionSummary> result =
-        useCase.execute(
-            new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
+    // when
+    List<RiskDefinitionSummary> result =
+        useCase.execute(new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
 
+    // then
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).riskCode()).isEqualTo("RISK_FRAUD");
+    assertThat(result.get(1).riskCode()).isEqualTo("RISK_RETURN");
+  }
+
+  @Test
+  @DisplayName("목록 응답에 triggerConditionJson, handlingActionJson, evidenceJson, metaJson 미포함")
+  void should_notIncludeJsonFields_when_summaryIsReturned() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    given(riskDefinitionRepository.findAllByDomainPackVersionIdOrderByRiskCodeAsc(VERSION_ID))
+        .willReturn(List.of(createRisk(1L, "RISK_FRAUD", "사기 위험")));
+
+    // when
+    List<RiskDefinitionSummary> result =
+        useCase.execute(new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
+
+    // then
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).domainPackVersionId()).isEqualTo(VERSION_ID);
-    assertThat(result.get(0).workflowCode()).isEqualTo("refund_flow");
-    assertThat(result.get(0).name()).isEqualTo("환불 플로우");
   }
 
   @Test
-  @DisplayName("workflow 없는 version → 빈 목록 반환")
-  void should_빈목록반환_when_workflow없음() {
+  @DisplayName("risk 없는 version → 빈 목록 반환")
+  void should_returnEmptyList_when_noRisksExist() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(
-            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
-                VERSION_ID))
+    given(riskDefinitionRepository.findAllByDomainPackVersionIdOrderByRiskCodeAsc(VERSION_ID))
         .willReturn(List.of());
 
-    // when & then
-    List<WorkflowDefinitionSummary> result =
-        useCase.execute(
-            new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
+    // when
+    List<RiskDefinitionSummary> result =
+        useCase.execute(new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
 
+    // then
     assertThat(result).isEmpty();
   }
 
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
-  void should_WorkspaceNotFoundException발생_when_workspace없음() {
+  void should_throwWorkspaceNotFoundException_when_workspaceNotFound() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
 
@@ -111,13 +128,13 @@ class GetWorkflowDefinitionListUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+                    new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
   }
 
   @Test
   @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
-  void should_UnauthorizedException발생_when_접근권한없음() {
+  void should_throwUnauthorizedException_when_unauthorized() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
@@ -126,13 +143,13 @@ class GetWorkflowDefinitionListUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+                    new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
   }
 
   @Test
   @DisplayName("domain pack 소속 불일치 → DomainPackNotFoundException")
-  void should_NotFoundException발생_when_Pack소속불일치() {
+  void should_throwDomainPackNotFoundException_when_packNotInWorkspace() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
@@ -142,13 +159,13 @@ class GetWorkflowDefinitionListUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+                    new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
         .isInstanceOf(DomainPackNotFoundException.class);
   }
 
   @Test
   @DisplayName("version 소속 불일치 → DomainPackVersionNotFoundException")
-  void should_VersionNotFoundException발생_when_version소속불일치() {
+  void should_throwVersionNotFoundException_when_versionNotInPack() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
@@ -160,7 +177,7 @@ class GetWorkflowDefinitionListUseCaseTest {
     assertThatThrownBy(
             () ->
                 useCase.execute(
-                    new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+                    new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
         .isInstanceOf(DomainPackVersionNotFoundException.class);
   }
 
@@ -168,52 +185,12 @@ class GetWorkflowDefinitionListUseCaseTest {
     return DomainPackVersion.ofForTest(id, packId, DomainPackVersion.STATUS_DRAFT);
   }
 
-  private WorkflowDefinitionSummaryRow createSummaryRow(Long id, String code, String name) {
-    return new WorkflowDefinitionSummaryRow() {
-      @Override
-      public Long getId() {
-        return id;
-      }
-
-      @Override
-      public Long getDomainPackVersionId() {
-        return VERSION_ID;
-      }
-
-      @Override
-      public String getWorkflowCode() {
-        return code;
-      }
-
-      @Override
-      public String getName() {
-        return name;
-      }
-
-      @Override
-      public String getDescription() {
-        return null;
-      }
-
-      @Override
-      public String getInitialState() {
-        return "start";
-      }
-
-      @Override
-      public String getTerminalStatesJson() {
-        return "[\"terminal\"]";
-      }
-
-      @Override
-      public OffsetDateTime getCreatedAt() {
-        return OffsetDateTime.parse("2026-04-14T10:00:00Z");
-      }
-
-      @Override
-      public OffsetDateTime getUpdatedAt() {
-        return OffsetDateTime.parse("2026-04-14T10:00:00Z");
-      }
-    };
+  private RiskDefinition createRisk(Long id, String riskCode, String name) {
+    RiskDefinition risk =
+        RiskDefinition.create(VERSION_ID, riskCode, name, "설명", "HIGH", "{}", "{}", "[]", "{}");
+    ReflectionTestUtils.setField(risk, "id", id);
+    ReflectionTestUtils.setField(risk, "createdAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    ReflectionTestUtils.setField(risk, "updatedAt", OffsetDateTime.parse("2026-04-10T10:00:00Z"));
+    return risk;
   }
 }

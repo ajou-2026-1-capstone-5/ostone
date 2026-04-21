@@ -13,7 +13,8 @@ public interface JpaWorkflowDefinitionRepository
     extends JpaRepository<WorkflowDefinition, Long>, WorkflowDefinitionRepository {
 
   @Override
-  List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionId(Long domainPackVersionId);
+  List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+      Long domainPackVersionId);
 
   @Override
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
