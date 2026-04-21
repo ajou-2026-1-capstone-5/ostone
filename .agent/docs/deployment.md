@@ -2,12 +2,12 @@
 
 ## 1. 개요
 
-본 프로젝트는 GitHub Actions CD 파이프라인을 통해 main 브랜치 머지 시 자동으로 Render에 배포된다.
+본 프로젝트는 Render의 GitHub 네이티브 연동을 통해 `main` 브랜치 변경 시 자동 배포된다. GitHub Actions는 CI 품질 게이트까지만 담당하고, 실제 배포 트리거와 배포 상태 관리는 Render가 직접 수행한다.
 
 **배포 아키텍처**:
 
 ```
-GitHub (main push) → CI 워크플로우 (품질 게이트) → CD 워크플로우 → Render API → Render 빌드 → Neon DB
+GitHub (main push) → GitHub Actions CI 워크플로우 (품질 게이트) → Render GitHub 연동 → Render 빌드/배포 → Neon DB
 ```
 
 **사용 서비스**:
@@ -15,7 +15,8 @@ GitHub (main push) → CI 워크플로우 (품질 게이트) → CD 워크플로
 - **Backend**: Render Web Service (Docker runtime, 무료 티어)
 - **Frontend**: Render Static Site (Vite 빌드, SPA 라우팅)
 - **Database**: Neon PostgreSQL (무료 티어, 0.5GB)
-- **CI/CD**: GitHub Actions
+- **CI**: GitHub Actions
+- **CD**: Render Native GitHub Integration
 
 ## 2. 사전 요건
 
@@ -58,19 +59,19 @@ Neon은 PgBouncer pooler endpoint도 제공하지만, **반드시 Direct connect
 
 ### 4.2 자동 생성된 Blueprint에서 반드시 확인
 
-**Auto-Deploy: OFF**
+**Auto-Deploy: ON**
 
-⚠️ **경고: Auto-Deploy를 반드시 OFF로 설정해야 한다.**
+⚠️ **중요: 네이티브 연동으로 운영할 경우 Auto-Deploy를 ON으로 유지해야 한다.**
 
-Render Blueprint 배포 시 "Auto-Deploy" 옵션이 자동으로 ON되어 있다. 이대로 두면:
+Render Blueprint 배포 시 "Auto-Deploy" 옵션이 자동으로 ON되어 있다. 네이티브 연동으로 운영할 때는 이 설정을 유지해야 하며, 배포 흐름은 다음처럼 단순해진다.
 
-- GitHub push → Render가 자체 빌드 (CI 우회)
-- GitHub Actions CD → Deploy Hook 트리거 (CI 통과 후 배포)
-- **동시 배포 충돌 발생 가능**
+- GitHub push → Render가 GitHub 변경을 감지
+- Render가 연결된 서비스별로 빌드/배포 수행
+- 배포 상태와 로그는 Render 대시보드에서 직접 확인
 
-따라서 Blueprint 생성 후 각 서비스의 Settings에서 Auto-Deploy를 **OFF로 변경**해야 합니다. 이것은 Render 대시보드에서 수동으로 설정해야 하며, 코드에서 자동으로 설정할 수 없습니다.
+따라서 Blueprint 생성 후 각 서비스의 Settings에서 Auto-Deploy가 **ON**인지 확인해야 한다. 만약 꺼져 있다면 Render가 GitHub 변경을 자동으로 배포하지 못한다.
 
-**설정 경로**: Render Dashboard → 서비스 선택 → Settings → Auto-Deploy → OFF
+**설정 경로**: Render Dashboard → 서비스 선택 → Settings → Auto-Deploy → ON
 
 ### 4.3 수동 생성 (대안)
 
@@ -118,34 +119,27 @@ Blueprint 대신 대시보드에서 수동 생성:
 | ------------------- | -------------------------------------------- | -------------------- |
 | `VITE_API_BASE_URL` | `https://ostone-backend.onrender.com/api/v1` | Backend API 전체 URL |
 
-## 5. GitHub Secrets 설정
+## 5. GitHub-Render 연결 확인
 
-GitHub 저장소 → Settings → Secrets and variables → Actions → New repository secret
+Render Dashboard에서 각 서비스가 올바른 GitHub 저장소와 브랜치에 연결되어 있는지만 확인하면 된다.
 
-| Secret Name                  | 값                 | 설명                                 |
-| ---------------------------- | ------------------ | ------------------------------------ |
-| `RENDER_API_KEY`             | Render API Key     | API 인증용 키 (Dashboard → API Keys) |
-| `RENDER_BACKEND_SERVICE_ID`  | Backend 서비스 ID  | 서비스 URL의 srv-xxx 부분            |
-| `RENDER_FRONTEND_SERVICE_ID` | Frontend 서비스 ID | 서비스 URL의 srv-xxx 부분            |
+### Backend / Frontend 공통 확인 항목
 
-### Render API Key 확인 방법
+1. Render Dashboard → 서비스 선택 → Settings
+2. **Repository**가 현재 GitHub 저장소로 연결되어 있는지 확인
+3. **Branch**가 `main`으로 설정되어 있는지 확인
+4. **Auto-Deploy**가 ON인지 확인
 
-1. Render Dashboard → Account Settings → API Keys
-2. "Create API Key" 클릭
-3. 이름 입력 후 생성
-4. 생성된 키 복사 → GitHub Secrets에 등록
+별도의 Render API Key나 서비스 ID를 GitHub Secrets에 넣을 필요는 없다. 이번 구조에서는 GitHub Actions가 Render API를 직접 호출하지 않는다.
 
-**주의**: Render API Key는 비밀이다. 코드에 절대 노출하지 않는다.
-
-## 6. CD 파이프라인 동작 순서
+## 6. 배포 동작 순서
 
 1. 개발자가 `main` 브랜치에 push (또는 PR merge)
 2. CI 워크플로우 자동 실행 (빌드, 테스트, 린트)
-3. CI 성공 시 → CD 워크플로우 자동 실행
-4. CD가 Render API로 배포 요청 전송
-5. Render가 새 빌드 시작
-6. 빌드 성공 시 → 새 버전으로 자동 전환
-7. 이전 버전은 Render에서 보관 (rollback 가능)
+3. Render가 GitHub 저장소의 `main` 변경을 감지
+4. Backend/Frontend 서비스가 각각 새 빌드와 배포 수행
+5. 배포 성공/실패와 상세 로그는 Render 대시보드에서 확인
+6. 이전 배포 이력은 Render에서 보관 (rollback 가능)
 
 ## 7. 무료 티어 제한사항
 
@@ -213,9 +207,7 @@ GitHub 저장소 → Settings → Secrets and variables → Actions → New repo
 
 ### Q: Render API Key를 재발급해야 합니다
 
-1. Render Dashboard → Account Settings → API Keys
-2. 기존 키 삭제 또는 새 키 생성
-3. 새 키를 GitHub Secrets에 업데이트
+현재 배포 구조에서는 Render API Key를 GitHub Actions CD 용도로 사용하지 않는다. 별도의 운영 자동화 스크립트를 추가하지 않는 한, 이 문서 기준으로는 GitHub Secrets 업데이트 작업이 필요 없다.
 
 ### Q: Neon에서 새 브랜치를 만들 수 있나요
 
@@ -226,3 +218,7 @@ Neon은 데이터베이스 브랜치를 지원하지만, 현재 시스템은 단
 1. Render Dashboard → 서비스 선택 → Logs 탭
 2. 실시간 로그 스트림 확인
 3. 과거 로그는 "Previous Deployments"에서 선택
+
+### Q: GitHub 커밋/PR에서 배포 상태는 어디서 확인하나요
+
+이제 배포는 GitHub Actions CD가 아니라 Render 네이티브 연동이 담당하므로, 기본 확인 위치는 GitHub PR 타임라인이 아니라 Render 대시보드다. 서비스별 Deploy 로그와 배포 이력은 Render Dashboard에서 확인하고, GitHub에서는 CI 결과만 확인하면 된다.
