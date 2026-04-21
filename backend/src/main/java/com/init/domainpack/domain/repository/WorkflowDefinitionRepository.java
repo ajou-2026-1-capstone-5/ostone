@@ -10,7 +10,8 @@ public interface WorkflowDefinitionRepository {
 
   WorkflowDefinition save(WorkflowDefinition workflow);
 
-  List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionId(Long domainPackVersionId);
+  List<WorkflowDefinitionSummaryRow> findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+      Long domainPackVersionId);
 
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 }

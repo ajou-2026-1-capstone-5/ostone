@@ -23,7 +23,9 @@ public class GetWorkflowDefinitionListUseCase {
     validator.validateDomainPack(query.packId(), query.workspaceId());
     validator.validateVersion(query.versionId(), query.packId());
 
-    return workflowDefinitionRepository.findAllByDomainPackVersionId(query.versionId()).stream()
+    return workflowDefinitionRepository
+        .findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(query.versionId())
+        .stream()
         .map(WorkflowDefinitionSummary::from)
         .toList();
   }
