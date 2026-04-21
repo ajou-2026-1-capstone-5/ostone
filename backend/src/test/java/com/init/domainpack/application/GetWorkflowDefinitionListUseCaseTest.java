@@ -56,7 +56,8 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("정상 조회 시 version 내 workflow 목록 반환")
-  void execute_withValidQuery_returnsWorkflowList() {
+  void should_workflow목록반환_when_유효한쿼리() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
@@ -67,6 +68,7 @@ class GetWorkflowDefinitionListUseCaseTest {
                 VERSION_ID))
         .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불 플로우")));
 
+    // when & then
     List<WorkflowDefinitionSummary> result =
         useCase.execute(
             new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
@@ -79,7 +81,8 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("workflow 없는 version → 빈 목록 반환")
-  void execute_noWorkflows_returnsEmptyList() {
+  void should_빈목록반환_when_workflow없음() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
@@ -90,6 +93,7 @@ class GetWorkflowDefinitionListUseCaseTest {
                 VERSION_ID))
         .willReturn(List.of());
 
+    // when & then
     List<WorkflowDefinitionSummary> result =
         useCase.execute(
             new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
@@ -99,9 +103,11 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
-  void execute_workspaceNotFound_throwsException() {
+  void should_WorkspaceNotFoundException발생_when_workspace없음() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -111,10 +117,12 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
-  void execute_unauthorized_throwsException() {
+  void should_UnauthorizedException발생_when_접근권한없음() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -124,11 +132,13 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("domain pack 소속 불일치 → DomainPackNotFoundException")
-  void execute_packNotInWorkspace_throwsException() {
+  void should_NotFoundException발생_when_Pack소속불일치() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(
@@ -138,13 +148,15 @@ class GetWorkflowDefinitionListUseCaseTest {
 
   @Test
   @DisplayName("version 소속 불일치 → DomainPackVersionNotFoundException")
-  void execute_versionNotInPack_throwsException() {
+  void should_VersionNotFoundException발생_when_version소속불일치() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, 999L)));
 
+    // when & then
     assertThatThrownBy(
             () ->
                 useCase.execute(

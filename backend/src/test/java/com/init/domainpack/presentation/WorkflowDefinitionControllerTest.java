@@ -48,7 +48,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows → 200 OK, 목록 반환")
   @WithLongPrincipal(10L)
-  void listWorkflows_returnsOk() throws Exception {
+  void should_200목록반환_when_정상조회() throws Exception {
     given(listUseCase.execute(any()))
         .willReturn(
             List.of(
@@ -75,7 +75,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows/{id} → 200 OK, graphJson 포함")
   @WithLongPrincipal(10L)
-  void getWorkflow_returnsOkWithGraphJson() throws Exception {
+  void should_200graphJson포함반환_when_단건정상조회() throws Exception {
     given(detailUseCase.execute(any()))
         .willReturn(
             new WorkflowDefinitionDetail(
@@ -103,7 +103,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows → workflow 없으면 빈 배열")
   @WithLongPrincipal(10L)
-  void listWorkflows_noWorkflows_returnsEmptyArray() throws Exception {
+  void should_200빈배열반환_when_workflow없음() throws Exception {
     given(listUseCase.execute(any())).willReturn(List.of());
 
     mockMvc
@@ -116,7 +116,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows/{id} → 404 미존재")
   @WithLongPrincipal(10L)
-  void getWorkflow_notFound_returns404() throws Exception {
+  void should_404반환_when_workflow미존재() throws Exception {
     given(detailUseCase.execute(any())).willThrow(new WorkflowDefinitionNotFoundException(99L));
 
     mockMvc
@@ -128,7 +128,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows → 403 권한 없음")
   @WithLongPrincipal(10L)
-  void listWorkflows_unauthorized_returns403() throws Exception {
+  void should_403반환_when_권한없음() throws Exception {
     given(listUseCase.execute(any()))
         .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."));
 
@@ -140,14 +140,14 @@ class WorkflowDefinitionControllerTest {
 
   @Test
   @DisplayName("GET .../workflows → 401 미인증")
-  void listWorkflows_unauthenticated_returns401() throws Exception {
+  void should_401반환_when_미인증() throws Exception {
     mockMvc.perform(get(BASE_URL)).andExpect(status().isUnauthorized());
   }
 
   @Test
   @DisplayName("GET .../workflows → 404 version 소속 불일치")
   @WithLongPrincipal(10L)
-  void listWorkflows_versionNotInPack_returns404() throws Exception {
+  void should_404반환_when_version소속불일치() throws Exception {
     given(listUseCase.execute(any())).willThrow(new DomainPackVersionNotFoundException(101L));
 
     mockMvc
