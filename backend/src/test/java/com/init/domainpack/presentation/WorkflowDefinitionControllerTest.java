@@ -54,7 +54,7 @@ class WorkflowDefinitionControllerTest {
             List.of(
                 new WorkflowDefinitionSummary(
                     1L,
-                    10L,
+                    101L,
                     "refund_flow",
                     "환불 플로우",
                     null,
@@ -66,7 +66,7 @@ class WorkflowDefinitionControllerTest {
     mockMvc
         .perform(get(BASE_URL))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].domainPackVersionId").value(10))
+        .andExpect(jsonPath("$[0].domainPackVersionId").value(101))
         .andExpect(jsonPath("$[0].workflowCode").value("refund_flow"))
         .andExpect(jsonPath("$[0].name").value("환불 플로우"))
         .andExpect(jsonPath("$[0].graphJson").doesNotExist());
