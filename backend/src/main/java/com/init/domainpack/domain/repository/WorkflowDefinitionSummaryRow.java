@@ -5,6 +5,8 @@ import java.time.OffsetDateTime;
 public interface WorkflowDefinitionSummaryRow {
   Long getId();
 
+  Long getDomainPackVersionId();
+
   String getWorkflowCode();
 
   String getName();

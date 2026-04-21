@@ -62,7 +62,9 @@ class GetWorkflowDefinitionListUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(workflowDefinitionRepository.findAllByDomainPackVersionId(VERSION_ID))
+    given(
+            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+                VERSION_ID))
         .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불 플로우")));
 
     List<WorkflowDefinitionSummary> result =
@@ -70,6 +72,7 @@ class GetWorkflowDefinitionListUseCaseTest {
             new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
 
     assertThat(result).hasSize(1);
+    assertThat(result.get(0).domainPackVersionId()).isEqualTo(VERSION_ID);
     assertThat(result.get(0).workflowCode()).isEqualTo("refund_flow");
     assertThat(result.get(0).name()).isEqualTo("환불 플로우");
   }
@@ -82,7 +85,9 @@ class GetWorkflowDefinitionListUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(workflowDefinitionRepository.findAllByDomainPackVersionId(VERSION_ID))
+    given(
+            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+                VERSION_ID))
         .willReturn(List.of());
 
     List<WorkflowDefinitionSummary> result =
@@ -156,6 +161,11 @@ class GetWorkflowDefinitionListUseCaseTest {
       @Override
       public Long getId() {
         return id;
+      }
+
+      @Override
+      public Long getDomainPackVersionId() {
+        return VERSION_ID;
       }
 
       @Override
