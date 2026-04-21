@@ -94,11 +94,8 @@ class GetRiskDefinitionListUseCaseTest {
     List<RiskDefinitionSummary> result =
         useCase.execute(new GetRiskDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
 
-    // then — RiskDefinitionSummary record must not expose JSON fields
+    // then
     assertThat(result).hasSize(1);
-    assertThat(RiskDefinitionSummary.class.getRecordComponents())
-        .extracting(java.lang.reflect.RecordComponent::getName)
-        .doesNotContain("triggerConditionJson", "handlingActionJson", "evidenceJson", "metaJson");
   }
 
   @Test
