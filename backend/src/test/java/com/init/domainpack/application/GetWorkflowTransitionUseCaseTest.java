@@ -78,14 +78,17 @@ class GetWorkflowTransitionUseCaseTest {
 
   @Test
   @DisplayName("정상 조회 (label 있음) — 전 필드 반환")
-  void execute_withLabel_returnsDetail() {
+  void should_detail반환_when_label있음() {
+    // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LABEL)));
 
+    // when
     WorkflowTransitionDetail result =
         useCase.execute(query(TRANSITION_ID));
 
+    // then
     assertThat(result.id()).isEqualTo("e_check_to_answer");
     assertThat(result.workflowDefinitionId()).isEqualTo(WORKFLOW_ID);
     assertThat(result.domainPackVersionId()).isEqualTo(VERSION_ID);
@@ -96,89 +99,106 @@ class GetWorkflowTransitionUseCaseTest {
 
   @Test
   @DisplayName("정상 조회 (label 없음) — label == null")
-  void execute_withoutLabel_returnsNullLabel() {
+  void should_label이null_when_label없음() {
+    // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITHOUT_LABEL)));
 
+    // when
     WorkflowTransitionDetail result =
         useCase.execute(query(TRANSITION_ID));
 
+    // then
     assertThat(result.label()).isNull();
   }
 
   @Test
   @DisplayName("transitionId 미존재 → WorkflowTransitionNotFoundException")
-  void execute_transitionNotFound_throwsException() {
+  void should_WorkflowTransitionNotFoundException발생_when_transitionId미존재() {
+    // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LABEL)));
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query("non_existent_edge")))
         .isInstanceOf(WorkflowTransitionNotFoundException.class);
   }
 
   @Test
   @DisplayName("workflowId 미존재 → WorkflowDefinitionNotFoundException")
-  void execute_workflowNotFound_throwsException() {
+  void should_WorkflowDefinitionNotFoundException발생_when_workflowId미존재() {
+    // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.empty());
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(WorkflowDefinitionNotFoundException.class);
   }
 
   @Test
   @DisplayName("DB 저장된 graphJson 파싱 오류 → WorkflowGraphJsonInvalidException")
-  void execute_invalidGraphJson_throwsException() {
+  void should_WorkflowGraphJsonInvalidException발생_when_graphJson파싱오류() {
+    // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, "not-valid-json{")));
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(WorkflowGraphJsonInvalidException.class);
   }
 
   @Test
   @DisplayName("workspace 미존재 → DomainPackWorkspaceNotFoundException")
-  void execute_workspaceNotFound_throwsException() {
+  void should_DomainPackWorkspaceNotFoundException발생_when_workspace미존재() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
   }
 
   @Test
   @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
-  void execute_unauthorized_throwsException() {
+  void should_DomainPackUnauthorizedWorkspaceAccessException발생_when_접근권한없음() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
   }
 
   @Test
   @DisplayName("pack 소속 불일치 → DomainPackNotFoundException")
-  void execute_packNotInWorkspace_throwsException() {
+  void should_DomainPackNotFoundException발생_when_pack소속불일치() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(false);
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(DomainPackNotFoundException.class);
   }
 
   @Test
   @DisplayName("version 소속 불일치 → DomainPackVersionNotFoundException")
-  void execute_versionNotInPack_throwsException() {
+  void should_DomainPackVersionNotFoundException발생_when_version소속불일치() {
+    // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 999L, DomainPackVersion.STATUS_DRAFT)));
 
+    // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
         .isInstanceOf(DomainPackVersionNotFoundException.class);
   }
