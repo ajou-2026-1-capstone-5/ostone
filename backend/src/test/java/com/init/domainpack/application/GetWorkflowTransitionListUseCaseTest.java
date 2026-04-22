@@ -182,7 +182,8 @@ class GetWorkflowTransitionListUseCaseTest {
   }
 
   @Test
-  @DisplayName("DB ACTION 노드에 policyRef 없음 (corrupt data) → WorkflowActionNodePolicyRefMissingException")
+  @DisplayName(
+      "DB ACTION 노드에 policyRef 없음 (corrupt data) → WorkflowActionNodePolicyRefMissingException")
   void should_WorkflowActionNodePolicyRefMissingException발생_when_ACTION노드policyRef없음() {
     // given
     stubValidWorkspace();
