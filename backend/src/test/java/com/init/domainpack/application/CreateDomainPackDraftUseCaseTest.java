@@ -12,6 +12,8 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdMissingException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
@@ -328,6 +330,46 @@ class CreateDomainPackDraftUseCaseTest {
             + "]}";
     assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(unlabeled)))
         .isInstanceOf(WorkflowUnlabeledBranchException.class);
+  }
+
+  @Test
+  @DisplayName("graphJson V7a 위반 — edge id 누락 시 WorkflowEdgeIdMissingException")
+  void execute_v7a_missingEdgeId_throwsException() {
+    stubWorkspaceAndPack();
+    String missingEdgeIdGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\"},"
+            + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"from\":\"start\",\"to\":\"action1\"},"
+            + "{\"id\":\"e_action1_to_terminal\",\"from\":\"action1\",\"to\":\"terminal\"}"
+            + "]}";
+    assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(missingEdgeIdGraph)))
+        .isInstanceOf(WorkflowEdgeIdMissingException.class);
+  }
+
+  @Test
+  @DisplayName("graphJson V7b 위반 — edge id 중복 시 WorkflowEdgeIdDuplicateException")
+  void execute_v7b_duplicateEdgeId_throwsException() {
+    stubWorkspaceAndPack();
+    String duplicateEdgeIdGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"dec\",\"label\":\"분기\",\"type\":\"DECISION\"},"
+            + "{\"id\":\"t1\",\"label\":\"종료1\",\"type\":\"TERMINAL\"},"
+            + "{\"id\":\"t2\",\"label\":\"종료2\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"id\":\"dup\",\"from\":\"start\",\"to\":\"dec\"},"
+            + "{\"id\":\"dup\",\"from\":\"dec\",\"to\":\"t1\",\"label\":\"yes\"},"
+            + "{\"id\":\"e_dec_to_t2\",\"from\":\"dec\",\"to\":\"t2\",\"label\":\"no\"}"
+            + "]}";
+    assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(duplicateEdgeIdGraph)))
+        .isInstanceOf(WorkflowEdgeIdDuplicateException.class);
   }
 
   // ──────────────────────────────────────────────────────────────

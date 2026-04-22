@@ -18,6 +18,10 @@ public record WorkflowTransitionDetail(
 
   static Optional<WorkflowTransitionDetail> fromGraphJson(
       String graphJson, String transitionId, Long workflowId, Long versionId) {
+    if (graphJson == null) {
+      throw new WorkflowGraphJsonInvalidException(
+          workflowId, new IllegalArgumentException("graphJson is null"));
+    }
     try {
       JsonNode root = MAPPER.readTree(graphJson);
       for (JsonNode e : root.path("edges")) {
