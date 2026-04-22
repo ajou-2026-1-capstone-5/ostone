@@ -352,6 +352,25 @@ class CreateDomainPackDraftUseCaseTest {
   }
 
   @Test
+  @DisplayName("graphJson V7a 위반 — edge id 공백 시 WorkflowEdgeIdMissingException")
+  void execute_v7a_blankEdgeId_throwsException() {
+    stubWorkspaceAndPack();
+    String blankEdgeIdGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\"},"
+            + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"id\":\"   \",\"from\":\"start\",\"to\":\"action1\"},"
+            + "{\"id\":\"e_action1_to_terminal\",\"from\":\"action1\",\"to\":\"terminal\"}"
+            + "]}";
+    assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(blankEdgeIdGraph)))
+        .isInstanceOf(WorkflowEdgeIdMissingException.class);
+  }
+
+  @Test
   @DisplayName("graphJson V7b 위반 — edge id 중복 시 WorkflowEdgeIdDuplicateException")
   void execute_v7b_duplicateEdgeId_throwsException() {
     stubWorkspaceAndPack();
