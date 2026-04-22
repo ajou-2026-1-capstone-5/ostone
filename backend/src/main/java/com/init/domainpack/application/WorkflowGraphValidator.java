@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdMissingException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
@@ -30,7 +32,7 @@ final class WorkflowGraphValidator {
 
   record GraphNode(String id, String type) {}
 
-  record GraphEdge(String from, String to, String label) {}
+  record GraphEdge(String id, String from, String to, String label) {}
 
   /** V1-V6 검증 후 ParsedGraph 반환. 위반 시 해당 예외를 throw한다 (fail-fast). */
   static ParsedGraph parseAndValidate(String graphJson, String workflowCode) {
@@ -56,6 +58,8 @@ final class WorkflowGraphValidator {
     validateV4Reachability(nodes, adj, startId, workflowCode);
     validateV5Cycles(nodes, adj, workflowCode);
     validateV6DecisionLabels(nodes, edges, workflowCode);
+    validateV7aEdgeIdPresence(edges, workflowCode);
+    validateV7bEdgeIdUniqueness(edges, workflowCode);
 
     return new ParsedGraph(nodes, edges);
   }
@@ -100,8 +104,9 @@ final class WorkflowGraphValidator {
   private static List<GraphEdge> parseEdges(JsonNode root) {
     List<GraphEdge> edges = new ArrayList<>();
     for (JsonNode e : root.path("edges")) {
+      String id = e.hasNonNull("id") ? e.path("id").asText(null) : null;
       String label = e.hasNonNull("label") ? e.path("label").asText(null) : null;
-      edges.add(new GraphEdge(e.path("from").asText(), e.path("to").asText(), label));
+      edges.add(new GraphEdge(id, e.path("from").asText(), e.path("to").asText(), label));
     }
     return edges;
   }
@@ -186,6 +191,23 @@ final class WorkflowGraphValidator {
     for (GraphEdge edge : edges) {
       if (decisionIds.contains(edge.from()) && (edge.label() == null || edge.label().isBlank())) {
         throw new WorkflowUnlabeledBranchException(workflowCode);
+      }
+    }
+  }
+
+  private static void validateV7aEdgeIdPresence(List<GraphEdge> edges, String workflowCode) {
+    for (GraphEdge edge : edges) {
+      if (edge.id() == null || edge.id().isBlank()) {
+        throw new WorkflowEdgeIdMissingException(workflowCode);
+      }
+    }
+  }
+
+  private static void validateV7bEdgeIdUniqueness(List<GraphEdge> edges, String workflowCode) {
+    Set<String> seen = new HashSet<>();
+    for (GraphEdge edge : edges) {
+      if (!seen.add(edge.id())) {
+        throw new WorkflowEdgeIdDuplicateException(workflowCode);
       }
     }
   }
