@@ -1,0 +1,180 @@
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.header {
+  padding: 24px 28px 22px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.code {
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.name {
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 26px;
+  font-weight: 540;
+  line-height: 1.1;
+  letter-spacing: -0.26px;
+  color: var(--text-primary);
+}
+
+.description {
+  max-width: 60ch;
+  font-size: 18px;
+  font-weight: 330;
+  line-height: 1.4;
+  letter-spacing: -0.14px;
+  color: var(--text-secondary);
+}
+
+.updatedAt {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  overflow: hidden;
+}
+
+.cardHeader {
+  padding: 12px 14px 0;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cardBody {
+  padding: 10px 14px 16px;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 330;
+  line-height: 1.45;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 6px 12px 7px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.jsonBlock {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px;
+  padding: 40px 32px;
+  border: 1px dashed rgba(0, 0, 0, 0.14);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.14px;
+  text-align: center;
+}
+
+.errorCode {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.skeleton {
+  flex: 1;
+  background: var(--bg-secondary);
+  min-height: 240px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 767px) {
+  .header,
+  .body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .name {
+    font-size: 22px;
+  }
+
+  .description {
+    font-size: 16px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    border-top: 1px solid var(--glass-border);
+  }
+}
