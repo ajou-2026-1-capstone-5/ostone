@@ -14,8 +14,7 @@ public class GetWorkflowTransitionUseCase {
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
 
   public GetWorkflowTransitionUseCase(
-      DomainPackValidator validator,
-      WorkflowDefinitionRepository workflowDefinitionRepository) {
+      DomainPackValidator validator, WorkflowDefinitionRepository workflowDefinitionRepository) {
     this.validator = validator;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
   }

@@ -85,8 +85,7 @@ class GetWorkflowTransitionUseCaseTest {
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LABEL)));
 
     // when
-    WorkflowTransitionDetail result =
-        useCase.execute(query(TRANSITION_ID));
+    WorkflowTransitionDetail result = useCase.execute(query(TRANSITION_ID));
 
     // then
     assertThat(result.id()).isEqualTo("e_check_to_answer");
@@ -106,8 +105,7 @@ class GetWorkflowTransitionUseCaseTest {
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITHOUT_LABEL)));
 
     // when
-    WorkflowTransitionDetail result =
-        useCase.execute(query(TRANSITION_ID));
+    WorkflowTransitionDetail result = useCase.execute(query(TRANSITION_ID));
 
     // then
     assertThat(result.label()).isNull();
@@ -196,7 +194,9 @@ class GetWorkflowTransitionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
-        .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 999L, DomainPackVersion.STATUS_DRAFT)));
+        .willReturn(
+            Optional.of(
+                DomainPackVersion.ofForTest(VERSION_ID, 999L, DomainPackVersion.STATUS_DRAFT)));
 
     // when & then
     assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
@@ -216,7 +216,8 @@ class GetWorkflowTransitionUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(
-            Optional.of(DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
+            Optional.of(
+                DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
   }
 
   private WorkflowDefinition createWorkflow(Long id, String graphJson) {

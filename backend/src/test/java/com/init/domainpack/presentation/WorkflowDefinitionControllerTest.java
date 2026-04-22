@@ -235,9 +235,7 @@ class WorkflowDefinitionControllerTest {
   @Test
   @DisplayName("GET .../workflows/{id}/transitions/{transitionId} → 401 미인증")
   void should_401반환_when_미인증_transition() throws Exception {
-    mockMvc
-        .perform(get(BASE_URL + "/1/transitions/e_any"))
-        .andExpect(status().isUnauthorized());
+    mockMvc.perform(get(BASE_URL + "/1/transitions/e_any")).andExpect(status().isUnauthorized());
   }
 
   @Test
