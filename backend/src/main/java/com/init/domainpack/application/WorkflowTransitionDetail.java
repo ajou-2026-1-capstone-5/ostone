@@ -2,6 +2,7 @@ package com.init.domainpack.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefInvalidCharsException;
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,7 @@ public record WorkflowTransitionDetail(
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowTransitionDetail.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Pattern POLICY_REF_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
 
   static List<WorkflowTransitionDetail> listFromGraphJson(
       String graphJson, Long workflowId, Long versionId) {
@@ -82,6 +85,9 @@ public record WorkflowTransitionDetail(
         String policyRef = n.hasNonNull("policyRef") ? n.path("policyRef").asText(null) : null;
         if (policyRef == null || policyRef.isBlank()) {
           throw new WorkflowActionNodePolicyRefMissingException(workflowId, nodeId);
+        }
+        if (!POLICY_REF_PATTERN.matcher(policyRef).matches()) {
+          throw new WorkflowActionNodePolicyRefInvalidCharsException(workflowId, nodeId);
         }
         actionPolicyRefMap.put(nodeId, policyRef);
       }

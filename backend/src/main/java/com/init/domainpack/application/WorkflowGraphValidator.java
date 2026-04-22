@@ -39,7 +39,7 @@ final class WorkflowGraphValidator {
 
   record GraphEdge(String id, String from, String to, String label) {}
 
-  /** V1-V6 검증 후 ParsedGraph 반환. 위반 시 해당 예외를 throw한다 (fail-fast). */
+  /** V1-V8 검증 후 ParsedGraph 반환. 위반 시 해당 예외를 throw한다 (fail-fast). */
   static ParsedGraph parseAndValidate(String graphJson, String workflowCode) {
     JsonNode root;
     try {
