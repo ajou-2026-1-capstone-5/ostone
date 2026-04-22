@@ -2,6 +2,7 @@ package com.init.domainpack.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record WorkflowTransitionDetail(
     String id,
@@ -19,6 +22,7 @@ public record WorkflowTransitionDetail(
     String label,
     String toPolicyRef) {
 
+  private static final Logger log = LoggerFactory.getLogger(WorkflowTransitionDetail.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   static List<WorkflowTransitionDetail> listFromGraphJson(
@@ -34,6 +38,8 @@ public record WorkflowTransitionDetail(
       for (JsonNode e : root.path("edges")) {
         String edgeId = e.hasNonNull("id") ? e.path("id").asText(null) : null;
         if (edgeId == null || edgeId.isBlank()) {
+          log.warn(
+              "skipping edge with missing id: workflowId={}, versionId={}", workflowId, versionId);
           continue;
         }
         result.add(buildDetail(e, edgeId, workflowId, versionId, nodeMaps));
@@ -75,8 +81,7 @@ public record WorkflowTransitionDetail(
       if ("ACTION".equals(nodeType)) {
         String policyRef = n.hasNonNull("policyRef") ? n.path("policyRef").asText(null) : null;
         if (policyRef == null || policyRef.isBlank()) {
-          throw new WorkflowGraphJsonInvalidException(
-              workflowId, new IllegalStateException("ACTION node missing policyRef: " + nodeId));
+          throw new WorkflowActionNodePolicyRefMissingException(workflowId, nodeId);
         }
         actionPolicyRefMap.put(nodeId, policyRef);
       }

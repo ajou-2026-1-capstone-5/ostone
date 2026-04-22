@@ -8,4 +8,10 @@ public class WorkflowActionNodePolicyRefMissingException extends BadRequestExcep
         "WORKFLOW_ACTION_NODE_POLICY_REF_MISSING",
         "ACTION 타입 노드에 policyRef가 필요합니다. workflowCode=" + workflowCode);
   }
+
+  public WorkflowActionNodePolicyRefMissingException(Long workflowId, String nodeId) {
+    super(
+        "WORKFLOW_ACTION_NODE_POLICY_REF_MISSING",
+        "ACTION 타입 노드에 policyRef가 필요합니다. workflowId=" + workflowId + ", nodeId=" + nodeId);
+  }
 }

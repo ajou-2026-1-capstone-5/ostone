@@ -65,8 +65,7 @@ final class WorkflowGraphValidator {
     validateV6DecisionLabels(nodes, edges, workflowCode);
     validateV7aEdgeIdPresence(edges, workflowCode);
     validateV7bEdgeIdUniqueness(edges, workflowCode);
-    validateV8aActionPolicyRefPresence(nodes, workflowCode);
-    validateV8bActionPolicyRefChars(nodes, workflowCode);
+    validateV8ActionPolicyRef(nodes, workflowCode);
 
     return new ParsedGraph(nodes, edges);
   }
@@ -220,20 +219,13 @@ final class WorkflowGraphValidator {
     }
   }
 
-  private static void validateV8aActionPolicyRefPresence(
-      List<GraphNode> nodes, String workflowCode) {
+  private static void validateV8ActionPolicyRef(List<GraphNode> nodes, String workflowCode) {
     for (GraphNode n : nodes) {
-      if ("ACTION".equals(n.type()) && (n.policyRef() == null || n.policyRef().isBlank())) {
+      if (!"ACTION".equals(n.type())) continue;
+      if (n.policyRef() == null || n.policyRef().isBlank()) {
         throw new WorkflowActionNodePolicyRefMissingException(workflowCode);
       }
-    }
-  }
-
-  private static void validateV8bActionPolicyRefChars(List<GraphNode> nodes, String workflowCode) {
-    for (GraphNode n : nodes) {
-      if ("ACTION".equals(n.type())
-          && n.policyRef() != null
-          && !POLICY_REF_PATTERN.matcher(n.policyRef()).matches()) {
+      if (!POLICY_REF_PATTERN.matcher(n.policyRef()).matches()) {
         throw new WorkflowActionNodePolicyRefInvalidCharsException(workflowCode);
       }
     }

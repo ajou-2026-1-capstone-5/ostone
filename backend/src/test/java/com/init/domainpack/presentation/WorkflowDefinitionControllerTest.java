@@ -17,6 +17,7 @@ import com.init.domainpack.application.WorkflowTransitionDetail;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import com.init.domainpack.application.exception.WorkflowTransitionNotFoundException;
 import com.init.fixtures.WithLongPrincipal;
@@ -319,7 +320,7 @@ class WorkflowDefinitionControllerTest {
   }
 
   @Test
-  @DisplayName("GET .../workflows/{id}/transitions → 500 graphJson 파싱 오류 또는 ACTION policyRef 누락")
+  @DisplayName("GET .../workflows/{id}/transitions → 500 graphJson 파싱 오류")
   @WithLongPrincipal(10L)
   void should_500반환_when_graphJson파싱오류_transition목록() throws Exception {
     given(transitionListUseCase.execute(any()))
@@ -329,6 +330,19 @@ class WorkflowDefinitionControllerTest {
         .perform(get(BASE_URL + "/1/transitions"))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.code").value("WORKFLOW_GRAPH_JSON_INVALID"));
+  }
+
+  @Test
+  @DisplayName("GET .../workflows/{id}/transitions → 400 ACTION 노드 policyRef 누락")
+  @WithLongPrincipal(10L)
+  void should_400반환_when_ACTION_policyRef누락_transition목록() throws Exception {
+    given(transitionListUseCase.execute(any()))
+        .willThrow(new WorkflowActionNodePolicyRefMissingException(1L, "node_action_1"));
+
+    mockMvc
+        .perform(get(BASE_URL + "/1/transitions"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_ACTION_NODE_POLICY_REF_MISSING"));
   }
 
   @Test

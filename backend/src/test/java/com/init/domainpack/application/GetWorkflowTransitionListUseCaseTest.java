@@ -9,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import com.init.domainpack.domain.model.DomainPackVersion;
@@ -181,8 +182,8 @@ class GetWorkflowTransitionListUseCaseTest {
   }
 
   @Test
-  @DisplayName("DB ACTION 노드에 policyRef 없음 (corrupt data) → WorkflowGraphJsonInvalidException")
-  void should_WorkflowGraphJsonInvalidException발생_when_ACTION노드policyRef없음() {
+  @DisplayName("DB ACTION 노드에 policyRef 없음 (corrupt data) → WorkflowActionNodePolicyRefMissingException")
+  void should_WorkflowActionNodePolicyRefMissingException발생_when_ACTION노드policyRef없음() {
     // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
@@ -190,7 +191,7 @@ class GetWorkflowTransitionListUseCaseTest {
 
     // when & then
     assertThatThrownBy(() -> useCase.execute(query()))
-        .isInstanceOf(WorkflowGraphJsonInvalidException.class);
+        .isInstanceOf(WorkflowActionNodePolicyRefMissingException.class);
   }
 
   @Test
@@ -264,9 +265,25 @@ class GetWorkflowTransitionListUseCaseTest {
   }
 
   private WorkflowDefinition createWorkflow(Long id, String graphJson) {
+    Long versionId = VERSION_ID;
+    String workflowCode = "wf_refund";
+    String name = "환불 플로우";
+    String description = null;
+    String initialState = "start";
+    String terminalStatesJson = "[\"end\"]";
+    String evidenceJson = null;
+    String metaJson = null;
     WorkflowDefinition wf =
         WorkflowDefinition.create(
-            VERSION_ID, "wf_refund", "환불 플로우", null, graphJson, "start", "[\"end\"]", null, null);
+            versionId,
+            workflowCode,
+            name,
+            description,
+            graphJson,
+            initialState,
+            terminalStatesJson,
+            evidenceJson,
+            metaJson);
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }
