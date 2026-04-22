@@ -63,7 +63,7 @@ export function IntentTreePanel({
           </div>
         )}
 
-        {state.status === "ready" && (
+        {state.status === "ready" && state.data.length > 0 && (
           <div className={styles.treeGroup}>
             {tree.map((node) => (
               <IntentTreeRow

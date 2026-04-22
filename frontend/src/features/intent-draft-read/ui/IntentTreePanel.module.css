@@ -92,7 +92,7 @@
   width: 2px;
   background-image: repeating-linear-gradient(
     to bottom,
-    currentColor 0 4px,
+    currentcolor 0 4px,
     transparent 4px 8px
   );
   opacity: 0.22;
@@ -134,7 +134,7 @@
   text-transform: uppercase;
   padding: 4px 10px 5px;
   border-radius: var(--radius-xl);
-  border: 1px solid currentColor;
+  border: 1px solid currentcolor;
   color: inherit;
   background: transparent;
 }

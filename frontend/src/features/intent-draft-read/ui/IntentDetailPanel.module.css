@@ -90,7 +90,7 @@
   line-height: 1.45;
   letter-spacing: -0.14px;
   color: var(--text-primary);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .badge {
@@ -118,7 +118,7 @@
   color: var(--text-primary);
   overflow: auto;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .placeholder {

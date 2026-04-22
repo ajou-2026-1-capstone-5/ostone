@@ -19,12 +19,15 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId }: IntentD
 
   useEffect(() => {
     if (state.status !== "error") return;
-    toast.error(
+    const message =
       errorHttpStatus === 404
         ? "intent를 찾을 수 없습니다."
-        : errorMessage || "상세 정보를 불러오지 못했습니다.",
-    );
-  }, [state.status, errorHttpStatus, errorMessage]);
+        : errorMessage || "상세 정보를 불러오지 못했습니다.";
+
+    toast.error(message, {
+      id: `intent-detail-error-${wsId}-${packId}-${versionId}-${intentId ?? "none"}-${errorCode ?? errorHttpStatus ?? "unknown"}`,
+    });
+  }, [state.status, wsId, packId, versionId, intentId, errorCode, errorHttpStatus, errorMessage]);
 
   if (state.status === "idle") {
     return (

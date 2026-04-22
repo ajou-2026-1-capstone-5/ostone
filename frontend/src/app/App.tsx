@@ -21,8 +21,7 @@ export function App() {
         <Route path="/reset-password/complete" element={<PasswordResetCompletePage />} />
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="*" element={<NotFoundPage />} />

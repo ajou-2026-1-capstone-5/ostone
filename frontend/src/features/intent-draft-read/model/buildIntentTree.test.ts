@@ -66,4 +66,24 @@ describe("buildIntentTree", () => {
     expect(tree[0].id).toBe(10);
     expect(tree[0].children[0].id).toBe(20);
   });
+
+  it("다단계 순환이 있으면 순환 링크를 끊고 루트로 유지한다", () => {
+    const tree = buildIntentTree([
+      stub({ id: 10, intentCode: "A", name: "A", parentIntentId: 20 }),
+      stub({ id: 20, intentCode: "B", name: "B", parentIntentId: 10 }),
+    ]);
+
+    expect(tree.map((node) => node.id)).toEqual([10, 20]);
+    expect(tree.every((node) => node.children.length === 0)).toBe(true);
+  });
+
+  it("중복 id는 첫 항목만 유지한다", () => {
+    const tree = buildIntentTree([
+      stub({ id: 10, intentCode: "FIRST", name: "First" }),
+      stub({ id: 10, intentCode: "SECOND", name: "Second" }),
+    ]);
+
+    expect(tree).toHaveLength(1);
+    expect(tree[0].intentCode).toBe("FIRST");
+  });
 });

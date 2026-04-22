@@ -1,5 +1,6 @@
 .pageWrapper {
   --app-header-height: 72px;
+
   display: flex;
   flex-direction: column;
   width: 100%;
