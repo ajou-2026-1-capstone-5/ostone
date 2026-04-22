@@ -56,8 +56,8 @@ class CreateDomainPackDraftUseCaseTest {
           + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
           + "],"
           + "\"edges\":["
-          + "{\"from\":\"start\",\"to\":\"action1\"},"
-          + "{\"from\":\"action1\",\"to\":\"terminal\"}"
+          + "{\"id\":\"e_start_to_action1\",\"from\":\"start\",\"to\":\"action1\"},"
+          + "{\"id\":\"e_action1_to_terminal\",\"from\":\"action1\",\"to\":\"terminal\"}"
           + "]}";
 
   // DECISION 노드 포함 유효한 그래프 (label 있음)
@@ -70,9 +70,9 @@ class CreateDomainPackDraftUseCaseTest {
           + "{\"id\":\"t2\",\"label\":\"종료2\",\"type\":\"TERMINAL\"}"
           + "],"
           + "\"edges\":["
-          + "{\"from\":\"start\",\"to\":\"dec\"},"
-          + "{\"from\":\"dec\",\"to\":\"t1\",\"label\":\"yes\"},"
-          + "{\"from\":\"dec\",\"to\":\"t2\",\"label\":\"no\"}"
+          + "{\"id\":\"e_start_to_dec\",\"from\":\"start\",\"to\":\"dec\"},"
+          + "{\"id\":\"e_dec_to_t1\",\"from\":\"dec\",\"to\":\"t1\",\"label\":\"yes\"},"
+          + "{\"id\":\"e_dec_to_t2\",\"from\":\"dec\",\"to\":\"t2\",\"label\":\"no\"}"
           + "]}";
 
   @Mock private DomainPackVersionRepository domainPackVersionRepository;

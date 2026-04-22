@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
+import com.init.domainpack.application.GetWorkflowTransitionUseCase;
 import com.init.domainpack.application.UpdateWorkflowCommand;
 import com.init.domainpack.application.UpdateWorkflowUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
@@ -58,6 +59,7 @@ class WorkflowDefinitionUpdateControllerTest {
   @MockitoBean private GetWorkflowDefinitionListUseCase listUseCase;
   @MockitoBean private GetWorkflowDefinitionUseCase detailUseCase;
   @MockitoBean private UpdateWorkflowUseCase updateUseCase;
+  @MockitoBean private GetWorkflowTransitionUseCase transitionUseCase;
 
   @Test
   @DisplayName("유효한 요청 시 200 OK + WorkflowDefinitionDetail 반환")
