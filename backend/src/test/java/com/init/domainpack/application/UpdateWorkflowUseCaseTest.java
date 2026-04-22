@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
+import com.init.domainpack.application.exception.WorkflowEdgeIdMissingException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
 import com.init.domainpack.application.exception.WorkflowInvalidTerminalNodeException;
 import com.init.domainpack.application.exception.WorkflowUnlabeledBranchException;
@@ -35,7 +37,7 @@ class UpdateWorkflowUseCaseTest {
   private static final String VALID_GRAPH =
       "{\"direction\":\"LR\","
           + "\"nodes\":[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
-          + "\"edges\":[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
+          + "\"edges\":[{\"id\":\"e_start_to_end\",\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
 
   @Mock private DomainPackValidator validator;
   @Mock private DomainPackVersionRepository versionRepository;
@@ -309,6 +311,54 @@ class UpdateWorkflowUseCaseTest {
                     new UpdateWorkflowCommand(
                         1L, 7L, 10L, 99L, 5L, "이름", null, unlabeledDecisionGraph)))
         .isInstanceOf(WorkflowUnlabeledBranchException.class);
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("V7a 위반(edge id 누락) 시 WorkflowEdgeIdMissingException")
+  void should_V7a예외_when_edge아이디누락() {
+    DomainPackVersion version = draftVersion(10L, 7L);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    WorkflowDefinition workflow = workflow(99L, 10L);
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(workflow));
+    String noEdgeIdGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
+            + "\"edges\":[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, noEdgeIdGraph)))
+        .isInstanceOf(WorkflowEdgeIdMissingException.class);
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("V7b 위반(edge id 중복) 시 WorkflowEdgeIdDuplicateException")
+  void should_V7b예외_when_edge아이디중복() {
+    DomainPackVersion version = draftVersion(10L, 7L);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    WorkflowDefinition workflow = workflow(99L, 10L);
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(workflow));
+    String duplicateEdgeIdGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"type\":\"START\"},"
+            + "{\"id\":\"mid\",\"type\":\"ACTION\"},"
+            + "{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
+            + "\"edges\":["
+            + "{\"id\":\"dup\",\"from\":\"start\",\"to\":\"mid\",\"label\":null},"
+            + "{\"id\":\"dup\",\"from\":\"mid\",\"to\":\"end\",\"label\":null}]}";
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdateWorkflowCommand(
+                        1L, 7L, 10L, 99L, 5L, "이름", null, duplicateEdgeIdGraph)))
+        .isInstanceOf(WorkflowEdgeIdDuplicateException.class);
     verify(workflowRepository, never()).save(any());
   }
 
