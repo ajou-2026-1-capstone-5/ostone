@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "workflow_definition", schema = "pack")
@@ -31,18 +33,22 @@ public class WorkflowDefinition {
   @Column(name = "description")
   private String description;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "graph_json", columnDefinition = "jsonb", nullable = false)
   private String graphJson;
 
   @Column(name = "initial_state")
   private String initialState;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "terminal_states_json", columnDefinition = "jsonb", nullable = false)
   private String terminalStatesJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "evidence_json", columnDefinition = "jsonb", nullable = false)
   private String evidenceJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
 

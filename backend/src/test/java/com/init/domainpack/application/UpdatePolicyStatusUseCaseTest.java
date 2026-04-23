@@ -10,10 +10,12 @@ import static org.mockito.Mockito.verify;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.PolicyCodeReferencedByWorkflowException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.Optional;
@@ -32,12 +34,15 @@ class UpdatePolicyStatusUseCaseTest {
   @Mock private DomainPackValidator validator;
   @Mock private PolicyDefinitionRepository policyRepository;
   @Mock private DomainPackVersionRepository versionRepository;
+  @Mock private WorkflowDefinitionRepository workflowRepository;
 
   private UpdatePolicyStatusUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase = new UpdatePolicyStatusUseCase(validator, policyRepository, versionRepository);
+    useCase =
+        new UpdatePolicyStatusUseCase(
+            validator, policyRepository, versionRepository, workflowRepository);
   }
 
   @Test
@@ -47,6 +52,8 @@ class UpdatePolicyStatusUseCaseTest {
 
     PolicyDefinition policy = policy(55L, 10L);
     given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(workflowRepository.existsByDomainPackVersionIdAndPolicyRef(10L, "refund_check"))
+        .willReturn(false);
     given(policyRepository.save(any())).willReturn(policy);
 
     UpdatePolicyStatusCommand command =
@@ -198,6 +205,56 @@ class UpdatePolicyStatusUseCaseTest {
                     new UpdatePolicyStatusCommand(
                         1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_INACTIVE)))
         .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("INACTIVE 전환 시 policyRef 참조 workflow 존재 → PolicyCodeReferencedByWorkflowException")
+  void should_역참조예외_when_INACTIVE전환시참조workflow존재() {
+    given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
+    PolicyDefinition policy = policy(55L, 10L);
+    given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(workflowRepository.existsByDomainPackVersionIdAndPolicyRef(10L, "refund_check"))
+        .willReturn(true);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new UpdatePolicyStatusCommand(
+                        1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_INACTIVE)))
+        .isInstanceOf(PolicyCodeReferencedByWorkflowException.class);
+    verify(policyRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("INACTIVE 전환 시 참조 workflow 없음 → 정상 전환")
+  void should_INACTIVE전환성공_when_참조workflow없음() {
+    given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
+    PolicyDefinition policy = policy(55L, 10L);
+    given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(workflowRepository.existsByDomainPackVersionIdAndPolicyRef(10L, "refund_check"))
+        .willReturn(false);
+    given(policyRepository.save(any())).willReturn(policy);
+
+    PolicyDefinitionResponse result =
+        useCase.execute(
+            new UpdatePolicyStatusCommand(1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_INACTIVE));
+
+    assertThat(result.status()).isEqualTo(PolicyDefinition.STATUS_INACTIVE);
+  }
+
+  @Test
+  @DisplayName("ACTIVE 전환 시 역참조 체크 스킵")
+  void should_역참조체크스킵_when_ACTIVE전환() {
+    given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
+    PolicyDefinition policy = policy(55L, 10L);
+    ReflectionTestUtils.setField(policy, "status", PolicyDefinition.STATUS_INACTIVE);
+    given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(policyRepository.save(any())).willReturn(policy);
+
+    useCase.execute(
+        new UpdatePolicyStatusCommand(1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_ACTIVE));
+
+    verify(workflowRepository, never()).existsByDomainPackVersionIdAndPolicyRef(any(), any());
   }
 
   @Test

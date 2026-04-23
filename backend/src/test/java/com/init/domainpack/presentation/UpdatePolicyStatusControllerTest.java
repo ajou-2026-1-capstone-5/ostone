@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.PolicyDefinitionResponse;
 import com.init.domainpack.application.UpdatePolicyStatusUseCase;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
+import com.init.domainpack.application.exception.PolicyCodeReferencedByWorkflowException;
 import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
@@ -148,6 +149,23 @@ class UpdatePolicyStatusControllerTest {
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(useCase);
+  }
+
+  @Test
+  @DisplayName("PATCH /policies/{policyId}/status: INACTIVE 전환 시 policyRef 참조 workflow 존재 → 400")
+  @WithLongPrincipal(5L)
+  void should_400반환_when_INACTIVE전환시참조workflow존재() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new PolicyCodeReferencedByWorkflowException("refund_check"));
+
+    mockMvc
+        .perform(
+            patch(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("status", "INACTIVE"))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("POLICY_CODE_REFERENCED_BY_WORKFLOW"));
   }
 
   @Test

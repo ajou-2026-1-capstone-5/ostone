@@ -1,9 +1,11 @@
 package com.init.domainpack.application;
 
+import com.init.domainpack.application.exception.PolicyCodeReferencedByWorkflowException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -16,14 +18,17 @@ public class UpdatePolicyStatusUseCase {
   private final DomainPackValidator validator;
   private final PolicyDefinitionRepository policyRepository;
   private final DomainPackVersionRepository versionRepository;
+  private final WorkflowDefinitionRepository workflowRepository;
 
   public UpdatePolicyStatusUseCase(
       DomainPackValidator validator,
       PolicyDefinitionRepository policyRepository,
-      DomainPackVersionRepository versionRepository) {
+      DomainPackVersionRepository versionRepository,
+      WorkflowDefinitionRepository workflowRepository) {
     this.validator = validator;
     this.policyRepository = policyRepository;
     this.versionRepository = versionRepository;
+    this.workflowRepository = workflowRepository;
   }
 
   @Transactional
@@ -53,6 +58,15 @@ public class UpdatePolicyStatusUseCase {
 
     if (!policy.getDomainPackVersionId().equals(command.versionId())) {
       throw new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: " + command.policyId());
+    }
+
+    if (PolicyDefinition.STATUS_INACTIVE.equals(command.status())
+        && PolicyDefinition.STATUS_ACTIVE.equals(policy.getStatus())) {
+      String policyCode = policy.getPolicyCode();
+      if (workflowRepository.existsByDomainPackVersionIdAndPolicyRef(
+          command.versionId(), policyCode)) {
+        throw new PolicyCodeReferencedByWorkflowException(policyCode);
+      }
     }
 
     try {
