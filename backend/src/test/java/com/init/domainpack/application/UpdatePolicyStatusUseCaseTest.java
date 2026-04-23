@@ -41,7 +41,8 @@ class UpdatePolicyStatusUseCaseTest {
   @BeforeEach
   void setUp() {
     useCase =
-        new UpdatePolicyStatusUseCase(validator, policyRepository, versionRepository, workflowRepository);
+        new UpdatePolicyStatusUseCase(
+            validator, policyRepository, versionRepository, workflowRepository);
   }
 
   @Test
@@ -250,7 +251,8 @@ class UpdatePolicyStatusUseCaseTest {
     given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
     given(policyRepository.save(any())).willReturn(policy);
 
-    useCase.execute(new UpdatePolicyStatusCommand(1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_ACTIVE));
+    useCase.execute(
+        new UpdatePolicyStatusCommand(1L, 7L, 10L, 55L, 5L, PolicyDefinition.STATUS_ACTIVE));
 
     verify(workflowRepository, never()).existsByDomainPackVersionIdAndPolicyRef(any(), any());
   }

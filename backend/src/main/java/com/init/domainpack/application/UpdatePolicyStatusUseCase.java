@@ -62,7 +62,8 @@ public class UpdatePolicyStatusUseCase {
 
     if (PolicyDefinition.STATUS_INACTIVE.equals(command.status())) {
       String policyCode = policy.getPolicyCode();
-      if (workflowRepository.existsByDomainPackVersionIdAndPolicyRef(command.versionId(), policyCode)) {
+      if (workflowRepository.existsByDomainPackVersionIdAndPolicyRef(
+          command.versionId(), policyCode)) {
         throw new PolicyCodeReferencedByWorkflowException(policyCode);
       }
     }
