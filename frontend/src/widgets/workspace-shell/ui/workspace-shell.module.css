@@ -1,6 +1,7 @@
 .shell {
+  --workspace-shell-padding: clamp(20px, 4vw, 36px);
   width: 100%;
-  padding: clamp(20px, 4vw, 36px);
+  padding: var(--workspace-shell-padding);
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 24px;
@@ -10,7 +11,7 @@
 .sidebar {
   align-self: start;
   position: sticky;
-  top: 20px;
+  top: 0;
 }
 
 .sidebarPanel {

@@ -90,11 +90,6 @@
   justify-content: flex-start;
 }
 
-.emptyState,
-.invalidState {
-  margin: 24px;
-}
-
 .emptyContent {
   gap: 10px;
 }
