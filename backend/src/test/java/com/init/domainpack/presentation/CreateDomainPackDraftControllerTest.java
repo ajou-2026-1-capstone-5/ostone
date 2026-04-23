@@ -14,6 +14,9 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefInvalidCharsException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowInvalidStartNodeException;
@@ -325,6 +328,57 @@ class CreateDomainPackDraftControllerTest {
                 .content(validRequestJson()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("WORKFLOW_UNLABELED_BRANCH"));
+  }
+
+  @Test
+  @DisplayName("graphJson V8a 위반 (ACTION 노드 policyRef 누락) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_actionNodePolicyRefMissing_returns400() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new WorkflowActionNodePolicyRefMissingException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_ACTION_NODE_POLICY_REF_MISSING"));
+  }
+
+  @Test
+  @DisplayName("graphJson V8b 위반 (ACTION 노드 policyRef 유효하지 않은 문자) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_actionNodePolicyRefInvalidChars_returns400() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new WorkflowActionNodePolicyRefInvalidCharsException("refund_flow"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS"));
+  }
+
+  @Test
+  @DisplayName("graphJson V8c 위반 (policyRef가 제출된 policies에 없음) 이면 400을 반환한다")
+  @WithLongPrincipal(10L)
+  void createDraft_actionNodePolicyRefNotFound_returns400() throws Exception {
+    given(useCase.execute(any()))
+        .willThrow(new WorkflowActionNodePolicyRefNotFoundException("missing_policy"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestJson()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND"));
   }
 
   @Test
