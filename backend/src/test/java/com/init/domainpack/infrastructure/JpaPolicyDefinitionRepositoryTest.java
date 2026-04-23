@@ -49,7 +49,8 @@ class JpaPolicyDefinitionRepositoryTest {
     em.persistAndFlush(entity);
     em.clear();
 
-    // when — PolicyDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
+    // when — PolicyDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로
+    // em.find() 사용
     PolicyDefinition found = em.find(PolicyDefinition.class, entity.getId());
 
     // then

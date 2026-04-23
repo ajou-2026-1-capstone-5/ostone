@@ -49,7 +49,8 @@ class JpaSlotDefinitionRepositoryTest {
     em.persistAndFlush(entity);
     em.clear();
 
-    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
+    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로
+    // em.find() 사용
     SlotDefinition found = em.find(SlotDefinition.class, entity.getId());
 
     // then
@@ -68,7 +69,8 @@ class JpaSlotDefinitionRepositoryTest {
     em.persistAndFlush(entity);
     em.clear();
 
-    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
+    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로
+    // em.find() 사용
     SlotDefinition found = em.find(SlotDefinition.class, entity.getId());
 
     // then

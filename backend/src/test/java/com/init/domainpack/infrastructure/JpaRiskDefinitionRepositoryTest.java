@@ -49,7 +49,8 @@ class JpaRiskDefinitionRepositoryTest {
     em.persistAndFlush(entity);
     em.clear();
 
-    // when — RiskDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
+    // when — RiskDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로
+    // em.find() 사용
     RiskDefinition found = em.find(RiskDefinition.class, entity.getId());
 
     // then
