@@ -14,4 +14,6 @@ public interface WorkflowDefinitionRepository {
       Long domainPackVersionId);
 
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
+
+  boolean existsByDomainPackVersionIdAndPolicyRef(Long versionId, String policyCode);
 }
