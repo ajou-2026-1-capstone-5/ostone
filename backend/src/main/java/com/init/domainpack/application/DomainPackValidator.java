@@ -4,10 +4,12 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.util.Set;
@@ -23,16 +25,19 @@ public class DomainPackValidator {
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final DomainPackRepository domainPackRepository;
   private final DomainPackVersionRepository domainPackVersionRepository;
+  private final PolicyDefinitionRepository policyDefinitionRepository;
 
   public DomainPackValidator(
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort,
       DomainPackRepository domainPackRepository,
-      DomainPackVersionRepository domainPackVersionRepository) {
+      DomainPackVersionRepository domainPackVersionRepository,
+      PolicyDefinitionRepository policyDefinitionRepository) {
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.domainPackRepository = domainPackRepository;
     this.domainPackVersionRepository = domainPackVersionRepository;
+    this.policyDefinitionRepository = policyDefinitionRepository;
   }
 
   public void validateWorkspaceAccess(Long workspaceId, Long userId) {
@@ -65,5 +70,14 @@ public class DomainPackValidator {
     validateWorkspaceAccess(workspaceId, userId);
     validateDomainPack(packId, workspaceId);
     validateVersion(versionId, packId);
+  }
+
+  public void validatePolicyCodes(Long versionId, Set<String> policyCodes) {
+    for (String policyCode : policyCodes) {
+      if (!policyDefinitionRepository.existsByDomainPackVersionIdAndPolicyCode(
+          versionId, policyCode)) {
+        throw new WorkflowActionNodePolicyRefNotFoundException(policyCode);
+      }
+    }
   }
 }

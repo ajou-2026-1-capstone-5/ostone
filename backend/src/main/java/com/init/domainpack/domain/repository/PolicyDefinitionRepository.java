@@ -15,4 +15,6 @@ public interface PolicyDefinitionRepository {
   List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);
 
   PolicyDefinition save(PolicyDefinition policy);
+
+  boolean existsByDomainPackVersionIdAndPolicyCode(Long domainPackVersionId, String policyCode);
 }

@@ -52,7 +52,8 @@ class GetSlotDefinitionUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            null);
     useCase = new GetSlotDefinitionUseCase(validator, slotDefinitionRepository);
   }
 

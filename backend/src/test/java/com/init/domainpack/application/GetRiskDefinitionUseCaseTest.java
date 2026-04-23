@@ -52,7 +52,8 @@ class GetRiskDefinitionUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            null);
     useCase = new GetRiskDefinitionUseCase(validator, riskDefinitionRepository);
   }
 

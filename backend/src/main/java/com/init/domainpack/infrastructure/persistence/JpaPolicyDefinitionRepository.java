@@ -14,4 +14,6 @@ public interface JpaPolicyDefinitionRepository
   List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);
 
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
+
+  boolean existsByDomainPackVersionIdAndPolicyCode(Long domainPackVersionId, String policyCode);
 }
