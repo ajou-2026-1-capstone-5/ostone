@@ -3,6 +3,7 @@ package com.init.domainpack.domain.repository;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface PolicyDefinitionRepository {
 
@@ -17,4 +18,6 @@ public interface PolicyDefinitionRepository {
   PolicyDefinition save(PolicyDefinition policy);
 
   boolean existsByDomainPackVersionIdAndPolicyCode(Long domainPackVersionId, String policyCode);
+
+  Set<String> findExistingPolicyCodesByVersionIdAndCodes(Long versionId, Set<String> policyCodes);
 }

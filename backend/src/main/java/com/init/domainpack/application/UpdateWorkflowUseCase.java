@@ -7,6 +7,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,7 @@ public class UpdateWorkflowUseCase {
         parsed.nodes().stream()
             .filter(n -> "ACTION".equals(n.type()))
             .map(WorkflowGraphValidator.GraphNode::policyRef)
-            .collect(Collectors.toSet());
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     if (!policyRefs.isEmpty()) {
       validator.validatePolicyCodes(command.versionId(), policyRefs);
     }

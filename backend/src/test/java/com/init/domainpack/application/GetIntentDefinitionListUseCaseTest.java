@@ -14,6 +14,7 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.time.OffsetDateTime;
@@ -35,6 +36,7 @@ class GetIntentDefinitionListUseCaseTest {
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DomainPackRepository domainPackRepository;
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
+  @Mock private PolicyDefinitionRepository policyDefinitionRepository;
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
 
   private GetIntentDefinitionListUseCase useCase;
@@ -52,7 +54,7 @@ class GetIntentDefinitionListUseCaseTest {
             workspaceMembershipPort,
             domainPackRepository,
             domainPackVersionRepository,
-            null);
+            policyDefinitionRepository);
     useCase = new GetIntentDefinitionListUseCase(validator, intentDefinitionRepository);
   }
 

@@ -52,7 +52,7 @@ class GetPolicyDefinitionListUseCaseTest {
             workspaceMembershipPort,
             domainPackRepository,
             domainPackVersionRepository,
-            null);
+            policyDefinitionRepository);
     useCase = new GetPolicyDefinitionListUseCase(validator, policyDefinitionRepository);
   }
 

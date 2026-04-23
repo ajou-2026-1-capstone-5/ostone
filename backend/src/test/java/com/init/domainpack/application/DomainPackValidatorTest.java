@@ -2,6 +2,7 @@ package com.init.domainpack.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,14 +49,12 @@ class DomainPackValidatorTest {
   }
 
   @Test
-  @DisplayName("미존재 policyCode를 만나면 즉시 예외를 던지고 이후 코드는 조회하지 않는다")
-  void should_fail_fast_when_policyCodeMissing() {
-    // given: 순서 보장을 위해 LinkedHashSet 사용 [p-1(valid) → p-2(missing) → p-3]
-    given(policyDefinitionRepository.existsByDomainPackVersionIdAndPolicyCode(VERSION_ID, "p-1"))
-        .willReturn(true);
-    given(policyDefinitionRepository.existsByDomainPackVersionIdAndPolicyCode(VERSION_ID, "p-2"))
-        .willReturn(false);
+  @DisplayName("미존재 policyCode가 있으면 예외를 던지며 단건 exists 쿼리는 호출되지 않는다")
+  void should_throw_when_policyCodeMissing() {
+    // given: p-1만 존재, p-2/p-3은 미존재
     Set<String> codes = new LinkedHashSet<>(List.of("p-1", "p-2", "p-3"));
+    given(policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(VERSION_ID, codes))
+        .willReturn(Set.of("p-1"));
 
     // when & then
     assertThatThrownBy(() -> validator.validatePolicyCodes(VERSION_ID, codes))
@@ -65,10 +64,10 @@ class DomainPackValidatorTest {
               WorkflowActionNodePolicyRefNotFoundException typed =
                   (WorkflowActionNodePolicyRefNotFoundException) e;
               assertThat(typed.getCode()).isEqualTo("WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND");
-              assertThat(typed.getMessage()).contains("p-2");
+              assertThat(typed.getMessage()).containsAnyOf("p-2", "p-3");
             });
-    // p-2에서 즉시 예외 → p-3는 조회되면 안 됨
+    // 배치 쿼리로 대체됐으므로 단건 exists는 호출되어선 안 됨
     verify(policyDefinitionRepository, never())
-        .existsByDomainPackVersionIdAndPolicyCode(VERSION_ID, "p-3");
+        .existsByDomainPackVersionIdAndPolicyCode(any(), any());
   }
 }

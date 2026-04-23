@@ -12,6 +12,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import java.util.HashSet;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -73,11 +74,13 @@ public class DomainPackValidator {
   }
 
   public void validatePolicyCodes(Long versionId, Set<String> policyCodes) {
-    for (String policyCode : policyCodes) {
-      if (!policyDefinitionRepository.existsByDomainPackVersionIdAndPolicyCode(
-          versionId, policyCode)) {
-        throw new WorkflowActionNodePolicyRefNotFoundException(policyCode);
-      }
+    Set<String> existing =
+        policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(
+            versionId, policyCodes);
+    Set<String> missing = new HashSet<>(policyCodes);
+    missing.removeAll(existing);
+    if (!missing.isEmpty()) {
+      throw new WorkflowActionNodePolicyRefNotFoundException(missing.iterator().next());
     }
   }
 }
