@@ -90,6 +90,7 @@ class DomainPackValidatorTest {
 
     assertThatCode(() -> validator.validatePolicyCodes(VERSION_ID, codes))
         .doesNotThrowAnyException();
-    verify(policyDefinitionRepository).findExistingPolicyCodesByVersionIdAndCodes(VERSION_ID, codes);
+    verify(policyDefinitionRepository)
+        .findExistingPolicyCodesByVersionIdAndCodes(VERSION_ID, codes);
   }
 }
