@@ -4,6 +4,7 @@ import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidEx
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionNotDraftException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
@@ -24,7 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -346,13 +349,28 @@ public class DomainPackDraftPersistenceService {
         binding -> binding.intentCode() + "::" + binding.workflowCode(),
         "intentWorkflowBinding");
 
-    return safeList(workflows).stream().map(this::validateAndNormalizeWorkflow).toList();
+    Set<String> submittedPolicyCodes =
+        safeList(policies).stream()
+            .map(CreateDomainPackDraftCommand.PolicyDraft::policyCode)
+            .collect(Collectors.toSet());
+    return safeList(workflows).stream()
+        .map(w -> validateAndNormalizeWorkflow(w, submittedPolicyCodes))
+        .toList();
   }
 
   private CreateDomainPackDraftCommand.WorkflowDraft validateAndNormalizeWorkflow(
-      CreateDomainPackDraftCommand.WorkflowDraft workflow) {
+      CreateDomainPackDraftCommand.WorkflowDraft workflow, Set<String> submittedPolicyCodes) {
     WorkflowGraphValidator.ParsedGraph graph =
         WorkflowGraphValidator.parseAndValidate(workflow.graphJson(), workflow.workflowCode());
+    graph.nodes().stream()
+        .filter(n -> "ACTION".equals(n.type()))
+        .map(WorkflowGraphValidator.GraphNode::policyRef)
+        .filter(ref -> !submittedPolicyCodes.contains(ref))
+        .findFirst()
+        .ifPresent(
+            ref -> {
+              throw new WorkflowActionNodePolicyRefNotFoundException(ref);
+            });
     return new CreateDomainPackDraftCommand.WorkflowDraft(
         workflow.workflowCode(),
         workflow.name(),

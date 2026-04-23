@@ -10,6 +10,9 @@ import static org.mockito.Mockito.verify;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefInvalidCharsException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
@@ -392,6 +395,102 @@ class CreateDomainPackDraftUseCaseTest {
   }
 
   // ──────────────────────────────────────────────────────────────
+  // graphJson V8 위반 테스트
+  // ──────────────────────────────────────────────────────────────
+
+  @Test
+  @DisplayName(
+      "graphJson V8a 위반 — ACTION 노드 policyRef 없으면 WorkflowActionNodePolicyRefMissingException")
+  void execute_v8a_missingPolicyRef_throwsException() {
+    stubWorkspaceAndPack();
+    String missingPolicyRefGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\"},"
+            + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"id\":\"e1\",\"from\":\"start\",\"to\":\"action1\"},"
+            + "{\"id\":\"e2\",\"from\":\"action1\",\"to\":\"terminal\"}"
+            + "]}";
+    assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(missingPolicyRefGraph)))
+        .isInstanceOf(WorkflowActionNodePolicyRefMissingException.class);
+  }
+
+  @Test
+  @DisplayName(
+      "graphJson V8b 위반 — ACTION 노드 policyRef에 유효하지 않은 문자 포함 시 WorkflowActionNodePolicyRefInvalidCharsException")
+  void execute_v8b_invalidPolicyRefChars_throwsException() {
+    stubWorkspaceAndPack();
+    String invalidCharsGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\",\"policyRef\":\"invalid policy!\"},"
+            + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"id\":\"e1\",\"from\":\"start\",\"to\":\"action1\"},"
+            + "{\"id\":\"e2\",\"from\":\"action1\",\"to\":\"terminal\"}"
+            + "]}";
+    assertThatThrownBy(() -> useCase.execute(commandWithGraphJson(invalidCharsGraph)))
+        .isInstanceOf(WorkflowActionNodePolicyRefInvalidCharsException.class);
+  }
+
+  @Test
+  @DisplayName(
+      "graphJson V8c 위반 — ACTION 노드 policyRef가 제출된 policies에 없으면 WorkflowActionNodePolicyRefNotFoundException")
+  void execute_v8c_policyRefNotFound_throwsException() {
+    stubWorkspaceAndPack();
+    String policyRefNotFoundGraph =
+        "{\"direction\":\"LR\","
+            + "\"nodes\":["
+            + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
+            + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\",\"policyRef\":\"missing_policy\"},"
+            + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
+            + "],"
+            + "\"edges\":["
+            + "{\"id\":\"e1\",\"from\":\"start\",\"to\":\"action1\"},"
+            + "{\"id\":\"e2\",\"from\":\"action1\",\"to\":\"terminal\"}"
+            + "]}";
+    CreateDomainPackDraftCommand command =
+        new CreateDomainPackDraftCommand(
+            1L,
+            7L,
+            10L,
+            null,
+            "{}",
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(
+                new CreateDomainPackDraftCommand.WorkflowDraft(
+                    "refund_flow", "환불 플로우", null, policyRefNotFoundGraph, null, null, null, null)),
+            List.of());
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class)
+        .hasMessageContaining("missing_policy");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  @DisplayName("graphJson V8c 통과 — ACTION 노드 policyRef가 제출된 policies policyCode와 일치하면 정상 저장")
+  void execute_v8c_policyRefMatchesSubmittedPolicy_savesSuccessfully() {
+    stubWorkspaceAndPack();
+    stubSaveAll();
+
+    useCase.execute(commandWithGraphJson(VALID_GRAPH_JSON));
+
+    org.mockito.ArgumentCaptor<Iterable<WorkflowDefinition>> captor =
+        org.mockito.ArgumentCaptor.forClass(Iterable.class);
+    verify(workflowDefinitionRepository).saveAll(captor.capture());
+    assertThat(captor.getValue().iterator().hasNext()).isTrue();
+  }
+
+  // ──────────────────────────────────────────────────────────────
   // initialState / terminalStatesJson 추출 검증 테스트
   // ──────────────────────────────────────────────────────────────
 
@@ -484,7 +583,9 @@ class CreateDomainPackDraftUseCaseTest {
         List.of(),
         List.of(),
         List.of(),
-        List.of(),
+        List.of(
+            new CreateDomainPackDraftCommand.PolicyDraft(
+                "handle_policy", "처리 정책", null, null, null, null, null, null)),
         List.of(),
         List.of(
             new CreateDomainPackDraftCommand.WorkflowDraft(
@@ -517,7 +618,9 @@ class CreateDomainPackDraftUseCaseTest {
         List.of(
             new CreateDomainPackDraftCommand.IntentSlotBindingDraft(
                 "refund_request", "order_id", true, 1, "주문번호를 알려주세요", null)),
-        List.of(),
+        List.of(
+            new CreateDomainPackDraftCommand.PolicyDraft(
+                "handle_policy", "처리 정책", null, null, null, null, null, null)),
         List.of(),
         List.of(
             new CreateDomainPackDraftCommand.WorkflowDraft(
