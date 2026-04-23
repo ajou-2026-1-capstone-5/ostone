@@ -5,6 +5,11 @@ describe('resolvePostLoginDestination', () => {
   it('allows /workspaces paths', () => {
     expect(
       resolvePostLoginDestination({
+        from: { pathname: '/workspaces', search: '?tab=logs' },
+      }),
+    ).toBe('/workspaces?tab=logs');
+    expect(
+      resolvePostLoginDestination({
         from: { pathname: '/workspaces/1/upload', search: '?tab=logs' },
       }),
     ).toBe('/workspaces/1/upload?tab=logs');
@@ -22,6 +27,17 @@ describe('resolvePostLoginDestination', () => {
   it('falls back for paths outside the workspace route boundary', () => {
     expect(
       resolvePostLoginDestination({ from: { pathname: '/workspaces-public' } }),
+    ).toBe('/workspaces');
+  });
+
+  it('falls back for dot-segment workspace paths', () => {
+    expect(
+      resolvePostLoginDestination({ from: { pathname: '/workspaces/../login' } }),
+    ).toBe('/workspaces');
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: '/workspaces/%2e%2e/login' },
+      }),
     ).toBe('/workspaces');
   });
 

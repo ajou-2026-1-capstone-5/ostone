@@ -51,16 +51,11 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
 
   try {
-    // Decode JWT payload (base64)
     const payload = JSON.parse(atob(token.split('.')[1]));
     const exp = payload.exp;
 
-    if (!exp) return true; // No expiry claim, assume valid
-
-    // Check if token is expired (exp is in seconds, Date.now() is in ms)
-    return exp * 1000 > Date.now();
-  } catch (err) {
-    // If token parsing fails, consider it invalid
+    return typeof exp === 'number' && exp > Date.now() / 1000;
+  } catch {
     return false;
   }
 }

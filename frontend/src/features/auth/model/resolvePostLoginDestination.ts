@@ -34,6 +34,17 @@ function isAllowedPath(pathname: string): boolean {
   );
 }
 
+function hasDotSegment(pathname: string): boolean {
+  return pathname.split('/').some((segment) => {
+    try {
+      const decoded = decodeURIComponent(segment);
+      return decoded === '.' || decoded === '..';
+    } catch {
+      return true;
+    }
+  });
+}
+
 function extractSearch(location: ReturnLocation): string {
   if (typeof location.search !== 'string') {
     return '';
@@ -47,6 +58,10 @@ export function resolvePostLoginDestination(state: unknown): string {
   const pathname = location?.pathname;
 
   if (typeof pathname !== 'string' || !pathname || isExternalUrl(pathname)) {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
+
+  if (hasDotSegment(pathname)) {
     return DEFAULT_POST_LOGIN_PATH;
   }
 
