@@ -2,6 +2,8 @@ package com.init.domainpack.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.infrastructure.persistence.JpaSlotDefinitionRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +26,7 @@ class JpaSlotDefinitionRepositoryTest extends AbstractDomainPackJpaTest {
 
   @Test
   @DisplayName("JSONB 필드 persist → flush → find 후 값 보존")
-  void should_jsonb필드보존_when_저장후조회() {
+  void should_jsonb필드보존_when_저장후조회() throws Exception {
     // given
     SlotDefinition entity =
         SlotDefinition.create(
@@ -43,10 +45,17 @@ class JpaSlotDefinitionRepositoryTest extends AbstractDomainPackJpaTest {
     // when
     SlotDefinition found = repository.findByIdOrThrow(entity.getId());
 
-    // then
-    assertThat(found.getValidationRuleJson()).contains("minLength");
-    assertThat(found.getDefaultValueJson()).contains("value");
-    assertThat(found.getMetaJson()).contains("version");
+    // then — ObjectMapper 파싱: H2의 이중 직렬화(quoted-string) 방어를 위해 TextNode 언래핑 적용
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JsonNode validationRule = parseJson(objectMapper, found.getValidationRuleJson());
+    assertThat(validationRule.path("minLength").asInt()).isEqualTo(1);
+
+    JsonNode defaultValue = parseJson(objectMapper, found.getDefaultValueJson());
+    assertThat(defaultValue.path("value").asText()).isEqualTo("default");
+
+    JsonNode meta = parseJson(objectMapper, found.getMetaJson());
+    assertThat(meta.path("version").asInt()).isEqualTo(1);
   }
 
   @Test
@@ -64,5 +73,10 @@ class JpaSlotDefinitionRepositoryTest extends AbstractDomainPackJpaTest {
 
     // then
     assertThat(found.getDefaultValueJson()).isNull();
+  }
+
+  private static JsonNode parseJson(ObjectMapper om, String json) throws Exception {
+    JsonNode node = om.readTree(json);
+    return node.isTextual() ? om.readTree(node.asText()) : node;
   }
 }

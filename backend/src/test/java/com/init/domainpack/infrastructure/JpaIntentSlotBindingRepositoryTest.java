@@ -7,26 +7,15 @@ import com.init.domainpack.infrastructure.persistence.JpaIntentSlotBindingReposi
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(
     properties = {
-      "spring.datasource.url=jdbc:h2:mem:testdb-islot;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
-      "spring.datasource.driver-class-name=org.h2.Driver",
-      "spring.datasource.username=sa",
-      "spring.datasource.password=",
-      "spring.jpa.hibernate.ddl-auto=create-drop",
-      "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
-      "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true",
-      "spring.liquibase.enabled=false"
+      "spring.datasource.url=jdbc:h2:mem:testdb-islot;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
     })
 @DisplayName("JpaIntentSlotBindingRepository")
-class JpaIntentSlotBindingRepositoryTest {
+class JpaIntentSlotBindingRepositoryTest extends AbstractDomainPackJpaTest {
 
   @Autowired private TestEntityManager em;
   @Autowired private JpaIntentSlotBindingRepository repository;
