@@ -7,7 +7,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
+import com.init.domainpack.domain.repository.DomainPackRepository;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkspaceExistencePort;
+import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,13 +28,23 @@ class DomainPackValidatorTest {
 
   private static final Long VERSION_ID = 10L;
 
+  @Mock private WorkspaceExistencePort workspaceExistencePort;
+  @Mock private WorkspaceMembershipPort workspaceMembershipPort;
+  @Mock private DomainPackRepository domainPackRepository;
+  @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private PolicyDefinitionRepository policyDefinitionRepository;
 
   private DomainPackValidator validator;
 
   @BeforeEach
   void setUp() {
-    validator = new DomainPackValidator(null, null, null, null, policyDefinitionRepository);
+    validator =
+        new DomainPackValidator(
+            workspaceExistencePort,
+            workspaceMembershipPort,
+            domainPackRepository,
+            domainPackVersionRepository,
+            policyDefinitionRepository);
   }
 
   @Test
