@@ -15,10 +15,7 @@ export const UploadPage: React.FC = () => {
   if (parsedWorkspaceId !== null) {
     return (
       <DashboardLayout>
-        <WorkspaceShell
-          workspaceId={parsedWorkspaceId}
-          title="Upload"
-        >
+        <WorkspaceShell workspaceId={parsedWorkspaceId} title="Upload">
           <div className={styles.uploadWrapper}>
             <LogUploadForm workspaceId={parsedWorkspaceId} />
           </div>

@@ -1,8 +1,11 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { ArrowUpRightIcon, FolderKanbanIcon, UploadIcon } from "lucide-react";
+import { workspaceApi } from "@/entities/workspace";
 
 import styles from "./workspace-shell.module.css";
+
+const workspaceNameCache = new Map<number, string>();
 
 interface WorkspaceShellProps {
   workspaceId: number;
@@ -17,6 +20,44 @@ export function WorkspaceShell({
   workspaceName,
   children,
 }: WorkspaceShellProps) {
+  const [resolvedWorkspaceName, setResolvedWorkspaceName] = useState<string | null>(
+    workspaceName ?? workspaceNameCache.get(workspaceId) ?? null,
+  );
+
+  useEffect(() => {
+    if (workspaceName) {
+      workspaceNameCache.set(workspaceId, workspaceName);
+      setResolvedWorkspaceName(workspaceName);
+      return;
+    }
+
+    const cachedName = workspaceNameCache.get(workspaceId);
+    if (cachedName) {
+      setResolvedWorkspaceName(cachedName);
+      return;
+    }
+
+    let cancelled = false;
+
+    void workspaceApi
+      .get(workspaceId)
+      .then((workspace) => {
+        if (!cancelled) {
+          workspaceNameCache.set(workspaceId, workspace.name);
+          setResolvedWorkspaceName(workspace.name);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResolvedWorkspaceName(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, workspaceName]);
+
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     `${styles.sectionLink} ${isActive ? styles.sectionLinkActive : ""}`;
 
@@ -27,7 +68,7 @@ export function WorkspaceShell({
           <div className={styles.workspaceIntro}>
             <p className={styles.kicker}>WORKSPACE</p>
             <div className={styles.workspaceNameRow}>
-              <h2 className={styles.workspaceName}>{workspaceName || "Workspace"}</h2>
+              <h2 className={styles.workspaceName}>{resolvedWorkspaceName || "Workspace"}</h2>
               <ArrowUpRightIcon className={styles.workspaceArrow} />
             </div>
           </div>
