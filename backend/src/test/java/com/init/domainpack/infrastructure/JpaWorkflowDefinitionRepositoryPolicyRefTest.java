@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -19,6 +20,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
+@Sql(
+    scripts = "classpath:policyref-workflow-table.sql",
+    executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @DisplayName("JpaWorkflowDefinitionRepository — JSONB policyRef (PostgreSQL)")
 class JpaWorkflowDefinitionRepositoryPolicyRefTest {
 
@@ -31,13 +35,10 @@ class JpaWorkflowDefinitionRepositoryPolicyRefTest {
     registry.add("spring.datasource.username", postgres::getUsername);
     registry.add("spring.datasource.password", postgres::getPassword);
     registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-    registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+    registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
     registry.add(
         "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    registry.add("spring.jpa.properties.hibernate.hbm2ddl.create_namespaces", () -> "true");
     registry.add("spring.liquibase.enabled", () -> "false");
-    registry.add(
-        "spring.datasource.hikari.connection-init-sql", () -> "CREATE SCHEMA IF NOT EXISTS pack");
   }
 
   @Autowired private JpaWorkflowDefinitionRepository repository;
