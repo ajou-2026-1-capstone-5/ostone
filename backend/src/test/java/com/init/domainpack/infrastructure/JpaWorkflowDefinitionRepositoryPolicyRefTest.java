@@ -39,6 +39,12 @@ class JpaWorkflowDefinitionRepositoryPolicyRefTest {
     registry.add(
         "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
     registry.add("spring.liquibase.enabled", () -> "false");
+    // Defensive dual schema-creation: Hikari's connection-init-sql runs per connection before
+    // Hibernate creates namespaces, so both settings ensure the 'pack' schema exists and is on
+    // the search_path regardless of initialization order.
+    registry.add("spring.jpa.properties.hibernate.hbm2ddl.create_namespaces", () -> "true");
+    registry.add(
+        "spring.datasource.hikari.connection-init-sql", () -> "SET search_path TO pack, public");
   }
 
   @Autowired private JpaWorkflowDefinitionRepository repository;

@@ -60,7 +60,8 @@ public class UpdatePolicyStatusUseCase {
       throw new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: " + command.policyId());
     }
 
-    if (PolicyDefinition.STATUS_INACTIVE.equals(command.status())) {
+    if (PolicyDefinition.STATUS_INACTIVE.equals(command.status())
+        && PolicyDefinition.STATUS_ACTIVE.equals(policy.getStatus())) {
       String policyCode = policy.getPolicyCode();
       if (workflowRepository.existsByDomainPackVersionIdAndPolicyRef(
           command.versionId(), policyCode)) {
