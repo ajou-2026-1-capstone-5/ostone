@@ -32,30 +32,10 @@
 
 .options {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   font-size: 0.875rem;
   letter-spacing: -0.1px;
-}
-
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.checkboxLabel:hover {
-  color: var(--text-primary);
-}
-
-.checkbox {
-  accent-color: var(--brand-primary);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 
 .forgotLink {
