@@ -13,6 +13,7 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
@@ -35,6 +36,7 @@ class GetSlotDefinitionListUseCaseTest {
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DomainPackRepository domainPackRepository;
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
+  @Mock private PolicyDefinitionRepository policyDefinitionRepository;
   @Mock private SlotDefinitionRepository slotDefinitionRepository;
 
   private GetSlotDefinitionListUseCase useCase;
@@ -51,7 +53,8 @@ class GetSlotDefinitionListUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            policyDefinitionRepository);
     useCase = new GetSlotDefinitionListUseCase(validator, slotDefinitionRepository);
   }
 

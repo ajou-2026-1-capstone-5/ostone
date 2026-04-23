@@ -54,7 +54,8 @@ class GetWorkflowDefinitionUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            null);
     useCase = new GetWorkflowDefinitionUseCase(validator, workflowDefinitionRepository);
   }
 
