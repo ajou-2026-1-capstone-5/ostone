@@ -29,6 +29,15 @@ class JpaWorkflowDefinitionRepositoryPolicyRefTest {
   @Container
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
+  static {
+    // Start the container eagerly in the class initializer so it is ready before
+    // SpringExtension evaluates @DynamicPropertySource. Without this, extension
+    // registration order (@DataJpaTest above @Testcontainers) lets Spring load the
+    // context first and call postgres::getJdbcUrl before TestcontainersExtension
+    // starts the container, which fails with IllegalStateException on slower CI runners.
+    postgres.start();
+  }
+
   @DynamicPropertySource
   static void configureDataSource(DynamicPropertyRegistry registry) {
     registry.add("spring.datasource.url", postgres::getJdbcUrl);
