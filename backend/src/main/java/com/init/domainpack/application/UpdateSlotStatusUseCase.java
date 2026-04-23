@@ -65,11 +65,7 @@ public class UpdateSlotStatusUseCase {
       throw new BadRequestException("SLOT_NOT_EDITABLE", "DRAFT 상태의 버전에서만 슬롯을 수정할 수 있습니다.");
     }
 
-    SlotDefinition slot =
-        slotRepository
-            .findById(command.slotId())
-            .orElseThrow(
-                () -> new NotFoundException("NOT_FOUND", "슬롯을 찾을 수 없습니다: " + command.slotId()));
+    SlotDefinition slot = slotRepository.findByIdOrThrow(command.slotId());
 
     if (!slot.getDomainPackVersionId().equals(command.versionId())) {
       throw new NotFoundException("NOT_FOUND", "슬롯을 찾을 수 없습니다: " + command.slotId());

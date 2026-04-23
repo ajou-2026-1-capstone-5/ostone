@@ -2,38 +2,31 @@ package com.init.domainpack.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.domain.model.RiskDefinition;
+import com.init.domainpack.infrastructure.persistence.JpaRiskDefinitionRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(
     properties = {
-      "spring.datasource.url=jdbc:h2:mem:testdb-risk;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
-      "spring.datasource.driver-class-name=org.h2.Driver",
-      "spring.datasource.username=sa",
-      "spring.datasource.password=",
-      "spring.jpa.hibernate.ddl-auto=create-drop",
-      "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
-      "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true",
-      "spring.liquibase.enabled=false"
+      "spring.datasource.url=jdbc:h2:mem:testdb-risk;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
     })
 @DisplayName("JpaRiskDefinitionRepository")
-class JpaRiskDefinitionRepositoryTest {
+class JpaRiskDefinitionRepositoryTest extends AbstractDomainPackJpaTest {
 
   private static final Long VERSION_ID = 101L;
 
   @Autowired private TestEntityManager em;
+  @Autowired private JpaRiskDefinitionRepository repository;
 
   @Test
   @DisplayName("JSONB 필드 persist → flush → find 후 값 보존")
-  void should_jsonb필드보존_when_저장후조회() {
+  void should_jsonb필드보존_when_저장후조회() throws Exception {
     // given
     RiskDefinition entity =
         RiskDefinition.create(
@@ -49,14 +42,28 @@ class JpaRiskDefinitionRepositoryTest {
     em.persistAndFlush(entity);
     em.clear();
 
-    // when — RiskDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로
-    // em.find() 사용
-    RiskDefinition found = em.find(RiskDefinition.class, entity.getId());
+    // when
+    RiskDefinition found = repository.findByIdOrThrow(entity.getId());
 
-    // then
-    assertThat(found.getTriggerConditionJson()).contains("field");
-    assertThat(found.getHandlingActionJson()).contains("action");
-    assertThat(found.getEvidenceJson()).contains("source");
-    assertThat(found.getMetaJson()).contains("version");
+    // then — ObjectMapper 파싱: H2의 이중 직렬화(quoted-string) 방어를 위해 TextNode 언래핑 적용
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JsonNode triggerCondition = parseJson(objectMapper, found.getTriggerConditionJson());
+    assertThat(triggerCondition.path("field").asText()).isEqualTo("amount");
+
+    JsonNode handlingAction = parseJson(objectMapper, found.getHandlingActionJson());
+    assertThat(handlingAction.path("action").asText()).isEqualTo("block");
+
+    JsonNode evidence = parseJson(objectMapper, found.getEvidenceJson());
+    assertThat(evidence.isArray()).isTrue();
+    assertThat(evidence.get(0).path("source").asText()).isEqualTo("log");
+
+    JsonNode meta = parseJson(objectMapper, found.getMetaJson());
+    assertThat(meta.path("version").asInt()).isEqualTo(1);
+  }
+
+  private static JsonNode parseJson(ObjectMapper om, String json) throws Exception {
+    JsonNode node = om.readTree(json);
+    return node.isTextual() ? om.readTree(node.asText()) : node;
   }
 }

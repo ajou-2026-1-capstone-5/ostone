@@ -46,7 +46,7 @@ class UpdateRiskStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     RiskDefinition risk = risk(55L, 10L);
-    given(riskRepository.findById(55L)).willReturn(Optional.of(risk));
+    given(riskRepository.findByIdOrThrow(55L)).willReturn(risk);
     given(riskRepository.save(any())).willReturn(risk);
 
     UpdateRiskStatusCommand command =
@@ -65,7 +65,7 @@ class UpdateRiskStatusUseCaseTest {
 
     RiskDefinition risk = risk(55L, 10L);
     ReflectionTestUtils.setField(risk, "status", RiskDefinition.STATUS_INACTIVE);
-    given(riskRepository.findById(55L)).willReturn(Optional.of(risk));
+    given(riskRepository.findByIdOrThrow(55L)).willReturn(risk);
     given(riskRepository.save(any())).willReturn(risk);
 
     UpdateRiskStatusCommand command =
@@ -83,7 +83,7 @@ class UpdateRiskStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     RiskDefinition risk = risk(55L, 10L);
-    given(riskRepository.findById(55L)).willReturn(Optional.of(risk));
+    given(riskRepository.findByIdOrThrow(55L)).willReturn(risk);
 
     assertThatThrownBy(
             () -> useCase.execute(new UpdateRiskStatusCommand(1L, 7L, 10L, 55L, 5L, "DEPRECATED")))
@@ -112,7 +112,7 @@ class UpdateRiskStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     RiskDefinition risk = risk(55L, 999L);
-    given(riskRepository.findById(55L)).willReturn(Optional.of(risk));
+    given(riskRepository.findByIdOrThrow(55L)).willReturn(risk);
 
     assertThatThrownBy(
             () ->
@@ -207,7 +207,8 @@ class UpdateRiskStatusUseCaseTest {
   @DisplayName("위험요소 미존재 → NotFoundException")
   void should_위험요소없음예외_when_위험요소미존재() {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-    given(riskRepository.findById(55L)).willReturn(Optional.empty());
+    given(riskRepository.findByIdOrThrow(55L))
+        .willThrow(new NotFoundException("NOT_FOUND", "위험요소를 찾을 수 없습니다: 55"));
 
     assertThatThrownBy(
             () ->

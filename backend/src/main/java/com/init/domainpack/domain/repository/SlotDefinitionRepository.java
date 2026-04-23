@@ -8,7 +8,7 @@ public interface SlotDefinitionRepository {
 
   <S extends SlotDefinition> List<S> saveAll(Iterable<S> entities);
 
-  Optional<SlotDefinition> findById(Long id);
+  SlotDefinition findByIdOrThrow(Long id);
 
   SlotDefinition save(SlotDefinition slot);
 

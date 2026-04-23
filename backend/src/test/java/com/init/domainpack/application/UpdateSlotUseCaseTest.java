@@ -54,7 +54,7 @@ class UpdateSlotUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
     SlotDefinition slot = slot(99L, 10L);
-    given(slotRepository.findById(99L)).willReturn(Optional.of(slot));
+    given(slotRepository.findByIdOrThrow(99L)).willReturn(slot);
     given(slotRepository.save(any())).willReturn(slot);
 
     UpdateSlotCommand command =
@@ -160,7 +160,8 @@ class UpdateSlotUseCaseTest {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-    given(slotRepository.findById(99L)).willReturn(Optional.empty());
+    given(slotRepository.findByIdOrThrow(99L))
+        .willThrow(new NotFoundException("NOT_FOUND", "슬롯을 찾을 수 없습니다: 99"));
 
     assertThatThrownBy(
             () ->
@@ -180,7 +181,7 @@ class UpdateSlotUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     SlotDefinition slot = slot(99L, 999L); // 다른 버전에 속한 슬롯
-    given(slotRepository.findById(99L)).willReturn(Optional.of(slot));
+    given(slotRepository.findByIdOrThrow(99L)).willReturn(slot);
 
     assertThatThrownBy(
             () ->
