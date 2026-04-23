@@ -39,7 +39,7 @@ public record WorkflowTransitionDetail(
       NodeMaps nodeMaps = buildNodeMaps(root, workflowId);
       List<WorkflowTransitionDetail> result = new ArrayList<>();
       for (JsonNode e : root.path("edges")) {
-        String edgeId = e.hasNonNull("id") ? e.path("id").asText(null) : null;
+        String edgeId = e.hasNonNull("id") ? e.path("id").asText(null).trim() : null;
         if (edgeId == null || edgeId.isBlank()) {
           log.warn(
               "skipping edge with missing id: workflowId={}, versionId={}", workflowId, versionId);
@@ -63,7 +63,7 @@ public record WorkflowTransitionDetail(
       JsonNode root = MAPPER.readTree(graphJson);
       NodeMaps nodeMaps = buildNodeMaps(root, workflowId);
       for (JsonNode e : root.path("edges")) {
-        String edgeId = e.hasNonNull("id") ? e.path("id").asText(null) : null;
+        String edgeId = e.hasNonNull("id") ? e.path("id").asText(null).trim() : null;
         if (transitionId.equals(edgeId)) {
           return Optional.of(buildDetail(e, edgeId, workflowId, versionId, nodeMaps));
         }
