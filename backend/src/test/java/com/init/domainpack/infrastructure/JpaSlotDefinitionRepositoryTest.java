@@ -34,6 +34,7 @@ class JpaSlotDefinitionRepositoryTest {
   @Test
   @DisplayName("JSONB 필드 persist → flush → find 후 값 보존")
   void should_jsonb필드보존_when_저장후조회() {
+    // given
     SlotDefinition entity =
         SlotDefinition.create(
             VERSION_ID,
@@ -45,12 +46,13 @@ class JpaSlotDefinitionRepositoryTest {
             "{\"minLength\":1}",
             "{\"value\":\"default\"}",
             "{\"version\":1}");
-
     em.persistAndFlush(entity);
     em.clear();
 
+    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
     SlotDefinition found = em.find(SlotDefinition.class, entity.getId());
-    assertThat(found).isNotNull();
+
+    // then
     assertThat(found.getValidationRuleJson()).isNotNull();
     assertThat(found.getDefaultValueJson()).isNotNull();
     assertThat(found.getMetaJson()).isNotNull();
@@ -59,14 +61,17 @@ class JpaSlotDefinitionRepositoryTest {
   @Test
   @DisplayName("defaultValueJson null 저장 → 조회 시 null 반환")
   void should_null반환_when_defaultValueJson이null() {
+    // given
     SlotDefinition entity =
         SlotDefinition.create(
             VERSION_ID, "slot_002", "선택값", null, "STRING", false, "{}", null, "{}");
-
     em.persistAndFlush(entity);
     em.clear();
 
+    // when — SlotDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
     SlotDefinition found = em.find(SlotDefinition.class, entity.getId());
+
+    // then
     assertThat(found.getDefaultValueJson()).isNull();
   }
 }

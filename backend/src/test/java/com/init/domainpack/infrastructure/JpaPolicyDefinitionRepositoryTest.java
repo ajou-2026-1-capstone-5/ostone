@@ -34,6 +34,7 @@ class JpaPolicyDefinitionRepositoryTest {
   @Test
   @DisplayName("JSONB 필드 persist → flush → find 후 값 보존")
   void should_jsonb필드보존_when_저장후조회() {
+    // given
     PolicyDefinition entity =
         PolicyDefinition.create(
             VERSION_ID,
@@ -45,12 +46,13 @@ class JpaPolicyDefinitionRepositoryTest {
             "{\"type\":\"refund\"}",
             "[{\"source\":\"log\"}]",
             "{\"version\":1}");
-
     em.persistAndFlush(entity);
     em.clear();
 
+    // when — PolicyDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
     PolicyDefinition found = em.find(PolicyDefinition.class, entity.getId());
-    assertThat(found).isNotNull();
+
+    // then
     assertThat(found.getConditionJson()).isNotNull();
     assertThat(found.getActionJson()).isNotNull();
     assertThat(found.getEvidenceJson()).isNotNull();

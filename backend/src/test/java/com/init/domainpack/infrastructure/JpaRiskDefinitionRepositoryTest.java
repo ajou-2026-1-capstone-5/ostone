@@ -34,6 +34,7 @@ class JpaRiskDefinitionRepositoryTest {
   @Test
   @DisplayName("JSONB 필드 persist → flush → find 후 값 보존")
   void should_jsonb필드보존_when_저장후조회() {
+    // given
     RiskDefinition entity =
         RiskDefinition.create(
             VERSION_ID,
@@ -45,12 +46,13 @@ class JpaRiskDefinitionRepositoryTest {
             "{\"action\":\"block\"}",
             "[{\"source\":\"log\"}]",
             "{\"version\":1}");
-
     em.persistAndFlush(entity);
     em.clear();
 
+    // when — RiskDefinitionRepository.findById(Long) vs CrudRepository.findById(ID) ambiguity로 em.find() 사용
     RiskDefinition found = em.find(RiskDefinition.class, entity.getId());
-    assertThat(found).isNotNull();
+
+    // then
     assertThat(found.getTriggerConditionJson()).isNotNull();
     assertThat(found.getHandlingActionJson()).isNotNull();
     assertThat(found.getEvidenceJson()).isNotNull();
