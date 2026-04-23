@@ -53,9 +53,9 @@ class JpaRiskDefinitionRepositoryTest {
     RiskDefinition found = em.find(RiskDefinition.class, entity.getId());
 
     // then
-    assertThat(found.getTriggerConditionJson()).isNotNull();
-    assertThat(found.getHandlingActionJson()).isNotNull();
-    assertThat(found.getEvidenceJson()).isNotNull();
-    assertThat(found.getMetaJson()).isNotNull();
+    assertThat(found.getTriggerConditionJson()).contains("field");
+    assertThat(found.getHandlingActionJson()).contains("action");
+    assertThat(found.getEvidenceJson()).contains("source");
+    assertThat(found.getMetaJson()).contains("version");
   }
 }

@@ -55,9 +55,9 @@ class JpaIntentDefinitionRepositoryTest {
     IntentDefinition found = repository.findById(entity.getId()).orElseThrow();
 
     // then
-    assertThat(found.getSourceClusterRef()).isNotNull();
-    assertThat(found.getEntryConditionJson()).isNotNull();
-    assertThat(found.getEvidenceJson()).isNotNull();
-    assertThat(found.getMetaJson()).isNotNull();
+    assertThat(found.getSourceClusterRef()).contains("cluster");
+    assertThat(found.getEntryConditionJson()).contains("condition");
+    assertThat(found.getEvidenceJson()).contains("log");
+    assertThat(found.getMetaJson()).contains("version");
   }
 }

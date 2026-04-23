@@ -53,9 +53,9 @@ class JpaPolicyDefinitionRepositoryTest {
     PolicyDefinition found = em.find(PolicyDefinition.class, entity.getId());
 
     // then
-    assertThat(found.getConditionJson()).isNotNull();
-    assertThat(found.getActionJson()).isNotNull();
-    assertThat(found.getEvidenceJson()).isNotNull();
-    assertThat(found.getMetaJson()).isNotNull();
+    assertThat(found.getConditionJson()).contains("field");
+    assertThat(found.getActionJson()).contains("type");
+    assertThat(found.getEvidenceJson()).contains("source");
+    assertThat(found.getMetaJson()).contains("version");
   }
 }

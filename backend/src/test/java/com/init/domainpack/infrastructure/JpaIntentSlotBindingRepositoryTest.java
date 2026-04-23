@@ -44,6 +44,6 @@ class JpaIntentSlotBindingRepositoryTest {
     IntentSlotBinding found = repository.findById(entity.getId()).orElseThrow();
 
     // then
-    assertThat(found.getConditionJson()).isNotNull();
+    assertThat(found.getConditionJson()).contains("required");
   }
 }

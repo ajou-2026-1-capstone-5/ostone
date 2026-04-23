@@ -53,9 +53,9 @@ class JpaSlotDefinitionRepositoryTest {
     SlotDefinition found = em.find(SlotDefinition.class, entity.getId());
 
     // then
-    assertThat(found.getValidationRuleJson()).isNotNull();
-    assertThat(found.getDefaultValueJson()).isNotNull();
-    assertThat(found.getMetaJson()).isNotNull();
+    assertThat(found.getValidationRuleJson()).contains("minLength");
+    assertThat(found.getDefaultValueJson()).contains("value");
+    assertThat(found.getMetaJson()).contains("version");
   }
 
   @Test

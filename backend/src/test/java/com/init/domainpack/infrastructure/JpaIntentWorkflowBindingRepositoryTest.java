@@ -43,6 +43,6 @@ class JpaIntentWorkflowBindingRepositoryTest {
     IntentWorkflowBinding found = repository.findById(entity.getId()).orElseThrow();
 
     // then
-    assertThat(found.getRouteConditionJson()).isNotNull();
+    assertThat(found.getRouteConditionJson()).contains("priority");
   }
 }
