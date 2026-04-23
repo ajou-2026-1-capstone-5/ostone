@@ -3,10 +3,15 @@ package com.init.domainpack.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
@@ -22,6 +27,7 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +44,16 @@ class UpdateWorkflowUseCaseTest {
       "{\"direction\":\"LR\","
           + "\"nodes\":[{\"id\":\"start\",\"type\":\"START\"},{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
           + "\"edges\":[{\"id\":\"e_start_to_end\",\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
+
+  private static final String GRAPH_WITH_ACTION_NODE =
+      "{\"direction\":\"LR\","
+          + "\"nodes\":["
+          + "{\"id\":\"n1\",\"type\":\"START\"},"
+          + "{\"id\":\"n2\",\"type\":\"ACTION\",\"policyRef\":\"policy-1\"},"
+          + "{\"id\":\"n3\",\"type\":\"TERMINAL\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e1\",\"from\":\"n1\",\"to\":\"n2\",\"label\":null},"
+          + "{\"id\":\"e2\",\"from\":\"n2\",\"to\":\"n3\",\"label\":null}]}";
 
   @Mock private DomainPackValidator validator;
   @Mock private DomainPackVersionRepository versionRepository;
@@ -360,6 +376,76 @@ class UpdateWorkflowUseCaseTest {
                         1L, 7L, 10L, 99L, 5L, "이름", null, duplicateEdgeIdGraph)))
         .isInstanceOf(WorkflowEdgeIdDuplicateException.class);
     verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("ACTION 노드 policyRef가 version에 존재하면 성공한다")
+  void should_성공_when_ACTION노드policyRef유효() {
+    // given
+    DomainPackVersion version = draftVersion(10L, 7L);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    WorkflowDefinition workflow = workflow(99L, 10L);
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(workflow));
+    given(workflowRepository.save(any())).willReturn(workflow);
+    UpdateWorkflowCommand command =
+        new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, GRAPH_WITH_ACTION_NODE);
+
+    // when
+    WorkflowDefinitionDetail result = useCase.execute(command);
+
+    // then
+    assertThat(result).isNotNull();
+    verify(validator).validatePolicyCodes(eq(10L), eq(Set.of("policy-1")));
+  }
+
+  @Test
+  @DisplayName(
+      "ACTION 노드 policyRef가 version에 없으면 WorkflowActionNodePolicyRefNotFoundException을 던진다")
+  void should_예외_when_ACTION노드policyRef미존재() {
+    // given
+    DomainPackVersion version = draftVersion(10L, 7L);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    WorkflowDefinition workflow = workflow(99L, 10L);
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(workflow));
+    doThrow(new WorkflowActionNodePolicyRefNotFoundException("policy-1"))
+        .when(validator)
+        .validatePolicyCodes(anyLong(), anySet());
+    UpdateWorkflowCommand command =
+        new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, GRAPH_WITH_ACTION_NODE);
+
+    // when & then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class)
+        .satisfies(
+            e -> {
+              WorkflowActionNodePolicyRefNotFoundException typed =
+                  (WorkflowActionNodePolicyRefNotFoundException) e;
+              assertThat(typed.getCode()).isEqualTo("WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND");
+              assertThat(typed.getMessage()).contains("policy-1");
+            });
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("ACTION 노드가 없으면 validatePolicyCodes를 호출하지 않는다")
+  void should_validatePolicyCodes미호출_when_ACTION노드없음() {
+    // given
+    DomainPackVersion version = draftVersion(10L, 7L);
+    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    WorkflowDefinition workflow = workflow(99L, 10L);
+    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(workflow));
+    given(workflowRepository.save(any())).willReturn(workflow);
+    UpdateWorkflowCommand command =
+        new UpdateWorkflowCommand(1L, 7L, 10L, 99L, 5L, "이름", null, VALID_GRAPH);
+
+    // when
+    useCase.execute(command);
+
+    // then
+    verify(validator, never()).validatePolicyCodes(anyLong(), anySet());
   }
 
   // ── factories ──────────────────────────────────────────────────────────────

@@ -52,7 +52,8 @@ class GetIntentDefinitionUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            null);
     useCase = new GetIntentDefinitionUseCase(validator, intentDefinitionRepository);
   }
 

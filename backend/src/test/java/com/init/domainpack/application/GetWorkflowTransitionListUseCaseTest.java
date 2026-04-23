@@ -88,7 +88,8 @@ class GetWorkflowTransitionListUseCaseTest {
             workspaceExistencePort,
             workspaceMembershipPort,
             domainPackRepository,
-            domainPackVersionRepository);
+            domainPackVersionRepository,
+            null);
     useCase = new GetWorkflowTransitionListUseCase(validator, workflowDefinitionRepository);
   }
 

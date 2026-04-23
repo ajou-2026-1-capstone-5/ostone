@@ -7,6 +7,9 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,9 +65,20 @@ public class UpdateWorkflowUseCase {
                     new NotFoundException(
                         "NOT_FOUND", "워크플로우를 찾을 수 없습니다: " + command.workflowId()));
 
-    // V1–V6 예외는 GlobalExceptionHandler로 전파
+    // V1–V8b 예외는 GlobalExceptionHandler로 전파
     WorkflowGraphValidator.ParsedGraph parsed =
         WorkflowGraphValidator.parseAndValidate(command.graphJson(), workflow.getWorkflowCode());
+
+    // V8c: policyRef cross-entity 검증
+    Set<String> policyRefs =
+        parsed.nodes().stream()
+            .filter(n -> "ACTION".equals(n.type()))
+            .map(WorkflowGraphValidator.GraphNode::policyRef)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    if (!policyRefs.isEmpty()) {
+      validator.validatePolicyCodes(command.versionId(), policyRefs);
+    }
+
     String initialState = WorkflowGraphValidator.extractInitialState(parsed);
     String terminalStatesJson;
     try {
