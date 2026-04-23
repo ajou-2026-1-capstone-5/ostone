@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Input } from '../../../../shared/ui/input/Input';
 import { Button } from '../../../../shared/ui/button/Button';
 import { loginApi } from '../../api/authApi';
+import { resolvePostLoginDestination } from '../../model/resolvePostLoginDestination';
 import { saveAuthSession } from '../../../../shared/lib/auth';
 import { ApiRequestError } from '../../../../shared/api';
 import styles from './login-form.module.css';
@@ -16,6 +17,7 @@ import styles from './login-form.module.css';
  */
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +52,7 @@ export const LoginForm: React.FC = () => {
         result.user,
       );
 
-      navigate('/upload');
+      navigate(resolvePostLoginDestination(location.state), { replace: true });
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.code === 'INVALID_CREDENTIALS') {
@@ -99,10 +101,6 @@ export const LoginForm: React.FC = () => {
       </div>
 
       <div className={styles.options}>
-        <label className={styles.checkboxLabel}>
-          <input type="checkbox" className={styles.checkbox} />
-          <span>아이디 저장</span>
-        </label>
         <Link to="/reset-password" className={styles.forgotLink}>
           비밀번호 찾기
         </Link>

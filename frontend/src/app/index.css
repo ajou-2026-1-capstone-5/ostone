@@ -14,6 +14,14 @@
 }
 
 :root {
+  --font-sans: 'pretendard variable', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --font-size-label: 12px;
+  --font-size-heading-lg: 40px;
+  --font-size-body-lg: 18px;
+  --font-weight-body: 330;
+  --font-weight-base: 340;
+  --font-weight-heading: 540;
   --bg-color: #ffffff;
   --bg-secondary: rgba(0, 0, 0, 0.02);
   --text-primary: #000000;
@@ -53,8 +61,8 @@
 }
 
 body {
-  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 340;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-base);
   font-feature-settings: "kern";
   letter-spacing: -0.14px;
   background-color: var(--bg-color);
