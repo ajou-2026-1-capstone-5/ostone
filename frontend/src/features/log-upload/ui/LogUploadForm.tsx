@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileUploader } from '../../../shared/ui/file-upload/FileUploader';
-import { Button } from '../../../shared/ui/button/Button';
-import styles from './log-upload-form.module.css';
+import React, { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-type UploadStatus = 'idle' | 'uploading' | 'analyzing' | 'success';
+import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
+import { Button } from "../../../shared/ui/button/Button";
 
-export const LogUploadForm: React.FC = () => {
+import styles from "./log-upload-form.module.css";
+
+type UploadStatus = "idle" | "uploading" | "analyzing" | "success";
+
+interface LogUploadFormProps {
+  workspaceId?: number;
+}
+
+export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<UploadStatus>('idle');
+  const [status, setStatus] = useState<UploadStatus>("idle");
   const [progress, setProgress] = useState(0);
   const uploadIntervalRef = useRef<number | null>(null);
   const analyzeTimeoutRef = useRef<number | null>(null);
@@ -28,18 +35,18 @@ export const LogUploadForm: React.FC = () => {
   const handleFileSelect = (selectedFile: File) => {
     // Only accept csv or json roughly
     const name = selectedFile.name.toLowerCase();
-    if (!name.endsWith('.csv') && !name.endsWith('.json')) {
-      alert('Please upload a .csv or .json file.');
+    if (!name.endsWith(".csv") && !name.endsWith(".json")) {
+      toast.error("CSV 또는 JSON 파일만 업로드할 수 있습니다.");
       return;
     }
     setFile(selectedFile);
-    setStatus('idle');
+    setStatus("idle");
     setProgress(0);
   };
 
   const handleUpload = () => {
     if (!file) return;
-    setStatus('uploading');
+    setStatus("uploading");
 
     // Simulate Fake Upload Progress
     let currentProgress = 0;
@@ -51,11 +58,11 @@ export const LogUploadForm: React.FC = () => {
           uploadIntervalRef.current = null;
         }
         setProgress(100);
-        setStatus('analyzing');
+        setStatus("analyzing");
 
         // Simulate analyzing delay
         analyzeTimeoutRef.current = window.setTimeout(() => {
-          setStatus('success');
+          setStatus("success");
           analyzeTimeoutRef.current = null;
         }, 2000);
       } else {
@@ -74,9 +81,11 @@ export const LogUploadForm: React.FC = () => {
       analyzeTimeoutRef.current = null;
     }
     setFile(null);
-    setStatus('idle');
+    setStatus("idle");
     setProgress(0);
   };
+
+  const completionPath = workspaceId ? `/workspaces/${workspaceId}` : "/workspaces";
 
   return (
     <div className={styles.container}>
@@ -86,16 +95,16 @@ export const LogUploadForm: React.FC = () => {
       </div>
 
       <div className={styles.uploadArea}>
-        <FileUploader 
+        <FileUploader
           onFileSelect={handleFileSelect}
           acceptedTypes=".csv,.json"
           status={status}
           progress={progress}
-          isUploading={status === 'uploading' || status === 'analyzing'}
+          isUploading={status === "uploading" || status === "analyzing"}
         />
       </div>
 
-      {status === 'idle' && file && (
+      {status === "idle" && file && (
         <div className={styles.filePreview}>
           <div className={styles.fileInfo}>
             <span className={styles.fileName}>{file.name}</span>
@@ -105,10 +114,12 @@ export const LogUploadForm: React.FC = () => {
         </div>
       )}
 
-      {status === 'success' && (
+      {status === "success" && (
         <div className={styles.successActions}>
           <Button variant="secondary" onClick={handleReset}>Upload Another File</Button>
-          <Button onClick={() => navigate('/workflows')}>View Extracted Workflow</Button>
+          <Button onClick={() => navigate(completionPath)}>
+            {workspaceId ? "View Workspace Workflows" : "Go to Workspaces"}
+          </Button>
         </div>
       )}
     </div>

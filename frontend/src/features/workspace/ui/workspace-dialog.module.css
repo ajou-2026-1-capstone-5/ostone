@@ -1,0 +1,99 @@
+.dialogContent {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(0, 0, 0, 0.05), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+  backdrop-filter: none;
+  padding: 28px !important;
+}
+
+.form {
+  display: grid;
+  gap: 20px;
+}
+
+.field {
+  display: grid;
+  gap: 10px;
+}
+
+.dialogInput {
+  min-height: 56px;
+  padding: 0 20px !important;
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+  font-size: 0.98rem;
+  letter-spacing: -0.16px;
+}
+
+.dialogInput::placeholder {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+.dialogInput:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 1px #000000, 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+}
+
+.fieldError {
+  color: #000000;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  letter-spacing: -0.1px;
+}
+
+.helperText {
+  color: rgba(0, 0, 0, 0.52);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  letter-spacing: -0.12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.buttonRow {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cancelButton {
+  min-height: 48px;
+  border-radius: 999px;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: rgba(0, 0, 0, 0.78) !important;
+  font-size: 0.94rem;
+  letter-spacing: -0.14px;
+}
+
+.cancelButton:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.submitButton {
+  min-height: 48px;
+  border-radius: 999px;
+  background: #000000 !important;
+  color: #ffffff !important;
+  font-size: 0.94rem;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+.submitButton:hover {
+  background: rgba(0, 0, 0, 0.88) !important;
+}
+
+@media (max-width: 640px) {
+  .buttonRow {
+    grid-template-columns: 1fr;
+  }
+}
