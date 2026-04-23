@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefInvalidCharsException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowCycleDetectedException;
 import com.init.domainpack.application.exception.WorkflowDanglingEdgeException;
 import com.init.domainpack.application.exception.WorkflowEdgeIdDuplicateException;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 final class WorkflowGraphValidator {
 
@@ -28,13 +31,15 @@ final class WorkflowGraphValidator {
 
   private WorkflowGraphValidator() {}
 
+  private static final Pattern POLICY_REF_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+
   record ParsedGraph(List<GraphNode> nodes, List<GraphEdge> edges) {}
 
-  record GraphNode(String id, String type) {}
+  record GraphNode(String id, String type, String policyRef) {}
 
   record GraphEdge(String id, String from, String to, String label) {}
 
-  /** V1-V6 검증 후 ParsedGraph 반환. 위반 시 해당 예외를 throw한다 (fail-fast). */
+  /** V1-V8 검증 후 ParsedGraph 반환. 위반 시 해당 예외를 throw한다 (fail-fast). */
   static ParsedGraph parseAndValidate(String graphJson, String workflowCode) {
     JsonNode root;
     try {
@@ -60,6 +65,7 @@ final class WorkflowGraphValidator {
     validateV6DecisionLabels(nodes, edges, workflowCode);
     validateV7aEdgeIdPresence(edges, workflowCode);
     validateV7bEdgeIdUniqueness(edges, workflowCode);
+    validateV8ActionPolicyRef(nodes, workflowCode);
 
     return new ParsedGraph(nodes, edges);
   }
@@ -96,7 +102,8 @@ final class WorkflowGraphValidator {
         throw new DomainPackDraftRequestInvalidException(
             "노드의 id 또는 type이 비어 있습니다. id='" + id + "', type='" + type + "'");
       }
-      nodes.add(new GraphNode(id, type));
+      String policyRef = n.hasNonNull("policyRef") ? n.path("policyRef").asText(null) : null;
+      nodes.add(new GraphNode(id, type, policyRef));
     }
     return nodes;
   }
@@ -208,6 +215,18 @@ final class WorkflowGraphValidator {
     for (GraphEdge edge : edges) {
       if (!seen.add(edge.id())) {
         throw new WorkflowEdgeIdDuplicateException(workflowCode);
+      }
+    }
+  }
+
+  private static void validateV8ActionPolicyRef(List<GraphNode> nodes, String workflowCode) {
+    for (GraphNode n : nodes) {
+      if (!"ACTION".equals(n.type())) continue;
+      if (n.policyRef() == null || n.policyRef().isBlank()) {
+        throw new WorkflowActionNodePolicyRefMissingException(workflowCode);
+      }
+      if (!POLICY_REF_PATTERN.matcher(n.policyRef()).matches()) {
+        throw new WorkflowActionNodePolicyRefInvalidCharsException(workflowCode);
       }
     }
   }

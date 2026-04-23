@@ -4,6 +4,8 @@ import com.init.domainpack.application.GetWorkflowDefinitionListQuery;
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionQuery;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
+import com.init.domainpack.application.GetWorkflowTransitionListQuery;
+import com.init.domainpack.application.GetWorkflowTransitionListUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionQuery;
 import com.init.domainpack.application.GetWorkflowTransitionUseCase;
 import com.init.domainpack.application.UpdateWorkflowCommand;
@@ -33,16 +35,19 @@ public class WorkflowDefinitionController {
   private final GetWorkflowDefinitionUseCase detailUseCase;
   private final UpdateWorkflowUseCase updateUseCase;
   private final GetWorkflowTransitionUseCase transitionUseCase;
+  private final GetWorkflowTransitionListUseCase transitionListUseCase;
 
   public WorkflowDefinitionController(
       GetWorkflowDefinitionListUseCase listUseCase,
       GetWorkflowDefinitionUseCase detailUseCase,
       UpdateWorkflowUseCase updateUseCase,
-      GetWorkflowTransitionUseCase transitionUseCase) {
+      GetWorkflowTransitionUseCase transitionUseCase,
+      GetWorkflowTransitionListUseCase transitionListUseCase) {
     this.listUseCase = listUseCase;
     this.detailUseCase = detailUseCase;
     this.updateUseCase = updateUseCase;
     this.transitionUseCase = transitionUseCase;
+    this.transitionListUseCase = transitionListUseCase;
   }
 
   @GetMapping
@@ -70,6 +75,20 @@ public class WorkflowDefinitionController {
         detailUseCase.execute(
             new GetWorkflowDefinitionQuery(workspaceId, packId, versionId, workflowId, userId));
     return ResponseEntity.ok(result);
+  }
+
+  @GetMapping("/{workflowId}/transitions")
+  public ResponseEntity<List<WorkflowTransitionDetail>> listTransitions(
+      @PathVariable Long workspaceId,
+      @PathVariable Long packId,
+      @PathVariable Long versionId,
+      @PathVariable Long workflowId,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(
+        transitionListUseCase.execute(
+            new GetWorkflowTransitionListQuery(
+                workspaceId, packId, versionId, workflowId, userId)));
   }
 
   @GetMapping("/{workflowId}/transitions/{transitionId}")

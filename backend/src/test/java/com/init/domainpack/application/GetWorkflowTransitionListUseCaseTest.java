@@ -9,9 +9,9 @@ import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMissingException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
-import com.init.domainpack.application.exception.WorkflowTransitionNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
@@ -19,6 +19,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,8 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GetWorkflowTransitionUseCase")
-class GetWorkflowTransitionUseCaseTest {
+@DisplayName("GetWorkflowTransitionListUseCase")
+class GetWorkflowTransitionListUseCaseTest {
 
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
@@ -38,32 +39,47 @@ class GetWorkflowTransitionUseCaseTest {
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
 
-  private GetWorkflowTransitionUseCase useCase;
+  private GetWorkflowTransitionListUseCase useCase;
 
   private static final Long WORKSPACE_ID = 1L;
   private static final Long PACK_ID = 7L;
   private static final Long VERSION_ID = 101L;
   private static final Long WORKFLOW_ID = 3001L;
   private static final Long USER_ID = 10L;
-  private static final String TRANSITION_ID = "e_check_to_answer";
 
-  private static final String GRAPH_WITH_LABEL =
-      "{\"direction\":\"LR\","
-          + "\"nodes\":["
+  private static final String GRAPH_MIXED =
+      "{\"nodes\":["
           + "{\"id\":\"check\",\"type\":\"DECISION\"},"
           + "{\"id\":\"answer\",\"type\":\"ACTION\",\"policyRef\":\"refund_policy\"},"
-          + "{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
+          + "{\"id\":\"handoff\",\"type\":\"ACTION\",\"policyRef\":\"handoff_policy\"},"
+          + "{\"id\":\"terminal\",\"type\":\"TERMINAL\"}],"
           + "\"edges\":["
           + "{\"id\":\"e_check_to_answer\",\"from\":\"check\",\"to\":\"answer\",\"label\":\"eligible\"},"
-          + "{\"id\":\"e_answer_to_end\",\"from\":\"answer\",\"to\":\"end\"}]}";
+          + "{\"id\":\"e_check_to_handoff\",\"from\":\"check\",\"to\":\"handoff\",\"label\":\"not_eligible\"},"
+          + "{\"id\":\"e_answer_to_end\",\"from\":\"answer\",\"to\":\"terminal\"}]}";
 
-  private static final String GRAPH_WITHOUT_LABEL =
-      "{\"direction\":\"LR\","
-          + "\"nodes\":["
+  private static final String GRAPH_EMPTY_EDGES =
+      "{\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\"START\"},"
+          + "{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
+          + "\"edges\":[]}";
+
+  private static final String GRAPH_WITH_LEGACY_EDGE =
+      "{\"nodes\":["
           + "{\"id\":\"start\",\"type\":\"START\"},"
           + "{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
           + "\"edges\":["
-          + "{\"id\":\"e_check_to_answer\",\"from\":\"start\",\"to\":\"end\"}]}";
+          + "{\"id\":\"e_valid\",\"from\":\"start\",\"to\":\"end\"},"
+          + "{\"from\":\"start\",\"to\":\"end\"}]}";
+
+  private static final String GRAPH_CORRUPT_ACTION =
+      "{\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\"START\"},"
+          + "{\"id\":\"action\",\"type\":\"ACTION\"},"
+          + "{\"id\":\"end\",\"type\":\"TERMINAL\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"action\"},"
+          + "{\"id\":\"e_2\",\"from\":\"action\",\"to\":\"end\"}]}";
 
   @BeforeEach
   void setUp() {
@@ -73,56 +89,70 @@ class GetWorkflowTransitionUseCaseTest {
             workspaceMembershipPort,
             domainPackRepository,
             domainPackVersionRepository);
-    useCase = new GetWorkflowTransitionUseCase(validator, workflowDefinitionRepository);
+    useCase = new GetWorkflowTransitionListUseCase(validator, workflowDefinitionRepository);
   }
 
   @Test
-  @DisplayName("정상 조회 (label 있음) — 전 필드 반환")
-  void should_detail반환_when_label있음() {
+  @DisplayName("정상 조회 — ACTION 목적지 edge의 toPolicyRef 반환, DECISION 발신 edge의 label 반환")
+  void should_목록반환_when_정상조회() {
     // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
-        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LABEL)));
+        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_MIXED)));
 
     // when
-    WorkflowTransitionDetail result = useCase.execute(query(TRANSITION_ID));
+    List<WorkflowTransitionDetail> result = useCase.execute(query());
 
     // then
-    assertThat(result.id()).isEqualTo("e_check_to_answer");
-    assertThat(result.workflowDefinitionId()).isEqualTo(WORKFLOW_ID);
-    assertThat(result.domainPackVersionId()).isEqualTo(VERSION_ID);
-    assertThat(result.from()).isEqualTo("check");
-    assertThat(result.to()).isEqualTo("answer");
-    assertThat(result.label()).isEqualTo("eligible");
-    assertThat(result.toPolicyRef()).isEqualTo("refund_policy");
+    assertThat(result).hasSize(3);
+
+    WorkflowTransitionDetail first = result.get(0);
+    assertThat(first.id()).isEqualTo("e_check_to_answer");
+    assertThat(first.workflowDefinitionId()).isEqualTo(WORKFLOW_ID);
+    assertThat(first.domainPackVersionId()).isEqualTo(VERSION_ID);
+    assertThat(first.from()).isEqualTo("check");
+    assertThat(first.to()).isEqualTo("answer");
+    assertThat(first.label()).isEqualTo("eligible");
+    assertThat(first.toPolicyRef()).isEqualTo("refund_policy");
+
+    WorkflowTransitionDetail second = result.get(1);
+    assertThat(second.label()).isEqualTo("not_eligible");
+    assertThat(second.toPolicyRef()).isEqualTo("handoff_policy");
+
+    WorkflowTransitionDetail third = result.get(2);
+    assertThat(third.label()).isNull();
+    assertThat(third.toPolicyRef()).isNull();
   }
 
   @Test
-  @DisplayName("정상 조회 (label 없음) — label == null")
-  void should_label이null_when_label없음() {
+  @DisplayName("transitions 없음 (edges 빈 배열) → 빈 List 반환")
+  void should_빈목록반환_when_edges빈배열() {
     // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
-        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITHOUT_LABEL)));
+        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_EMPTY_EDGES)));
 
     // when
-    WorkflowTransitionDetail result = useCase.execute(query(TRANSITION_ID));
+    List<WorkflowTransitionDetail> result = useCase.execute(query());
 
     // then
-    assertThat(result.label()).isNull();
+    assertThat(result).isEmpty();
   }
 
   @Test
-  @DisplayName("transitionId 미존재 → WorkflowTransitionNotFoundException")
-  void should_WorkflowTransitionNotFoundException발생_when_transitionId미존재() {
+  @DisplayName("id 없는 edge 혼재 → id 있는 edge만 반환")
+  void should_id있는edge만반환_when_id없는edge혼재() {
     // given
     stubValidWorkspace();
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
-        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LABEL)));
+        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_WITH_LEGACY_EDGE)));
 
-    // when & then
-    assertThatThrownBy(() -> useCase.execute(query("non_existent_edge")))
-        .isInstanceOf(WorkflowTransitionNotFoundException.class);
+    // when
+    List<WorkflowTransitionDetail> result = useCase.execute(query());
+
+    // then
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).id()).isEqualTo("e_valid");
   }
 
   @Test
@@ -134,12 +164,12 @@ class GetWorkflowTransitionUseCaseTest {
         .willReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(WorkflowDefinitionNotFoundException.class);
   }
 
   @Test
-  @DisplayName("DB 저장된 graphJson 파싱 오류 → WorkflowGraphJsonInvalidException")
+  @DisplayName("DB graphJson 파싱 오류 → WorkflowGraphJsonInvalidException")
   void should_WorkflowGraphJsonInvalidException발생_when_graphJson파싱오류() {
     // given
     stubValidWorkspace();
@@ -147,8 +177,22 @@ class GetWorkflowTransitionUseCaseTest {
         .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, "not-valid-json{")));
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(WorkflowGraphJsonInvalidException.class);
+  }
+
+  @Test
+  @DisplayName(
+      "DB ACTION 노드에 policyRef 없음 (corrupt data) → WorkflowActionNodePolicyRefMissingException")
+  void should_WorkflowActionNodePolicyRefMissingException발생_when_ACTION노드policyRef없음() {
+    // given
+    stubValidWorkspace();
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+        .willReturn(Optional.of(createWorkflow(WORKFLOW_ID, GRAPH_CORRUPT_ACTION)));
+
+    // when & then
+    assertThatThrownBy(() -> useCase.execute(query()))
+        .isInstanceOf(WorkflowActionNodePolicyRefMissingException.class);
   }
 
   @Test
@@ -158,7 +202,7 @@ class GetWorkflowTransitionUseCaseTest {
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
   }
 
@@ -170,7 +214,7 @@ class GetWorkflowTransitionUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
   }
 
@@ -183,7 +227,7 @@ class GetWorkflowTransitionUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(false);
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(DomainPackNotFoundException.class);
   }
 
@@ -200,15 +244,15 @@ class GetWorkflowTransitionUseCaseTest {
                 DomainPackVersion.ofForTest(VERSION_ID, 999L, DomainPackVersion.STATUS_DRAFT)));
 
     // when & then
-    assertThatThrownBy(() -> useCase.execute(query(TRANSITION_ID)))
+    assertThatThrownBy(() -> useCase.execute(query()))
         .isInstanceOf(DomainPackVersionNotFoundException.class);
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────────
 
-  private GetWorkflowTransitionQuery query(String transitionId) {
-    return new GetWorkflowTransitionQuery(
-        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, transitionId, USER_ID);
+  private GetWorkflowTransitionListQuery query() {
+    return new GetWorkflowTransitionListQuery(
+        WORKSPACE_ID, PACK_ID, VERSION_ID, WORKFLOW_ID, USER_ID);
   }
 
   private void stubValidWorkspace() {
@@ -222,9 +266,25 @@ class GetWorkflowTransitionUseCaseTest {
   }
 
   private WorkflowDefinition createWorkflow(Long id, String graphJson) {
+    Long versionId = VERSION_ID;
+    String workflowCode = "wf_refund";
+    String name = "환불 플로우";
+    String description = null;
+    String initialState = "start";
+    String terminalStatesJson = "[\"end\"]";
+    String evidenceJson = null;
+    String metaJson = null;
     WorkflowDefinition wf =
         WorkflowDefinition.create(
-            VERSION_ID, "wf_refund", "환불 플로우", null, graphJson, "start", "[\"end\"]", null, null);
+            versionId,
+            workflowCode,
+            name,
+            description,
+            graphJson,
+            initialState,
+            terminalStatesJson,
+            evidenceJson,
+            metaJson);
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }

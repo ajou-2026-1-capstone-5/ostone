@@ -49,12 +49,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("CreateDomainPackDraftUseCase")
 class CreateDomainPackDraftUseCaseTest {
 
-  // START→ACTION→TERMINAL, 사이클 없음, 유효한 V1-V6 그래프
+  // START→ACTION→TERMINAL, 사이클 없음, 유효한 V1-V8 그래프
   private static final String VALID_GRAPH_JSON =
       "{\"direction\":\"LR\","
           + "\"nodes\":["
           + "{\"id\":\"start\",\"label\":\"시작\",\"type\":\"START\"},"
-          + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\"},"
+          + "{\"id\":\"action1\",\"label\":\"처리\",\"type\":\"ACTION\",\"policyRef\":\"handle_policy\"},"
           + "{\"id\":\"terminal\",\"label\":\"종료\",\"type\":\"TERMINAL\"}"
           + "],"
           + "\"edges\":["
