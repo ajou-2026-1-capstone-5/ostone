@@ -46,12 +46,19 @@ export function getAuthUser(): AuthUser | null {
   }
 }
 
+function normalizeBase64Url(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const paddingLength = (4 - (base64.length % 4)) % 4;
+
+  return `${base64}${'='.repeat(paddingLength)}`;
+}
+
 export function isAuthenticated(): boolean {
   const token = getAccessToken();
   if (!token) return false;
 
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(normalizeBase64Url(token.split('.')[1] ?? '')));
     const exp = payload.exp;
 
     return typeof exp === 'number' && exp > Date.now() / 1000;

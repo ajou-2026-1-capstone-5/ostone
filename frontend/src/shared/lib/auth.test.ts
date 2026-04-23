@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { clearAuthSession, isAuthenticated } from './auth';
 
+function toBase64Url(value: string): string {
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 function createToken(payload: Record<string, unknown>): string {
-  return ['header', btoa(JSON.stringify(payload)), 'signature'].join('.');
+  return ['header', toBase64Url(JSON.stringify(payload)), 'signature'].join('.');
 }
 
 describe('isAuthenticated', () => {
