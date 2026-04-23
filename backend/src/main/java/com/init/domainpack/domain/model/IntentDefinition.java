@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "intent_definition", schema = "pack")
@@ -40,15 +42,19 @@ public class IntentDefinition {
   @Column(name = "status", nullable = false)
   private String status;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "source_cluster_ref", columnDefinition = "jsonb", nullable = false)
   private String sourceClusterRef;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "entry_condition_json", columnDefinition = "jsonb", nullable = false)
   private String entryConditionJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "evidence_json", columnDefinition = "jsonb", nullable = false)
   private String evidenceJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
 

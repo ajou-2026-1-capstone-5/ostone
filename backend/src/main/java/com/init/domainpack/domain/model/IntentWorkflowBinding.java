@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "intent_workflow_binding", schema = "pack")
@@ -25,6 +27,7 @@ public class IntentWorkflowBinding {
   @Column(name = "is_primary", nullable = false)
   private Boolean isPrimary;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "route_condition_json", columnDefinition = "jsonb", nullable = false)
   private String routeConditionJson;
 
