@@ -9,6 +9,7 @@ import { ConsultationPage } from '../pages/consultation/ui/ConsultationPage';
 import { NotFoundPage } from '../pages/not-found/ui/NotFoundPage';
 import { IntentDraftReadPage } from '../pages/domain-pack/ui/IntentDraftReadPage';
 import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
+import { WorkspaceLayout } from '../pages/workspace/ui/WorkspaceLayout';
 import { WorkspaceWorkflowsPage } from '../pages/workspace/ui/WorkspaceWorkflowsPage';
 import { PrivateRoute } from '../shared/ui/PrivateRoute';
 import { Toaster } from '../shared/ui/sonner';
@@ -24,9 +25,11 @@ export function App() {
         <Route path="/reset-password" element={<PasswordResetInitPage />} />
         <Route path="/reset-password/complete" element={<PasswordResetCompletePage />} />
         <Route path="/workspaces" element={<PrivateRoute><WorkspaceListPage /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId" element={<PrivateRoute><Navigate to="workflows" replace /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId/workflows" element={<PrivateRoute><WorkspaceWorkflowsPage /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
+          <Route index element={<Navigate to="workflows" replace />} />
+          <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
+          <Route path="upload" element={<UploadPage />} />
+        </Route>
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
