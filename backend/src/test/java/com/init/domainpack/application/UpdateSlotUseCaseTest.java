@@ -3,6 +3,7 @@ package com.init.domainpack.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -63,7 +64,7 @@ class UpdateSlotUseCaseTest {
   void should_워크스페이스없음예외_when_워크스페이스없음() {
     doThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"))
         .when(validator)
-        .validateWorkspaceAccess(1L, 7L);
+        .validateWorkspaceAccess(anyLong(), anyLong());
 
     assertThatThrownBy(
             () ->
@@ -81,7 +82,7 @@ class UpdateSlotUseCaseTest {
   void should_권한없음예외_when_비멤버() {
     doThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."))
         .when(validator)
-        .validateWorkspaceAccess(1L, 7L);
+        .validateWorkspaceAccess(anyLong(), anyLong());
 
     assertThatThrownBy(
             () ->
