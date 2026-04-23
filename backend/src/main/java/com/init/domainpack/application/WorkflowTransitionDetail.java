@@ -78,8 +78,8 @@ public record WorkflowTransitionDetail(
     Map<String, String> nodeTypeMap = new HashMap<>();
     Map<String, String> actionPolicyRefMap = new HashMap<>();
     for (JsonNode n : root.path("nodes")) {
-      String nodeId = n.path("id").asText();
-      String nodeType = n.path("type").asText();
+      String nodeId = n.path("id").asText().trim();
+      String nodeType = n.path("type").asText().trim();
       nodeTypeMap.put(nodeId, nodeType);
       if ("ACTION".equals(nodeType)) {
         String policyRef = n.hasNonNull("policyRef") ? n.path("policyRef").asText(null) : null;
@@ -97,8 +97,8 @@ public record WorkflowTransitionDetail(
 
   private static WorkflowTransitionDetail buildDetail(
       JsonNode e, String edgeId, Long workflowId, Long versionId, NodeMaps nodeMaps) {
-    String fromNodeId = e.path("from").asText();
-    String toNodeId = e.path("to").asText();
+    String fromNodeId = e.path("from").asText().trim();
+    String toNodeId = e.path("to").asText().trim();
     String label =
         "DECISION".equals(nodeMaps.nodeTypeMap().get(fromNodeId))
             ? (e.hasNonNull("label") ? e.path("label").asText(null) : null)
