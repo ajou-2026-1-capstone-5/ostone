@@ -36,6 +36,8 @@ class JpaWorkflowDefinitionRepositoryPolicyRefTest {
         "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
     registry.add("spring.jpa.properties.hibernate.hbm2ddl.create_namespaces", () -> "true");
     registry.add("spring.liquibase.enabled", () -> "false");
+    registry.add(
+        "spring.datasource.hikari.connection-init-sql", () -> "CREATE SCHEMA IF NOT EXISTS pack");
   }
 
   @Autowired private JpaWorkflowDefinitionRepository repository;
