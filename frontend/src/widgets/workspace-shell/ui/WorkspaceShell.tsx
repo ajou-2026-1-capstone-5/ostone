@@ -6,14 +6,12 @@ import styles from "./workspace-shell.module.css";
 
 interface WorkspaceShellProps {
   workspaceId: number;
-  title: string;
   workspaceName?: string;
   children: ReactNode;
 }
 
 export function WorkspaceShell({
   workspaceId,
-  title,
   workspaceName,
   children,
 }: WorkspaceShellProps) {
@@ -46,13 +44,6 @@ export function WorkspaceShell({
       </aside>
 
       <section className={styles.main}>
-        <header className={styles.header}>
-          <div className={styles.headingGroup}>
-            <p className={styles.kicker}>WORKSPACE</p>
-            <h1 className={styles.title}>{title}</h1>
-          </div>
-        </header>
-
         <div className={styles.content}>{children}</div>
       </section>
     </div>

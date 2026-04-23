@@ -53,40 +53,12 @@
 
 .main {
   min-width: 0;
-  display: grid;
-  gap: 20px;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: clamp(24px, 3vw, 32px);
-  min-height: 180px;
-  align-items: end;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background:
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.05), transparent 32%),
-    #ffffff;
-}
-
-.headingGroup {
-  display: grid;
-  gap: 10px;
 }
 
 .kicker {
   font-family: "Geist Mono", "SFMono-Regular", monospace;
   font-size: 0.76rem;
   letter-spacing: 0.54px;
-}
-
-.title {
-  font-size: clamp(2rem, 3vw, 3.1rem);
-  line-height: 1.05;
-  letter-spacing: -0.8px;
-  font-weight: 400;
 }
 
 .sectionNav {

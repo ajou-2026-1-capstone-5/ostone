@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Outlet, useLocation, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
 
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
 import { Button } from "@/shared/ui/button";
@@ -12,7 +12,6 @@ import styles from "./workspace-layout.module.css";
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams();
-  const location = useLocation();
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
@@ -79,15 +78,9 @@ export function WorkspaceLayout() {
     );
   }
 
-  const sectionTitle = location.pathname.endsWith("/upload") ? "Upload" : "Workflows";
-
   return (
     <DashboardLayout>
-      <WorkspaceShell
-        workspaceId={parsedWorkspaceId}
-        title={sectionTitle}
-        workspaceName={workspace.name}
-      >
+      <WorkspaceShell workspaceId={parsedWorkspaceId} workspaceName={workspace.name}>
         <Outlet context={{ workspace }} />
       </WorkspaceShell>
     </DashboardLayout>
