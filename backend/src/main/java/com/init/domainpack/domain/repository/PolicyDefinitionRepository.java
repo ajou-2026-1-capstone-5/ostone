@@ -17,7 +17,5 @@ public interface PolicyDefinitionRepository {
 
   PolicyDefinition save(PolicyDefinition policy);
 
-  boolean existsByDomainPackVersionIdAndPolicyCode(Long domainPackVersionId, String policyCode);
-
   Set<String> findExistingPolicyCodesByVersionIdAndCodes(Long versionId, Set<String> policyCodes);
 }

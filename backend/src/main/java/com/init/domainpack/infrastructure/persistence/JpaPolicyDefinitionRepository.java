@@ -18,8 +18,6 @@ public interface JpaPolicyDefinitionRepository
 
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 
-  boolean existsByDomainPackVersionIdAndPolicyCode(Long domainPackVersionId, String policyCode);
-
   @Query(
       "SELECT p.policyCode FROM PolicyDefinition p"
           + " WHERE p.domainPackVersionId = :versionId AND p.policyCode IN :policyCodes")

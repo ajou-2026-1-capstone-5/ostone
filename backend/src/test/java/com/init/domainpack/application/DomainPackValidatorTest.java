@@ -1,6 +1,7 @@
 package com.init.domainpack.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -13,6 +14,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -67,7 +69,27 @@ class DomainPackValidatorTest {
               assertThat(typed.getMessage()).containsAnyOf("p-2", "p-3");
             });
     // 배치 쿼리로 대체됐으므로 단건 exists는 호출되어선 안 됨
+    verify(policyDefinitionRepository).findExistingPolicyCodesByVersionIdAndCodes(any(), any());
+  }
+
+  @Test
+  @DisplayName("policyCodes가 비어 있으면 DB를 호출하지 않고 즉시 반환한다")
+  void should_not_call_repository_when_policyCodes_empty() {
+    assertThatCode(() -> validator.validatePolicyCodes(VERSION_ID, Collections.emptySet()))
+        .doesNotThrowAnyException();
     verify(policyDefinitionRepository, never())
-        .existsByDomainPackVersionIdAndPolicyCode(any(), any());
+        .findExistingPolicyCodesByVersionIdAndCodes(any(), any());
+  }
+
+  @Test
+  @DisplayName("모든 policyCode가 존재하면 예외를 던지지 않고 배치 쿼리를 1회 호출한다")
+  void should_not_throw_when_all_policyCodes_exist() {
+    Set<String> codes = new LinkedHashSet<>(List.of("p-1", "p-2"));
+    given(policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(VERSION_ID, codes))
+        .willReturn(Set.of("p-1", "p-2"));
+
+    assertThatCode(() -> validator.validatePolicyCodes(VERSION_ID, codes))
+        .doesNotThrowAnyException();
+    verify(policyDefinitionRepository).findExistingPolicyCodesByVersionIdAndCodes(VERSION_ID, codes);
   }
 }
