@@ -117,7 +117,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("정상 생성 시 새 DRAFT 버전과 하위 정의를 저장한다")
-  void execute_validCommand_returnsCreatedDraft() {
+  void should_saveNewDraftVersionAndDefinitions_when_validCommand() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
@@ -156,7 +156,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("workspace가 없으면 예외를 던지고 저장하지 않는다")
-  void execute_workspaceNotFound_throwsException() {
+  void should_throwWorkspaceNotFoundException_when_workspaceNotFound() {
     given(workspaceExistencePort.existsById(1L)).willReturn(false);
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
@@ -167,7 +167,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("domain pack이 workspace에 없으면 예외를 던진다")
-  void execute_domainPackNotFound_throwsException() {
+  void should_throwDomainPackNotFoundException_when_domainPackNotFound() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(false);
@@ -178,7 +178,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("존재하지 않는 참조 코드가 있으면 예외를 던진다")
-  void execute_missingBindingReference_throwsException() {
+  void should_throwDraftRequestInvalidException_when_bindingReferenceNotFound() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
@@ -224,7 +224,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V1 위반 — START 노드 없으면 WorkflowInvalidStartNodeException")
-  void execute_noStartNode_throwsException() {
+  void should_throwInvalidStartNodeException_when_startNodeMissing() {
     stubWorkspaceAndPack();
     String noStart =
         "{\"direction\":\"LR\","
@@ -236,7 +236,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V1 위반 — START 노드 2개면 WorkflowInvalidStartNodeException")
-  void execute_multipleStartNodes_throwsException() {
+  void should_throwInvalidStartNodeException_when_multipleStartNodes() {
     stubWorkspaceAndPack();
     String twoStart =
         "{\"direction\":\"LR\","
@@ -252,7 +252,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V2 위반 — TERMINAL 노드 없으면 WorkflowInvalidTerminalNodeException")
-  void execute_noTerminalNode_throwsException() {
+  void should_throwInvalidTerminalNodeException_when_terminalNodeMissing() {
     stubWorkspaceAndPack();
     String noTerminal =
         "{\"direction\":\"LR\","
@@ -264,7 +264,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V3 위반 — 없는 노드 id 참조하면 WorkflowDanglingEdgeException")
-  void execute_danglingEdge_throwsException() {
+  void should_throwDanglingEdgeException_when_edgeReferencesNonExistentNode() {
     stubWorkspaceAndPack();
     String dangling =
         "{\"direction\":\"LR\","
@@ -279,7 +279,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V4 위반 — START에서 도달 불가 노드 있으면 WorkflowUnreachableNodeException")
-  void execute_unreachableNode_throwsException() {
+  void should_throwUnreachableNodeException_when_nodeUnreachableFromStart() {
     stubWorkspaceAndPack();
     String unreachable =
         "{\"direction\":\"LR\","
@@ -295,7 +295,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V5 위반 — 사이클 존재하면 WorkflowCycleDetectedException")
-  void execute_cycleDetected_throwsException() {
+  void should_throwCycleDetectedException_when_cycleExists() {
     stubWorkspaceAndPack();
     String cycle =
         "{\"direction\":\"LR\","
@@ -318,7 +318,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @DisplayName(
       "graphJson V6 위반 — DECISION outgoing edge에 label 없으면 WorkflowUnlabeledBranchException")
-  void execute_unlabeledBranch_throwsException() {
+  void should_throwUnlabeledBranchException_when_decisionEdgeHasNoLabel() {
     stubWorkspaceAndPack();
     String unlabeled =
         "{\"direction\":\"LR\","
@@ -337,7 +337,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V7a 위반 — edge id 누락 시 WorkflowEdgeIdMissingException")
-  void execute_v7a_missingEdgeId_throwsException() {
+  void should_throwEdgeIdMissingException_when_edgeIdMissing() {
     stubWorkspaceAndPack();
     String missingEdgeIdGraph =
         "{\"direction\":\"LR\","
@@ -356,7 +356,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V7a 위반 — edge id 공백 시 WorkflowEdgeIdMissingException")
-  void execute_v7a_blankEdgeId_throwsException() {
+  void should_throwEdgeIdMissingException_when_edgeIdBlank() {
     stubWorkspaceAndPack();
     String blankEdgeIdGraph =
         "{\"direction\":\"LR\","
@@ -375,7 +375,7 @@ class CreateDomainPackDraftUseCaseTest {
 
   @Test
   @DisplayName("graphJson V7b 위반 — edge id 중복 시 WorkflowEdgeIdDuplicateException")
-  void execute_v7b_duplicateEdgeId_throwsException() {
+  void should_throwEdgeIdDuplicateException_when_edgeIdDuplicated() {
     stubWorkspaceAndPack();
     String duplicateEdgeIdGraph =
         "{\"direction\":\"LR\","
@@ -401,7 +401,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @DisplayName(
       "graphJson V8a 위반 — ACTION 노드 policyRef 없으면 WorkflowActionNodePolicyRefMissingException")
-  void execute_v8a_missingPolicyRef_throwsException() {
+  void should_throwPolicyRefMissingException_when_actionNodePolicyRefMissing() {
     stubWorkspaceAndPack();
     String missingPolicyRefGraph =
         "{\"direction\":\"LR\","
@@ -421,7 +421,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @DisplayName(
       "graphJson V8b 위반 — ACTION 노드 policyRef에 유효하지 않은 문자 포함 시 WorkflowActionNodePolicyRefInvalidCharsException")
-  void execute_v8b_invalidPolicyRefChars_throwsException() {
+  void should_throwPolicyRefInvalidCharsException_when_policyRefContainsInvalidChars() {
     stubWorkspaceAndPack();
     String invalidCharsGraph =
         "{\"direction\":\"LR\","
@@ -441,7 +441,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @DisplayName(
       "graphJson V8c 위반 — ACTION 노드 policyRef가 제출된 policies에 없으면 WorkflowActionNodePolicyRefNotFoundException")
-  void execute_v8c_policyRefNotFound_throwsException() {
+  void should_throwPolicyRefNotFoundException_when_policyRefNotInSubmittedPolicies() {
     stubWorkspaceAndPack();
     String policyRefNotFoundGraph =
         "{\"direction\":\"LR\","
@@ -478,7 +478,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @SuppressWarnings("unchecked")
   @DisplayName("graphJson V8c 통과 — ACTION 노드 policyRef가 제출된 policies policyCode와 일치하면 정상 저장")
-  void execute_v8c_policyRefMatchesSubmittedPolicy_savesSuccessfully() {
+  void should_saveWorkflow_when_policyRefMatchesSubmittedPolicyCode() {
     stubWorkspaceAndPack();
     stubSaveAll();
 
@@ -497,7 +497,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @SuppressWarnings("unchecked")
   @DisplayName("V1-V6 통과 시 initialState가 START 노드 id로 저장된다")
-  void execute_validGraph_extractsInitialState() {
+  void should_saveInitialStateAsStartNodeId_when_graphIsValid() {
     stubWorkspaceAndPack();
     stubSaveAll();
 
@@ -513,7 +513,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @SuppressWarnings("unchecked")
   @DisplayName("V1-V6 통과 시 terminalStatesJson이 TERMINAL 노드 id 배열 JSON으로 저장된다")
-  void execute_validGraph_extractsTerminalStatesJson() {
+  void should_saveTerminalStatesJsonAsTerminalNodeIds_when_graphIsValid() {
     stubWorkspaceAndPack();
     stubSaveAll();
 
@@ -529,7 +529,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Test
   @SuppressWarnings("unchecked")
   @DisplayName("TERMINAL 노드 복수 개일 때 terminalStatesJson 배열에 모두 포함된다")
-  void execute_multipleTerminalNodes_allIncludedInJson() {
+  void should_includeAllTerminalNodesInTerminalStatesJson_when_multipleTerminalNodes() {
     stubWorkspaceAndPack();
     stubSaveAll();
 
