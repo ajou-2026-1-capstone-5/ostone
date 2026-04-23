@@ -95,6 +95,52 @@
   margin: 24px;
 }
 
+.emptyContent {
+  gap: 10px;
+}
+
+.emptyHint {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.46);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.emptyAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.02);
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 450;
+  padding: 0 14px;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+  box-shadow: none;
+}
+
+.emptyAction:hover {
+  border-color: rgba(0, 0, 0, 0.14);
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.96);
+  transform: translateY(-1px);
+}
+
+.emptyActionIcon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.72;
+}
+
 .invalidState {
   display: flex;
   align-items: center;

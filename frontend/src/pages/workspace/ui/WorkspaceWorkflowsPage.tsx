@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RefreshCcwIcon, WorkflowIcon } from "lucide-react";
+import { ArrowRightIcon, RefreshCcwIcon, WorkflowIcon } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
@@ -86,10 +86,16 @@ export function WorkspaceWorkflowsPage() {
                 endpoint가 없어, publishedAt 기준 최신 대표 version을 해소할 수 없습니다.
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button onClick={() => navigate(`/workspaces/${parsedWorkspaceId}/upload`)}>
-                Upload로 이동
-              </Button>
+            <EmptyContent className={styles.emptyContent}>
+              <p className={styles.emptyHint}>다음 단계로 상담 로그를 먼저 업로드할 수 있습니다.</p>
+              <button
+                type="button"
+                className={styles.emptyAction}
+                onClick={() => navigate(`/workspaces/${parsedWorkspaceId}/upload`)}
+              >
+                <span>Upload 열기</span>
+                <ArrowRightIcon className={styles.emptyActionIcon} />
+              </button>
             </EmptyContent>
           </Empty>
         )}
