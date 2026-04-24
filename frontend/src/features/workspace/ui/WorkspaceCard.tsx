@@ -39,8 +39,8 @@ export function WorkspaceCard({
     };
 
   const normalizedRole = normalizeWorkspaceMemberRole(workspace.myRole);
-  const canEdit = normalizedRole === null || EDITABLE_ROLES.has(normalizedRole);
-  const canDelete = normalizedRole === null || normalizedRole === "OWNER";
+  const canEdit = normalizedRole !== null && EDITABLE_ROLES.has(normalizedRole);
+  const canDelete = normalizedRole === "OWNER";
 
   return (
     <Card
