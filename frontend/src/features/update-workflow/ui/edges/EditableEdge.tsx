@@ -33,6 +33,7 @@ export function EditableEdge({
   const [localLabel, setLocalLabel] = useState(typeof label === "string" ? label : "");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalLabel(typeof label === "string" ? label : "");
   }, [label]);
 
@@ -52,7 +53,7 @@ export function EditableEdge({
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
           onBlur={commitLabel}
-          placeholder="label"
+          placeholder="전이 조건"
           aria-label="엣지 레이블"
         />
       </EdgeLabelRenderer>

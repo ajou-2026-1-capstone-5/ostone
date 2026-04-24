@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
+  MarkerType,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -24,6 +25,7 @@ import { EditableAnswerNode } from "./nodes/EditableAnswerNode";
 import { EditableHandoffNode } from "./nodes/EditableHandoffNode";
 import { EditableTerminalNode } from "./nodes/EditableTerminalNode";
 import { EditableEdge } from "./edges/EditableEdge";
+import { PlainEdge } from "./edges/PlainEdge";
 import { AddNodeToolbar } from "./AddNodeToolbar";
 
 const nodeTypes: NodeTypes = {
@@ -36,12 +38,18 @@ const nodeTypes: NodeTypes = {
 };
 
 const edgeTypes: EdgeTypes = {
-  default: EditableEdge,
+  default: PlainEdge,
+  decision: EditableEdge,
+};
+
+const defaultEdgeOptions = {
+  markerEnd: { type: MarkerType.ArrowClosed },
 };
 
 interface InteractiveGraphEditorCoreProps {
   initialNodes: Node[];
   initialEdges: Edge[];
+  /** Do not perform heavy synchronous work here; called only on meaningful structural changes. */
   onStateChange: (nodes: Node[], edges: Edge[]) => void;
 }
 
@@ -52,27 +60,37 @@ function InteractiveGraphEditorCore({
 }: InteractiveGraphEditorCoreProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNode } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
-  // skip initial mount; onStateChange must be stable (useCallback) in parent to avoid loops
   const mountedRef = useRef(false);
+  const prevSignatureRef = useRef("");
 
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
       return;
     }
+    const signature = JSON.stringify([
+      nodes.map(({ id, position, data }) => ({ id, position, data })),
+      edges.map(({ id, source, target, label, data }) => ({ id, source, target, label, data })),
+    ]);
+    if (signature === prevSignatureRef.current) return;
+    prevSignatureRef.current = signature;
     onStateChange(nodes, edges);
   }, [nodes, edges, onStateChange]);
 
   const onConnect = useCallback(
     (params: Connection) =>
-      setEdges((eds) => addEdge({ ...params, id: uuidv4() }, eds)),
-    [setEdges],
+      setEdges((eds) => {
+        const sourceNode = getNode(params.source);
+        const edgeType = sourceNode?.type === "decision" ? "decision" : undefined;
+        return addEdge({ ...params, id: uuidv4(), type: edgeType }, eds);
+      }),
+    [setEdges, getNode],
   );
 
-  const hasStart = nodes.some((n) => n.type === "start");
-  const disabledTypes: GraphNodeType[] = hasStart ? ["START"] : [];
+  const hasStart = useMemo(() => nodes.some((n) => n.type === "start"), [nodes]);
+  const disabledTypes = useMemo<GraphNodeType[]>(() => (hasStart ? ["START"] : []), [hasStart]);
 
   const handleAddNode = useCallback(
     (type: GraphNodeType) => {
@@ -105,6 +123,7 @@ function InteractiveGraphEditorCore({
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

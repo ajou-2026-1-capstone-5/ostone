@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
@@ -48,6 +48,14 @@ export function WorkflowEditForm({
     },
   });
 
+  useEffect(() => {
+    const flow = toFlow(workflow.graphJson);
+    form.reset({ name: workflow.name, description: workflow.description });
+    initialGraphRef.current = flow;
+    graphStateRef.current = flow;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflow.id]);
+
   const direction = workflow.graphJson.direction;
   const workflowId = workflow.id;
 
@@ -93,6 +101,7 @@ export function WorkflowEditForm({
                   onChange={(e) => field.onChange(e.target.value || null)}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -104,6 +113,7 @@ export function WorkflowEditForm({
 
         <div className="h-[min(70vh,500px)]">
           <InteractiveGraphEditor
+            key={workflow.id}
             initialNodes={initialNodes}
             initialEdges={initialEdges}
             onStateChange={handleGraphStateChange}

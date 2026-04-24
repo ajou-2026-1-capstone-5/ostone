@@ -47,11 +47,14 @@ export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
     position: computePosition(i, graph.direction),
   }));
 
+  const nodeTypeById = new Map(graph.nodes.map((n) => [n.id, n.type]));
+
   const edges: Edge[] = graph.edges.map((e) => ({
     id: e.id,
     source: e.from,
     target: e.to,
     label: e.label,
+    type: nodeTypeById.get(e.from) === "DECISION" ? "decision" : undefined,
   }));
 
   return { nodes, edges };

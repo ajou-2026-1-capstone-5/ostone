@@ -1,13 +1,19 @@
-import { useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import styles from "./editableNodes.module.css";
 import { useEditableNode } from "./useEditableNode";
+import { useEditableField } from "./useEditableField";
 import { NodeDeleteToolbar } from "./NodeDeleteToolbar";
 
 export function EditableActionNode({ id, data, selected }: NodeProps) {
-  const { updateField, deleteNode } = useEditableNode(id);
-  const [label, setLabel] = useState(typeof data?.label === "string" ? data.label : "");
-  const [policyRef, setPolicyRef] = useState(
+  const { deleteNode } = useEditableNode(id);
+  const label = useEditableField(
+    id,
+    "label",
+    typeof data?.label === "string" ? data.label : "",
+  );
+  const policyRef = useEditableField(
+    id,
+    "policyRef",
     typeof data?.policyRef === "string" ? data.policyRef : "",
   );
 
@@ -18,17 +24,19 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
         <Handle type="target" position={Position.Left} />
         <input
           className={`nodrag nopan ${styles.labelInput}`}
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          onBlur={() => updateField("label", label)}
+          value={label.value}
+          onChange={label.onChange}
+          onFocus={label.onFocus}
+          onBlur={label.onBlur}
           placeholder="노드 이름"
           aria-label="노드 이름"
         />
         <input
           className={`nodrag nopan ${styles.policyInput}`}
-          value={policyRef}
-          onChange={(e) => setPolicyRef(e.target.value)}
-          onBlur={() => updateField("policyRef", policyRef)}
+          value={policyRef.value}
+          onChange={policyRef.onChange}
+          onFocus={policyRef.onFocus}
+          onBlur={policyRef.onBlur}
           placeholder="policyRef"
           aria-label="정책 참조 코드"
         />
