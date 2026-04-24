@@ -33,7 +33,7 @@ export function EditableEdge({
   const [localLabel, setLocalLabel] = useState(typeof label === "string" ? label : "");
 
   useEffect(() => {
-    setLocalLabel(label ?? "");
+    setLocalLabel(typeof label === "string" ? label : "");
   }, [label]);
 
   const commitLabel = () => {
