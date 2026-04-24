@@ -9,7 +9,7 @@ public interface PolicyDefinitionRepository {
 
   <S extends PolicyDefinition> List<S> saveAll(Iterable<S> entities);
 
-  Optional<PolicyDefinition> findById(Long id);
+  PolicyDefinition findByIdOrThrow(Long id);
 
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 

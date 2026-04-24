@@ -2,6 +2,7 @@ package com.init.domainpack.infrastructure.persistence;
 
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.shared.application.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +14,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface JpaPolicyDefinitionRepository
     extends JpaRepository<PolicyDefinition, Long>, PolicyDefinitionRepository {
+
+  @Override
+  default PolicyDefinition findByIdOrThrow(Long id) {
+    return findById(id)
+        .orElseThrow(() -> new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: " + id));
+  }
 
   List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);
 

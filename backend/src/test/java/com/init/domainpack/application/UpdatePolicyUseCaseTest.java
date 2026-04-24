@@ -46,7 +46,7 @@ class UpdatePolicyUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 10L);
-    given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(policyRepository.findByIdOrThrow(55L)).willReturn(policy);
     given(policyRepository.save(any())).willReturn(policy);
 
     UpdatePolicyCommand command =
@@ -165,7 +165,8 @@ class UpdatePolicyUseCaseTest {
   @DisplayName("정책 미존재 → NotFoundException")
   void should_정책없음예외_when_정책미존재() {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-    given(policyRepository.findById(55L)).willReturn(Optional.empty());
+    given(policyRepository.findByIdOrThrow(55L))
+        .willThrow(new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: 55"));
 
     assertThatThrownBy(
             () ->
@@ -183,7 +184,7 @@ class UpdatePolicyUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     PolicyDefinition policy = policy(55L, 999L);
-    given(policyRepository.findById(55L)).willReturn(Optional.of(policy));
+    given(policyRepository.findByIdOrThrow(55L)).willReturn(policy);
 
     assertThatThrownBy(
             () ->

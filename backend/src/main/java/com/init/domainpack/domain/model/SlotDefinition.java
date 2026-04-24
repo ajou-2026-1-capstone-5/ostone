@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "slot_definition", schema = "pack")
@@ -40,12 +42,15 @@ public class SlotDefinition {
   @Column(name = "is_sensitive", nullable = false)
   private Boolean isSensitive;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "validation_rule_json", columnDefinition = "jsonb", nullable = false)
   private String validationRuleJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "default_value_json", columnDefinition = "jsonb")
   private String defaultValueJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
 

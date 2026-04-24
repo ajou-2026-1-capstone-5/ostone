@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "intent_slot_binding", schema = "pack")
@@ -31,6 +33,7 @@ public class IntentSlotBinding {
   @Column(name = "prompt_hint")
   private String promptHint;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "condition_json", columnDefinition = "jsonb", nullable = false)
   private String conditionJson;
 

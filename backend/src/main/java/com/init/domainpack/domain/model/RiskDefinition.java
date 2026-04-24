@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "risk_definition", schema = "pack")
@@ -37,15 +39,19 @@ public class RiskDefinition {
   @Column(name = "risk_level", nullable = false)
   private String riskLevel;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "trigger_condition_json", columnDefinition = "jsonb", nullable = false)
   private String triggerConditionJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "handling_action_json", columnDefinition = "jsonb", nullable = false)
   private String handlingActionJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "evidence_json", columnDefinition = "jsonb", nullable = false)
   private String evidenceJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
 
