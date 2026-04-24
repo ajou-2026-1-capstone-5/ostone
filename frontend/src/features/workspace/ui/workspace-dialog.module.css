@@ -39,10 +39,19 @@
 }
 
 .fieldError {
-  color: #000000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--error-color);
   font-size: 0.84rem;
   line-height: 1.45;
   letter-spacing: -0.1px;
+}
+
+.fieldErrorIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .helperText {

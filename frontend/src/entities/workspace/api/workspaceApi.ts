@@ -7,7 +7,8 @@ import type {
 
 export const workspaceApi = {
   list: () => apiClient.get<WorkspaceResponse[]>("/workspaces"),
-  get: (workspaceId: number) => apiClient.get<WorkspaceResponse>(`/workspaces/${workspaceId}`),
+  get: (workspaceId: number, signal?: AbortSignal) =>
+    apiClient.get<WorkspaceResponse>(`/workspaces/${workspaceId}`, { signal }),
   create: (payload: CreateWorkspaceRequest) =>
     apiClient.post<WorkspaceResponse>("/workspaces", payload),
   update: (workspaceId: number, payload: UpdateWorkspaceRequest) =>

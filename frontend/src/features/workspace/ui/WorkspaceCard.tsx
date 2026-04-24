@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { ArrowRightIcon, PencilIcon, Trash2Icon } from "lucide-react";
 
 import { normalizeWorkspaceMemberRole, type WorkspaceResponse } from "@/entities/workspace";
@@ -24,19 +23,12 @@ export function WorkspaceCard({
 }: WorkspaceCardProps) {
   const handleOpen = () => onOpen(workspace);
 
-  const handleActionClick =
-    (action: (workspace: WorkspaceResponse) => void) =>
-    (event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      action(workspace);
-    };
-
   const normalizedRole = normalizeWorkspaceMemberRole(workspace.myRole);
   const canEdit = normalizedRole !== null && EDITABLE_ROLES.has(normalizedRole);
   const canDelete = normalizedRole === "OWNER";
 
   return (
-    <Card className={styles.workspaceCard} onClick={handleOpen}>
+    <Card className={styles.workspaceCard}>
       <CardHeader className={styles.workspaceCardHeader}>
         <div className={styles.titleBlock}>
           <p className={styles.eyebrow}>WORKSPACE</p>
@@ -48,19 +40,19 @@ export function WorkspaceCard({
       </CardHeader>
       <CardContent className={styles.workspaceCardContent} />
       <CardFooter className={styles.workspaceCardFooter}>
-        <Button variant="ghost" className={styles.openButton} onClick={handleActionClick(onOpen)}>
+        <Button variant="ghost" className={styles.openButton} onClick={handleOpen}>
           Open Workspace
           <ArrowRightIcon className="size-4" />
         </Button>
         <div className={styles.cardActions}>
           {canEdit && (
-            <Button variant="outline" size="sm" className={styles.actionButton} onClick={handleActionClick(onEdit)}>
+            <Button variant="outline" size="sm" className={styles.actionButton} onClick={() => onEdit(workspace)}>
               <PencilIcon className="size-4" />
               수정
             </Button>
           )}
           {canDelete && (
-            <Button variant="outline" size="sm" className={styles.actionButton} onClick={handleActionClick(onDelete)}>
+            <Button variant="outline" size="sm" className={styles.actionButton} onClick={() => onDelete(workspace)}>
               <Trash2Icon className="size-4" />
               삭제
             </Button>

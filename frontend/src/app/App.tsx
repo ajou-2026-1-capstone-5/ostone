@@ -10,6 +10,7 @@ import { NotFoundPage } from '../pages/not-found/ui/NotFoundPage';
 import { IntentDraftReadPage } from '../pages/domain-pack/ui/IntentDraftReadPage';
 import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
 import { WorkspaceLayout } from '../pages/workspace/ui/WorkspaceLayout';
+import { WorkspaceUploadPage } from '../pages/workspace/ui/WorkspaceUploadPage';
 import { WorkspaceWorkflowsPage } from '../pages/workspace/ui/WorkspaceWorkflowsPage';
 import { PrivateRoute } from '../shared/ui/PrivateRoute';
 import { Toaster } from '../shared/ui/sonner';
@@ -28,7 +29,7 @@ export function App() {
         <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
-          <Route path="upload" element={<UploadPage />} />
+          <Route path="upload" element={<WorkspaceUploadPage />} />
         </Route>
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />

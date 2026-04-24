@@ -84,7 +84,7 @@ export function generateWorkspaceKey(name: string): string {
     }
   }
 
-  const fallbackSuffix = `${Date.now().toString(36)}000000`.slice(-6);
+  const fallbackSuffix = Date.now().toString(36).slice(-6);
   const limitedBase =
     base.slice(0, Math.max(3, 100 - fallbackSuffix.length - 1)).replace(/-+$/g, "") || "workspace";
 

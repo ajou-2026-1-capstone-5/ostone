@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { AlertCircleIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -38,6 +39,7 @@ export function CreateWorkspaceDialog({
   const [name, setName] = useState("");
   const [fieldErrors, setFieldErrors] = useState<WorkspaceFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const nameErrorId = fieldErrors.name ? "workspace-name-error" : undefined;
 
   useEffect(() => {
     if (!open) {
@@ -60,14 +62,21 @@ export function CreateWorkspaceDialog({
     setIsSubmitting(true);
 
     try {
-      const workspaceKey = generateWorkspaceKey(name.trim());
+      const trimmedName = name.trim();
+      const workspaceKey = generateWorkspaceKey(trimmedName);
+
       await workspaceApi.create({
         workspaceKey,
-        name: name.trim(),
+        name: trimmedName,
       });
-      await onSuccess();
-      toast.success("워크스페이스를 생성했습니다.");
-      onOpenChange(false);
+      try {
+        await onSuccess();
+      } catch (error) {
+        toast.error(mapWorkspaceActionError(error));
+      } finally {
+        toast.success("워크스페이스를 생성했습니다.");
+        onOpenChange(false);
+      }
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.code === "WORKSPACE_INVALID_NAME") {
@@ -82,6 +91,7 @@ export function CreateWorkspaceDialog({
       }
 
       toast.error(mapWorkspaceActionError(error));
+      return;
     } finally {
       setIsSubmitting(false);
     }
@@ -106,8 +116,14 @@ export function CreateWorkspaceDialog({
               onChange={(event) => setName(event.target.value)}
               placeholder="CS Team Alpha"
               aria-invalid={fieldErrors.name ? "true" : "false"}
+              aria-describedby={nameErrorId}
             />
-            {fieldErrors.name && <p className={styles.fieldError}>{fieldErrors.name}</p>}
+            {fieldErrors.name && (
+              <p id={nameErrorId} className={styles.fieldError} role="alert">
+                <AlertCircleIcon className={styles.fieldErrorIcon} />
+                <span>오류: {fieldErrors.name}</span>
+              </p>
+            )}
           </div>
           <p className={styles.helperText}>
             워크스페이스 키는 이름을 바탕으로 자동 생성됩니다.

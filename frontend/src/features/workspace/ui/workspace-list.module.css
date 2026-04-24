@@ -13,18 +13,15 @@
   justify-content: space-between;
   gap: 0;
   width: 420px;
-  height: 400px;
   min-height: 400px;
-  max-height: 400px;
   padding-block: 0;
-  cursor: pointer;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
   background:
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.045), transparent 34%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0) 32%),
-    #ffffff;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.05);
+    radial-gradient(circle at top right, var(--glass-dark-soft), transparent 34%),
+    linear-gradient(180deg, var(--bg-secondary), rgba(255, 255, 255, 0) 32%),
+    var(--bg-color);
+  box-shadow: var(--shadow-card);
   transition:
     transform 0.22s ease,
     box-shadow 0.22s ease,
@@ -34,8 +31,8 @@
 
 .workspaceCard:hover {
   transform: translateY(-4px);
-  box-shadow: 0 34px 72px rgba(0, 0, 0, 0.09);
-  border-color: rgba(0, 0, 0, 0.16);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--glass-border);
 }
 
 .workspaceCardHeader {
@@ -95,8 +92,8 @@
   min-height: 46px;
   padding: 0 20px;
   border-radius: 999px;
-  background: #000000;
-  color: #ffffff;
+  background: var(--primary-color);
+  color: var(--bg-color);
   font-size: 0.92rem;
   letter-spacing: -0.14px;
   transition:
@@ -105,7 +102,7 @@
 }
 
 .openButton:hover {
-  background: rgba(0, 0, 0, 0.88);
+  background: var(--primary-color-hover);
 }
 
 .workspaceCard:hover .openButton {

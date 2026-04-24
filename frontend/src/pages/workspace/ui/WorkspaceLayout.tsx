@@ -17,18 +17,33 @@ export function WorkspaceLayout() {
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
 
-  const loadWorkspace = useCallback(async (resolvedWorkspaceId: number) => {
+  const loadWorkspace = useCallback(async (resolvedWorkspaceId: number, signal?: AbortSignal) => {
     setIsLoading(true);
     setError("");
 
     try {
-      const workspaceResult = await workspaceApi.get(resolvedWorkspaceId);
+      const workspaceResult = await workspaceApi.get(resolvedWorkspaceId, signal);
+
+      if (signal?.aborted) {
+        return;
+      }
+
       setWorkspace(workspaceResult);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+
+      if (signal?.aborted) {
+        return;
+      }
+
       setError(mapWorkspaceActionError(err));
       setWorkspace(null);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -40,31 +55,12 @@ export function WorkspaceLayout() {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    void (async () => {
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const workspaceResult = await workspaceApi.get(parsedWorkspaceId);
-        if (!cancelled) {
-          setWorkspace(workspaceResult);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(mapWorkspaceActionError(err));
-          setWorkspace(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    })();
+    void loadWorkspace(parsedWorkspaceId, controller.signal);
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [loadWorkspace, parsedWorkspaceId]);
 
