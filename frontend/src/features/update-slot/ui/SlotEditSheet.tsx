@@ -6,6 +6,7 @@ import {
   SheetDescription,
 } from "@/shared/ui/sheet";
 import { Spinner } from "@/shared/ui/spinner";
+import { Button } from "@/shared/ui/button";
 import { useGetSlot } from "../api/useGetSlot";
 import { SlotEditForm } from "./SlotEditForm";
 
@@ -26,7 +27,7 @@ export function SlotEditSheet({
   isOpen,
   onClose,
 }: SlotEditSheetProps) {
-  const { data: slot, isLoading, isError } = useGetSlot(
+  const { data: slot, isLoading, isError, refetch } = useGetSlot(
     workspaceId,
     packId,
     versionId,
@@ -51,9 +52,11 @@ export function SlotEditSheet({
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 px-4 text-sm text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 text-sm text-muted-foreground">
             <span>슬롯 정보를 불러오지 못했습니다.</span>
-            <span>Sheet를 닫고 다시 시도해 주세요.</span>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              다시 시도
+            </Button>
           </div>
         )}
 

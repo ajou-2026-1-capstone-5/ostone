@@ -6,8 +6,8 @@ import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
 import { slotEditSchema, type SlotEditFormValues } from "../model/schema";
 import { useUpdateSlot } from "../api/useUpdateSlot";
-import { JsonTextarea } from "./JsonTextarea";
 import { SlotStatusToggle } from "./SlotStatusToggle";
+import { SlotJsonFields } from "./SlotJsonFields";
 import type { SlotDefinition } from "@/entities/slot";
 
 interface SlotEditFormProps {
@@ -100,56 +100,7 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="validationRuleJson"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>유효성 검사 규칙 (JSON)</FormLabel>
-              <FormControl>
-                <JsonTextarea
-                  {...field}
-                  value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="defaultValueJson"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>기본값 (JSON)</FormLabel>
-              <FormControl>
-                <JsonTextarea
-                  {...field}
-                  value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="metaJson"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>메타 (JSON)</FormLabel>
-              <FormControl>
-                <JsonTextarea
-                  {...field}
-                  value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+        <SlotJsonFields />
 
         <div className="flex flex-row items-center justify-between border-t pt-4">
           <span className="text-sm font-medium leading-none">상태</span>
