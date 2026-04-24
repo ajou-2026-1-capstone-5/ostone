@@ -62,11 +62,11 @@ class ApiClient {
     return this.handleResponse<T>(response);
   }
 
-  async get<T>(path: string, init?: RequestInit): Promise<T> {
+  async get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "GET",
       headers: this.getHeaders(),
-      signal: init?.signal,
+      signal: options?.signal,
     });
 
     return this.handleResponse<T>(response);

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, useParams } from "react-router-dom";
 
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
 import { Button } from "@/shared/ui/button";
@@ -16,62 +16,45 @@ export function WorkspaceLayout() {
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
-
-  const loadWorkspace = useCallback(async (resolvedWorkspaceId: number, signal?: AbortSignal) => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const workspaceResult = await workspaceApi.get(resolvedWorkspaceId, signal);
-
-      if (signal?.aborted) {
-        return;
-      }
-
-      setWorkspace(workspaceResult);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return;
-      }
-
-      if (signal?.aborted) {
-        return;
-      }
-
-      setError(mapWorkspaceActionError(err));
-      setWorkspace(null);
-    } finally {
-      if (!signal?.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     if (parsedWorkspaceId === null) {
-      setWorkspace(null);
-      setIsLoading(false);
-      setError("");
       return;
     }
 
     const controller = new AbortController();
 
-    void loadWorkspace(parsedWorkspaceId, controller.signal);
+    void workspaceApi
+      .get(parsedWorkspaceId, controller.signal)
+      .then((workspaceResult) => {
+        if (!controller.signal.aborted) {
+          setWorkspace(workspaceResult);
+        }
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
+        if (!controller.signal.aborted) {
+          setError(mapWorkspaceActionError(err));
+          setWorkspace(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
 
     return () => {
       controller.abort();
     };
-  }, [loadWorkspace, parsedWorkspaceId]);
+  }, [parsedWorkspaceId, retryNonce]);
 
   if (parsedWorkspaceId === null) {
-    return (
-      <DashboardLayout>
-        <div className={styles.invalidState} role="alert">
-          잘못된 워크스페이스 주소입니다.
-        </div>
-      </DashboardLayout>
-    );
+    return <Navigate to="/workspaces" replace />;
   }
 
   if (isLoading) {
@@ -91,7 +74,14 @@ export function WorkspaceLayout() {
         <div className={styles.statePanel} role="alert">
           <p className={styles.stateTitle}>워크스페이스를 불러오지 못했습니다.</p>
           <p className={styles.stateText}>{error || "워크스페이스를 찾을 수 없습니다."}</p>
-          <Button variant="outline" onClick={() => void loadWorkspace(parsedWorkspaceId)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsLoading(true);
+              setError("");
+              setRetryNonce((value) => value + 1);
+            }}
+          >
             다시 시도
           </Button>
         </div>

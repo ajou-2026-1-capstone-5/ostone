@@ -27,7 +27,6 @@ export interface UpdateWorkspaceRequest {
 }
 
 export interface WorkspaceFieldErrors {
-  workspaceKey?: string;
   name?: string;
   description?: string;
 }
@@ -72,23 +71,16 @@ export function generateWorkspaceKey(name: string): string {
 
   const base = normalizedBase.length >= 3 ? normalizedBase : "workspace";
   const createSuffix = () => Math.random().toString(36).slice(2, 8).padEnd(6, "0").slice(0, 6);
+  const suffix = createSuffix();
+  const limitedBase =
+    base.slice(0, Math.max(3, 100 - suffix.length - 1)).replace(/-+$/g, "") || "workspace";
+  const candidate = `${limitedBase}-${suffix}`;
 
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const suffix = createSuffix();
-    const limitedBase =
-      base.slice(0, Math.max(3, 100 - suffix.length - 1)).replace(/-+$/g, "") || "workspace";
-    const candidate = `${limitedBase}-${suffix}`;
-
-    if (suffix.length === 6 && WORKSPACE_KEY_PATTERN.test(candidate)) {
-      return candidate;
-    }
+  if (!WORKSPACE_KEY_PATTERN.test(candidate)) {
+    throw new Error(`Generated workspace key is invalid: ${candidate}`);
   }
 
-  const fallbackSuffix = Date.now().toString(36).slice(-6);
-  const limitedBase =
-    base.slice(0, Math.max(3, 100 - fallbackSuffix.length - 1)).replace(/-+$/g, "") || "workspace";
-
-  return `${limitedBase}-${fallbackSuffix}`;
+  return candidate;
 }
 
 export function normalizeWorkspaceMemberRole(role: string | null | undefined): WorkspaceMemberRole | null {
