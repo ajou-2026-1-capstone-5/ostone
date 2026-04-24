@@ -15,9 +15,12 @@ export interface GraphNode {
   id: string;
   label: string;
   type: GraphNodeType;
+  policyRef?: string;
+  position?: { x: number; y: number };
 }
 
 export interface GraphEdge {
+  id: string;
   from: string;
   to: string;
   label?: string;
@@ -34,11 +37,17 @@ export interface WorkflowDetail {
   workflowCode: string;
   name: string;
   description: string | null;
-  graph: WorkflowGraph;
+  graphJson: WorkflowGraph;
   initialState: string | null;
   terminalStatesJson: string;
   evidenceJson: string;
   metaJson: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateWorkflowRequest {
+  name: string;
+  description?: string | null;
+  graphJson: WorkflowGraph;
 }
