@@ -16,6 +16,7 @@ export interface GraphNode {
   label: string;
   type: GraphNodeType;
   policyRef?: string;
+  position?: { x: number; y: number };
 }
 
 export interface GraphEdge {

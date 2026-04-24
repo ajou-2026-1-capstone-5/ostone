@@ -44,7 +44,7 @@ export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
     data: n.type === "ACTION"
       ? { label: n.label, policyRef: n.policyRef }
       : { label: n.label },
-    position: computePosition(i, graph.direction),
+    position: n.position ?? computePosition(i, graph.direction),
   }));
 
   const nodeTypeById = new Map(graph.nodes.map((n) => [n.id, n.type]));

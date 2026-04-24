@@ -46,18 +46,11 @@ const defaultEdgeOptions = {
   markerEnd: { type: MarkerType.ArrowClosed },
 };
 
-interface InteractiveGraphEditorCoreProps {
-  initialNodes: Node[];
-  initialEdges: Edge[];
-  /** Do not perform heavy synchronous work here; called only on meaningful structural changes. */
-  onStateChange: (nodes: Node[], edges: Edge[]) => void;
-}
-
 function InteractiveGraphEditorCore({
   initialNodes,
   initialEdges,
   onStateChange,
-}: InteractiveGraphEditorCoreProps) {
+}: InteractiveGraphEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition, getNode } = useReactFlow();
@@ -71,7 +64,7 @@ function InteractiveGraphEditorCore({
       return;
     }
     const signature = JSON.stringify([
-      nodes.map(({ id, position, data }) => ({ id, position, data })),
+      nodes.map(({ id, data }) => ({ id, data })),
       edges.map(({ id, source, target, label, data }) => ({ id, source, target, label, data })),
     ]);
     if (signature === prevSignatureRef.current) return;
@@ -141,6 +134,7 @@ function InteractiveGraphEditorCore({
 export interface InteractiveGraphEditorProps {
   initialNodes: Node[];
   initialEdges: Edge[];
+  /** Do not perform heavy synchronous work here; called only on meaningful structural changes. */
   onStateChange: (nodes: Node[], edges: Edge[]) => void;
 }
 

@@ -48,6 +48,9 @@ export function WorkflowEditForm({
     },
   });
 
+  // Intentionally depend only on workflow.id: form.reset, initialGraphRef, and
+  // graphStateRef must not reinitialize on name/description/graphJson updates for
+  // the same workflow, so in-progress edits are preserved across prop refreshes.
   useEffect(() => {
     const flow = toFlow(workflow.graphJson);
     form.reset({ name: workflow.name, description: workflow.description });

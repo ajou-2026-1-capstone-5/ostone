@@ -30,5 +30,5 @@ export function useEditableField(id: string, field: string, externalValue: strin
     updateField(field, valueRef.current);
   }, [field, updateField]);
 
-  return { value, setValue, onFocus, onChange, onBlur };
+  return { value, valueRef, onFocus, onChange, onBlur };
 }

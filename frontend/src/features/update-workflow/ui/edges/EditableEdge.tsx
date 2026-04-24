@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -31,13 +31,17 @@ export function EditableEdge({
   });
 
   const [localLabel, setLocalLabel] = useState(typeof label === "string" ? label : "");
+  const focusedRef = useRef(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalLabel(typeof label === "string" ? label : "");
+    if (!focusedRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocalLabel(typeof label === "string" ? label : "");
+    }
   }, [label]);
 
   const commitLabel = () => {
+    focusedRef.current = false;
     setEdges((eds) => eds.map((e) => (e.id === id ? { ...e, label: localLabel } : e)));
   };
 
@@ -52,6 +56,7 @@ export function EditableEdge({
           }}
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
+          onFocus={() => { focusedRef.current = true; }}
           onBlur={commitLabel}
           placeholder="전이 조건"
           aria-label="엣지 레이블"
