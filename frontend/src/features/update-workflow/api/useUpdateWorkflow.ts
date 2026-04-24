@@ -23,6 +23,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   WORKFLOW_UNLABELED_BRANCH: "DECISION 노드의 모든 분기에 label이 필요합니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_MISSING: "ACTION 노드의 policyRef 값이 필요합니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS: "ACTION 노드의 policyRef 형식이 유효하지 않습니다.",
+  WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND: "ACTION 노드의 policyRef가 이 버전에 존재하지 않습니다.",
   WORKFLOW_EDGE_ID_MISSING: "그래프 구조가 유효하지 않습니다.",
   WORKFLOW_EDGE_ID_DUPLICATE: "그래프 구조가 유효하지 않습니다.",
 };
