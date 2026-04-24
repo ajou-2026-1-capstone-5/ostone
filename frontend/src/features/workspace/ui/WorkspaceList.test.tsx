@@ -89,7 +89,7 @@ describe("WorkspaceList", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("link", { name: /CS Team Alpha/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Open Workspace/ }));
 
     expect(screen.getByText("CS Team Alpha")).toBeInTheDocument();
     expect(onOpen).toHaveBeenCalledWith(activeWorkspace);

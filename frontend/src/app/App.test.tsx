@@ -84,7 +84,7 @@ describe("App", () => {
       expect(window.location.pathname).toBe("/workspaces/1/workflows");
     });
 
-    expect(await screen.findByText("대표 workflow version을 확인할 수 없습니다")).toBeInTheDocument();
+    expect(await screen.findByText("아직 표시할 대표 워크플로우가 없습니다")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
       expect.objectContaining({ method: "GET" }),
