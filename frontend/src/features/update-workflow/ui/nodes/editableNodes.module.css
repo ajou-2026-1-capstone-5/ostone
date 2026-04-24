@@ -1,5 +1,5 @@
 .base {
-  font-family: figmaSans, "figmaSans Fallback", SF Pro Display, system-ui, helvetica;
+  font-family: figmaSans, "figmaSans Fallback", "SF Pro Display", system-ui, helvetica;
   font-weight: 330;
   font-size: 13px;
   letter-spacing: -0.14px;
@@ -41,7 +41,7 @@
   border: none;
   border-bottom: 1px dashed var(--text-primary);
   color: var(--text-primary);
-  font-family: "figmaMono", monospace;
+  font-family: figmaMono, monospace;
   font-size: 11px;
   letter-spacing: 0.54px;
   text-align: center;

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
@@ -29,14 +29,15 @@ export function WorkflowEditForm({
 }: WorkflowEditFormProps) {
   const { mutate, isPending } = useUpdateWorkflow();
 
-  const { nodes: initialNodes, edges: initialEdges } = toFlow(workflow.graphJson);
+  // compute once on mount — InteractiveGraphEditor owns the live state
+  const initialGraphRef = useRef(toFlow(workflow.graphJson));
+  const { nodes: initialNodes, edges: initialEdges } = initialGraphRef.current;
 
-  const [graphNodes, setGraphNodes] = useState<Node[]>(initialNodes);
-  const [graphEdges, setGraphEdges] = useState<Edge[]>(initialEdges);
+  // single source of truth for graph state; ref avoids re-renders on every node change
+  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
 
   const handleGraphStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
-    setGraphNodes(nodes);
-    setGraphEdges(edges);
+    graphStateRef.current = { nodes, edges };
   }, []);
 
   const form = useForm<WorkflowEditFormValues>({
@@ -52,13 +53,14 @@ export function WorkflowEditForm({
 
   const onSubmit = useCallback(
     (values: WorkflowEditFormValues) => {
-      const graphJson = toWorkflowGraph(graphNodes, graphEdges, direction);
+      const { nodes, edges } = graphStateRef.current;
+      const graphJson = toWorkflowGraph(nodes, edges, direction);
       mutate(
         { wsId, packId, versionId, workflowId, body: { ...values, graphJson } },
         { onSuccess: onClose },
       );
     },
-    [graphNodes, graphEdges, direction, mutate, wsId, packId, versionId, workflowId, onClose],
+    [direction, mutate, wsId, packId, versionId, workflowId, onClose],
   );
 
   return (
@@ -100,7 +102,7 @@ export function WorkflowEditForm({
           <Input value={workflow.workflowCode} readOnly disabled />
         </div>
 
-        <div style={{ height: "500px" }}>
+        <div className="h-[min(70vh,500px)]">
           <InteractiveGraphEditor
             initialNodes={initialNodes}
             initialEdges={initialEdges}

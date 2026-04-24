@@ -6,8 +6,10 @@ export const workflowKeys = {
   lists: () => [...workflowKeys.all, "list"] as const,
   list: (wsId: number, packId: number, versionId: number) =>
     [...workflowKeys.lists(), wsId, packId, versionId] as const,
+  details: (wsId: number, packId: number, versionId: number) =>
+    [...workflowKeys.all, "detail", wsId, packId, versionId] as const,
   detail: (wsId: number, packId: number, versionId: number, workflowId: number) =>
-    [...workflowKeys.all, "detail", wsId, packId, versionId, workflowId] as const,
+    [...workflowKeys.details(wsId, packId, versionId), workflowId] as const,
 };
 
 export function fetchWorkflow(

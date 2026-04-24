@@ -11,10 +11,12 @@ const VALID_NODE_TYPES = new Set<GraphNodeType>([
 ]);
 
 function toNodeType(raw: string | undefined): GraphNodeType {
-  const t = raw?.toUpperCase();
-  return t !== undefined && VALID_NODE_TYPES.has(t as GraphNodeType)
-    ? (t as GraphNodeType)
-    : "ACTION";
+  if (raw === undefined) return "ACTION";
+  const t = raw.toUpperCase();
+  if (VALID_NODE_TYPES.has(t as GraphNodeType)) return t as GraphNodeType;
+  // preserve unknown type instead of coercing to ACTION
+  console.warn(`[graphConverter] unknown node type: "${raw}" — preserved as-is`);
+  return t as GraphNodeType;
 }
 
 const NODE_GAP_X = 200;
@@ -40,7 +42,9 @@ export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = graph.nodes.map((n, i) => ({
     id: n.id,
     type: n.type.toLowerCase(),
-    data: { label: n.label, policyRef: n.policyRef },
+    data: n.type === "ACTION"
+      ? { label: n.label, policyRef: n.policyRef }
+      : { label: n.label },
     position: computePosition(i, graph.direction),
   }));
 

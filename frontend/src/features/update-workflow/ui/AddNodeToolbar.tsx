@@ -12,21 +12,26 @@ const NODE_TYPES: GraphNodeType[] = [
 
 interface AddNodeToolbarProps {
   onAddNode: (type: GraphNodeType) => void;
+  disabledTypes?: GraphNodeType[];
 }
 
-export function AddNodeToolbar({ onAddNode }: AddNodeToolbarProps) {
+export function AddNodeToolbar({ onAddNode, disabledTypes = [] }: AddNodeToolbarProps) {
   return (
     <div className={styles.toolbar}>
-      {NODE_TYPES.map((type) => (
-        <button
-          key={type}
-          type="button"
-          className={styles.addNodeBtn}
-          onClick={() => onAddNode(type)}
-        >
-          + {type}
-        </button>
-      ))}
+      {NODE_TYPES.map((type) => {
+        const isDisabled = disabledTypes.includes(type);
+        return (
+          <button
+            key={type}
+            type="button"
+            className={styles.addNodeBtn}
+            onClick={() => onAddNode(type)}
+            disabled={isDisabled}
+          >
+            + {type}
+          </button>
+        );
+      })}
     </div>
   );
 }

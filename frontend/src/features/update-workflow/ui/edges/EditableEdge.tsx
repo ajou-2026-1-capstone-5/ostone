@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -29,10 +30,10 @@ export function EditableEdge({
     targetPosition,
   });
 
-  const labelValue = typeof label === "string" ? label : "";
+  const [localLabel, setLocalLabel] = useState(typeof label === "string" ? label : "");
 
-  const handleLabelChange = (value: string) => {
-    setEdges((eds) => eds.map((e) => (e.id === id ? { ...e, label: value } : e)));
+  const commitLabel = () => {
+    setEdges((eds) => eds.map((e) => (e.id === id ? { ...e, label: localLabel } : e)));
   };
 
   return (
@@ -44,8 +45,9 @@ export function EditableEdge({
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
           }}
-          value={labelValue}
-          onChange={(e) => handleLabelChange(e.target.value)}
+          value={localLabel}
+          onChange={(e) => setLocalLabel(e.target.value)}
+          onBlur={commitLabel}
           placeholder="label"
           aria-label="엣지 레이블"
         />
