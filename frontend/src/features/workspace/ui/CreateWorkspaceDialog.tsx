@@ -69,14 +69,16 @@ export function CreateWorkspaceDialog({
         workspaceKey,
         name: trimmedName,
       });
+
       try {
         await onSuccess();
-      } catch (error) {
-        toast.error(mapWorkspaceActionError(error));
-      } finally {
-        toast.success("워크스페이스를 생성했습니다.");
-        onOpenChange(false);
+      } catch {
+        toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
+        return;
       }
+
+      toast.success("워크스페이스를 생성했습니다.");
+      onOpenChange(false);
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.code === "WORKSPACE_INVALID_NAME") {
@@ -91,7 +93,6 @@ export function CreateWorkspaceDialog({
       }
 
       toast.error(mapWorkspaceActionError(error));
-      return;
     } finally {
       setIsSubmitting(false);
     }
