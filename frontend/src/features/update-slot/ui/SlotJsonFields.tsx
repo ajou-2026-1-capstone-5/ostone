@@ -1,5 +1,5 @@
 import { useFormContext } from "react-hook-form";
-import { FormField, FormItem, FormLabel, FormControl } from "@/shared/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/shared/ui/form";
 import { JsonTextarea } from "./JsonTextarea";
 import type { SlotEditFormValues } from "../model/schema";
 
@@ -21,6 +21,7 @@ export function SlotJsonFields() {
                 onChange={(e) => field.onChange(e.target.value || null)}
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -38,6 +39,7 @@ export function SlotJsonFields() {
                 onChange={(e) => field.onChange(e.target.value || null)}
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -55,6 +57,7 @@ export function SlotJsonFields() {
                 onChange={(e) => field.onChange(e.target.value || null)}
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />

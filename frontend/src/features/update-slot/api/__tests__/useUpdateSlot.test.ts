@@ -27,7 +27,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { slotApi } from "@/entities/slot";
+import { slotApi, slotKeys } from "@/entities/slot";
 import { toast } from "sonner";
 import { useUpdateSlot } from "../useUpdateSlot";
 import { useUpdateSlotStatus } from "../useUpdateSlotStatus";
@@ -41,6 +41,15 @@ function makeWrapper() {
   });
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children);
+}
+
+function makeWrapperWithClient() {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+  return { wrapper, qc };
 }
 
 const params = { workspaceId: 1, packId: 2, versionId: 3, slotId: 4 };
@@ -112,9 +121,11 @@ describe("useUpdateSlotStatus", () => {
     vi.mocked(toast.error).mockReset();
   });
 
-  it("성공 시 toast.error를 호출하지 않는다", async () => {
+  it("성공 시 toast.error를 호출하지 않고 invalidateQueries를 호출한다", async () => {
     mockedUpdateStatus.mockResolvedValue({ ...stubSlot, status: "INACTIVE" });
-    const { result } = renderHook(() => useUpdateSlotStatus(), { wrapper: makeWrapper() });
+    const { wrapper, qc } = makeWrapperWithClient();
+    const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateSlotStatus(), { wrapper });
 
     act(() => {
       result.current.mutate({ ...params, status: "INACTIVE" });
@@ -122,6 +133,12 @@ describe("useUpdateSlotStatus", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(toast.error).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: slotKeys.detail(params.workspaceId, params.packId, params.versionId, params.slotId),
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: slotKeys.list(params.workspaceId, params.packId, params.versionId),
+    });
   });
 
   it("오류 시 STATUS_FAILED 메시지를 toast.error로 표시한다", async () => {

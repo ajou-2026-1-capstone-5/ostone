@@ -1,11 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useIsMutating } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
 import { slotEditSchema, type SlotEditFormValues } from "../model/schema";
 import { useUpdateSlot } from "../api/useUpdateSlot";
+import { UPDATE_SLOT_STATUS_MUTATION_KEY } from "../api/useUpdateSlotStatus";
 import { SlotStatusToggle } from "./SlotStatusToggle";
 import { SlotJsonFields } from "./SlotJsonFields";
 import type { SlotDefinition } from "@/entities/slot";
@@ -20,6 +22,8 @@ interface SlotEditFormProps {
 
 export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: SlotEditFormProps) {
   const { mutate, isPending } = useUpdateSlot();
+  const isStatusPending = useIsMutating({ mutationKey: UPDATE_SLOT_STATUS_MUTATION_KEY }) > 0;
+  const isAnyPending = isPending || isStatusPending;
 
   const form = useForm<SlotEditFormValues>({
     resolver: zodResolver(slotEditSchema),
@@ -110,14 +114,15 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
             versionId={versionId}
             slotId={slot.id}
             currentStatus={slot.status}
+            disabled={isAnyPending}
           />
         </div>
 
         <div className="flex gap-2 justify-end border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isAnyPending}>
             취소
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isAnyPending}>
             저장
           </Button>
         </div>

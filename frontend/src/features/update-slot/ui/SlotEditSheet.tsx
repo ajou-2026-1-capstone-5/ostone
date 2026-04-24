@@ -27,13 +27,13 @@ export function SlotEditSheet({
   isOpen,
   onClose,
 }: SlotEditSheetProps) {
-  const { data: slot, isLoading, isError, refetch } = useGetSlot(
+  const { data: slot, isLoading, isError, refetch } = useGetSlot({
     workspaceId,
     packId,
     versionId,
     slotId,
-    isOpen,
-  );
+    enabled: isOpen,
+  });
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -60,7 +60,7 @@ export function SlotEditSheet({
           </div>
         )}
 
-        {slot && !isLoading && (
+        {slot && !isLoading && !isError && (
           <SlotEditForm
             slot={slot}
             workspaceId={workspaceId}
