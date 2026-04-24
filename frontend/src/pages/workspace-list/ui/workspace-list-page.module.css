@@ -1,31 +1,98 @@
-.container {
-  max-width: 720px;
+.page {
+  width: 100%;
+  padding: clamp(24px, 4vw, 40px);
+  display: grid;
+  gap: 34px;
+  overflow-y: auto;
 }
 
-.label {
-  margin: 0 0 12px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-label);
-  letter-spacing: 0.6px;
-  line-height: 1;
-  text-transform: uppercase;
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(28px, 4vw, 40px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background:
+    radial-gradient(circle at top left, var(--glass-dark), transparent 40%),
+    linear-gradient(135deg, var(--bg-secondary), rgba(255, 255, 255, 0) 54%),
+    var(--bg-color);
+  box-shadow: var(--shadow-panel);
+}
+
+.heroCopy {
+  max-width: 760px;
+  display: grid;
+  gap: 12px;
+}
+
+.eyebrow {
+  font-family: "Geist Mono", SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.54px;
 }
 
 .title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-heading-lg);
-  font-weight: var(--font-weight-heading);
-  letter-spacing: -0.26px;
-  line-height: 1.1;
+  font-size: clamp(2.3rem, 4vw, 4.1rem);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -1px;
 }
 
 .description {
-  margin: 16px 0 0;
+  max-width: 62ch;
   color: var(--text-secondary);
-  font-size: var(--font-size-body-lg);
-  font-weight: var(--font-weight-body);
-  letter-spacing: -0.14px;
-  line-height: 1.45;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.createButton {
+  min-width: 208px;
+  min-height: 54px;
+  padding-inline: 24px;
+  border-radius: var(--radius-xl);
+  background: var(--primary-color);
+  color: var(--bg-color);
+  font-size: 1rem;
+  font-weight: 540;
+  letter-spacing: -0.18px;
+  box-shadow: var(--shadow-button);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.createButton:hover {
+  background: var(--primary-color-hover);
+  transform: translateY(-1px);
+}
+
+.listSection {
+  display: grid;
+  gap: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+}
+
+.sectionTitle {
+  font-size: 1.68rem;
+  letter-spacing: -0.46px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }

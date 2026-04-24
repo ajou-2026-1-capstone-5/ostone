@@ -1,9 +1,9 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import styles from './dashboard-layout.module.css';
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 
-import { useNavigate } from 'react-router-dom';
-import { getAuthUser, clearAuthSession } from '../../lib/auth';
+import { clearAuthSession, getAuthUser } from "../../lib/auth";
+
+import styles from "./dashboard-layout.module.css";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const user = getAuthUser();
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     `${styles.navItem} ${isActive ? styles.active : ''}`;
@@ -36,9 +36,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <span className={styles.logoHighlight}>Ostone</span> Workflow
         </div>
         <nav className={styles.navMenu}>
+          <NavLink to="/workspaces" className={getNavLinkClass}>Workspaces</NavLink>
           <NavLink to="/upload" className={getNavLinkClass}>Upload Log</NavLink>
           <NavLink to="/consultation" className={getNavLinkClass}>Consultation</NavLink>
-          <span className={`${styles.navItem} ${styles.disabled}`}>Workflows</span>
           <span className={`${styles.navItem} ${styles.disabled}`}>Settings</span>
         </nav>
         <div className={styles.profileArea}>

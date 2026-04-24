@@ -1,8 +1,9 @@
-import React from 'react';
-import { DashboardLayout } from '../../../shared/ui/layout/DashboardLayout';
-import { LogUploadForm } from '../../../features/log-upload/ui/LogUploadForm';
+import React from "react";
 
-import styles from './upload-page.module.css';
+import { LogUploadForm } from "../../../features/log-upload/ui/LogUploadForm";
+import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
+
+import styles from "./upload-page.module.css";
 
 export const UploadPage: React.FC = () => {
   return (

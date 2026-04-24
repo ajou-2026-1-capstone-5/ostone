@@ -1,0 +1,24 @@
+.invalidState,
+.statePanel {
+  display: flex;
+  min-height: 320px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px;
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  text-align: center;
+}
+
+.stateTitle {
+  font-size: 1.1rem;
+  font-weight: 540;
+}
+
+.stateText {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

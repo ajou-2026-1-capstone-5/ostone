@@ -1,0 +1,119 @@
+.dialogContent {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(0, 0, 0, 0.05), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), #ffffff);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+  padding: 30px !important;
+  gap: 20px;
+}
+
+.heroSection {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.media {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.12);
+}
+
+.heroCopy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.title {
+  font-size: 1.65rem;
+  font-weight: 540;
+  letter-spacing: -0.42px;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.warningPanel {
+  display: grid;
+  gap: 0;
+  padding: 16px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02));
+}
+
+.warningPanelText {
+  color: rgba(0, 0, 0, 0.62);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  letter-spacing: -0.14px;
+}
+
+.buttonRow {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cancelButton {
+  min-height: 48px;
+  border-radius: 999px;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: rgba(0, 0, 0, 0.78) !important;
+  font-size: 0.94rem;
+  letter-spacing: -0.14px;
+}
+
+.cancelButton:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.deleteButton {
+  min-height: 48px;
+  border-radius: 999px;
+  background: #000000 !important;
+  color: #ffffff !important;
+  font-size: 0.94rem;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+.deleteButton:hover {
+  background: rgba(0, 0, 0, 0.88) !important;
+}
+
+@media (max-width: 640px) {
+  .dialogContent {
+    padding: 24px !important;
+  }
+
+  .heroSection {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .media {
+    width: 64px;
+    height: 64px;
+  }
+
+  .title {
+    font-size: 1.46rem;
+  }
+
+  .buttonRow {
+    grid-template-columns: 1fr;
+  }
+}

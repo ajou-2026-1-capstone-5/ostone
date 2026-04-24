@@ -1,0 +1,196 @@
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  justify-content: flex-start;
+  gap: 32px;
+  padding: 12px 6px 24px;
+}
+
+.workspaceCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0;
+  width: 100%;
+  max-width: 420px;
+  min-height: 400px;
+  padding-block: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background:
+    radial-gradient(circle at top right, var(--glass-dark), transparent 34%),
+    linear-gradient(180deg, var(--bg-secondary), rgba(255, 255, 255, 0) 32%),
+    var(--bg-color);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  overflow: hidden;
+}
+
+.workspaceCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 34px 72px rgba(0, 0, 0, 0.09);
+  border-color: var(--glass-border);
+}
+
+.workspaceCard .workspaceCardHeader {
+  gap: 24px;
+  padding: 34px 34px 0;
+}
+
+.titleBlock {
+  display: grid;
+  gap: 18px;
+}
+
+.eyebrow {
+  font-family: "Geist Mono", SFMono-Regular, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.42);
+}
+
+.workspaceName {
+  max-width: 13ch;
+  font-size: 1.95rem;
+  line-height: 0.98;
+  letter-spacing: -0.95px;
+  text-wrap: balance;
+}
+
+.workspaceCard .workspaceCardContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 34px;
+}
+
+.workspaceDescription {
+  min-height: 0;
+  max-width: 31ch;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1.02rem;
+  line-height: 1.72;
+  letter-spacing: -0.2px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.workspaceCard .workspaceCardFooter {
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: auto;
+  padding: 20px 34px 30px;
+}
+
+.openButton {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: var(--bg-color);
+  font-size: 0.92rem;
+  letter-spacing: -0.14px;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.openButton:hover {
+  background: var(--primary-color-hover);
+}
+
+.workspaceCard:hover .openButton {
+  transform: translateX(2px);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.actionButton {
+  min-height: 44px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  font-size: 0.9rem;
+  letter-spacing: -0.14px;
+  white-space: nowrap;
+}
+
+.actionButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.statePanel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  padding: 32px;
+  text-align: center;
+}
+
+.stateSpinner {
+  width: 28px;
+  height: 28px;
+}
+
+.stateTitle {
+  font-size: 1.1rem;
+  font-weight: 540;
+  letter-spacing: -0.2px;
+}
+
+.stateText {
+  max-width: 420px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.emptyState {
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--glass-border);
+}
+
+@media (max-width: 768px) {
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .workspaceCard {
+    width: 100%;
+    height: auto;
+    min-height: 360px;
+    max-height: none;
+  }
+
+  .workspaceCardFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cardActions {
+    justify-content: flex-start;
+  }
+}

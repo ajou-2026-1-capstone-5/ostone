@@ -1,0 +1,132 @@
+.statePanel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  background: var(--bg-secondary);
+}
+
+.stateSpinner {
+  width: 28px;
+  height: 28px;
+}
+
+.stateTitle {
+  font-size: 1.1rem;
+  font-weight: 540;
+}
+
+.stateText {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.workflowCard {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+}
+
+.workflowCardHeader {
+  gap: 12px;
+}
+
+.workflowMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.workflowPack,
+.workflowVersion,
+.workflowCode {
+  font-family: "Geist Mono", SFMono-Regular, monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.36px;
+  text-transform: uppercase;
+}
+
+.workflowPack,
+.workflowVersion {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-border);
+}
+
+.workflowTitle {
+  font-size: 1.18rem;
+  letter-spacing: -0.22px;
+}
+
+.workflowCardContent {
+  display: grid;
+  gap: 16px;
+}
+
+.workflowCode {
+  color: var(--text-primary);
+}
+
+.workflowDescription {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.workflowCardFooter {
+  justify-content: flex-start;
+}
+
+.emptyContent {
+  gap: 10px;
+}
+
+.emptyHint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.emptyAction {
+  min-height: 38px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: var(--font-weight-base);
+  padding: 0 14px;
+}
+
+.emptyActionIcon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.72;
+}
+
+.invalidState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+@media (max-width: 768px) {
+  .workflowGrid {
+    grid-template-columns: 1fr;
+  }
+}
