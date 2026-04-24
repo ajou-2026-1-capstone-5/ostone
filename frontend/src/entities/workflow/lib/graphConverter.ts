@@ -1,6 +1,22 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { GraphNode, GraphEdge, GraphNodeType, WorkflowGraph } from "../model/types";
 
+const VALID_NODE_TYPES = new Set<GraphNodeType>([
+  "START",
+  "ACTION",
+  "DECISION",
+  "ANSWER",
+  "HANDOFF",
+  "TERMINAL",
+]);
+
+function toNodeType(raw: string | undefined): GraphNodeType {
+  const t = raw?.toUpperCase();
+  return t !== undefined && VALID_NODE_TYPES.has(t as GraphNodeType)
+    ? (t as GraphNodeType)
+    : "ACTION";
+}
+
 const NODE_GAP_X = 200;
 const NODE_GAP_Y = 120;
 const COLUMNS_FOR_TB = 4;
@@ -44,7 +60,7 @@ export function convertFlowToWorkflowGraph(
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const graphNodes: GraphNode[] = nodes.map((n) => ({
     id: n.id,
-    type: (n.type?.toUpperCase() ?? "ACTION") as GraphNodeType,
+    type: toNodeType(n.type),
     label: typeof n.data?.label === "string" ? n.data.label : "",
     policyRef:
       typeof n.data?.policyRef === "string" ? n.data.policyRef || undefined : undefined,

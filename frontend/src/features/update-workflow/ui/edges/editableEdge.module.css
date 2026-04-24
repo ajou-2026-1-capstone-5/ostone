@@ -1,0 +1,19 @@
+.edgeLabelInput {
+  position: absolute;
+  pointer-events: all;
+  background: var(--bg-color, #fff);
+  border: 1px dashed var(--text-primary, #000);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-primary, #000);
+  text-align: center;
+  width: 80px;
+  outline: none;
+}
+
+.edgeLabelInput:focus {
+  outline: dashed 2px var(--text-primary, #000);
+  outline-offset: 1px;
+}

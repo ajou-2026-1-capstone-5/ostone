@@ -43,7 +43,7 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
           value={policyRef}
           onChange={(e) => handlePolicyRefChange(e.target.value)}
           placeholder="policyRef"
-          aria-label="policyRef"
+          aria-label="정책 참조 코드"
         />
         <Handle type="source" position={Position.Right} />
       </div>

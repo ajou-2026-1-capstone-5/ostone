@@ -8,7 +8,7 @@ import { Button } from "@/shared/ui/button";
 import { workflowEditSchema, type WorkflowEditFormValues } from "../model/schema";
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
-import { toWorkflowGraph } from "./graphToWorkflow";
+import { toWorkflowGraph } from "../lib/graphToWorkflow";
 import type { WorkflowDetail } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow";
 

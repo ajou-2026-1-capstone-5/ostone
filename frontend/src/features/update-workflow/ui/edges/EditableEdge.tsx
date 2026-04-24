@@ -5,6 +5,7 @@ import {
   useReactFlow,
   type EdgeProps,
 } from "@xyflow/react";
+import styles from "./editableEdge.module.css";
 
 export function EditableEdge({
   id,
@@ -39,32 +40,14 @@ export function EditableEdge({
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       <EdgeLabelRenderer>
         <input
-          className="nodrag nopan"
+          className={`nodrag nopan ${styles.edgeLabelInput}`}
           style={{
-            position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            pointerEvents: "all",
-            background: "var(--bg-color, #fff)",
-            border: "1px dashed var(--text-primary, #000)",
-            borderRadius: "4px",
-            padding: "2px 6px",
-            fontSize: "11px",
-            fontFamily: "inherit",
-            color: "var(--text-primary, #000)",
-            textAlign: "center",
-            width: "80px",
-            outline: "none",
           }}
           value={labelValue}
           onChange={(e) => handleLabelChange(e.target.value)}
           placeholder="label"
           aria-label="엣지 레이블"
-          onFocus={(e) => {
-            (e.target as HTMLInputElement).style.outline = "dashed 2px var(--text-primary, #000)";
-          }}
-          onBlur={(e) => {
-            (e.target as HTMLInputElement).style.outline = "none";
-          }}
         />
       </EdgeLabelRenderer>
     </>
