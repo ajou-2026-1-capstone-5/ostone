@@ -3,7 +3,9 @@ package com.init.domainpack.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -13,8 +15,6 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
-import com.init.domainpack.domain.repository.WorkspaceExistencePort;
-import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.Optional;
@@ -30,31 +30,25 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("UpdateSlotUseCase")
 class UpdateSlotUseCaseTest {
 
+  @Mock private DomainPackValidator validator;
   @Mock private SlotDefinitionRepository slotRepository;
   @Mock private DomainPackVersionRepository versionRepository;
-  @Mock private WorkspaceExistencePort workspaceExistencePort;
-  @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
   private UpdateSlotUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new UpdateSlotUseCase(
-            slotRepository, versionRepository, workspaceExistencePort, workspaceMembershipPort);
+    useCase = new UpdateSlotUseCase(validator, slotRepository, versionRepository);
   }
 
   @Test
   @DisplayName("정상 수정: DRAFT 버전의 슬롯 → 200 OK, 수정된 슬롯 반환")
   void should_수정성공_when_DRAFT버전슬롯() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
-
     DomainPackVersion version = draftVersion(10L, 7L);
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
     SlotDefinition slot = slot(99L, 10L);
-    given(slotRepository.findById(99L)).willReturn(Optional.of(slot));
+    given(slotRepository.findByIdOrThrow(99L)).willReturn(slot);
     given(slotRepository.save(any())).willReturn(slot);
 
     UpdateSlotCommand command =
@@ -68,7 +62,9 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
   void should_워크스페이스없음예외_when_워크스페이스없음() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(false);
+    doThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다. id=1"))
+        .when(validator)
+        .validateWorkspaceAccess(anyLong(), anyLong());
 
     assertThatThrownBy(
             () ->
@@ -84,8 +80,9 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("workspace 비멤버 → DomainPackUnauthorizedWorkspaceAccessException")
   void should_권한없음예외_when_비멤버() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
+    doThrow(new DomainPackUnauthorizedWorkspaceAccessException("워크스페이스에 접근 권한이 없습니다."))
+        .when(validator)
+        .validateWorkspaceAccess(anyLong(), anyLong());
 
     assertThatThrownBy(
             () ->
@@ -101,8 +98,6 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("버전 미존재 → NotFoundException")
   void should_버전없음예외_when_버전미존재() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -118,9 +113,6 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("packId 불일치 → NotFoundException")
   void should_버전없음예외_when_packId불일치() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
-
     DomainPackVersion version = draftVersion(10L, 99L); // domainPackId=99, not 7
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
@@ -137,9 +129,6 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("PUBLISHED 버전 → BadRequestException(SLOT_NOT_EDITABLE)")
   void should_SLOT_NOT_EDITABLE예외_when_PUBLISHED버전() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
-
     DomainPackVersion version = publishedVersion(10L, 7L);
     given(versionRepository.findById(10L)).willReturn(Optional.of(version));
 
@@ -157,10 +146,9 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("슬롯 미존재 → NotFoundException")
   void should_슬롯없음예외_when_슬롯미존재() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-    given(slotRepository.findById(99L)).willReturn(Optional.empty());
+    given(slotRepository.findByIdOrThrow(99L))
+        .willThrow(new NotFoundException("NOT_FOUND", "슬롯을 찾을 수 없습니다: 99"));
 
     assertThatThrownBy(
             () ->
@@ -175,12 +163,10 @@ class UpdateSlotUseCaseTest {
   @Test
   @DisplayName("슬롯의 versionId 불일치 → NotFoundException")
   void should_슬롯없음예외_when_versionId불일치() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     SlotDefinition slot = slot(99L, 999L); // 다른 버전에 속한 슬롯
-    given(slotRepository.findById(99L)).willReturn(Optional.of(slot));
+    given(slotRepository.findByIdOrThrow(99L)).willReturn(slot);
 
     assertThatThrownBy(
             () ->

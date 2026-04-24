@@ -45,11 +45,7 @@ public class UpdatePolicyUseCase {
       throw new BadRequestException("POLICY_NOT_EDITABLE", "DRAFT 상태의 버전에서만 정책을 수정할 수 있습니다.");
     }
 
-    PolicyDefinition policy =
-        policyRepository
-            .findById(command.policyId())
-            .orElseThrow(
-                () -> new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: " + command.policyId()));
+    PolicyDefinition policy = policyRepository.findByIdOrThrow(command.policyId());
 
     if (!policy.getDomainPackVersionId().equals(command.versionId())) {
       throw new NotFoundException("NOT_FOUND", "정책을 찾을 수 없습니다: " + command.policyId());

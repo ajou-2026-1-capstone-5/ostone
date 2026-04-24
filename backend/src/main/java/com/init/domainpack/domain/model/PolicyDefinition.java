@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "policy_definition", schema = "pack")
@@ -37,15 +39,19 @@ public class PolicyDefinition {
   @Column(name = "severity")
   private String severity;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "condition_json", columnDefinition = "jsonb", nullable = false)
   private String conditionJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "action_json", columnDefinition = "jsonb", nullable = false)
   private String actionJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "evidence_json", columnDefinition = "jsonb", nullable = false)
   private String evidenceJson;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "meta_json", columnDefinition = "jsonb", nullable = false)
   private String metaJson;
 

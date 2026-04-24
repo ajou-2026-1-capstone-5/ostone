@@ -45,11 +45,7 @@ public class UpdateRiskUseCase {
       throw new BadRequestException("RISK_NOT_EDITABLE", "DRAFT 상태의 버전에서만 위험요소를 수정할 수 있습니다.");
     }
 
-    RiskDefinition risk =
-        riskRepository
-            .findById(command.riskId())
-            .orElseThrow(
-                () -> new NotFoundException("NOT_FOUND", "위험요소를 찾을 수 없습니다: " + command.riskId()));
+    RiskDefinition risk = riskRepository.findByIdOrThrow(command.riskId());
 
     if (!risk.getDomainPackVersionId().equals(command.versionId())) {
       throw new NotFoundException("NOT_FOUND", "위험요소를 찾을 수 없습니다: " + command.riskId());

@@ -8,7 +8,7 @@ public interface RiskDefinitionRepository {
 
   <S extends RiskDefinition> List<S> saveAll(Iterable<S> entities);
 
-  Optional<RiskDefinition> findById(Long id);
+  RiskDefinition findByIdOrThrow(Long id);
 
   Optional<RiskDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 
