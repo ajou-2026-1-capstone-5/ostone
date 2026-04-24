@@ -11,12 +11,11 @@ const VALID_NODE_TYPES = new Set<GraphNodeType>([
 ]);
 
 function toNodeType(raw: string | undefined): GraphNodeType {
-  if (raw === undefined) return "ACTION";
+  if (raw === undefined || raw.trim() === "") return "ACTION";
   const t = raw.toUpperCase();
   if (VALID_NODE_TYPES.has(t as GraphNodeType)) return t as GraphNodeType;
-  // preserve unknown type instead of coercing to ACTION
-  console.warn(`[graphConverter] unknown node type: "${raw}" — preserved as-is`);
-  return t as GraphNodeType;
+  console.warn(`[graphConverter] unknown node type: "${raw}" — falling back to ACTION`);
+  return "ACTION";
 }
 
 const NODE_GAP_X = 200;
@@ -62,13 +61,22 @@ export function convertFlowToWorkflowGraph(
   nodes: Node[],
   edges: Edge[],
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const graphNodes: GraphNode[] = nodes.map((n) => ({
-    id: n.id,
-    type: toNodeType(n.type),
-    label: typeof n.data?.label === "string" ? n.data.label : "",
-    policyRef:
-      typeof n.data?.policyRef === "string" ? n.data.policyRef || undefined : undefined,
-  }));
+  const graphNodes: GraphNode[] = nodes.map((n) => {
+    const type = toNodeType(n.type);
+    const base = {
+      id: n.id,
+      type,
+      label: typeof n.data?.label === "string" ? n.data.label : "",
+    };
+    if (type === "ACTION") {
+      return {
+        ...base,
+        policyRef:
+          typeof n.data?.policyRef === "string" ? n.data.policyRef || undefined : undefined,
+      };
+    }
+    return base;
+  });
 
   const graphEdges: GraphEdge[] = edges.map((e) => ({
     id: e.id,

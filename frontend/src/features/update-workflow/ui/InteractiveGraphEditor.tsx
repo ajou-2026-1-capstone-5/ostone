@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -66,7 +67,7 @@ function InteractiveGraphEditorCore({
 
   const onConnect = useCallback(
     (params: Connection) =>
-      setEdges((eds) => addEdge({ ...params, id: crypto.randomUUID() }, eds)),
+      setEdges((eds) => addEdge({ ...params, id: uuidv4() }, eds)),
     [setEdges],
   );
 
@@ -80,7 +81,7 @@ function InteractiveGraphEditorCore({
         x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
-      const id = crypto.randomUUID();
+      const id = uuidv4();
       const newNode: Node = {
         id,
         type: type.toLowerCase(),
@@ -107,7 +108,7 @@ function InteractiveGraphEditorCore({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          deleteKeyCode="Delete"
+          deleteKeyCode={["Delete", "Backspace"]}
           fitView
         >
           <Background gap={20} size={1} />

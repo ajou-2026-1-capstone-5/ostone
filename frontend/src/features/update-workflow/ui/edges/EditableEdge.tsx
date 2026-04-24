@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -31,6 +31,10 @@ export function EditableEdge({
   });
 
   const [localLabel, setLocalLabel] = useState(typeof label === "string" ? label : "");
+
+  useEffect(() => {
+    setLocalLabel(label ?? "");
+  }, [label]);
 
   const commitLabel = () => {
     setEdges((eds) => eds.map((e) => (e.id === id ? { ...e, label: localLabel } : e)));

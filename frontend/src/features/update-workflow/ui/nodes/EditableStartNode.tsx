@@ -10,7 +10,7 @@ export function EditableStartNode({ id, data }: NodeProps) {
   return (
     <div className={styles.start}>
       <input
-        className={styles.labelInput}
+        className={`nodrag nopan ${styles.labelInput}`}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onBlur={() => updateField("label", label)}

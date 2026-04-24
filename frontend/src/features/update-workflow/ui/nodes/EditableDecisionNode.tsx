@@ -15,7 +15,7 @@ export function EditableDecisionNode({ id, data, selected }: NodeProps) {
         <Handle type="target" position={Position.Left} />
         <div className={styles.decisionInner}>
           <input
-            className={styles.labelInput}
+            className={`nodrag nopan ${styles.labelInput}`}
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             onBlur={() => updateField("label", label)}

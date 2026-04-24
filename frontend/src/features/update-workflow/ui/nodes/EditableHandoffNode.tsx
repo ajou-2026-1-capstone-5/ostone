@@ -14,7 +14,7 @@ export function EditableHandoffNode({ id, data, selected }: NodeProps) {
       <div className={styles.handoff}>
         <Handle type="target" position={Position.Left} />
         <input
-          className={styles.labelInput}
+          className={`nodrag nopan ${styles.labelInput}`}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onBlur={() => updateField("label", label)}

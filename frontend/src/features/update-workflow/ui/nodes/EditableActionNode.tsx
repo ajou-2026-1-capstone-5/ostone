@@ -17,7 +17,7 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
       <div className={styles.action}>
         <Handle type="target" position={Position.Left} />
         <input
-          className={styles.labelInput}
+          className={`nodrag nopan ${styles.labelInput}`}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onBlur={() => updateField("label", label)}
@@ -25,7 +25,7 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
           aria-label="노드 이름"
         />
         <input
-          className={styles.policyInput}
+          className={`nodrag nopan ${styles.policyInput}`}
           value={policyRef}
           onChange={(e) => setPolicyRef(e.target.value)}
           onBlur={() => updateField("policyRef", policyRef)}

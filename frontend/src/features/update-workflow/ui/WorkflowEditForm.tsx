@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
@@ -29,8 +29,8 @@ export function WorkflowEditForm({
 }: WorkflowEditFormProps) {
   const { mutate, isPending } = useUpdateWorkflow();
 
-  // compute once on mount — InteractiveGraphEditor owns the live state
-  const initialGraphRef = useRef(toFlow(workflow.graphJson));
+  const initialFlow = useMemo(() => toFlow(workflow.graphJson), [workflow.graphJson]);
+  const initialGraphRef = useRef(initialFlow);
   const { nodes: initialNodes, edges: initialEdges } = initialGraphRef.current;
 
   // single source of truth for graph state; ref avoids re-renders on every node change
