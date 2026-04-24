@@ -24,23 +24,16 @@ export function toFlow(graph: WorkflowGraph): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = graph.nodes.map((n, i) => ({
     id: n.id,
     type: n.type.toLowerCase(),
-    data: { label: n.label },
+    data: { label: n.label, policyRef: n.policyRef },
     position: computePosition(i, graph.direction),
   }));
 
-  const edgeIdCounts = new Map<string, number>();
-  const edges: Edge[] = graph.edges.map((e) => {
-    const baseId = `${e.from}->${e.to}:${e.label ?? "unlabeled"}`;
-    const count = edgeIdCounts.get(baseId) ?? 0;
-    edgeIdCounts.set(baseId, count + 1);
-
-    return {
-      id: `${baseId}#${count + 1}`,
-      source: e.from,
-      target: e.to,
-      label: e.label,
-    };
-  });
+  const edges: Edge[] = graph.edges.map((e) => ({
+    id: e.id,
+    source: e.from,
+    target: e.to,
+    label: e.label,
+  }));
 
   return { nodes, edges };
 }

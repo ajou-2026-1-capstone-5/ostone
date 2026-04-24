@@ -62,7 +62,7 @@ export function WorkflowDetailPanel({
   };
 
   const detail = state.status === "ready" ? state.data : undefined;
-  const jsonText = useMemo(() => JSON.stringify(detail?.graph, null, 2), [detail?.graph]);
+  const jsonText = useMemo(() => JSON.stringify(detail?.graphJson, null, 2), [detail?.graphJson]);
 
   if (state.status === "idle") {
     return (
@@ -127,7 +127,7 @@ export function WorkflowDetailPanel({
         >
           <ErrorBoundary key={workflowId} fallback={<div className={styles.placeholder}><span>그래프를 표시할 수 없습니다.</span></div>}>
             <Suspense fallback={<div className={styles.skeleton} />}>
-              <GraphRenderer graph={detail.graph} />
+              <GraphRenderer graph={detail.graphJson} />
             </Suspense>
           </ErrorBoundary>
         </div>
