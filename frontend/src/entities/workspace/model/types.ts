@@ -1,8 +1,8 @@
 import { ApiRequestError } from "@/shared/api";
 
 export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
-export type WorkspaceMemberRole = "OWNER" | "ADMIN" | "REVIEWER" | "OPERATOR";
-const WORKSPACE_MEMBER_ROLES = ["OWNER", "ADMIN", "REVIEWER", "OPERATOR"] as const;
+export const WORKSPACE_MEMBER_ROLES = ["OWNER", "ADMIN", "REVIEWER", "OPERATOR"] as const;
+export type WorkspaceMemberRole = typeof WORKSPACE_MEMBER_ROLES[number];
 
 export interface WorkspaceResponse {
   id: number;
@@ -10,7 +10,7 @@ export interface WorkspaceResponse {
   name: string;
   description: string | null;
   status: WorkspaceStatus;
-  myRole: WorkspaceMemberRole;
+  myRole: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,23 +34,32 @@ export interface WorkspaceFieldErrors {
 
 export const WORKSPACE_KEY_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
-export function validateCreateWorkspaceForm(
+function validateWorkspaceForm(
   name: string,
   description: string,
 ): WorkspaceFieldErrors {
   const errors: WorkspaceFieldErrors = {};
+  const trimmedName = name.trim();
+  const trimmedDescription = description.trim();
 
-  if (!name.trim()) {
+  if (!trimmedName) {
     errors.name = "이름을 입력해주세요.";
-  } else if (name.length > 255) {
+  } else if (trimmedName.length > 255) {
     errors.name = "이름은 255자 이하여야 합니다.";
   }
 
-  if (description.length > 2000) {
+  if (trimmedDescription.length > 2000) {
     errors.description = "설명은 2000자 이하여야 합니다.";
   }
 
   return errors;
+}
+
+export function validateCreateWorkspaceForm(
+  name: string,
+  description: string,
+): WorkspaceFieldErrors {
+  return validateWorkspaceForm(name, description);
 }
 
 export function generateWorkspaceKey(name: string): string {
@@ -62,10 +71,24 @@ export function generateWorkspaceKey(name: string): string {
     .replace(/-{2,}/g, "-");
 
   const base = normalizedBase.length >= 3 ? normalizedBase : "workspace";
-  const suffix = Math.random().toString(36).slice(2, 8);
-  const limitedBase = base.slice(0, Math.max(3, 100 - suffix.length - 1)).replace(/-+$/g, "") || "workspace";
+  const createSuffix = () => Math.random().toString(36).slice(2, 8).padEnd(6, "0").slice(0, 6);
 
-  return `${limitedBase}-${suffix}`;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const suffix = createSuffix();
+    const limitedBase =
+      base.slice(0, Math.max(3, 100 - suffix.length - 1)).replace(/-+$/g, "") || "workspace";
+    const candidate = `${limitedBase}-${suffix}`;
+
+    if (suffix.length === 6 && WORKSPACE_KEY_PATTERN.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  const fallbackSuffix = `${Date.now().toString(36)}000000`.slice(-6);
+  const limitedBase =
+    base.slice(0, Math.max(3, 100 - fallbackSuffix.length - 1)).replace(/-+$/g, "") || "workspace";
+
+  return `${limitedBase}-${fallbackSuffix}`;
 }
 
 export function normalizeWorkspaceMemberRole(role: string | null | undefined): WorkspaceMemberRole | null {
@@ -81,19 +104,7 @@ export function validateUpdateWorkspaceForm(
   name: string,
   description: string,
 ): WorkspaceFieldErrors {
-  const errors: WorkspaceFieldErrors = {};
-
-  if (!name.trim()) {
-    errors.name = "이름을 입력해주세요.";
-  } else if (name.length > 255) {
-    errors.name = "이름은 255자 이하여야 합니다.";
-  }
-
-  if (description.length > 2000) {
-    errors.description = "설명은 2000자 이하여야 합니다.";
-  }
-
-  return errors;
+  return validateWorkspaceForm(name, description);
 }
 
 export function mapWorkspaceActionError(error: unknown): string {

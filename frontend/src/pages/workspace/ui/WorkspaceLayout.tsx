@@ -40,7 +40,32 @@ export function WorkspaceLayout() {
       return;
     }
 
-    void loadWorkspace(parsedWorkspaceId);
+    let cancelled = false;
+
+    void (async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const workspaceResult = await workspaceApi.get(parsedWorkspaceId);
+        if (!cancelled) {
+          setWorkspace(workspaceResult);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(mapWorkspaceActionError(err));
+          setWorkspace(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadWorkspace, parsedWorkspaceId]);
 
   if (parsedWorkspaceId === null) {

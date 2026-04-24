@@ -40,9 +40,13 @@ export function ArchiveConfirmDialog({
     setIsSubmitting(true);
     try {
       await workspaceApi.archive(workspace.id);
-      await onSuccess();
       toast.success("워크스페이스를 삭제했습니다.");
       onOpenChange(false);
+      try {
+        await onSuccess();
+      } catch {
+        toast.warning("목록 갱신에 실패했습니다. 화면을 새로고침해 주세요.");
+      }
     } catch (error) {
       toast.error(mapWorkspaceActionError(error));
     } finally {

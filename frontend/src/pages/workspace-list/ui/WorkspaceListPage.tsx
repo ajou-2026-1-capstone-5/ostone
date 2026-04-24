@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
+import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
 import {
   ArchiveConfirmDialog,
   CreateWorkspaceDialog,
@@ -22,22 +22,22 @@ export function WorkspaceListPage() {
   const [editTarget, setEditTarget] = useState<WorkspaceResponse | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<WorkspaceResponse | null>(null);
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
       const data = await workspaceApi.list();
       setWorkspaces(data.filter((workspace) => workspace.status === "ACTIVE"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "서버에 연결할 수 없습니다.");
+      setError(mapWorkspaceActionError(err) || "서버에 연결할 수 없습니다.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchWorkspaces();
-  }, []);
+  }, [fetchWorkspaces]);
 
   const handleOpenWorkspace = (workspace: WorkspaceResponse) => {
     navigate(`/workspaces/${workspace.id}/workflows`);

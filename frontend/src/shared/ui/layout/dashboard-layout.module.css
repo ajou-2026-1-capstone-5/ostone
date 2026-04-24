@@ -28,7 +28,7 @@
 }
 
 .logoHighlight {
-  color: #000000;
+  color: var(--primary-color);
 }
 
 .navMenu {
@@ -53,8 +53,8 @@
 }
 
 .navItem.active {
-  color: #ffffff;
-  background: #000000;
+  color: var(--bg-color);
+  background: var(--primary-color);
 }
 
 .navItem.disabled {

@@ -85,7 +85,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     setProgress(0);
   };
 
-  const completionPath = workspaceId ? `/workspaces/${workspaceId}` : "/workspaces";
+  const completionPath = workspaceId ? `/workspaces/${workspaceId}/workflows` : "/workspaces";
 
   return (
     <div className={styles.container}>

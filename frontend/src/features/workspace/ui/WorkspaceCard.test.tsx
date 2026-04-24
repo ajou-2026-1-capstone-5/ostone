@@ -32,14 +32,13 @@ describe("WorkspaceCard", () => {
   });
 
   it("hides edit and delete actions when role cannot be normalized", () => {
-    const onOpen = vi.fn();
     render(
       <WorkspaceCard
         workspace={{
           ...baseWorkspace,
           myRole: "UNEXPECTED_ROLE" as unknown as WorkspaceResponse["myRole"],
         }}
-        onOpen={onOpen}
+        onOpen={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -47,8 +46,21 @@ describe("WorkspaceCard", () => {
 
     expect(screen.queryByRole("button", { name: /수정/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /삭제/ })).not.toBeInTheDocument();
+  });
+
+  it("invokes onOpen with the workspace when the open button is clicked", () => {
+    const onOpen = vi.fn();
+    render(
+      <WorkspaceCard
+        workspace={baseWorkspace}
+        onOpen={onOpen}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Open Workspace/ }));
+
     expect(onOpen).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 1,

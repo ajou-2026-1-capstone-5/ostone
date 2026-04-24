@@ -7,9 +7,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 32px;
-  border: 1px dashed rgba(0, 0, 0, 0.18);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.015);
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
   text-align: center;
 }
 
@@ -19,6 +19,6 @@
 }
 
 .stateText {
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--text-secondary);
   line-height: 1.6;
 }

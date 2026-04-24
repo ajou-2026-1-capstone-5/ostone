@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 
 import { LogUploadForm } from "../../../features/log-upload/ui/LogUploadForm";
 import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
@@ -9,21 +9,25 @@ import styles from "./upload-page.module.css";
 
 export const UploadPage: React.FC = () => {
   const { workspaceId } = useParams();
-  const parsedWorkspaceId = parseRouteId(workspaceId);
+  const parsedWorkspaceId = workspaceId ? parseRouteId(workspaceId) : null;
 
-  if (parsedWorkspaceId !== null) {
+  if (workspaceId == null) {
     return (
-      <div className={styles.uploadWrapper}>
-        <LogUploadForm workspaceId={parsedWorkspaceId} />
-      </div>
+      <DashboardLayout>
+        <div className={styles.uploadWrapper}>
+          <LogUploadForm />
+        </div>
+      </DashboardLayout>
     );
   }
 
+  if (parsedWorkspaceId === null) {
+    return <Navigate to="/workspaces" replace />;
+  }
+
   return (
-    <DashboardLayout>
-      <div className={styles.uploadWrapper}>
-        <LogUploadForm />
-      </div>
-    </DashboardLayout>
+    <div className={styles.uploadWrapper}>
+      <LogUploadForm workspaceId={parsedWorkspaceId} />
+    </div>
   );
 };

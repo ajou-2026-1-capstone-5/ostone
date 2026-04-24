@@ -57,7 +57,7 @@
 }
 
 .kicker {
-  font-family: "Geist Mono", "SFMono-Regular", monospace;
+  font-family: "Geist Mono", SFMono-Regular, monospace;
   font-size: 0.76rem;
   letter-spacing: 0.54px;
 }

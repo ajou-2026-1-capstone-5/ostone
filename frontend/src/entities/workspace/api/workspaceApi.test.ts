@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { workspaceApi } from "./workspaceApi";
 
 describe("workspaceApi", () => {
@@ -8,6 +8,11 @@ describe("workspaceApi", () => {
     mockFetch.mockReset();
     vi.stubGlobal("fetch", mockFetch);
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    mockFetch.mockReset();
   });
 
   it("lists workspaces from the existing workspace endpoint", async () => {

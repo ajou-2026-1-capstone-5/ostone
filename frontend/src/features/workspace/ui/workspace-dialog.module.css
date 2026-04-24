@@ -1,4 +1,4 @@
-.dialogContent {
+.dialogContent[data-slot="dialog-content"] {
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   background:
@@ -6,7 +6,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
   backdrop-filter: none;
-  padding: 28px !important;
+  padding: 28px;
 }
 
 .form {
@@ -19,23 +19,23 @@
   gap: 10px;
 }
 
-.dialogInput {
+.dialogInput input {
   min-height: 56px;
-  padding: 0 20px !important;
-  background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.14) !important;
+  padding: 0 20px;
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
   font-size: 0.98rem;
   letter-spacing: -0.16px;
 }
 
-.dialogInput::placeholder {
+.dialogInput input::placeholder {
   color: rgba(0, 0, 0, 0.36);
 }
 
-.dialogInput:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 1px #000000, 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+.dialogInput input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px #000000, 0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
 .fieldError {
@@ -63,33 +63,33 @@
   gap: 12px;
 }
 
-.cancelButton {
+.buttonRow .cancelButton {
   min-height: 48px;
   border-radius: 999px;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  background: rgba(0, 0, 0, 0.04) !important;
-  color: rgba(0, 0, 0, 0.78) !important;
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.78);
   font-size: 0.94rem;
   letter-spacing: -0.14px;
 }
 
-.cancelButton:hover {
-  background: rgba(0, 0, 0, 0.08) !important;
+.buttonRow .cancelButton:hover {
+  background: rgba(0, 0, 0, 0.08);
 }
 
-.submitButton {
+.buttonRow .submitButton {
   min-height: 48px;
   border-radius: 999px;
-  background: #000000 !important;
-  color: #ffffff !important;
+  background: #000000;
+  color: #ffffff;
   font-size: 0.94rem;
   font-weight: 540;
   letter-spacing: -0.14px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
 }
 
-.submitButton:hover {
-  background: rgba(0, 0, 0, 0.88) !important;
+.buttonRow .submitButton:hover {
+  background: rgba(0, 0, 0, 0.88);
 }
 
 @media (max-width: 640px) {

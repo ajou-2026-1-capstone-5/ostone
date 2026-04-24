@@ -49,7 +49,7 @@
 }
 
 .eyebrow {
-  font-family: "Geist Mono", "SFMono-Regular", monospace;
+  font-family: "Geist Mono", SFMono-Regular, monospace;
   font-size: 0.72rem;
   letter-spacing: 0.54px;
   text-transform: uppercase;

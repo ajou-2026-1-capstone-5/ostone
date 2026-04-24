@@ -74,6 +74,11 @@ export function CreateWorkspaceDialog({
           setFieldErrors({ name: error.message });
           return;
         }
+
+        if (error.code === "WORKSPACE_KEY_CONFLICT") {
+          setFieldErrors({ name: "다른 워크스페이스 이름으로 다시 시도해주세요." });
+          return;
+        }
       }
 
       toast.error(mapWorkspaceActionError(error));

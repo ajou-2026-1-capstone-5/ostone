@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { ArrowRightIcon, PencilIcon, Trash2Icon } from "lucide-react";
 
 import { normalizeWorkspaceMemberRole, type WorkspaceResponse } from "@/entities/workspace";
@@ -24,13 +24,6 @@ export function WorkspaceCard({
 }: WorkspaceCardProps) {
   const handleOpen = () => onOpen(workspace);
 
-  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleOpen();
-    }
-  };
-
   const handleActionClick =
     (action: (workspace: WorkspaceResponse) => void) =>
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -43,13 +36,7 @@ export function WorkspaceCard({
   const canDelete = normalizedRole === "OWNER";
 
   return (
-    <Card
-      className={styles.workspaceCard}
-      role="link"
-      tabIndex={0}
-      onClick={handleOpen}
-      onKeyDown={handleCardKeyDown}
-    >
+    <Card className={styles.workspaceCard} onClick={handleOpen}>
       <CardHeader className={styles.workspaceCardHeader}>
         <div className={styles.titleBlock}>
           <p className={styles.eyebrow}>WORKSPACE</p>
@@ -61,7 +48,7 @@ export function WorkspaceCard({
       </CardHeader>
       <CardContent className={styles.workspaceCardContent} />
       <CardFooter className={styles.workspaceCardFooter}>
-        <Button variant="ghost" className={styles.openButton}>
+        <Button variant="ghost" className={styles.openButton} onClick={handleActionClick(onOpen)}>
           Open Workspace
           <ArrowRightIcon className="size-4" />
         </Button>
