@@ -10,7 +10,7 @@ import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
 import { toWorkflowGraph } from "./graphToWorkflow";
 import type { WorkflowDetail } from "@/entities/workflow";
-import { toFlow } from "../../workflow-draft-read/ui/graphMapper";
+import { toFlow } from "@/entities/workflow";
 
 interface WorkflowEditFormProps {
   workflow: WorkflowDetail;
@@ -104,7 +104,6 @@ export function WorkflowEditForm({
           <InteractiveGraphEditor
             initialNodes={initialNodes}
             initialEdges={initialEdges}
-            direction={direction}
             onStateChange={handleGraphStateChange}
           />
         </div>

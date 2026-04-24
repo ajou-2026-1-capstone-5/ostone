@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { WorkflowDetail, WorkflowSummary, UpdateWorkflowRequest } from "../model/types";
+import type { WorkflowDetail, UpdateWorkflowRequest } from "../model/types";
 
 export const workflowKeys = {
   all: ["workflows"] as const,
@@ -9,12 +9,6 @@ export const workflowKeys = {
   detail: (wsId: number, packId: number, versionId: number, workflowId: number) =>
     [...workflowKeys.all, "detail", wsId, packId, versionId, workflowId] as const,
 };
-
-export function fetchWorkflowList(wsId: number, packId: number, versionId: number) {
-  return apiClient.get<WorkflowSummary[]>(
-    `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}/workflows`,
-  );
-}
 
 export function fetchWorkflow(
   wsId: number,

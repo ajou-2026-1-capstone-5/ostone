@@ -1,5 +1,5 @@
 .base {
-  font-family: "Pretendard Variable", sans-serif;
+  font-family: figmaSans, "figmaSans Fallback", SF Pro Display, system-ui, helvetica;
   font-weight: 400;
   font-size: 13px;
   letter-spacing: -0.14px;

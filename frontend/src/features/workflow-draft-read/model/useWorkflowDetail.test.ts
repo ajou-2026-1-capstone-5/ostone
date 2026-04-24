@@ -19,7 +19,7 @@ const stubDetail = {
   workflowCode: "W001",
   name: "테스트",
   description: null,
-  graph: { direction: "LR" as const, nodes: [], edges: [] },
+  graphJson: { direction: "LR" as const, nodes: [], edges: [] },
   initialState: null,
   terminalStatesJson: "[]",
   evidenceJson: "{}",

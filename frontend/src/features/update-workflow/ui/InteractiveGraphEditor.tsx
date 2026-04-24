@@ -15,7 +15,7 @@ import {
   type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { GraphNodeType, WorkflowGraph } from "@/entities/workflow";
+import type { GraphNodeType } from "@/entities/workflow";
 import { EditableStartNode } from "./nodes/EditableStartNode";
 import { EditableActionNode } from "./nodes/EditableActionNode";
 import { EditableDecisionNode } from "./nodes/EditableDecisionNode";
@@ -110,7 +110,6 @@ function InteractiveGraphEditorCore({
 export interface InteractiveGraphEditorProps {
   initialNodes: Node[];
   initialEdges: Edge[];
-  direction: WorkflowGraph["direction"];
   onStateChange: (nodes: Node[], edges: Edge[]) => void;
 }
 
