@@ -37,6 +37,10 @@ CLAUDE.md
 
 # 에이전트 상태 공유 폴더 - 커밋 제외
 .handoff/
+
+# 에이전트 테스트용 환경변수 - 커밋 제외
+.env.agents
+
 #JM|
 #QM|# 에이전트 로컬 생성물 - 커밋 제외
 .agent/local/
