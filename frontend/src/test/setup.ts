@@ -6,9 +6,24 @@ import "@testing-library/jest-dom";
 // so jsdom's real implementation is never injected. window === globalThis in
 // this runner context, so window.localStorage is also broken. Access jsdom's
 // real implementation via globalThis.jsdom.window (set by populateGlobal).
-const jsdomWindow = (globalThis as any).jsdom?.window;
+type GlobalWithJsdom = { jsdom?: { window?: { localStorage?: Storage } } };
+const jsdomWindow = (globalThis as unknown as GlobalWithJsdom).jsdom?.window;
+const jsdomLocalStorage = jsdomWindow?.localStorage;
+
+if (
+  !jsdomLocalStorage ||
+  typeof jsdomLocalStorage.clear !== "function" ||
+  typeof jsdomLocalStorage.setItem !== "function" ||
+  typeof jsdomLocalStorage.getItem !== "function"
+) {
+  throw new Error(
+    "jsdom localStorage is unavailable or missing expected methods (clear/setItem/getItem). " +
+      "Ensure globalThis.jsdom.window.localStorage is populated by the test environment.",
+  );
+}
+
 Object.defineProperty(globalThis, "localStorage", {
-  value: jsdomWindow?.localStorage ?? window.localStorage,
+  value: jsdomLocalStorage,
   writable: true,
   configurable: true,
 });
