@@ -10,7 +10,7 @@
 
 .header {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--divider-subtle);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -63,8 +63,8 @@
 }
 
 .item:hover {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.14);
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
 }
 
 .itemActive {
@@ -156,7 +156,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px dashed rgba(0, 0, 0, 0.14);
+  border: 1px dashed var(--hover-border);
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 13px;
