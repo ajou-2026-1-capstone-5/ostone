@@ -8,6 +8,7 @@ export default defineConfig({
     output: {
       mode: "tags-split",
       target: "./src/shared/api/generated/endpoints",
+      httpClient: "fetch",
       schemas: {
         type: "zod",
         path: "./src/shared/api/generated/zod",
