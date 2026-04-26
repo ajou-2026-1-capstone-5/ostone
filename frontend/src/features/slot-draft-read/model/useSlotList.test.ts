@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSlotList } from "./useSlotList";
-import { ApiRequestError } from "../../../shared/api";
+import { ApiRequestError } from "@/shared/api";
 
 vi.mock("@/entities/slot", () => ({
   slotApi: {
