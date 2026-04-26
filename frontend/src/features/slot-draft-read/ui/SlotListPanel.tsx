@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSlotList } from "../model/useSlotList";
 import type { SlotSummary } from "@/entities/slot";
@@ -19,7 +19,8 @@ export function SlotListPanel({
   selectedId,
   onSelect,
 }: SlotListPanelProps) {
-  const state = useSlotList(wsId, packId, versionId);
+  const [retryKey, setRetryKey] = useState(0);
+  const state = useSlotList(wsId, packId, versionId, retryKey);
   const errorMessage = state.status === "error" ? state.message : undefined;
 
   useEffect(() => {
@@ -49,6 +50,13 @@ export function SlotListPanel({
         {state.status === "error" && (
           <div className={styles.emptyState}>
             <span>목록을 불러오지 못했습니다.</span>
+            <button
+              type="button"
+              className={styles.retryButton}
+              onClick={() => setRetryKey((k) => k + 1)}
+            >
+              다시 시도
+            </button>
           </div>
         )}
 

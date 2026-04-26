@@ -8,8 +8,13 @@ export type SlotListState =
   | { status: "error"; code: string; message: string; httpStatus?: number }
   | { status: "ready"; data: SlotSummary[] };
 
-export function useSlotList(wsId: number, packId: number, versionId: number): SlotListState {
-  const requestKey = `${wsId}:${packId}:${versionId}`;
+export function useSlotList(
+  wsId: number,
+  packId: number,
+  versionId: number,
+  retryKey = 0,
+): SlotListState {
+  const requestKey = `${wsId}:${packId}:${versionId}:${retryKey}`;
   const [state, setState] = useState<{
     requestKey: string;
     value: SlotListState;
@@ -43,7 +48,7 @@ export function useSlotList(wsId: number, packId: number, versionId: number): Sl
     return () => {
       cancelled = true;
     };
-  }, [packId, requestKey, versionId, wsId]);
+  }, [packId, requestKey, retryKey, versionId, wsId]);
 
   return state.requestKey === requestKey ? state.value : { status: "loading" };
 }

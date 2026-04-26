@@ -14,8 +14,10 @@ export function useSlotDetail(
   packId: number,
   versionId: number,
   slotId: number | null,
+  retryKey = 0,
 ): SlotDetailState {
-  const requestKey = slotId === null ? null : `${wsId}:${packId}:${versionId}:${slotId}`;
+  const requestKey =
+    slotId === null ? null : `${wsId}:${packId}:${versionId}:${slotId}:${retryKey}`;
   const [state, setState] = useState<{
     requestKey: string | null;
     value: SlotDetailState;
@@ -53,7 +55,7 @@ export function useSlotDetail(
     return () => {
       cancelled = true;
     };
-  }, [slotId, packId, requestKey, versionId, wsId]);
+  }, [slotId, packId, requestKey, retryKey, versionId, wsId]);
 
   if (requestKey === null) {
     return { status: "idle" };

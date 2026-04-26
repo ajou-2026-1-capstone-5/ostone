@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useSlotDetail } from "../model/useSlotDetail";
 import type { SlotDefinition } from "@/entities/slot";
@@ -12,7 +12,8 @@ interface SlotDetailPanelProps {
 }
 
 export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailPanelProps) {
-  const state = useSlotDetail(wsId, packId, versionId, slotId);
+  const [retryKey, setRetryKey] = useState(0);
+  const state = useSlotDetail(wsId, packId, versionId, slotId, retryKey);
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
   const errorMessage = state.status === "error" ? state.message : undefined;
@@ -55,6 +56,13 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <span className={styles.errorCode}>{errorCode}</span>
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => setRetryKey((k) => k + 1)}
+          >
+            다시 시도
+          </button>
         </div>
       </section>
     );
@@ -115,23 +123,23 @@ function DetailHeader({ detail }: { detail: SlotDefinition }) {
 
 function InfoCard({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <section className={styles.card}>
+    <div className={styles.card}>
       <header className={styles.cardHeader}>{label}</header>
       <div className={styles.cardBody}>{value}</div>
-    </section>
+    </div>
   );
 }
 
 function JsonCard({ label, value }: { label: string; value: string | null }) {
   return (
-    <section className={styles.card}>
+    <div className={styles.card}>
       <header className={styles.cardHeader}>{label}</header>
       <div className={styles.cardBody}>
         <pre className={styles.jsonBlock}>
           <code>{value === null ? "—" : formatJsonForDisplay(value)}</code>
         </pre>
       </div>
-    </section>
+    </div>
   );
 }
 

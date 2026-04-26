@@ -10,7 +10,7 @@
 
 .header {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--divider-subtle);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -63,8 +63,13 @@
 }
 
 .item:hover {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.14);
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
+}
+
+.item:focus-visible {
+  outline: 2px dashed var(--text-primary);
+  outline-offset: 2px;
 }
 
 .itemActive {
@@ -141,12 +146,27 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px dashed rgba(0, 0, 0, 0.14);
+  border: 1px dashed var(--hover-border);
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   letter-spacing: -0.14px;
+}
+
+.retryButton {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 14px 7px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 @media (max-width: 1023px) {
