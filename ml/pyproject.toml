@@ -42,9 +42,7 @@ testpaths = ["tests"]
 source = ["src"]
 omit = [
     "src/**/__init__.py",
-    "src/**/conftest.py",
     "tests/**",
-    "airflow/**",
 ]
 branch = true
 
@@ -55,5 +53,4 @@ exclude_lines = [
     "if __name__ == .__main__.:",
 ]
 
-[tool.coverage.xml]
-output = "coverage.xml"
+

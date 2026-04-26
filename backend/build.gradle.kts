@@ -77,12 +77,13 @@ sonar {
         property("sonar.coverage.jacoco.xmlReportPaths",
             "${layout.buildDirectory.get().asFile.path}/reports/jacoco/test/jacocoTestReport.xml")
         property("sonar.exclusions",
-            "**/build/**,**/generated/**,**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java")
+            "**/build/**,**/generated/**")
         property("sonar.coverage.exclusions",
             "**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java,**/infrastructure/**/*")
     }
 }
 
+// org.sonarqube 7.2.x automatically configures this dependency; kept for explicit documentation.
 tasks.named("sonar") {
     dependsOn(tasks.jacocoTestReport)
 }

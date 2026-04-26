@@ -51,8 +51,9 @@ ostone 프로젝트는 코드 품질과 보안 취약점을 지속적으로 추�
 ```bash
 export OLD_ORG="ajou-2026-1-capstone-5"
 export NEW_ORG="new-org-key"
-grep -rl "$OLD_ORG" backend/build.gradle.kts frontend/sonar-project.properties ml/sonar-project.properties README.md \
-  | xargs sed -i "" "s/$OLD_ORG/$NEW_ORG/g"
+grep -l "$OLD_ORG" backend/build.gradle.kts frontend/sonar-project.properties ml/sonar-project.properties README.md \
+  | xargs sed -i.bak "s/$OLD_ORG/$NEW_ORG/g"
+find backend frontend ml README.md -name '*.bak' -delete
 git diff
 ```
 
@@ -82,11 +83,9 @@ SonarCloud Quality Gate를 PR merge 조건으로 강제하려면 GitHub branch p
 
 "Require status checks to pass" 활성화 후 검색창에서 아래 3개를 찾아 추가한다.
 
-- `SonarCloud Code Analysis (backend)` 또는 job 이름 기준 status check
-- `SonarCloud Code Analysis (frontend)`
-- `SonarCloud Code Analysis (ml)`
-
-> **참고**: status check 이름은 GitHub Actions workflow의 job 이름과 SonarCloud 연동 방식에 따라 다를 수 있다. PR을 한 번 생성해서 실제 check 이름을 확인한 뒤 등록하는 것이 가장 정확하다.
+- `SonarCloud Code Analysis — backend-sonar` (workflow job: `backend-sonar`)
+- `SonarCloud Code Analysis — frontend-sonar` (workflow job: `frontend-sonar`)
+- `SonarCloud Code Analysis — ml-sonar` (workflow job: `ml-sonar`)
 
 ### 4.4 설정 저장
 
