@@ -63,14 +63,19 @@ class ApiClient {
   }
 
   async request<T>(path: string, options: RequestInit): Promise<T> {
+    let body = options.body;
+    if (body && typeof body === "object" && !ArrayBuffer.isView(body as any) && !(body instanceof Blob) && !(body instanceof FormData)) {
+      body = JSON.stringify(body);
+    }
+
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...options,
+      body,
       headers: {
         ...this.getHeaders(),
-        ...(options.headers ? Object.fromEntries(new Headers(options.headers)) : {}),
+        ...options.headers,
       },
     });
-
     return this.handleResponse<T>(response);
   }
 
