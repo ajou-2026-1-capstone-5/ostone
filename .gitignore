@@ -13,6 +13,7 @@ __pycache__/
 .venv/
 *.egg-info
 .coverage
+coverage.xml
 
 # IDE
 .idea/
