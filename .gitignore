@@ -44,3 +44,9 @@ CLAUDE.md
 #JM|
 #QM|# 에이전트 로컬 생성물 - 커밋 제외
 .agent/local/
+
+# 에이전트 로컬 부트스트랩 스크립트 및 상태 디렉토리 - 커밋 제외 (개인 로컬 사용)
+agent-local-up.sh
+agent-local-down.sh
+agent-local-status.sh
+.agent-local/
