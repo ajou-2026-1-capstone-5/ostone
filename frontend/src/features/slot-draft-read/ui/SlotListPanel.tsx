@@ -97,7 +97,7 @@ function SlotListRow({
       type="button"
       className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
       onClick={() => onSelect(slot.id)}
-      aria-current={isActive ? "page" : undefined}
+      aria-pressed={isActive}
     >
       <div className={styles.itemInner}>
         <span className={styles.code}>{slot.slotCode}</span>
