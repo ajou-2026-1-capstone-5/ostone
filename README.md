@@ -12,6 +12,12 @@ main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 자동으로 Rend
 
 자세한 배포 가이드: [`.agent/docs/deployment.md`](.agent/docs/deployment.md)
 
+## SonarCloud 정적 분석
+
+[![Quality Gate Backend](https://sonarcloud.io/api/project_badges/measure?project=ajou-2026-1-capstone-5_ostone_backend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ajou-2026-1-capstone-5_ostone_backend)
+[![Quality Gate Frontend](https://sonarcloud.io/api/project_badges/measure?project=ajou-2026-1-capstone-5_ostone_frontend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ajou-2026-1-capstone-5_ostone_frontend)
+[![Quality Gate ML](https://sonarcloud.io/api/project_badges/measure?project=ajou-2026-1-capstone-5_ostone_ml&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ajou-2026-1-capstone-5_ostone_ml)
+
 ## 팀원
 
 - **강희원** (201920717) - kangheewon@ajou.ac.kr - [@kang-heewon](https://github.com/kang-heewon)

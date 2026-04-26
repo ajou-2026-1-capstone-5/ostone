@@ -6,11 +6,14 @@ build/
 # Node
 node_modules/
 dist/
+coverage/
 
 # Python
 __pycache__/
 .venv/
 *.egg-info
+.coverage
+coverage.xml
 
 # IDE
 .idea/
