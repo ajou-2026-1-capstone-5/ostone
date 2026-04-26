@@ -266,7 +266,16 @@ jobs:
     steps:
       - name: Check CI results
         run: |
-          results=("${{ needs.paths-filter.result }}" "${{ needs.spec-check.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}" "${{ needs.ml.result }}")
+          results=(
+            "${{ needs.paths-filter.result }}"
+            "${{ needs.spec-check.result }}"
+            "${{ needs.backend.result }}"
+            "${{ needs.frontend.result }}"
+            "${{ needs.ml.result }}"
+            "${{ needs.backend-sonar.result }}"
+            "${{ needs.frontend-sonar.result }}"
+            "${{ needs.ml-sonar.result }}"
+          )
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "❌ Job failed or cancelled: $r"
