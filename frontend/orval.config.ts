@@ -14,7 +14,7 @@ export default defineConfig({
         path: "./src/shared/api/generated/zod",
       },
       client: "react-query",
-      clean: true,
+      clean: false,
       override: {
         mutator: {
           path: "./src/shared/api/mutator.ts",

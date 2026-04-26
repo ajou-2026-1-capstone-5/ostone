@@ -81,6 +81,7 @@ export * from './updateWorkspaceBody.zod';
 export * from './updateWorkspaceRequest.zod';
 export * from './uploadDatasetBody.zod';
 export * from './uploadRawDatasetBody.zod';
+export * from './uploadRawFileBody.zod';
 export * from './uploadRawFileParams.zod';
 export * from './userInfo.zod';
 export * from './workflowDefinitionDetail.zod';
