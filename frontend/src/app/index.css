@@ -49,6 +49,7 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 50px;
+  --radius-pill-row: 28px;
   --radius-full: 50%;
   --transition-fast: 0.15s ease-in-out;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);

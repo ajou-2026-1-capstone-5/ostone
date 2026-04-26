@@ -78,4 +78,17 @@ describe("useSlotDetail", () => {
       expect(result.current.code).toBe("FORBIDDEN");
     }
   });
+
+  it("retryKey가 변경되면 slotApi.detail이 다시 호출된다", async () => {
+    mockedDetail.mockResolvedValue(stubDetail);
+    const { result, rerender } = renderHook(
+      ({ key }: { key: number }) => useSlotDetail(1, 2, 3, 10, key),
+      { initialProps: { key: 0 } },
+    );
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(mockedDetail).toHaveBeenCalledTimes(1);
+
+    rerender({ key: 1 });
+    await waitFor(() => expect(mockedDetail).toHaveBeenCalledTimes(2));
+  });
 });

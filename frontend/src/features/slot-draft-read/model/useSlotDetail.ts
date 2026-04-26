@@ -55,7 +55,8 @@ export function useSlotDetail(
     return () => {
       cancelled = true;
     };
-  }, [slotId, packId, requestKey, retryKey, versionId, wsId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
   if (requestKey === null) {
     return { status: "idle" };

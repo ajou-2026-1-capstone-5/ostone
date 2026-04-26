@@ -26,7 +26,7 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
         : errorMessage || "상세 정보를 불러오지 못했습니다.";
 
     toast.error(message, {
-      id: `slot-detail-error-${wsId}-${packId}-${versionId}-${slotId ?? "none"}-${errorCode ?? errorHttpStatus ?? "unknown"}`,
+      id: `slot-detail-error-${wsId}-${packId}-${versionId}-${slotId ?? "none"}-${errorCode}`,
     });
   }, [state.status, wsId, packId, versionId, slotId, errorCode, errorHttpStatus, errorMessage]);
 
@@ -155,5 +155,11 @@ function formatJsonForDisplay(raw: string): string {
 function formatDate(raw: string): string {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleString();
+  return date.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
