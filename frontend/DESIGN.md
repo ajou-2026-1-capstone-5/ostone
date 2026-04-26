@@ -146,11 +146,12 @@ What makes Figma distinctive beyond the variable font is its circle-and-pill geo
 - **Color sections as visual breathing**: The gradient hero and product showcases provide chromatic relief between the monochrome interface sections.
 
 ### Border Radius Scale
-- Minimal (2px): Small link elements
-- Subtle (6px): Small containers, dividers
-- Comfortable (8px): Cards, images, dialogs
-- Pill (50px): Tab buttons, CTAs
-- Circle (50%): Icon buttons, circular elements
+- Minimal (2px): Small link elements — `--radius-sm`
+- Subtle (6px): Small containers, dividers — `--radius-md`
+- Comfortable (8px): Cards, images, dialogs — `--radius-lg`
+- Pill-row (28px): List row items, skeleton rows — `--radius-pill-row`
+- Pill (50px): Tab buttons, CTAs — `--radius-xl`
+- Circle (50%): Icon buttons, circular elements — `--radius-full`
 
 ## 6. Depth & Elevation
 
