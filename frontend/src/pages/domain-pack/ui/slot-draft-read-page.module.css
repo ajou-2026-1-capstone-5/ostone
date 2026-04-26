@@ -1,0 +1,143 @@
+.pageWrapper {
+  --app-header-height: 72px;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - var(--app-header-height));
+  overflow: hidden;
+  background: var(--bg-color);
+}
+
+.pageHeader {
+  padding: 20px 28px 18px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-color);
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.breadcrumbSeparator {
+  color: var(--text-muted);
+}
+
+.versionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.versionTitle {
+  font-family: "Pretendard Variable", sans-serif;
+  font-weight: 540;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.26px;
+  color: var(--text-primary);
+}
+
+.versionBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 6px 12px 7px;
+  border-radius: var(--radius-xl);
+  background: var(--glass-dark);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+}
+
+.twoPane {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.invalidParams {
+  padding: 32px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  letter-spacing: -0.14px;
+}
+
+.listSlot,
+.detailSlot {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.listSlot {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+  .pageHeader {
+    padding: 16px 16px 14px;
+    gap: 10px;
+  }
+
+  .versionTitle {
+    font-size: 20px;
+  }
+
+  .twoPane {
+    flex-direction: column;
+  }
+
+  .twoPane.hasSelection .listSlot {
+    display: none;
+  }
+
+  .twoPane:not(.hasSelection) .listSlot {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .twoPane:not(.hasSelection) .detailSlot {
+    display: none;
+  }
+
+  .backButton {
+    display: inline-flex;
+    align-self: flex-start;
+    margin: 12px 16px 0;
+    padding: 8px 16px 9px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--text-primary);
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.54px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 768px) {
+  .backButton {
+    display: none;
+  }
+}

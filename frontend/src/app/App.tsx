@@ -8,6 +8,7 @@ import { PasswordResetCompletePage } from '../pages/password-reset/ui/PasswordRe
 import { ConsultationPage } from '../pages/consultation/ui/ConsultationPage';
 import { NotFoundPage } from '../pages/not-found/ui/NotFoundPage';
 import { IntentDraftReadPage } from '../pages/domain-pack/ui/IntentDraftReadPage';
+import { SlotDraftReadPage } from '../pages/domain-pack/ui/SlotDraftReadPage';
 import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
 import { WorkspaceLayout } from '../pages/workspace/ui/WorkspaceLayout';
 import { WorkspaceUploadPage } from '../pages/workspace/ui/WorkspaceUploadPage';
@@ -34,6 +35,7 @@ export function App() {
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/slots/:slotId?" element={<PrivateRoute><SlotDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="*" element={<NotFoundPage />} />
