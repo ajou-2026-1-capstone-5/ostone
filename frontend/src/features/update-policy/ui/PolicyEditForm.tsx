@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useIsMutating } from "@tanstack/react-query";
@@ -37,24 +37,21 @@ export function PolicyEditForm({
   const isAnyPending = isPending || isStatusPending;
 
   const customSeverity = useMemo(() => {
-    if (!policy.severity) return null;
-    return SEVERITY_OPTIONS.includes(policy.severity as (typeof SEVERITY_OPTIONS)[number])
+    const normalizedSeverity = normalizeSeverity(policy.severity);
+    if (!normalizedSeverity) return null;
+    return SEVERITY_OPTIONS.includes(normalizedSeverity as (typeof SEVERITY_OPTIONS)[number])
       ? null
-      : policy.severity;
+      : normalizedSeverity;
   }, [policy.severity]);
 
   const form = useForm<PolicyEditFormValues>({
     resolver: zodResolver(policyEditSchema),
-    defaultValues: {
-      name: policy.name,
-      description: policy.description,
-      severity: policy.severity,
-      conditionJson: formatJsonInput(policy.conditionJson),
-      actionJson: formatJsonInput(policy.actionJson),
-      evidenceJson: formatJsonInput(policy.evidenceJson),
-      metaJson: formatJsonInput(policy.metaJson),
-    },
+    defaultValues: getPolicyDefaultValues(policy),
   });
+
+  useEffect(() => {
+    form.reset(getPolicyDefaultValues(policy));
+  }, [form, policy]);
 
   const onSubmit = (values: PolicyEditFormValues) => {
     const body: UpdatePolicyRequest = {
@@ -195,4 +192,21 @@ function formatJsonInput(raw: string): string {
   } catch {
     return raw;
   }
+}
+
+function normalizeSeverity(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toUpperCase() : null;
+}
+
+function getPolicyDefaultValues(policy: PolicyDefinition): PolicyEditFormValues {
+  return {
+    name: policy.name,
+    description: policy.description,
+    severity: normalizeSeverity(policy.severity),
+    conditionJson: formatJsonInput(policy.conditionJson),
+    actionJson: formatJsonInput(policy.actionJson),
+    evidenceJson: formatJsonInput(policy.evidenceJson),
+    metaJson: formatJsonInput(policy.metaJson),
+  };
 }

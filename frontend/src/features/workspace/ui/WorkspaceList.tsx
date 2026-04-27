@@ -33,6 +33,8 @@ export function WorkspaceList({
   onEdit,
   onDelete,
 }: WorkspaceListProps) {
+  const isPolicyDraftDisabled = policyDraftLoadingWorkspaceId !== null;
+
   if (isLoading) {
     return (
       <div className={styles.statePanel} aria-live="polite">
@@ -83,6 +85,7 @@ export function WorkspaceList({
           onOpen={onOpen}
           onOpenPolicyDraft={onOpenPolicyDraft}
           isPolicyDraftLoading={policyDraftLoadingWorkspaceId === workspace.id}
+          isPolicyDraftDisabled={isPolicyDraftDisabled}
           onEdit={onEdit}
           onDelete={onDelete}
         />

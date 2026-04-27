@@ -17,8 +17,13 @@ export function usePolicyDetail(
   policyId: number | null,
   retryKey = 0,
 ): PolicyDetailState {
+  const queryKey =
+    policyId === null
+      ? [...policyKeys.all, "detail", workspaceId, packId, versionId, "idle"] as const
+      : policyKeys.detail(workspaceId, packId, versionId, policyId);
+
   const query = useQuery({
-    queryKey: policyKeys.detail(workspaceId, packId, versionId, policyId ?? 0),
+    queryKey,
     queryFn: () => {
       if (policyId === null) {
         throw new Error("policyId is required");
@@ -40,7 +45,7 @@ export function usePolicyDetail(
     return { status: "idle" };
   }
 
-  if (query.isLoading) {
+  if (query.isLoading || (query.isFetching && !query.data)) {
     return { status: "loading" };
   }
 

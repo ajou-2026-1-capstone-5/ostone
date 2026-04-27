@@ -258,15 +258,7 @@
     padding-inline: 0;
   }
 
-  .workspaceCard .workspaceCardHeader {
-    padding: 28px 28px 0;
-  }
-
-  .workspaceCard .workspaceCardContent {
-    padding: 0 28px;
-  }
-
   .workspaceCard .workspaceCardFooter {
-    padding: 18px 28px 26px;
+    padding-bottom: 26px;
   }
 }

@@ -12,6 +12,7 @@ interface WorkspaceCardProps {
   onOpen: (workspace: WorkspaceResponse) => void;
   onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
   isPolicyDraftLoading: boolean;
+  isPolicyDraftDisabled: boolean;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -23,6 +24,7 @@ export function WorkspaceCard({
   onOpen,
   onOpenPolicyDraft,
   isPolicyDraftLoading,
+  isPolicyDraftDisabled,
   onEdit,
   onDelete,
 }: WorkspaceCardProps) {
@@ -55,7 +57,7 @@ export function WorkspaceCard({
             variant="outline"
             className={styles.policyButton}
             onClick={handleOpenPolicyDraft}
-            disabled={isPolicyDraftLoading}
+            disabled={isPolicyDraftLoading || isPolicyDraftDisabled}
             aria-busy={isPolicyDraftLoading}
           >
             {isPolicyDraftLoading ? <Spinner className="size-4" /> : <FilePenLineIcon className="size-4" />}

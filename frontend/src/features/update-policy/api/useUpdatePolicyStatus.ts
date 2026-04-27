@@ -78,12 +78,6 @@ export function useUpdatePolicyStatus() {
               : item,
           ),
       );
-      queryClient.invalidateQueries({
-        queryKey: policyKeys.detail(workspaceId, packId, versionId, policyId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: policyKeys.list(workspaceId, packId, versionId),
-      });
     },
   });
 }

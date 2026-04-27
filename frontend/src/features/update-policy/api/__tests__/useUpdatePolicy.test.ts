@@ -139,7 +139,7 @@ describe("useUpdatePolicyStatus", () => {
     vi.mocked(toast.error).mockReset();
   });
 
-  it("성공 시 detail/list query cache를 갱신하고 invalidate한다", async () => {
+  it("성공 시 detail/list query cache를 갱신한다", async () => {
     mockedUpdateStatus.mockResolvedValue({ ...stubPolicy, status: "INACTIVE" });
     const { wrapper, queryClient } = makeWrapperWithClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -160,12 +160,7 @@ describe("useUpdatePolicyStatus", () => {
         policyKeys.detail(params.workspaceId, params.packId, params.versionId, params.policyId),
       )?.status,
     ).toBe("INACTIVE");
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: policyKeys.detail(params.workspaceId, params.packId, params.versionId, params.policyId),
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: policyKeys.list(params.workspaceId, params.packId, params.versionId),
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
   it("POLICY_CODE_REFERENCED_BY_WORKFLOW 오류 시 rollback 후 전용 메시지를 표시한다", async () => {

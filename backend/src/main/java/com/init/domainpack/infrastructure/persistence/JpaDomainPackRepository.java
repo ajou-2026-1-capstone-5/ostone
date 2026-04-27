@@ -17,6 +17,7 @@ public interface JpaDomainPackRepository
   @Query(
       value =
           """
+          -- Keep status literals aligned with DomainPack.STATUS_ACTIVE and draft lifecycle values.
           SELECT
             p.workspace_id AS "workspaceId",
             p.id AS "packId",

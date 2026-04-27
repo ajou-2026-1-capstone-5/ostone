@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PolicyDetailPanel, PolicyListPanel } from "../../../features/policy-draft-read/ui";
-import { PolicyEditPanel } from "../../../features/update-policy";
-import { parseRouteId } from "../../../shared/lib/parseRouteId";
-import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
+import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
+import { PolicyEditPanel } from "@/features/update-policy";
+import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
 import styles from "./policy-draft-read-page.module.css";
 
 export function PolicyDraftReadPage() {
@@ -16,6 +16,10 @@ export function PolicyDraftReadPage() {
   const vId = parseRouteId(versionId);
   const selectedPolicyId = policyId ? parseRouteId(policyId) : null;
   const hasInvalidPolicyId = policyId !== undefined && selectedPolicyId === null;
+
+  useEffect(() => {
+    setEditingPolicyId(null);
+  }, [selectedPolicyId]);
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (

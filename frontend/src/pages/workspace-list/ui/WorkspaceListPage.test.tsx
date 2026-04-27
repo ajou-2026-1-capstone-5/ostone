@@ -25,6 +25,7 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/entities/domain-pack", () => ({
+  DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND: "DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND",
   domainPackApi: {
     getDraftEntry: vi.fn(),
   },

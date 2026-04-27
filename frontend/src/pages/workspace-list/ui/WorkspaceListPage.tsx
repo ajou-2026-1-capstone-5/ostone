@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { domainPackApi } from "@/entities/domain-pack";
+import { DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND, domainPackApi } from "@/entities/domain-pack";
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
 import { ApiRequestError } from "@/shared/api";
 import {
@@ -61,7 +61,7 @@ export function WorkspaceListPage() {
           `/workspaces/${workspace.id}/domain-packs/${entry.packId}/versions/${entry.versionId}/policies`,
         );
       } catch (err) {
-        if (err instanceof ApiRequestError && err.code === "DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND") {
+        if (err instanceof ApiRequestError && err.code === DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND) {
           toast.error("수정 가능한 정책 초안이 없습니다.");
           return;
         }

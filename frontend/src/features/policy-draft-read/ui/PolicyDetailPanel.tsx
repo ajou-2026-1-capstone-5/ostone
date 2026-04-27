@@ -77,6 +77,7 @@ export function PolicyDetailPanel({
       <section className={styles.panel} aria-label="정책 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
+          <span>{errorHttpStatus === 404 ? "정책을 찾을 수 없습니다." : errorMessage}</span>
           <span className={styles.errorCode}>{errorCode}</span>
           <button
             type="button"

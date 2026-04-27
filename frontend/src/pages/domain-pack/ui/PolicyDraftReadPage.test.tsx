@@ -13,7 +13,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("../../../features/policy-draft-read/ui", () => ({
+vi.mock("@/features/policy-draft-read/ui", () => ({
   PolicyListPanel: ({ onSelect }: { onSelect: (id: number) => void }) => (
     <button type="button" onClick={() => onSelect(4)}>
       select policy
@@ -26,7 +26,7 @@ vi.mock("../../../features/policy-draft-read/ui", () => ({
   ),
 }));
 
-vi.mock("../../../features/update-policy", () => ({
+vi.mock("@/features/update-policy", () => ({
   PolicyEditPanel: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>
       close editor

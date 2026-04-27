@@ -24,6 +24,7 @@ describe("WorkspaceCard", () => {
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
         isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -43,6 +44,7 @@ describe("WorkspaceCard", () => {
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
         isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -60,6 +62,7 @@ describe("WorkspaceCard", () => {
         onOpen={onOpen}
         onOpenPolicyDraft={vi.fn()}
         isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -83,6 +86,7 @@ describe("WorkspaceCard", () => {
         onOpen={vi.fn()}
         onOpenPolicyDraft={onOpenPolicyDraft}
         isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -100,6 +104,7 @@ describe("WorkspaceCard", () => {
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
         isPolicyDraftLoading
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,

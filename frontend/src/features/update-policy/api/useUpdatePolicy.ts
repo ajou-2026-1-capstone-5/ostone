@@ -40,12 +40,6 @@ export function useUpdatePolicy() {
               : item,
           ),
       );
-      queryClient.invalidateQueries({
-        queryKey: policyKeys.detail(workspaceId, packId, versionId, policyId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: policyKeys.list(workspaceId, packId, versionId),
-      });
       toast.success("정책이 수정되었습니다.");
     },
     onError: (error: unknown) => {

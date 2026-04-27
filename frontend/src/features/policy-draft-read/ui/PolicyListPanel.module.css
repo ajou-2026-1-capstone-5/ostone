@@ -191,12 +191,6 @@
   cursor: pointer;
 }
 
-@media (max-width: 959px) {
-  .panel {
-    min-width: 248px;
-  }
-}
-
 @media (max-width: 1599px) {
   .panel {
     width: 100%;
