@@ -180,7 +180,7 @@ describe("apiClient", () => {
       const testData = { name: "test" };
       await apiClient.request<{ id: number }>("/test", {
         method: "POST",
-        body: testData,
+        body: testData as unknown as BodyInit,
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
