@@ -18,7 +18,7 @@ export function PolicyStatusToggle({
   policyId,
   currentStatus,
   disabled,
-}: PolicyStatusToggleProps) {
+}: Readonly<PolicyStatusToggleProps>) {
   const { mutate, isPending } = useUpdatePolicyStatus();
 
   const handleCheckedChange = (checked: boolean) => {

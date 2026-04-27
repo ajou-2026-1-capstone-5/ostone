@@ -15,13 +15,9 @@ export function PolicyDraftReadPage() {
   const pId = parseRouteId(packId);
   const vId = parseRouteId(versionId);
   const selectedPolicyId = policyId ? parseRouteId(policyId) : null;
+  const hasInvalidPolicyId = policyId !== undefined && selectedPolicyId === null;
 
-  if (
-    wsId === null ||
-    pId === null ||
-    vId === null ||
-    (policyId !== undefined && selectedPolicyId === null)
-  ) {
+  if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
       <DashboardLayout>
         <div className={styles.invalidParams} role="alert">
@@ -75,21 +71,21 @@ export function PolicyDraftReadPage() {
             />
           </div>
           <div className={styles.detailSlot}>
-            {editingPolicyId !== null ? (
-              <PolicyEditPanel
-                workspaceId={wsId}
-                packId={pId}
-                versionId={vId}
-                policyId={editingPolicyId}
-                onClose={() => setEditingPolicyId(null)}
-              />
-            ) : (
+            {editingPolicyId === null ? (
               <PolicyDetailPanel
                 workspaceId={wsId}
                 packId={pId}
                 versionId={vId}
                 policyId={selectedPolicyId}
                 onEdit={setEditingPolicyId}
+              />
+            ) : (
+              <PolicyEditPanel
+                workspaceId={wsId}
+                packId={pId}
+                versionId={vId}
+                policyId={editingPolicyId}
+                onClose={() => setEditingPolicyId(null)}
               />
             )}
           </div>

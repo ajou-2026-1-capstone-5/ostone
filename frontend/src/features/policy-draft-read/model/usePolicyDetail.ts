@@ -32,7 +32,7 @@ export function usePolicyDetail(
 
   useEffect(() => {
     if (policyId !== null && retryKey > 0) {
-      void refetch();
+      refetch().catch(() => undefined);
     }
   }, [policyId, refetch, retryKey]);
 

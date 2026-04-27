@@ -2,23 +2,10 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useIsMutating } from "@tanstack/react-query";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/shared/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { policyEditSchema, type PolicyEditFormValues } from "../model/schema";
 import { useUpdatePolicy } from "../api/useUpdatePolicy";
 import { UPDATE_POLICY_STATUS_MUTATION_KEY } from "../api/useUpdatePolicyStatus";
@@ -27,6 +14,8 @@ import { PolicyStatusToggle } from "./PolicyStatusToggle";
 import type { PolicyDefinition, UpdatePolicyRequest } from "@/entities/policy";
 
 const SEVERITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+
+type TextInputName = "name" | "description";
 
 interface PolicyEditFormProps {
   policy: PolicyDefinition;
@@ -42,10 +31,9 @@ export function PolicyEditForm({
   packId,
   versionId,
   onClose,
-}: PolicyEditFormProps) {
+}: Readonly<PolicyEditFormProps>) {
   const { mutate, isPending } = useUpdatePolicy();
-  const isStatusPending =
-    useIsMutating({ mutationKey: UPDATE_POLICY_STATUS_MUTATION_KEY }) > 0;
+  const isStatusPending = useIsMutating({ mutationKey: UPDATE_POLICY_STATUS_MUTATION_KEY }) > 0;
   const isAnyPending = isPending || isStatusPending;
 
   const customSeverity = useMemo(() => {
@@ -79,46 +67,43 @@ export function PolicyEditForm({
       metaJson: values.metaJson,
     };
 
-    mutate(
-      { workspaceId, packId, versionId, policyId: policy.id, body },
-      { onSuccess: onClose },
-    );
+    mutate({ workspaceId, packId, versionId, policyId: policy.id, body }, { onSuccess: onClose });
   };
+
+  const textFields: ReadonlyArray<
+    Readonly<{ name: TextInputName; label: string; required?: boolean }>
+  > = [
+    { name: "name", label: "이름 *", required: true },
+    { name: "description", label: "설명" },
+  ];
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>이름 *</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>설명</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {textFields.map((textField) => (
+          <FormField
+            key={textField.name}
+            control={form.control}
+            name={textField.name}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{textField.label}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(event) =>
+                      field.onChange(
+                        textField.required ? event.target.value : event.target.value || null,
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
 
         <FormField
           control={form.control}
@@ -146,7 +131,9 @@ export function PolicyEditForm({
                       {severity}
                     </SelectItem>
                   ))}
-                  {customSeverity && <SelectItem value={customSeverity}>{customSeverity}</SelectItem>}
+                  {customSeverity && (
+                    <SelectItem value={customSeverity}>{customSeverity}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -154,15 +141,8 @@ export function PolicyEditForm({
           )}
         />
 
-        <div className="grid gap-2">
-          <span className="text-sm font-medium leading-none">정책 코드</span>
-          <Input value={policy.policyCode} readOnly disabled />
-        </div>
-
-        <div className="grid gap-2">
-          <span className="text-sm font-medium leading-none">버전 ID</span>
-          <Input value={policy.domainPackVersionId} readOnly disabled />
-        </div>
+        <ReadonlyPolicyValue label="정책 코드" value={policy.policyCode} />
+        <ReadonlyPolicyValue label="버전 ID" value={policy.domainPackVersionId} />
 
         <PolicyJsonFields />
 
@@ -188,6 +168,18 @@ export function PolicyEditForm({
         </div>
       </form>
     </Form>
+  );
+}
+
+function ReadonlyPolicyValue({
+  label,
+  value,
+}: Readonly<{ label: string; value: string | number }>) {
+  return (
+    <div className="grid gap-2">
+      <span className="text-sm font-medium leading-none">{label}</span>
+      <Input value={value} readOnly disabled />
+    </div>
   );
 }
 

@@ -5,6 +5,11 @@ import { usePolicyDetail } from "../model/usePolicyDetail";
 import type { PolicyDefinition } from "@/entities/policy";
 import styles from "./PolicyDetailPanel.module.css";
 
+type PolicyJsonField = Readonly<{
+  label: string;
+  value: string;
+}>;
+
 interface PolicyDetailPanelProps {
   workspaceId: number;
   packId: number;
@@ -19,7 +24,7 @@ export function PolicyDetailPanel({
   versionId,
   policyId,
   onEdit,
-}: PolicyDetailPanelProps) {
+}: Readonly<PolicyDetailPanelProps>) {
   const [retryKey, setRetryKey] = useState(0);
   const state = usePolicyDetail(workspaceId, packId, versionId, policyId, retryKey);
   const errorCode = state.status === "error" ? state.code : undefined;
@@ -85,6 +90,13 @@ export function PolicyDetailPanel({
     );
   }
 
+  const jsonFields: PolicyJsonField[] = [
+    { label: "Condition", value: state.data.conditionJson },
+    { label: "Action", value: state.data.actionJson },
+    { label: "Evidence", value: state.data.evidenceJson },
+    { label: "Meta", value: state.data.metaJson },
+  ];
+
   return (
     <section className={styles.panel} aria-label="정책 상세">
       <DetailHeader detail={state.data} onEdit={() => onEdit(state.data.id)} />
@@ -123,10 +135,9 @@ export function PolicyDetailPanel({
             value={<span className={styles.value}>{formatDate(state.data.updatedAt)}</span>}
           />
         </div>
-        <JsonCard label="Condition" value={state.data.conditionJson} />
-        <JsonCard label="Action" value={state.data.actionJson} />
-        <JsonCard label="Evidence" value={state.data.evidenceJson} />
-        <JsonCard label="Meta" value={state.data.metaJson} />
+        {jsonFields.map((field) => (
+          <JsonCard key={field.label} label={field.label} value={field.value} />
+        ))}
       </div>
     </section>
   );
@@ -135,10 +146,10 @@ export function PolicyDetailPanel({
 function DetailHeader({
   detail,
   onEdit,
-}: {
+}: Readonly<{
   detail: PolicyDefinition;
   onEdit: () => void;
-}) {
+}>) {
   return (
     <header className={styles.header}>
       <div className={styles.headerText}>
@@ -160,22 +171,26 @@ function DetailHeader({
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: ReactNode }) {
+function InfoCard({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
   return (
-    <section className={styles.card}>
-      <header className={styles.cardHeader}>{label}</header>
+    <section className={styles.card} aria-labelledby={`policy-info-${label}`}>
+      <header id={`policy-info-${label}`} className={styles.cardHeader}>
+        {label}
+      </header>
       <div className={styles.cardBody}>{value}</div>
     </section>
   );
 }
 
-function JsonCard({ label, value }: { label: string; value: string }) {
+function JsonCard({ label, value }: Readonly<PolicyJsonField>) {
+  const formattedValue = formatJsonForDisplay(value);
+
   return (
-    <section className={styles.card}>
+    <section className={styles.card} data-json-field={label.toLowerCase()}>
       <header className={styles.cardHeader}>{label}</header>
       <div className={styles.cardBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay(value)}</code>
+          <code>{formattedValue}</code>
         </pre>
       </div>
     </section>

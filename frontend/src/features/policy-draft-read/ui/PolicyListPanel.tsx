@@ -18,7 +18,7 @@ export function PolicyListPanel({
   versionId,
   selectedId,
   onSelect,
-}: PolicyListPanelProps) {
+}: Readonly<PolicyListPanelProps>) {
   const [retryKey, setRetryKey] = useState(0);
   const state = usePolicyList(workspaceId, packId, versionId, retryKey);
   const errorMessage = state.status === "error" ? state.message : undefined;
@@ -39,47 +39,68 @@ export function PolicyListPanel({
       </header>
 
       <div className={styles.scroll}>
-        {state.status === "loading" && (
-          <div className={styles.skeletonGroup}>
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-          </div>
-        )}
-
-        {state.status === "error" && (
-          <div className={styles.emptyState}>
-            <span>정책 목록을 불러오지 못했습니다.</span>
-            <button
-              type="button"
-              className={styles.retryButton}
-              onClick={() => setRetryKey((key) => key + 1)}
-            >
-              다시 시도
-            </button>
-          </div>
-        )}
-
-        {state.status === "ready" && state.data.length === 0 && (
-          <div className={styles.emptyState}>
-            <span>등록된 정책 초안이 없습니다.</span>
-          </div>
-        )}
-
-        {state.status === "ready" && state.data.length > 0 && (
-          <div className={styles.listGroup}>
-            {state.data.map((policy) => (
-              <PolicyListRow
-                key={policy.id}
-                policy={policy}
-                isActive={policy.id === selectedId}
-                onSelect={onSelect}
-              />
-            ))}
-          </div>
-        )}
+        <PolicyListContent
+          state={state}
+          selectedId={selectedId}
+          onRetry={() => setRetryKey((key) => key + 1)}
+          onSelect={onSelect}
+        />
       </div>
     </aside>
+  );
+}
+
+function PolicyListContent({
+  state,
+  selectedId,
+  onRetry,
+  onSelect,
+}: Readonly<{
+  state: ReturnType<typeof usePolicyList>;
+  selectedId: number | null;
+  onRetry: () => void;
+  onSelect: (id: number) => void;
+}>) {
+  if (state.status === "loading") {
+    return (
+      <div className={styles.skeletonGroup}>
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className={styles.skeletonRow} />
+        ))}
+      </div>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className={styles.emptyState}>
+        <span>정책 목록을 불러오지 못했습니다.</span>
+        <button type="button" className={styles.retryButton} onClick={onRetry}>
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  if (state.data.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <span>등록된 정책 초안이 없습니다.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.listGroup}>
+      {state.data.map((policy) => (
+        <PolicyListRow
+          key={policy.id}
+          policy={policy}
+          isActive={policy.id === selectedId}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -87,11 +108,11 @@ function PolicyListRow({
   policy,
   isActive,
   onSelect,
-}: {
+}: Readonly<{
   policy: PolicySummary;
   isActive: boolean;
   onSelect: (id: number) => void;
-}) {
+}>) {
   return (
     <button
       type="button"

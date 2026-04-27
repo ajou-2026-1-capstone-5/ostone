@@ -1,10 +1,4 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/shared/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/shared/ui/sheet";
 import { Spinner } from "@/shared/ui/spinner";
 import { Button } from "@/shared/ui/button";
 import { useGetPolicy } from "../api/useGetPolicy";
@@ -27,8 +21,13 @@ export function PolicyEditSheet({
   policyId,
   isOpen,
   onClose,
-}: PolicyEditSheetProps) {
-  const { data: policy, isLoading, isError, refetch } = useGetPolicy({
+}: Readonly<PolicyEditSheetProps>) {
+  const {
+    data: policy,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPolicy({
     workspaceId,
     packId,
     versionId,
@@ -45,9 +44,7 @@ export function PolicyEditSheet({
     >
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader className="px-4 pt-4">
-          <SheetTitle>
-            {policy ? `${policy.policyCode} · ${policy.name}` : "정책 수정"}
-          </SheetTitle>
+          <SheetTitle>{policy ? `${policy.policyCode} · ${policy.name}` : "정책 수정"}</SheetTitle>
           <SheetDescription>정책 필드와 상태를 수정합니다.</SheetDescription>
         </SheetHeader>
 

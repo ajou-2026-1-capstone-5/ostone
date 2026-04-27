@@ -24,7 +24,7 @@ export function usePolicyList(
 
   useEffect(() => {
     if (retryKey > 0) {
-      void refetch();
+      refetch().catch(() => undefined);
     }
   }, [refetch, retryKey]);
 

@@ -58,9 +58,9 @@ class GetDomainPackDraftEntryUseCaseTest {
   void shouldThrowNotFoundWhenDraftEntryMissing() {
     given(domainPackRepository.findLatestDraftEntryByWorkspaceId(WORKSPACE_ID))
         .willReturn(Optional.empty());
+    GetDomainPackDraftEntryQuery query = new GetDomainPackDraftEntryQuery(WORKSPACE_ID, USER_ID);
 
-    assertThatThrownBy(
-            () -> useCase.execute(new GetDomainPackDraftEntryQuery(WORKSPACE_ID, USER_ID)))
+    assertThatThrownBy(() -> useCase.execute(query))
         .isInstanceOf(DomainPackDraftEntryNotFoundException.class);
   }
 
@@ -70,9 +70,9 @@ class GetDomainPackDraftEntryUseCaseTest {
     willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다."))
         .given(validator)
         .validateWorkspaceAccess(WORKSPACE_ID, USER_ID);
+    GetDomainPackDraftEntryQuery query = new GetDomainPackDraftEntryQuery(WORKSPACE_ID, USER_ID);
 
-    assertThatThrownBy(
-            () -> useCase.execute(new GetDomainPackDraftEntryQuery(WORKSPACE_ID, USER_ID)))
+    assertThatThrownBy(() -> useCase.execute(query))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
     verifyNoInteractions(domainPackRepository);
   }

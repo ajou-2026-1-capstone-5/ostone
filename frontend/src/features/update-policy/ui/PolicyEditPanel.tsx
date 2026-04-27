@@ -22,8 +22,13 @@ export function PolicyEditPanel({
   versionId,
   policyId,
   onClose,
-}: PolicyEditPanelProps) {
-  const { data: policy, isLoading, isError, refetch } = useGetPolicy({
+}: Readonly<PolicyEditPanelProps>) {
+  const {
+    data: policy,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPolicy({
     workspaceId,
     packId,
     versionId,
@@ -41,7 +46,12 @@ export function PolicyEditPanel({
           </h2>
           <p className={styles.description}>정책 필드와 상태를 수정합니다.</p>
         </div>
-        <button type="button" className={styles.closeButton} onClick={onClose} aria-label="수정 닫기">
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label="수정 닫기"
+        >
           <XIcon aria-hidden="true" />
           <span>닫기</span>
         </button>
