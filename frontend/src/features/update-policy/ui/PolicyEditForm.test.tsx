@@ -67,9 +67,9 @@ function renderForm(onClose = vi.fn()) {
 describe("PolicyEditForm", () => {
   beforeAll(() => {
     globalThis.ResizeObserver = class ResizeObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
     };
   });
 
