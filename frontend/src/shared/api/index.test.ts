@@ -170,9 +170,10 @@ describe("apiClient", () => {
         json: async () => mockResponse,
       });
 
+      const testData = { name: "test" };
       await apiClient.request<{ id: number }>("/test", {
         method: "POST",
-        body: { name: "test" },
+        body: JSON.stringify(testData),
       });
 
       expect(mockFetch).toHaveBeenCalledWith(

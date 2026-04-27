@@ -1,9 +1,6 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vite-plus/test";
-import { customFetch } from "./mutator";
+import { describe, expect, it, vi, afterEach } from "vite-plus/test";
 import { apiClient } from "./index";
-
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+import { customFetch } from "./mutator";
 
 vi.mock("./index", () => ({
   apiClient: {
@@ -12,113 +9,72 @@ vi.mock("./index", () => ({
 }));
 
 describe("customFetch", () => {
-  let originalGetItem: typeof Storage.prototype.getItem;
-
-  beforeEach(() => {
-    mockFetch.mockClear();
-    originalGetItem = Storage.prototype.getItem;
-    Storage.prototype.getItem = vi.fn(() => "mock-token");
-  });
-
   afterEach(() => {
-    Storage.prototype.getItem = originalGetItem;
     vi.restoreAllMocks();
   });
 
-  it("GET 메서드 시 apiClient.request를 호출한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce({ data: "test" });
+  it("apiClient.request에 URL과 options를 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({ data: "hello" });
 
     const result = await customFetch<{ data: string }>("/test", {
       method: "GET",
     });
 
-    expect(mockRequest).toHaveBeenCalledWith(
+    expect(apiClient.request).toHaveBeenCalledWith(
       "/test",
-      expect.objectContaining({
-        method: "GET",
-      }),
+      { method: "GET" },
     );
-    expect(result).toEqual({ data: "test" });
+    expect(result).toEqual({ data: "hello" });
   });
 
-  it("POST 메서드 시 apiClient.request를 호출한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce({ id: 1 });
+  it("POST 요청을 apiClient.request에 전달한다", async () => {
+    const bodyData = { name: "test" };
+    vi.mocked(apiClient.request).mockResolvedValueOnce({ id: 1 });
 
-    const result = await customFetch<{ id: number }>("/test", {
+    await customFetch("/items", {
       method: "POST",
-      body: JSON.stringify({ name: "test" }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bodyData),
     });
 
-    expect(mockRequest).toHaveBeenCalledWith(
-      "/test",
-      expect.objectContaining({
-        method: "POST",
-      }),
-    );
-    expect(result).toEqual({ id: 1 });
+    expect(apiClient.request).toHaveBeenCalledWith("/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bodyData),
+    });
   });
 
-  it("PATCH 메서드 시 apiClient.request를 호출한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce({ id: 1, name: "updated" });
+  it("PATCH 요청을 apiClient.request에 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
 
-    const result = await customFetch<{ id: number; name: string }>("/test/1", {
+    await customFetch("/items/1", {
       method: "PATCH",
-      body: JSON.stringify({ name: "updated" }),
+      body: JSON.stringify({ field: "updated" }),
     });
 
-    expect(mockRequest).toHaveBeenCalledWith(
-      "/test/1",
-      expect.objectContaining({
-        method: "PATCH",
-      }),
-    );
-    expect(result).toEqual({ id: 1, name: "updated" });
+    expect(apiClient.request).toHaveBeenCalledWith("/items/1", {
+      method: "PATCH",
+      body: JSON.stringify({ field: "updated" }),
+    });
   });
 
-  it("DELETE 메서드 시 apiClient.request를 호출한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce(undefined);
+  it("DELETE 요청을 apiClient.request에 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce(undefined);
 
-    await customFetch<void>("/test/1", {
+    await customFetch("/test", { method: "DELETE" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/test", {
       method: "DELETE",
     });
-
-    expect(mockRequest).toHaveBeenCalledWith(
-      "/test/1",
-      expect.objectContaining({
-        method: "DELETE",
-      }),
-    );
   });
 
-  it("URL에 / prefix가 없으면 추가한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce({ data: "test" });
+  it("URL에 / 접두사가 없으면 자동으로 추가한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
 
-    await customFetch<{ data: string }>("test", {
+    await customFetch("items", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/items", {
       method: "GET",
     });
-
-    expect(mockRequest).toHaveBeenCalledWith(
-      "/test",
-      expect.anything(),
-    );
-  });
-
-  it("URL에 / prefix가 있으면 그대로 전달한다", async () => {
-    const mockRequest = apiClient.request as unknown as vi.Mock;
-    mockRequest.mockResolvedValueOnce({ data: "test" });
-
-    await customFetch<{ data: string }>("/test", {
-      method: "GET",
-    });
-
-    expect(mockRequest).toHaveBeenCalledWith(
-      "/test",
-      expect.anything(),
-    );
   });
 });
