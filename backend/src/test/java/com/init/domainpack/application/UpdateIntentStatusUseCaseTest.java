@@ -64,24 +64,6 @@ class UpdateIntentStatusUseCaseTest {
   }
 
   @Test
-  @DisplayName("정상 전환: ACTIVE → PUBLISHED")
-  void should_PUBLISHED전환성공_when_ACTIVE인텐트() {
-    given(workspaceExistencePort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-
-    IntentDefinition intent = intent(99L, 10L);
-    given(intentRepository.findById(99L)).willReturn(Optional.of(intent));
-    given(intentRepository.save(any())).willReturn(intent);
-
-    UpdateIntentStatusCommand command =
-        new UpdateIntentStatusCommand(1L, 7L, 10L, 99L, 5L, IntentDefinition.STATUS_PUBLISHED);
-    IntentDefinitionStatusResponse result = useCase.execute(command);
-
-    assertThat(result.status()).isEqualTo(IntentDefinition.STATUS_PUBLISHED);
-  }
-
-  @Test
   @DisplayName("허용되지 않는 status 값 → BadRequestException(VALIDATION_ERROR)")
   void should_VALIDATION_ERROR예외_when_잘못된status() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);

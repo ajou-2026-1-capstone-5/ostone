@@ -103,7 +103,7 @@ public class IntentDefinition {
     entity.name = name;
     entity.description = description;
     entity.taxonomyLevel = taxonomyLevel != null ? taxonomyLevel : 1;
-    entity.status = "ACTIVE";
+    entity.status = STATUS_DRAFT;
     entity.sourceClusterRef = sourceClusterRef != null ? sourceClusterRef : "{}";
     entity.entryConditionJson = entryConditionJson != null ? entryConditionJson : "{}";
     entity.evidenceJson = evidenceJson != null ? evidenceJson : "[]";
@@ -152,11 +152,11 @@ public class IntentDefinition {
 
   public void changeStatus(String newStatus) {
     if (!STATUS_PUBLISHED.equals(newStatus) && !STATUS_REJECTED.equals(newStatus)) {
-      throw new IllegalArgumentException("허용되지 않는 status 값입니다: " + newStatus);
+      throw new IllegalArgumentException(
+          "허용되지 않은 상태 값입니다: " + newStatus + ". 허용 값: PUBLISHED, REJECTED");
     }
-    if (!STATUS_DRAFT.equals(this.status) && !STATUS_ACTIVE.equals(this.status)) {
-      throw new IllegalStateException(
-          "DRAFT 또는 ACTIVE 상태에서만 status를 변경할 수 있습니다. 현재: " + this.status);
+    if (!STATUS_DRAFT.equals(this.status)) {
+      throw new IllegalStateException("Intent 정의는 DRAFT 상태에서만 변경할 수 있습니다. 현재: " + this.status);
     }
     this.status = newStatus;
   }

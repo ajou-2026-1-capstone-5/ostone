@@ -63,7 +63,7 @@ public class UpdateIntentStatusUseCase {
 
     if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
       throw new BadRequestException(
-          "INTENT_NOT_EDITABLE", "DRAFT 상태의 버전에서만 Intent state를 변경할 수 있습니다.");
+          "INTENT_NOT_EDITABLE", "DRAFT 상태의 버전에서만 Intent 정의 상태를 변경할 수 있습니다.");
     }
 
     IntentDefinition intent =
