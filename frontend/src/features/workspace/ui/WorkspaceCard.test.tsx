@@ -22,6 +22,9 @@ describe("WorkspaceCard", () => {
       <WorkspaceCard
         workspace={baseWorkspace}
         onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -39,6 +42,9 @@ describe("WorkspaceCard", () => {
           myRole: "UNEXPECTED_ROLE" as unknown as WorkspaceResponse["myRole"],
         }}
         onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -54,6 +60,9 @@ describe("WorkspaceCard", () => {
       <WorkspaceCard
         workspace={baseWorkspace}
         onOpen={onOpen}
+        onOpenPolicyDraft={vi.fn()}
+        isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -67,5 +76,40 @@ describe("WorkspaceCard", () => {
         name: "CS Team Alpha",
       }),
     );
+  });
+
+  it("invokes onOpenPolicyDraft with the workspace when the policy edit button is clicked", () => {
+    const onOpenPolicyDraft = vi.fn();
+    render(
+      <WorkspaceCard
+        workspace={baseWorkspace}
+        onOpen={vi.fn()}
+        onOpenPolicyDraft={onOpenPolicyDraft}
+        isPolicyDraftLoading={false}
+        isPolicyDraftDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Policy 편집/ }));
+
+    expect(onOpenPolicyDraft).toHaveBeenCalledWith(baseWorkspace);
+  });
+
+  it("disables the policy edit button while draft entry navigation is loading", () => {
+    render(
+      <WorkspaceCard
+        workspace={baseWorkspace}
+        onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        isPolicyDraftLoading
+        isPolicyDraftDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /이동 중/ })).toBeDisabled();
   });
 });

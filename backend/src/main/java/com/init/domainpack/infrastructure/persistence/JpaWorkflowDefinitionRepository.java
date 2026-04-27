@@ -26,7 +26,7 @@ public interface JpaWorkflowDefinitionRepository
       value =
           """
           SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
-          FROM workflow_definition
+          FROM pack.workflow_definition
           WHERE domain_pack_version_id = :versionId
             AND graph_json -> 'nodes' @> jsonb_build_array(jsonb_build_object('policyRef', :policyCode))
           """,

@@ -56,3 +56,4 @@ agent-local-status.sh
 
 # Playwright MCP 파일
 .playwright-mcp
+.playwright-cli/
