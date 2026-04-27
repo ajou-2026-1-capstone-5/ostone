@@ -1,7 +1,9 @@
 export default {
   'backend/**/*.java': ['cd backend && ./gradlew spotlessCheck'],
   'frontend/**/*.{ts,tsx}': (filenames) => {
-    const filtered = filenames.filter(f => !f.includes('/src/shared/api/generated/'));
+    const filtered = filenames
+      .map((f) => f.replace(/\\/g, '/'))
+      .filter((f) => !f.includes('/src/shared/api/generated/'));
     if (filtered.length === 0) return [];
     return [
       'cd frontend && pnpm run lint',

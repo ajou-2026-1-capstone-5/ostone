@@ -77,4 +77,13 @@ describe("customFetch", () => {
       method: "GET",
     });
   });
+
+  it("apiClient.request의 rejection을 전파한다", async () => {
+    const apiError = new Error("Network error");
+    vi.mocked(apiClient.request).mockRejectedValueOnce(apiError);
+
+    await expect(
+      customFetch("/test", { method: "GET" }),
+    ).rejects.toThrow("Network error");
+  });
 });

@@ -1,8 +1,12 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vite-plus/test";
+import { describe, expect, it, vi, beforeEach, afterEach, afterAll } from "vite-plus/test";
 import { resolveApiBase, ApiRequestError, apiClient } from "./index";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("resolveApiBase", () => {
   it("VITE_API_BASE_URL 절대 URL override를 그대로 사용한다", () => {
@@ -153,12 +157,15 @@ describe("apiClient", () => {
         "/api/v1/test",
         expect.objectContaining({
           method: "PUT",
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-            "X-Custom-Header": "value",
-          }),
+          headers: expect.any(Headers),
         }),
       );
+
+      // Headers 인스턴스 내용 검증
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1].headers as Headers;
+      expect(headers.get("Content-Type")).toBe("application/json");
+      expect(headers.get("X-Custom-Header")).toBe("value");
 
       expect(result).toEqual(mockResponse);
     });
@@ -173,7 +180,7 @@ describe("apiClient", () => {
       const testData = { name: "test" };
       await apiClient.request<{ id: number }>("/test", {
         method: "POST",
-        body: JSON.stringify(testData),
+        body: testData,
       });
 
       expect(mockFetch).toHaveBeenCalledWith(

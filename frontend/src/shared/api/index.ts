@@ -64,17 +64,25 @@ class ApiClient {
 
   async request<T>(path: string, options: RequestInit): Promise<T> {
     let body = options.body;
-    if (body && typeof body === "object" && !ArrayBuffer.isView(body as any) && !(body instanceof Blob) && !(body instanceof FormData)) {
+    if (body && typeof body === "object" && !ArrayBuffer.isView(body as ArrayBufferView | null) && !(body instanceof Blob) && !(body instanceof FormData) && !(body instanceof URLSearchParams)) {
       body = JSON.stringify(body);
+    }
+
+    const headers = new Headers(this.getHeaders());
+    if (body instanceof FormData || body instanceof Blob || body instanceof URLSearchParams) {
+      headers.delete('Content-Type');
+    }
+    if (options.headers) {
+      const extra = options.headers instanceof Headers
+        ? Object.fromEntries(options.headers)
+        : options.headers;
+      new Headers(extra).forEach((v, k) => headers.set(k, v));
     }
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...options,
       body,
-      headers: {
-        ...this.getHeaders(),
-        ...options.headers,
-      },
+      headers,
     });
     return this.handleResponse<T>(response);
   }

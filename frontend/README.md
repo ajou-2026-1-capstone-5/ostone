@@ -84,4 +84,4 @@ export const useWorkspaceList = () => {
 
 ## FSD 구조
 
-상위 → 하위만 import 가능: `app → widgets → features → entities → shared`. 자세한 컨벤션은 루트 [`AGENTS.md`](../AGENTS.md)와 [`.agent/rules/typescript.md`](../.agent/rules/typescript.md) 참조.
+상위 → 하위만 import 가능: `app → pages → widgets → features → entities → shared`. 자세한 컨벤션은 루트 [`AGENTS.md`](../AGENTS.md)와 [`.agent/rules/typescript.md`](../.agent/rules/typescript.md) 참조.
