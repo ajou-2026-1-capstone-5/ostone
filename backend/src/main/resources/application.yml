@@ -55,3 +55,7 @@ cors:
 airflow:
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET}
+
+springdoc:
+  api-docs:
+    version: openapi_3_0

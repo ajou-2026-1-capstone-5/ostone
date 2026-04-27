@@ -34,7 +34,7 @@ export default defineConfig({
         'node_modules/',
         'dist/',
         '**/*.d.ts',
-        '**/generated/index.ts',
+        '**/generated/**',
       ],
     },
   },

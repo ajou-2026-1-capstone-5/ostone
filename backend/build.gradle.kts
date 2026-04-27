@@ -6,6 +6,7 @@ plugins {
     id("com.diffplug.spotless") version "6.25.0"
     id("jacoco")
     id("org.sonarqube") version "7.2.3.7755"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
 }
 
 group = "com.ajou.capstone"
@@ -34,6 +35,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation(platform("software.amazon.awssdk:bom:2.26.7"))
     implementation("software.amazon.awssdk:s3")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
     testImplementation("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
@@ -86,4 +88,14 @@ sonar {
 // org.sonarqube 7.2.x automatically configures this dependency; kept for explicit documentation.
 tasks.named("sonar") {
     dependsOn(tasks.jacocoTestReport)
+}
+
+openApi {
+    apiDocsUrl.set("http://localhost:8089/v3/api-docs")
+    outputDir.set(file("$buildDir"))
+    outputFileName.set("openapi.json")
+    waitTimeInSeconds.set(60)
+    customBootRun {
+        args.set(listOf("--spring.profiles.active=local"))
+    }
 }
