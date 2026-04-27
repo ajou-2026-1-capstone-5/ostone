@@ -93,8 +93,7 @@ class UpdateIntentStatusUseCaseTest {
 
     assertThatThrownBy(
             () ->
-                useCase.execute(
-                    new UpdateIntentStatusCommand(1L, 7L, 10L, 99L, 5L, "DEPRECATED")))
+                useCase.execute(new UpdateIntentStatusCommand(1L, 7L, 10L, 99L, 5L, "DEPRECATED")))
         .isInstanceOf(BadRequestException.class);
   }
 

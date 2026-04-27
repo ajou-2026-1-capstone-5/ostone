@@ -41,8 +41,8 @@ class JpaIntentDefinitionRepositoryTest extends AbstractDomainPackJpaTest {
     em.clear();
 
     // when
-    IntentDefinition found = repository.findByIdAndDomainPackVersionId(
-        entity.getId(), VERSION_ID).orElseThrow();
+    IntentDefinition found =
+        repository.findByIdAndDomainPackVersionId(entity.getId(), VERSION_ID).orElseThrow();
 
     // then
     assertThat(found.getSourceClusterRef()).contains("cluster");

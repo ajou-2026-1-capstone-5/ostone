@@ -70,7 +70,8 @@ public class UpdateIntentStatusUseCase {
         intentRepository
             .findById(command.intentId())
             .orElseThrow(
-                () -> new NotFoundException("NOT_FOUND", "Intent를 찾을 수 없습니다: " + command.intentId()));
+                () ->
+                    new NotFoundException("NOT_FOUND", "Intent를 찾을 수 없습니다: " + command.intentId()));
 
     if (!intent.getDomainPackVersionId().equals(command.versionId())) {
       throw new NotFoundException("NOT_FOUND", "Intent를 찾을 수 없습니다: " + command.intentId());

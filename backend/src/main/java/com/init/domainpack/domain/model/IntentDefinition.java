@@ -155,7 +155,8 @@ public class IntentDefinition {
       throw new IllegalArgumentException("허용되지 않는 status 값입니다: " + newStatus);
     }
     if (!STATUS_DRAFT.equals(this.status) && !STATUS_ACTIVE.equals(this.status)) {
-      throw new IllegalStateException("DRAFT 또는 ACTIVE 상태에서만 status를 변경할 수 있습니다. 현재: " + this.status);
+      throw new IllegalStateException(
+          "DRAFT 또는 ACTIVE 상태에서만 status를 변경할 수 있습니다. 현재: " + this.status);
     }
     this.status = newStatus;
   }
