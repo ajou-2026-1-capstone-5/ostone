@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
+import { domainPackApi } from "@/entities/domain-pack";
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
+import { ApiRequestError } from "@/shared/api";
 import {
   ArchiveConfirmDialog,
   CreateWorkspaceDialog,
@@ -21,6 +24,8 @@ export function WorkspaceListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkspaceResponse | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<WorkspaceResponse | null>(null);
+  const [policyDraftLoadingWorkspaceId, setPolicyDraftLoadingWorkspaceId] =
+    useState<number | null>(null);
 
   const fetchWorkspaces = useCallback(async () => {
     setIsLoading(true);
@@ -41,6 +46,30 @@ export function WorkspaceListPage() {
 
   const handleOpenWorkspace = (workspace: WorkspaceResponse) => {
     navigate(`/workspaces/${workspace.id}/workflows`);
+  };
+
+  const handleOpenPolicyDraft = (workspace: WorkspaceResponse) => {
+    if (policyDraftLoadingWorkspaceId !== null) {
+      return;
+    }
+
+    setPolicyDraftLoadingWorkspaceId(workspace.id);
+    void (async () => {
+      try {
+        const entry = await domainPackApi.getDraftEntry(workspace.id);
+        navigate(
+          `/workspaces/${workspace.id}/domain-packs/${entry.packId}/versions/${entry.versionId}/policies`,
+        );
+      } catch (err) {
+        if (err instanceof ApiRequestError && err.code === "DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND") {
+          toast.error("수정 가능한 정책 초안이 없습니다.");
+          return;
+        }
+        toast.error("정책 편집 화면으로 이동하지 못했습니다.");
+      } finally {
+        setPolicyDraftLoadingWorkspaceId(null);
+      }
+    })();
   };
 
   return (
@@ -72,6 +101,8 @@ export function WorkspaceListPage() {
             onRetry={() => void fetchWorkspaces()}
             onCreate={() => setIsCreateOpen(true)}
             onOpen={handleOpenWorkspace}
+            onOpenPolicyDraft={handleOpenPolicyDraft}
+            policyDraftLoadingWorkspaceId={policyDraftLoadingWorkspaceId}
             onEdit={(workspace) => setEditTarget(workspace)}
             onDelete={(workspace) => setArchiveTarget(workspace)}
           />

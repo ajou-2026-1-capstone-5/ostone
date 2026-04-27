@@ -1,7 +1,9 @@
 .workspaceGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), min(100%, 420px)));
   justify-content: flex-start;
+  min-width: 0;
+  width: 100%;
   gap: 32px;
   padding: 12px 6px 24px;
 }
@@ -14,7 +16,7 @@
   gap: 0;
   width: 100%;
   max-width: 420px;
-  min-height: 400px;
+  min-height: 360px;
   padding-block: 0;
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);
@@ -60,6 +62,7 @@
   line-height: 0.98;
   letter-spacing: -0.95px;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .workspaceCard .workspaceCardContent {
@@ -82,14 +85,25 @@
 }
 
 .workspaceCard .workspaceCardFooter {
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: 14px;
   margin-top: auto;
   padding: 20px 34px 30px;
 }
 
+.primaryActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
 .openButton {
+  width: 100%;
+  min-width: 0;
   min-height: 46px;
   padding: 0 20px;
   border-radius: 999px;
@@ -108,6 +122,22 @@
 
 .workspaceCard:hover .openButton {
   transform: translateX(2px);
+}
+
+.policyButton {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border-color: rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.policyButton:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .cardActions {
@@ -172,6 +202,29 @@
   border: 1px dashed var(--glass-border);
 }
 
+@media (max-width: 960px) {
+  .workspaceGrid {
+    gap: 24px;
+    padding-top: 8px;
+  }
+
+  .workspaceCard {
+    min-height: 320px;
+  }
+
+  .workspaceCard .workspaceCardHeader {
+    padding: 28px 28px 0;
+  }
+
+  .workspaceCard .workspaceCardContent {
+    padding: 0 28px;
+  }
+
+  .workspaceCard .workspaceCardFooter {
+    padding: 18px 28px 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .workspaceGrid {
     grid-template-columns: 1fr;
@@ -181,7 +234,7 @@
   .workspaceCard {
     width: 100%;
     height: auto;
-    min-height: 360px;
+    min-height: 340px;
     max-height: none;
   }
 
@@ -190,7 +243,30 @@
     align-items: stretch;
   }
 
+  .primaryActions {
+    grid-template-columns: 1fr;
+  }
+
   .cardActions {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .workspaceGrid {
+    gap: 20px;
+    padding-inline: 0;
+  }
+
+  .workspaceCard .workspaceCardHeader {
+    padding: 28px 28px 0;
+  }
+
+  .workspaceCard .workspaceCardContent {
+    padding: 0 28px;
+  }
+
+  .workspaceCard .workspaceCardFooter {
+    padding: 18px 28px 26px;
   }
 }

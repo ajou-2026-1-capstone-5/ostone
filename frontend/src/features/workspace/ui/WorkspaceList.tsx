@@ -15,6 +15,8 @@ interface WorkspaceListProps {
   onRetry: () => void;
   onCreate: () => void;
   onOpen: (workspace: WorkspaceResponse) => void;
+  onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+  policyDraftLoadingWorkspaceId: number | null;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -26,6 +28,8 @@ export function WorkspaceList({
   onRetry,
   onCreate,
   onOpen,
+  onOpenPolicyDraft,
+  policyDraftLoadingWorkspaceId,
   onEdit,
   onDelete,
 }: WorkspaceListProps) {
@@ -77,6 +81,8 @@ export function WorkspaceList({
           key={workspace.id}
           workspace={workspace}
           onOpen={onOpen}
+          onOpenPolicyDraft={onOpenPolicyDraft}
+          isPolicyDraftLoading={policyDraftLoadingWorkspaceId === workspace.id}
           onEdit={onEdit}
           onDelete={onDelete}
         />

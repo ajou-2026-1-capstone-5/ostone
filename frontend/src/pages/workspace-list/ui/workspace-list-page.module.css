@@ -1,16 +1,21 @@
 .page {
   width: 100%;
+  min-width: 0;
+  min-height: 0;
   padding: clamp(24px, 4vw, 40px);
   display: grid;
+  align-content: start;
   gap: 34px;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .hero {
   display: flex;
-  align-items: end;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
+  min-width: 0;
   padding: clamp(28px, 4vw, 40px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);
@@ -22,6 +27,8 @@
 }
 
 .heroCopy {
+  flex: 1 1 520px;
+  min-width: 0;
   max-width: 760px;
   display: grid;
   gap: 12px;
@@ -38,6 +45,7 @@
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: -1px;
+  overflow-wrap: anywhere;
 }
 
 .description {
@@ -48,7 +56,9 @@
 }
 
 .createButton {
+  flex: 0 1 auto;
   min-width: 208px;
+  max-width: 100%;
   min-height: 54px;
   padding-inline: 24px;
   border-radius: var(--radius-xl);
@@ -71,11 +81,13 @@
 
 .listSection {
   display: grid;
+  min-width: 0;
   gap: 20px;
 }
 
 .sectionHeader {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 18px;
   align-items: end;
@@ -84,15 +96,64 @@
 .sectionTitle {
   font-size: 1.68rem;
   letter-spacing: -0.46px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 960px) {
+  .page {
+    padding: 24px;
+    gap: 26px;
+  }
+
+  .hero {
+    padding: 24px;
+  }
+
+  .title {
+    font-size: 2.6rem;
+  }
+
+  .description {
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+
+  .createButton {
+    min-width: 180px;
+    min-height: 46px;
+  }
 }
 
 @media (max-width: 768px) {
   .page {
     padding: 20px;
+    gap: 26px;
   }
 
   .hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .heroCopy {
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 16px;
+  }
+
+  .hero {
+    padding: 24px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .createButton {
+    width: 100%;
   }
 }

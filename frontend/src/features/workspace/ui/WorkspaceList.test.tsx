@@ -24,6 +24,8 @@ describe("WorkspaceList", () => {
         onRetry={vi.fn()}
         onCreate={vi.fn()}
         onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        policyDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -42,6 +44,8 @@ describe("WorkspaceList", () => {
         onRetry={onRetry}
         onCreate={vi.fn()}
         onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        policyDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -63,6 +67,8 @@ describe("WorkspaceList", () => {
         onRetry={vi.fn()}
         onCreate={onCreate}
         onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        policyDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -84,6 +90,8 @@ describe("WorkspaceList", () => {
         onRetry={vi.fn()}
         onCreate={vi.fn()}
         onOpen={onOpen}
+        onOpenPolicyDraft={vi.fn()}
+        policyDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -93,5 +101,27 @@ describe("WorkspaceList", () => {
 
     expect(screen.getByText("CS Team Alpha")).toBeInTheDocument();
     expect(onOpen).toHaveBeenCalledWith(activeWorkspace);
+  });
+
+  it("opens policy draft editing for a selected workspace", () => {
+    const onOpenPolicyDraft = vi.fn();
+    render(
+      <WorkspaceList
+        workspaces={[activeWorkspace]}
+        isLoading={false}
+        error=""
+        onRetry={vi.fn()}
+        onCreate={vi.fn()}
+        onOpen={vi.fn()}
+        onOpenPolicyDraft={onOpenPolicyDraft}
+        policyDraftLoadingWorkspaceId={null}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Policy 편집/ }));
+
+    expect(onOpenPolicyDraft).toHaveBeenCalledWith(activeWorkspace);
   });
 });
