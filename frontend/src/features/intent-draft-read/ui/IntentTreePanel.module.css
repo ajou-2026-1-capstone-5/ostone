@@ -10,7 +10,7 @@
 
 .header {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--divider-subtle);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -52,7 +52,7 @@
   padding: 16px 18px 17px;
   margin-bottom: 8px;
   border: 1px solid var(--glass-border);
-  border-radius: 28px;
+  border-radius: var(--radius-pill-row);
   background: var(--bg-color);
   cursor: pointer;
   color: var(--text-primary);
@@ -63,8 +63,8 @@
 }
 
 .item:hover {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.14);
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
 }
 
 .itemActive {
@@ -147,7 +147,7 @@
 
 .skeletonRow {
   height: 58px;
-  border-radius: 28px;
+  border-radius: var(--radius-pill-row);
   background: var(--bg-secondary);
 }
 
@@ -156,7 +156,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px dashed rgba(0, 0, 0, 0.14);
+  border: 1px dashed var(--hover-border);
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 13px;
@@ -164,7 +164,7 @@
   letter-spacing: -0.14px;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 959px) {
   .panel {
     width: 320px;
     min-width: 248px;

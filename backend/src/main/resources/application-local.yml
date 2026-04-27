@@ -11,6 +11,9 @@ spring:
   liquibase:
     enabled: true
 
+server:
+  port: 8089
+
 logging:
   level:
     org.springframework.jdbc: DEBUG

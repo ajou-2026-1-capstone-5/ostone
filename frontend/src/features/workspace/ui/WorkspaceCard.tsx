@@ -1,14 +1,18 @@
-import { ArrowRightIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ArrowRightIcon, FilePenLineIcon, PencilIcon, Trash2Icon } from "lucide-react";
 
 import { normalizeWorkspaceMemberRole, type WorkspaceResponse } from "@/entities/workspace";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Spinner } from "@/shared/ui/spinner";
 
 import styles from "./workspace-list.module.css";
 
 interface WorkspaceCardProps {
   workspace: WorkspaceResponse;
   onOpen: (workspace: WorkspaceResponse) => void;
+  onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+  isPolicyDraftLoading: boolean;
+  isPolicyDraftDisabled: boolean;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -18,10 +22,14 @@ const EDITABLE_ROLES = new Set(["OWNER", "ADMIN"]);
 export function WorkspaceCard({
   workspace,
   onOpen,
+  onOpenPolicyDraft,
+  isPolicyDraftLoading,
+  isPolicyDraftDisabled,
   onEdit,
   onDelete,
 }: WorkspaceCardProps) {
   const handleOpen = () => onOpen(workspace);
+  const handleOpenPolicyDraft = () => onOpenPolicyDraft(workspace);
 
   const normalizedRole = normalizeWorkspaceMemberRole(workspace.myRole);
   const canEdit = normalizedRole !== null && EDITABLE_ROLES.has(normalizedRole);
@@ -40,10 +48,22 @@ export function WorkspaceCard({
       </CardHeader>
       <CardContent className={styles.workspaceCardContent} />
       <CardFooter className={styles.workspaceCardFooter}>
-        <Button variant="ghost" className={styles.openButton} onClick={handleOpen}>
-          Open Workspace
-          <ArrowRightIcon className="size-4" />
-        </Button>
+        <div className={styles.primaryActions}>
+          <Button variant="ghost" className={styles.openButton} onClick={handleOpen}>
+            Open Workspace
+            <ArrowRightIcon className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            className={styles.policyButton}
+            onClick={handleOpenPolicyDraft}
+            disabled={isPolicyDraftLoading || isPolicyDraftDisabled}
+            aria-busy={isPolicyDraftLoading}
+          >
+            {isPolicyDraftLoading ? <Spinner className="size-4" /> : <FilePenLineIcon className="size-4" />}
+            {isPolicyDraftLoading ? "이동 중" : "Policy 편집"}
+          </Button>
+        </div>
         <div className={styles.cardActions}>
           {canEdit && (
             <Button variant="outline" size="sm" className={styles.actionButton} onClick={() => onEdit(workspace)}>

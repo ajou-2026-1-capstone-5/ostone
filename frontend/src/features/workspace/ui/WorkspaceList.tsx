@@ -15,6 +15,8 @@ interface WorkspaceListProps {
   onRetry: () => void;
   onCreate: () => void;
   onOpen: (workspace: WorkspaceResponse) => void;
+  onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+  policyDraftLoadingWorkspaceId: number | null;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -26,9 +28,13 @@ export function WorkspaceList({
   onRetry,
   onCreate,
   onOpen,
+  onOpenPolicyDraft,
+  policyDraftLoadingWorkspaceId,
   onEdit,
   onDelete,
 }: WorkspaceListProps) {
+  const isPolicyDraftDisabled = policyDraftLoadingWorkspaceId !== null;
+
   if (isLoading) {
     return (
       <div className={styles.statePanel} aria-live="polite">
@@ -77,6 +83,9 @@ export function WorkspaceList({
           key={workspace.id}
           workspace={workspace}
           onOpen={onOpen}
+          onOpenPolicyDraft={onOpenPolicyDraft}
+          isPolicyDraftLoading={policyDraftLoadingWorkspaceId === workspace.id}
+          isPolicyDraftDisabled={isPolicyDraftDisabled}
           onEdit={onEdit}
           onDelete={onDelete}
         />

@@ -4,6 +4,9 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("checkstyle")
     id("com.diffplug.spotless") version "6.25.0"
+    id("jacoco")
+    id("org.sonarqube") version "7.2.3.7755"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
 }
 
 group = "com.ajou.capstone"
@@ -32,6 +35,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation(platform("software.amazon.awssdk:bom:2.26.7"))
     implementation("software.amazon.awssdk:s3")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
     testImplementation("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
@@ -52,5 +56,46 @@ spotless {
     java {
         googleJavaFormat()
         target("src/**/*.java")
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.jacocoTestReport {
+    reports {
+        xml.required.set(true)
+        html.required.set(false)
+    }
+    dependsOn(tasks.test)
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "ajou-2026-1-capstone-5_ostone_backend")
+        property("sonar.organization", "ajou-2026-1-capstone-5")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.coverage.jacoco.xmlReportPaths",
+            "${layout.buildDirectory.get().asFile.path}/reports/jacoco/test/jacocoTestReport.xml")
+        property("sonar.exclusions",
+            "**/build/**,**/generated/**")
+        property("sonar.coverage.exclusions",
+            "**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java,**/infrastructure/**/*")
+    }
+}
+
+// org.sonarqube 7.2.x automatically configures this dependency; kept for explicit documentation.
+tasks.named("sonar") {
+    dependsOn(tasks.jacocoTestReport)
+}
+
+openApi {
+    apiDocsUrl.set("http://localhost:8089/v3/api-docs")
+    outputDir.set(file("$buildDir"))
+    outputFileName.set("openapi.json")
+    waitTimeInSeconds.set(60)
+    customBootRun {
+        args.set(listOf("--spring.profiles.active=local"))
     }
 }

@@ -6,11 +6,14 @@ build/
 # Node
 node_modules/
 dist/
+coverage/
 
 # Python
 __pycache__/
 .venv/
 *.egg-info
+.coverage
+coverage.xml
 
 # IDE
 .idea/
@@ -50,3 +53,7 @@ agent-local-up.sh
 agent-local-down.sh
 agent-local-status.sh
 .agent-local/
+
+# Playwright MCP 파일
+.playwright-mcp
+.playwright-cli/
