@@ -10,6 +10,10 @@ public interface IntentDefinitionRepository {
 
   <S extends IntentDefinition> List<S> saveAllAndFlush(Iterable<S> entities);
 
+  Optional<IntentDefinition> findById(Long id);
+
+  IntentDefinition save(IntentDefinition intent);
+
   long countByDomainPackVersionId(Long domainPackVersionId);
 
   boolean existsByDomainPackVersionIdAndIntentCode(Long domainPackVersionId, String intentCode);
