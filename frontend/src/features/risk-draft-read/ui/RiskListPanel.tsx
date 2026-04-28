@@ -5,6 +5,8 @@ import { useRiskList } from "../model/useRiskList";
 import type { RiskSummary } from "@/entities/risk";
 import styles from "./RiskListPanel.module.css";
 
+const SKELETON_ROWS = ["risk-skeleton-1", "risk-skeleton-2", "risk-skeleton-3"] as const;
+
 interface RiskListPanelProps {
   workspaceId: number;
   packId: number;
@@ -63,31 +65,21 @@ function RiskListContent({
   onSelect: (id: number) => void;
 }>) {
   if (state.status === "loading") {
-    return (
-      <div className={styles.skeletonGroup}>
-        {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className={styles.skeletonRow} />
-        ))}
-      </div>
-    );
+    return <RiskLoadingRows />;
   }
 
-  if (state.status === "error") {
-    return (
-      <div className={styles.emptyState}>
-        <span>{RISK_READ_ERROR_MESSAGES.LOAD_LIST_FAILED}</span>
-        <button type="button" className={styles.retryButton} onClick={onRetry}>
-          다시 시도
-        </button>
-      </div>
-    );
-  }
+  if (state.status === "error" || state.data.length === 0) {
+    const message =
+      state.status === "error"
+        ? RISK_READ_ERROR_MESSAGES.LOAD_LIST_FAILED
+        : "등록된 위험요소 초안이 없습니다.";
 
-  if (state.data.length === 0) {
     return (
-      <div className={styles.emptyState}>
-        <span>등록된 위험요소 초안이 없습니다.</span>
-      </div>
+      <RiskListMessage
+        message={message}
+        retryLabel={state.status === "error" ? "다시 시도" : undefined}
+        onRetry={state.status === "error" ? onRetry : undefined}
+      />
     );
   }
 
@@ -101,6 +93,37 @@ function RiskListContent({
           onSelect={onSelect}
         />
       ))}
+    </div>
+  );
+}
+
+function RiskLoadingRows() {
+  return (
+    <div className={styles.skeletonGroup} aria-busy="true">
+      {SKELETON_ROWS.map((rowKey) => (
+        <div key={rowKey} className={styles.skeletonRow} />
+      ))}
+    </div>
+  );
+}
+
+function RiskListMessage({
+  message,
+  retryLabel,
+  onRetry,
+}: Readonly<{
+  message: string;
+  retryLabel?: string;
+  onRetry?: () => void;
+}>) {
+  return (
+    <div className={styles.emptyState}>
+      <span>{message}</span>
+      {retryLabel && (
+        <button type="button" className={styles.retryButton} onClick={onRetry}>
+          {retryLabel}
+        </button>
+      )}
     </div>
   );
 }

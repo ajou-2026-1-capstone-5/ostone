@@ -5,9 +5,31 @@ import { useRiskDetail } from "../model/useRiskDetail";
 import type { RiskDefinition } from "@/entities/risk";
 import styles from "./RiskDetailPanel.module.css";
 
-type RiskJsonField = Readonly<{
+const RISK_JSON_FIELDS = [
+  ["Trigger Condition", "triggerConditionJson"],
+  ["Handling Action", "handlingActionJson"],
+  ["Evidence", "evidenceJson"],
+  ["Meta", "metaJson"],
+] as const;
+
+const STATUS_LABELS = {
+  ACTIVE: "● ACTIVE",
+  INACTIVE: "○ INACTIVE",
+} as const;
+
+const DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+type RiskJsonKey = (typeof RISK_JSON_FIELDS)[number][1];
+
+type RiskInfoField = Readonly<{
   label: string;
-  value: string;
+  value: ReactNode;
 }>;
 
 interface RiskDetailPanelProps {
@@ -75,9 +97,7 @@ export function RiskDetailPanel({
       <section className={styles.panel} aria-label="위험요소 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
-          <span>
-            {errorHttpStatus === 404 ? RISK_READ_ERROR_MESSAGES.NOT_FOUND : errorMessage}
-          </span>
+          <span>{errorHttpStatus === 404 ? RISK_READ_ERROR_MESSAGES.NOT_FOUND : errorMessage}</span>
           <span className={styles.errorCode}>{errorCode}</span>
           <button
             type="button"
@@ -91,53 +111,23 @@ export function RiskDetailPanel({
     );
   }
 
-  const jsonFields: RiskJsonField[] = [
-    { label: "Trigger Condition", value: state.data.triggerConditionJson },
-    { label: "Handling Action", value: state.data.handlingActionJson },
-    { label: "Evidence", value: state.data.evidenceJson },
-    { label: "Meta", value: state.data.metaJson },
+  const detail = state.data;
+  const infoFields: RiskInfoField[] = [
+    { label: "Risk Code", value: detail.riskCode },
+    { label: "Risk Level", value: detail.riskLevel },
+    { label: "Status", value: <StatusBadge status={detail.status} /> },
+    { label: "Version Id", value: detail.domainPackVersionId },
+    { label: "Created At", value: formatDate(detail.createdAt) },
+    { label: "Updated At", value: formatDate(detail.updatedAt) },
   ];
 
   return (
     <section className={styles.panel} aria-label="위험요소 상세">
-      <DetailHeader detail={state.data} />
+      <DetailHeader detail={detail} />
       <div className={styles.body}>
-        <div className={styles.grid}>
-          <InfoCard
-            label="Risk Code"
-            value={<span className={styles.value}>{state.data.riskCode}</span>}
-          />
-          <InfoCard
-            label="Risk Level"
-            value={<span className={styles.value}>{state.data.riskLevel}</span>}
-          />
-          <InfoCard
-            label="Status"
-            value={
-              <span
-                className={`${styles.badge} ${
-                  state.data.status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive
-                }`}
-              >
-                {state.data.status === "ACTIVE" ? "● ACTIVE" : "○ INACTIVE"}
-              </span>
-            }
-          />
-          <InfoCard
-            label="Version Id"
-            value={<span className={styles.value}>{state.data.domainPackVersionId}</span>}
-          />
-          <InfoCard
-            label="Created At"
-            value={<span className={styles.value}>{formatDate(state.data.createdAt)}</span>}
-          />
-          <InfoCard
-            label="Updated At"
-            value={<span className={styles.value}>{formatDate(state.data.updatedAt)}</span>}
-          />
-        </div>
-        {jsonFields.map((field) => (
-          <JsonCard key={field.label} label={field.label} value={field.value} />
+        <InfoGrid fields={infoFields} />
+        {RISK_JSON_FIELDS.map(([label, key]) => (
+          <JsonCard key={key} label={label} value={detail[key]} />
         ))}
       </div>
     </section>
@@ -157,49 +147,53 @@ function DetailHeader({ detail }: Readonly<{ detail: RiskDefinition }>) {
   );
 }
 
-function InfoCard({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
+function InfoGrid({ fields }: Readonly<{ fields: readonly RiskInfoField[] }>) {
   return (
-    <section className={styles.card} aria-labelledby={`risk-info-${label}`}>
-      <header id={`risk-info-${label}`} className={styles.cardHeader}>
-        {label}
-      </header>
-      <div className={styles.cardBody}>{value}</div>
-    </section>
+    <dl className={styles.grid}>
+      {fields.map((field) => (
+        <div key={field.label} className={styles.card}>
+          <dt className={styles.cardHeader}>{field.label}</dt>
+          <dd className={`${styles.cardBody} ${styles.value}`}>{field.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-function JsonCard({ label, value }: Readonly<RiskJsonField>) {
-  const formattedValue = formatJsonForDisplay(value);
-
+function JsonCard({
+  label,
+  value,
+}: Readonly<{ label: string; value: RiskDefinition[RiskJsonKey] }>) {
   return (
-    <section className={styles.card} data-json-field={label.toLowerCase()}>
-      <header className={styles.cardHeader}>{label}</header>
+    <article className={styles.card} data-json-field={label.toLowerCase()}>
+      <div className={styles.cardHeader}>{label}</div>
       <div className={styles.cardBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formattedValue}</code>
+          <code>{formatJsonForDisplay(value)}</code>
         </pre>
       </div>
-    </section>
+    </article>
   );
+}
+
+function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>) {
+  const statusClassName = status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive;
+
+  return <span className={`${styles.badge} ${statusClassName}`}>{STATUS_LABELS[status]}</span>;
 }
 
 function formatJsonForDisplay(raw: string): string {
-  if (!raw) return "—";
+  if (!raw.trim()) return "—";
+
   try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
+    const parsedJson: unknown = JSON.parse(raw);
+    return JSON.stringify(parsedJson, null, 2);
   } catch {
     return raw;
   }
 }
 
 function formatDate(raw: string): string {
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const timestamp = Date.parse(raw);
+  return Number.isNaN(timestamp) ? raw : DATE_FORMATTER.format(new Date(timestamp));
 }
