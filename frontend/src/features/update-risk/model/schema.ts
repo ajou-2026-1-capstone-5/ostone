@@ -1,29 +1,6 @@
 import { z } from "zod";
 
-function isJsonObjectString(value: string): boolean {
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed);
-  } catch {
-    return false;
-  }
-}
-
-function isJsonArrayString(value: string): boolean {
-  try {
-    return Array.isArray(JSON.parse(value) as unknown);
-  } catch {
-    return false;
-  }
-}
-
-export function jsonObjectString(message: string) {
-  return z.string().refine(isJsonObjectString, { message });
-}
-
-export function jsonArrayString(message: string) {
-  return z.string().refine(isJsonArrayString, { message });
-}
+import { jsonArrayString, jsonObjectString } from "@/shared/lib/jsonSchema";
 
 export const riskLevelSchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 

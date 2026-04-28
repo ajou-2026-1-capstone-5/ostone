@@ -1,22 +1,16 @@
+import type { FieldPath } from "react-hook-form";
 import { useFormContext } from "react-hook-form";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/shared/ui/form";
-import { JsonTextarea } from "./JsonTextarea";
+import { JsonFormField } from "@/shared/ui/json-form-field";
 import type { RiskEditFormValues } from "../model/schema";
 
-const JSON_FIELDS: ReadonlyArray<
-  Readonly<{
-    name: keyof Pick<
-      RiskEditFormValues,
-      "triggerConditionJson" | "handlingActionJson" | "evidenceJson" | "metaJson"
-    >;
-    label: string;
-  }>
-> = [
+const JSON_FIELDS = [
   { name: "triggerConditionJson", label: "트리거 조건 JSON" },
   { name: "handlingActionJson", label: "처리 액션 JSON" },
   { name: "evidenceJson", label: "근거 JSON" },
   { name: "metaJson", label: "메타 JSON" },
-];
+] as const satisfies ReadonlyArray<
+  Readonly<{ name: FieldPath<RiskEditFormValues>; label: string }>
+>;
 
 export function RiskJsonFields() {
   const { control } = useFormContext<RiskEditFormValues>();
@@ -24,19 +18,11 @@ export function RiskJsonFields() {
   return (
     <>
       {JSON_FIELDS.map((jsonField) => (
-        <FormField
+        <JsonFormField<RiskEditFormValues>
           key={jsonField.name}
           control={control}
           name={jsonField.name}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{jsonField.label}</FormLabel>
-              <FormControl>
-                <JsonTextarea {...field} aria-label={jsonField.label} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label={jsonField.label}
         />
       ))}
     </>
