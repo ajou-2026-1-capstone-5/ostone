@@ -13,7 +13,11 @@ import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.Workflow
 import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
 import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.repository.DomainPackRepository;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
+import com.init.pipelinejob.application.exception.PipelineJobCallbackTargetMismatchException;
 import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
 import com.init.pipelinejob.domain.model.PipelineArtifact;
 import com.init.pipelinejob.domain.model.PipelineJob;
@@ -48,6 +52,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
   @Mock private PipelineArtifactRepository pipelineArtifactRepository;
   @Mock private AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase;
+  @Mock private DomainPackVersionRepository domainPackVersionRepository;
+  @Mock private DomainPackRepository domainPackRepository;
   @Mock private PlatformTransactionManager transactionManager;
 
   private ReceiveWorkflowDraftCallbackUseCase useCase;
@@ -66,6 +72,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
             webhookReceiptRepository,
             pipelineArtifactRepository,
             addWorkflowDraftToVersionUseCase,
+            domainPackVersionRepository,
+            domainPackRepository,
             fixedClock,
             new ObjectMapper(),
             transactionManager,
@@ -82,6 +90,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
+    givenValidTargetVersion();
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftToVersionUseCase.execute(any()))
@@ -96,6 +105,29 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     assertThat(job.getFinishedAt()).isEqualTo(OffsetDateTime.now(fixedClock));
     assertThat(job.getResultSummaryJson()).contains("\"addedWorkflowCount\":1");
     assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+  }
+
+  @Test
+  @DisplayName("domainPackVersionId가 job의 domain pack과 다르면 workflow draft를 저장하지 않는다")
+  void execute_targetVersionMismatch_throws() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK);
+    WebhookReceipt receipt = workflowReceipt(11L, "evt-workflow-1");
+    given(webhookReceiptRepository.findByExternalEventId("evt-workflow-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt), Optional.of(receipt));
+    given(pipelineJobRepository.findById(11L))
+        .willReturn(Optional.of(job), Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(domainPackVersionRepository.findById(101L))
+        .willReturn(
+            Optional.of(DomainPackVersion.ofForTest(101L, 8L, DomainPackVersion.STATUS_DRAFT)));
+
+    assertThatThrownBy(() -> useCase.execute(validCommand()))
+        .isInstanceOf(PipelineJobCallbackTargetMismatchException.class);
+
+    verify(addWorkflowDraftToVersionUseCase, never()).execute(any());
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_FAILED);
   }
 
   @Test
@@ -146,6 +178,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         .willReturn(Optional.of(job), Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
+    givenValidTargetVersion();
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftToVersionUseCase.execute(any()))
@@ -179,6 +212,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     PipelineJob job = newPipelineJob();
     ReflectionTestUtils.setField(job, "id", id);
     ReflectionTestUtils.setField(job, "workspaceId", workspaceId);
+    ReflectionTestUtils.setField(job, "domainPackId", 7L);
     ReflectionTestUtils.setField(job, "status", status);
     ReflectionTestUtils.setField(job, "resultSummaryJson", "{}");
     return job;
@@ -208,5 +242,12 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
             jobId, externalEventId, webhookType, "{}", "{}", OffsetDateTime.now(fixedClock));
     ReflectionTestUtils.setField(receipt, "id", 1L);
     return receipt;
+  }
+
+  private void givenValidTargetVersion() {
+    given(domainPackVersionRepository.findById(101L))
+        .willReturn(
+            Optional.of(DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT)));
+    given(domainPackRepository.existsByIdAndWorkspaceId(7L, 3L)).willReturn(true);
   }
 }

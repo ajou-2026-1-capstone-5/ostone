@@ -11,6 +11,7 @@ import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedExc
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
+import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
@@ -62,6 +63,7 @@ public class ReceiveIntentDraftCallbackUseCase {
 
     Optional<WebhookReceipt> existingReceipt =
         webhookReceiptRepository.findByExternalEventId(command.externalEventId());
+    validateWebhookType(existingReceipt.orElse(null), command.externalEventId());
     if (isProcessed(existingReceipt.orElse(null))) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
@@ -79,6 +81,7 @@ public class ReceiveIntentDraftCallbackUseCase {
     }
 
     WebhookReceipt receipt = ensureReceivedReceipt(command, existingReceipt.orElse(null));
+    validateWebhookType(receipt, command.externalEventId());
     if (isProcessed(receipt)) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
@@ -210,6 +213,13 @@ public class ReceiveIntentDraftCallbackUseCase {
 
   private boolean isProcessed(WebhookReceipt receipt) {
     return receipt != null && WebhookReceipt.STATUS_PROCESSED.equals(receipt.getProcessingStatus());
+  }
+
+  private void validateWebhookType(WebhookReceipt receipt, String externalEventId) {
+    if (receipt != null && !WEBHOOK_TYPE.equals(receipt.getWebhookType())) {
+      throw new WebhookReceiptTypeConflictException(
+          externalEventId, receipt.getWebhookType(), WEBHOOK_TYPE);
+    }
   }
 
   private void savePipelineJobOrThrowConflict(PipelineJob job, Long jobId) {

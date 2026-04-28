@@ -18,6 +18,7 @@ import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedExc
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
+import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
@@ -112,6 +113,35 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
+    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+  }
+
+  @Test
+  @DisplayName("같은 externalEventId가 다른 webhook type이면 409 예외를 던진다")
+  void execute_receiptTypeConflict_throws() {
+    WebhookReceipt receipt = receipt(11L, "evt-1", "DOMAIN_PACK_DRAFT_CALLBACK");
+    given(webhookReceiptRepository.findByExternalEventId("evt-1")).willReturn(Optional.of(receipt));
+
+    assertThatThrownBy(() -> useCase.execute(validCommand()))
+        .isInstanceOf(WebhookReceiptTypeConflictException.class);
+
+    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+  }
+
+  @Test
+  @DisplayName("receipt 저장 충돌 후 다른 webhook type으로 재조회되면 409 예외를 던진다")
+  void execute_receiptInsertTypeConflict_throws() {
+    WebhookReceipt receipt = receipt(11L, "evt-1", "DOMAIN_PACK_DRAFT_CALLBACK");
+    given(webhookReceiptRepository.findByExternalEventId("evt-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt));
+    given(pipelineJobRepository.findById(11L))
+        .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willThrow(new DataIntegrityViolationException("unique violation"));
+
+    assertThatThrownBy(() -> useCase.execute(validCommand()))
+        .isInstanceOf(WebhookReceiptTypeConflictException.class);
+
     verify(addIntentsToDraftVersionUseCase, never()).execute(any());
   }
 
@@ -284,14 +314,13 @@ class ReceiveIntentDraftCallbackUseCaseTest {
   }
 
   private WebhookReceipt webhookReceipt(Long jobId, String externalEventId) {
+    return receipt(jobId, externalEventId, "INTENT_DRAFT_CALLBACK");
+  }
+
+  private WebhookReceipt receipt(Long jobId, String externalEventId, String webhookType) {
     WebhookReceipt receipt =
         WebhookReceipt.receive(
-            jobId,
-            externalEventId,
-            "INTENT_DRAFT_CALLBACK",
-            "{}",
-            "{}",
-            OffsetDateTime.now(fixedClock));
+            jobId, externalEventId, webhookType, "{}", "{}", OffsetDateTime.now(fixedClock));
     ReflectionTestUtils.setField(receipt, "id", 1L);
     return receipt;
   }

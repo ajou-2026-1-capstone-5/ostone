@@ -6,9 +6,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.application.AddWorkflowDraftToVersionCommand;
 import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
 import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
+import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.repository.DomainPackRepository;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
+import com.init.pipelinejob.application.exception.PipelineJobCallbackTargetMismatchException;
 import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
@@ -22,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -41,6 +47,8 @@ public class ReceiveWorkflowDraftCallbackUseCase {
   private final WebhookReceiptRepository webhookReceiptRepository;
   private final PipelineArtifactRepository pipelineArtifactRepository;
   private final AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase;
+  private final DomainPackVersionRepository domainPackVersionRepository;
+  private final DomainPackRepository domainPackRepository;
   private final Clock clock;
   private final ObjectMapper objectMapper;
   private final TransactionTemplate transactionTemplate;
@@ -51,6 +59,8 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       WebhookReceiptRepository webhookReceiptRepository,
       PipelineArtifactRepository pipelineArtifactRepository,
       AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase,
+      DomainPackVersionRepository domainPackVersionRepository,
+      DomainPackRepository domainPackRepository,
       Clock clock,
       ObjectMapper objectMapper,
       PlatformTransactionManager transactionManager,
@@ -59,6 +69,8 @@ public class ReceiveWorkflowDraftCallbackUseCase {
     this.webhookReceiptRepository = webhookReceiptRepository;
     this.pipelineArtifactRepository = pipelineArtifactRepository;
     this.addWorkflowDraftToVersionUseCase = addWorkflowDraftToVersionUseCase;
+    this.domainPackVersionRepository = domainPackVersionRepository;
+    this.domainPackRepository = domainPackRepository;
     this.clock = clock;
     this.objectMapper = objectMapper;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -118,6 +130,7 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       throw new PipelineJobCallbackNotAllowedException(
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
+    validateTargetVersion(job, command.domainPackVersionId());
 
     OffsetDateTime now = OffsetDateTime.now(clock);
     pipelineArtifactRepository.save(
@@ -236,6 +249,22 @@ public class ReceiveWorkflowDraftCallbackUseCase {
     if (receipt != null && !WEBHOOK_TYPE.equals(receipt.getWebhookType())) {
       throw new WebhookReceiptTypeConflictException(
           externalEventId, receipt.getWebhookType(), WEBHOOK_TYPE);
+    }
+  }
+
+  private void validateTargetVersion(PipelineJob job, Long domainPackVersionId) {
+    DomainPackVersion version =
+        domainPackVersionRepository
+            .findById(domainPackVersionId)
+            .orElseThrow(() -> new DomainPackVersionNotFoundException(domainPackVersionId));
+    if (!Objects.equals(job.getDomainPackId(), version.getDomainPackId())) {
+      throw new PipelineJobCallbackTargetMismatchException(
+          job.getId(), job.getDomainPackId(), domainPackVersionId, version.getDomainPackId());
+    }
+    if (!domainPackRepository.existsByIdAndWorkspaceId(
+        version.getDomainPackId(), job.getWorkspaceId())) {
+      throw new PipelineJobCallbackTargetMismatchException(
+          job.getId(), job.getDomainPackId(), domainPackVersionId, version.getDomainPackId());
     }
   }
 
