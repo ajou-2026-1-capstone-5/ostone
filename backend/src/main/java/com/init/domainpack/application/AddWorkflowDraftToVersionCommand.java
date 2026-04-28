@@ -1,6 +1,7 @@
 package com.init.domainpack.application;
 
 import java.util.List;
+import java.util.Objects;
 
 public record AddWorkflowDraftToVersionCommand(
     Long domainPackVersionId,
@@ -10,6 +11,20 @@ public record AddWorkflowDraftToVersionCommand(
     List<WorkflowDraft> workflows,
     List<IntentSlotBindingDraft> intentSlotBindings,
     List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
+
+  public AddWorkflowDraftToVersionCommand {
+    domainPackVersionId = Objects.requireNonNull(domainPackVersionId, "domainPackVersionId");
+    slots = immutableCopy(slots);
+    policies = immutableCopy(policies);
+    risks = immutableCopy(risks);
+    workflows = immutableCopy(workflows);
+    intentSlotBindings = immutableCopy(intentSlotBindings);
+    intentWorkflowBindings = immutableCopy(intentWorkflowBindings);
+  }
+
+  private static <T> List<T> immutableCopy(List<T> values) {
+    return values == null || values.isEmpty() ? List.of() : List.copyOf(values);
+  }
 
   public record SlotDraft(
       String slotCode,

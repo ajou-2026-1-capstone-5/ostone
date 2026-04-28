@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -275,23 +276,24 @@ public class DomainPackDraftPersistenceService {
             toIntentWorkflowBindingInputsFromWorkflowCallback(intentWorkflowBindings));
     validateNonEmptyWorkflowDraft(components);
 
+    ensureDraftPayloadUnique(
+        List.of(),
+        components.slots(),
+        components.intentSlotBindings(),
+        components.policies(),
+        components.risks(),
+        components.workflows(),
+        components.intentWorkflowBindings());
+    List<ParsedWorkflowInput> parsedWorkflows = parseWorkflowInputs(components.workflows());
     Set<String> submittedPolicyCodes =
         components.policies().stream().map(PolicyInput::policyCode).collect(Collectors.toSet());
     Set<String> existingPolicyCodes =
-        findExistingPolicyCodes(
-            domainPackVersionId, collectWorkflowPolicyRefs(components.workflows()));
-    Set<String> allowedPolicyCodes = submittedPolicyCodes.stream().collect(Collectors.toSet());
-    allowedPolicyCodes.addAll(existingPolicyCodes);
+        findExistingPolicyCodes(domainPackVersionId, collectWorkflowPolicyRefs(parsedWorkflows));
+    Set<String> allowedPolicyCodes =
+        Stream.concat(submittedPolicyCodes.stream(), existingPolicyCodes.stream())
+            .collect(Collectors.toSet());
     List<WorkflowInput> validatedWorkflows =
-        validateDraftPayload(
-            List.of(),
-            components.slots(),
-            components.intentSlotBindings(),
-            components.policies(),
-            components.risks(),
-            components.workflows(),
-            components.intentWorkflowBindings(),
-            allowedPolicyCodes);
+        validateParsedWorkflows(parsedWorkflows, components.policies(), allowedPolicyCodes);
 
     Map<String, IntentDefinition> intentsByCode =
         indexByCode(
@@ -440,6 +442,20 @@ public class DomainPackDraftPersistenceService {
       List<WorkflowInput> workflows,
       List<IntentWorkflowBindingInput> intentWorkflowBindings,
       Set<String> allowedPolicyCodes) {
+    ensureDraftPayloadUnique(
+        intents, slots, intentSlotBindings, policies, risks, workflows, intentWorkflowBindings);
+    return validateParsedWorkflows(
+        parseWorkflowInputs(safeList(workflows)), policies, allowedPolicyCodes);
+  }
+
+  private void ensureDraftPayloadUnique(
+      List<IntentDraft> intents,
+      List<SlotInput> slots,
+      List<IntentSlotBindingInput> intentSlotBindings,
+      List<PolicyInput> policies,
+      List<RiskInput> risks,
+      List<WorkflowInput> workflows,
+      List<IntentWorkflowBindingInput> intentWorkflowBindings) {
     ensureUnique(safeList(intents), IntentDraft::intentCode, "intentCode");
     ensureUnique(safeList(slots), SlotInput::slotCode, "slotCode");
     ensureUnique(safeList(policies), PolicyInput::policyCode, "policyCode");
@@ -453,20 +469,24 @@ public class DomainPackDraftPersistenceService {
         safeList(intentWorkflowBindings),
         binding -> binding.intentCode() + "::" + binding.workflowCode(),
         "intentWorkflowBinding");
+  }
 
+  private List<WorkflowInput> validateParsedWorkflows(
+      List<ParsedWorkflowInput> workflows,
+      List<PolicyInput> policies,
+      Set<String> allowedPolicyCodes) {
     Set<String> submittedPolicyCodes =
         safeList(policies).stream().map(PolicyInput::policyCode).collect(Collectors.toSet());
-    Set<String> policyCodes = submittedPolicyCodes.stream().collect(Collectors.toSet());
-    policyCodes.addAll(allowedPolicyCodes);
-    return safeList(workflows).stream()
-        .map(w -> validateAndNormalizeWorkflow(w, policyCodes))
-        .toList();
+    Set<String> policyCodes =
+        Stream.concat(submittedPolicyCodes.stream(), allowedPolicyCodes.stream())
+            .collect(Collectors.toSet());
+    return workflows.stream().map(w -> validateAndNormalizeWorkflow(w, policyCodes)).toList();
   }
 
   private WorkflowInput validateAndNormalizeWorkflow(
-      WorkflowInput workflow, Set<String> allowedPolicyCodes) {
-    WorkflowGraphValidator.ParsedGraph graph =
-        WorkflowGraphValidator.parseAndValidate(workflow.graphJson(), workflow.workflowCode());
+      ParsedWorkflowInput parsedWorkflow, Set<String> allowedPolicyCodes) {
+    WorkflowInput workflow = parsedWorkflow.workflow();
+    WorkflowGraphValidator.ParsedGraph graph = parsedWorkflow.graph();
     graph.nodes().stream()
         .filter(n -> "ACTION".equals(n.type()))
         .map(WorkflowGraphValidator.GraphNode::policyRef)
@@ -498,17 +518,23 @@ public class DomainPackDraftPersistenceService {
     }
   }
 
-  private Set<String> collectWorkflowPolicyRefs(List<WorkflowInput> workflows) {
+  private Set<String> collectWorkflowPolicyRefs(List<ParsedWorkflowInput> workflows) {
     return workflows.stream()
-        .flatMap(
-            workflow ->
-                WorkflowGraphValidator.parseAndValidate(
-                    workflow.graphJson(), workflow.workflowCode())
-                    .nodes()
-                    .stream())
+        .flatMap(workflow -> workflow.graph().nodes().stream())
         .filter(node -> "ACTION".equals(node.type()))
         .map(WorkflowGraphValidator.GraphNode::policyRef)
         .collect(Collectors.toSet());
+  }
+
+  private List<ParsedWorkflowInput> parseWorkflowInputs(List<WorkflowInput> workflows) {
+    return workflows.stream()
+        .map(
+            workflow ->
+                new ParsedWorkflowInput(
+                    workflow,
+                    WorkflowGraphValidator.parseAndValidate(
+                        workflow.graphJson(), workflow.workflowCode())))
+        .toList();
   }
 
   private Set<String> findExistingPolicyCodes(Long domainPackVersionId, Set<String> policyCodes) {
@@ -767,6 +793,9 @@ public class DomainPackDraftPersistenceService {
 
   private record IntentWorkflowBindingInput(
       String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
+
+  private record ParsedWorkflowInput(
+      WorkflowInput workflow, WorkflowGraphValidator.ParsedGraph graph) {}
 
   private record SavedDraftComponents(
       int addedSlotCount,

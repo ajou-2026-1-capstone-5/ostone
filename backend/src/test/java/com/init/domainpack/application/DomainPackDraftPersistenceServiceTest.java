@@ -13,12 +13,6 @@ import com.init.domainpack.application.exception.DomainPackVersionNotFoundExcept
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
-import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
-import com.init.domainpack.domain.model.PolicyDefinition;
-import com.init.domainpack.domain.model.RiskDefinition;
-import com.init.domainpack.domain.model.SlotDefinition;
-import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
@@ -353,11 +347,20 @@ class DomainPackDraftPersistenceServiceTest {
   }
 
   private boolean hasIdField(Object entity) {
-    return entity instanceof SlotDefinition
-        || entity instanceof PolicyDefinition
-        || entity instanceof RiskDefinition
-        || entity instanceof WorkflowDefinition
-        || entity instanceof IntentSlotBinding
-        || entity instanceof IntentWorkflowBinding;
+    if (entity == null) {
+      return false;
+    }
+    Class<?> current = entity.getClass();
+    while (current != null) {
+      try {
+        current.getDeclaredField("id");
+        return true;
+      } catch (NoSuchFieldException ex) {
+        current = current.getSuperclass();
+      } catch (SecurityException ex) {
+        return false;
+      }
+    }
+    return false;
   }
 }
