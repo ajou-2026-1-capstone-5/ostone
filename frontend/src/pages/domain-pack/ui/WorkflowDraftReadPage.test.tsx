@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { WorkflowEditSheet } from "../../../features/update-workflow";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WorkflowDraftReadPage } from "./WorkflowDraftReadPage";
 
@@ -17,11 +18,20 @@ vi.mock("../../../features/workflow-draft-read/ui", () => ({
       ListPanel
     </button>
   ),
-  WorkflowDetailPanel: () => <div>DetailPanel</div>,
+  WorkflowDetailPanel: ({ onEdit }: { onEdit?: () => void }) => (
+    <div>
+      <span>DetailPanel</span>
+      {onEdit && (
+        <button type="button" onClick={onEdit}>
+          Edit
+        </button>
+      )}
+    </div>
+  ),
 }));
 
 vi.mock("../../../features/update-workflow", () => ({
-  WorkflowEditSheet: () => null,
+  WorkflowEditSheet: vi.fn(() => null),
 }));
 
 const ROUTE =
@@ -38,6 +48,10 @@ function renderPage(path: string) {
 }
 
 describe("WorkflowDraftReadPage", () => {
+  beforeEach(() => {
+    vi.mocked(WorkflowEditSheet).mockReturnValue(null);
+  });
+
   it("유효하지 않은 URL 파라미터는 에러 메시지를 보여준다", () => {
     renderPage("/workspaces/abc/domain-packs/2/versions/3/workflows");
     expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -76,5 +90,30 @@ describe("WorkflowDraftReadPage", () => {
   it("workflowId가 있으면 목록 버튼(← 목록)이 보인다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
     expect(screen.getByRole("button", { name: /목록/ })).toBeInTheDocument();
+  });
+
+  it("Edit 버튼 클릭 시 WorkflowEditSheet의 isOpen이 true가 된다", () => {
+    vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen }) =>
+      isOpen ? <div data-testid="edit-sheet-open" /> : null,
+    );
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    expect(screen.queryByTestId("edit-sheet-open")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByTestId("edit-sheet-open")).toBeInTheDocument();
+  });
+
+  it("WorkflowEditSheet onClose 호출 시 sheet가 닫힌다", () => {
+    vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen, onClose }) =>
+      isOpen ? (
+        <button type="button" data-testid="close-btn" onClick={onClose}>
+          Close
+        </button>
+      ) : null,
+    );
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByTestId("close-btn")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("close-btn"));
+    expect(screen.queryByTestId("close-btn")).not.toBeInTheDocument();
   });
 });

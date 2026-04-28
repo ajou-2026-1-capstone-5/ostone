@@ -175,4 +175,89 @@ describe("WorkflowDetailPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
+
+  it("WORKFLOW_GRAPH_JSON_INVALID 에러 시 graph 손상 메시지로 toast를 호출한다", async () => {
+    const err = new ApiRequestError(422, "WORKFLOW_GRAPH_JSON_INVALID", "invalid graph");
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: err,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "graph 데이터가 손상되어 시각화를 표시할 수 없습니다.",
+      ),
+    );
+  });
+
+  it("ArrowRight 키로 다음 탭(JSON)으로 이동한다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Graph" }), { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "JSON" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("ArrowLeft 키로 이전 탭(Graph)으로 이동한다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: "JSON" }));
+    fireEvent.keyDown(screen.getByRole("tab", { name: "JSON" }), { key: "ArrowLeft" });
+    expect(screen.getByRole("tab", { name: "Graph" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("Home 키로 첫 번째 탭(Graph)으로 이동한다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: "Meta" }));
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Meta" }), { key: "Home" });
+    expect(screen.getByRole("tab", { name: "Graph" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("End 키로 마지막 탭(Meta)으로 이동한다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Graph" }), { key: "End" });
+    expect(screen.getByRole("tab", { name: "Meta" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("Meta 탭 — evidenceJson이 malformed JSON이면 raw 문자열을 표시한다", () => {
+    const badDetail = { ...stubDetail, evidenceJson: "not-valid-json" };
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: badDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: "Meta" }));
+    expect(screen.getByText("not-valid-json")).toBeInTheDocument();
+  });
 });
