@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { workflowKeys, patchWorkflow } from "@/entities/workflow";
+import { workflowQueryKeys, patchWorkflow } from "@/entities/workflow";
 import type { UpdateWorkflowRequest } from "@/entities/workflow";
 import { ApiRequestError } from "@/shared/api";
 
@@ -35,10 +35,10 @@ export function useUpdateWorkflow() {
       patchWorkflow(wsId, packId, versionId, workflowId, body),
     onSuccess: (_, { wsId, packId, versionId, workflowId }) => {
       queryClient.invalidateQueries({
-        queryKey: workflowKeys.detail(wsId, packId, versionId, workflowId),
+        queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId),
       });
       queryClient.invalidateQueries({
-        queryKey: workflowKeys.list(wsId, packId, versionId),
+        queryKey: workflowQueryKeys.list(wsId, packId, versionId),
       });
       toast.success("워크플로우가 수정되었습니다.");
     },
