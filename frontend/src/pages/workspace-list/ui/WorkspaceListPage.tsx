@@ -26,6 +26,9 @@ export function WorkspaceListPage() {
   const [archiveTarget, setArchiveTarget] = useState<WorkspaceResponse | null>(null);
   const [policyDraftLoadingWorkspaceId, setPolicyDraftLoadingWorkspaceId] =
     useState<number | null>(null);
+  const [riskDraftLoadingWorkspaceId, setRiskDraftLoadingWorkspaceId] = useState<number | null>(
+    null,
+  );
 
   const fetchWorkspaces = useCallback(async () => {
     setIsLoading(true);
@@ -49,7 +52,7 @@ export function WorkspaceListPage() {
   };
 
   const handleOpenPolicyDraft = (workspace: WorkspaceResponse) => {
-    if (policyDraftLoadingWorkspaceId !== null) {
+    if (policyDraftLoadingWorkspaceId !== null || riskDraftLoadingWorkspaceId !== null) {
       return;
     }
 
@@ -68,6 +71,30 @@ export function WorkspaceListPage() {
         toast.error("정책 편집 화면으로 이동하지 못했습니다.");
       } finally {
         setPolicyDraftLoadingWorkspaceId(null);
+      }
+    })();
+  };
+
+  const handleOpenRiskDraft = (workspace: WorkspaceResponse) => {
+    if (policyDraftLoadingWorkspaceId !== null || riskDraftLoadingWorkspaceId !== null) {
+      return;
+    }
+
+    setRiskDraftLoadingWorkspaceId(workspace.id);
+    void (async () => {
+      try {
+        const entry = await domainPackApi.getDraftEntry(workspace.id);
+        navigate(
+          `/workspaces/${workspace.id}/domain-packs/${entry.packId}/versions/${entry.versionId}/risks`,
+        );
+      } catch (err) {
+        if (err instanceof ApiRequestError && err.code === DOMAIN_PACK_DRAFT_ENTRY_NOT_FOUND) {
+          toast.error("조회 가능한 Risk 초안이 없습니다.");
+          return;
+        }
+        toast.error("Risk 조회 화면으로 이동하지 못했습니다.");
+      } finally {
+        setRiskDraftLoadingWorkspaceId(null);
       }
     })();
   };
@@ -102,7 +129,9 @@ export function WorkspaceListPage() {
             onCreate={() => setIsCreateOpen(true)}
             onOpen={handleOpenWorkspace}
             onOpenPolicyDraft={handleOpenPolicyDraft}
+            onOpenRiskDraft={handleOpenRiskDraft}
             policyDraftLoadingWorkspaceId={policyDraftLoadingWorkspaceId}
+            riskDraftLoadingWorkspaceId={riskDraftLoadingWorkspaceId}
             onEdit={(workspace) => setEditTarget(workspace)}
             onDelete={(workspace) => setArchiveTarget(workspace)}
           />

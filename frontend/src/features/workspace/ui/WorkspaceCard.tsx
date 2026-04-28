@@ -1,4 +1,10 @@
-import { ArrowRightIcon, FilePenLineIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowRightIcon,
+  FilePenLineIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { normalizeWorkspaceMemberRole, type WorkspaceResponse } from "@/entities/workspace";
 import { Button } from "@/shared/ui/button";
@@ -11,8 +17,10 @@ interface WorkspaceCardProps {
   workspace: WorkspaceResponse;
   onOpen: (workspace: WorkspaceResponse) => void;
   onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+  onOpenRiskDraft: (workspace: WorkspaceResponse) => void;
   isPolicyDraftLoading: boolean;
-  isPolicyDraftDisabled: boolean;
+  isRiskDraftLoading: boolean;
+  isDraftNavigationDisabled: boolean;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -23,13 +31,16 @@ export function WorkspaceCard({
   workspace,
   onOpen,
   onOpenPolicyDraft,
+  onOpenRiskDraft,
   isPolicyDraftLoading,
-  isPolicyDraftDisabled,
+  isRiskDraftLoading,
+  isDraftNavigationDisabled,
   onEdit,
   onDelete,
 }: WorkspaceCardProps) {
   const handleOpen = () => onOpen(workspace);
   const handleOpenPolicyDraft = () => onOpenPolicyDraft(workspace);
+  const handleOpenRiskDraft = () => onOpenRiskDraft(workspace);
 
   const normalizedRole = normalizeWorkspaceMemberRole(workspace.myRole);
   const canEdit = normalizedRole !== null && EDITABLE_ROLES.has(normalizedRole);
@@ -57,11 +68,25 @@ export function WorkspaceCard({
             variant="outline"
             className={styles.policyButton}
             onClick={handleOpenPolicyDraft}
-            disabled={isPolicyDraftLoading || isPolicyDraftDisabled}
+            disabled={isPolicyDraftLoading || isDraftNavigationDisabled}
             aria-busy={isPolicyDraftLoading}
           >
             {isPolicyDraftLoading ? <Spinner className="size-4" /> : <FilePenLineIcon className="size-4" />}
             {isPolicyDraftLoading ? "이동 중" : "Policy 편집"}
+          </Button>
+          <Button
+            variant="outline"
+            className={styles.riskButton}
+            onClick={handleOpenRiskDraft}
+            disabled={isRiskDraftLoading || isDraftNavigationDisabled}
+            aria-busy={isRiskDraftLoading}
+          >
+            {isRiskDraftLoading ? (
+              <Spinner className="size-4" />
+            ) : (
+              <AlertTriangleIcon className="size-4" />
+            )}
+            {isRiskDraftLoading ? "이동 중" : "Risk 조회"}
           </Button>
         </div>
         <div className={styles.cardActions}>

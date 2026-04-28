@@ -23,8 +23,10 @@ describe("WorkspaceCard", () => {
         workspace={baseWorkspace}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         isPolicyDraftLoading={false}
-        isPolicyDraftDisabled={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -43,8 +45,10 @@ describe("WorkspaceCard", () => {
         }}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         isPolicyDraftLoading={false}
-        isPolicyDraftDisabled={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -61,8 +65,10 @@ describe("WorkspaceCard", () => {
         workspace={baseWorkspace}
         onOpen={onOpen}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         isPolicyDraftLoading={false}
-        isPolicyDraftDisabled={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -85,8 +91,10 @@ describe("WorkspaceCard", () => {
         workspace={baseWorkspace}
         onOpen={vi.fn()}
         onOpenPolicyDraft={onOpenPolicyDraft}
+        onOpenRiskDraft={vi.fn()}
         isPolicyDraftLoading={false}
-        isPolicyDraftDisabled={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled={false}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -97,14 +105,37 @@ describe("WorkspaceCard", () => {
     expect(onOpenPolicyDraft).toHaveBeenCalledWith(baseWorkspace);
   });
 
+  it("invokes onOpenRiskDraft with the workspace when the risk read button is clicked", () => {
+    const onOpenRiskDraft = vi.fn();
+    render(
+      <WorkspaceCard
+        workspace={baseWorkspace}
+        onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={onOpenRiskDraft}
+        isPolicyDraftLoading={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Risk 조회/ }));
+
+    expect(onOpenRiskDraft).toHaveBeenCalledWith(baseWorkspace);
+  });
+
   it("disables the policy edit button while draft entry navigation is loading", () => {
     render(
       <WorkspaceCard
         workspace={baseWorkspace}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         isPolicyDraftLoading
-        isPolicyDraftDisabled={false}
+        isRiskDraftLoading={false}
+        isDraftNavigationDisabled
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
