@@ -1,6 +1,7 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RiskDetailPanel, RiskListPanel } from "@/features/risk-draft-read/ui";
+import { RiskEditPanel } from "@/features/update-risk";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
 import styles from "./risk-draft-read-page.module.css";
@@ -8,6 +9,7 @@ import styles from "./risk-draft-read-page.module.css";
 export function RiskDraftReadPage() {
   const { workspaceId, packId, versionId, riskId } = useParams();
   const navigate = useNavigate();
+  const [editingRiskId, setEditingRiskId] = useState<number | null>(null);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
@@ -27,6 +29,7 @@ export function RiskDraftReadPage() {
 
   const riskListPath = `/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/risks`;
   const hasSelection = selectedRiskId !== null;
+  const activeEditingRiskId = editingRiskId === selectedRiskId ? editingRiskId : null;
   const breadcrumbs = [
     ["WS", wsId],
     ["PACK", pId],
@@ -50,15 +53,18 @@ export function RiskDraftReadPage() {
             ))}
           </nav>
           <div className={styles.versionMeta}>
-            <span className={styles.versionTitle}>Risk Factor 초안 조회</span>
-            <span className={styles.versionBadge}>READ ONLY</span>
+            <span className={styles.versionTitle}>Risk Factor 초안 편집</span>
+            <span className={styles.versionBadge}>READ / EDIT</span>
           </div>
         </header>
         {hasSelection && (
           <button
             type="button"
             className={styles.backButton}
-            onClick={() => navigate(riskListPath)}
+            onClick={() => {
+              setEditingRiskId(null);
+              navigate(riskListPath);
+            }}
           >
             ← 목록
           </button>
@@ -70,16 +76,30 @@ export function RiskDraftReadPage() {
               packId={pId}
               versionId={vId}
               selectedId={selectedRiskId}
-              onSelect={(id) => navigate(`${riskListPath}/${id}`)}
+              onSelect={(id) => {
+                setEditingRiskId(null);
+                navigate(`${riskListPath}/${id}`);
+              }}
             />
           </div>
           <div className={styles.detailSlot}>
-            <RiskDetailPanel
-              workspaceId={wsId}
-              packId={pId}
-              versionId={vId}
-              riskId={selectedRiskId}
-            />
+            {activeEditingRiskId === null ? (
+              <RiskDetailPanel
+                workspaceId={wsId}
+                packId={pId}
+                versionId={vId}
+                riskId={selectedRiskId}
+                onEdit={setEditingRiskId}
+              />
+            ) : (
+              <RiskEditPanel
+                workspaceId={wsId}
+                packId={pId}
+                versionId={vId}
+                riskId={activeEditingRiskId}
+                onClose={() => setEditingRiskId(null)}
+              />
+            )}
           </div>
         </div>
       </div>

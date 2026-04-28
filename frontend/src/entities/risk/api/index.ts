@@ -1,5 +1,10 @@
 import { apiClient } from "@/shared/api";
-import type { RiskDefinition, RiskSummary } from "../model/types";
+import type {
+  RiskDefinition,
+  RiskSummary,
+  UpdateRiskRequest,
+  UpdateRiskStatusRequest,
+} from "../model/types";
 
 export const riskKeys = {
   all: ["risks"] as const,
@@ -19,4 +24,28 @@ export const riskApi = {
 
   detail: (workspaceId: number, packId: number, versionId: number, riskId: number) =>
     apiClient.get<RiskDefinition>(`${basePath(workspaceId, packId, versionId)}/${riskId}`),
+
+  update: (
+    workspaceId: number,
+    packId: number,
+    versionId: number,
+    riskId: number,
+    body: UpdateRiskRequest,
+  ) =>
+    apiClient.patch<RiskDefinition>(
+      `${basePath(workspaceId, packId, versionId)}/${riskId}`,
+      body,
+    ),
+
+  updateStatus: (
+    workspaceId: number,
+    packId: number,
+    versionId: number,
+    riskId: number,
+    body: UpdateRiskStatusRequest,
+  ) =>
+    apiClient.patch<RiskDefinition>(
+      `${basePath(workspaceId, packId, versionId)}/${riskId}/status`,
+      body,
+    ),
 };
