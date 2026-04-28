@@ -9,7 +9,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import NotRequired, Protocol, TypedDict, cast
 
-from pipeline.common.artifacts import ensure_stage_directory
+from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
@@ -26,6 +26,11 @@ class ManifestPayload(TypedDict, total=False):
 
 
 class Manifest(TypedDict, total=False):
+    dag_id: str
+    run_id: str
+    workspace_id: str | None
+    dataset_id: str | None
+    pipeline_job_id: str | None
     payload: ManifestPayload
 
 
@@ -58,11 +63,28 @@ class OrjsonLike(Protocol):
     def dumps(self, obj: object, /, *, option: int = 0) -> bytes: ...
 
 
-def read_ingestion_artifact(upstream_manifest_path: str | None) -> Iterator[Conversation]:
-    if upstream_manifest_path is None:
-        raise PipelineConfigurationError("upstream_manifest_path must not be None.")
+def read_stage_context(upstream_manifest_path: str | None, stage_name: str) -> StageContext:
+    manifest_path = _require_manifest_path(upstream_manifest_path)
 
-    manifest_path = Path(upstream_manifest_path)
+    try:
+        manifest = _load_manifest(manifest_path)
+    except OSError as exc:
+        raise PipelineStageError(f"Failed to read upstream manifest for stage context: {manifest_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise PipelineStageError(f"Invalid upstream manifest JSON for stage context: {manifest_path}") from exc
+
+    return StageContext(
+        dag_id=_required_manifest_str(manifest, "dag_id", manifest_path),
+        run_id=_required_manifest_str(manifest, "run_id", manifest_path),
+        stage_name=stage_name,
+        workspace_id=_optional_str(manifest.get("workspace_id")),
+        dataset_id=_optional_str(manifest.get("dataset_id")),
+        pipeline_job_id=_optional_str(manifest.get("pipeline_job_id")),
+    )
+
+
+def read_ingestion_artifact(upstream_manifest_path: str | None) -> Iterator[Conversation]:
+    manifest_path = _require_manifest_path(upstream_manifest_path)
 
     try:
         manifest = _load_manifest(manifest_path)
@@ -84,7 +106,7 @@ def write_preprocessed_artifact(
     runtime_config: PipelineRuntimeConfig,
     processed: Sequence[ProcessedConversation],
     stats: dict[str, object],
-) -> Path:
+) -> dict[str, str]:
     output_dir = ensure_stage_directory(stage_context, runtime_config)
 
     output_path = output_dir / "preprocessed_conversations.json"
@@ -101,11 +123,17 @@ def write_preprocessed_artifact(
     if orjson_module is not None:
         json_bytes = orjson_module.dumps(output, option=orjson_module.OPT_INDENT_2)
         _ = output_path.write_bytes(json_bytes)
-        return output_path.resolve()
+    else:
+        _ = output_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    _ = output_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    return output_path.resolve()
+    manifest_path = write_stage_manifest(
+        stage_context,
+        runtime_config,
+        {
+            "artifact_path": output_path.name,
+        },
+    )
+    return {"artifact_manifest_path": str(manifest_path.resolve())}
 
 
 def _load_manifest(manifest_path: Path) -> Manifest:
@@ -113,6 +141,19 @@ def _load_manifest(manifest_path: Path) -> Manifest:
     if not isinstance(manifest_data, dict):
         raise PipelineStageError(f"Ingestion manifest must be a JSON object: {manifest_path}")
     return cast(Manifest, cast(object, manifest_data))
+
+
+def _require_manifest_path(upstream_manifest_path: str | None) -> Path:
+    if upstream_manifest_path is None:
+        raise PipelineConfigurationError("upstream_manifest_path must not be None.")
+    return Path(upstream_manifest_path)
+
+
+def _required_manifest_str(manifest: Manifest, key: str, manifest_path: Path) -> str:
+    value = manifest.get(key)
+    if isinstance(value, str) and value:
+        return value
+    raise PipelineStageError(f"Manifest field {key!r} must be a non-empty string: {manifest_path}")
 
 
 def _resolve_artifact_path(manifest_path: Path, manifest: Manifest) -> Path:
@@ -196,7 +237,7 @@ def _serialize_processed_conversation(conversation: ProcessedConversation) -> di
         "ended_status": conversation.ended_status,
         "canonical_text": conversation.canonical_text,
         "customer_problem_text": conversation.customer_problem_text,
-        "flow_signature": list(conversation.flow_signature),
+        "flow_signature": [float(value) for value in conversation.flow_signature],
         "flow_signature_dim": conversation.flow_signature_dim,
         "turn_count": conversation.turn_count,
         "customer_turn_count": conversation.customer_turn_count,
