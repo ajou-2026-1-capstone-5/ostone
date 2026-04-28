@@ -7,7 +7,10 @@ authors = [
     { name = "kang-heewon", email = "heewon.dev@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "numpy>=2.0",
+    "orjson>=3.10",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.2,<0.12"]
