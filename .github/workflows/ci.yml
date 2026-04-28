@@ -51,7 +51,7 @@ jobs:
 
           if [[ "$BRANCH" =~ ^(feature|fix)/([0-9]+)-[^/]+$ ]]; then
             ISSUE_NUM="${BASH_REMATCH[2]}"
-          elif [[ "$BRANCH" =~ ^spec/([0-9]+)$ ]]; then
+          elif [[ "$BRANCH" =~ ^spec/([0-9][0-9._-]*)$ ]]; then
             ISSUE_NUM="${BASH_REMATCH[1]}"
           else
             echo "❌ Branch '$BRANCH' does not match allowed patterns"

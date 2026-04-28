@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import { useRiskDetail } from "../model/useRiskDetail";
@@ -32,8 +32,9 @@ const stubRisk = {
   updatedAt: "2026-04-16T10:00:00Z",
 };
 
-function renderPanel() {
-  render(<RiskDetailPanel workspaceId={1} packId={2} versionId={3} riskId={4} />);
+function renderPanel(onEdit = vi.fn()) {
+  render(<RiskDetailPanel workspaceId={1} packId={2} versionId={3} riskId={4} onEdit={onEdit} />);
+  return { onEdit };
 }
 
 describe("RiskDetailPanel", () => {
@@ -60,6 +61,15 @@ describe("RiskDetailPanel", () => {
     expect(screen.getByText(/MANUAL_REVIEW/)).toBeInTheDocument();
     expect(screen.getByText("Trigger Condition")).toBeInTheDocument();
     expect(screen.getByText("Handling Action")).toBeInTheDocument();
+  });
+
+  it("수정 버튼을 누르면 onEdit에 riskId를 전달한다", () => {
+    mockedUseRiskDetail.mockReturnValue({ status: "ready", data: stubRisk });
+    const { onEdit } = renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: "RISK_FRAUD 위험요소 수정" }));
+
+    expect(onEdit).toHaveBeenCalledWith(4);
   });
 
   it("error 상태에서는 toast와 재시도 버튼을 보여준다", () => {
