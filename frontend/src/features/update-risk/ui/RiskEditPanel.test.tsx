@@ -8,7 +8,21 @@ vi.mock("../api/useGetRisk", () => ({
 }));
 
 vi.mock("./RiskEditForm", () => ({
-  RiskEditForm: () => <div data-testid="risk-edit-form">form</div>,
+  RiskEditForm: ({
+    risk,
+    workspaceId,
+    packId,
+    versionId,
+  }: {
+    risk: { riskCode: string; name: string };
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+  }) => (
+    <div data-testid="risk-edit-form">
+      {risk.riskCode} · {risk.name} · {workspaceId}/{packId}/{versionId}
+    </div>
+  ),
 }));
 
 const mockedUseGetRisk = vi.mocked(useGetRisk);
@@ -47,7 +61,7 @@ describe("RiskEditPanel", () => {
     render(<RiskEditPanel workspaceId={1} packId={2} versionId={3} riskId={4} onClose={vi.fn()} />);
 
     expect(screen.getByText("RISK_FRAUD · 사기 위험")).toBeInTheDocument();
-    expect(screen.getByTestId("risk-edit-form")).toBeInTheDocument();
+    expect(screen.getByTestId("risk-edit-form")).toHaveTextContent("RISK_FRAUD · 사기 위험 · 1/2/3");
   });
 
   it("닫기 버튼을 누르면 onClose를 호출한다", () => {
@@ -79,5 +93,19 @@ describe("RiskEditPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("기존 데이터가 있으면 후속 조회 실패 중에도 수정 폼을 유지한다", () => {
+    mockedUseGetRisk.mockReturnValue({
+      data: stubRisk,
+      isLoading: false,
+      isError: true,
+      refetch,
+    } as unknown as ReturnType<typeof useGetRisk>);
+
+    render(<RiskEditPanel workspaceId={1} packId={2} versionId={3} riskId={4} onClose={vi.fn()} />);
+
+    expect(screen.getByTestId("risk-edit-form")).toHaveTextContent("RISK_FRAUD · 사기 위험");
+    expect(screen.queryByRole("button", { name: "다시 시도" })).not.toBeInTheDocument();
   });
 });

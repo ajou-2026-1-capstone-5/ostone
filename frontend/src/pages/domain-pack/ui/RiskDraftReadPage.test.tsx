@@ -82,6 +82,15 @@ describe("RiskDraftReadPage", () => {
     expect(screen.getByText("risk detail")).toBeInTheDocument();
   });
 
+  it("현재 선택과 다른 위험요소 편집 상태는 무시한다", () => {
+    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/5");
+
+    fireEvent.click(screen.getByRole("button", { name: "edit risk" }));
+
+    expect(screen.queryByText("risk edit panel")).not.toBeInTheDocument();
+    expect(screen.getByText("risk detail")).toBeInTheDocument();
+  });
+
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
     renderPage("/workspaces/abc/domain-packs/7/versions/101/risks");
 

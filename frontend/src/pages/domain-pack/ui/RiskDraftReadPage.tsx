@@ -6,16 +6,22 @@ import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
 import styles from "./risk-draft-read-page.module.css";
 
+interface EditingRiskState {
+  routeKey: string;
+  riskId: number;
+}
+
 export function RiskDraftReadPage() {
   const { workspaceId, packId, versionId, riskId } = useParams();
   const navigate = useNavigate();
-  const [editingRiskId, setEditingRiskId] = useState<number | null>(null);
+  const [editingRisk, setEditingRisk] = useState<EditingRiskState | null>(null);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
   const vId = parseRouteId(versionId);
   const selectedRiskId = riskId ? parseRouteId(riskId) : null;
   const hasInvalidRiskId = riskId !== undefined && selectedRiskId === null;
+  const routeKey = `${wsId}:${pId}:${vId}:${selectedRiskId}`;
 
   if (wsId === null || pId === null || vId === null || hasInvalidRiskId) {
     return (
@@ -29,7 +35,10 @@ export function RiskDraftReadPage() {
 
   const riskListPath = `/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/risks`;
   const hasSelection = selectedRiskId !== null;
-  const activeEditingRiskId = editingRiskId === selectedRiskId ? editingRiskId : null;
+  const activeEditingRiskId =
+    editingRisk?.routeKey === routeKey && editingRisk.riskId === selectedRiskId
+      ? editingRisk.riskId
+      : null;
   const breadcrumbs = [
     ["WS", wsId],
     ["PACK", pId],
@@ -62,7 +71,7 @@ export function RiskDraftReadPage() {
             type="button"
             className={styles.backButton}
             onClick={() => {
-              setEditingRiskId(null);
+              setEditingRisk(null);
               navigate(riskListPath);
             }}
           >
@@ -77,7 +86,7 @@ export function RiskDraftReadPage() {
               versionId={vId}
               selectedId={selectedRiskId}
               onSelect={(id) => {
-                setEditingRiskId(null);
+                setEditingRisk(null);
                 navigate(`${riskListPath}/${id}`);
               }}
             />
@@ -89,7 +98,7 @@ export function RiskDraftReadPage() {
                 packId={pId}
                 versionId={vId}
                 riskId={selectedRiskId}
-                onEdit={setEditingRiskId}
+                onEdit={(id) => setEditingRisk({ routeKey, riskId: id })}
               />
             ) : (
               <RiskEditPanel
@@ -97,7 +106,7 @@ export function RiskDraftReadPage() {
                 packId={pId}
                 versionId={vId}
                 riskId={activeEditingRiskId}
-                onClose={() => setEditingRiskId(null)}
+                onClose={() => setEditingRisk(null)}
               />
             )}
           </div>

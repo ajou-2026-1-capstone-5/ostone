@@ -35,6 +35,10 @@ export function RiskEditPanel({
     riskId,
     enabled: true,
   });
+  const hasRisk = risk !== undefined;
+  const showInitialLoading = isLoading && !hasRisk;
+  const showLoadError = isError && !hasRisk;
+  const showEmptyState = !isLoading && !isError && !hasRisk;
 
   return (
     <section className={styles.panel} aria-label="위험요소 수정">
@@ -57,13 +61,13 @@ export function RiskEditPanel({
         </button>
       </header>
 
-      {isLoading && (
+      {showInitialLoading && (
         <div className={styles.statePanel}>
           <Spinner className={styles.spinner} />
         </div>
       )}
 
-      {isError && (
+      {showLoadError && (
         <div className={styles.statePanel}>
           <span>{RISK_ERROR_MESSAGES.LOAD_FAILED}</span>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -72,7 +76,7 @@ export function RiskEditPanel({
         </div>
       )}
 
-      {risk && !isLoading && !isError && (
+      {hasRisk && (
         <div className={styles.body}>
           <RiskEditForm
             risk={risk}
@@ -81,6 +85,12 @@ export function RiskEditPanel({
             versionId={versionId}
             onClose={onClose}
           />
+        </div>
+      )}
+
+      {showEmptyState && (
+        <div className={styles.statePanel}>
+          <span>위험요소 정보를 찾을 수 없습니다.</span>
         </div>
       )}
     </section>
