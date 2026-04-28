@@ -68,19 +68,17 @@ public class UpdateIntentStatusUseCase {
 
     IntentDefinition intent =
         intentRepository
-            .findById(command.intentId())
+            .findByIdAndDomainPackVersionId(command.intentId(), command.versionId())
             .orElseThrow(
                 () ->
                     new NotFoundException("NOT_FOUND", "Intent를 찾을 수 없습니다: " + command.intentId()));
 
-    if (!intent.getDomainPackVersionId().equals(command.versionId())) {
-      throw new NotFoundException("NOT_FOUND", "Intent를 찾을 수 없습니다: " + command.intentId());
-    }
-
     try {
       intent.changeStatus(command.status());
-    } catch (IllegalArgumentException | IllegalStateException e) {
+    } catch (IllegalArgumentException e) {
       throw new BadRequestException("VALIDATION_ERROR", e.getMessage());
+    } catch (IllegalStateException e) {
+      throw new BadRequestException("INTENT_NOT_EDITABLE", e.getMessage());
     }
 
     intentRepository.save(intent);

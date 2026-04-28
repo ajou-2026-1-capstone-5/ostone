@@ -53,7 +53,8 @@ class UpdateIntentStatusUseCaseTest {
 
     IntentDefinition intent = intent(99L, 10L);
     ReflectionTestUtils.setField(intent, "status", IntentDefinition.STATUS_DRAFT);
-    given(intentRepository.findById(99L)).willReturn(Optional.of(intent));
+    given(intentRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(intent));
     given(intentRepository.save(any())).willReturn(intent);
 
     UpdateIntentStatusCommand command =
@@ -71,12 +72,14 @@ class UpdateIntentStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     IntentDefinition intent = intent(99L, 10L);
-    given(intentRepository.findById(99L)).willReturn(Optional.of(intent));
+    given(intentRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(intent));
 
     assertThatThrownBy(
             () ->
                 useCase.execute(new UpdateIntentStatusCommand(1L, 7L, 10L, 99L, 5L, "DEPRECATED")))
-        .isInstanceOf(BadRequestException.class);
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("허용되지 않은 상태 값입니다");
   }
 
   @Test
@@ -105,7 +108,7 @@ class UpdateIntentStatusUseCaseTest {
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
 
     IntentDefinition intent = intent(99L, 999L);
-    given(intentRepository.findById(99L)).willReturn(Optional.of(intent));
+    given(intentRepository.findByIdAndDomainPackVersionId(99L, 10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
@@ -184,7 +187,7 @@ class UpdateIntentStatusUseCaseTest {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L)).willReturn(Optional.of(draftVersion(10L, 7L)));
-    given(intentRepository.findById(99L)).willReturn(Optional.empty());
+    given(intentRepository.findByIdAndDomainPackVersionId(99L, 10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->

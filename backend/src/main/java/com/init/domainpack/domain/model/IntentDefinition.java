@@ -18,7 +18,12 @@ import org.hibernate.type.SqlTypes;
 public class IntentDefinition {
 
   public static final String STATUS_DRAFT = "DRAFT";
-  public static final String STATUS_ACTIVE = "ACTIVE";
+
+  /**
+   * @deprecated DRAFT 기반 워크플로우로 전환됨. 하위 호환성 및 기존 마이그레이션 데이터 참조용으로 유지. 새 코드에서 사용하지 마세요.
+   */
+  @Deprecated public static final String STATUS_ACTIVE = "ACTIVE";
+
   public static final String STATUS_PUBLISHED = "PUBLISHED";
   public static final String STATUS_REJECTED = "REJECTED";
 
