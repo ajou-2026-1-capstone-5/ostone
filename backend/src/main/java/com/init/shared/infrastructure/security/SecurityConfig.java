@@ -55,6 +55,9 @@ public class SecurityConfig {
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/intent-drafts")
                     .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/workflow-drafts")
+                    .permitAll()
                     .requestMatchers("/api/v1/consultation/**")
                     .hasRole("OPERATOR")
                     .anyRequest()

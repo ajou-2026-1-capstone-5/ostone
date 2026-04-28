@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -161,9 +162,24 @@ public class DomainPackDraftPersistenceService {
       List<CreateDomainPackDraftCommand.RiskDraft> risks,
       List<CreateDomainPackDraftCommand.WorkflowDraft> workflows,
       List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
-    List<CreateDomainPackDraftCommand.WorkflowDraft> validatedWorkflows =
+    DraftComponentsInput components =
+        new DraftComponentsInput(
+            toSlotInputs(slots),
+            toPolicyInputs(policies),
+            toRiskInputs(risks),
+            toWorkflowInputs(workflows),
+            toIntentSlotBindingInputs(intentSlotBindings),
+            toIntentWorkflowBindingInputs(intentWorkflowBindings));
+    List<WorkflowInput> validatedWorkflows =
         validateDraftPayload(
-            intents, slots, intentSlotBindings, policies, risks, workflows, intentWorkflowBindings);
+            intents,
+            components.slots(),
+            components.intentSlotBindings(),
+            components.policies(),
+            components.risks(),
+            components.workflows(),
+            components.intentWorkflowBindings(),
+            Set.of());
 
     int nextVersionNo =
         domainPackVersionRepository.findMaxVersionNoByDomainPackId(packId).orElse(0) + 1;
@@ -219,13 +235,104 @@ public class DomainPackDraftPersistenceService {
       savedIntents = intentDefinitionRepository.saveAllAndFlush(savedIntents);
     }
 
+    SavedDraftComponents savedComponents =
+        saveDraftComponents(
+            savedVersion.getId(),
+            intentsByCode,
+            new DraftComponentsInput(
+                components.slots(),
+                components.policies(),
+                components.risks(),
+                validatedWorkflows,
+                components.intentSlotBindings(),
+                components.intentWorkflowBindings()));
+
+    return CreateDomainPackDraftResult.from(
+        savedVersion,
+        savedIntents.size(),
+        savedComponents.addedSlotCount(),
+        savedComponents.addedPolicyCount(),
+        savedComponents.addedRiskCount(),
+        savedComponents.addedWorkflowCount());
+  }
+
+  /** 기존 DRAFT 버전에 workflow 관련 초안을 추가 저장한다. intent는 새로 만들지 않고 기존 row를 참조한다. */
+  public AddWorkflowDraftToVersionResult persistWorkflowDraft(
+      Long domainPackVersionId,
+      List<AddWorkflowDraftToVersionCommand.SlotDraft> slots,
+      List<AddWorkflowDraftToVersionCommand.PolicyDraft> policies,
+      List<AddWorkflowDraftToVersionCommand.RiskDraft> risks,
+      List<AddWorkflowDraftToVersionCommand.WorkflowDraft> workflows,
+      List<AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft> intentSlotBindings,
+      List<AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
+    DomainPackVersion version = requireDraftVersion(domainPackVersionId);
+    DraftComponentsInput components =
+        new DraftComponentsInput(
+            toSlotInputsFromWorkflowCallback(slots),
+            toPolicyInputsFromWorkflowCallback(policies),
+            toRiskInputsFromWorkflowCallback(risks),
+            toWorkflowInputsFromWorkflowCallback(workflows),
+            toIntentSlotBindingInputsFromWorkflowCallback(intentSlotBindings),
+            toIntentWorkflowBindingInputsFromWorkflowCallback(intentWorkflowBindings));
+    validateNonEmptyWorkflowDraft(components);
+
+    ensureDraftPayloadUnique(
+        List.of(),
+        components.slots(),
+        components.intentSlotBindings(),
+        components.policies(),
+        components.risks(),
+        components.workflows(),
+        components.intentWorkflowBindings());
+    List<ParsedWorkflowInput> parsedWorkflows = parseWorkflowInputs(components.workflows());
+    Set<String> submittedPolicyCodes =
+        components.policies().stream().map(PolicyInput::policyCode).collect(Collectors.toSet());
+    Set<String> existingPolicyCodes =
+        findExistingPolicyCodes(domainPackVersionId, collectWorkflowPolicyRefs(parsedWorkflows));
+    Set<String> allowedPolicyCodes =
+        Stream.concat(submittedPolicyCodes.stream(), existingPolicyCodes.stream())
+            .collect(Collectors.toSet());
+    List<WorkflowInput> validatedWorkflows =
+        validateParsedWorkflows(parsedWorkflows, components.policies(), allowedPolicyCodes);
+
+    Map<String, IntentDefinition> intentsByCode =
+        indexByCode(
+            intentDefinitionRepository.findByDomainPackVersionId(domainPackVersionId),
+            IntentDefinition::getIntentCode);
+    SavedDraftComponents savedComponents =
+        saveDraftComponents(
+            domainPackVersionId,
+            intentsByCode,
+            new DraftComponentsInput(
+                components.slots(),
+                components.policies(),
+                components.risks(),
+                validatedWorkflows,
+                components.intentSlotBindings(),
+                components.intentWorkflowBindings()));
+
+    return new AddWorkflowDraftToVersionResult(
+        domainPackVersionId,
+        version.getDomainPackId(),
+        savedComponents.addedSlotCount(),
+        savedComponents.addedPolicyCount(),
+        savedComponents.addedRiskCount(),
+        savedComponents.addedWorkflowCount(),
+        savedComponents.addedIntentSlotBindingCount(),
+        savedComponents.addedIntentWorkflowBindingCount());
+  }
+
+  private SavedDraftComponents saveDraftComponents(
+      Long domainPackVersionId,
+      Map<String, IntentDefinition> intentsByCode,
+      DraftComponentsInput components) {
     List<SlotDefinition> savedSlots =
         slotDefinitionRepository.saveAll(
-            safeList(slots).stream()
+            components.slots().stream()
                 .map(
                     slot ->
                         SlotDefinition.create(
-                            savedVersion.getId(),
+                            domainPackVersionId,
                             slot.slotCode(),
                             slot.name(),
                             slot.description(),
@@ -239,11 +346,11 @@ public class DomainPackDraftPersistenceService {
 
     List<PolicyDefinition> savedPolicies =
         policyDefinitionRepository.saveAll(
-            safeList(policies).stream()
+            components.policies().stream()
                 .map(
                     policy ->
                         PolicyDefinition.create(
-                            savedVersion.getId(),
+                            domainPackVersionId,
                             policy.policyCode(),
                             policy.name(),
                             policy.description(),
@@ -256,11 +363,11 @@ public class DomainPackDraftPersistenceService {
 
     List<RiskDefinition> savedRisks =
         riskDefinitionRepository.saveAll(
-            safeList(risks).stream()
+            components.risks().stream()
                 .map(
                     risk ->
                         RiskDefinition.create(
-                            savedVersion.getId(),
+                            domainPackVersionId,
                             risk.riskCode(),
                             risk.name(),
                             risk.description(),
@@ -273,11 +380,11 @@ public class DomainPackDraftPersistenceService {
 
     List<WorkflowDefinition> savedWorkflows =
         workflowDefinitionRepository.saveAll(
-            validatedWorkflows.stream()
+            components.workflows().stream()
                 .map(
                     workflow ->
                         WorkflowDefinition.create(
-                            savedVersion.getId(),
+                            domainPackVersionId,
                             workflow.workflowCode(),
                             workflow.name(),
                             workflow.description(),
@@ -290,56 +397,70 @@ public class DomainPackDraftPersistenceService {
     Map<String, WorkflowDefinition> workflowsByCode =
         indexByCode(savedWorkflows, WorkflowDefinition::getWorkflowCode);
 
-    intentSlotBindingRepository.saveAll(
-        safeList(intentSlotBindings).stream()
-            .map(
-                binding ->
-                    IntentSlotBinding.create(
-                        requireByCode(intentsByCode, binding.intentCode(), "intent").getId(),
-                        requireByCode(slotsByCode, binding.slotCode(), "slot").getId(),
-                        binding.isRequired(),
-                        binding.collectionOrder(),
-                        binding.promptHint(),
-                        binding.conditionJson()))
-            .toList());
+    List<IntentSlotBinding> savedIntentSlotBindings =
+        intentSlotBindingRepository.saveAll(
+            components.intentSlotBindings().stream()
+                .map(
+                    binding ->
+                        IntentSlotBinding.create(
+                            requireByCode(intentsByCode, binding.intentCode(), "intent").getId(),
+                            requireByCode(slotsByCode, binding.slotCode(), "slot").getId(),
+                            binding.isRequired(),
+                            binding.collectionOrder(),
+                            binding.promptHint(),
+                            binding.conditionJson()))
+                .toList());
 
-    intentWorkflowBindingRepository.saveAll(
-        safeList(intentWorkflowBindings).stream()
-            .map(
-                binding ->
-                    IntentWorkflowBinding.create(
-                        requireByCode(intentsByCode, binding.intentCode(), "intent").getId(),
-                        requireByCode(workflowsByCode, binding.workflowCode(), "workflow").getId(),
-                        binding.isPrimary(),
-                        binding.routeConditionJson()))
-            .toList());
+    List<IntentWorkflowBinding> savedIntentWorkflowBindings =
+        intentWorkflowBindingRepository.saveAll(
+            components.intentWorkflowBindings().stream()
+                .map(
+                    binding ->
+                        IntentWorkflowBinding.create(
+                            requireByCode(intentsByCode, binding.intentCode(), "intent").getId(),
+                            requireByCode(workflowsByCode, binding.workflowCode(), "workflow")
+                                .getId(),
+                            binding.isPrimary(),
+                            binding.routeConditionJson()))
+                .toList());
 
-    return CreateDomainPackDraftResult.from(
-        savedVersion,
-        savedIntents.size(),
+    return new SavedDraftComponents(
         savedSlots.size(),
         savedPolicies.size(),
         savedRisks.size(),
-        savedWorkflows.size());
+        savedWorkflows.size(),
+        savedIntentSlotBindings.size(),
+        savedIntentWorkflowBindings.size());
   }
 
-  private List<CreateDomainPackDraftCommand.WorkflowDraft> validateDraftPayload(
+  private List<WorkflowInput> validateDraftPayload(
       List<IntentDraft> intents,
-      List<CreateDomainPackDraftCommand.SlotDraft> slots,
-      List<CreateDomainPackDraftCommand.IntentSlotBindingDraft> intentSlotBindings,
-      List<CreateDomainPackDraftCommand.PolicyDraft> policies,
-      List<CreateDomainPackDraftCommand.RiskDraft> risks,
-      List<CreateDomainPackDraftCommand.WorkflowDraft> workflows,
-      List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
+      List<SlotInput> slots,
+      List<IntentSlotBindingInput> intentSlotBindings,
+      List<PolicyInput> policies,
+      List<RiskInput> risks,
+      List<WorkflowInput> workflows,
+      List<IntentWorkflowBindingInput> intentWorkflowBindings,
+      Set<String> allowedPolicyCodes) {
+    ensureDraftPayloadUnique(
+        intents, slots, intentSlotBindings, policies, risks, workflows, intentWorkflowBindings);
+    return validateParsedWorkflows(
+        parseWorkflowInputs(safeList(workflows)), policies, allowedPolicyCodes);
+  }
+
+  private void ensureDraftPayloadUnique(
+      List<IntentDraft> intents,
+      List<SlotInput> slots,
+      List<IntentSlotBindingInput> intentSlotBindings,
+      List<PolicyInput> policies,
+      List<RiskInput> risks,
+      List<WorkflowInput> workflows,
+      List<IntentWorkflowBindingInput> intentWorkflowBindings) {
     ensureUnique(safeList(intents), IntentDraft::intentCode, "intentCode");
-    ensureUnique(safeList(slots), CreateDomainPackDraftCommand.SlotDraft::slotCode, "slotCode");
-    ensureUnique(
-        safeList(policies), CreateDomainPackDraftCommand.PolicyDraft::policyCode, "policyCode");
-    ensureUnique(safeList(risks), CreateDomainPackDraftCommand.RiskDraft::riskCode, "riskCode");
-    ensureUnique(
-        safeList(workflows),
-        CreateDomainPackDraftCommand.WorkflowDraft::workflowCode,
-        "workflowCode");
+    ensureUnique(safeList(slots), SlotInput::slotCode, "slotCode");
+    ensureUnique(safeList(policies), PolicyInput::policyCode, "policyCode");
+    ensureUnique(safeList(risks), RiskInput::riskCode, "riskCode");
+    ensureUnique(safeList(workflows), WorkflowInput::workflowCode, "workflowCode");
     ensureUnique(
         safeList(intentSlotBindings),
         binding -> binding.intentCode() + "::" + binding.slotCode(),
@@ -348,30 +469,34 @@ public class DomainPackDraftPersistenceService {
         safeList(intentWorkflowBindings),
         binding -> binding.intentCode() + "::" + binding.workflowCode(),
         "intentWorkflowBinding");
-
-    Set<String> submittedPolicyCodes =
-        safeList(policies).stream()
-            .map(CreateDomainPackDraftCommand.PolicyDraft::policyCode)
-            .collect(Collectors.toSet());
-    return safeList(workflows).stream()
-        .map(w -> validateAndNormalizeWorkflow(w, submittedPolicyCodes))
-        .toList();
   }
 
-  private CreateDomainPackDraftCommand.WorkflowDraft validateAndNormalizeWorkflow(
-      CreateDomainPackDraftCommand.WorkflowDraft workflow, Set<String> submittedPolicyCodes) {
-    WorkflowGraphValidator.ParsedGraph graph =
-        WorkflowGraphValidator.parseAndValidate(workflow.graphJson(), workflow.workflowCode());
+  private List<WorkflowInput> validateParsedWorkflows(
+      List<ParsedWorkflowInput> workflows,
+      List<PolicyInput> policies,
+      Set<String> allowedPolicyCodes) {
+    Set<String> submittedPolicyCodes =
+        safeList(policies).stream().map(PolicyInput::policyCode).collect(Collectors.toSet());
+    Set<String> policyCodes =
+        Stream.concat(submittedPolicyCodes.stream(), allowedPolicyCodes.stream())
+            .collect(Collectors.toSet());
+    return workflows.stream().map(w -> validateAndNormalizeWorkflow(w, policyCodes)).toList();
+  }
+
+  private WorkflowInput validateAndNormalizeWorkflow(
+      ParsedWorkflowInput parsedWorkflow, Set<String> allowedPolicyCodes) {
+    WorkflowInput workflow = parsedWorkflow.workflow();
+    WorkflowGraphValidator.ParsedGraph graph = parsedWorkflow.graph();
     graph.nodes().stream()
         .filter(n -> "ACTION".equals(n.type()))
         .map(WorkflowGraphValidator.GraphNode::policyRef)
-        .filter(ref -> !submittedPolicyCodes.contains(ref))
+        .filter(ref -> !allowedPolicyCodes.contains(ref))
         .findFirst()
         .ifPresent(
             ref -> {
               throw new WorkflowActionNodePolicyRefNotFoundException(ref);
             });
-    return new CreateDomainPackDraftCommand.WorkflowDraft(
+    return new WorkflowInput(
         workflow.workflowCode(),
         workflow.name(),
         workflow.description(),
@@ -381,6 +506,304 @@ public class DomainPackDraftPersistenceService {
         workflow.evidenceJson(),
         workflow.metaJson());
   }
+
+  private void validateNonEmptyWorkflowDraft(DraftComponentsInput components) {
+    if (components.slots().isEmpty()
+        && components.policies().isEmpty()
+        && components.risks().isEmpty()
+        && components.workflows().isEmpty()
+        && components.intentSlotBindings().isEmpty()
+        && components.intentWorkflowBindings().isEmpty()) {
+      throw new DomainPackDraftRequestInvalidException("workflow draft payload는 비어 있을 수 없습니다.");
+    }
+  }
+
+  private Set<String> collectWorkflowPolicyRefs(List<ParsedWorkflowInput> workflows) {
+    return workflows.stream()
+        .flatMap(workflow -> workflow.graph().nodes().stream())
+        .filter(node -> "ACTION".equals(node.type()))
+        .map(WorkflowGraphValidator.GraphNode::policyRef)
+        .collect(Collectors.toSet());
+  }
+
+  private List<ParsedWorkflowInput> parseWorkflowInputs(List<WorkflowInput> workflows) {
+    return workflows.stream()
+        .map(
+            workflow ->
+                new ParsedWorkflowInput(
+                    workflow,
+                    WorkflowGraphValidator.parseAndValidate(
+                        workflow.graphJson(), workflow.workflowCode())))
+        .toList();
+  }
+
+  private Set<String> findExistingPolicyCodes(Long domainPackVersionId, Set<String> policyCodes) {
+    if (policyCodes.isEmpty()) {
+      return Set.of();
+    }
+    return policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(
+        domainPackVersionId, policyCodes);
+  }
+
+  private List<SlotInput> toSlotInputs(List<CreateDomainPackDraftCommand.SlotDraft> slots) {
+    return safeList(slots).stream()
+        .map(
+            slot ->
+                new SlotInput(
+                    slot.slotCode(),
+                    slot.name(),
+                    slot.description(),
+                    slot.dataType(),
+                    slot.isSensitive(),
+                    slot.validationRuleJson(),
+                    slot.defaultValueJson(),
+                    slot.metaJson()))
+        .toList();
+  }
+
+  private List<SlotInput> toSlotInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.SlotDraft> slots) {
+    return safeList(slots).stream()
+        .map(
+            slot ->
+                new SlotInput(
+                    slot.slotCode(),
+                    slot.name(),
+                    slot.description(),
+                    slot.dataType(),
+                    slot.isSensitive(),
+                    slot.validationRuleJson(),
+                    slot.defaultValueJson(),
+                    slot.metaJson()))
+        .toList();
+  }
+
+  private List<PolicyInput> toPolicyInputs(
+      List<CreateDomainPackDraftCommand.PolicyDraft> policies) {
+    return safeList(policies).stream()
+        .map(
+            policy ->
+                new PolicyInput(
+                    policy.policyCode(),
+                    policy.name(),
+                    policy.description(),
+                    policy.severity(),
+                    policy.conditionJson(),
+                    policy.actionJson(),
+                    policy.evidenceJson(),
+                    policy.metaJson()))
+        .toList();
+  }
+
+  private List<PolicyInput> toPolicyInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.PolicyDraft> policies) {
+    return safeList(policies).stream()
+        .map(
+            policy ->
+                new PolicyInput(
+                    policy.policyCode(),
+                    policy.name(),
+                    policy.description(),
+                    policy.severity(),
+                    policy.conditionJson(),
+                    policy.actionJson(),
+                    policy.evidenceJson(),
+                    policy.metaJson()))
+        .toList();
+  }
+
+  private List<RiskInput> toRiskInputs(List<CreateDomainPackDraftCommand.RiskDraft> risks) {
+    return safeList(risks).stream()
+        .map(
+            risk ->
+                new RiskInput(
+                    risk.riskCode(),
+                    risk.name(),
+                    risk.description(),
+                    risk.riskLevel(),
+                    risk.triggerConditionJson(),
+                    risk.handlingActionJson(),
+                    risk.evidenceJson(),
+                    risk.metaJson()))
+        .toList();
+  }
+
+  private List<RiskInput> toRiskInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.RiskDraft> risks) {
+    return safeList(risks).stream()
+        .map(
+            risk ->
+                new RiskInput(
+                    risk.riskCode(),
+                    risk.name(),
+                    risk.description(),
+                    risk.riskLevel(),
+                    risk.triggerConditionJson(),
+                    risk.handlingActionJson(),
+                    risk.evidenceJson(),
+                    risk.metaJson()))
+        .toList();
+  }
+
+  private List<WorkflowInput> toWorkflowInputs(
+      List<CreateDomainPackDraftCommand.WorkflowDraft> workflows) {
+    return safeList(workflows).stream()
+        .map(
+            workflow ->
+                new WorkflowInput(
+                    workflow.workflowCode(),
+                    workflow.name(),
+                    workflow.description(),
+                    workflow.graphJson(),
+                    workflow.initialState(),
+                    workflow.terminalStatesJson(),
+                    workflow.evidenceJson(),
+                    workflow.metaJson()))
+        .toList();
+  }
+
+  private List<WorkflowInput> toWorkflowInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.WorkflowDraft> workflows) {
+    return safeList(workflows).stream()
+        .map(
+            workflow ->
+                new WorkflowInput(
+                    workflow.workflowCode(),
+                    workflow.name(),
+                    workflow.description(),
+                    workflow.graphJson(),
+                    null,
+                    null,
+                    workflow.evidenceJson(),
+                    workflow.metaJson()))
+        .toList();
+  }
+
+  private List<IntentSlotBindingInput> toIntentSlotBindingInputs(
+      List<CreateDomainPackDraftCommand.IntentSlotBindingDraft> bindings) {
+    return safeList(bindings).stream()
+        .map(
+            binding ->
+                new IntentSlotBindingInput(
+                    binding.intentCode(),
+                    binding.slotCode(),
+                    binding.isRequired(),
+                    binding.collectionOrder(),
+                    binding.promptHint(),
+                    binding.conditionJson()))
+        .toList();
+  }
+
+  private List<IntentSlotBindingInput> toIntentSlotBindingInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft> bindings) {
+    return safeList(bindings).stream()
+        .map(
+            binding ->
+                new IntentSlotBindingInput(
+                    binding.intentCode(),
+                    binding.slotCode(),
+                    binding.isRequired(),
+                    binding.collectionOrder(),
+                    binding.promptHint(),
+                    binding.conditionJson()))
+        .toList();
+  }
+
+  private List<IntentWorkflowBindingInput> toIntentWorkflowBindingInputs(
+      List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> bindings) {
+    return safeList(bindings).stream()
+        .map(
+            binding ->
+                new IntentWorkflowBindingInput(
+                    binding.intentCode(),
+                    binding.workflowCode(),
+                    binding.isPrimary(),
+                    binding.routeConditionJson()))
+        .toList();
+  }
+
+  private List<IntentWorkflowBindingInput> toIntentWorkflowBindingInputsFromWorkflowCallback(
+      List<AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft> bindings) {
+    return safeList(bindings).stream()
+        .map(
+            binding ->
+                new IntentWorkflowBindingInput(
+                    binding.intentCode(),
+                    binding.workflowCode(),
+                    binding.isPrimary(),
+                    binding.routeConditionJson()))
+        .toList();
+  }
+
+  private record DraftComponentsInput(
+      List<SlotInput> slots,
+      List<PolicyInput> policies,
+      List<RiskInput> risks,
+      List<WorkflowInput> workflows,
+      List<IntentSlotBindingInput> intentSlotBindings,
+      List<IntentWorkflowBindingInput> intentWorkflowBindings) {}
+
+  private record SlotInput(
+      String slotCode,
+      String name,
+      String description,
+      String dataType,
+      Boolean isSensitive,
+      String validationRuleJson,
+      String defaultValueJson,
+      String metaJson) {}
+
+  private record PolicyInput(
+      String policyCode,
+      String name,
+      String description,
+      String severity,
+      String conditionJson,
+      String actionJson,
+      String evidenceJson,
+      String metaJson) {}
+
+  private record RiskInput(
+      String riskCode,
+      String name,
+      String description,
+      String riskLevel,
+      String triggerConditionJson,
+      String handlingActionJson,
+      String evidenceJson,
+      String metaJson) {}
+
+  private record WorkflowInput(
+      String workflowCode,
+      String name,
+      String description,
+      String graphJson,
+      String initialState,
+      String terminalStatesJson,
+      String evidenceJson,
+      String metaJson) {}
+
+  private record IntentSlotBindingInput(
+      String intentCode,
+      String slotCode,
+      Boolean isRequired,
+      Integer collectionOrder,
+      String promptHint,
+      String conditionJson) {}
+
+  private record IntentWorkflowBindingInput(
+      String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
+
+  private record ParsedWorkflowInput(
+      WorkflowInput workflow, WorkflowGraphValidator.ParsedGraph graph) {}
+
+  private record SavedDraftComponents(
+      int addedSlotCount,
+      int addedPolicyCount,
+      int addedRiskCount,
+      int addedWorkflowCount,
+      int addedIntentSlotBindingCount,
+      int addedIntentWorkflowBindingCount) {}
 
   private <T> List<T> safeList(List<T> list) {
     return list == null ? List.of() : list;

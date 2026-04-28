@@ -6,26 +6,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.application.AddIntentsToDraftVersionCommand;
 import com.init.domainpack.application.AddIntentsToDraftVersionResult;
 import com.init.domainpack.application.AddIntentsToDraftVersionUseCase;
-import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
-import com.init.pipelinejob.application.exception.PipelineJobConflictException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
-import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ReceiveIntentDraftCallbackUseCase {
@@ -33,36 +22,29 @@ public class ReceiveIntentDraftCallbackUseCase {
   private static final String WEBHOOK_TYPE = "INTENT_DRAFT_CALLBACK";
 
   private final PipelineJobRepository pipelineJobRepository;
-  private final WebhookReceiptRepository webhookReceiptRepository;
   private final AddIntentsToDraftVersionUseCase addIntentsToDraftVersionUseCase;
-  private final Clock clock;
   private final ObjectMapper objectMapper;
-  private final TransactionTemplate transactionTemplate;
-  private final String airflowWebhookSecret;
+  private final PipelineJobCallbackSupportService callbackSupportService;
 
   public ReceiveIntentDraftCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
-      WebhookReceiptRepository webhookReceiptRepository,
       AddIntentsToDraftVersionUseCase addIntentsToDraftVersionUseCase,
-      Clock clock,
       ObjectMapper objectMapper,
-      PlatformTransactionManager transactionManager,
-      @Value("${airflow.webhook.secret}") String airflowWebhookSecret) {
+      PipelineJobCallbackSupportService callbackSupportService) {
     this.pipelineJobRepository = pipelineJobRepository;
-    this.webhookReceiptRepository = webhookReceiptRepository;
     this.addIntentsToDraftVersionUseCase = addIntentsToDraftVersionUseCase;
-    this.clock = clock;
     this.objectMapper = objectMapper;
-    this.transactionTemplate = new TransactionTemplate(transactionManager);
-    this.airflowWebhookSecret = airflowWebhookSecret;
+    this.callbackSupportService = callbackSupportService;
   }
 
   public ReceiveIntentDraftCallbackResult execute(ReceiveIntentDraftCallbackCommand command) {
-    validateWebhookSecret(command.providedWebhookSecret());
+    callbackSupportService.validateWebhookSecret(command.providedWebhookSecret());
 
     Optional<WebhookReceipt> existingReceipt =
-        webhookReceiptRepository.findByExternalEventId(command.externalEventId());
-    if (isProcessed(existingReceipt.orElse(null))) {
+        callbackSupportService.findReceipt(command.externalEventId());
+    callbackSupportService.validateWebhookType(
+        existingReceipt.orElse(null), command.externalEventId(), WEBHOOK_TYPE);
+    if (callbackSupportService.isProcessed(existingReceipt.orElse(null))) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
 
@@ -78,16 +60,24 @@ public class ReceiveIntentDraftCallbackUseCase {
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
 
-    WebhookReceipt receipt = ensureReceivedReceipt(command, existingReceipt.orElse(null));
-    if (isProcessed(receipt)) {
+    WebhookReceipt receipt =
+        callbackSupportService.ensureReceivedReceipt(
+            command.jobId(),
+            command.externalEventId(),
+            WEBHOOK_TYPE,
+            command.requestHeadersJson(),
+            command.requestBodyJson(),
+            existingReceipt.orElse(null));
+    callbackSupportService.validateWebhookType(receipt, command.externalEventId(), WEBHOOK_TYPE);
+    if (callbackSupportService.isProcessed(receipt)) {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
 
     try {
-      return transactionTemplate.execute(status -> processCallback(command));
+      return callbackSupportService.executeInTransaction(() -> processCallback(command));
     } catch (RuntimeException ex) {
       try {
-        markFailure(command.jobId(), command.externalEventId(), ex);
+        callbackSupportService.markFailure(command.jobId(), command.externalEventId(), ex);
       } catch (RuntimeException markFailureException) {
         ex.addSuppressed(markFailureException);
       }
@@ -113,16 +103,11 @@ public class ReceiveIntentDraftCallbackUseCase {
         addIntentsToDraftVersionUseCase.execute(
             new AddIntentsToDraftVersionCommand(command.domainPackVersionId(), command.intents()));
 
-    OffsetDateTime now = OffsetDateTime.now(clock);
-    job.markSucceeded(intentResult.domainPackId(), buildSuccessSummaryJson(intentResult), now);
-    savePipelineJobOrThrowConflict(job, command.jobId());
-
-    WebhookReceipt receipt =
-        webhookReceiptRepository
-            .findByExternalEventId(command.externalEventId())
-            .orElseThrow(() -> new IllegalStateException("Webhook receipt가 존재하지 않습니다."));
-    receipt.markProcessed(now);
-    webhookReceiptRepository.saveAndFlush(receipt);
+    OffsetDateTime now = callbackSupportService.now();
+    job.markAwaitingWorkflowCallback(
+        intentResult.domainPackId(), buildSuccessSummaryJson(intentResult));
+    callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
+    callbackSupportService.markReceiptProcessed(command.externalEventId(), now);
 
     return ReceiveIntentDraftCallbackResult.created(
         command.externalEventId(),
@@ -131,97 +116,6 @@ public class ReceiveIntentDraftCallbackUseCase {
         intentResult.skippedIntentCount(),
         intentResult.totalIntentCount(),
         command.jobId());
-  }
-
-  private WebhookReceipt ensureReceivedReceipt(
-      ReceiveIntentDraftCallbackCommand command, WebhookReceipt existingReceipt) {
-    if (existingReceipt != null) {
-      return existingReceipt;
-    }
-
-    try {
-      return transactionTemplate.execute(
-          status ->
-              webhookReceiptRepository.saveAndFlush(
-                  WebhookReceipt.receive(
-                      command.jobId(),
-                      command.externalEventId(),
-                      WEBHOOK_TYPE,
-                      command.requestHeadersJson(),
-                      command.requestBodyJson(),
-                      OffsetDateTime.now(clock))));
-    } catch (DataIntegrityViolationException ex) {
-      Optional<WebhookReceipt> concurrentReceipt =
-          webhookReceiptRepository.findByExternalEventId(command.externalEventId());
-      if (concurrentReceipt.isPresent()) {
-        return concurrentReceipt.get();
-      }
-      throw ex;
-    }
-  }
-
-  private void markFailure(Long jobId, String externalEventId, RuntimeException exception) {
-    transactionTemplate.executeWithoutResult(
-        status -> {
-          OffsetDateTime now = OffsetDateTime.now(clock);
-          webhookReceiptRepository
-              .findByExternalEventId(externalEventId)
-              .ifPresent(
-                  receipt -> {
-                    if (!WebhookReceipt.STATUS_PROCESSED.equals(receipt.getProcessingStatus())) {
-                      receipt.markFailed(now);
-                      webhookReceiptRepository.saveAndFlush(receipt);
-                    }
-                  });
-
-          if (exception instanceof PipelineJobAlreadyFinalizedException
-              || exception instanceof PipelineJobCallbackNotAllowedException) {
-            return;
-          }
-
-          if (exception instanceof PipelineJobConflictException) {
-            return;
-          }
-
-          pipelineJobRepository
-              .findById(jobId)
-              .ifPresent(
-                  job -> {
-                    if (!job.isFinalized()) {
-                      job.markFailed(resolveErrorMessage(exception), now);
-                      pipelineJobRepository.saveAndFlush(job);
-                    }
-                  });
-        });
-  }
-
-  private void validateWebhookSecret(String providedSecret) {
-    byte[] expected =
-        airflowWebhookSecret == null
-            ? new byte[0]
-            : airflowWebhookSecret.getBytes(StandardCharsets.UTF_8);
-    byte[] actual =
-        providedSecret == null ? new byte[0] : providedSecret.getBytes(StandardCharsets.UTF_8);
-    if (!MessageDigest.isEqual(actual, expected)) {
-      throw new AirflowWebhookUnauthorizedException();
-    }
-  }
-
-  private boolean isProcessed(WebhookReceipt receipt) {
-    return receipt != null && WebhookReceipt.STATUS_PROCESSED.equals(receipt.getProcessingStatus());
-  }
-
-  private void savePipelineJobOrThrowConflict(PipelineJob job, Long jobId) {
-    try {
-      pipelineJobRepository.saveAndFlush(job);
-    } catch (ObjectOptimisticLockingFailureException ex) {
-      throw new PipelineJobConflictException(jobId);
-    }
-  }
-
-  private String resolveErrorMessage(RuntimeException exception) {
-    String message = exception.getMessage();
-    return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
   }
 
   private String buildSuccessSummaryJson(AddIntentsToDraftVersionResult result) {

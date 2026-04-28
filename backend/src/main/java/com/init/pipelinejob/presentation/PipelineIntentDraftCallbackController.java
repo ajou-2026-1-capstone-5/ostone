@@ -15,9 +15,6 @@ import com.init.pipelinejob.presentation.dto.PipelineIntentDraftCallbackResponse
 import com.init.shared.infrastructure.web.WebhookHeaderNames;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/pipeline-jobs")
 public class PipelineIntentDraftCallbackController {
-
-  private static final String MASKED_SECRET = "***";
 
   private final ReceiveDomainPackDraftCallbackUseCase domainPackDraftCallbackUseCase;
   private final ReceiveIntentDraftCallbackUseCase intentDraftCallbackUseCase;
@@ -62,7 +57,9 @@ public class PipelineIntentDraftCallbackController {
                 request.packKey(),
                 request.packName(),
                 request.summaryJson(),
-                objectMapper.valueToTree(extractHeaders(httpServletRequest)).toString(),
+                objectMapper
+                    .valueToTree(WebhookRequestHeaders.extractMasked(httpServletRequest))
+                    .toString(),
                 objectMapper.valueToTree(request).toString()));
 
     HttpStatus status =
@@ -108,7 +105,9 @@ public class PipelineIntentDraftCallbackController {
                                 intent.evidenceJson(),
                                 intent.metaJson()))
                     .toList(),
-                objectMapper.valueToTree(extractHeaders(httpServletRequest)).toString(),
+                objectMapper
+                    .valueToTree(WebhookRequestHeaders.extractMasked(httpServletRequest))
+                    .toString(),
                 objectMapper.valueToTree(request).toString()));
 
     HttpStatus status =
@@ -123,17 +122,5 @@ public class PipelineIntentDraftCallbackController {
                 result.skippedIntentCount(),
                 result.totalIntentCount(),
                 result.sourcePipelineJobId()));
-  }
-
-  private Map<String, String> extractHeaders(HttpServletRequest request) {
-    Map<String, String> headers = new LinkedHashMap<>();
-    for (String headerName : Collections.list(request.getHeaderNames())) {
-      if (WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET.equalsIgnoreCase(headerName)) {
-        headers.put(headerName, MASKED_SECRET);
-        continue;
-      }
-      headers.put(headerName, request.getHeader(headerName));
-    }
-    return headers;
   }
 }
