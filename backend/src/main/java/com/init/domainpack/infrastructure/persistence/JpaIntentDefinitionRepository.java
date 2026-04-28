@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 public interface JpaIntentDefinitionRepository
     extends JpaRepository<IntentDefinition, Long>, IntentDefinitionRepository {
 
+  @Override
+  Optional<IntentDefinition> findById(Long id);
+
   List<IntentDefinition> findByDomainPackVersionId(Long domainPackVersionId);
 
   Optional<IntentDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);

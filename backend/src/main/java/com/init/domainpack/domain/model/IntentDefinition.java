@@ -17,6 +17,16 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "intent_definition", schema = "pack")
 public class IntentDefinition {
 
+  public static final String STATUS_DRAFT = "DRAFT";
+
+  /**
+   * @deprecated DRAFT 기반 워크플로우로 전환됨. 하위 호환성 및 기존 마이그레이션 데이터 참조용으로 유지. 새 코드에서 사용하지 마세요.
+   */
+  @Deprecated public static final String STATUS_ACTIVE = "ACTIVE";
+
+  public static final String STATUS_PUBLISHED = "PUBLISHED";
+  public static final String STATUS_REJECTED = "REJECTED";
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -98,7 +108,7 @@ public class IntentDefinition {
     entity.name = name;
     entity.description = description;
     entity.taxonomyLevel = taxonomyLevel != null ? taxonomyLevel : 1;
-    entity.status = "ACTIVE";
+    entity.status = STATUS_DRAFT;
     entity.sourceClusterRef = sourceClusterRef != null ? sourceClusterRef : "{}";
     entity.entryConditionJson = entryConditionJson != null ? entryConditionJson : "{}";
     entity.evidenceJson = evidenceJson != null ? evidenceJson : "[]";
@@ -143,6 +153,17 @@ public class IntentDefinition {
 
   public String getStatus() {
     return status;
+  }
+
+  public void changeStatus(String newStatus) {
+    if (!STATUS_PUBLISHED.equals(newStatus) && !STATUS_REJECTED.equals(newStatus)) {
+      throw new IllegalArgumentException(
+          "허용되지 않은 상태 값입니다: " + newStatus + ". 허용 값: PUBLISHED, REJECTED");
+    }
+    if (!STATUS_DRAFT.equals(this.status)) {
+      throw new IllegalStateException("Intent 정의는 DRAFT 상태에서만 변경할 수 있습니다. 현재: " + this.status);
+    }
+    this.status = newStatus;
   }
 
   public String getSourceClusterRef() {
