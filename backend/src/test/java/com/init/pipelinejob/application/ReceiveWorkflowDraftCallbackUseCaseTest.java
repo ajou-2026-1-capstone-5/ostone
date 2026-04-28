@@ -69,15 +69,17 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     useCase =
         new ReceiveWorkflowDraftCallbackUseCase(
             pipelineJobRepository,
-            webhookReceiptRepository,
             pipelineArtifactRepository,
             addWorkflowDraftToVersionUseCase,
             domainPackVersionRepository,
             domainPackRepository,
-            fixedClock,
             new ObjectMapper(),
-            transactionManager,
-            "secret-123");
+            new PipelineJobCallbackSupportService(
+                pipelineJobRepository,
+                webhookReceiptRepository,
+                fixedClock,
+                transactionManager,
+                "secret-123"));
   }
 
   @Test

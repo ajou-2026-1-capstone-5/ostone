@@ -68,13 +68,15 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     useCase =
         new ReceiveDomainPackDraftCallbackUseCase(
             pipelineJobRepository,
-            webhookReceiptRepository,
             pipelineArtifactRepository,
             createDomainPackDraftFromPipelineUseCase,
-            fixedClock,
             new ObjectMapper(),
-            transactionManager,
-            "secret-123");
+            new PipelineJobCallbackSupportService(
+                pipelineJobRepository,
+                webhookReceiptRepository,
+                fixedClock,
+                transactionManager,
+                "secret-123"));
   }
 
   @Test

@@ -67,12 +67,14 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     useCase =
         new ReceiveIntentDraftCallbackUseCase(
             pipelineJobRepository,
-            webhookReceiptRepository,
             addIntentsToDraftVersionUseCase,
-            fixedClock,
             new ObjectMapper(),
-            transactionManager,
-            "secret-123");
+            new PipelineJobCallbackSupportService(
+                pipelineJobRepository,
+                webhookReceiptRepository,
+                fixedClock,
+                transactionManager,
+                "secret-123"));
   }
 
   @Test
