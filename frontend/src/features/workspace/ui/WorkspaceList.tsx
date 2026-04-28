@@ -16,7 +16,9 @@ interface WorkspaceListProps {
   onCreate: () => void;
   onOpen: (workspace: WorkspaceResponse) => void;
   onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+  onOpenRiskDraft: (workspace: WorkspaceResponse) => void;
   policyDraftLoadingWorkspaceId: number | null;
+  riskDraftLoadingWorkspaceId: number | null;
   onEdit: (workspace: WorkspaceResponse) => void;
   onDelete: (workspace: WorkspaceResponse) => void;
 }
@@ -29,11 +31,14 @@ export function WorkspaceList({
   onCreate,
   onOpen,
   onOpenPolicyDraft,
+  onOpenRiskDraft,
   policyDraftLoadingWorkspaceId,
+  riskDraftLoadingWorkspaceId,
   onEdit,
   onDelete,
 }: WorkspaceListProps) {
-  const isPolicyDraftDisabled = policyDraftLoadingWorkspaceId !== null;
+  const isDraftNavigationDisabled =
+    policyDraftLoadingWorkspaceId !== null || riskDraftLoadingWorkspaceId !== null;
 
   if (isLoading) {
     return (
@@ -84,8 +89,10 @@ export function WorkspaceList({
           workspace={workspace}
           onOpen={onOpen}
           onOpenPolicyDraft={onOpenPolicyDraft}
+          onOpenRiskDraft={onOpenRiskDraft}
           isPolicyDraftLoading={policyDraftLoadingWorkspaceId === workspace.id}
-          isPolicyDraftDisabled={isPolicyDraftDisabled}
+          isRiskDraftLoading={riskDraftLoadingWorkspaceId === workspace.id}
+          isDraftNavigationDisabled={isDraftNavigationDisabled}
           onEdit={onEdit}
           onDelete={onDelete}
         />

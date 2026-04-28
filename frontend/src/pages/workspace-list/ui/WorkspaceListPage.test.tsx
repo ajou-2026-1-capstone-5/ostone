@@ -46,10 +46,12 @@ vi.mock("@/features/workspace", () => ({
   WorkspaceList: ({
     onOpen,
     onOpenPolicyDraft,
+    onOpenRiskDraft,
     workspaces,
   }: {
     onOpen: (workspace: WorkspaceResponse) => void;
     onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
+    onOpenRiskDraft: (workspace: WorkspaceResponse) => void;
     workspaces: WorkspaceResponse[];
   }) => (
     <div>
@@ -58,6 +60,9 @@ vi.mock("@/features/workspace", () => ({
       </button>
       <button type="button" onClick={() => onOpenPolicyDraft(workspaces[0])}>
         open policy draft
+      </button>
+      <button type="button" onClick={() => onOpenRiskDraft(workspaces[0])}>
+        open risk draft
       </button>
     </div>
   ),
@@ -109,6 +114,31 @@ describe("WorkspaceListPage", () => {
       expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/policies"),
     );
     expect(navigate).toHaveBeenCalledWith("/workspaces/1/workflows");
+  });
+
+  it("Risk 조회 진입 경로를 연결한다", async () => {
+    vi.mocked(workspaceApi.list).mockResolvedValue([activeWorkspace]);
+    vi.mocked(domainPackApi.getDraftEntry).mockResolvedValue({
+      workspaceId: 1,
+      packId: 7,
+      versionId: 101,
+      packName: "CS Pack",
+      versionNo: 2,
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkspaceListPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "open risk draft" }));
+
+    await waitFor(() => expect(domainPackApi.getDraftEntry).toHaveBeenCalledWith(1));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/risks"),
+    );
   });
 
   it("정책 초안이 없으면 전용 toast를 표시한다", async () => {
