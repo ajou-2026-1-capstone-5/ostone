@@ -25,7 +25,9 @@ describe("WorkspaceList", () => {
         onCreate={vi.fn()}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -45,7 +47,9 @@ describe("WorkspaceList", () => {
         onCreate={vi.fn()}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -68,7 +72,9 @@ describe("WorkspaceList", () => {
         onCreate={onCreate}
         onOpen={vi.fn()}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -91,7 +97,9 @@ describe("WorkspaceList", () => {
         onCreate={vi.fn()}
         onOpen={onOpen}
         onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={vi.fn()}
         policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -114,7 +122,9 @@ describe("WorkspaceList", () => {
         onCreate={vi.fn()}
         onOpen={vi.fn()}
         onOpenPolicyDraft={onOpenPolicyDraft}
+        onOpenRiskDraft={vi.fn()}
         policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -123,5 +133,29 @@ describe("WorkspaceList", () => {
     fireEvent.click(screen.getByRole("button", { name: /Policy 편집/ }));
 
     expect(onOpenPolicyDraft).toHaveBeenCalledWith(activeWorkspace);
+  });
+
+  it("opens risk draft read page for a selected workspace", () => {
+    const onOpenRiskDraft = vi.fn();
+    render(
+      <WorkspaceList
+        workspaces={[activeWorkspace]}
+        isLoading={false}
+        error=""
+        onRetry={vi.fn()}
+        onCreate={vi.fn()}
+        onOpen={vi.fn()}
+        onOpenPolicyDraft={vi.fn()}
+        onOpenRiskDraft={onOpenRiskDraft}
+        policyDraftLoadingWorkspaceId={null}
+        riskDraftLoadingWorkspaceId={null}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Risk 조회/ }));
+
+    expect(onOpenRiskDraft).toHaveBeenCalledWith(activeWorkspace);
   });
 });
