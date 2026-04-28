@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { useWorkflowList } from "../model/useWorkflowList";
 import { parseTerminalStates } from "../model/parseTerminalStates";
-import { ApiRequestError } from "../../../shared/api";
-import type { WorkflowSummary } from "../../../entities/workflow";
+import { ApiRequestError } from "@/shared/api";
+import type { WorkflowSummary } from "@/entities/workflow";
 import styles from "./WorkflowListPanel.module.css";
 
 interface WorkflowListPanelProps {
@@ -26,7 +26,7 @@ export function WorkflowListPanel({
   selectedId,
   onSelect,
 }: WorkflowListPanelProps) {
-  const { data, isLoading, isError, isSuccess, error } = useWorkflowList(wsId, packId, versionId);
+  const { data, isLoading, isError, isSuccess, error, refetch } = useWorkflowList(wsId, packId, versionId);
   const errorMessage = isError && error instanceof ApiRequestError ? error.message : undefined;
 
   useEffect(() => {
@@ -54,8 +54,11 @@ export function WorkflowListPanel({
         )}
 
         {isError && (
-          <div className={styles.emptyState}>
+          <div className={styles.errorState}>
             <span>목록을 불러오지 못했습니다.</span>
+            <button type="button" className={styles.retryButton} onClick={() => void refetch()}>
+              다시 시도
+            </button>
           </div>
         )}
 

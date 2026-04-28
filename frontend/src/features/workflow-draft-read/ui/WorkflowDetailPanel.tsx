@@ -2,9 +2,9 @@ import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
-import { ApiRequestError } from "../../../shared/api";
-import type { WorkflowDetail } from "../../../entities/workflow";
-import { ErrorBoundary } from "../../../shared/ui/ErrorBoundary";
+import { ApiRequestError } from "@/shared/api";
+import type { WorkflowDetail } from "@/entities/workflow";
+import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import styles from "./WorkflowDetailPanel.module.css";
 
 const GraphRenderer = lazy(() => import("./GraphRenderer"));
@@ -29,7 +29,7 @@ export function WorkflowDetailPanel({
   workflowId,
   onEdit,
 }: WorkflowDetailPanelProps) {
-  const { data: detail, isLoading, isError, error } = useWorkflowDetail(wsId, packId, versionId, workflowId);
+  const { data: detail, isLoading, isError, error, refetch } = useWorkflowDetail(wsId, packId, versionId, workflowId);
   const [tab, setTab] = useState<Tab>("graph");
   const idPrefix = useId();
 
@@ -92,6 +92,9 @@ export function WorkflowDetailPanel({
       <section className={styles.panel} aria-label="workflow 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
+          <button type="button" className={styles.retryButton} onClick={() => void refetch()}>
+            다시 시도
+          </button>
         </div>
       </section>
     );

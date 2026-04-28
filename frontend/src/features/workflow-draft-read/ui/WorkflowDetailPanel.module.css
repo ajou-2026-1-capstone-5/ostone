@@ -32,7 +32,7 @@
   border-radius: 50px;
   background: var(--text-primary);
   color: var(--bg-color);
-  font-family: "Pretendard Variable", sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 450;
   letter-spacing: -0.14px;
@@ -201,6 +201,20 @@
   flex: 1;
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
+}
+
+.retryButton {
+  margin-top: 4px;
+  padding: 8px 18px 9px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 @media (max-width: 767px) {

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { workflowQueryKeys } from "../../../entities/workflow";
-import type { WorkflowDetail } from "../../../entities/workflow";
+import { workflowQueryKeys } from "@/entities/workflow";
+import type { WorkflowDetail } from "@/entities/workflow";
 import { workflowApi } from "../api/workflowApi";
 
 export function useWorkflowDetail(
