@@ -19,3 +19,17 @@ export interface RiskDefinition extends RiskSummary {
   evidenceJson: string;
   metaJson: string;
 }
+
+export interface UpdateRiskRequest {
+  name: string;
+  description?: string | null;
+  riskLevel: RiskLevel;
+  triggerConditionJson?: string | null;
+  handlingActionJson?: string | null;
+  evidenceJson?: string | null;
+  metaJson?: string | null;
+}
+
+export interface UpdateRiskStatusRequest {
+  status: RiskStatus;
+}

@@ -39,6 +39,42 @@ describe("riskApi", () => {
     );
   });
 
+  it("updates risk fields and status through risk endpoints", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 4 }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 4, status: "INACTIVE" }),
+      });
+
+    await expect(
+      riskApi.update(1, 2, 3, 4, {
+        name: "사기 위험",
+        riskLevel: "HIGH",
+        triggerConditionJson: "{}",
+        handlingActionJson: "{}",
+        evidenceJson: "[]",
+        metaJson: "{}",
+      }),
+    ).resolves.toEqual({ id: 4 });
+    await expect(riskApi.updateStatus(1, 2, 3, 4, { status: "INACTIVE" })).resolves.toEqual({
+      id: 4,
+      status: "INACTIVE",
+    });
+
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/v1/workspaces/1/domain-packs/2/versions/3/risks/4",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/v1/workspaces/1/domain-packs/2/versions/3/risks/4/status",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+  });
+
   it("propagates non-ok list responses from the risk list endpoint", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

@@ -19,7 +19,25 @@ vi.mock("@/features/risk-draft-read/ui", () => ({
       select risk
     </button>
   ),
-  RiskDetailPanel: () => <div>risk detail</div>,
+  RiskDetailPanel: ({ onEdit }: { onEdit: (id: number) => void }) => (
+    <div>
+      <span>risk detail</span>
+      <button type="button" onClick={() => onEdit(4)}>
+        edit risk
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock("@/features/update-risk", () => ({
+  RiskEditPanel: ({ onClose }: { onClose: () => void }) => (
+    <div>
+      <span>risk edit panel</span>
+      <button type="button" onClick={onClose}>
+        close edit
+      </button>
+    </div>
+  ),
 }));
 
 function renderPage(path: string) {
@@ -52,6 +70,25 @@ describe("RiskDraftReadPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "← 목록" }));
 
     expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/risks");
+  });
+
+  it("수정 버튼을 누르면 편집 패널로 전환하고 닫을 수 있다", () => {
+    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/4");
+
+    fireEvent.click(screen.getByRole("button", { name: "edit risk" }));
+    expect(screen.getByText("risk edit panel")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "close edit" }));
+    expect(screen.getByText("risk detail")).toBeInTheDocument();
+  });
+
+  it("현재 선택과 다른 위험요소 편집 상태는 무시한다", () => {
+    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/5");
+
+    fireEvent.click(screen.getByRole("button", { name: "edit risk" }));
+
+    expect(screen.queryByText("risk edit panel")).not.toBeInTheDocument();
+    expect(screen.getByText("risk detail")).toBeInTheDocument();
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
