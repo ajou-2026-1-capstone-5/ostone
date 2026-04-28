@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { RISK_READ_ERROR_MESSAGES } from "../model/mapApiError";
 import { useRiskDetail } from "../model/useRiskDetail";
@@ -37,6 +38,7 @@ interface RiskDetailPanelProps {
   packId: number;
   versionId: number;
   riskId: number | null;
+  onEdit: (riskId: number) => void;
 }
 
 export function RiskDetailPanel({
@@ -44,6 +46,7 @@ export function RiskDetailPanel({
   packId,
   versionId,
   riskId,
+  onEdit,
 }: Readonly<RiskDetailPanelProps>) {
   const [retryKey, setRetryKey] = useState(0);
   const state = useRiskDetail(workspaceId, packId, versionId, riskId, retryKey);
@@ -123,7 +126,7 @@ export function RiskDetailPanel({
 
   return (
     <section className={styles.panel} aria-label="위험요소 상세">
-      <DetailHeader detail={detail} />
+      <DetailHeader detail={detail} onEdit={() => onEdit(detail.id)} />
       <div className={styles.body}>
         <InfoGrid fields={infoFields} />
         {RISK_JSON_FIELDS.map(([label, key]) => (
@@ -134,7 +137,10 @@ export function RiskDetailPanel({
   );
 }
 
-function DetailHeader({ detail }: Readonly<{ detail: RiskDefinition }>) {
+function DetailHeader({
+  detail,
+  onEdit,
+}: Readonly<{ detail: RiskDefinition; onEdit: () => void }>) {
   return (
     <header className={styles.header}>
       <div className={styles.headerText}>
@@ -143,6 +149,15 @@ function DetailHeader({ detail }: Readonly<{ detail: RiskDefinition }>) {
         {detail.description && <span className={styles.description}>{detail.description}</span>}
         <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt)}</span>
       </div>
+      <button
+        type="button"
+        className={styles.editButton}
+        onClick={onEdit}
+        aria-label={`${detail.riskCode} 위험요소 수정`}
+      >
+        <PencilIcon aria-hidden="true" />
+        <span>수정</span>
+      </button>
     </header>
   );
 }

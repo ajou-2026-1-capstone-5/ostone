@@ -58,6 +58,34 @@
   color: var(--text-muted);
 }
 
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 16px 9px;
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.editButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.editButton:focus-visible {
+  outline: 2px dashed var(--text-primary);
+  outline-offset: 2px;
+}
+
 .body {
   padding: 24px 28px 28px;
   display: flex;
@@ -220,6 +248,10 @@
     font-size: 16px;
   }
 
+  .editButton {
+    align-self: flex-start;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
@@ -232,6 +264,10 @@
 @media (max-width: 1100px) {
   .header {
     flex-direction: column;
+  }
+
+  .editButton {
+    align-self: flex-start;
   }
 
   .grid {
