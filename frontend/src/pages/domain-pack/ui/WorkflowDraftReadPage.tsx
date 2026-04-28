@@ -27,10 +27,12 @@ export function WorkflowDraftReadPage() {
   }
 
   const handleSelect = (id: number) => {
+    setEditOpen(false);
     navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows/${id}`);
   };
 
   const handleBack = () => {
+    setEditOpen(false);
     navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows`);
   };
 
