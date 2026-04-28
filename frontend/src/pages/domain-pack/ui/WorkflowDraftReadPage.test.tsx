@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { WorkflowEditSheet } from "../../../features/update-workflow";
@@ -49,7 +50,7 @@ function renderPage(path: string) {
 
 describe("WorkflowDraftReadPage", () => {
   beforeEach(() => {
-    vi.mocked(WorkflowEditSheet).mockReturnValue(null);
+    vi.mocked(WorkflowEditSheet).mockReturnValue(null as unknown as ReactElement);
   });
 
   it("유효하지 않은 URL 파라미터는 에러 메시지를 보여준다", () => {
@@ -94,7 +95,7 @@ describe("WorkflowDraftReadPage", () => {
 
   it("Edit 버튼 클릭 시 WorkflowEditSheet의 isOpen이 true가 된다", () => {
     vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen }) =>
-      isOpen ? <div data-testid="edit-sheet-open" /> : null,
+      (isOpen ? <div data-testid="edit-sheet-open" /> : null) as ReactElement,
     );
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
     expect(screen.queryByTestId("edit-sheet-open")).not.toBeInTheDocument();
@@ -104,11 +105,11 @@ describe("WorkflowDraftReadPage", () => {
 
   it("WorkflowEditSheet onClose 호출 시 sheet가 닫힌다", () => {
     vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen, onClose }) =>
-      isOpen ? (
+      (isOpen ? (
         <button type="button" data-testid="close-btn" onClick={onClose}>
           Close
         </button>
-      ) : null,
+      ) : null) as ReactElement,
     );
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));

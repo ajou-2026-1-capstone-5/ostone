@@ -52,10 +52,10 @@ describe("useGetWorkflow", () => {
     expect(mockedFetch).not.toHaveBeenCalled();
   });
 
-  it("enabled=true이면 올바른 인수로 queryFn이 호출된다", () => {
+  it("enabled=true이면 올바른 인수로 queryFn이 호출된다", async () => {
     mockedFetch.mockResolvedValue(stubDetail);
     renderHook(() => useGetWorkflow(1, 2, 3, 10, true), { wrapper: makeWrapper() });
-    expect(mockedFetch).toHaveBeenCalledWith(1, 2, 3, 10);
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalledWith(1, 2, 3, 10));
   });
 
   it("성공 시 data를 반환한다", async () => {
