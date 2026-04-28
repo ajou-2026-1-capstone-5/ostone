@@ -10,9 +10,39 @@
 .header {
   padding: 20px 28px;
   border-bottom: 1px solid var(--glass-border);
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerInfo {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+
+.editButton {
+  flex-shrink: 0;
+  padding: 6px 16px 8px;
+  border-radius: 50px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  border: none;
+  cursor: pointer;
+}
+
+.editButton:focus-visible {
+  outline: dashed 2px var(--text-primary);
+  outline-offset: 2px;
 }
 
 .code {

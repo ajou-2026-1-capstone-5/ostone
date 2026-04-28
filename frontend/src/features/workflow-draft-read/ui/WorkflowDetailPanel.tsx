@@ -2,6 +2,7 @@ import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { parseTerminalStates } from "../model/parseTerminalStates";
+import { ApiRequestError } from "../../../shared/api";
 import type { WorkflowDetail } from "../../../entities/workflow";
 import { ErrorBoundary } from "../../../shared/ui/ErrorBoundary";
 import styles from "./WorkflowDetailPanel.module.css";
@@ -18,6 +19,7 @@ interface WorkflowDetailPanelProps {
   packId: number;
   versionId: number;
   workflowId: number | null;
+  onEdit?: () => void;
 }
 
 export function WorkflowDetailPanel({
@@ -25,8 +27,9 @@ export function WorkflowDetailPanel({
   packId,
   versionId,
   workflowId,
+  onEdit,
 }: WorkflowDetailPanelProps) {
-  const state = useWorkflowDetail(wsId, packId, versionId, workflowId);
+  const { data: detail, isLoading, isError, error } = useWorkflowDetail(wsId, packId, versionId, workflowId);
   const [tab, setTab] = useState<Tab>("graph");
   const idPrefix = useId();
 
@@ -34,20 +37,21 @@ export function WorkflowDetailPanel({
     setTab("graph");
   }, [workflowId]);
 
-  const errorCode = state.status === "error" ? state.code : undefined;
-  const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
-  const errorMessage = state.status === "error" ? state.message : undefined;
+  const apiError = isError && error instanceof ApiRequestError ? error : null;
+  const apiErrorCode = apiError?.code;
+  const apiErrorStatus = apiError?.status;
+  const apiErrorMessage = apiError?.message;
 
   useEffect(() => {
-    if (state.status !== "error") return;
+    if (!isError) return;
     const msg =
-      errorHttpStatus === 404
+      apiErrorStatus === 404
         ? "workflow를 찾을 수 없습니다."
-        : errorCode === "WORKFLOW_GRAPH_JSON_INVALID"
+        : apiErrorCode === "WORKFLOW_GRAPH_JSON_INVALID"
           ? "graph 데이터가 손상되어 시각화를 표시할 수 없습니다."
-          : errorMessage || "상세 정보를 불러오지 못했습니다.";
+          : apiErrorMessage || "상세 정보를 불러오지 못했습니다.";
     toast.error(msg);
-  }, [state.status, errorCode, errorHttpStatus, errorMessage]);
+  }, [isError, apiErrorCode, apiErrorStatus, apiErrorMessage]);
 
   const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next = index;
@@ -61,10 +65,9 @@ export function WorkflowDetailPanel({
     document.getElementById(`${idPrefix}-tab-${TABS[next]}`)?.focus();
   };
 
-  const detail = state.status === "ready" ? state.data : undefined;
   const jsonText = useMemo(() => JSON.stringify(detail?.graphJson, null, 2), [detail?.graphJson]);
 
-  if (state.status === "idle") {
+  if (workflowId === null) {
     return (
       <section className={styles.panel} aria-label="workflow 상세">
         <div className={styles.placeholder}>
@@ -74,7 +77,7 @@ export function WorkflowDetailPanel({
     );
   }
 
-  if (state.status === "loading") {
+  if (isLoading) {
     return (
       <section className={styles.panel} aria-label="workflow 상세">
         <div className={styles.body}>
@@ -84,7 +87,7 @@ export function WorkflowDetailPanel({
     );
   }
 
-  if (state.status === "error") {
+  if (isError) {
     return (
       <section className={styles.panel} aria-label="workflow 상세">
         <div className={styles.placeholder}>
@@ -98,7 +101,7 @@ export function WorkflowDetailPanel({
 
   return (
     <section className={styles.panel} aria-label="workflow 상세">
-      <DetailHeader detail={detail} />
+      <DetailHeader detail={detail} onEdit={onEdit} />
       <nav className={styles.tabs} role="tablist" aria-label="workflow 상세 뷰">
         {TABS.map((t, i) => (
           <button
@@ -160,13 +163,22 @@ export function WorkflowDetailPanel({
   );
 }
 
-function DetailHeader({ detail }: { detail: WorkflowDetail }) {
+function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () => void }) {
   return (
     <header className={styles.header}>
-      <span className={styles.code}>{detail.workflowCode}</span>
-      <span className={styles.name}>{detail.name}</span>
-      {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {new Date(detail.updatedAt).toLocaleString()}</span>
+      <div className={styles.headerRow}>
+        <div className={styles.headerInfo}>
+          <span className={styles.code}>{detail.workflowCode}</span>
+          <span className={styles.name}>{detail.name}</span>
+          {detail.description && <span className={styles.description}>{detail.description}</span>}
+          <span className={styles.updatedAt}>UPDATED · {new Date(detail.updatedAt).toLocaleString()}</span>
+        </div>
+        {onEdit && (
+          <button type="button" className={styles.editButton} onClick={onEdit}>
+            Edit
+          </button>
+        )}
+      </div>
     </header>
   );
 }

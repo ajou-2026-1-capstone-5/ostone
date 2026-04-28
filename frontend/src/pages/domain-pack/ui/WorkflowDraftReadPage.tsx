@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
 import { WorkflowDetailPanel, WorkflowListPanel } from "../../../features/workflow-draft-read/ui";
+import { WorkflowEditSheet } from "../../../features/update-workflow";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
 import styles from "./workflow-draft-read-page.module.css";
 
 export function WorkflowDraftReadPage() {
   const { workspaceId, packId, versionId, workflowId } = useParams();
   const navigate = useNavigate();
+  const [editOpen, setEditOpen] = useState(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
@@ -65,10 +68,26 @@ export function WorkflowDraftReadPage() {
             />
           </div>
           <div className={styles.detailSlot}>
-            <WorkflowDetailPanel wsId={wsId} packId={pId} versionId={vId} workflowId={wfId} />
+            <WorkflowDetailPanel
+              wsId={wsId}
+              packId={pId}
+              versionId={vId}
+              workflowId={wfId}
+              onEdit={() => setEditOpen(true)}
+            />
           </div>
         </div>
       </div>
+      {wfId !== null && (
+        <WorkflowEditSheet
+          wsId={wsId}
+          packId={pId}
+          versionId={vId}
+          workflowId={wfId}
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </DashboardLayout>
   );
 }

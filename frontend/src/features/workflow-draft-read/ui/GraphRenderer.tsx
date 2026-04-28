@@ -34,6 +34,11 @@ export default function GraphRenderer({ graph }: GraphRendererProps) {
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
+        panOnDrag={true}
+        zoomOnScroll={true}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
       >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} />
