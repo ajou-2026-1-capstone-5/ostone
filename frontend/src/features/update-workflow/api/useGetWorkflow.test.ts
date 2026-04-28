@@ -67,10 +67,10 @@ describe("useGetWorkflow", () => {
     expect(result.current.data).toEqual(stubDetail);
   });
 
-  it("enabled=false이면 enabled=true보다 fetch 호출 횟수가 적다", () => {
+  it("enabled=false이면 enabled=true보다 fetch 호출 횟수가 적다", async () => {
     mockedFetch.mockResolvedValue(stubDetail);
     renderHook(() => useGetWorkflow(1, 2, 3, 10, false), { wrapper: makeWrapper() });
     renderHook(() => useGetWorkflow(1, 2, 3, 10, true), { wrapper: makeWrapper() });
-    expect(mockedFetch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalledTimes(1));
   });
 });
