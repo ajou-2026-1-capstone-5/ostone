@@ -94,8 +94,9 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     assertThat(result.addedIntentCount()).isEqualTo(2);
     assertThat(result.skippedIntentCount()).isEqualTo(0);
     assertThat(result.totalIntentCount()).isEqualTo(5);
-    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_SUCCEEDED);
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK);
     assertThat(job.getDomainPackId()).isEqualTo(7L);
+    assertThat(job.getFinishedAt()).isNull();
     assertThat(job.getResultSummaryJson()).contains("\"domainPackVersionId\":101");
     assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
   }

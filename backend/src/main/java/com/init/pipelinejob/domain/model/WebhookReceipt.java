@@ -96,6 +96,10 @@ public class WebhookReceipt {
     return externalEventId;
   }
 
+  public String getWebhookType() {
+    return webhookType;
+  }
+
   public String getProcessingStatus() {
     return processingStatus;
   }
