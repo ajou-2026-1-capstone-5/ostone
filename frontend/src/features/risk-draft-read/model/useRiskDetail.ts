@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { riskApi, riskKeys } from "@/entities/risk";
 import { mapApiError } from "./mapApiError";
@@ -34,11 +34,15 @@ export function useRiskDetail(
   });
 
   const { refetch } = query;
+  const handledRetryKeyRef = useRef(0);
 
   useEffect(() => {
-    if (riskId !== null && retryKey > 0) {
-      refetch().catch(() => undefined);
+    if (riskId === null || retryKey === 0 || retryKey === handledRetryKeyRef.current) {
+      return;
     }
+
+    handledRetryKeyRef.current = retryKey;
+    refetch().catch(() => undefined);
   }, [riskId, refetch, retryKey]);
 
   if (riskId === null) {

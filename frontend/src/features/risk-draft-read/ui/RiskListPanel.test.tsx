@@ -52,11 +52,22 @@ describe("RiskListPanel", () => {
     mockedUseRiskList.mockReturnValue({ status: "ready", data: [stubRisk] });
     const { onSelect } = renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: /RISK_FRAUD/ }));
+    const riskButton = screen.getByRole("button", { name: /RISK_FRAUD/ });
+    fireEvent.click(riskButton);
 
     expect(screen.getByText("1 · LIST")).toBeInTheDocument();
+    expect(riskButton).toHaveAttribute("aria-current", "true");
     expect(screen.getByText("사기 위험")).toBeInTheDocument();
     expect(onSelect).toHaveBeenCalledWith(4);
+  });
+
+  it("empty 상태에서는 빈 목록 안내를 보여준다", () => {
+    mockedUseRiskList.mockReturnValue({ status: "empty" });
+
+    renderPanel();
+
+    expect(screen.getByText("0 · LIST")).toBeInTheDocument();
+    expect(screen.getByText("등록된 위험요소 초안이 없습니다.")).toBeInTheDocument();
   });
 
   it("error 상태에서는 재시도 버튼을 제공한다", () => {

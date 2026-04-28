@@ -135,6 +135,7 @@ describe("WorkspaceListPage", () => {
     await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: "open risk draft" }));
 
+    await waitFor(() => expect(domainPackApi.getDraftEntry).toHaveBeenCalledWith(1));
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/risks"),
     );

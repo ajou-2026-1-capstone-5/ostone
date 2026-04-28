@@ -37,7 +37,11 @@ export function RiskListPanel({
       <header className={styles.header}>
         <span className={styles.headerTitle}>Risks</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · LIST` : "— · LIST"}
+          {state.status === "ready"
+            ? `${state.data.length} · LIST`
+            : state.status === "empty"
+              ? "0 · LIST"
+              : "— · LIST"}
         </span>
       </header>
 
@@ -68,7 +72,7 @@ function RiskListContent({
     return <RiskLoadingRows />;
   }
 
-  if (state.status === "error" || state.data.length === 0) {
+  if (state.status === "error" || state.status === "empty") {
     const message =
       state.status === "error"
         ? RISK_READ_ERROR_MESSAGES.LOAD_LIST_FAILED
@@ -142,7 +146,7 @@ function RiskListRow({
       type="button"
       className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
       onClick={() => onSelect(risk.id)}
-      aria-pressed={isActive}
+      aria-current={isActive ? "true" : undefined}
     >
       <div className={styles.itemInner}>
         <span className={styles.code}>{risk.riskCode}</span>

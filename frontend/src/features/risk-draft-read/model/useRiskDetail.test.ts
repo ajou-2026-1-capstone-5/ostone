@@ -86,4 +86,33 @@ describe("useRiskDetail", () => {
       expect(result.current.code).toBe("RISK_DEFINITION_NOT_FOUND");
     }
   });
+
+  it("retryKey가 증가한 뒤 riskId가 바뀌어도 새 상세 조회를 한 번만 호출한다", async () => {
+    mockedDetail.mockImplementation(async (_workspaceId, _packId, _versionId, riskId) => ({
+      ...stubRisk,
+      id: riskId,
+    }));
+
+    const { result, rerender } = renderHook(
+      ({ retryKey, riskId }) => useRiskDetail(1, 2, 3, riskId, retryKey),
+      {
+        wrapper: makeWrapper(),
+        initialProps: { retryKey: 0, riskId: 4 },
+      },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(mockedDetail).toHaveBeenCalledTimes(1);
+    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 4);
+
+    rerender({ retryKey: 1, riskId: 4 });
+
+    await waitFor(() => expect(mockedDetail).toHaveBeenCalledTimes(2));
+    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 4);
+
+    rerender({ retryKey: 1, riskId: 5 });
+
+    await waitFor(() => expect(mockedDetail).toHaveBeenCalledTimes(3));
+    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 5);
+  });
 });

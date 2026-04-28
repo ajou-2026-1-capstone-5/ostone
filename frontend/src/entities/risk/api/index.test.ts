@@ -38,4 +38,34 @@ describe("riskApi", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("propagates non-ok list responses from the risk list endpoint", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({ code: "RISK_DEFINITION_NOT_FOUND", message: "Not found" }),
+    });
+
+    await expect(riskApi.list(1, 2, 3)).rejects.toMatchObject({
+      status: 404,
+      code: "RISK_DEFINITION_NOT_FOUND",
+      message: "Not found",
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/1/domain-packs/2/versions/3/risks",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("propagates network failures from the risk detail endpoint", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("network error"));
+
+    await expect(riskApi.detail(1, 2, 3, 4)).rejects.toThrow("network error");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/1/domain-packs/2/versions/3/risks/4",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

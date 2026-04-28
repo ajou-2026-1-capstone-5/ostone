@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { riskApi, riskKeys } from "@/entities/risk";
 import { mapApiError } from "./mapApiError";
@@ -7,6 +7,7 @@ import type { RiskSummary } from "@/entities/risk";
 export type RiskListState =
   | { status: "loading" }
   | { status: "error"; code: string; message: string; httpStatus?: number }
+  | { status: "empty" }
   | { status: "ready"; data: RiskSummary[] };
 
 export function useRiskList(
@@ -21,11 +22,15 @@ export function useRiskList(
   });
 
   const { refetch } = query;
+  const handledRetryKeyRef = useRef(0);
 
   useEffect(() => {
-    if (retryKey > 0) {
-      refetch().catch(() => undefined);
+    if (retryKey === 0 || retryKey === handledRetryKeyRef.current) {
+      return;
     }
+
+    handledRetryKeyRef.current = retryKey;
+    refetch().catch(() => undefined);
   }, [refetch, retryKey]);
 
   if (query.isLoading) {
@@ -36,5 +41,9 @@ export function useRiskList(
     return mapApiError(query.error);
   }
 
-  return { status: "ready", data: query.data ?? [] };
+  const data = query.data ?? [];
+  if (data.length === 0) {
+    return { status: "empty" };
+  }
+  return { status: "ready", data };
 }

@@ -64,6 +64,39 @@ describe("useRiskList", () => {
     }
   });
 
+  it("목록이 비어 있으면 empty 상태를 반환한다", async () => {
+    mockedList.mockResolvedValue([]);
+    const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(result.current.status).toBe("empty"));
+  });
+
+  it("retryKey가 증가한 뒤 versionId가 바뀌어도 새 목록 조회를 한 번만 호출한다", async () => {
+    mockedList.mockResolvedValue([stubRisk]);
+
+    const { result, rerender } = renderHook(
+      ({ retryKey, versionId }) => useRiskList(1, 2, versionId, retryKey),
+      {
+        wrapper: makeWrapper(),
+        initialProps: { retryKey: 0, versionId: 3 },
+      },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(mockedList).toHaveBeenCalledTimes(1);
+    expect(mockedList).toHaveBeenLastCalledWith(1, 2, 3);
+
+    rerender({ retryKey: 1, versionId: 3 });
+
+    await waitFor(() => expect(mockedList).toHaveBeenCalledTimes(2));
+    expect(mockedList).toHaveBeenLastCalledWith(1, 2, 3);
+
+    rerender({ retryKey: 1, versionId: 4 });
+
+    await waitFor(() => expect(mockedList).toHaveBeenCalledTimes(3));
+    expect(mockedList).toHaveBeenLastCalledWith(1, 2, 4);
+  });
+
   it("ApiRequestError를 error 상태로 변환한다", async () => {
     mockedList.mockRejectedValue(new ApiRequestError(403, "FORBIDDEN", "접근 금지"));
     const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
