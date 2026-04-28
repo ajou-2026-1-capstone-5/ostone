@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { workflowKeys, fetchWorkflow } from "@/entities/workflow";
+import { workflowQueryKeys, fetchWorkflow } from "@/entities/workflow";
 
 export function useGetWorkflow(
   wsId: number,
@@ -9,7 +9,7 @@ export function useGetWorkflow(
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: workflowKeys.detail(wsId, packId, versionId, workflowId),
+    queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId),
     queryFn: () => fetchWorkflow(wsId, packId, versionId, workflowId),
     enabled,
   });

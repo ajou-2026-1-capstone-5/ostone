@@ -136,6 +136,21 @@
   color: var(--text-muted);
 }
 
+.retryButton {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 14px 7px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 @media (max-width: 959px) {
   .panel {
     width: 280px;

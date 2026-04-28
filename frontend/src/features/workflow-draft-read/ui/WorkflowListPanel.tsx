@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { useWorkflowList } from "../model/useWorkflowList";
 import { parseTerminalStates } from "../model/parseTerminalStates";
-import type { WorkflowSummary } from "../../../entities/workflow";
+import { ApiRequestError } from "@/shared/api";
+import type { WorkflowSummary } from "@/entities/workflow";
 import styles from "./WorkflowListPanel.module.css";
 
 interface WorkflowListPanelProps {
@@ -25,26 +26,26 @@ export function WorkflowListPanel({
   selectedId,
   onSelect,
 }: WorkflowListPanelProps) {
-  const state = useWorkflowList(wsId, packId, versionId);
-  const errorMessage = state.status === "error" ? state.message : undefined;
+  const { data, isLoading, isError, isSuccess, error, refetch } = useWorkflowList(wsId, packId, versionId);
+  const errorMessage = isError && error instanceof ApiRequestError ? error.message : undefined;
 
   useEffect(() => {
-    if (state.status === "error") {
+    if (isError) {
       toast.error(errorMessage ?? "목록을 불러오지 못했습니다.");
     }
-  }, [state.status, errorMessage]);
+  }, [isError, errorMessage]);
 
   return (
     <aside className={styles.panel} aria-label="workflow 목록">
       <header className={styles.header}>
         <span className={styles.headerTitle}>Workflows</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · CODE` : "— · CODE"}
+          {isSuccess ? `${data.length} · CODE` : "— · CODE"}
         </span>
       </header>
 
       <div className={styles.scroll}>
-        {state.status === "loading" && (
+        {isLoading && (
           <div className={styles.skeletonGroup}>
             <div className={styles.skeletonRow} />
             <div className={styles.skeletonRow} />
@@ -52,20 +53,23 @@ export function WorkflowListPanel({
           </div>
         )}
 
-        {state.status === "error" && (
-          <div className={styles.emptyState}>
+        {isError && (
+          <div className={styles.errorState}>
             <span>목록을 불러오지 못했습니다.</span>
+            <button type="button" className={styles.retryButton} onClick={() => void refetch()}>
+              다시 시도
+            </button>
           </div>
         )}
 
-        {state.status === "ready" && state.data.length === 0 && (
+        {isSuccess && data.length === 0 && (
           <div className={styles.emptyState}>
             <span>해당 버전에 등록된 workflow 초안이 없습니다.</span>
           </div>
         )}
 
-        {state.status === "ready" &&
-          state.data.map((w) => (
+        {isSuccess &&
+          data.map((w) => (
             <WorkflowRow key={w.id} workflow={w} active={w.id === selectedId} onSelect={onSelect} />
           ))}
       </div>
