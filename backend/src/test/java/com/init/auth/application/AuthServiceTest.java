@@ -43,9 +43,7 @@ class AuthServiceTest {
 
   @BeforeEach
   void setUp() {
-    // dummyHash 생성을 위해 passwordEncoder.encode("dummy_password_for_timing_prevention") 스텁 필요
-    given(passwordEncoder.encode("dummy_password_for_timing_prevention"))
-        .willReturn("$2a$10$dummyhash");
+    given(passwordEncoder.encode(anyString())).willReturn("$2a$10$dummyhash");
     authService =
         new AuthService(
             userRepository, refreshTokenRepository, jwtService, passwordEncoder, tokenHasher);
