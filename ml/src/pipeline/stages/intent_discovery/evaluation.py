@@ -123,7 +123,10 @@ def _l2_normalize(vectors: np.ndarray) -> np.ndarray:
 def _dominant_ratio(values: list[str | None]) -> float:
     if not values:
         return 0.0
-    counts = Counter(values)
+    present_values = [value for value in values if value is not None]
+    if not present_values:
+        return 0.0
+    counts = Counter(present_values)
     return _clip_score(max(counts.values()) / len(values))
 
 

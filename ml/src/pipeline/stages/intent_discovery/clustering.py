@@ -13,6 +13,8 @@ from pipeline.stages.intent_discovery.types import DEFAULT_KNN_K, DEFAULT_LEIDEN
 
 
 def combine_with_flow(embeddings: np.ndarray, flow_signatures: np.ndarray, weight: float = 0.5) -> np.ndarray:
+    if not 0.0 <= weight <= 1.0:
+        raise ValueError("weight must be between 0.0 and 1.0.")
     if embeddings.shape[0] != flow_signatures.shape[0]:
         raise ValueError("embeddings and flow_signatures must have the same row count.")
 

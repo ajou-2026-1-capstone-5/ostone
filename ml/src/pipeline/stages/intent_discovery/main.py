@@ -42,6 +42,21 @@ def run(upstream_manifest_path: str | None = None) -> IntentDiscoveryStats:
     success_indices = [i for i, ok in enumerate(success_mask) if ok]
     embedding_vectors = embeddings[success_indices]
     flow_vectors = flow_signatures[success_indices]
+    success_conversations = [conversations[i] for i in success_indices]
+
+    if embedding_vectors.shape[0] == 0:
+        stats = IntentDiscoveryStats(
+            input_count=len(conversations),
+            embedding_failed_count=len(conversations),
+            cluster_count=0,
+            outlier_count=0,
+            outlier_rate=0.0,
+            avg_interpretability_score=0.0,
+            avg_workflow_consistency_score=0.0,
+        )
+        write_clusters_artifact(runtime_config, context, [], [], stats, embedding_vectors)
+        logger.warning("No successful embeddings; wrote empty intent-discovery artifacts")
+        return stats
 
     # 3. Hybrid vectors
     vectors = combine_with_flow(embedding_vectors, flow_vectors)
@@ -57,18 +72,15 @@ def run(upstream_manifest_path: str | None = None) -> IntentDiscoveryStats:
 
     # 6. Identify outliers
     outlier_node_indices, valid_clusters = identify_outliers(memberships)
-    # Map back to original success_indices
-    outlier_original = {success_indices[i] for i in outlier_node_indices}
     logger.info("Outlier count: %d, valid clusters: %d", len(outlier_node_indices), len(valid_clusters))
 
     # 7. Compute centroids
     centroids = compute_centroids(vectors, valid_clusters)
 
-    # 8. Build cluster results (filter to success space only)
-    success_conversations = [conversations[i] for i in success_indices]
+    # 8. Build cluster results
     cluster_results, novel_candidates = build_cluster_results(
         valid_clusters,
-        outlier_original,
+        outlier_node_indices,
         success_conversations,
         vectors,
         centroids,
@@ -98,7 +110,7 @@ def run(upstream_manifest_path: str | None = None) -> IntentDiscoveryStats:
     )
 
     # 11. Write artifacts
-    write_clusters_artifact(runtime_config, context, cluster_results, novel_candidates, stats, embedding_vectors)
+    write_clusters_artifact(runtime_config, context, cluster_results, novel_candidates, stats, embeddings)
     logger.info("Intent discovery stage completed: %s", stats)
 
     return stats

@@ -166,7 +166,9 @@ def _required_float(value: object, artifact_path: Path) -> float:
 def _optional_str(value: object) -> str | None:
     if value is None:
         return None
-    return str(value)
+    if isinstance(value, str):
+        return value
+    raise PipelineStageError(f"Optional field must be a string or null, got {type(value).__name__}")
 
 
 def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:
