@@ -30,9 +30,7 @@ public class DomainPackController {
 
   @GetMapping("/{packId}")
   public ResponseEntity<DomainPackDetailResult> getDomainPack(
-      @PathVariable Long workspaceId,
-      @PathVariable Long packId,
-      Authentication authentication) {
+      @PathVariable Long workspaceId, @PathVariable Long packId, Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(
         packDetailUseCase.execute(new GetDomainPackDetailQuery(workspaceId, packId, userId)));

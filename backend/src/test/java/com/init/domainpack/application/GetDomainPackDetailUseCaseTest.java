@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
@@ -50,7 +49,9 @@ class GetDomainPackDetailUseCaseTest {
             domainPackRepository,
             domainPackVersionRepository,
             null);
-    useCase = new GetDomainPackDetailUseCase(validator, domainPackRepository, domainPackVersionRepository);
+    useCase =
+        new GetDomainPackDetailUseCase(
+            validator, domainPackRepository, domainPackVersionRepository);
   }
 
   @Test
@@ -61,7 +62,8 @@ class GetDomainPackDetailUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
 
     StubDomainPack pack = new StubDomainPack(PACK_ID, WORKSPACE_ID, "my-key", "My Pack", null);
-    DomainPackVersion version = DomainPackVersion.ofForTest(2L, PACK_ID, DomainPackVersion.STATUS_DRAFT);
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(2L, PACK_ID, DomainPackVersion.STATUS_DRAFT);
     given(domainPackRepository.findByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID))
         .willReturn(Optional.of(pack));
     given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))

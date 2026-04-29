@@ -74,7 +74,8 @@ class GetDomainPackVersionDetailUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
 
-    DomainPackVersion version = DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
     given(domainPackVersionRepository.findById(VERSION_ID)).willReturn(Optional.of(version));
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(version));
@@ -105,7 +106,8 @@ class GetDomainPackVersionDetailUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
 
-    DomainPackVersion version = DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
     given(domainPackVersionRepository.findById(VERSION_ID)).willReturn(Optional.of(version));
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.empty());

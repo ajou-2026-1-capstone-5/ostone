@@ -48,7 +48,8 @@ class DomainPackControllerTest {
   @WithLongPrincipal(10L)
   void should_200_when_getDomainPack() throws Exception {
     DomainPackDetailResult fixture =
-        new DomainPackDetailResult(10L, 1L, "my-pack-key", "CS Support Pack", "고객 지원용", List.of(), NOW, NOW);
+        new DomainPackDetailResult(
+            10L, 1L, "my-pack-key", "CS Support Pack", "고객 지원용", List.of(), NOW, NOW);
     given(
             packDetailUseCase.execute(
                 argThat(q -> q.workspaceId().equals(1L) && q.packId().equals(10L))))
@@ -84,9 +85,7 @@ class DomainPackControllerTest {
     given(packDetailUseCase.execute(argThat(q -> q.workspaceId().equals(1L))))
         .willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다."));
 
-    mockMvc
-        .perform(get("/api/v1/workspaces/1/domain-packs/10"))
-        .andExpect(status().isNotFound());
+    mockMvc.perform(get("/api/v1/workspaces/1/domain-packs/10")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -96,15 +95,15 @@ class DomainPackControllerTest {
     given(packDetailUseCase.execute(argThat(q -> q.workspaceId().equals(1L))))
         .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("권한 없음"));
 
-    mockMvc
-        .perform(get("/api/v1/workspaces/1/domain-packs/10"))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/v1/workspaces/1/domain-packs/10")).andExpect(status().isForbidden());
   }
 
   @Test
   @DisplayName("GET /{packId} 미인증 → 401")
   void should_401_when_unauthenticated_getDomainPack() throws Exception {
-    mockMvc.perform(get("/api/v1/workspaces/1/domain-packs/10")).andExpect(status().isUnauthorized());
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/domain-packs/10"))
+        .andExpect(status().isUnauthorized());
   }
 
   @Test
