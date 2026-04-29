@@ -96,6 +96,6 @@ openApi {
     outputFileName.set("openapi.json")
     waitTimeInSeconds.set(60)
     customBootRun {
-        args.set(listOf("--spring.profiles.active=local"))
+        args.set(listOf("--spring.profiles.active=local", "--server.port=8089"))
     }
 }
