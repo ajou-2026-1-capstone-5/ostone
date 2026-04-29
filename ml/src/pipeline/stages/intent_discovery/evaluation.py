@@ -70,7 +70,7 @@ def _centroid_similarity_score(
     if centroids is None:
         centroid = vectors.mean(axis=0)
         centroid_norm = float(np.linalg.norm(centroid))
-        if centroid_norm == 0.0:
+        if centroid_norm < 1e-9:
             return 0.0
         normalized_vectors = _l2_normalize(vectors)
         normalized_centroid = centroid / centroid_norm
@@ -87,7 +87,7 @@ def _centroid_similarity_score(
             continue
         centroid = centroids[cluster_id]
         centroid_norm = float(np.linalg.norm(centroid))
-        if centroid_norm == 0.0:
+        if centroid_norm < 1e-9:
             continue
         normalized_centroid = centroid / centroid_norm
         sim = float(normalized_vectors[i] @ normalized_centroid)

@@ -102,7 +102,7 @@ def _exemplar_indices(member_indices: list[int], centroid: np.ndarray, vectors: 
         return ()
 
     centroid_norm = float(np.linalg.norm(centroid))
-    if centroid_norm == 0.0:
+    if centroid_norm < 1e-9:
         return tuple(member_indices[:2])
 
     similarities = _cosine_similarities(vectors[member_indices], centroid, centroid_norm)
