@@ -11,6 +11,8 @@ public interface PolicyDefinitionRepository {
 
   PolicyDefinition findByIdOrThrow(Long id);
 
+  long countByDomainPackVersionId(Long domainPackVersionId);
+
   Optional<PolicyDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 
   List<PolicyDefinition> findAllByDomainPackVersionIdOrderByPolicyCodeAsc(Long domainPackVersionId);

@@ -12,6 +12,8 @@ public interface SlotDefinitionRepository {
 
   SlotDefinition save(SlotDefinition slot);
 
+  long countByDomainPackVersionId(Long domainPackVersionId);
+
   List<SlotDefinition> findAllByDomainPackVersionIdOrderBySlotCodeAsc(Long domainPackVersionId);
 
   Optional<SlotDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
