@@ -43,7 +43,7 @@ public class AuthService {
     this.jwtService = jwtService;
     this.passwordEncoder = passwordEncoder;
     this.tokenHasher = tokenHasher;
-    this.dummyHash = passwordEncoder.encode("dummy_password_for_timing_prevention");
+    this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
   }
 
   @Transactional(noRollbackFor = PasswordResetRequiredException.class)
