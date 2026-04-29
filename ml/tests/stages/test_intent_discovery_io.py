@@ -193,5 +193,183 @@ def _read_output(clusters_path: Path) -> OutputArtifact:
     return cast(OutputArtifact, json.loads(clusters_path.read_text(encoding="utf-8")))
 
 
+def test_should_raise_on_invalid_json(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text("{ invalid json }", encoding="utf-8")
+
+    with pytest.raises(PipelineStageError, match="Invalid preprocessed artifact JSON"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_on_missing_conversations_field(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(json.dumps({"other": "data"}), encoding="utf-8")
+
+    with pytest.raises(PipelineStageError, match="conversations must be a list"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_when_field_is_not_string(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {
+                        "id": 123,
+                        "dataset_id": "ds1",
+                        "canonical_text": "test",
+                        "customer_problem_text": "problem",
+                        "flow_signature": [0.0] * FLOW_SIGNATURE_DIM,
+                        "flow_signature_dim": FLOW_SIGNATURE_DIM,
+                        "turn_count": 1,
+                        "customer_turn_count": 1,
+                        "pii_mask_count": 0,
+                        "filtered": False,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match="field 'id' must be a string"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_when_field_is_not_integer(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {
+                        "id": "c1",
+                        "dataset_id": "ds1",
+                        "canonical_text": "test",
+                        "customer_problem_text": "problem",
+                        "flow_signature": [0.0] * FLOW_SIGNATURE_DIM,
+                        "flow_signature_dim": "invalid",
+                        "turn_count": 1,
+                        "customer_turn_count": 1,
+                        "pii_mask_count": 0,
+                        "filtered": False,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match="field 'flow_signature_dim' must be an integer"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_when_field_is_not_boolean(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {
+                        "id": "c1",
+                        "dataset_id": "ds1",
+                        "canonical_text": "test",
+                        "customer_problem_text": "problem",
+                        "flow_signature": [0.0] * FLOW_SIGNATURE_DIM,
+                        "flow_signature_dim": FLOW_SIGNATURE_DIM,
+                        "turn_count": 1,
+                        "customer_turn_count": 1,
+                        "pii_mask_count": 0,
+                        "filtered": "true",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match="field 'filtered' must be a boolean"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_when_flow_signature_contains_non_number(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {
+                        "id": "c1",
+                        "dataset_id": "ds1",
+                        "canonical_text": "test",
+                        "customer_problem_text": "problem",
+                        "flow_signature": [0.0, "invalid", 0.0],
+                        "flow_signature_dim": FLOW_SIGNATURE_DIM,
+                        "turn_count": 1,
+                        "customer_turn_count": 1,
+                        "pii_mask_count": 0,
+                        "filtered": False,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match="flow_signature must contain only numbers"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_should_raise_when_optional_field_has_invalid_type(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    _ = artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [
+                    {
+                        "id": "c1",
+                        "dataset_id": "ds1",
+                        "canonical_text": "test",
+                        "customer_problem_text": "problem",
+                        "flow_signature": [0.0] * FLOW_SIGNATURE_DIM,
+                        "flow_signature_dim": FLOW_SIGNATURE_DIM,
+                        "turn_count": 1,
+                        "customer_turn_count": 1,
+                        "pii_mask_count": 0,
+                        "filtered": False,
+                        "channel": 123,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match="Optional field must be a string or null"):
+        _ = read_preprocessed_artifact(runtime_config, context)
+
+
 def _is_ndarray(value: object) -> TypeGuard[np.ndarray]:
     return isinstance(value, np.ndarray)
