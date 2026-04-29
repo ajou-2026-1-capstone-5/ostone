@@ -7,7 +7,6 @@ from dataclasses import replace
 from typing import cast
 
 import numpy as np
-from numpy.typing import NDArray
 
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.logging import get_stage_logger
@@ -24,6 +23,8 @@ from pipeline.stages.preprocessing.types import (
     Conversation,
     ProcessedConversation,
 )
+
+MIN_CUSTOMER_TURN_LEN = 5
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, str]:
@@ -77,7 +78,6 @@ def _process_conversations(
         "pii_masked_count": pii_masked_count,
         "empty_customer_text_count": empty_customer_count,
         "avg_canonical_text_length": avg_canonical_text_length,
-        "source_manifest": upstream_manifest_path,
         "upstream_manifest_path": upstream_manifest_path,
     }
 
@@ -86,9 +86,9 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
     normalized_conversation = _normalize_conversation(conversation)
     canonical_text, customer_text, pii_count = apply_canonicalization(normalized_conversation)
     customer_text_is_empty = not customer_text.strip()
-    filtered = len(canonical_text) < 5
+    filtered = len(canonical_text) < MIN_CUSTOMER_TURN_LEN
 
-    signature = cast(NDArray[np.float32], build_signature(normalized_conversation))
+    signature: np.ndarray = build_signature(normalized_conversation)
     assert signature.shape == (FLOW_SIGNATURE_DIM,)
     assert str(signature.dtype) == "float32"
 
