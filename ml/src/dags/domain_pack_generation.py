@@ -36,7 +36,7 @@ def _build_stage_context(stage_name: str) -> StageContext:
 
 def _run_stage(
     stage_name: str,
-    stage_callable: Callable[[str | None], None],
+    stage_callable: Callable[[str | None], dict[str, str] | None],
     upstream_manifest_path: str | None = None,
 ) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
@@ -46,7 +46,7 @@ def _run_stage(
         "upstream_manifest_path": upstream_manifest_path,
     }
     try:
-        stage_callable(upstream_manifest_path)
+        stage_result = stage_callable(upstream_manifest_path)
     except Exception as exc:
         manifest_payload["status"] = "failed"
         manifest_payload["error"] = {
@@ -60,6 +60,10 @@ def _run_stage(
             logger.exception("Failed to write failure manifest for stage '%s'", stage_name)
         raise
     else:
+        if stage_result is not None:
+            artifact_manifest_path = stage_result.get("artifact_manifest_path")
+            if artifact_manifest_path:
+                return {"artifact_manifest_path": artifact_manifest_path}
         manifest_payload["status"] = "completed"
         manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
     return {"artifact_manifest_path": str(manifest_path)}
