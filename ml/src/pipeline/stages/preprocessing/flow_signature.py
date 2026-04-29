@@ -152,5 +152,8 @@ def build_signature(conv: Conversation) -> np.ndarray:
             outcome,
         ]
     ).astype(np.float32)
-    assert signature.shape == (FLOW_SIGNATURE_DIM,)
+    if signature.shape != (FLOW_SIGNATURE_DIM,):
+        raise RuntimeError(
+            f"Flow signature shape mismatch: expected ({FLOW_SIGNATURE_DIM},), got {signature.shape}"
+        )
     return signature

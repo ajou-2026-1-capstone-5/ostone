@@ -89,8 +89,14 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
     filtered = len(canonical_text) < MIN_CUSTOMER_TURN_LEN
 
     signature: np.ndarray = build_signature(normalized_conversation)
-    assert signature.shape == (FLOW_SIGNATURE_DIM,)
-    assert str(signature.dtype) == "float32"
+    if signature.shape != (FLOW_SIGNATURE_DIM,):
+        raise ValueError(
+            f"Expected flow signature shape ({FLOW_SIGNATURE_DIM},), got {signature.shape}"
+        )
+    if signature.dtype != np.float32:
+        raise TypeError(
+            f"Expected flow signature dtype float32, got {signature.dtype}"
+        )
 
     normalized_turns = normalized_conversation.turns
     return (
@@ -117,4 +123,4 @@ def _normalize_conversation(conversation: Conversation) -> Conversation:
     normalized_turns = tuple(
         replace(turn, speaker_role=normalize_speaker_role(turn.speaker_role)) for turn in conversation.turns
     )
-    return replace(conversation, turns=normalized_turns)
+    return cast(Conversation, replace(conversation, turns=normalized_turns))
