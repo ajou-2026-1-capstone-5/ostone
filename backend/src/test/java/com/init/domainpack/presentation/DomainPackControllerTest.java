@@ -156,4 +156,28 @@ class DomainPackControllerTest {
         .perform(get("/api/v1/workspaces/1/domain-packs/10/versions/1"))
         .andExpect(status().isUnauthorized());
   }
+
+  @Test
+  @DisplayName("GET /{packId}/versions/{versionId} workspace 미존재 → 404")
+  @WithLongPrincipal(10L)
+  void should_404_when_versionEndpoint_workspaceNotFound() throws Exception {
+    given(versionDetailUseCase.execute(argThat(q -> q.workspaceId().equals(1L))))
+        .willThrow(new DomainPackWorkspaceNotFoundException("워크스페이스를 찾을 수 없습니다."));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/domain-packs/10/versions/1"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("GET /{packId}/versions/{versionId} 접근 권한 없음 → 403")
+  @WithLongPrincipal(10L)
+  void should_403_when_versionEndpoint_unauthorized() throws Exception {
+    given(versionDetailUseCase.execute(argThat(q -> q.workspaceId().equals(1L))))
+        .willThrow(new DomainPackUnauthorizedWorkspaceAccessException("권한 없음"));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/domain-packs/10/versions/1"))
+        .andExpect(status().isForbidden());
+  }
 }

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
@@ -114,5 +116,32 @@ class GetDomainPackVersionDetailUseCaseTest {
                     new GetDomainPackVersionDetailQuery(
                         WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
         .isInstanceOf(DomainPackVersionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("workspace 미존재 → DomainPackWorkspaceNotFoundException")
+  void should_throw_when_workspaceNotFound() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetDomainPackVersionDetailQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+        .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("접근 권한 없음 → DomainPackUnauthorizedWorkspaceAccessException")
+  void should_throw_when_접근권한없음() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    new GetDomainPackVersionDetailQuery(
+                        WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID)))
+        .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
   }
 }
