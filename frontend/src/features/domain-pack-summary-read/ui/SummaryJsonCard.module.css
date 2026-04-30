@@ -1,0 +1,95 @@
+.card {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+}
+
+.cardTitle {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-heading);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 2px;
+  background: var(--glass-dark-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.toggleBtn {
+  padding: 3px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heading);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.toggleBtn.active {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.cardBody {
+  padding: 14px;
+}
+
+.keyValueGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  font-size: var(--font-size-sm);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.value {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.rawPre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.fallbackWarning {
+  font-size: var(--font-size-xs);
+  color: var(--error-color);
+  margin-bottom: 8px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

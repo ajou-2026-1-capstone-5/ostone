@@ -1,0 +1,116 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pageHeader {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.breadcrumbSep {
+  color: var(--glass-border);
+}
+
+.packMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.packName {
+  font-size: 18px;
+  font-weight: var(--font-weight-heading);
+  color: var(--text-primary);
+  letter-spacing: -0.14px;
+}
+
+.packCode {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.createBtn {
+  padding: 7px 14px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.createBtn:hover {
+  opacity: 0.8;
+}
+
+.twoPane {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.invalidParams {
+  padding: 24px;
+  color: var(--error-color);
+}
+
+.errorCard {
+  padding: 24px;
+  margin: 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--error-color);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.retryBtn {
+  padding: 6px 14px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.retryBtn:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 767px) {
+  .twoPane {
+    flex-direction: column;
+  }
+}

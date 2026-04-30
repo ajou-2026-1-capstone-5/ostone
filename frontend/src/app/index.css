@@ -16,6 +16,9 @@
 :root {
   --font-sans: 'pretendard variable', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono', monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
   --font-size-label: 12px;
   --font-size-heading-lg: 40px;
   --font-size-body-lg: 18px;
@@ -57,6 +60,7 @@
   --hover-border: rgba(0, 0, 0, 0.14);
   --divider-subtle: rgba(0, 0, 0, 0.04);
   --app-header-height: 72px;
+  --overlay-bg: rgba(0, 0, 0, 0.45);
 }
 
 * {
