@@ -118,4 +118,26 @@ describe('ComponentCountGrid', () => {
     render(<ComponentCountGrid {...defaultProps} />);
     expect(screen.getByText('intent-1')).toBeInTheDocument();
   });
+
+  it('workflow 미리보기 항목에서 Enter 키 입력 시 해당 id로 navigate를 호출한다', () => {
+    vi.mocked(previewLists.useWorkflowPreview).mockReturnValue(
+      makeHook({ data: [{ id: 10, name: 'wf-alpha' }] }),
+    );
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.keyDown(screen.getByText('wf-alpha'), { key: 'Enter' });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/workspaces/1/domain-packs/2/versions/3/workflows/10',
+    );
+  });
+
+  it('workflow 미리보기 항목에서 Space 키 입력 시 해당 id로 navigate를 호출한다', () => {
+    vi.mocked(previewLists.useWorkflowPreview).mockReturnValue(
+      makeHook({ data: [{ id: 10, name: 'wf-alpha' }] }),
+    );
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.keyDown(screen.getByText('wf-alpha'), { key: ' ' });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/workspaces/1/domain-packs/2/versions/3/workflows/10',
+    );
+  });
 });

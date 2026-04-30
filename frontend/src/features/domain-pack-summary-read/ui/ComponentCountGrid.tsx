@@ -161,6 +161,12 @@ function CountCard({
                 e.stopPropagation();
                 onPreviewItemClick(item.id);
               } : undefined}
+              onKeyDown={!disabled && onPreviewItemClick ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPreviewItemClick(item.id);
+                }
+              } : undefined}
             >
               {item.name}
             </li>
@@ -168,8 +174,8 @@ function CountCard({
         </ul>
       ) : previewNames && previewNames.length > 0 ? (
         <ul className={styles.previewList}>
-          {previewNames.map((name) => (
-            <li key={name} className={styles.previewItem}>
+          {previewNames.map((name, idx) => (
+            <li key={`${name}-${idx}`} className={styles.previewItem}>
               {name}
             </li>
           ))}

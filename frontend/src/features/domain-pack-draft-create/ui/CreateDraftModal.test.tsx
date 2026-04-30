@@ -112,4 +112,32 @@ describe('CreateDraftModal', () => {
     renderModal();
     expect(screen.getByRole('button', { name: '생성 중...' })).toBeDisabled();
   });
+
+  it('FileReader onerror 발화 시 인라인 에러를 표시한다', async () => {
+    renderModal();
+    const file = new File([''], 'test.json', { type: 'application/json' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    let capturedReader: FileReader | null = null;
+    const OriginalFileReader = globalThis.FileReader;
+    globalThis.FileReader = class extends OriginalFileReader {
+      constructor() {
+        super();
+        capturedReader = this;
+      }
+    } as typeof FileReader;
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    globalThis.FileReader = OriginalFileReader;
+
+    if (capturedReader) {
+      Object.defineProperty(capturedReader, 'error', { value: new DOMException('read error') });
+      (capturedReader as FileReader).dispatchEvent(new ProgressEvent('error'));
+    }
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('파일을 읽는 중 오류가 발생했습니다.'),
+    );
+  });
 });

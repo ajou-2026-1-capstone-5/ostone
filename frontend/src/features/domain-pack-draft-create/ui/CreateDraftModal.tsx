@@ -33,6 +33,9 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
     reader.onload = (ev) => {
       setJsonText((ev.target?.result as string) ?? '');
     };
+    reader.onerror = () => {
+      setInlineError('파일을 읽는 중 오류가 발생했습니다.');
+    };
     reader.readAsText(file);
   };
 
@@ -70,7 +73,9 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
   return (
     <div
       className={styles.overlay}
+      role="presentation"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <dialog
         ref={dialogRef}

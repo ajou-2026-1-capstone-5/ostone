@@ -1,9 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ApiRequestError } from '@/shared/api';
 import { usePackDetail, useVersionDetail } from '@/features/domain-pack-summary-read';
 import { DomainPackSummaryPage } from './DomainPackSummaryPage';
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
 
 const ROUTE = '/workspaces/:workspaceId/domain-packs/:packId';
 
@@ -53,6 +58,7 @@ describe('DomainPackSummaryPage', () => {
   beforeEach(() => {
     vi.mocked(usePackDetail).mockReturnValue(makePackQuery());
     vi.mocked(useVersionDetail).mockReturnValue(makePackQuery());
+    vi.mocked(toast.error).mockReset();
   });
 
   it('유효하지 않은 workspaceId 시 에러 메시지를 표시한다', () => {
@@ -117,5 +123,36 @@ describe('DomainPackSummaryPage', () => {
     vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isLoading: true }));
     renderPage();
     expect(screen.getByTestId('version-list-panel')).toBeInTheDocument();
+  });
+
+  it('packDetail 비404 에러 시 toast.error를 1회 호출한다', async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: new Error('fail') }),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Pack 정보를 불러오지 못했습니다.'),
+    );
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('packDetail 404 에러 시 toast.error를 "Pack을 찾을 수 없습니다."로 호출한다', async () => {
+    const error404 = new ApiRequestError(404, 'NOT_FOUND', 'not found');
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: error404 }),
+    );
+    renderPage();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Pack을 찾을 수 없습니다.'),
+    );
+  });
+
+  it('packDetail 404 에러 시 "다시 시도" 버튼을 표시하지 않는다', () => {
+    const error404 = new ApiRequestError(404, 'NOT_FOUND', 'not found');
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ isError: true, error: error404 }),
+    );
+    renderPage();
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument();
   });
 });

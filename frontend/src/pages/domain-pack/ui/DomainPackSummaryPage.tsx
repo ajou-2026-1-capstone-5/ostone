@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ApiRequestError } from '@/shared/api';
 import { DashboardLayout } from '@/shared/ui/layout/DashboardLayout';
 import { parseRouteId } from '@/shared/lib/parseRouteId';
@@ -39,6 +40,12 @@ interface ContentProps {
 
 function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreateOpen, setCreateOpen }: ContentProps) {
   const packQuery = usePackDetail(wsId, packId);
+
+  useEffect(() => {
+    if (!packQuery.isError) return;
+    const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
+    toast.error(is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.');
+  }, [packQuery.isError, packQuery.error]);
 
   const rawVersionId = search.get('versionId');
   const selectedVersionId = rawVersionId !== null ? parseRouteId(rawVersionId) : null;
@@ -87,9 +94,11 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
       <DashboardLayout>
         <div className={styles.errorCard} role="alert">
           <span>{is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.'}</span>
-          <button type="button" className={styles.retryBtn} onClick={() => packQuery.refetch()}>
-            다시 시도
-          </button>
+          {!is404 && (
+            <button type="button" className={styles.retryBtn} onClick={() => packQuery.refetch()}>
+              다시 시도
+            </button>
+          )}
         </div>
       </DashboardLayout>
     );
