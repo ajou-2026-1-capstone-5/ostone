@@ -1,0 +1,144 @@
+.panel {
+  width: 320px;
+  min-width: 220px;
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 16px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-heading);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.item:hover {
+  background: var(--hover-bg);
+}
+
+.item.active {
+  border-left-color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.versionNo {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.badgeDraft {
+  border-color: var(--glass-border);
+}
+
+.badgePublished {
+  background: var(--text-primary);
+  color: var(--bg-color);
+  border-color: var(--text-primary);
+}
+
+.sourceBadge {
+  composes: badge;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.createdAt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.skeleton {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeletonItem {
+  height: 48px;
+  background: var(--hover-bg);
+  border-radius: var(--radius-md);
+}
+
+.empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.ctaButton {
+  padding: 6px 12px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.ctaButton:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 1023px) {
+  .panel {
+    width: 260px;
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+  }
+}

@@ -57,6 +57,8 @@
   --hover-border: rgba(0, 0, 0, 0.14);
   --divider-subtle: rgba(0, 0, 0, 0.04);
   --app-header-height: 72px;
+  --overlay-bg: rgba(0, 0, 0, 0.45);
+  --error-bg-subtle: rgba(180, 35, 24, 0.06);
 }
 
 * {
