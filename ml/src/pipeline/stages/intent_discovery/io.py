@@ -109,6 +109,12 @@ def _build_processed_conversation(payload: object, artifact_path: Path) -> Proce
         raise PipelineStageError(f"Processed conversation must be a JSON object: {artifact_path}")
 
     flow_signature = _build_flow_signature(payload.get("flow_signature"), artifact_path)
+    flow_signature_dim = _required_int(payload, "flow_signature_dim", artifact_path)
+    if flow_signature_dim != len(flow_signature):
+        raise PipelineStageError(
+            f"flow_signature_dim ({flow_signature_dim}) must match "
+            f"flow_signature length ({len(flow_signature)}): {artifact_path}"
+        )
     return ProcessedConversation(
         id=_required_str(payload, "id", artifact_path),
         dataset_id=_required_str(payload, "dataset_id", artifact_path),
@@ -117,7 +123,7 @@ def _build_processed_conversation(payload: object, artifact_path: Path) -> Proce
         canonical_text=_required_str(payload, "canonical_text", artifact_path),
         customer_problem_text=_required_str(payload, "customer_problem_text", artifact_path),
         flow_signature=flow_signature,
-        flow_signature_dim=_required_int(payload, "flow_signature_dim", artifact_path),
+        flow_signature_dim=flow_signature_dim,
         turn_count=_required_int(payload, "turn_count", artifact_path),
         customer_turn_count=_required_int(payload, "customer_turn_count", artifact_path),
         pii_mask_count=_required_int(payload, "pii_mask_count", artifact_path),
