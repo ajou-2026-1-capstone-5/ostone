@@ -33,6 +33,7 @@ services:
       STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       STORAGE_S3_PATH_STYLE: "true"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      AIRFLOW_WEBHOOK_SECRET: ${AIRFLOW_WEBHOOK_SECRET:?AIRFLOW_WEBHOOK_SECRET is required}
 
     ports:
       - "8080:8080"

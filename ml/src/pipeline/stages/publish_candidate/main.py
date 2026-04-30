@@ -150,6 +150,8 @@ def validate_candidate(candidate: dict[str, Any]) -> None:
     if not intents:
         raise PipelineStageError("intentDraft.intents must contain at least one intent.")
     intent_codes = _validate_code_list(intents, "intentCode", "intentDraft.intents")
+    for intent in intents:
+        _required_non_blank(intent, "name", 255)
 
     workflow_draft = _required_object(candidate, "workflowDraft")
     workflow_lists = {key: _optional_list(workflow_draft, key) for key in WORKFLOW_LIST_KEYS}
@@ -157,10 +159,22 @@ def validate_candidate(candidate: dict[str, Any]) -> None:
         raise PipelineStageError("workflowDraft must contain at least one draft component.")
 
     slot_codes = _validate_code_list(workflow_lists["slots"], "slotCode", "workflowDraft.slots")
+    for slot in workflow_lists["slots"]:
+        _required_non_blank(slot, "name", 255)
+        _required_non_blank(slot, "dataType", 50)
+
     _validate_code_list(workflow_lists["policies"], "policyCode", "workflowDraft.policies")
+    for policy in workflow_lists["policies"]:
+        _required_non_blank(policy, "name", 255)
+
     _validate_code_list(workflow_lists["risks"], "riskCode", "workflowDraft.risks")
+    for risk in workflow_lists["risks"]:
+        _required_non_blank(risk, "name", 255)
+        _required_non_blank(risk, "riskLevel", 50)
+
     workflow_codes = _validate_code_list(workflow_lists["workflows"], "workflowCode", "workflowDraft.workflows")
     for workflow in workflow_lists["workflows"]:
+        _required_non_blank(workflow, "name", 255)
         _required_non_blank(workflow, "graphJson", 20000)
 
     for binding in workflow_lists["intentSlotBindings"]:
@@ -239,6 +253,7 @@ def _run_callbacks(
     if not _has_successful_callback(result, CALLBACK_DOMAIN_PACK):
         domain_payload = build_domain_pack_payload(candidate, stage_context)
         domain_response = _post_callback(domain_payload, CALLBACK_DOMAIN_PACK, stage_context, runtime_config)
+        _validate_callback_response(domain_response)
         _append_callback_result(result, domain_response.to_result_entry())
         apply_domain_pack_response(result, domain_response.parsed_response_body)
         _write_result(result_path, result)
@@ -259,12 +274,14 @@ def _run_callbacks(
     if not _has_successful_callback(result, CALLBACK_INTENT):
         intent_payload = build_intent_payload(candidate, stage_context, domain_pack_version_id)
         intent_response = _post_callback(intent_payload, CALLBACK_INTENT, stage_context, runtime_config)
+        _validate_callback_response(intent_response)
         _append_callback_result(result, intent_response.to_result_entry())
         _write_result(result_path, result)
 
     if not _has_successful_callback(result, CALLBACK_WORKFLOW):
         workflow_payload = build_workflow_payload(candidate, stage_context, domain_pack_version_id)
         workflow_response = _post_callback(workflow_payload, CALLBACK_WORKFLOW, stage_context, runtime_config)
+        _validate_callback_response(workflow_response)
         _append_callback_result(result, workflow_response.to_result_entry())
         _write_result(result_path, result)
 
@@ -398,6 +415,21 @@ def _append_callback_result(result: dict[str, Any], callback_result: dict[str, o
     callbacks = _callback_results(result)
     callbacks.append(callback_result)
     result["callbackResults"] = callbacks
+
+
+def _validate_callback_response(response: CallbackResponse) -> None:
+    if response.response_status in SUCCESS_RESPONSE_STATUSES:
+        return
+    raise PipelineCallbackError(
+        message=f"Spring callback returned unexpected status: responseStatus={response.response_status}",
+        callback_type=response.callback_type,
+        external_event_id=response.external_event_id,
+        endpoint=response.endpoint,
+        http_status=response.http_status,
+        response_body=response.response_body,
+        response_body_truncated=response.response_body_truncated,
+        parsed_response_body=response.parsed_response_body,
+    )
 
 
 def _callback_results(result: dict[str, Any]) -> list[dict[str, Any]]:

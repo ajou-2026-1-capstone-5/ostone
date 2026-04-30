@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -157,6 +158,29 @@ def test_validate_candidate_requires_workflow_component() -> None:
         publish.validate_candidate(candidate)
 
 
+def test_validate_candidate_rejects_missing_spring_required_fields() -> None:
+    cases = [
+        ("intent name", ("intentDraft", "intents", 0, "name")),
+        ("slot name", ("workflowDraft", "slots", 0, "name")),
+        ("slot dataType", ("workflowDraft", "slots", 0, "dataType")),
+        ("policy name", ("workflowDraft", "policies", 0, "name")),
+        ("risk name", ("workflowDraft", "risks", 0, "name")),
+        ("risk riskLevel", ("workflowDraft", "risks", 0, "riskLevel")),
+        ("workflow name", ("workflowDraft", "workflows", 0, "name")),
+    ]
+
+    for _label, path in cases:
+        candidate = _candidate()
+        candidate["workflowDraft"]["risks"] = [{"riskCode": "refund_risk", "name": "Refund risk", "riskLevel": "HIGH"}]
+        target: Any = candidate
+        for segment in path[:-1]:
+            target = target[segment]
+        target[path[-1]] = ""
+
+        with pytest.raises(PipelineStageError):
+            publish.validate_candidate(copy.deepcopy(candidate))
+
+
 def test_domain_pack_response_updates_context() -> None:
     result: dict[str, Any] = {}
 
@@ -293,6 +317,51 @@ def test_domain_pack_timeout_without_context_is_non_retryable(monkeypatch: pytes
     assert result["publishStatus"] == "FAILED"
     assert result["failedCallbackType"] == "domain-pack-drafts"
     assert result["error"]["type"] == "DomainPackContextLost"
+
+
+def test_unexpected_callback_status_fails_before_next_callback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    manifest_path, _candidate_path = _write_publish_inputs(tmp_path)
+    artifact_root = tmp_path / "artifacts"
+    calls: list[str] = []
+
+    def fake_post_callback(
+        _backend_base_url: str,
+        _job_id: str,
+        callback_type: str,
+        payload: dict[str, object],
+        _webhook_secret: str,
+        _timeout_seconds: float,
+    ) -> CallbackResponse:
+        calls.append(callback_type)
+        parsed_body: dict[str, object] = {"status": "WEIRD"}
+        if callback_type == "domain-pack-drafts":
+            parsed_body["domainPackVersionId"] = 101
+        return CallbackResponse(
+            callback_type=callback_type,
+            external_event_id=cast(str, payload["externalEventId"]),
+            endpoint=f"/{callback_type}",
+            http_status=200,
+            response_status="WEIRD",
+            response_body='{"status":"WEIRD"}',
+            response_body_truncated=False,
+            parsed_response_body=parsed_body,
+        )
+
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setattr(publish, "post_callback", fake_post_callback)
+
+    with pytest.raises(publish.PublishCandidateStageError):
+        publish.run(str(manifest_path))
+
+    result_path = (
+        artifact_root / "domain_pack_generation" / "manual__run" / "publish_candidate" / "publish_candidate_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert calls == ["domain-pack-drafts"]
+    assert result["publishStatus"] == "FAILED"
+    assert result["failedCallbackType"] == "domain-pack-drafts"
+    assert result["error"]["parsedResponseBody"] == {"status": "WEIRD", "domainPackVersionId": 101}
 
 
 def test_evaluation_blocked_fails_airflow_task(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
