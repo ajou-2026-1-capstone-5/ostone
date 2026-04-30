@@ -66,7 +66,7 @@ def _run_stage(
     else:
         if stage_result is not None:
             artifact_manifest_path = stage_result.get("artifact_manifest_path")
-            if isinstance(artifact_manifest_path, str):
+            if isinstance(artifact_manifest_path, str) and artifact_manifest_path:
                 return {"artifact_manifest_path": artifact_manifest_path}
             manifest_payload.update(stage_result)
         manifest_payload["status"] = "completed"

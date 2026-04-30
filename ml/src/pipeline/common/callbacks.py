@@ -127,6 +127,13 @@ def post_callback(
             endpoint=endpoint,
         ) from exc
     except URLError as exc:
+        if _is_timeout_reason(exc.reason):
+            raise PipelineCallbackError(
+                message="Spring callback timed out.",
+                callback_type=callback_type,
+                external_event_id=external_event_id,
+                endpoint=endpoint,
+            ) from exc
         raise PipelineCallbackError(
             message=f"Spring callback request failed: {exc.reason}",
             callback_type=callback_type,
@@ -215,6 +222,10 @@ def truncate_text(value: str, max_chars: int) -> tuple[str, bool]:
     if len(value) <= max_chars:
         return value, False
     return value[:max_chars], True
+
+
+def _is_timeout_reason(reason: object) -> bool:
+    return isinstance(reason, (TimeoutError, socket.timeout))
 
 
 def _require_callback_type(callback_type: str) -> None:

@@ -79,6 +79,22 @@ def test_stage_return_manifest_path_is_reused(monkeypatch: pytest.MonkeyPatch, t
     assert not (tmp_path / "domain_pack_generation").exists()
 
 
+def test_empty_stage_return_manifest_path_writes_manifest(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    _patch_airflow_context(monkeypatch, dag_module)
+
+    result = dag_module._run_stage("evaluation", lambda _path: {"artifact_manifest_path": "", "extra": "value"})
+    manifest_path = Path(result["artifact_manifest_path"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert result["artifact_manifest_path"] != ""
+    assert manifest["payload"]["status"] == "completed"
+    assert manifest["payload"]["artifact_manifest_path"] == ""
+    assert manifest["payload"]["extra"] == "value"
+
+
 def test_failed_stage_writes_failure_manifest(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     dag_module = _import_dag_module(monkeypatch)
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))

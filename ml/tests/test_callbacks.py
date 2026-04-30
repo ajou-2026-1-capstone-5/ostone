@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import io
 import json
+import socket
 from email.message import Message
 from typing import Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -92,6 +93,27 @@ def test_non_2xx_raises_callback_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exc_info.value.http_status == 400
     assert exc_info.value.parsed_response_body == {"code": "VALIDATION_ERROR", "email": "***"}
     assert exc_info.value.response_body == '{"code":"VALIDATION_ERROR","email":"***"}'
+
+
+@pytest.mark.parametrize("reason", [TimeoutError("timed out"), socket.timeout("timed out")])
+def test_wrapped_timeout_raises_callback_timeout_error(monkeypatch: pytest.MonkeyPatch, reason: BaseException) -> None:
+    def fake_urlopen(_request: Any, timeout: float) -> _FakeResponse:
+        assert timeout == 10
+        raise URLError(reason)
+
+    monkeypatch.setattr(callbacks, "urlopen", fake_urlopen)
+
+    with pytest.raises(PipelineCallbackError) as exc_info:
+        post_callback(
+            "http://backend:8080",
+            "11",
+            "intent-drafts",
+            {"externalEventId": "dag:run:intent-drafts"},
+            "secret-value",
+            10,
+        )
+
+    assert str(exc_info.value) == "Spring callback timed out."
 
 
 def test_callback_response_body_keeps_redacted_raw_text() -> None:

@@ -46,60 +46,19 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     result = _load_existing_result(result_path) or _initial_result(stage_context)
 
     try:
-        candidate_path = _read_candidate_artifact_path(upstream_manifest_path)
-        result["candidateArtifactPath"] = str(candidate_path)
-        _write_result(result_path, result)
-
+        candidate_path = _prepare_candidate_input(upstream_manifest_path, result, result_path)
         if runtime_config.callback_enabled:
             _validate_pipeline_job_id(stage_context.pipeline_job_id)
 
-        candidate = load_candidate(candidate_path)
-        validate_candidate(candidate)
+        candidate = _load_valid_candidate(candidate_path)
+        _raise_if_evaluation_blocked(candidate, result, result_path)
 
-        if _evaluation_blocked(candidate):
-            result.update(
-                {
-                    "publishStatus": "BLOCKED_BY_EVALUATION",
-                    "blockReason": "evaluationSummary.passed=false",
-                    "callbackResults": [],
-                    "failedCallbackType": None,
-                    "error": {
-                        "type": "EvaluationBlocked",
-                        "message": "Candidate did not pass evaluation gate",
-                        "responseBody": None,
-                        "parsedResponseBody": None,
-                    },
-                }
-            )
-            _write_result(result_path, result)
-            raise _stage_error("Candidate did not pass evaluation gate.", result, result_path)
-
-        if not runtime_config.callback_enabled:
-            result.update(
-                {
-                    "publishStatus": "SKIPPED",
-                    "skipReason": "CALLBACK_DISABLED",
-                    "domainPackId": None,
-                    "domainPackVersionId": None,
-                    "versionNo": None,
-                    "failedCallbackType": None,
-                    "callbackResults": [],
-                    "error": None,
-                }
-            )
-            _write_result(result_path, result)
+        if _skip_callbacks_if_disabled(runtime_config, result, result_path):
             return _manifest_payload(result, result_path)
 
-        result["publishStatus"] = "RUNNING"
-        result["error"] = None
-        result["failedCallbackType"] = None
-        _write_result(result_path, result)
-
+        _mark_running(result, result_path)
         _run_callbacks(candidate, result, result_path, stage_context, runtime_config)
-        result["publishStatus"] = "SUCCEEDED"
-        result["failedCallbackType"] = None
-        result["error"] = None
-        _write_result(result_path, result)
+        _mark_succeeded(result, result_path)
         return _manifest_payload(result, result_path)
     except PublishCandidateStageError:
         raise
@@ -120,6 +79,83 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         }
         _write_result(result_path, result)
         raise _stage_error(str(exc), result, result_path) from exc
+
+
+def _prepare_candidate_input(
+    upstream_manifest_path: str | None,
+    result: dict[str, Any],
+    result_path: Path,
+) -> Path:
+    candidate_path = _read_candidate_artifact_path(upstream_manifest_path)
+    result["candidateArtifactPath"] = str(candidate_path)
+    _write_result(result_path, result)
+    return candidate_path
+
+
+def _load_valid_candidate(candidate_path: Path) -> dict[str, Any]:
+    candidate = load_candidate(candidate_path)
+    validate_candidate(candidate)
+    return candidate
+
+
+def _raise_if_evaluation_blocked(candidate: dict[str, Any], result: dict[str, Any], result_path: Path) -> None:
+    if not _evaluation_blocked(candidate):
+        return
+
+    result.update(
+        {
+            "publishStatus": "BLOCKED_BY_EVALUATION",
+            "blockReason": "evaluationSummary.passed=false",
+            "callbackResults": [],
+            "failedCallbackType": None,
+            "error": {
+                "type": "EvaluationBlocked",
+                "message": "Candidate did not pass evaluation gate",
+                "responseBody": None,
+                "parsedResponseBody": None,
+            },
+        }
+    )
+    _write_result(result_path, result)
+    raise _stage_error("Candidate did not pass evaluation gate.", result, result_path)
+
+
+def _skip_callbacks_if_disabled(
+    runtime_config: PipelineRuntimeConfig,
+    result: dict[str, Any],
+    result_path: Path,
+) -> bool:
+    if runtime_config.callback_enabled:
+        return False
+
+    result.update(
+        {
+            "publishStatus": "SKIPPED",
+            "skipReason": "CALLBACK_DISABLED",
+            "domainPackId": None,
+            "domainPackVersionId": None,
+            "versionNo": None,
+            "failedCallbackType": None,
+            "callbackResults": [],
+            "error": None,
+        }
+    )
+    _write_result(result_path, result)
+    return True
+
+
+def _mark_running(result: dict[str, Any], result_path: Path) -> None:
+    result["publishStatus"] = "RUNNING"
+    result["error"] = None
+    result["failedCallbackType"] = None
+    _write_result(result_path, result)
+
+
+def _mark_succeeded(result: dict[str, Any], result_path: Path) -> None:
+    result["publishStatus"] = "SUCCEEDED"
+    result["failedCallbackType"] = None
+    result["error"] = None
+    _write_result(result_path, result)
 
 
 def build_external_event_id(dag_id: str, run_id: str, callback_type: str) -> str:
