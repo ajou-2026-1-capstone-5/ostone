@@ -68,11 +68,17 @@ def _embed_omlx(
 
             parsed_rows = _pad_batch(_parse_response_embeddings(payload), len(texts_batch))
             for vector in parsed_rows:
-                if vector.size > 0 and embedding_dim is None:
-                    embedding_dim = _embedding_size(vector)
-                is_success = _is_valid_embedding(vector, embedding_dim)
-                rows.append(vector.astype(np.float32, copy=False) if is_success else None)
-                success_mask.append(is_success)
+                if vector.size > 0:
+                    candidate_dim = _embedding_size(vector)
+                    dim_to_check = embedding_dim if embedding_dim is not None else candidate_dim
+                    if _is_valid_embedding(vector, dim_to_check):
+                        if embedding_dim is None:
+                            embedding_dim = candidate_dim
+                        rows.append(vector.astype(np.float32, copy=False))
+                        success_mask.append(True)
+                        continue
+                rows.append(None)
+                success_mask.append(False)
 
     final_dim = embedding_dim or DEFAULT_EMBEDDING_DIM
     embeddings = np.vstack([row if row is not None else np.zeros((final_dim,), dtype=np.float32) for row in rows])
