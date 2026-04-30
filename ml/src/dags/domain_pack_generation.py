@@ -12,6 +12,7 @@ from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.dag_defaults import default_dag_args
+from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.stages.draft_generation.main import run as draft_generation_run
 from pipeline.stages.evaluation.main import run as evaluation_run
 from pipeline.stages.ingestion.main import run as ingestion_run
@@ -73,6 +74,12 @@ def _run_stage(
     return {"artifact_manifest_path": str(manifest_path)}
 
 
+def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, object] | None:
+    if upstream_manifest_path is None:
+        raise PipelineConfigurationError("evaluation stage requires an upstream manifest path.")
+    return evaluation_run(upstream_manifest_path)
+
+
 @dag(
     dag_id="domain_pack_generation",
     schedule=None,
@@ -121,7 +128,7 @@ def domain_pack_generation() -> None:
     def evaluation(draft_generation_result: dict[str, str]) -> dict[str, str]:
         return _run_stage(
             "evaluation",
-            evaluation_run,
+            _run_evaluation_stage,
             draft_generation_result["artifact_manifest_path"],
         )
 

@@ -21,7 +21,7 @@ class PipelineRuntimeConfig:
         backend_base_url = os.getenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
         callback_enabled = _parse_bool(os.getenv("PIPELINE_CALLBACK_ENABLED", "true"))
         callback_timeout_seconds = _parse_timeout(os.getenv("PIPELINE_CALLBACK_TIMEOUT_SECONDS", "10"))
-        airflow_webhook_secret = os.getenv("AIRFLOW_WEBHOOK_SECRET")
+        airflow_webhook_secret = _normalize_optional_secret(os.getenv("AIRFLOW_WEBHOOK_SECRET"))
         if not artifact_root:
             raise PipelineConfigurationError("PIPELINE_ARTIFACT_ROOT must not be blank.")
         if not backend_base_url:
@@ -44,6 +44,13 @@ def _parse_bool(value: str) -> bool:
     if normalized in {"0", "false", "no", "n", "off"}:
         return False
     raise PipelineConfigurationError("PIPELINE_CALLBACK_ENABLED must be a boolean value.")
+
+
+def _normalize_optional_secret(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 def _parse_timeout(value: str) -> float:

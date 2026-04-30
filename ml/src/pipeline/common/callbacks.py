@@ -175,6 +175,11 @@ def parse_response_body(raw_body: bytes | str | None) -> tuple[str | None, bool,
     redacted_parsed = redact_json(parsed)
     redacted_text = json.dumps(redacted_parsed, ensure_ascii=False, separators=(",", ":"))
     truncated_text, truncated = truncate_text(redacted_text, MAX_ARTIFACT_BODY_CHARS)
+    if truncated:
+        truncated_parsed: dict[str, object] = {"_truncated": True, "body": truncated_text}
+        if isinstance(redacted_parsed, dict) and isinstance(redacted_parsed.get("status"), str):
+            truncated_parsed["status"] = redacted_parsed["status"]
+        return truncated_text, truncated, truncated_parsed
     return truncated_text, truncated, redacted_parsed
 
 

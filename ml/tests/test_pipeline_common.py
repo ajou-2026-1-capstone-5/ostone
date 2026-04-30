@@ -1,6 +1,9 @@
+import pytest
+
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
+from pipeline.common.exceptions import PipelineConfigurationError
 
 
 def test_should_write_stage_manifest(tmp_path):
@@ -22,3 +25,10 @@ def test_should_write_stage_manifest(tmp_path):
     assert manifest_path.exists()
     assert manifest_path.parent == tmp_path / "dev_bootstrap" / "manual__2026-04-15T00:00:00+00:00" / "bootstrap_smoke"
     assert '"stage_name": "bootstrap_smoke"' in manifest_path.read_text(encoding="utf-8")
+
+
+def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "   ")
+
+    with pytest.raises(PipelineConfigurationError):
+        PipelineRuntimeConfig.from_env()
