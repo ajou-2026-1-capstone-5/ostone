@@ -32,3 +32,12 @@ def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
 
     with pytest.raises(PipelineConfigurationError):
         PipelineRuntimeConfig.from_env()
+
+
+@pytest.mark.parametrize("timeout", ["nan", "inf", "-inf"])
+def test_runtime_config_rejects_non_finite_callback_timeout(monkeypatch, timeout):
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("PIPELINE_CALLBACK_TIMEOUT_SECONDS", timeout)
+
+    with pytest.raises(PipelineConfigurationError):
+        PipelineRuntimeConfig.from_env()

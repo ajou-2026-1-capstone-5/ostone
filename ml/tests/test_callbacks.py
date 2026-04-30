@@ -9,7 +9,13 @@ from urllib.error import HTTPError
 import pytest
 
 from pipeline.common import callbacks
-from pipeline.common.callbacks import PipelineCallbackError, parse_response_body, post_callback, redact_headers
+from pipeline.common.callbacks import (
+    PipelineCallbackError,
+    build_callback_endpoint,
+    parse_response_body,
+    post_callback,
+    redact_headers,
+)
 
 
 class _FakeResponse:
@@ -51,6 +57,12 @@ def test_callback_client_sends_secret_header(monkeypatch: pytest.MonkeyPatch) ->
     assert captured["timeout"] == 3.5
     assert response.http_status == 201
     assert response.response_status == "CREATED"
+
+
+def test_callback_endpoint_encodes_job_id_path_segment() -> None:
+    endpoint = build_callback_endpoint("http://backend:8080/", "job/with?reserved#chars", "intent-drafts")
+
+    assert endpoint == "http://backend:8080/api/v1/pipeline-jobs/job%2Fwith%3Freserved%23chars/callbacks/intent-drafts"
 
 
 def test_non_2xx_raises_callback_error(monkeypatch: pytest.MonkeyPatch) -> None:

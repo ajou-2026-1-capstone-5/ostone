@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 
 from pipeline.common.exceptions import PipelineConfigurationError
@@ -58,6 +59,6 @@ def _parse_timeout(value: str) -> float:
         timeout = float(value)
     except ValueError as exc:
         raise PipelineConfigurationError("PIPELINE_CALLBACK_TIMEOUT_SECONDS must be a number.") from exc
-    if timeout <= 0:
-        raise PipelineConfigurationError("PIPELINE_CALLBACK_TIMEOUT_SECONDS must be greater than 0.")
+    if not isfinite(timeout) or timeout <= 0:
+        raise PipelineConfigurationError("PIPELINE_CALLBACK_TIMEOUT_SECONDS must be a finite number greater than 0.")
     return timeout

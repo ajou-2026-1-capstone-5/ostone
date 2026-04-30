@@ -6,6 +6,7 @@ import socket
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 CALLBACK_TYPES = {"domain-pack-drafts", "intent-drafts", "workflow-drafts"}
@@ -76,7 +77,8 @@ class PipelineCallbackError(RuntimeError):
 
 def build_callback_endpoint(backend_base_url: str, job_id: str, callback_type: str) -> str:
     _require_callback_type(callback_type)
-    return f"{backend_base_url.rstrip('/')}/api/v1/pipeline-jobs/{job_id}/callbacks/{callback_type}"
+    encoded_job_id = quote(job_id, safe="")
+    return f"{backend_base_url.rstrip('/')}/api/v1/pipeline-jobs/{encoded_job_id}/callbacks/{callback_type}"
 
 
 def post_callback(
