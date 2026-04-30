@@ -1,5 +1,6 @@
 package com.init.domainpack.infrastructure.persistence;
 
+import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.repository.DomainPackDraftEntryRow;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import java.util.Optional;
@@ -13,6 +14,10 @@ public interface JpaDomainPackRepository
     extends JpaRepository<DomainPackRef, Long>, DomainPackRepository {
 
   boolean existsByIdAndWorkspaceId(Long id, Long workspaceId);
+
+  @Query("SELECT p FROM DomainPack p WHERE p.id = :packId AND p.workspaceId = :workspaceId")
+  Optional<DomainPack> findByIdAndWorkspaceId(
+      @Param("packId") Long packId, @Param("workspaceId") Long workspaceId);
 
   @Query(
       value =
