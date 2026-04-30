@@ -19,8 +19,10 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
   const [jsonText, setJsonText] = useState('');
   const [inlineError, setInlineError] = useState<string | null>(null);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
+    dialogRef.current?.showModal();
     firstInputRef.current?.focus();
   }, []);
 
@@ -79,11 +81,12 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <dialog
+        ref={dialogRef}
         className={styles.dialog}
-        open
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-draft-title"
+        onCancel={(e) => { e.preventDefault(); onClose(); }}
       >
         <div className={styles.header}>
           <span id="create-draft-title" className={styles.title}>새 DRAFT 묶기</span>

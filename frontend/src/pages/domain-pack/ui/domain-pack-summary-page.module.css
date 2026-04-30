@@ -58,7 +58,7 @@
   background: var(--text-primary);
   color: var(--bg-color);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   font-size: 12px;
   font-weight: var(--font-weight-heading);
   cursor: pointer;
@@ -98,7 +98,7 @@
   background: var(--text-primary);
   color: var(--bg-color);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   font-size: 12px;
   font-weight: var(--font-weight-heading);
   cursor: pointer;

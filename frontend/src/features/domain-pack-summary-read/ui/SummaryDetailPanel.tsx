@@ -37,13 +37,19 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
     return (
       <div className={styles.panel}>
         <div className={styles.error} role="alert">
-          {is404 ? '버전을 찾을 수 없습니다.' : '버전 상세 정보를 불러오지 못했습니다.'}
+          <span>{is404 ? '버전을 찾을 수 없습니다.' : '버전 상세 정보를 불러오지 못했습니다.'}</span>
+          {!is404 && (
+            <button type="button" className={styles.errorRetryBtn} onClick={() => query.refetch()}>
+              다시 시도
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
-  const v = query.data!;
+  if (!query.data) return null;
+  const v = query.data;
 
   return (
     <div className={styles.panel}>

@@ -24,21 +24,32 @@
 }
 
 .item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 16px;
-  cursor: pointer;
   border-left: 2px solid transparent;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.item:hover {
-  background: var(--hover-bg);
+  transition: border-color var(--transition-fast);
 }
 
 .item.active {
   border-left-color: var(--text-primary);
+}
+
+.itemBtn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background var(--transition-fast);
+}
+
+.itemBtn:hover {
+  background: var(--hover-bg);
+}
+
+.item.active .itemBtn {
   background: var(--bg-secondary);
 }
 
@@ -51,7 +62,7 @@
 .versionNo {
   font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 480;
   color: var(--text-primary);
 }
 
@@ -118,7 +129,7 @@
   background: var(--text-primary);
   color: var(--bg-color);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   font-size: 12px;
   font-weight: var(--font-weight-heading);
   cursor: pointer;

@@ -38,7 +38,7 @@
 .countNumber {
   font-family: var(--font-mono);
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 540;
   color: var(--text-primary);
   line-height: 1;
 }

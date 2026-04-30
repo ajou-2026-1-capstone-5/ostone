@@ -65,7 +65,7 @@ export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }:
   return (
     <div className={styles.panel}>
       <div className={styles.header}>버전 {versions.length}개</div>
-      <ul className={styles.list} role="listbox" aria-label="버전 목록">
+      <ul className={styles.list} role="list" aria-label="버전 목록">
         {versions.map((v) => (
           <VersionListItem
             key={v.versionId}
@@ -87,33 +87,29 @@ interface VersionListItemProps {
 
 function VersionListItem({ version, isActive, onSelect }: VersionListItemProps) {
   return (
-    <li
-      className={`${styles.item} ${isActive ? styles.active : ''}`}
-      role="option"
-      aria-selected={isActive}
-      tabIndex={0}
-      onClick={() => onSelect(version.versionId)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(version.versionId);
-        }
-      }}
-    >
-      <div className={styles.itemRow}>
-        <span className={styles.versionNo}>v{version.versionNo}</span>
-        <span
-          className={`${styles.badge} ${
-            version.lifecycleStatus === 'PUBLISHED' ? styles.badgePublished : styles.badgeDraft
-          }`}
-        >
-          {version.lifecycleStatus}
-        </span>
-        {version.sourcePipelineJobId !== null && (
-          <span className={styles.sourceBadge}>PIPELINE</span>
-        )}
-      </div>
-      <span className={styles.createdAt}>{formatDate(version.createdAt)}</span>
+    <li className={`${styles.item} ${isActive ? styles.active : ''}`}>
+      <button
+        type="button"
+        className={styles.itemBtn}
+        tabIndex={isActive ? 0 : -1}
+        aria-current={isActive || undefined}
+        onClick={() => onSelect(version.versionId)}
+      >
+        <div className={styles.itemRow}>
+          <span className={styles.versionNo}>v{version.versionNo}</span>
+          <span
+            className={`${styles.badge} ${
+              version.lifecycleStatus === 'PUBLISHED' ? styles.badgePublished : styles.badgeDraft
+            }`}
+          >
+            {version.lifecycleStatus}
+          </span>
+          {version.sourcePipelineJobId !== null && (
+            <span className={styles.sourceBadge}>PIPELINE</span>
+          )}
+        </div>
+        <span className={styles.createdAt}>{formatDate(version.createdAt)}</span>
+      </button>
     </li>
   );
 }

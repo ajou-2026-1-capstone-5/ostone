@@ -169,7 +169,7 @@
   padding: 7px 16px;
   background: transparent;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -184,7 +184,7 @@
   padding: 7px 16px;
   background: var(--text-primary);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   font-size: 13px;
   font-weight: var(--font-weight-heading);
   color: var(--bg-color);
