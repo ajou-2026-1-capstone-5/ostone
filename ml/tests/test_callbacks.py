@@ -128,13 +128,32 @@ def test_callback_response_body_keeps_redacted_raw_text() -> None:
 
 def test_callback_response_body_truncates_parsed_body() -> None:
     response_body, truncated, parsed = parse_response_body(
-        json.dumps({"status": "CREATED", "items": ["x" * callbacks.MAX_ARTIFACT_BODY_CHARS]}).encode()
+        json.dumps(
+            {
+                "status": "CREATED",
+                "domainPackId": 7,
+                "domainPackVersionId": 101,
+                "versionNo": 3,
+                "ok": True,
+                "note": None,
+                "items": ["x" * callbacks.MAX_ARTIFACT_BODY_CHARS],
+            }
+        ).encode()
     )
 
     assert truncated is True
     assert isinstance(response_body, str)
     assert len(response_body) == callbacks.MAX_ARTIFACT_BODY_CHARS
-    assert parsed == {"_truncated": True, "body": response_body, "status": "CREATED"}
+    assert parsed == {
+        "_truncated": True,
+        "body": response_body,
+        "status": "CREATED",
+        "domainPackId": 7,
+        "domainPackVersionId": 101,
+        "versionNo": 3,
+        "ok": True,
+        "note": None,
+    }
 
 
 def test_redacts_secret_and_sensitive_fields_before_logging() -> None:

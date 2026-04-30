@@ -18,8 +18,8 @@ class PipelineRuntimeConfig:
 
     @classmethod
     def from_env(cls) -> "PipelineRuntimeConfig":
-        artifact_root = os.getenv("PIPELINE_ARTIFACT_ROOT", "/opt/airflow/artifacts")
-        backend_base_url = os.getenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+        artifact_root = os.getenv("PIPELINE_ARTIFACT_ROOT", "/opt/airflow/artifacts").strip()
+        backend_base_url = os.getenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080").strip()
         callback_enabled = _parse_bool(os.getenv("PIPELINE_CALLBACK_ENABLED", "true"))
         callback_timeout_seconds = _parse_timeout(os.getenv("PIPELINE_CALLBACK_TIMEOUT_SECONDS", "10"))
         airflow_webhook_secret = _normalize_optional_secret(os.getenv("AIRFLOW_WEBHOOK_SECRET"))

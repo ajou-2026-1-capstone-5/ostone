@@ -186,8 +186,10 @@ def parse_response_body(raw_body: bytes | str | None) -> tuple[str | None, bool,
     truncated_text, truncated = truncate_text(redacted_text, MAX_ARTIFACT_BODY_CHARS)
     if truncated:
         truncated_parsed: dict[str, object] = {"_truncated": True, "body": truncated_text}
-        if isinstance(redacted_parsed, dict) and isinstance(redacted_parsed.get("status"), str):
-            truncated_parsed["status"] = redacted_parsed["status"]
+        if isinstance(redacted_parsed, dict):
+            for key, value in redacted_parsed.items():
+                if _is_scalar_json_value(value):
+                    truncated_parsed[str(key)] = value
         return truncated_text, truncated, truncated_parsed
     return truncated_text, truncated, redacted_parsed
 
@@ -222,6 +224,10 @@ def truncate_text(value: str, max_chars: int) -> tuple[str, bool]:
     if len(value) <= max_chars:
         return value, False
     return value[:max_chars], True
+
+
+def _is_scalar_json_value(value: object) -> bool:
+    return value is None or isinstance(value, str | int | float | bool)
 
 
 def _is_timeout_reason(reason: object) -> bool:
