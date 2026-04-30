@@ -66,12 +66,12 @@ def _embed_omlx(
                 success_mask.extend([False] * len(texts_batch))
                 continue
 
-            parsed_rows = _pad_batch(_parse_response_embeddings(payload), len(texts_batch))
+            parsed_rows = _parse_response_embeddings(payload)
             for vector in parsed_rows:
                 if vector.size > 0:
                     candidate_dim = _embedding_size(vector)
                     dim_to_check = embedding_dim if embedding_dim is not None else candidate_dim
-                    if _is_valid_embedding(vector, dim_to_check):
+                    if vector.ndim == 1 and _is_valid_embedding(vector, dim_to_check):
                         if embedding_dim is None:
                             embedding_dim = candidate_dim
                         rows.append(vector.astype(np.float32, copy=False))
@@ -141,16 +141,15 @@ def _parse_response_embeddings(payload: object) -> list[np.ndarray]:
     for item in data:
         if not _is_json_object(item):
             continue
-        idx = int(item.get("index", len(indexed)))
+        raw_idx = item.get("index")
+        if isinstance(raw_idx, (int, float)):
+            idx = int(raw_idx)
+        else:
+            idx = len(indexed)
         embedding = item.get("embedding")
         indexed.append((idx, _coerce_embedding(embedding)))
     indexed.sort(key=lambda t: t[0])
     return [vec for _, vec in indexed]
-
-
-def _pad_batch(vectors: list[np.ndarray], batch_len: int) -> list[np.ndarray]:
-    missing = max(0, batch_len - len(vectors))
-    return (vectors + [np.zeros((0,), dtype=np.float32)] * missing)[:batch_len]
 
 
 def _is_valid_embedding(vector: np.ndarray, embedding_dim: int | None) -> bool:
