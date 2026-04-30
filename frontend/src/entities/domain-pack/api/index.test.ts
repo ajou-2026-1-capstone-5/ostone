@@ -25,4 +25,28 @@ describe("domainPackApi", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("fetches domain pack detail by wsId and packId", async () => {
+    const response = { packId: 2, workspaceId: 1, code: "CS", name: "고객지원", versions: [] };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => response });
+
+    await expect(domainPackApi.detail(1, 2)).resolves.toEqual(response);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/1/domain-packs/2",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("fetches domain pack version detail by wsId, packId and versionId", async () => {
+    const response = { versionId: 3, packId: 2, versionNo: 1, lifecycleStatus: "DRAFT" };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => response });
+
+    await expect(domainPackApi.versionDetail(1, 2, 3)).resolves.toEqual(response);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/1/domain-packs/2/versions/3",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

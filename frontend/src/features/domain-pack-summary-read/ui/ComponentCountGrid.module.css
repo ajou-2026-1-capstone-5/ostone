@@ -1,0 +1,87 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.countCard {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow var(--transition-fast);
+}
+
+.countCard:not(.disabled) {
+  cursor: pointer;
+}
+
+.countCard:not(.disabled):hover {
+  box-shadow: var(--shadow-card);
+}
+
+.countCard.disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.cardLabel {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-heading);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.countNumber {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 540;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.previewList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+}
+
+.previewItem {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 0;
+  border-radius: var(--radius-sm);
+}
+
+.previewItem.clickable {
+  cursor: pointer;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.previewItem.clickable:hover {
+  color: var(--text-primary);
+}
+
+.disabledNote {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.skeletonLine {
+  height: 12px;
+  background: var(--hover-bg);
+  border-radius: var(--radius-sm);
+  margin-bottom: 3px;
+}

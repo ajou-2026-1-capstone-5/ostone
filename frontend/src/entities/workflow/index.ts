@@ -8,6 +8,6 @@ export type {
   UpdateWorkflowRequest,
 } from "./model/types";
 
-export { workflowQueryKeys, fetchWorkflow, patchWorkflow } from "./api";
+export { workflowQueryKeys, fetchWorkflow, fetchWorkflowList, patchWorkflow } from "./api";
 
 export { toFlow, convertFlowToWorkflowGraph } from "./lib/graphConverter";

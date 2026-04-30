@@ -12,6 +12,7 @@ import { PolicyDraftReadPage } from '../pages/domain-pack/ui/PolicyDraftReadPage
 import { RiskDraftReadPage } from '../pages/domain-pack/ui/RiskDraftReadPage';
 import { SlotDraftReadPage } from '../pages/domain-pack/ui/SlotDraftReadPage';
 import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
+import { DomainPackSummaryPage } from '../pages/domain-pack/ui/DomainPackSummaryPage';
 import { WorkspaceLayout } from '../pages/workspace/ui/WorkspaceLayout';
 import { WorkspaceUploadPage } from '../pages/workspace/ui/WorkspaceUploadPage';
 import { WorkspaceWorkflowsPage } from '../pages/workspace/ui/WorkspaceWorkflowsPage';
@@ -36,6 +37,7 @@ export function App() {
         </Route>
         <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
         <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId" element={<PrivateRoute><DomainPackSummaryPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?" element={<PrivateRoute><PolicyDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/risks/:riskId?" element={<PrivateRoute><RiskDraftReadPage /></PrivateRoute>} />
