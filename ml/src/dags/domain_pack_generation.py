@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from pathlib import Path
 from traceback import format_exc
@@ -36,7 +36,7 @@ def _build_stage_context(stage_name: str) -> StageContext:
 
 def _run_stage(
     stage_name: str,
-    stage_callable: Callable[[str | None], dict[str, str] | None],
+    stage_callable: Callable[[str | None], Mapping[str, object] | None],
     upstream_manifest_path: str | None = None,
 ) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
@@ -48,6 +48,9 @@ def _run_stage(
     try:
         stage_result = stage_callable(upstream_manifest_path)
     except Exception as exc:
+        stage_manifest_payload = getattr(exc, "manifest_payload", None)
+        if isinstance(stage_manifest_payload, dict):
+            manifest_payload.update(stage_manifest_payload)
         manifest_payload["status"] = "failed"
         manifest_payload["error"] = {
             "type": type(exc).__name__,
@@ -62,8 +65,9 @@ def _run_stage(
     else:
         if stage_result is not None:
             artifact_manifest_path = stage_result.get("artifact_manifest_path")
-            if artifact_manifest_path:
+            if isinstance(artifact_manifest_path, str):
                 return {"artifact_manifest_path": artifact_manifest_path}
+            manifest_payload.update(stage_result)
         manifest_payload["status"] = "completed"
         manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
     return {"artifact_manifest_path": str(manifest_path)}
