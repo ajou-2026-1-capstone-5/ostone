@@ -113,8 +113,10 @@ def test_should_use_provided_centroids_for_similarity() -> None:
     centroids = {1: np.array([1.0, 0.0], dtype=np.float32), 2: np.array([0.0, 1.0], dtype=np.float32)}
 
     score = _centroid_similarity_score(vectors, [1, 2], centroids)
+    score_without_centroids = _centroid_similarity_score(vectors, [1, 2], None)
 
-    assert 0.0 <= score <= 1.0
+    assert np.isclose(score, 1.0), f"Expected ~1.0 with matching centroids, got {score}"
+    assert score >= score_without_centroids, "Centroid-guided score should be >= unguided"
 
 
 def test_should_return_zero_when_centroids_have_zero_norm() -> None:
