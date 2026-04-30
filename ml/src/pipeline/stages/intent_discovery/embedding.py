@@ -135,11 +135,17 @@ def _parse_response_embeddings(payload: object) -> list[np.ndarray]:
     if not _is_object_list(data):
         return []
 
-    rows: list[np.ndarray] = []
+    # Restore input order using data[].index — OpenAI-compatible APIs may
+    # return items out of order; without this, embeddings misalign with texts.
+    indexed: list[tuple[int, np.ndarray]] = []
     for item in data:
-        embedding = item.get("embedding") if _is_json_object(item) else None
-        rows.append(_coerce_embedding(embedding))
-    return rows
+        if not _is_json_object(item):
+            continue
+        idx = int(item.get("index", len(indexed)))
+        embedding = item.get("embedding")
+        indexed.append((idx, _coerce_embedding(embedding)))
+    indexed.sort(key=lambda t: t[0])
+    return [vec for _, vec in indexed]
 
 
 def _pad_batch(vectors: list[np.ndarray], batch_len: int) -> list[np.ndarray]:
