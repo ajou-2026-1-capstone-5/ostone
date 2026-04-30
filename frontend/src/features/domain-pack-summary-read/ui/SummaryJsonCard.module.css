@@ -34,7 +34,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-heading);
   color: var(--text-muted);
   cursor: pointer;
@@ -55,12 +55,12 @@
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 6px 12px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 .key {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-label);
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -75,7 +75,7 @@
   padding: 0;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-label);
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-all;
@@ -84,12 +84,12 @@
 }
 
 .fallbackWarning {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--error-color);
   margin-bottom: 8px;
 }
 
 .empty {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }

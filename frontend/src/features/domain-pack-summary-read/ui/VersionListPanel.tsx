@@ -46,6 +46,7 @@ export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }:
   }
 
   const versions = query.data?.versions ?? [];
+  const effectiveSelectedId = selectedId ?? (versions[0]?.versionId ?? null);
 
   if (versions.length === 0) {
     return (
@@ -71,6 +72,7 @@ export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }:
             key={v.versionId}
             version={v}
             isActive={v.versionId === selectedId}
+            isTabStop={v.versionId === effectiveSelectedId}
             onSelect={onSelect}
           />
         ))}
@@ -82,16 +84,17 @@ export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }:
 interface VersionListItemProps {
   version: DomainPackVersionSummary;
   isActive: boolean;
+  isTabStop: boolean;
   onSelect: (versionId: number) => void;
 }
 
-function VersionListItem({ version, isActive, onSelect }: VersionListItemProps) {
+function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionListItemProps) {
   return (
     <li className={`${styles.item} ${isActive ? styles.active : ''}`}>
       <button
         type="button"
         className={styles.itemBtn}
-        tabIndex={isActive ? 0 : -1}
+        tabIndex={isTabStop ? 0 : -1}
         aria-current={isActive || undefined}
         onClick={() => onSelect(version.versionId)}
       >

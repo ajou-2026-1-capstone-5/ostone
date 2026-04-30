@@ -45,7 +45,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
 
   useEffect(() => {
     if (!packQuery.data) return;
-    if (search.get('versionId') !== null) return;
+    if (selectedVersionId !== null) return;
     if (packQuery.data.versions.length === 0) return;
     const latest = packQuery.data.versions.reduce((a, b) =>
       a.versionNo >= b.versionNo ? a : b,

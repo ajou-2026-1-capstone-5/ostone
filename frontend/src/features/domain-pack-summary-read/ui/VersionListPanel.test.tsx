@@ -27,6 +27,15 @@ const stubVersion = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
+const stubVersion2 = {
+  versionId: 2,
+  versionNo: 2,
+  lifecycleStatus: 'DRAFT' as const,
+  sourcePipelineJobId: null,
+  createdAt: '2026-01-02T00:00:00Z',
+  updatedAt: '2026-01-02T00:00:00Z',
+};
+
 const stubPack: DomainPackDetail = {
   packId: 2,
   workspaceId: 1,
@@ -36,6 +45,11 @@ const stubPack: DomainPackDetail = {
   versions: [stubVersion],
   createdAt: '',
   updatedAt: '',
+};
+
+const stubPackMulti: DomainPackDetail = {
+  ...stubPack,
+  versions: [stubVersion, stubVersion2],
 };
 
 describe('VersionListPanel', () => {
@@ -119,14 +133,15 @@ describe('VersionListPanel', () => {
     expect(screen.getByRole('button', { name: /v1/ })).toHaveAttribute('aria-current', 'true');
   });
 
-  it('inactive 버전 button에는 tabIndex=-1이 부여된다', () => {
+  it('selectedId=null 시 첫 번째 버전 button에 tabIndex=0, 나머지에는 tabIndex=-1이 부여된다', () => {
     render(
       <VersionListPanel
-        query={makeQuery({ data: stubPack })}
+        query={makeQuery({ data: stubPackMulti })}
         selectedId={null}
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole('button', { name: /v1/ })).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('button', { name: /v1/ })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('button', { name: /v2/ })).toHaveAttribute('tabindex', '-1');
   });
 });

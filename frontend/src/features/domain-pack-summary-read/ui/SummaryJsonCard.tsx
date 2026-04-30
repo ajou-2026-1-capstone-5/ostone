@@ -2,6 +2,12 @@ import { useState, useMemo, Fragment } from 'react';
 import { parseSummaryJson } from '../model/parseSummaryJson';
 import styles from './SummaryJsonCard.module.css';
 
+function renderValue(v: unknown): string {
+  if (v === null || v === undefined) return String(v);
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
 interface SummaryJsonCardProps {
   summaryJson: string;
 }
@@ -50,7 +56,7 @@ export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
                   {Object.entries(parsed.data).map(([k, v]) => (
                     <Fragment key={k}>
                       <span className={styles.key}>{k}</span>
-                      <span className={styles.value}>{String(v)}</span>
+                      <span className={styles.value}>{renderValue(v)}</span>
                     </Fragment>
                   ))}
                 </div>
