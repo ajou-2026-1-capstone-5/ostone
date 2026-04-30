@@ -27,7 +27,7 @@ describe('usePackDetail', () => {
 
   it('queryFn이 domainPackApi.detail을 호출한다', () => {
     usePackDetail(1, 2);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryFn: () => void }];
+    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
     opts.queryFn();
     expect(domainPackApi.detail).toHaveBeenCalledWith(1, 2);
   });

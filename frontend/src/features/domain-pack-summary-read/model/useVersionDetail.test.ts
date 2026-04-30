@@ -34,19 +34,19 @@ describe('useVersionDetail', () => {
 
   it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
     useVersionDetail(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ enabled: boolean }];
+    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
     expect(opts.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
     useVersionDetail(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ enabled: boolean }];
+    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
     expect(opts.enabled).toBe(true);
   });
 
   it('queryFn이 domainPackApi.versionDetail을 호출한다', () => {
     useVersionDetail(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryFn: () => void }];
+    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
     opts.queryFn();
     expect(domainPackApi.versionDetail).toHaveBeenCalledWith(1, 2, 3);
   });
