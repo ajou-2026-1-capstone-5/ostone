@@ -1,3 +1,5 @@
+import type { DomainPackLifecycleStatus } from './types';
+
 export interface IntentSlotBindingRequest {
   intentCode: string;
   slotCode: string;
@@ -24,7 +26,7 @@ export interface CreateDomainPackDraftResponse {
   versionId: number;
   domainPackId: number;
   versionNo: number;
-  lifecycleStatus: string;
+  lifecycleStatus: DomainPackLifecycleStatus;
   sourcePipelineJobId: number | null;
   intentCount: number;
   slotCount: number;

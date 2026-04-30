@@ -8,10 +8,8 @@ export function parseSummaryJson(json: string): ParsedSummary {
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return { ok: true, data: parsed as Record<string, unknown> };
     }
-    console.warn('[parseSummaryJson] object가 아님. raw fallback:', json);
     return { ok: false, raw: json };
-  } catch (e) {
-    console.warn('[parseSummaryJson] 파싱 실패. raw fallback:', json, e);
+  } catch {
     return { ok: false, raw: json };
   }
 }

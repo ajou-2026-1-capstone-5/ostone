@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ApiRequestError } from '../../../shared/api';
-import { DashboardLayout } from '../../../shared/ui/layout/DashboardLayout';
-import { parseRouteId } from '../../../shared/lib/parseRouteId';
-import { usePackDetail, useVersionDetail } from '../../../features/domain-pack-summary-read/model';
-import { VersionListPanel, SummaryDetailPanel } from '../../../features/domain-pack-summary-read/ui';
-import { CreateDraftModal } from '../../../features/domain-pack-draft-create/ui';
+import { ApiRequestError } from '@/shared/api';
+import { DashboardLayout } from '@/shared/ui/layout/DashboardLayout';
+import { parseRouteId } from '@/shared/lib/parseRouteId';
+import { usePackDetail, useVersionDetail } from '@/features/domain-pack-summary-read/model';
+import { VersionListPanel, SummaryDetailPanel } from '@/features/domain-pack-summary-read/ui';
+import { CreateDraftModal } from '@/features/domain-pack-draft-create/ui';
 import styles from './domain-pack-summary-page.module.css';
 
 export function DomainPackSummaryPage() {
