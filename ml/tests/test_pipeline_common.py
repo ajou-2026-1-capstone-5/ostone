@@ -31,7 +31,7 @@ def test_should_write_stage_manifest(tmp_path):
 def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "   ")
 
-    with pytest.raises(PipelineConfigurationError):
+    with pytest.raises(PipelineConfigurationError, match="AIRFLOW_WEBHOOK_SECRET"):
         PipelineRuntimeConfig.from_env()
 
 

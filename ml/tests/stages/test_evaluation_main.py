@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import pytest
 
-from pipeline.common.exceptions import PipelineStageError
+from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
 from pipeline.stages.evaluation import main as evaluation
 from pipeline.stages.evaluation.main import run
 
@@ -44,6 +44,11 @@ def test_evaluation_manifest_contains_candidate_artifact_path(monkeypatch, tmp_p
     )
     assert candidate["schemaVersion"] == "1.0"
     assert candidate["evaluationSummary"]["passed"] is True
+
+
+def test_evaluation_requires_upstream_manifest() -> None:
+    with pytest.raises(PipelineConfigurationError, match="evaluation stage requires an upstream manifest path"):
+        run()
 
 
 def test_evaluation_uses_existing_relative_candidate_artifact(monkeypatch, tmp_path: Path) -> None:

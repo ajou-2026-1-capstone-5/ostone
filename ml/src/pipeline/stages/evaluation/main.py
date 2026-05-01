@@ -6,11 +6,13 @@ from typing import Any, cast
 
 from pipeline.common.artifacts import ensure_stage_directory
 from pipeline.common.config import PipelineRuntimeConfig
-from pipeline.common.exceptions import PipelineStageError
+from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
 from pipeline.stages.preprocessing.io import read_stage_context
 
 
-def run(upstream_manifest_path: str) -> dict[str, object]:
+def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
+    if upstream_manifest_path is None:
+        raise PipelineConfigurationError("evaluation stage requires an upstream manifest path.")
     runtime_config = PipelineRuntimeConfig.from_env()
     stage_context = read_stage_context(upstream_manifest_path, stage_name="evaluation")
     stage_dir = ensure_stage_directory(stage_context, runtime_config)
