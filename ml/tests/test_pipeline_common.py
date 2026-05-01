@@ -64,9 +64,19 @@ def test_runtime_config_strips_artifact_root_and_backend_base_url(monkeypatch, t
     assert runtime_config.backend_base_url == "http://backend:8080"
 
 
+def test_runtime_config_rejects_missing_backend_base_url(monkeypatch):
+    monkeypatch.delenv("PIPELINE_BACKEND_BASE_URL", raising=False)
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+
+    with pytest.raises(PipelineConfigurationError, match="PIPELINE_BACKEND_BASE_URL"):
+        PipelineRuntimeConfig.from_env()
+
+
 @pytest.mark.parametrize("env_key", ["PIPELINE_ARTIFACT_ROOT", "PIPELINE_BACKEND_BASE_URL"])
 def test_runtime_config_rejects_blank_path_and_url_env(monkeypatch, env_key):
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    if env_key != "PIPELINE_BACKEND_BASE_URL":
+        monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
     monkeypatch.setenv(env_key, "   ")
 
     with pytest.raises(PipelineConfigurationError):
@@ -76,6 +86,7 @@ def test_runtime_config_rejects_blank_path_and_url_env(monkeypatch, env_key):
 @pytest.mark.parametrize("timeout", ["nan", "inf", "-inf"])
 def test_runtime_config_rejects_non_finite_callback_timeout(monkeypatch, timeout):
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
     monkeypatch.setenv("PIPELINE_CALLBACK_TIMEOUT_SECONDS", timeout)
 
     with pytest.raises(PipelineConfigurationError):
