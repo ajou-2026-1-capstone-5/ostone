@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "openapiHash": "sha256:5c93d5809f38dd38529a4205ebe5043091e2e342c7ac6bde383c8137b4fea5db",
+  "openapiPathsCount": 38,
+  "generatedAt": "2026-05-01T03:23:11.905Z",
+  "orvalVersion": "^8.9.0",
+  "openapiSourcePath": "backend/build/openapi.json"
+}
