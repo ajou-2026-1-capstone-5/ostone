@@ -134,6 +134,17 @@ def test_build_external_event_id_is_stable() -> None:
     assert first == "dag:manual__run:domain-pack-drafts"
 
 
+def test_build_external_event_id_falls_back_to_bounded_token_for_long_inputs() -> None:
+    first = publish.build_external_event_id("d" * 260, "r" * 260, "domain-pack-drafts")
+    second = publish.build_external_event_id("d" * 260, "r" * 260, "domain-pack-drafts")
+    other_type = publish.build_external_event_id("d" * 260, "r" * 260, "intent-drafts")
+
+    assert first == second
+    assert first.startswith("airflow:domain-pack-drafts:")
+    assert len(first) <= 255
+    assert first != other_type
+
+
 def test_load_candidate_requires_schema_version() -> None:
     candidate = _candidate()
     candidate["schemaVersion"] = "2.0"

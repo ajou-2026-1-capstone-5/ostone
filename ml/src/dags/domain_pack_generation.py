@@ -49,9 +49,7 @@ def _run_stage(
     try:
         stage_result = stage_callable(upstream_manifest_path)
     except Exception as exc:
-        stage_manifest_payload = getattr(exc, "manifest_payload", None)
-        if isinstance(stage_manifest_payload, dict):
-            manifest_payload.update(stage_manifest_payload)
+        manifest_payload.update(_manifest_payload_from_exception(exc))
         manifest_payload["status"] = "failed"
         manifest_payload["error"] = {
             "type": type(exc).__name__,
@@ -65,13 +63,27 @@ def _run_stage(
         raise
     else:
         if stage_result is not None:
-            artifact_manifest_path = stage_result.get("artifact_manifest_path")
-            if isinstance(artifact_manifest_path, str) and artifact_manifest_path:
+            artifact_manifest_path = _artifact_manifest_path_from(stage_result)
+            if artifact_manifest_path is not None:
                 return {"artifact_manifest_path": artifact_manifest_path}
             manifest_payload.update(stage_result)
         manifest_payload["status"] = "completed"
         manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
     return {"artifact_manifest_path": str(manifest_path)}
+
+
+def _manifest_payload_from_exception(exc: BaseException) -> dict[str, object]:
+    manifest_payload = getattr(exc, "manifest_payload", None)
+    if isinstance(manifest_payload, Mapping):
+        return dict(manifest_payload)
+    return {}
+
+
+def _artifact_manifest_path_from(stage_result: Mapping[str, object]) -> str | None:
+    artifact_manifest_path = stage_result.get("artifact_manifest_path")
+    if isinstance(artifact_manifest_path, str) and artifact_manifest_path:
+        return artifact_manifest_path
+    return None
 
 
 def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, object] | None:

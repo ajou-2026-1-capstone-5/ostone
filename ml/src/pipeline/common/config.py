@@ -16,6 +16,12 @@ class PipelineRuntimeConfig:
     callback_timeout_seconds: float = 10.0
     airflow_webhook_secret: str | None = None
 
+    def __post_init__(self) -> None:
+        airflow_webhook_secret = _normalize_optional_secret(self.airflow_webhook_secret)
+        if self.callback_enabled and not airflow_webhook_secret:
+            raise PipelineConfigurationError("AIRFLOW_WEBHOOK_SECRET must not be blank when callbacks are enabled.")
+        object.__setattr__(self, "airflow_webhook_secret", airflow_webhook_secret)
+
     @classmethod
     def from_env(cls) -> "PipelineRuntimeConfig":
         artifact_root = os.getenv("PIPELINE_ARTIFACT_ROOT", "/opt/airflow/artifacts").strip()
@@ -27,8 +33,6 @@ class PipelineRuntimeConfig:
             raise PipelineConfigurationError("PIPELINE_ARTIFACT_ROOT must not be blank.")
         if not backend_base_url:
             raise PipelineConfigurationError("PIPELINE_BACKEND_BASE_URL must not be blank.")
-        if callback_enabled and not airflow_webhook_secret:
-            raise PipelineConfigurationError("AIRFLOW_WEBHOOK_SECRET must not be blank when callbacks are enabled.")
         return cls(
             artifact_root=Path(artifact_root),
             backend_base_url=backend_base_url.rstrip("/"),

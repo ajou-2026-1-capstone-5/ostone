@@ -162,8 +162,14 @@ def build_external_event_id(dag_id: str, run_id: str, callback_type: str) -> str
     candidate = f"{dag_id}:{run_id}:{callback_type}"
     if len(candidate) <= 255:
         return candidate
-    run_hash = hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:16]
-    return f"{dag_id}:{run_hash}:{callback_type}"
+    canonical_payload = json.dumps(
+        {"callback_type": callback_type, "dag_id": dag_id, "run_id": run_id},
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    digest = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+    return f"airflow:{callback_type}:{digest}"
 
 
 def load_candidate(candidate_path: Path) -> dict[str, Any]:

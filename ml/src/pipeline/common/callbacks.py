@@ -143,17 +143,6 @@ def post_callback(
 
     response_body, response_body_truncated, parsed_response_body = parse_response_body(raw_body)
     response_status = _response_status(parsed_response_body)
-    if http_status < 200 or http_status >= 300:
-        raise PipelineCallbackError(
-            message=f"Spring callback failed: httpStatus={http_status}",
-            callback_type=callback_type,
-            external_event_id=external_event_id,
-            endpoint=endpoint,
-            http_status=http_status,
-            response_body=response_body,
-            response_body_truncated=response_body_truncated,
-            parsed_response_body=parsed_response_body,
-        )
 
     return CallbackResponse(
         callback_type=callback_type,
@@ -214,9 +203,16 @@ def redact_json(value: object) -> object:
 
 def redact_text(value: str) -> str:
     redacted = value
+    json_string_pattern = r'"(?:\\.|[^"\\])*"'
     for key_part in SENSITIVE_KEY_PARTS:
-        pattern = re.compile(rf'("[^"]*{re.escape(key_part)}[^"]*"\s*:\s*)"([^"]*)"', re.IGNORECASE)
-        redacted = pattern.sub(r'\1"***"', redacted)
+        pattern = re.compile(
+            rf'({json_string_pattern}\s*:\s*)"((?:\\.|[^"\\])*)"',
+            re.IGNORECASE,
+        )
+        redacted = pattern.sub(
+            lambda match: f'{match.group(1)}"***"' if key_part in match.group(1).lower() else match.group(0),
+            redacted,
+        )
     return redacted
 
 

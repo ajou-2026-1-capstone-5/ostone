@@ -10,6 +10,7 @@ def test_should_write_stage_manifest(tmp_path):
     runtime_config = PipelineRuntimeConfig(
         artifact_root=tmp_path,
         backend_base_url="http://backend:8080",
+        callback_enabled=False,
     )
     stage_context = StageContext(
         dag_id="dev_bootstrap",
@@ -32,6 +33,24 @@ def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
 
     with pytest.raises(PipelineConfigurationError):
         PipelineRuntimeConfig.from_env()
+
+
+def test_runtime_config_direct_construction_rejects_missing_callback_secret(tmp_path):
+    with pytest.raises(PipelineConfigurationError):
+        PipelineRuntimeConfig(
+            artifact_root=tmp_path,
+            backend_base_url="http://backend:8080",
+        )
+
+
+def test_runtime_config_direct_construction_normalizes_callback_secret(tmp_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        airflow_webhook_secret="  secret  ",
+    )
+
+    assert runtime_config.airflow_webhook_secret == "secret"
 
 
 def test_runtime_config_strips_artifact_root_and_backend_base_url(monkeypatch, tmp_path):

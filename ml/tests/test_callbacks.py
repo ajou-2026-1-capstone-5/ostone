@@ -95,6 +95,14 @@ def test_non_2xx_raises_callback_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exc_info.value.response_body == '{"code":"VALIDATION_ERROR","email":"***"}'
 
 
+def test_redact_text_handles_escaped_quotes_in_non_json_fallback() -> None:
+    response_body, truncated, parsed = parse_response_body('{"token":"abc \\"quoted\\" value", "other": ')
+
+    assert truncated is False
+    assert parsed is None
+    assert response_body == '{"token":"***", "other": '
+
+
 @pytest.mark.parametrize("reason", [TimeoutError("timed out"), socket.timeout("timed out")])
 def test_wrapped_timeout_raises_callback_timeout_error(monkeypatch: pytest.MonkeyPatch, reason: BaseException) -> None:
     def fake_urlopen(_request: Any, timeout: float) -> _FakeResponse:
