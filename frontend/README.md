@@ -40,7 +40,7 @@ Backend OpenAPI 스펙을 입력으로 TypeScript 타입, TanStack Query hooks, 
 `./gradlew generateOpenApiDocs`는 정적 파일 생성이 아니라 **forked Spring Boot 앱을 실제 기동**하여 `/v3/api-docs`를 호출한다. 다음이 충족되지 않으면 실패한다:
 
 - PostgreSQL 활성: 이미 실행 중인 postgres에 의존 (포트 5432)
-- 포트 8089 사용 가능 (openApi 블록에서 고정)
+- 포트 8080 사용 가능 (openApi 블록에서 고정)
 - Spring 프로필 `local` (build.gradle.kts `customBootRun.args`에 명시됨)
 - `JWT_SECRET` 등 필수 환경 변수 설정됨
 

@@ -91,11 +91,11 @@ tasks.named("sonar") {
 }
 
 openApi {
-    apiDocsUrl.set("http://localhost:8089/v3/api-docs")
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
     outputDir.set(file("$buildDir"))
     outputFileName.set("openapi.json")
     waitTimeInSeconds.set(60)
     customBootRun {
-        args.set(listOf("--spring.profiles.active=local", "--server.port=8089"))
+        args.set(listOf("--spring.profiles.active=local", "--server.port=8080"))
     }
 }
