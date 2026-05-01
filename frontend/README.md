@@ -35,6 +35,17 @@ Backend OpenAPI 스펙을 입력으로 TypeScript 타입, TanStack Query hooks, 
 
 3. **변경 확인 + 커밋**: `git diff frontend/src/shared/api/generated/`
 
+> **주의**: `pnpm api:gen` 실행 전에 반드시 1단계(`./gradlew generateOpenApiDocs`)를 선행해야 한다. backend openapi.json이 부재하면 codegen 자체는 동작하지 않으며, hash metadata(`.codegen-meta.json`)도 갱신되지 않는다.
+
+### .codegen-meta.json (codegen 정합성 metadata)
+
+Orval `afterAllFilesWrite` hook이 `pnpm api:gen` 실행 시 자동 갱신하는 metadata 파일.
+
+- 위치: `frontend/src/shared/api/generated/.codegen-meta.json` (commit 대상)
+- 포함 필드: `schemaVersion`, `openapiHash`(sha256), `openapiPathsCount`, `generatedAt`, `orvalVersion`, `openapiSourcePath`
+- 용도: 5stone 파이프라인의 specGatekeeper C7 검사가 본 파일의 `openapiHash`와 `backend/build/openapi.json`의 sha256을 비교하여 BE↔FE codegen drift를 탐지한다.
+- 직접 수정 금지: 사람이 손대지 않는다. 매 codegen 실행마다 덮어써진다.
+
 ### 운영 전제 (generateOpenApiDocs)
 
 `./gradlew generateOpenApiDocs`는 정적 파일 생성이 아니라 **forked Spring Boot 앱을 실제 기동**하여 `/v3/api-docs`를 호출한다. 다음이 충족되지 않으면 실패한다:
