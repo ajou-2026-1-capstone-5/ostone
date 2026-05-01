@@ -40,6 +40,7 @@ def test_runtime_config_direct_construction_rejects_missing_callback_secret(tmp_
         PipelineRuntimeConfig(
             artifact_root=tmp_path,
             backend_base_url="http://backend:8080",
+            callback_enabled=True,
         )
 
 

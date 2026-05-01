@@ -12,7 +12,7 @@ from pipeline.common.exceptions import PipelineConfigurationError
 class PipelineRuntimeConfig:
     artifact_root: Path
     backend_base_url: str
-    callback_enabled: bool = True
+    callback_enabled: bool = False
     callback_timeout_seconds: float = 10.0
     airflow_webhook_secret: str | None = None
 
@@ -28,7 +28,7 @@ class PipelineRuntimeConfig:
         backend_base_url = (os.getenv("PIPELINE_BACKEND_BASE_URL") or "").strip()
         callback_enabled = _parse_bool(os.getenv("PIPELINE_CALLBACK_ENABLED", "true"))
         callback_timeout_seconds = _parse_timeout(os.getenv("PIPELINE_CALLBACK_TIMEOUT_SECONDS", "10"))
-        airflow_webhook_secret = _normalize_optional_secret(os.getenv("AIRFLOW_WEBHOOK_SECRET"))
+        airflow_webhook_secret = os.getenv("AIRFLOW_WEBHOOK_SECRET")
         if not artifact_root:
             raise PipelineConfigurationError("PIPELINE_ARTIFACT_ROOT must not be blank.")
         if not backend_base_url:

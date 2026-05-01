@@ -14,6 +14,11 @@ WEBHOOK_SECRET_HEADER = "X-Airflow-Webhook-Secret"
 MAX_ARTIFACT_BODY_CHARS = 64 * 1024
 SENSITIVE_HEADER_NAMES = {"authorization", "cookie", "set-cookie", WEBHOOK_SECRET_HEADER.lower()}
 SENSITIVE_KEY_PARTS = ("secret", "token", "password", "authorization", "cookie", "email", "phone", "ssn")
+_JSON_STRING_PATTERN = r'"(?:\\.|[^"\\])*"'
+_REDACT_TEXT_FIELD_PATTERN = re.compile(
+    rf'({_JSON_STRING_PATTERN}\s*:\s*)"((?:\\.|[^"\\])*)"',
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -203,17 +208,18 @@ def redact_json(value: object) -> object:
 
 def redact_text(value: str) -> str:
     redacted = value
-    json_string_pattern = r'"(?:\\.|[^"\\])*"'
     for key_part in SENSITIVE_KEY_PARTS:
-        pattern = re.compile(
-            rf'({json_string_pattern}\s*:\s*)"((?:\\.|[^"\\])*)"',
-            re.IGNORECASE,
-        )
-        redacted = pattern.sub(
-            lambda match: f'{match.group(1)}"***"' if key_part in match.group(1).lower() else match.group(0),
-            redacted,
-        )
+        redacted = _redact_text_for_key_part(redacted, key_part)
     return redacted
+
+
+def _redact_text_for_key_part(value: str, key_part: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        if key_part in match.group(1).lower():
+            return f'{match.group(1)}"***"'
+        return match.group(0)
+
+    return _REDACT_TEXT_FIELD_PATTERN.sub(replace, value)
 
 
 def truncate_text(value: str, max_chars: int) -> tuple[str, bool]:
