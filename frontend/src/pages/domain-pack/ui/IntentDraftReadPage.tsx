@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { IntentDetailPanel, IntentTreePanel } from "../../../features/intent-draft-read/ui";
+import { IntentDetailWithApproval } from "../../../features/approve-intent";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
 import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
 import styles from "./intent-draft-read-page.module.css";
@@ -65,7 +66,11 @@ export function IntentDraftReadPage() {
             />
           </div>
           <div className={styles.detailSlot}>
-            <IntentDetailPanel wsId={wsId} packId={pId} versionId={vId} intentId={iId} />
+            {iId !== null ? (
+              <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+            ) : (
+              <IntentDetailPanel wsId={wsId} packId={pId} versionId={vId} intentId={null} />
+            )}
           </div>
         </div>
       </div>

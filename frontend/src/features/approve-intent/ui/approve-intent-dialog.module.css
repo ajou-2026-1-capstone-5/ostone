@@ -1,0 +1,55 @@
+.dialogContent {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(0, 0, 0, 0.05), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), #ffffff);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+  padding: 24px !important;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 540;
+  letter-spacing: -0.32px;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.description {
+  color: rgba(0, 0, 0, 0.62);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  letter-spacing: -0.14px;
+}
+
+.buttonRow {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cancelButton {
+  min-height: 40px;
+  border-radius: 999px;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: rgba(0, 0, 0, 0.78) !important;
+  font-size: 0.94rem;
+  letter-spacing: -0.14px;
+}
+
+.cancelButton:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.confirmButton {
+  min-height: 40px;
+  border-radius: 999px;
+  font-size: 0.94rem;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
+}
