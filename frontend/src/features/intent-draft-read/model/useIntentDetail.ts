@@ -14,6 +14,7 @@ export function useIntentDetail(
   packId: number,
   versionId: number,
   intentId: number | null,
+  refreshKey?: number,
 ): IntentDetailState {
   const requestKey = intentId === null ? null : `${wsId}:${packId}:${versionId}:${intentId}`;
   const [state, setState] = useState<{
@@ -53,7 +54,7 @@ export function useIntentDetail(
     return () => {
       cancelled = true;
     };
-  }, [intentId, packId, requestKey, versionId, wsId]);
+  }, [intentId, packId, refreshKey, requestKey, versionId, wsId]);
 
   if (requestKey === null) {
     return { status: "idle" };

@@ -9,10 +9,12 @@ interface IntentDetailPanelProps {
   packId: number;
   versionId: number;
   intentId: number | null;
+  refreshKey?: number;
+  children?: (detail: IntentDetail) => ReactNode;
 }
 
-export function IntentDetailPanel({ wsId, packId, versionId, intentId }: IntentDetailPanelProps) {
-  const state = useIntentDetail(wsId, packId, versionId, intentId);
+export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKey, children }: IntentDetailPanelProps) {
+  const state = useIntentDetail(wsId, packId, versionId, intentId, refreshKey);
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
   const errorMessage = state.status === "error" ? state.message : undefined;
@@ -87,6 +89,7 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId }: IntentD
         <JsonCard label="Evidence" value={state.data.evidenceJson} />
         <JsonCard label="Meta" value={state.data.metaJson} />
       </div>
+      {children?.(state.data)}
     </section>
   );
 }

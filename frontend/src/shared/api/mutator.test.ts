@@ -86,4 +86,24 @@ describe("customFetch", () => {
       customFetch("/test", { method: "GET" }),
     ).rejects.toThrow("Network error");
   });
+
+  it("URL에 /api/v1 prefix가 있으면 제거하여 apiClient.request에 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
+
+    await customFetch("/api/v1/test", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/test", {
+      method: "GET",
+    });
+  });
+
+  it("URL에 /api/v1 prefix가 없으면 그대로 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
+
+    await customFetch("/test", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/test", {
+      method: "GET",
+    });
+  });
 });
