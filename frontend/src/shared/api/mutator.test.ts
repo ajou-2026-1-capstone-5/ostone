@@ -10,7 +10,7 @@ vi.mock("./index", () => ({
 
 describe("customFetch", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("apiClient.request에 URL과 options를 전달한다", async () => {
@@ -117,12 +117,22 @@ describe("customFetch", () => {
     });
   });
 
-  it("URL에 /api/v1 prefix가 있고 남은 경로에 /가 없으면 추가한다", async () => {
+  it("URL에 /api/v1/ prefix가 있으면 제거하여 apiClient.request에 전달한다", async () => {
     vi.mocked(apiClient.request).mockResolvedValueOnce({});
 
-    await customFetch("/api/v1items", { method: "GET" });
+    await customFetch("/api/v1/items", { method: "GET" });
 
     expect(apiClient.request).toHaveBeenCalledWith("/items", {
+      method: "GET",
+    });
+  });
+
+  it("URL이 /api/v10/test면 prefix를 제거하지 않고 그대로 전달한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
+
+    await customFetch("/api/v10/test", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/api/v10/test", {
       method: "GET",
     });
   });

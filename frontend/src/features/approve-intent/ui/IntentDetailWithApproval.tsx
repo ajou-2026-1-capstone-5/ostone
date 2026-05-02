@@ -10,7 +10,7 @@ import {
 
 function normalizeIntentStatus(
   raw: string,
-  override: string | null
+  override: IntentApprovalStatus | null
 ): "DRAFT" | IntentApprovalStatus {
   const effective = override ?? raw;
   if (effective === "DRAFT" || effective === "PUBLISHED" || effective === "REJECTED") {
@@ -31,7 +31,7 @@ export function IntentDetailWithApproval({
   iId: number;
 }) {
   const [dialogAction, setDialogAction] = useState<IntentApprovalAction | null>(null);
-  const [statusOverride, setStatusOverride] = useState<string | null>(null);
+  const [statusOverride, setStatusOverride] = useState<IntentApprovalStatus | null>(null);
   const [detailRefreshKey, setDetailRefreshKey] = useState(0);
 
   useEffect(() => {
