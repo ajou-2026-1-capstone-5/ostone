@@ -106,4 +106,24 @@ describe("customFetch", () => {
       method: "GET",
     });
   });
+
+  it("URL이 정확히 /api/v1이면 '/'로 정규화한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
+
+    await customFetch("/api/v1", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/", {
+      method: "GET",
+    });
+  });
+
+  it("URL에 /api/v1 prefix가 있고 남은 경로에 /가 없으면 추가한다", async () => {
+    vi.mocked(apiClient.request).mockResolvedValueOnce({});
+
+    await customFetch("/api/v1items", { method: "GET" });
+
+    expect(apiClient.request).toHaveBeenCalledWith("/items", {
+      method: "GET",
+    });
+  });
 });
