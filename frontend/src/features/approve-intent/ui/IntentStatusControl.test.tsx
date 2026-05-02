@@ -6,6 +6,10 @@ describe("IntentStatusControl", () => {
   const onPublish = vi.fn();
   const onReject = vi.fn();
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("intentStatus='DRAFT'일 때 publish/reject 버튼이 모두 enabled", () => {
     render(
       <IntentStatusControl
