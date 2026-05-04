@@ -1,24 +1,20 @@
 import React from 'react';
-import styles from './auth-layout.module.css';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * 인증(로그인, 회원가입) 페이지를 위한 공통 레이아웃 컴포넌트입니다.
- * 브랜드 아이덴티티가 담긴 배경 구조와 중앙 정렬된 폼 컨테이너를 제공합니다.
- * 
- * @param {AuthLayoutProps} props - 자식 컴포넌트(children)
- * @returns {JSX.Element} 인증 레이아웃
- */
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   return (
-    <div className={styles.container}>
-      <div className={styles.decorativeCircle1}></div>
-      <div className={styles.decorativeCircle2}></div>
-      <div className={styles.decorativeCircle3}></div>
-      <div className={styles.glassCard}>
+    <div className="flex h-screen w-screen" style={{background:'var(--paper)'}}>
+      <div className="hidden md:flex w-1/2 items-center justify-center flex-col gap-4" style={{background:'var(--paper-2)'}}>
+        <div className="text-5xl italic text-[var(--signal-ink)]" style={{fontFamily:'var(--serif)'}}>ostone</div>
+        <p className="text-sm text-[var(--ink-3)] max-w-[280px] text-center">
+          상담 로그 기반 CS 워크플로우 생성 시스템
+        </p>
+        <div className="mt-8 text-xs text-[var(--ink-3)]">운영자 전용</div>
+      </div>
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
         {children}
       </div>
     </div>

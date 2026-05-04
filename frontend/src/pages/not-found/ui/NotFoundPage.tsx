@@ -1,29 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../../../shared/ui/button/Button';
-import styles from './not-found-page.module.css';
 
-/**
- * 존재하지 않는 경로로 접근했을 때 표시되는 404 페이지 컴포넌트입니다.
- */
 export const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>404</h1>
-      <p className={styles.message}>요청하신 페이지를 찾을 수 없습니다.</p>
-      <p className={styles.description}>
-        주소가 올바른지 확인하시거나, 아래 버튼을 클릭하여 홈으로 이동해 주세요.
-      </p>
-      <div className={styles.actions}>
-        <Button onClick={() => navigate('/')} variant="primary">
-          홈으로 돌아가기
-        </Button>
-        <Button onClick={() => navigate(-1)} variant="secondary">
-          이전 페이지
-        </Button>
-      </div>
+    <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{background:'var(--paper)'}}>
+      <div className="text-[120px] leading-none italic text-[var(--ink-2)]" style={{fontFamily:'var(--serif)'}}>404</div>
+      <div className="text-sm text-[var(--ink-3)]">요청하신 페이지를 찾을 수 없습니다</div>
+      <button
+        onClick={() => navigate('/workspaces')}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-90"
+        style={{background:'var(--ink)', color:'var(--paper)'}}
+      >
+        ← 홈으로
+      </button>
     </div>
   );
 };
