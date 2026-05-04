@@ -1,221 +1,241 @@
-# Design System Inspired by Figma
+# ostone Design System
 
-## 1. Visual Theme & Atmosphere
+디자인 시스템은 "종이 위에 잉크를 떨어뜨린다"는 개념에서 출발한다. 인터페이스 전반은 따뜻하면서도 차분한 중성 톤의 paper/ink 팔레트로 구성되고, 단 하나의 신호색(signal green)만으로 상태와 강조를 표현한다. 어두운 사이드바(dark chrome)는 낯선 도구가 아니라 익숙한 책상의 서랍처럼 배경에 머무른다.
 
-Figma's interface is the design tool that designed itself — a masterclass in typographic sophistication where a custom variable font (figmaSans) modulates between razor-thin (weight 320) and bold (weight 700) with stops at unusual intermediates (330, 340, 450, 480, 540) that most type systems never explore. This granular weight control gives every text element a precisely calibrated visual weight, creating hierarchy through micro-differences rather than the blunt instrument of "regular vs bold."
+---
 
-The page presents a fascinating duality: the interface chrome is strictly black-and-white (literally only `#000000` and `#ffffff` detected as colors), while the hero section and product showcases explode with vibrant multi-color gradients — electric greens, bright yellows, deep purples, hot pinks. This separation means the design system itself is colorless, treating the product's colorful output as the hero content. Figma's marketing page is essentially a white gallery wall displaying colorful art.
-
-What makes Figma distinctive beyond the variable font is its circle-and-pill geometry. Buttons use 50px radius (pill) or 50% (perfect circle for icon buttons), creating an organic, tool-palette-like feel. The dashed-outline focus indicator (`dashed 2px`) is a deliberate design choice that echoes selection handles in the Figma editor itself — the website's UI language references the product's UI language.
-
-**Key Characteristics:**
-- Custom variable font (figmaSans) with unusual weight stops: 320, 330, 340, 450, 480, 540, 700
-- Strictly black-and-white interface chrome — color exists only in product content
-- figmaMono for uppercase technical labels with wide letter-spacing
-- Pill (50px) and circular (50%) button geometry
-- Dashed focus outlines echoing Figma's editor selection handles
-- Vibrant multi-color hero gradients (green, yellow, purple, pink)
-- OpenType `"kern"` feature enabled globally
-- Negative letter-spacing throughout — even body text at -0.14px to -0.26px
-
-## 2. Color Palette & Roles
-
-### Primary
-- **Pure Black** (`#000000`): All text, all solid buttons, all borders. The sole "color" of the interface.
-- **Pure White** (`#ffffff`): All backgrounds, white buttons, text on dark surfaces. The other half of the binary.
-
-*Note: Figma's marketing site uses ONLY these two colors for its interface layer. All vibrant colors appear exclusively in product screenshots, hero gradients, and embedded content.*
-
-### Surface & Background
-- **Pure White** (`#ffffff`): Primary page background and card surfaces.
-- **Glass Black** (`rgba(0, 0, 0, 0.08)`): Subtle dark overlay for secondary circular buttons and glass effects.
-- **Glass White** (`rgba(255, 255, 255, 0.16)`): Frosted glass overlay for buttons on dark/colored surfaces.
-
-### Gradient System
-- **Hero Gradient**: A vibrant multi-stop gradient using electric green, bright yellow, deep purple, and hot pink. This gradient is the visual signature of the hero section — it represents the creative possibilities of the tool.
-- **Product Section Gradients**: Individual product areas (Design, Dev Mode, Prototyping) may use distinct color themes in their showcases.
-
-## 3. Typography Rules
+## 1. Typography
 
 ### Font Family
-- **Primary**: `figmaSans`, with fallbacks: `figmaSans Fallback, SF Pro Display, system-ui, helvetica`
-- **Monospace / Labels**: `figmaMono`, with fallbacks: `figmaMono Fallback, SF Mono, menlo`
 
-### Hierarchy
+| 역할 | 주 폰트 | 폭/스타일 | 한국어 폰트 |
+|------|--------|----------|------------|
+| Sans (본문/인터페이스) | Inter Tight | 300, 350, 400, 450, 500, 600 | Pretendard Variable |
+| Mono (데이터/라벨) | JetBrains Mono | 400, 500, 600 | D2Coding |
+| Serif/Display (강조/헤드라인) | Instrument Serif | italic only | Noto Serif KR |
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Display / Hero | figmaSans | 86px (5.38rem) | 400 | 1.00 (tight) | -1.72px | Maximum impact, extreme tracking |
-| Section Heading | figmaSans | 64px (4rem) | 400 | 1.10 (tight) | -0.96px | Feature section titles |
-| Sub-heading | figmaSans | 26px (1.63rem) | 540 | 1.35 | -0.26px | Emphasized section text |
-| Sub-heading Light | figmaSans | 26px (1.63rem) | 340 | 1.35 | -0.26px | Light-weight section text |
-| Feature Title | figmaSans | 24px (1.5rem) | 700 | 1.45 | normal | Bold card headings |
-| Body Large | figmaSans | 20px (1.25rem) | 330–450 | 1.30–1.40 | -0.1px to -0.14px | Descriptions, intros |
-| Body / Button | figmaSans | 16px (1rem) | 330–400 | 1.40–1.45 | -0.14px to normal | Standard body, nav, buttons |
-| Body Light | figmaSans | 18px (1.13rem) | 320 | 1.45 | -0.26px to normal | Light-weight body text |
-| Mono Label | figmaMono | 18px (1.13rem) | 400 | 1.30 (tight) | 0.54px | Uppercase section labels |
-| Mono Small | figmaMono | 12px (0.75rem) | 400 | 1.00 (tight) | 0.6px | Uppercase tiny tags |
+Inter Tight는 기하학적 산세리프로서 밀도 높은 대시보드에서도 읽기 쉬운 문자 폭을 유지한다. Instrument Serif는 이탤릭체로만 사용하며, 페이지 타이틀이나 섹션 구분자에 서적 같은 무게감을 더한다.
 
-### Principles
-- **Variable font precision**: figmaSans uses weights that most systems never touch — 320, 330, 340, 450, 480, 540. This creates hierarchy through subtle weight differences rather than dramatic jumps. The difference between 330 and 340 is nearly imperceptible but structurally significant.
-- **Light as the base**: Most body text uses 320–340 (lighter than typical 400 "regular"), creating an ethereal, airy reading experience that matches the design-tool aesthetic.
-- **Kern everywhere**: Every text element enables OpenType `"kern"` feature — kerning is not optional, it's structural.
-- **Negative tracking by default**: Even body text uses -0.1px to -0.26px letter-spacing, creating universally tight text. Display text compresses further to -0.96px and -1.72px.
-- **Mono for structure**: figmaMono in uppercase with positive letter-spacing (0.54px–0.6px) creates technical signpost labels.
+### Size Scale
 
-## 4. Component Stylings
+| 토큰 | 크기 | 용도 |
+|------|------|------|
+| --t-eyebrow | 11px | 섹션 라벨, 상태 배지 내 문구 |
+| --t-xs | 12px | 캡션, 타임스탬프, 보조 설명 |
+| --t-sm | 13px | 테이블 셀, 드롭다운 항목 |
+| --t-base | 14px | 표준 UI 텍스트, 버튼 라벨 |
+| --t-body | 16px | 본문 단락, 카드 설명 |
+| --t-lg | 18px | 강조 본문, 모달 제목 |
+| --t-xl | 20px | 서브섹션 헤딩 |
+| --t-2xl | 22px | 카드 헤딩, 대시보드 위젯 타이틀 |
+| --t-hero | 26px | 히어로 h1, 페이지 메인 타이틀 |
+| --t-3xl | 32px | 대형 카운터, 통계 숫자 |
+| --t-display | 48px | 랜딩 디스플레이 (Instrument Serif italic) |
 
-### Buttons
+### Font Features
 
-**Black Solid (Pill)**
-- Background: Pure Black (`#000000`)
-- Text: Pure White (`#ffffff`)
-- Radius: circle (50%) for icon buttons
-- Focus: dashed 2px outline
-- Maximum emphasis
+- **tabular-nums**: 숫자 데이터(건수, 비율, 금액)에는 고정폭 숫자를 적용해 열 정렬을 유지한다.
+- **uppercase tracking**: eyebrow 라벨은 대문자 변환 후 `letter-spacing: 0.08em`을 적용해 기술적 느낌을 준다.
+- **negative tracking**: 제목류(--t-title, --t-display)에는 `letter-spacing: -0.02em`으로 살짝 조여 응집감을 높인다.
 
-**White Pill**
-- Background: Pure White (`#ffffff`)
-- Text: Pure Black (`#000000`)
-- Padding: 8px 18px 10px (asymmetric vertical)
-- Radius: pill (50px)
-- Focus: dashed 2px outline
-- Standard CTA on dark/colored surfaces
+---
 
-**Glass Dark**
-- Background: `rgba(0, 0, 0, 0.08)` (subtle dark overlay)
-- Text: Pure Black
-- Radius: circle (50%)
-- Focus: dashed 2px outline
-- Secondary action on light surfaces
+## 2. Color Palette (paper / ink)
 
-**Glass Light**
-- Background: `rgba(255, 255, 255, 0.16)` (frosted glass)
-- Text: Pure White
-- Radius: circle (50%)
-- Focus: dashed 2px outline
-- Secondary action on dark/colored surfaces
+모든 중성색은 oklch 색공간에서 정의했다. 이는 인지적 균일성이 뛰어나 숫자 차이만으로 명도와 채도를 예측할 수 있다.
 
-### Cards & Containers
-- Background: Pure White
-- Border: none or minimal
-- Radius: 6px (small containers), 8px (images, cards, dialogs)
-- Shadow: subtle to medium elevation effects
-- Product screenshots as card content
+### Paper Family (배경)
 
-### Navigation
-- Clean horizontal nav on white
-- Logo: Figma wordmark in black
-- Product tabs: pill-shaped (50px) tab navigation
-- Links: black text, underline 1px decoration
-- CTA: Black pill button
-- Hover: text color via CSS variable
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --paper | oklch(0.985 0.003 100) | 기본 페이지 배경 |
+| --paper-2 | oklch(0.972 0.004 100) | 보조 배경, 호버 상태, 구분된 섹션 |
+| --paper-3 | oklch(0.955 0.005 100) | 눌린 상태, 입체감 있는 표면 |
 
-### Distinctive Components
+### Line Family (경계)
 
-**Product Tab Bar**
-- Horizontal pill-shaped tabs (50px radius)
-- Each tab represents a Figma product area (Design, Dev Mode, Prototyping, etc.)
-- Active tab highlighted
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --line | oklch(0.90 0.006 260) | 주요 테두리, 구분선, 입력창 외곽선 |
+| --line-2 | oklch(0.94 0.005 260) | 미묘한 구분선, 카드 내부 디바이더 |
 
-**Hero Gradient Section**
-- Full-width vibrant multi-color gradient background
-- White text overlay with 86px display heading
-- Product screenshots floating within the gradient
+### Ink Family (텍스트)
 
-**Dashed Focus Indicators**
-- All interactive elements use `dashed 2px` outline on focus
-- References the selection handles in the Figma editor
-- A meta-design choice connecting website and product
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --ink | oklch(0.18 0.012 260) | 주요 텍스트, 헤딩, 본문 |
+| --ink-2 | oklch(0.36 0.012 260) | 보조 텍스트, 설명, 플레이스홀더 |
+| --ink-3 | oklch(0.55 0.012 260) | 비활성 텍스트, 메타데이터, eyebrow 라벨 |
+| --ink-4 | oklch(0.72 0.010 260) | 비활성 상태, 힌트, disabled 텍스트 |
 
-## 5. Layout Principles
+Paper와 ink의 색조(hue)는 100(따뜻한 중성)과 260(차가운 중성) 두 방향으로 살짝 나뉜다. 덕분에 순수한 회색이 아니라 온도가 느껴지는 중성 팔레트가 된다.
 
-### Spacing System
-- Base unit: 8px
-- Scale: 1px, 2px, 4px, 4.5px, 8px, 10px, 12px, 16px, 18px, 24px, 32px, 40px, 46px, 48px, 50px
+---
 
-### Grid & Container
-- Max container width: up to 1920px
-- Hero: full-width gradient with centered content
-- Product sections: alternating showcases
-- Footer: dark full-width section
-- Responsive from 559px to 1920px
+## 3. Semantic Colors
 
-### Whitespace Philosophy
-- **Gallery-like pacing**: Generous spacing lets each product section breathe as its own exhibit.
-- **Color sections as visual breathing**: The gradient hero and product showcases provide chromatic relief between the monochrome interface sections.
+단 하나의 강조색(signal green)과 세 가지 상태색으로 모든 의미를 전달한다.
 
-### Border Radius Scale
-- Minimal (2px): Small link elements — `--radius-sm`
-- Subtle (6px): Small containers, dividers — `--radius-md`
-- Comfortable (8px): Cards, images, dialogs — `--radius-lg`
-- Pill-row (28px): List row items, skeleton rows — `--radius-pill-row`
-- Pill (50px): Tab buttons, CTAs — `--radius-xl`
-- Circle (50%): Icon buttons, circular elements — `--radius-full`
+### Signal (Green Accent)
 
-## 6. Depth & Elevation
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --signal | oklch(0.62 0.18 145) | 주요 강조색, 활성 상태, 주요 버튼 |
+| --signal-bg | oklch(0.95 0.06 145) | 신호색의 muted 배경, 토스트 배경, 뱃지 배경 |
+| --signal-ink | oklch(0.32 0.16 145) | 신호색 위의 텍스트, 신호색 대비 전경 |
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat (Level 0) | No shadow | Page background, most text |
-| Surface (Level 1) | White card on gradient/dark section | Cards, product showcases |
-| Elevated (Level 2) | Subtle shadow | Floating cards, hover states |
+### Warn (Amber)
 
-**Shadow Philosophy**: Figma uses shadows sparingly. The primary depth mechanisms are **background contrast** (white content on colorful/dark sections) and the inherent dimensionality of the product screenshots themselves.
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --warn | oklch(0.74 0.14 80) | 경고, 주의가 필요한 상태 |
+| --warn-bg | oklch(0.96 0.05 80) | 경고 배경, 알림 배너 |
+| --warn-ink | oklch(0.46 0.14 80) | 경고 상태의 전경 텍스트 |
 
-## 7. Do's and Don'ts
+### Danger (Red)
 
-### Do
-- Use figmaSans with precise variable weights (320–540) — the granular weight control IS the design
-- Keep the interface strictly black-and-white — color comes from product content only
-- Use pill (50px) and circular (50%) geometry for all interactive elements
-- Apply dashed 2px focus outlines — the signature accessibility pattern
-- Enable `"kern"` feature on all text
-- Use figmaMono in uppercase with positive letter-spacing for labels
-- Apply negative letter-spacing throughout (-0.1px to -1.72px)
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --danger | oklch(0.62 0.16 25) | 오류, 삭제, 차단된 상태 |
+| --danger-bg | oklch(0.96 0.04 25) | 오류 알림 배경, 검증 실패 표시 |
+| --danger-ink | oklch(0.38 0.16 25) | 위험 상태의 전경 텍스트 |
 
-### Don't
-- Don't add interface colors — the monochrome palette is absolute
-- Don't use standard font weights (400, 500, 600, 700) — use the variable font's unique stops (320, 330, 340, 450, 480, 540)
-- Don't use sharp corners on buttons — pill and circular geometry only
-- Don't use solid focus outlines — dashed is the signature
-- Don't increase body font weight above 450 — the light-weight aesthetic is core
-- Don't use positive letter-spacing on body text — it's always negative
+### Info (Blue)
 
-## 8. Responsive Behavior
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --info | oklch(0.62 0.13 250) | 정보, 안내, 중립적 알림 |
+| --info-bg | oklch(0.96 0.03 250) | 정보 배경, 툴팁 배경 |
+| --info-ink | oklch(0.38 0.13 250) | 정보 상태의 전경 텍스트 |
 
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Small Mobile | <560px | Compact layout, stacked |
-| Tablet | 560–768px | Minor adjustments |
-| Small Desktop | 768–960px | 2-column layouts |
-| Desktop | 960–1280px | Standard layout |
-| Large Desktop | 1280–1440px | Expanded |
-| Ultra-wide | 1440–1920px | Maximum width |
+---
 
-### Collapsing Strategy
-- Hero text: 86px → 64px → 48px
-- Product tabs: horizontal scroll on mobile
-- Feature sections: stacked single column
-- Footer: multi-column → stacked
+## 4. Dark Chrome (Sidebar Only)
 
-## 9. Agent Prompt Guide
+어두운 톤은 사이드바와 상단 글로벌 네비게이션 같은 "크롬" 영역에만 적용한다. 실제 콘텐츠 영역은 paper 기반의 밝은 배경을 유지한다.
 
-### Quick Color Reference
-- Everything: "Pure Black (#000000)" and "Pure White (#ffffff)"
-- Glass Dark: "rgba(0, 0, 0, 0.08)"
-- Glass Light: "rgba(255, 255, 255, 0.16)"
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --dark-bg | oklch(0.155 0.012 260) | 사이드바 기본 배경 |
+| --dark-bg-2 | oklch(0.195 0.012 260) | 사이드바 내 항목 호버, 활성 상태 |
+| --dark-line | oklch(0.30 0.012 260) | 사이드바 구분선, 그룹 구분 |
+| --dark-ink | oklch(0.96 0.005 100) | 사이드바 주요 텍스트 |
+| --dark-ink-2 | oklch(0.78 0.010 260) | 사이드바 보조 텍스트, 아이콘 |
+| --dark-ink-3 | oklch(0.58 0.012 260) | 사이드바 비활성 텍스트, 힌트 |
 
-### Example Component Prompts
-- "Create a hero on a vibrant multi-color gradient (green, yellow, purple, pink). Headline at 86px figmaSans weight 400, line-height 1.0, letter-spacing -1.72px. White text. White pill CTA button (50px radius, 8px 18px padding)."
-- "Design a product tab bar with pill-shaped buttons (50px radius). Active: Black bg, white text. Inactive: transparent, black text. figmaSans at 20px weight 480."
-- "Build a section label: figmaMono 18px, uppercase, letter-spacing 0.54px, black text. Kern enabled."
-- "Create body text at 20px figmaSans weight 330, line-height 1.40, letter-spacing -0.14px. Pure Black on white."
+Dark chrome은 "밤에도 읽을 수 있는 책상" 같은 느낌이다. 콘텐츠와의 대비를 통해 사용자가 항상 "도구"와 "작업"을 구분할 수 있게 한다.
 
-### Iteration Guide
-1. Use variable font weight stops precisely: 320, 330, 340, 450, 480, 540, 700
-2. Interface is always black + white — never add colors to chrome
-3. Dashed focus outlines, not solid
-4. Letter-spacing is always negative on body, always positive on mono labels
-5. Pill (50px) for buttons/tabs, circle (50%) for icon buttons
+---
+
+## 5. Shape & Radius
+
+모서리는 기술적이고 절제된 느낌을 유지한다. 과도하게 둥근 모서리는 피하고, pill 형태는 태그나 아바타처럼 작은 요소에만 사용한다.
+
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| --r-1 | 2px | 미세한 모서리, 체크박스, 작은 아이콘 버튼 |
+| --r-2 | 4px | 기본 입력창, 기본 버튼, 표준 컴포넌트 |
+| --r-3 | 6px | 카드, 패널, 팝오버, 대화형 컨테이너 |
+| --r-pill | 999px | 태그, 필터 뱃지, 아바타, status pill |
+
+### Focus Outline
+
+모든 대화형 요소의 포커스 상태는 `dashed 2px` 외곽선을 사용한다. 이는 이전 시스템에서 계승한 패턴으로, 정밀한 도구의 선택 핸들을 연상시키며 접근성과 브랜드 정체성을 동시에 만족시킨다.
+
+---
+
+## 6. Spacing (4px Base Scale)
+
+모든 여백은 4px를 기본 단위로 한다. 이는 8px 그리드보다 밀도 높은 대시보드 UI에 적합하며, 세밀한 조정이 필요한 폼과 테이블에서 유연성을 제공한다.
+
+| 토큰 | 값 | Tailwind 매핑 | 용도 |
+|------|-----|---------------|------|
+| --s-1 | 4px | spacing-1 | 아이콘과 라벨 사이, 체크박스 여백 |
+| --s-2 | 8px | spacing-2 | 버튼 내부 패딩(수직), 인풋 내부 여백 |
+| --s-3 | 12px | spacing-3 | 카드 내부 소형 패딩, 폼 필드 간격 |
+| --s-4 | 16px | spacing-4 | 기본 컴포넌트 패딩, 리스트 아이템 간격 |
+| --s-5 | 20px | spacing-5 | 카드 패딩, 모달 내부 여백 |
+| --s-6 | 24px | spacing-6 | 섹션 내부 여백, 폼 그룹 간격 |
+| --s-8 | 32px | spacing-8 | 위젯 간격, 작은 섹션 구분 |
+| --s-10 | 40px | spacing-10 | 카드 그리드 간격, 페이지 섹션 여백 |
+| --s-12 | 48px | spacing-12 | 대형 섹션 구분, 페이지 상하 여백 |
+| --s-16 | 64px | spacing-16 | 히어로 영역 여백, 대시보드 구역 분리 |
+| --s-20 | 80px | spacing-20 | 페이지 최상위 여백, 랜딩 섹션 간격 |
+
+Tailwind 설정에서는 `--spacing-s-1` 형태의 CSS 변수를 `spacing-1`으로 매핑하여 사용한다.
+
+---
+
+## 7. Layouts
+
+### AppShell
+
+```
++------------------+------------------------+
+|  Sidebar (56px)  |        Main Area       |
+|    dark chrome   |  +------------------+  |
+|                  |  |   Topbar (44px)  |  |
+|                  |  +------------------+  |
+|                  |  |                  |  |
+|                  |  |  Scrollable      |  |
+|                  |  |  Content         |  |
+|                  |  |                  |  |
++------------------+------------------------+
+```
+
+- **Sidebar**: 56px 고정 너비, dark chrome 배경. 워크스페이스 네비게이션과 글로벌 메뉴를 담는다.
+- **Topbar**: 44px 고정 높이, paper 배경. 현재 위치 breadcrumbs, 글로벌 검색, 사용자 메뉴를 배치한다.
+- **Content**: 나머지 영역을 채우는 스크롤 가능한 콘텐츠 영역.
+
+### 3-Pane Patterns
+
+화면 유형에 따라 세 가지 3-열 패턴을 사용한다.
+
+| 패턴 | 좌측 | 중앙 | 우측 | 적용 화면 |
+|------|------|------|------|----------|
+| Workspace List | -- | flex (리스트) | 300px (상세 패널) | 워크스페이스 목록 |
+| Domain Pack | 224px (네비게이션) | flex (메인 콘텐츠) | 320px (프로퍼티 패널) | 도메인 팩 편집 |
+| Consultation | 268px (대화 목록) | flex (채팅 영역) | 320px (고객 정보/도구) | 상담원 콘솔 |
+
+좌측과 우측 패널은 각 화면의 도메인에 특화된 정보를 담고, 중앙은 항상 주요 작업 영역이다.
+
+---
+
+## 8. Status & Tone Usage Rules
+
+Dot과 Pill 컴포넌트로 상태를 표현할 때는 다음 규칙을 따른다.
+
+| 톤 | 색상 | 사용 상황 | 예시 |
+|----|------|----------|------|
+| Signal (Green) | --signal / --signal-bg | 활성, 정상, 완료, 성공 | "배포 완료", "온라인", "검증 통과" |
+| Warn (Amber) | --warn / --warn-bg | 대기, 주의, 경고 | "대기 중", "검토 필요", "용량 임박" |
+| Danger (Red) | --danger / --danger-bg | 오류, 차단, 실패 | "배포 실패", "연결 끊김", "검증 실패" |
+| Info (Blue) | --info / --info-bg | 정보, 안내, 중립 | "새로운 기능", "가이드", "시스템 알림" |
+
+### Tone 선택 가이드
+
+- **Signal은 "좋은 상태"가 아니라 "주목해야 할 정상 상태"**를 의미한다. 모든 성공에 signal을 쓰지 말고, 사용자가 행동을 취해야 할 때만 사용한다.
+- **Warn은 "지금 당장 아니다"**를 의미한다. 시간이 지나면 자동으로 해결되거나, 사용자 확인이 필요한 상황에 쓴다.
+- **Danger는 차단**을 의미한다. 진행을 막는 오류에만 사용하고, 취소 가능한 작업에는 warn을 고려한다.
+- **Info는 맥락**을 의미한다. 사용자가 알면 좋을 정보지만, 행동을 강요하지 않는다.
+
+---
+
+## 9. Migration Notes: shadcn → New Token Alias Table
+
+이전 시스템에서 마이그레이션할 때 다음 매핑을 참조한다. 모든 shadcn 변수는 oklch 토큰으로 대체된다.
+
+| shadcn / 기존 변수 | 새 oklch 토큰 | 설명 |
+|-------------------|--------------|------|
+| --background | var(--paper) | 페이지 배경 |
+| --foreground | var(--ink) | 주요 텍스트 |
+| --primary | var(--signal) | 강조색 |
+| --border | var(--line) | 테두리, 구분선 |
+| --muted | var(--paper-2) | muted 배경 |
+| --card | var(--paper) | 카드 배경 |
+| --popover | var(--paper) | 팝오버 배경 |
+| --accent | var(--signal) | accent 색상 |
+| --ring | var(--signal) | 포커스 링 |
+| --input | var(--paper) | 입력창 배경 |
+
+새 시스템에서는 shadcn의 기본 변수명을 유지하면서 값만 oklch 토큰으로 교체하는 방식으로 점진적 마이그레이션이 가능하다. 모든 컴포넌트는 CSS 변수 기반이므로, 토큰 값만 갱신하면 전체 UI가 새 팔레트를 따른다.
