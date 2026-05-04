@@ -154,8 +154,7 @@ def _workflow_signal(
     return {key: values.get(key, False) for key in workflow_signal_keys}
 
 
-def _suggested_name(cluster_id: int, keywords: tuple[str, ...], workflow_signal: dict[str, bool]) -> str:
-    _ = workflow_signal
+def _suggested_name(cluster_id: int, keywords: tuple[str, ...], _workflow_signal: dict[str, bool]) -> str:
     if not keywords:
         return f"미분류_{cluster_id}"
     return f"{keywords[0]} 관련 문의"

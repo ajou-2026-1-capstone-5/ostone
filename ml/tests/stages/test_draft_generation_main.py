@@ -10,11 +10,14 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.draft_generation.main import (
+    _build_candidate,
     _build_intents,
     _hydrate_case,
     _read_clusters,
     _read_preprocessed_index,
     _resolve_cases_per_intent,
+    _write_candidate,
+    run,
 )
 
 
@@ -258,3 +261,70 @@ def test_build_intents_avg_per_intent() -> None:
     assert metrics["representative_case_total"] == 2
     assert abs(metrics["representative_case_avg_per_intent"] - 1.0) < 1e-9
     assert metrics["intents_with_zero_cases"] == 1
+
+
+def _write_upstream_manifest(tmp_path: Path) -> Path:
+    manifest_path = tmp_path / "upstream_manifest.json"
+    manifest_path.write_text(
+        '{"dag_id": "dag", "run_id": "run1", "stage_name": "intent_discovery"}',
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
+def test_run_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    clusters_dir = artifact_root / "dag" / "run1" / "intent_discovery"
+    preprocessed_dir = artifact_root / "dag" / "run1" / "preprocessing"
+    _write_clusters(
+        clusters_dir,
+        [
+            {
+                "cluster_id": 0,
+                "suggested_name": "환불 문의",
+                "suggested_description": "환불 관련",
+                "exemplar_conv_ids": ["c1", "c2"],
+            }
+        ],
+    )
+    _write_preprocessed(preprocessed_dir, [_preprocessed_conv("c1"), _preprocessed_conv("c2")])
+    manifest_path = _write_upstream_manifest(tmp_path)
+
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+
+    result = run(upstream_manifest_path=str(manifest_path))
+
+    candidate_path = artifact_root / "dag" / "run1" / "draft_generation" / "candidate.json"
+    assert candidate_path.exists()
+    assert result["candidateArtifactPath"] == str(candidate_path)
+    candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+    assert candidate["schemaVersion"] == "1.0"
+    assert len(candidate["intentDraft"]["intents"]) == 1
+    assert candidate["intentDraft"]["intents"][0]["intentCode"] == "INTENT_0"
+    assert candidate["domainPackDraft"]["packKey"] is None
+
+
+def test_build_candidate_structure() -> None:
+    intents = [{"intentCode": "INTENT_0", "name": "환불", "representativeCases": []}]
+
+    candidate = _build_candidate(intents)
+
+    assert candidate["schemaVersion"] == "1.0"
+    assert candidate["intentDraft"]["intents"] == intents
+    assert candidate["domainPackDraft"]["packKey"] is None
+    assert candidate["domainPackDraft"]["packName"] is None
+    assert candidate["workflowDraft"] == {}
+
+
+def test_write_candidate_creates_file(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    candidate = {"schemaVersion": "1.0", "intentDraft": {"intents": []}}
+
+    candidate_path = _write_candidate(context, runtime_config, candidate)
+
+    assert candidate_path.exists()
+    assert candidate_path.name == "candidate.json"
+    written = json.loads(candidate_path.read_text(encoding="utf-8"))
+    assert written["schemaVersion"] == "1.0"
