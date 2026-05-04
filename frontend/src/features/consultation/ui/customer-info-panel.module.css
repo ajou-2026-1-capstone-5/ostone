@@ -1,6 +1,6 @@
 .infoWrapper {
-  width: 300px;
-  min-width: 300px;
+  width: 100%;
+  min-width: 0;
   background: var(--bg-secondary);
   border-left: 1px solid var(--glass-border);
   display: flex;
@@ -70,6 +70,242 @@
   margin-top: 2px;
 }
 
+.profileMeta {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.metaIcon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.metaLabel {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.metaValue {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* Related Order */
+.orderCard {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-color);
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.orderDate {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.orderTitle {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.orderPrice {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.orderFooter {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  padding-top: 6px;
+  border-top: 1px dashed var(--glass-border);
+}
+
+.orderHighlight {
+  color: var(--signal-ink);
+  font-weight: 600;
+}
+
+/* Timeline */
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.timelineCounter {
+  color: var(--text-secondary);
+}
+
+.timeline {
+  position: relative;
+  padding-left: 18px;
+}
+
+.timelineLine {
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--glass-border);
+}
+
+.timelineItem {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -18px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timelineDotDone {
+  background: var(--signal);
+  border: 2px solid var(--signal);
+}
+
+.timelineDotActive {
+  background: var(--bg-color);
+  border: 2px solid var(--signal);
+}
+
+.timelineDotPending {
+  background: var(--bg-secondary);
+  border: 2px solid var(--glass-border);
+}
+
+.timelineCheck {
+  color: white;
+}
+
+.timelineInnerDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.timelineName {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.timelineNameActive {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timelineNamePending {
+  color: var(--text-secondary);
+}
+
+.timelineDesc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.timelineDescPending {
+  color: var(--text-secondary);
+}
+
+/* Checklist */
+.checklist {
+  margin-top: 8px;
+}
+
+.checklistItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.checklistItem:last-child {
+  border-bottom: none;
+}
+
+.checklistIcon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checklistIconOk {
+  background: var(--signal);
+  color: white;
+}
+
+.checklistIconMissing {
+  background: var(--warn-bg);
+  border: 1.5px solid var(--warn-ink);
+}
+
+.checklistWarn {
+  font-size: 9px;
+  color: var(--warn-ink);
+  font-weight: 700;
+}
+
+.checklistContent {
+  flex: 1;
+}
+
+.checklistLabel {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 1px;
+}
+
+.checklistValue {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.checklistValueMissing {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-weight: 400;
+}
+
 /* Detail Rows */
 .detailRow {
   display: flex;
@@ -88,33 +324,19 @@
   font-size: 0.78rem;
   letter-spacing: normal;
   color: var(--text-secondary);
+  margin-bottom: 2px;
 }
 
 .detailValue {
-  font-size: 0.88rem;
-  letter-spacing: -0.1px;
+  font-size: 0.85rem;
+  letter-spacing: normal;
   color: var(--text-primary);
   font-weight: 500;
-  margin-top: 1px;
 }
 
-/* Handoff Reason Badge */
-.handoffBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.7);
-  border-radius: 20px;
-  font-size: 0.82rem;
-  letter-spacing: normal;
-  font-weight: 500;
-  margin-top: 4px;
-}
-
-/* Memo Area */
+/* Memo */
 .memoArea {
+  margin-top: 8px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -122,18 +344,18 @@
 
 .memoTextarea {
   flex: 1;
-  min-height: 100px;
+  width: 100%;
+  resize: none;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
   font-family: inherit;
   font-size: 0.85rem;
-  letter-spacing: normal;
-  color: var(--text-primary);
+  line-height: 1.4;
   background: var(--bg-color);
+  color: var(--text-primary);
   outline: none;
-  resize: none;
-  transition: border-color var(--transition-fast);
+  min-height: 100px;
 }
 
 .memoTextarea:focus {
@@ -141,24 +363,24 @@
 }
 
 .memoTextarea::placeholder {
-  color: rgba(0, 0, 0, 0.35);
+  color: var(--text-secondary);
 }
 
-/* Empty State */
+/* Empty state */
 .emptyInfo {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
+  padding: 40px;
   color: var(--text-secondary);
   text-align: center;
-  padding: 40px 20px;
-  gap: 12px;
 }
 
 .emptyInfoIcon {
   color: rgba(0, 0, 0, 0.15);
+  margin-bottom: 12px;
 }
 
 .emptyInfoText {

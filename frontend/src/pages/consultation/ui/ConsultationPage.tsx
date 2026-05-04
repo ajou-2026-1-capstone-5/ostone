@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardLayout } from '../../../shared/ui/layout/DashboardLayout';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { AppShell } from '@/widgets/app-shell';
 import { QueuePanel } from '../../../features/consultation/ui/QueuePanel';
 import type { QueueCustomer } from '../../../features/consultation/ui/QueuePanel';
 import { ChatPanel } from '../../../features/consultation/ui/ChatPanel';
 import type { ChatMessage as UiChatMessage } from '../../../features/consultation/ui/ChatPanel';
 import { CustomerInfoPanel } from '../../../features/consultation/ui/CustomerInfoPanel';
 import { StatusBar } from '../../../features/consultation/ui/StatusBar';
-import styles from './consultation-page.module.css';
+import { Dot } from '@/shared/ui/atoms/Dot';
+import { Mono } from '@/shared/ui/atoms/Mono';
 import { consultationApi } from '../../../features/consultation/api/consultationApi';
 
-// Helper to format ISO time to HH:mm
 const formatTime = (isoString: string) => {
   if (!isoString) return '';
   const d = new Date(isoString);
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 };
 
-// Helper to calculate wait minutes
 const calcWaitMinutes = (isoString: string) => {
   if (!isoString) return 0;
   const d = new Date(isoString);
@@ -24,12 +25,6 @@ const calcWaitMinutes = (isoString: string) => {
   return Math.max(0, Math.floor(diffMs / 60000));
 };
 
-/**
- * 상담 페이지 컴포넌트입니다.
- * 상담 대기열, 채팅창, 고객 정보 및 상태 관리 기능을 포함하며, 전체적인 상담 워크플로우를 조율합니다.
- * 
- * @returns {JSX.Element} 상담 페이지 컴포넌트
- */
 export const ConsultationPage: React.FC = () => {
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
@@ -37,32 +32,40 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, string>>({});
+  const [filterTab, setFilterTab] = useState<'all' | 'urgent' | 'mine'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingQueue, setIsLoadingQueue] = useState(false);
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
 
-  // Load Queue
   const loadQueue = useCallback(async () => {
+    setIsLoadingQueue(true);
     try {
       const sessions = await consultationApi.getQueue();
       const formattedQueue = sessions.map((s) => {
-        let meta = { customerName: 'Unknown', handoffReason: '' };
+        let meta: Record<string, unknown> = { customerName: 'Unknown', handoffReason: '' };
         try {
-          if (s.metaJson) meta = JSON.parse(s.metaJson);
+          if (s.metaJson) meta = JSON.parse(s.metaJson) as Record<string, unknown>;
         } catch (e) {
           console.error('Failed to parse metaJson', e);
         }
+        const waitMinutes = calcWaitMinutes(s.startedAt);
         return {
           id: String(s.id),
-          name: meta.customerName,
+          name: String(meta.customerName || 'Unknown'),
           channel: s.channel,
-          handoffReason: meta.handoffReason,
-          waitMinutes: calcWaitMinutes(s.startedAt),
+          handoffReason: String(meta.handoffReason || ''),
+          waitMinutes,
           hasUnread: false,
+          topic: String(meta.topic || meta.handoffReason || '미분류'),
+          urgent: waitMinutes > 5 || meta.urgent === true,
         };
       });
       setQueue(formattedQueue);
     } catch (error) {
       console.error('Failed to load queue:', error);
+    } finally {
+      setIsLoadingQueue(false);
     }
   }, []);
 
@@ -72,7 +75,6 @@ export const ConsultationPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [loadQueue]);
 
-  // Load Messages on select (with polling and stale-response guard)
   useEffect(() => {
     if (!activeCustomerId) {
       setMessages([]);
@@ -87,9 +89,10 @@ export const ConsultationPage: React.FC = () => {
         if (cancelled) return;
         setMessages(msgs.map(m => ({
           id: String(m.id),
-          senderRole: m.senderRole as any,
+          senderRole: m.senderRole as UiChatMessage['senderRole'],
           content: m.content,
           timestamp: formatTime(m.createdAt),
+          isHandoff: m.senderRole === 'SYSTEM' && /연결|핸드오프|handoff|transfer/i.test(m.content),
         })));
       } catch (error) {
         if (!cancelled) console.error('Failed to load messages:', error);
@@ -117,20 +120,19 @@ export const ConsultationPage: React.FC = () => {
     const targetId = activeCustomerId;
     try {
       const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
-      // Only update if still viewing the same session
-      setActiveCustomerId(current => {
+      setActiveCustomerId((current) => {
         if (current === targetId) {
-          setMessages(prev => [...prev, {
+          setMessages((prev) => [...prev, {
             id: String(newMsg.id),
-            senderRole: newMsg.senderRole as any,
+            senderRole: newMsg.senderRole as UiChatMessage['senderRole'],
             content: newMsg.content,
             timestamp: formatTime(newMsg.createdAt),
           }]);
         }
         return current;
       });
-    } catch(err) {
-      alert('메시지 전송 실패');
+    } catch (err) {
+      toast.error('메시지 전송 실패');
     }
   };
 
@@ -139,67 +141,106 @@ export const ConsultationPage: React.FC = () => {
     try {
       await consultationApi.updateStatus(Number(activeCustomerId), 'COMPLETED');
       setStatuses((prev) => ({ ...prev, [activeCustomerId]: 'COMPLETED' }));
-      alert('상담이 종료되었습니다.');
-      // 큐 목록 재조회 (상태가 OPEN인 것만 가져오므로, 종료된 것은 리스트에서 사라짐)
+      toast.success('상담이 종료되었습니다.');
       loadQueue();
       setActiveCustomerId(null);
-    } catch(err) {
-      alert('세션 종료 실패');
+    } catch (err) {
+      toast.error('세션 종료 실패');
     }
   };
 
+  const filteredQueue = useMemo(() => {
+    let result = queue;
+    if (filterTab === 'urgent') {
+      result = result.filter((c) => c.urgent);
+    } else if (filterTab === 'mine') {
+      result = result.filter((c) => statuses[c.id] === 'IN_PROGRESS');
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((c) =>
+        c.name.toLowerCase().includes(q) || (c.topic || '').toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [queue, filterTab, searchQuery, statuses]);
+
   return (
-    <DashboardLayout>
-      <div className={styles.pageWrapper}>
-        <div className={styles.mainArea}>
-          {/* Left: Queue */}
-          <QueuePanel
-            customers={queue}
-            activeCustomerId={activeCustomerId}
-            onSelectCustomer={handleSelectCustomer}
-          />
-
-          {/* Center: Chat */}
-          <ChatPanel
-            customerName={activeCustomer?.name || null}
-            channel={activeCustomer?.channel || null}
-            messages={messages}
-            onSendMessage={handleSendMessage}
-          />
-
-          {/* Right: Customer Info */}
-          <CustomerInfoPanel
-            customer={activeCustomer ? {
-              name: activeCustomer.name,
-              channel: activeCustomer.channel,
-              handoffReason: activeCustomer.handoffReason,
-              waitMinutes: activeCustomer.waitMinutes,
-            } : null}
-            memo={activeCustomerId ? (memos[activeCustomerId] || '') : ''}
-            onMemoChange={(val) => {
-              if (activeCustomerId) {
-                setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
-              }
-            }}
-          />
+    <AppShell
+      activeNav="msg"
+      crumbs={['CARD-CS', 'Consultation']}
+      topbarRight={
+        <div className="flex items-center gap-3.5 text-xs">
+          <div className="flex items-center gap-1.5 text-[var(--ink-2)]">
+            <Dot tone="signal" /> <span className="font-medium">응대 가능</span>
+          </div>
+          <div className="w-px h-3.5 bg-[var(--line)]" />
+          <div className="text-[var(--ink-3)]">
+            평균 첫응답 <Mono className="text-[var(--ink)] font-medium">2분 14초</Mono>
+          </div>
+          <div className="text-[var(--ink-3)]">
+            오늘 처리 <Mono className="text-[var(--ink)] font-medium">14건</Mono>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex flex-col flex-1 min-h-0 h-full">
+        <div className="flex flex-1 min-h-0">
+          <PanelGroup orientation="horizontal">
+            <Panel defaultSize={20} minSize={15} maxSize={30}>
+              <QueuePanel
+                customers={filteredQueue}
+                activeCustomerId={activeCustomerId}
+                onSelectCustomer={handleSelectCustomer}
+                filterTab={filterTab}
+                onFilterChange={setFilterTab}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                isLoading={isLoadingQueue}
+              />
+            </Panel>
+            <PanelResizeHandle className="w-1 bg-[var(--line)] hover:bg-[var(--ink-3)] transition-colors" />
+            <Panel defaultSize={55}>
+              <ChatPanel
+                customerName={activeCustomer?.name || null}
+                channel={activeCustomer?.channel || null}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+              />
+            </Panel>
+            <PanelResizeHandle className="w-1 bg-[var(--line)] hover:bg-[var(--ink-3)] transition-colors" />
+            <Panel defaultSize={25} minSize={20} maxSize={35}>
+              <CustomerInfoPanel
+                customer={activeCustomer ? {
+                  name: activeCustomer.name,
+                  channel: activeCustomer.channel,
+                  handoffReason: activeCustomer.handoffReason,
+                  waitMinutes: activeCustomer.waitMinutes,
+                } : null}
+                memo={activeCustomerId ? (memos[activeCustomerId] || '') : ''}
+                onMemoChange={(val) => {
+                  if (activeCustomerId) {
+                    setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+                  }
+                }}
+              />
+            </Panel>
+          </PanelGroup>
         </div>
 
-        {/* Bottom: Status Bar */}
         <StatusBar
           status={activeCustomerId ? (statuses[activeCustomerId] || 'WAITING') : 'WAITING'}
           category={activeCustomerId ? (categories[activeCustomerId] || '') : ''}
           onStatusChange={(val) => {
-            // NOTE: Status changes are intentionally local-only (UI state only)
             if (activeCustomerId) setStatuses((prev) => ({ ...prev, [activeCustomerId]: val }));
           }}
           onCategoryChange={(val) => {
-            // NOTE: Category changes are intentionally local-only (UI state only)
             if (activeCustomerId) setCategories((prev) => ({ ...prev, [activeCustomerId]: val }));
           }}
           onEndSession={handleEndSession}
           disabled={!activeCustomerId}
         />
       </div>
-    </DashboardLayout>
+    </AppShell>
   );
 };

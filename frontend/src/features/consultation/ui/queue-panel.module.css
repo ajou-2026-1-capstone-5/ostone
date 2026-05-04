@@ -1,6 +1,6 @@
 .queueWrapper {
-  width: 280px;
-  min-width: 280px;
+  width: 100%;
+  min-width: 0;
   background: var(--bg-secondary);
   border-right: 1px solid var(--glass-border);
   display: flex;
@@ -10,8 +10,15 @@
 }
 
 .queueHeader {
-  padding: 20px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid var(--glass-border);
+}
+
+.queueHeaderTop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .queueTitle {
@@ -25,6 +32,62 @@
 .queueCount {
   font-size: 0.8rem;
   letter-spacing: normal;
+  color: var(--text-secondary);
+}
+
+.filterTabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.filterTab {
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.filterTabActive {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-color);
+}
+
+.searchIcon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.searchInput::placeholder {
   color: var(--text-secondary);
 }
 
@@ -44,6 +107,7 @@
   transition: all var(--transition-fast);
   border: 1px solid transparent;
   margin-bottom: 4px;
+  border-left: 3px solid transparent;
 }
 
 .queueItem:hover {
@@ -59,6 +123,7 @@
 .queueItemActive {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.15);
+  border-left: 3px solid var(--signal);
 }
 
 .customerAvatar {
@@ -100,14 +165,30 @@
   text-overflow: ellipsis;
 }
 
-.handoffPreview {
-  font-size: 0.78rem;
-  letter-spacing: normal;
+.queueItemMeta {
+  font-size: 10.5px;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   margin-top: 2px;
+}
+
+.waitTimeUrgent {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.topicPillWrap {
+  margin-top: 4px;
+}
+
+.queueItemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .waitTime {
@@ -144,4 +225,55 @@
 .emptyText {
   font-size: 0.85rem;
   letter-spacing: normal;
+}
+
+.skeletonList {
+  padding: 8px;
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.skeletonAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeletonLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonLine {
+  height: 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  width: 70%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonLineShort {
+  height: 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  width: 40%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
