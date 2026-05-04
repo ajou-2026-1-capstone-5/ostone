@@ -94,7 +94,7 @@ def test_should_write_output_for_empty_input(monkeypatch: pytest.MonkeyPatch, tm
 
     assert output_manifest_path == artifact_root / "test" / "r1" / "preprocessing" / "manifest.json"
     assert output_manifest_path.exists()
-    assert output_manifest["payload"]["artifact_path"] == "preprocessed_conversations.json"
+    assert output_manifest["payload"]["artifact_path"] == "preprocessed_data.json"
     assert output["stats"]["input_count"] == 0
     assert output["stats"]["output_count"] == 0
     assert output["stats"]["avg_canonical_text_length"] == 0.0

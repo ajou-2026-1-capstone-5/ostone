@@ -1,2 +1,193 @@
-def run(upstream_manifest_path: str | None = None) -> None:
-    pass
+from __future__ import annotations
+
+import json
+import os
+import time
+from pathlib import Path
+from typing import Any
+
+from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
+from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.context import StageContext
+from pipeline.common.exceptions import PipelineStageError
+from pipeline.common.logging import get_stage_logger
+from pipeline.stages.preprocessing.io import read_stage_context
+
+DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
+DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
+DEFAULT_PREPROCESSED_ARTIFACT = "preprocessed_data.json"
+
+
+def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
+    start = time.monotonic()
+    runtime_config = PipelineRuntimeConfig.from_env()
+    stage_context = read_stage_context(upstream_manifest_path, stage_name="draft_generation")
+    logger = get_stage_logger(stage_context)
+
+    logger.info("draft_generation.start %s", stage_context)
+
+    clusters_payload = _read_clusters(runtime_config, stage_context)
+    clusters = clusters_payload.get("clusters") or []
+    logger.info("draft_generation.cluster_loaded cluster_count=%d", len(clusters))
+
+    preprocessed_index = _read_preprocessed_index(runtime_config, stage_context)
+    logger.info("draft_generation.preprocessed_loaded conversation_count=%d", len(preprocessed_index))
+
+    cases_per_intent = _resolve_cases_per_intent()
+    intents, metrics = _build_intents(clusters, preprocessed_index, cases_per_intent)
+    logger.info(
+        "draft_generation.intent_built intent_count=%d representative_case_total=%d intents_with_zero_cases=%d",
+        metrics["intent_count"],
+        metrics["representative_case_total"],
+        metrics["intents_with_zero_cases"],
+    )
+
+    candidate = _build_candidate(intents)
+    candidate_path = _write_candidate(stage_context, runtime_config, candidate)
+
+    metrics["processing_duration_seconds"] = time.monotonic() - start
+
+    manifest = write_stage_manifest(
+        stage_context,
+        runtime_config,
+        {"candidateArtifactPath": candidate_path.name, "metrics": metrics},
+    )
+
+    logger.info("draft_generation.completed candidate_artifact_path=%s", candidate_path)
+    return {"candidateArtifactPath": str(candidate_path), "manifest_path": str(manifest)}
+
+
+def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> dict[str, Any]:
+    clusters_path = _upstream_stage_dir("intent_discovery", runtime_config, stage_context) / DEFAULT_CLUSTERS_ARTIFACT
+    if not clusters_path.exists():
+        raise PipelineStageError(f"clusters.json not found: {clusters_path}")
+    try:
+        payload = json.loads(clusters_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PipelineStageError(f"Failed to read clusters.json: {clusters_path}") from exc
+    if not isinstance(payload, dict):
+        raise PipelineStageError(f"clusters.json must be a JSON object: {clusters_path}")
+    return payload
+
+
+def _read_preprocessed_index(
+    runtime_config: PipelineRuntimeConfig,
+    stage_context: StageContext,
+) -> dict[str, dict[str, Any]]:
+    preprocessed_path = (
+        _upstream_stage_dir("preprocessing", runtime_config, stage_context) / DEFAULT_PREPROCESSED_ARTIFACT
+    )
+    if not preprocessed_path.exists():
+        raise PipelineStageError(f"preprocessed_data.json not found: {preprocessed_path}")
+    try:
+        data = json.loads(preprocessed_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PipelineStageError(f"Failed to read preprocessed_data.json: {preprocessed_path}") from exc
+    if not isinstance(data, dict):
+        raise PipelineStageError(f"preprocessed_data.json must be a JSON object: {preprocessed_path}")
+    conversations = data.get("conversations")
+    if not isinstance(conversations, list):
+        raise PipelineStageError(f"preprocessed_data.json conversations must be a list: {preprocessed_path}")
+    return {conv["id"]: conv for conv in conversations if isinstance(conv, dict) and "id" in conv}
+
+
+def _upstream_stage_dir(
+    stage_name: str,
+    runtime_config: PipelineRuntimeConfig,
+    stage_context: StageContext,
+) -> Path:
+    upstream = StageContext(
+        dag_id=stage_context.dag_id,
+        run_id=stage_context.run_id,
+        stage_name=stage_name,
+        workspace_id=stage_context.workspace_id,
+        dataset_id=stage_context.dataset_id,
+        pipeline_job_id=stage_context.pipeline_job_id,
+    )
+    return upstream.artifact_dir(runtime_config)
+
+
+def _resolve_cases_per_intent() -> int:
+    value = os.getenv("DRAFT_REPRESENTATIVE_CASES_PER_INTENT", "3").strip()
+    try:
+        return max(0, int(value))
+    except ValueError:
+        return 3
+
+
+def _build_intents(
+    clusters: list[Any],
+    preprocessed_index: dict[str, dict[str, Any]],
+    cases_per_intent: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    intents: list[dict[str, Any]] = []
+    total_cases = 0
+    zero_case_count = 0
+
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        cluster_id = cluster.get("cluster_id")
+        exemplar_conv_ids: list[str] = cluster.get("exemplar_conv_ids") or []
+
+        representative_cases = [
+            _hydrate_case(preprocessed_index[conv_id])
+            for conv_id in exemplar_conv_ids[:cases_per_intent]
+            if conv_id in preprocessed_index
+        ]
+
+        if not representative_cases:
+            zero_case_count += 1
+        total_cases += len(representative_cases)
+
+        intents.append(
+            {
+                "intentCode": f"INTENT_{cluster_id}",
+                "name": cluster.get("suggested_name", f"INTENT_{cluster_id}"),
+                "description": cluster.get("suggested_description"),
+                "representativeCases": representative_cases,
+            }
+        )
+
+    intent_count = len(intents)
+    metrics: dict[str, Any] = {
+        "intent_count": intent_count,
+        "representative_case_total": total_cases,
+        "representative_case_avg_per_intent": (total_cases / intent_count) if intent_count > 0 else 0.0,
+        "intents_with_zero_cases": zero_case_count,
+    }
+    return intents, metrics
+
+
+def _hydrate_case(conv: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "conversationId": conv.get("id", ""),
+        "canonicalText": conv.get("canonical_text", ""),
+        "customerProblemText": conv.get("customer_problem_text", ""),
+        "endedStatus": conv.get("ended_status"),
+    }
+
+
+def _build_candidate(intents: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schemaVersion": "1.0",
+        "domainPackDraft": {
+            "packKey": None,
+            "packName": None,
+        },
+        "intentDraft": {
+            "intents": intents,
+        },
+        "workflowDraft": {},
+    }
+
+
+def _write_candidate(
+    stage_context: StageContext,
+    runtime_config: PipelineRuntimeConfig,
+    candidate: dict[str, Any],
+) -> Path:
+    output_dir = ensure_stage_directory(stage_context, runtime_config)
+    candidate_path = output_dir / DEFAULT_CANDIDATE_ARTIFACT
+    candidate_path.write_text(json.dumps(candidate, indent=2, ensure_ascii=False), encoding="utf-8")
+    return candidate_path

@@ -109,7 +109,7 @@ def write_preprocessed_artifact(
 ) -> dict[str, str]:
     output_dir = ensure_stage_directory(stage_context, runtime_config)
 
-    output_path = output_dir / "preprocessed_conversations.json"
+    output_path = output_dir / "preprocessed_data.json"
     output: JsonObject = {
         "schema_version": "1.0",
         "stage": "preprocessing",

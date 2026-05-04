@@ -17,7 +17,7 @@ class ClusterResult:
     cluster_id: int
     member_indices: tuple[int, ...]
     member_conv_ids: tuple[str, ...]
-    exemplar_indices: tuple[int, ...]
+    exemplar_conv_ids: tuple[str, ...]
     keywords: tuple[str, ...]
     suggested_name: str
     suggested_description: str

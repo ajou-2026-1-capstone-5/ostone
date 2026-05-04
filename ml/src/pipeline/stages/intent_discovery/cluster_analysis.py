@@ -26,7 +26,7 @@ class ClusterResultData(TypedDict):
     cluster_id: int
     member_indices: tuple[int, ...]
     member_conv_ids: tuple[str, ...]
-    exemplar_indices: tuple[int, ...]
+    exemplar_conv_ids: tuple[str, ...]
     keywords: tuple[str, ...]
     suggested_name: str
     suggested_description: str
@@ -82,7 +82,7 @@ def analyze_cluster(
         "cluster_id": cluster_id,
         "member_indices": tuple(member_indices),
         "member_conv_ids": _member_conv_ids(member_indices, conversations),
-        "exemplar_indices": _exemplar_indices(member_indices, centroid, vectors),
+        "exemplar_conv_ids": _exemplar_indices(member_indices, centroid, vectors, conversations),
         "keywords": keywords,
         "suggested_name": suggested_name,
         "suggested_description": f"{suggested_name} 클러스터",
@@ -97,17 +97,22 @@ def analyze_cluster(
     }
 
 
-def _exemplar_indices(member_indices: list[int], centroid: np.ndarray, vectors: np.ndarray) -> tuple[int, ...]:
+def _exemplar_indices(
+    member_indices: list[int],
+    centroid: np.ndarray,
+    vectors: np.ndarray,
+    conversations: list[ProcessedConversation],
+) -> tuple[str, ...]:
     if not member_indices:
         return ()
 
     centroid_norm = float(np.linalg.norm(centroid))
     if centroid_norm < 1e-9:
-        return tuple(member_indices[:2])
+        return tuple(conversations[i].id for i in member_indices[:3])
 
     similarities = _cosine_similarities(vectors[member_indices], centroid, centroid_norm)
-    ranked_positions = np.argsort(-similarities, kind="stable")[:2]
-    return tuple(member_indices[int(position)] for position in ranked_positions)
+    ranked_positions = np.argsort(-similarities, kind="stable")[:3]
+    return tuple(conversations[member_indices[int(position)]].id for position in ranked_positions)
 
 
 def _top_keywords(
