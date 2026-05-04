@@ -519,6 +519,32 @@ def _validate_code_list(items: list[dict[str, Any]], code_key: str, owner: str) 
     return codes
 
 
+def _validate_case_text_fields(case: dict[str, Any]) -> None:
+    canonical_text = case.get("canonicalText")
+    if not isinstance(canonical_text, str) or not canonical_text.strip():
+        raise PipelineStageError("representativeCases[*].canonicalText must be a non-blank string.")
+    customer_problem_text = case.get("customerProblemText")
+    if not isinstance(customer_problem_text, str) or not customer_problem_text.strip():
+        raise PipelineStageError("representativeCases[*].customerProblemText must be a non-blank string.")
+    ended_status = case.get("endedStatus")
+    if ended_status is not None and not isinstance(ended_status, str):
+        raise PipelineStageError("representativeCases[*].endedStatus must be a string or null.")
+
+
+def _validate_representative_case(case: Any, seen_ids: set[str]) -> None:
+    if not isinstance(case, dict):
+        raise PipelineStageError("intents[*].representativeCases must be a JSON array.")
+    conv_id = case.get("conversationId")
+    if not isinstance(conv_id, str) or not conv_id.strip() or len(conv_id) > 100:
+        raise PipelineStageError(
+            "representativeCases[*].conversationId must be a non-blank string up to 100 chars."
+        )
+    if conv_id in seen_ids:
+        raise PipelineStageError(f"representativeCases[*].conversationId duplicates within an intent: {conv_id}.")
+    seen_ids.add(conv_id)
+    _validate_case_text_fields(case)
+
+
 def _validate_representative_cases(intent: dict[str, Any]) -> None:
     cases = intent.get("representativeCases")
     if not isinstance(cases, list):
@@ -527,25 +553,7 @@ def _validate_representative_cases(intent: dict[str, Any]) -> None:
         raise PipelineStageError("intents[*].representativeCases must contain at most 3 items.")
     seen_ids: set[str] = set()
     for case in cases:
-        if not isinstance(case, dict):
-            raise PipelineStageError("intents[*].representativeCases must be a JSON array.")
-        conv_id = case.get("conversationId")
-        if not isinstance(conv_id, str) or not conv_id.strip() or len(conv_id) > 100:
-            raise PipelineStageError(
-                "representativeCases[*].conversationId must be a non-blank string up to 100 chars."
-            )
-        if conv_id in seen_ids:
-            raise PipelineStageError(f"representativeCases[*].conversationId duplicates within an intent: {conv_id}.")
-        seen_ids.add(conv_id)
-        canonical_text = case.get("canonicalText")
-        if not isinstance(canonical_text, str) or not canonical_text.strip():
-            raise PipelineStageError("representativeCases[*].canonicalText must be a non-blank string.")
-        customer_problem_text = case.get("customerProblemText")
-        if not isinstance(customer_problem_text, str) or not customer_problem_text.strip():
-            raise PipelineStageError("representativeCases[*].customerProblemText must be a non-blank string.")
-        ended_status = case.get("endedStatus")
-        if ended_status is not None and not isinstance(ended_status, str):
-            raise PipelineStageError("representativeCases[*].endedStatus must be a string or null.")
+        _validate_representative_case(case, seen_ids)
 
 
 def _required_non_blank(payload: dict[str, Any], key: str, max_length: int) -> str:

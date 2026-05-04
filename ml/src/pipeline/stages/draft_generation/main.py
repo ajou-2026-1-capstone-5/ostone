@@ -54,7 +54,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     )
 
     logger.info("draft_generation.completed candidate_artifact_path=%s", candidate_path)
-    return {"candidateArtifactPath": str(candidate_path), "manifest_path": str(manifest)}
+    return {"candidateArtifactPath": str(candidate_path), "artifact_manifest_path": str(manifest)}
 
 
 def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> dict[str, Any]:
