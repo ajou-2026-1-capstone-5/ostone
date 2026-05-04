@@ -65,8 +65,8 @@ def signal_based_generator(context: ClusterContext) -> WorkflowGraphSpec:
         counter[0] += 1
         return eid
 
-    for i in range(len(full_chain) - 1):
-        all_edges.append(GraphEdgeSpec(id=_next_id(), from_node=full_chain[i].id, to_node=full_chain[i + 1].id))
+    for cur, nxt in zip(full_chain, full_chain[1:]):
+        all_edges.append(GraphEdgeSpec(id=_next_id(), from_node=cur.id, to_node=nxt.id))
 
     if has_escalation:
         decision = GraphNodeSpec(id="decision", type="DECISION", label="분기")

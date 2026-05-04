@@ -60,7 +60,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     workflow_metrics = _build_workflow_metrics(clusters)
     metrics.update(workflow_metrics)
     logger.info(
-        "draft_generation.workflow_built workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
+        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
         workflow_metrics["workflow_count"],
         workflow_metrics["workflow_with_identify_count"],
         workflow_metrics["workflow_with_payment_check_count"],
@@ -226,7 +226,7 @@ def _build_workflow_draft(
     for cluster in clusters:
         if not isinstance(cluster, dict):
             continue
-        cluster_id = cluster["cluster_id"]
+        cluster_id = cluster.get("cluster_id")
         suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
         context = ClusterContext(
             cluster_id=cluster_id,
