@@ -50,14 +50,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         metrics["intents_with_zero_cases"],
     )
 
-    candidate = _build_candidate(intents, clusters, stage_context)
-    logger.info(
-        "draft_generation.pack_identity pack_key=%s pack_name=%s",
-        candidate["domainPackDraft"]["packKey"],
-        candidate["domainPackDraft"]["packName"],
-    )
-
-    workflow_metrics = _build_workflow_metrics(clusters)
+    workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
     metrics.update(workflow_metrics)
     logger.info(
         "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
@@ -65,6 +58,13 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         workflow_metrics["workflow_with_identify_count"],
         workflow_metrics["workflow_with_payment_check_count"],
         workflow_metrics["workflow_with_escalation_count"],
+    )
+
+    candidate = _build_candidate(intents, workflow_draft, stage_context)
+    logger.info(
+        "draft_generation.pack_identity pack_key=%s pack_name=%s",
+        candidate["domainPackDraft"]["packKey"],
+        candidate["domainPackDraft"]["packName"],
     )
 
     candidate_path = _write_candidate(stage_context, runtime_config, candidate)
@@ -219,9 +219,13 @@ def _default_dummy_policy() -> dict[str, Any]:
 
 def _build_workflow_draft(
     clusters: list[dict[str, Any]],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     workflows: list[dict[str, Any]] = []
     bindings: list[dict[str, Any]] = []
+    workflow_count = 0
+    identify_count = 0
+    payment_count = 0
+    escalation_count = 0
 
     for cluster in clusters:
         if not isinstance(cluster, dict):
@@ -264,8 +268,15 @@ def _build_workflow_draft(
                 "routeConditionJson": "{}",
             }
         )
+        workflow_count += 1
+        if signal.get("requires_user_identification"):
+            identify_count += 1
+        if signal.get("requires_payment_check"):
+            payment_count += 1
+        if signal.get("has_escalation_cases"):
+            escalation_count += 1
 
-    return {
+    draft = {
         "slots": [],
         "policies": [_default_dummy_policy()],
         "risks": [],
@@ -273,39 +284,21 @@ def _build_workflow_draft(
         "intentSlotBindings": [],
         "intentWorkflowBindings": bindings,
     }
-
-
-def _build_workflow_metrics(clusters: list[dict[str, Any]]) -> dict[str, Any]:
-    workflow_count = 0
-    identify_count = 0
-    payment_count = 0
-    escalation_count = 0
-    for cluster in clusters:
-        if not isinstance(cluster, dict):
-            continue
-        workflow_count += 1
-        signal = cluster.get("workflow_signal") or {}
-        if signal.get("requires_user_identification"):
-            identify_count += 1
-        if signal.get("requires_payment_check"):
-            payment_count += 1
-        if signal.get("has_escalation_cases"):
-            escalation_count += 1
-    return {
+    workflow_metrics = {
         "workflow_count": workflow_count,
         "workflow_with_identify_count": identify_count,
         "workflow_with_payment_check_count": payment_count,
         "workflow_with_escalation_count": escalation_count,
     }
+    return draft, workflow_metrics
 
 
 def _build_candidate(
     intents: list[dict[str, Any]],
-    clusters: list[dict[str, Any]],
+    workflow_draft: dict[str, Any],
     stage_context: StageContext,
 ) -> dict[str, Any]:
     pack_key, pack_name = _derive_pack_identity(stage_context)
-    workflow_draft = _build_workflow_draft(clusters)
     return {
         "schemaVersion": "1.0",
         "domainPackDraft": {

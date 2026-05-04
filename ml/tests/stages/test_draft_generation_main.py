@@ -13,7 +13,6 @@ from pipeline.stages.draft_generation.main import (
     _build_candidate,
     _build_intents,
     _build_workflow_draft,
-    _build_workflow_metrics,
     _derive_pack_identity,
     _hydrate_case,
     _read_clusters,
@@ -325,8 +324,9 @@ def test_build_candidate_structure() -> None:
     intents = [{"intentCode": "INTENT_0", "name": "환불", "representativeCases": []}]
     clusters = [{"cluster_id": 0, "suggested_name": "환불", "workflow_signal": {}}]
     context = _stage_context(workspace_id="ws1", dataset_id="ds1")
+    workflow_draft, _ = _build_workflow_draft(clusters)
 
-    candidate = _build_candidate(intents, clusters, context)
+    candidate = _build_candidate(intents, workflow_draft, context)
 
     assert candidate["schemaVersion"] == "1.0"
     assert candidate["intentDraft"]["intents"] == intents
@@ -345,13 +345,13 @@ def test_build_candidate_structure() -> None:
 def test_build_candidate_raises_when_workspace_id_missing() -> None:
     context = _stage_context(workspace_id=None, dataset_id="ds1")
     with pytest.raises(PipelineStageError, match="packKey requires both"):
-        _build_candidate([], [], context)
+        _build_candidate([], {}, context)
 
 
 def test_build_candidate_raises_when_dataset_id_missing() -> None:
     context = _stage_context(workspace_id="ws1", dataset_id=None)
     with pytest.raises(PipelineStageError, match="packKey requires both"):
-        _build_candidate([], [], context)
+        _build_candidate([], {}, context)
 
 
 def test_derive_pack_identity_formats_correctly() -> None:
@@ -375,7 +375,7 @@ def test_derive_pack_identity_raises_on_none_dataset() -> None:
 
 def test_build_workflow_draft_single_cluster() -> None:
     clusters = [{"cluster_id": 0, "suggested_name": "환불 문의", "workflow_signal": {}}]
-    draft = _build_workflow_draft(clusters)
+    draft, _ = _build_workflow_draft(clusters)
 
     assert len(draft["workflows"]) == 1
     assert len(draft["policies"]) == 1
@@ -391,7 +391,7 @@ def test_build_workflow_draft_single_cluster() -> None:
 
 
 def test_build_workflow_draft_empty_clusters() -> None:
-    draft = _build_workflow_draft([])
+    draft, _ = _build_workflow_draft([])
     assert draft["workflows"] == []
     assert draft["intentWorkflowBindings"] == []
     assert len(draft["policies"]) == 1
@@ -402,7 +402,7 @@ def test_build_workflow_draft_intent_workflow_1to1_mapping() -> None:
         {"cluster_id": 0, "suggested_name": "A", "workflow_signal": {}},
         {"cluster_id": 1, "suggested_name": "B", "workflow_signal": {}},
     ]
-    draft = _build_workflow_draft(clusters)
+    draft, _ = _build_workflow_draft(clusters)
 
     intent_codes = {b["intentCode"] for b in draft["intentWorkflowBindings"]}
     workflow_codes = {w["workflowCode"] for w in draft["workflows"]}
@@ -413,13 +413,13 @@ def test_build_workflow_draft_intent_workflow_1to1_mapping() -> None:
 
 
 def test_build_workflow_draft_default_policy_is_dummy() -> None:
-    draft = _build_workflow_draft([{"cluster_id": 0, "suggested_name": "X", "workflow_signal": {}}])
+    draft, _ = _build_workflow_draft([{"cluster_id": 0, "suggested_name": "X", "workflow_signal": {}}])
     policy = draft["policies"][0]
     assert policy["policyCode"] == "default_policy"
     assert "Dummy" in policy["name"]
 
 
-def test_build_workflow_metrics_counts_signals() -> None:
+def test_build_workflow_draft_metrics_counts_signals() -> None:
     clusters = [
         {
             "cluster_id": 0,
@@ -439,7 +439,7 @@ def test_build_workflow_metrics_counts_signals() -> None:
         },
         {"cluster_id": 2, "workflow_signal": {}},
     ]
-    m = _build_workflow_metrics(clusters)
+    _, m = _build_workflow_draft(clusters)
     assert m["workflow_count"] == 3
     assert m["workflow_with_identify_count"] == 2
     assert m["workflow_with_payment_check_count"] == 1
