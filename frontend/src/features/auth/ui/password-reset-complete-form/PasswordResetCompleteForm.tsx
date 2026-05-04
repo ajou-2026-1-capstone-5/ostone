@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { ApiRequestError } from '../../../../shared/api';
 import { passwordResetCompleteApi } from '../../api/authApi';
 import styles from './password-reset-complete-form.module.css';
 
@@ -39,8 +40,8 @@ export const PasswordResetCompleteForm: React.FC = () => {
       setError(null);
       await passwordResetCompleteApi({ resetToken, newPassword: password });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || '비밀번호 재설정에 실패했습니다. 링크가 만료되었을 수 있습니다.');
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : '비밀번호 재설정에 실패했습니다. 링크가 만료되었을 수 있습니다.');
     } finally {
       setLoading(false);
     }

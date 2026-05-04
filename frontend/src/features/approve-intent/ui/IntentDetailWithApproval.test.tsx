@@ -1,9 +1,37 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { IntentApprovalAction, IntentApprovalStatus } from "../model/types";
 import { IntentDetailWithApproval } from "./IntentDetailWithApproval";
 
+type MockIntentDetail = {
+  name: string;
+  status: "DRAFT" | IntentApprovalStatus;
+};
+
+type IntentDetailPanelProps = {
+  children?: (detail: MockIntentDetail) => ReactNode;
+};
+
+type ApproveIntentDialogProps = {
+  open: boolean;
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+  intentName: string;
+  action: IntentApprovalAction;
+  isLoading: boolean;
+};
+
+type IntentStatusControlProps = {
+  intentStatus: "DRAFT" | IntentApprovalStatus;
+  onPublish: () => void;
+  onReject: () => void;
+  isPending: boolean;
+};
+
 vi.mock("../../intent-draft-read/ui", () => ({
-  IntentDetailPanel: ({ children }: any) => children({ name: "test_intent", status: "DRAFT" }),
+  IntentDetailPanel: ({ children }: IntentDetailPanelProps) =>
+    children?.({ name: "test_intent", status: "DRAFT" }),
 }));
 
 vi.mock("sonner", () => ({
@@ -16,17 +44,26 @@ vi.mock("sonner", () => ({
 const mockMutate = vi.fn();
 
 vi.mock("../api/useApproveIntent", () => ({
-  useApproveIntent: vi.fn(({ onStatusChanged }: any) => ({
-    mutate: (status: string) => {
-      mockMutate(status);
-      onStatusChanged?.(status === "PUBLISHED" ? "PUBLISHED" : "REJECTED");
-    },
-    isPending: false,
-  })),
+  useApproveIntent: vi.fn(
+    ({ onStatusChanged }: { onStatusChanged?: (status: IntentApprovalStatus) => void }) => ({
+      mutate: (status: IntentApprovalStatus) => {
+        mockMutate(status);
+        onStatusChanged?.(status === "PUBLISHED" ? "PUBLISHED" : "REJECTED");
+      },
+      isPending: false,
+    }),
+  ),
 }));
 
 vi.mock("../ui/ApproveIntentDialog", () => ({
-  ApproveIntentDialog: ({ open, onConfirm, onOpenChange, intentName, action, isLoading }: any) => {
+  ApproveIntentDialog: ({
+    open,
+    onConfirm,
+    onOpenChange,
+    intentName,
+    action,
+    isLoading,
+  }: ApproveIntentDialogProps) => {
     if (!open) return null;
     return (
       <div role="dialog">
@@ -42,7 +79,12 @@ vi.mock("../ui/ApproveIntentDialog", () => ({
 }));
 
 vi.mock("../ui/IntentStatusControl", () => ({
-  IntentStatusControl: ({ intentStatus, onPublish, onReject, isPending }: any) => (
+  IntentStatusControl: ({
+    intentStatus,
+    onPublish,
+    onReject,
+    isPending,
+  }: IntentStatusControlProps) => (
     <div>
       <button onClick={onPublish} disabled={isPending || intentStatus !== "DRAFT"}>
         {isPending ? "처리 중..." : "승인"}

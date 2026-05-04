@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ApiRequestError } from '../../../../shared/api';
 import { passwordResetInitApi } from '../../api/authApi';
 import styles from './password-reset-init-form.module.css';
 
@@ -20,8 +21,8 @@ export const PasswordResetInitForm: React.FC = () => {
 
       const response = await passwordResetInitApi(email);
       setSuccessMessage(response.message);
-    } catch (err: any) {
-      setError(err.message || '요청 처리 중 오류가 발생했습니다.');
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : '요청 처리 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }

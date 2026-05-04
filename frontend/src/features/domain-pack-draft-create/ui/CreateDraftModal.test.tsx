@@ -118,23 +118,16 @@ describe('CreateDraftModal', () => {
     const file = new File([''], 'test.json', { type: 'application/json' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    let capturedReader: FileReader | null = null;
-    const OriginalFileReader = globalThis.FileReader;
-    globalThis.FileReader = class extends OriginalFileReader {
-      constructor() {
-        super();
-        capturedReader = this;
-      }
-    } as typeof FileReader;
+    const readAsTextSpy = vi
+      .spyOn(FileReader.prototype, 'readAsText')
+      .mockImplementation(function(this: FileReader) {
+        Object.defineProperty(this, 'error', { value: new DOMException('read error') });
+        this.dispatchEvent(new ProgressEvent('error'));
+      });
 
     fireEvent.change(input, { target: { files: [file] } });
 
-    globalThis.FileReader = OriginalFileReader;
-
-    if (capturedReader) {
-      Object.defineProperty(capturedReader, 'error', { value: new DOMException('read error') });
-      (capturedReader as FileReader).dispatchEvent(new ProgressEvent('error'));
-    }
+    readAsTextSpy.mockRestore();
 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('파일을 읽는 중 오류가 발생했습니다.'),
