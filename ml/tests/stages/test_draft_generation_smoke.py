@@ -1,11 +1,9 @@
-"""Integration smoke: intent_discovery → draft_generation pipeline path.
+"""Integration smoke: intent_discovery → draft_generation → publish_candidate pipeline path.
 
 Verifies that draft_generation produces a candidate.json whose
 intentDraft.intents[*].representativeCases contains up to 3 cases,
-each with all required fields.
-
-publish_candidate is excluded from this smoke because packKey=None (U-006 Deferred)
-causes validate_candidate to raise before the SKIPPED path is reachable.
+each with all required fields, and that the candidate passes
+publish_candidate.validate_candidate.
 """
 
 from __future__ import annotations
@@ -16,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from pipeline.stages.draft_generation.main import run
+from pipeline.stages.publish_candidate.main import validate_candidate
 
 
 def _write_upstream_artifacts(artifact_root: Path) -> Path:
@@ -46,6 +45,11 @@ def _write_upstream_artifacts(artifact_root: Path) -> Path:
             "suggested_name": "환불 문의",
             "suggested_description": "환불 관련",
             "exemplar_conv_ids": ["conv_0", "conv_1", "conv_2"],
+            "workflow_signal": {
+                "requires_user_identification": False,
+                "requires_payment_check": True,
+                "has_escalation_cases": False,
+            },
         }
     ]
     (intent_dir / "clusters.json").write_text(
@@ -61,7 +65,7 @@ def _write_upstream_artifacts(artifact_root: Path) -> Path:
                 "run_id": run_id,
                 "stage_name": "intent_discovery",
                 "workspace_id": "ws-smoke",
-                "dataset_id": None,
+                "dataset_id": "ds-smoke",
                 "pipeline_job_id": None,
             }
         ),
@@ -70,9 +74,7 @@ def _write_upstream_artifacts(artifact_root: Path) -> Path:
     return manifest_path
 
 
-def test_draft_generation_produces_representative_cases(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_draft_generation_produces_representative_cases(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     artifact_root = tmp_path / "artifacts"
     manifest_path = _write_upstream_artifacts(artifact_root)
 
@@ -98,29 +100,62 @@ def test_draft_generation_produces_representative_cases(
         assert not missing, f"필드 누락: {missing}, case: {case}"
 
 
-def test_draft_generation_partial_hydration_smoke(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_draft_generation_publish_candidate_passes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    manifest_path = _write_upstream_artifacts(artifact_root)
+
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
+
+    result = run(upstream_manifest_path=str(manifest_path))
+
+    candidate = json.loads(Path(result["candidateArtifactPath"]).read_text(encoding="utf-8"))
+    validate_candidate(candidate)
+
+    assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-smoke_dsds-smoke"
+    assert len(candidate["workflowDraft"]["workflows"]) >= 1
+    assert len(candidate["workflowDraft"]["intentWorkflowBindings"]) == len(candidate["intentDraft"]["intents"])
+
+
+def test_draft_generation_partial_hydration_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     artifact_root = tmp_path / "artifacts"
     dag_id = "smoke2"
     run_id = "run1"
 
     preprocessed_dir = artifact_root / dag_id / run_id / "preprocessing"
     preprocessed_dir.mkdir(parents=True)
+    convs = [{"id": "c1", "canonical_text": "t", "customer_problem_text": "p", "ended_status": None}]
     (preprocessed_dir / "preprocessed_data.json").write_text(
-        json.dumps({"schema_version": "1.0", "conversations": [{"id": "c1", "canonical_text": "t", "customer_problem_text": "p", "ended_status": None}]}),
+        json.dumps({"schema_version": "1.0", "conversations": convs}),
         encoding="utf-8",
     )
 
     intent_dir = artifact_root / dag_id / run_id / "intent_discovery"
     intent_dir.mkdir(parents=True)
+    partial_cluster = {
+        "cluster_id": 0,
+        "suggested_name": "테스트",
+        "suggested_description": None,
+        "exemplar_conv_ids": ["c1", "missing_id"],
+        "workflow_signal": {},
+    }
     (intent_dir / "clusters.json").write_text(
-        json.dumps({"schema_version": "1.0", "clusters": [{"cluster_id": 0, "suggested_name": "테스트", "suggested_description": None, "exemplar_conv_ids": ["c1", "missing_id"]}]}),
+        json.dumps({"schema_version": "1.0", "clusters": [partial_cluster]}),
         encoding="utf-8",
     )
     manifest_path = intent_dir / "manifest.json"
     manifest_path.write_text(
-        json.dumps({"dag_id": dag_id, "run_id": run_id, "stage_name": "intent_discovery", "workspace_id": None, "dataset_id": None, "pipeline_job_id": None}),
+        json.dumps(
+            {
+                "dag_id": dag_id,
+                "run_id": run_id,
+                "stage_name": "intent_discovery",
+                "workspace_id": "ws2",
+                "dataset_id": "ds2",
+                "pipeline_job_id": None,
+            }
+        ),
         encoding="utf-8",
     )
 
