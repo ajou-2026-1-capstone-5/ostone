@@ -13,6 +13,7 @@ from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.common.logging import get_stage_logger
 from pipeline.stages.draft_generation.workflow_graph import (
+    DUMMY_POLICY_CODE,
     ClusterContext,
     serialize_graph_json,
     signal_based_generator,
@@ -202,7 +203,7 @@ def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
 
 def _default_dummy_policy() -> dict[str, Any]:
     return {
-        "policyCode": "default_policy",
+        "policyCode": DUMMY_POLICY_CODE,
         "name": "Default policy (Dummy)",
         "description": (
             "Workflow ACTION 노드의 V8c policyRef 검증을 충족하기 위한 "

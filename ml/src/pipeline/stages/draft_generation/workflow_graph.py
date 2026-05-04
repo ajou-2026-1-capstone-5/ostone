@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Protocol
 
+DUMMY_POLICY_CODE = "default_policy"
+
 
 @dataclass(frozen=True)
 class ClusterContext:
@@ -48,12 +50,12 @@ def signal_based_generator(context: ClusterContext) -> WorkflowGraphSpec:
 
     pre_chain: list[GraphNodeSpec] = [GraphNodeSpec(id="start", type="START", label="시작")]
     if requires_identification:
-        pre_chain.append(GraphNodeSpec(id="identify", type="ACTION", label="본인인증", policy_ref="default_policy"))
+        pre_chain.append(GraphNodeSpec(id="identify", type="ACTION", label="본인인증", policy_ref=DUMMY_POLICY_CODE))
     if requires_payment:
         pre_chain.append(
-            GraphNodeSpec(id="payment_check", type="ACTION", label="결제 확인", policy_ref="default_policy")
+            GraphNodeSpec(id="payment_check", type="ACTION", label="결제 확인", policy_ref=DUMMY_POLICY_CODE)
         )
-    action = GraphNodeSpec(id="action", type="ACTION", label=context.suggested_name, policy_ref="default_policy")
+    action = GraphNodeSpec(id="action", type="ACTION", label=context.suggested_name, policy_ref=DUMMY_POLICY_CODE)
     full_chain = pre_chain + [action]
 
     all_nodes: list[GraphNodeSpec] = list(full_chain)
