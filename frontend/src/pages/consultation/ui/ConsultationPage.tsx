@@ -64,6 +64,7 @@ export const ConsultationPage: React.FC = () => {
       setQueue(formattedQueue);
     } catch (error) {
       console.error('Failed to load queue:', error);
+      toast.error('대기열을 불러오는 데 실패했습니다.');
     } finally {
       setIsLoadingQueue(false);
     }

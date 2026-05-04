@@ -19,8 +19,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:5173",
+    command: "pnpm build && pnpm preview -- --port 3000",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
