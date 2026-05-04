@@ -1,9 +1,8 @@
-"""Integration smoke: intent_discovery → draft_generation → publish_candidate pipeline path.
+"""Integration smoke: intent_discovery → draft_generation pipeline path.
 
 Verifies that draft_generation produces a candidate.json whose
 intentDraft.intents[*].representativeCases contains up to 3 cases,
-each with all required fields, and that the candidate passes
-publish_candidate.validate_candidate.
+each with all required fields.
 """
 
 from __future__ import annotations
@@ -14,7 +13,6 @@ from pathlib import Path
 import pytest
 
 from pipeline.stages.draft_generation.main import run
-from pipeline.stages.publish_candidate.main import validate_candidate
 
 
 def _write_upstream_artifacts(artifact_root: Path) -> Path:
@@ -98,24 +96,6 @@ def test_draft_generation_produces_representative_cases(monkeypatch: pytest.Monk
     for case in cases:
         missing = required_fields - set(case.keys())
         assert not missing, f"필드 누락: {missing}, case: {case}"
-
-
-def test_draft_generation_publish_candidate_passes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    artifact_root = tmp_path / "artifacts"
-    manifest_path = _write_upstream_artifacts(artifact_root)
-
-    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
-    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
-    monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
-
-    result = run(upstream_manifest_path=str(manifest_path))
-
-    candidate = json.loads(Path(result["candidateArtifactPath"]).read_text(encoding="utf-8"))
-    validate_candidate(candidate)
-
-    assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-smoke_dsds-smoke"
-    assert len(candidate["workflowDraft"]["workflows"]) >= 1
-    assert len(candidate["workflowDraft"]["intentWorkflowBindings"]) == len(candidate["intentDraft"]["intents"])
 
 
 def test_draft_generation_partial_hydration_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

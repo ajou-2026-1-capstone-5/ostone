@@ -101,3 +101,13 @@ def test_load_candidate_requires_candidate_object(tmp_path: Path) -> None:
 
     with pytest.raises(PipelineStageError, match="Candidate artifact must be a JSON object"):
         evaluation._load_or_create_candidate(str(manifest_path))
+
+
+def test_build_development_candidate_graph_json_has_direction_and_labels() -> None:
+    candidate = evaluation._build_development_candidate()
+    workflows = candidate["workflowDraft"]["workflows"]
+    assert len(workflows) >= 1
+    graph = json.loads(workflows[0]["graphJson"])
+    assert graph["direction"] == "LR"
+    for node in graph["nodes"]:
+        assert "label" in node, f"node missing label: {node}"

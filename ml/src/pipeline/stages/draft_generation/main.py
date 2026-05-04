@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -17,6 +18,8 @@ from pipeline.stages.draft_generation.workflow_graph import (
     signal_based_generator,
 )
 from pipeline.stages.preprocessing.io import read_stage_context
+
+_logger = logging.getLogger("pipeline.draft_generation")
 
 DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
@@ -231,6 +234,18 @@ def _build_workflow_draft(
             workflow_signal=cluster.get("workflow_signal") or {},
         )
         graph_spec = signal_based_generator(context)
+        signal = context.workflow_signal or {}
+        _logger.info(
+            "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
+            " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
+            cluster_id,
+            f"WORKFLOW_{cluster_id}",
+            bool(signal.get("requires_user_identification")),
+            bool(signal.get("requires_payment_check")),
+            bool(signal.get("has_escalation_cases")),
+            len(graph_spec.nodes),
+            len(graph_spec.edges),
+        )
         workflows.append(
             {
                 "workflowCode": f"WORKFLOW_{cluster_id}",
