@@ -58,7 +58,8 @@ def test_should_build_cluster_results_and_novel_candidates() -> None:
 
     assert len(clusters) == 2
     assert [cluster.cluster_id for cluster in clusters] == [10, 20]
-    assert all(len(cluster.exemplar_indices) >= 1 for cluster in clusters)
+    assert all(len(cluster.exemplar_conv_ids) >= 1 for cluster in clusters)
+    assert all(all(isinstance(cid, str) for cid in cluster.exemplar_conv_ids) for cluster in clusters)
     assert all(len(cluster.keywords) >= 1 for cluster in clusters)
     assert all(cluster.suggested_name for cluster in clusters)
     assert all(set(WORKFLOW_SIGNAL_KEYS) == set(cluster.workflow_signal) for cluster in clusters)
@@ -71,7 +72,7 @@ def test_should_build_cluster_results_and_novel_candidates() -> None:
     assert novel_candidates[0].member_conv_ids == ("c6", "c7", "c8", "c9", "c10")
 
 
-def test_should_pick_top_two_exemplars_by_cosine_similarity() -> None:
+def test_should_pick_top_three_exemplars_as_conv_ids_by_cosine_similarity() -> None:
     vectors = np.array(
         [
             [1.0, 0.0],
@@ -80,10 +81,17 @@ def test_should_pick_top_two_exemplars_by_cosine_similarity() -> None:
         ],
         dtype=np.float32,
     )
+    conversations = [
+        _processed_conversation(0, "text0", "resolved", "chat"),
+        _processed_conversation(1, "text1", "resolved", "chat"),
+        _processed_conversation(2, "text2", "resolved", "chat"),
+    ]
 
-    exemplar_indices = _exemplar_indices([0, 1, 2], np.array([1.0, 0.0], dtype=np.float32), vectors)
+    exemplar_conv_ids = _exemplar_indices([0, 1, 2], np.array([1.0, 0.0], dtype=np.float32), vectors, conversations)
 
-    assert exemplar_indices == (0, 1)
+    assert exemplar_conv_ids == ("c0", "c1", "c2")
+    assert all(isinstance(cid, str) for cid in exemplar_conv_ids)
+    assert len(exemplar_conv_ids) <= 3
 
 
 def test_should_extract_keywords_from_canonical_text() -> None:

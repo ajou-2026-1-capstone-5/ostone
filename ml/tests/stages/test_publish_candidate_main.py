@@ -33,6 +33,14 @@ def _candidate() -> dict[str, Any]:
                     "entryConditionJson": "{}",
                     "evidenceJson": "[]",
                     "metaJson": "{}",
+                    "representativeCases": [
+                        {
+                            "conversationId": "conv_001",
+                            "canonicalText": "환불 요청합니다",
+                            "customerProblemText": "환불",
+                            "endedStatus": "resolved",
+                        }
+                    ],
                 }
             ]
         },
@@ -408,3 +416,97 @@ def test_callback_disabled_writes_skipped_result(monkeypatch: pytest.MonkeyPatch
     result = json.loads(result_path.read_text(encoding="utf-8"))
     assert result["publishStatus"] == "SKIPPED"
     assert result["callbackResults"] == []
+
+
+def _candidate_with_cases(cases: list[dict[str, Any]]) -> dict[str, Any]:
+    candidate = _candidate()
+    candidate["intentDraft"]["intents"][0]["representativeCases"] = cases
+    return candidate
+
+
+def _valid_case(**overrides: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "conversationId": "conv_001",
+        "canonicalText": "환불 요청합니다",
+        "customerProblemText": "환불",
+        "endedStatus": "resolved",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_validate_candidate_passes_with_empty_representative_cases() -> None:
+    candidate = _candidate_with_cases([])
+    publish.validate_candidate(candidate)
+
+
+def test_validate_candidate_passes_with_null_ended_status() -> None:
+    candidate = _candidate_with_cases([_valid_case(endedStatus=None)])
+    publish.validate_candidate(candidate)
+
+
+def test_vrc1_representative_cases_must_be_array() -> None:
+    candidate = _candidate()
+    candidate["intentDraft"]["intents"][0]["representativeCases"] = "not-a-list"
+
+    with pytest.raises(PipelineStageError, match="must be a JSON array"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc1_representative_cases_missing_key() -> None:
+    candidate = _candidate()
+    del candidate["intentDraft"]["intents"][0]["representativeCases"]
+
+    with pytest.raises(PipelineStageError, match="must be a JSON array"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc2_representative_cases_max_three() -> None:
+    cases = [_valid_case(conversationId=f"conv_{i:03d}") for i in range(4)]
+    candidate = _candidate_with_cases(cases)
+
+    with pytest.raises(PipelineStageError, match="at most 3 items"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc3_conversation_id_must_be_non_blank() -> None:
+    candidate = _candidate_with_cases([_valid_case(conversationId="")])
+
+    with pytest.raises(PipelineStageError, match="conversationId must be a non-blank string"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc3_conversation_id_max_100_chars() -> None:
+    candidate = _candidate_with_cases([_valid_case(conversationId="x" * 101)])
+
+    with pytest.raises(PipelineStageError, match="conversationId must be a non-blank string up to 100 chars"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc4_canonical_text_must_be_non_blank() -> None:
+    candidate = _candidate_with_cases([_valid_case(canonicalText="")])
+
+    with pytest.raises(PipelineStageError, match="canonicalText must be a non-blank string"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc5_customer_problem_text_must_be_non_blank() -> None:
+    candidate = _candidate_with_cases([_valid_case(customerProblemText="   ")])
+
+    with pytest.raises(PipelineStageError, match="customerProblemText must be a non-blank string"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc6_ended_status_must_be_string_or_null() -> None:
+    candidate = _candidate_with_cases([_valid_case(endedStatus=123)])
+
+    with pytest.raises(PipelineStageError, match="endedStatus must be a string or null"):
+        publish.validate_candidate(candidate)
+
+
+def test_vrc7_no_duplicate_conversation_ids_within_intent() -> None:
+    cases = [_valid_case(conversationId="conv_001"), _valid_case(conversationId="conv_001")]
+    candidate = _candidate_with_cases(cases)
+
+    with pytest.raises(PipelineStageError, match="duplicates within an intent"):
+        publish.validate_candidate(candidate)

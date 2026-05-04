@@ -90,13 +90,9 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
 
     signature: np.ndarray = build_signature(normalized_conversation)
     if signature.shape != (FLOW_SIGNATURE_DIM,):
-        raise ValueError(
-            f"Expected flow signature shape ({FLOW_SIGNATURE_DIM},), got {signature.shape}"
-        )
+        raise ValueError(f"Expected flow signature shape ({FLOW_SIGNATURE_DIM},), got {signature.shape}")
     if signature.dtype != np.float32:
-        raise TypeError(
-            f"Expected flow signature dtype float32, got {signature.dtype}"
-        )
+        raise TypeError(f"Expected flow signature dtype float32, got {signature.dtype}")
 
     normalized_turns = normalized_conversation.turns
     return (

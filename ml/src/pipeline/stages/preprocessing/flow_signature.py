@@ -48,7 +48,8 @@ _CUSTOMER_ROLE_ALIASES = frozenset({"customer", "cust", "user", "client", "고�
 _AGENT_ROLE_ALIASES = frozenset({"agent", "advisor", "operator", "상담사", "상담원"})
 _SYSTEM_ROLE_ALIASES = frozenset({"system", "bot", "assistant", "시스템"})
 
-assert FLOW_SIGNATURE_DIM == 61
+if FLOW_SIGNATURE_DIM != 61:
+    raise RuntimeError(f"FLOW_SIGNATURE_DIM mismatch: expected 61, got {FLOW_SIGNATURE_DIM}")
 
 
 def normalize_speaker_role(speaker_role: str) -> str:
@@ -64,10 +65,9 @@ def normalize_speaker_role(speaker_role: str) -> str:
     return SPEAKER_ROLE_SYSTEM
 
 
-def infer_event(turn_text: str, speaker_role: str) -> str:
+def infer_event(turn_text: str, _speaker_role: str) -> str:
     """정적 키워드 규칙으로 이벤트 라벨을 추론한다."""
 
-    _ = speaker_role
     normalized_text = turn_text.strip()
     for label, keywords in _EVENT_KEYWORDS.items():
         if any(keyword in normalized_text for keyword in keywords):
@@ -153,7 +153,5 @@ def build_signature(conv: Conversation) -> np.ndarray:
         ]
     ).astype(np.float32)
     if signature.shape != (FLOW_SIGNATURE_DIM,):
-        raise RuntimeError(
-            f"Flow signature shape mismatch: expected ({FLOW_SIGNATURE_DIM},), got {signature.shape}"
-        )
+        raise RuntimeError(f"Flow signature shape mismatch: expected ({FLOW_SIGNATURE_DIM},), got {signature.shape}")
     return signature

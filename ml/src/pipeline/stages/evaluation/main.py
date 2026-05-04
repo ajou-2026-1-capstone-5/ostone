@@ -86,6 +86,7 @@ def _build_development_candidate() -> dict[str, Any]:
                     "entryConditionJson": "{}",
                     "evidenceJson": "[]",
                     "metaJson": "{}",
+                    "representativeCases": [],
                 }
             ]
         },
