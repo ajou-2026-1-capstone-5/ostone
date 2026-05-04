@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -11,7 +12,15 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.common.logging import get_stage_logger
+from pipeline.stages.draft_generation.workflow_graph import (
+    DUMMY_POLICY_CODE,
+    ClusterContext,
+    serialize_graph_json,
+    signal_based_generator,
+)
 from pipeline.stages.preprocessing.io import read_stage_context
+
+_logger = logging.getLogger("pipeline.draft_generation")
 
 DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
@@ -42,7 +51,23 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         metrics["intents_with_zero_cases"],
     )
 
-    candidate = _build_candidate(intents)
+    workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
+    metrics.update(workflow_metrics)
+    logger.info(
+        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
+        workflow_metrics["workflow_count"],
+        workflow_metrics["workflow_with_identify_count"],
+        workflow_metrics["workflow_with_payment_check_count"],
+        workflow_metrics["workflow_with_escalation_count"],
+    )
+
+    candidate = _build_candidate(intents, workflow_draft, stage_context)
+    logger.info(
+        "draft_generation.pack_identity pack_key=%s pack_name=%s",
+        candidate["domainPackDraft"]["packKey"],
+        candidate["domainPackDraft"]["packName"],
+    )
+
     candidate_path = _write_candidate(stage_context, runtime_config, candidate)
 
     metrics["processing_duration_seconds"] = time.monotonic() - start
@@ -168,17 +193,123 @@ def _hydrate_case(conv: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _build_candidate(intents: list[dict[str, Any]]) -> dict[str, Any]:
+def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
+    if stage_context.workspace_id is None or stage_context.dataset_id is None:
+        raise PipelineStageError("packKey requires both workspace_id and dataset_id in StageContext.")
+    pack_key = f"pack_ws{stage_context.workspace_id}_ds{stage_context.dataset_id}"
+    pack_name = f"Pack ws{stage_context.workspace_id}/ds{stage_context.dataset_id}"
+    return pack_key, pack_name
+
+
+def _default_dummy_policy() -> dict[str, Any]:
+    return {
+        "policyCode": DUMMY_POLICY_CODE,
+        "name": "Default policy (Dummy)",
+        "description": (
+            "Workflow ACTION 노드의 V8c policyRef 검증을 충족하기 위한 "
+            "placeholder dummy policy. 후속 backlog spec(별도 2.2.x)에서 "
+            "cluster context 기반 실제 policy로 대체 예정."
+        ),
+        "severity": "LOW",
+        "conditionJson": "{}",
+        "actionJson": "{}",
+        "evidenceJson": "[]",
+        "metaJson": "{}",
+    }
+
+
+def _build_workflow_draft(
+    clusters: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    workflows: list[dict[str, Any]] = []
+    bindings: list[dict[str, Any]] = []
+    workflow_count = 0
+    identify_count = 0
+    payment_count = 0
+    escalation_count = 0
+
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        cluster_id = cluster.get("cluster_id")
+        suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
+        context = ClusterContext(
+            cluster_id=cluster_id,
+            suggested_name=suggested_name,
+            workflow_signal=cluster.get("workflow_signal") or {},
+        )
+        graph_spec = signal_based_generator(context)
+        signal = context.workflow_signal or {}
+        _logger.info(
+            "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
+            " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
+            cluster_id,
+            f"WORKFLOW_{cluster_id}",
+            bool(signal.get("requires_user_identification")),
+            bool(signal.get("requires_payment_check")),
+            bool(signal.get("has_escalation_cases")),
+            len(graph_spec.nodes),
+            len(graph_spec.edges),
+        )
+        workflows.append(
+            {
+                "workflowCode": f"WORKFLOW_{cluster_id}",
+                "name": suggested_name,
+                "description": f"{suggested_name} 자동 생성 workflow",
+                "graphJson": serialize_graph_json(graph_spec),
+                "evidenceJson": "[]",
+                "metaJson": "{}",
+            }
+        )
+        bindings.append(
+            {
+                "intentCode": f"INTENT_{cluster_id}",
+                "workflowCode": f"WORKFLOW_{cluster_id}",
+                "isPrimary": True,
+                "routeConditionJson": "{}",
+            }
+        )
+        workflow_count += 1
+        if signal.get("requires_user_identification"):
+            identify_count += 1
+        if signal.get("requires_payment_check"):
+            payment_count += 1
+        if signal.get("has_escalation_cases"):
+            escalation_count += 1
+
+    draft = {
+        "slots": [],
+        "policies": [_default_dummy_policy()],
+        "risks": [],
+        "workflows": workflows,
+        "intentSlotBindings": [],
+        "intentWorkflowBindings": bindings,
+    }
+    workflow_metrics = {
+        "workflow_count": workflow_count,
+        "workflow_with_identify_count": identify_count,
+        "workflow_with_payment_check_count": payment_count,
+        "workflow_with_escalation_count": escalation_count,
+    }
+    return draft, workflow_metrics
+
+
+def _build_candidate(
+    intents: list[dict[str, Any]],
+    workflow_draft: dict[str, Any],
+    stage_context: StageContext,
+) -> dict[str, Any]:
+    pack_key, pack_name = _derive_pack_identity(stage_context)
     return {
         "schemaVersion": "1.0",
         "domainPackDraft": {
-            "packKey": None,
-            "packName": None,
+            "packKey": pack_key,
+            "packName": pack_name,
         },
         "intentDraft": {
             "intents": intents,
         },
-        "workflowDraft": {},
+        "workflowDraft": workflow_draft,
     }
 
 
