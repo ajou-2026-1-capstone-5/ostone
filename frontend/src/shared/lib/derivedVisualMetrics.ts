@@ -102,6 +102,18 @@ export function getSparkLinePoints(config: {
     return { path: "", lastX: 0, lastY: 0, min: 0, max: 0 };
   }
 
+  if (points.length <= 1) {
+    const single = points[0] || { value: 0 };
+    const y = height / 2;
+    return {
+      path: "",
+      lastX: width / 2,
+      lastY: y,
+      min: single.value,
+      max: single.value,
+    };
+  }
+
   const values = points.map((p) => p.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -223,19 +235,19 @@ export function deriveNodeMetrics(nodeId: string): NodeMetricData[] {
     {
       label: "Match Rate",
       value: `${75 + ((hash >> 8) & 0x1f)}%`,
-      trend: trendValues[(hash >> 16) & 3],
-      tone: tone3Values[(hash >> 20) & 3],
+      trend: trendValues[(hash >> 16) % 3],
+      tone: tone3Values[(hash >> 20) % 3],
     },
     {
       label: "Avg Latency",
       value: `${50 + ((hash >> 10) & 0x7f)}ms`,
-      trend: trendValues[(hash >> 18) & 3],
+      trend: trendValues[(hash >> 18) % 3],
       tone: toneValues[(hash >> 22) & 3],
     },
     {
       label: "Calls",
       value: String(100 + ((hash >> 12) & 0x3ff)),
-      trend: trendValues[(hash >> 24) & 3],
+      trend: trendValues[(hash >> 24) % 3],
       tone: "signal",
     },
   ];
@@ -266,7 +278,7 @@ export function deriveFooterStats(packCode: string): FooterStatData[] {
     },
     {
       label: "Last Updated",
-      value: `${2025 + ((hash >> 22) & 1)}-${String(1 + ((hash >> 23) & 11)).padStart(2, "0")}-${String(1 + ((hash >> 27) & 27)).padStart(2, "0")}`,
+      value: `${2025 + ((hash >> 22) & 1)}-${String(1 + ((hash >> 23) % 12)).padStart(2, "0")}-${String(((hash >> 27) % 28) + 1).padStart(2, "0")}`,
     },
   ];
 }

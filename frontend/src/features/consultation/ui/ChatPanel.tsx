@@ -115,7 +115,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           if (msg.senderRole === 'NOTE') {
             return (
               <div key={msg.id} className={styles.internalNote}>
-                <div className={styles.noteLabel}>📝 남쪽 메모</div>
+                <div className={styles.noteLabel}>📝 내부 메모</div>
                 {msg.content}
               </div>
             );
@@ -169,14 +169,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           <button
             className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ''}`}
             onClick={() => setIsNoteMode(!isNoteMode)}
-            title={isNoteMode ? '일반 메시지로 전환' : '남쪽 메모 모드'}
+            title={isNoteMode ? '일반 메시지로 전환' : '내부 메모 모드'}
           >
             <StickyNote size={18} />
           </button>
           <textarea
             className={styles.messageInput}
             rows={1}
-            placeholder={isNoteMode ? '남쪽 메모를 입력하세요 (고객에게 보이지 않음)...' : '메시지를 입력하세요...'}
+            placeholder={isNoteMode ? '내부 메모를 입력하세요 (고객에게 보이지 않음)...' : '메시지를 입력하세요...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
