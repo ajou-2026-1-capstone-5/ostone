@@ -5,30 +5,8 @@ import { WorkflowEditSheet } from "../../../features/update-workflow";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WorkflowDraftReadPage } from "./WorkflowDraftReadPage";
 
-vi.mock("../../../shared/ui/layout/DashboardLayout", () => ({
-  DashboardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("../../../features/workflow-draft-read/ui", () => ({
-  WorkflowListPanel: ({
-    onSelect,
-  }: {
-    onSelect: (id: number) => void;
-  }) => (
-    <button type="button" onClick={() => onSelect(42)}>
-      ListPanel
-    </button>
-  ),
-  WorkflowDetailPanel: ({ onEdit }: { onEdit?: () => void }) => (
-    <div>
-      <span>DetailPanel</span>
-      {onEdit && (
-        <button type="button" onClick={onEdit}>
-          Edit
-        </button>
-      )}
-    </div>
-  ),
+vi.mock("@/widgets/ostone-shell", () => ({
+  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("../../../features/update-workflow", () => ({
@@ -59,47 +37,39 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.getByText("잘못된 URL 파라미터입니다.")).toBeInTheDocument();
   });
 
-  it("유효한 파라미터로 패널을 렌더링한다", () => {
+  it("Pack header에 검토 중 · v0.4 pill을 렌더링한다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    expect(screen.getByText("ListPanel")).toBeInTheDocument();
-    expect(screen.getByText("DetailPanel")).toBeInTheDocument();
+    expect(screen.getByText("검토 중 · v0.4")).toBeInTheDocument();
+    expect(screen.getByText("Card payment refund flow")).toBeInTheDocument();
   });
 
-  it("breadcrumb에 wsId / packId / versionId를 표시한다", () => {
+  it("7개 탭이 모두 렌더링되고 5번째 탭이 aria-selected=true이다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    expect(screen.getByText("WS · 1")).toBeInTheDocument();
-    expect(screen.getByText("PACK · 2")).toBeInTheDocument();
-    expect(screen.getByText("VER · 3")).toBeInTheDocument();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(7);
+    expect(tabs[4]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[4]).toHaveTextContent(/응대 흐름/);
   });
 
-  it("READ ONLY 배지를 표시한다", () => {
+  it("3-pane 구조가 존재한다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    expect(screen.getByText("READ ONLY")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
+    expect(screen.getByText("Workflow Canvas (T10)")).toBeInTheDocument();
+    expect(screen.getByText("Inspector (T11)")).toBeInTheDocument();
   });
 
-  it("목록 패널의 onSelect가 호출되어도 오류가 발생하지 않는다", () => {
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    fireEvent.click(screen.getByText("ListPanel"));
-    expect(screen.getByText("ListPanel")).toBeInTheDocument();
-  });
-
-  it("workflowId가 있는 경로에서 패널이 정상 렌더링된다", () => {
+  it("workflowId가 있는 경로에서 WorkflowEditSheet가 정상 렌더링된다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    expect(screen.getByText("DetailPanel")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
   });
 
-  it("workflowId가 있으면 목록 버튼(← 목록)이 보인다", () => {
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    expect(screen.getByRole("button", { name: /목록/ })).toBeInTheDocument();
-  });
-
-  it("Edit 버튼 클릭 시 WorkflowEditSheet의 isOpen이 true가 된다", () => {
+  it("Edit graph 버튼 클릭 시 WorkflowEditSheet의 isOpen이 true가 된다", () => {
     vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen }) =>
       (isOpen ? <div data-testid="edit-sheet-open" /> : null) as ReactElement,
     );
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
     expect(screen.queryByTestId("edit-sheet-open")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit graph/ }));
     expect(screen.getByTestId("edit-sheet-open")).toBeInTheDocument();
   });
 
@@ -112,7 +82,7 @@ describe("WorkflowDraftReadPage", () => {
       ) : null) as ReactElement,
     );
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit graph/ }));
     expect(screen.getByTestId("close-btn")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("close-btn"));
     expect(screen.queryByTestId("close-btn")).not.toBeInTheDocument();
