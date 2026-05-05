@@ -33,10 +33,10 @@ export function App() {
         <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
-          <Route path="upload" element={<WorkspaceUploadPage />} />
+          <Route path="upload" element={<UploadPage />} />
         </Route>
-        <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
-        <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
+        <Route path="/upload" element={<Navigate to="/workspaces/1/upload" replace />} />
+        <Route path="/consultations/:sessionId" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId" element={<PrivateRoute><DomainPackSummaryPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?" element={<PrivateRoute><PolicyDraftReadPage /></PrivateRoute>} />
