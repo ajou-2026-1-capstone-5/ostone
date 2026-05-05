@@ -6,7 +6,6 @@ import { domainPackApi } from "@/entities/domain-pack";
 import { workspaceApi } from "@/entities/workspace";
 import { ApiRequestError } from "@/shared/api";
 import { WorkspaceListPage } from "./WorkspaceListPage";
-import type { WorkspaceResponse } from "@/entities/workspace";
 
 const navigate = vi.fn();
 
@@ -43,29 +42,6 @@ vi.mock("@/entities/workspace", async () => {
 });
 
 vi.mock("@/features/workspace", () => ({
-  WorkspaceList: ({
-    onOpen,
-    onOpenPolicyDraft,
-    onOpenRiskDraft,
-    workspaces,
-  }: {
-    onOpen: (workspace: WorkspaceResponse) => void;
-    onOpenPolicyDraft: (workspace: WorkspaceResponse) => void;
-    onOpenRiskDraft: (workspace: WorkspaceResponse) => void;
-    workspaces: WorkspaceResponse[];
-  }) => (
-    <div>
-      <button type="button" onClick={() => onOpen(workspaces[0])}>
-        open workspace
-      </button>
-      <button type="button" onClick={() => onOpenPolicyDraft(workspaces[0])}>
-        open policy draft
-      </button>
-      <button type="button" onClick={() => onOpenRiskDraft(workspaces[0])}>
-        open risk draft
-      </button>
-    </div>
-  ),
   ArchiveConfirmDialog: () => null,
   CreateWorkspaceDialog: () => null,
   EditWorkspaceDialog: () => null,
@@ -79,7 +55,7 @@ const activeWorkspace = {
   status: "ACTIVE" as const,
   myRole: "OWNER" as const,
   createdAt: "",
-  updatedAt: "",
+  updatedAt: "2025-05-05T00:00:00Z",
 };
 
 describe("WorkspaceListPage", () => {
@@ -88,6 +64,26 @@ describe("WorkspaceListPage", () => {
     vi.mocked(workspaceApi.list).mockReset();
     vi.mocked(domainPackApi.getDraftEntry).mockReset();
     vi.mocked(toast.error).mockReset();
+  });
+
+  it("renders hero text and new layout content", async () => {
+    vi.mocked(workspaceApi.list).mockResolvedValue([activeWorkspace]);
+
+    render(
+      <MemoryRouter>
+        <WorkspaceListPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
+
+    expect(screen.getByText(/상담 로그에서/)).toBeInTheDocument();
+    expect(screen.getByText("Active workspaces")).toBeInTheDocument();
+    expect(screen.getByText("Drafts in review")).toBeInTheDocument();
+    expect(screen.getByText("Pipeline runs · 7d")).toBeInTheDocument();
+    expect(screen.getByText("Coverage rate")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CS Team" })).toBeInTheDocument();
+    expect(screen.getByText("Recent pipeline activity")).toBeInTheDocument();
   });
 
   it("워크스페이스와 정책 편집 진입 경로를 연결한다", async () => {
@@ -107,13 +103,19 @@ describe("WorkspaceListPage", () => {
     );
 
     await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: "open workspace" }));
-    fireEvent.click(screen.getByRole("button", { name: "open policy draft" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "CS Team" }));
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/workflows");
+
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Policy draft" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Policy draft" }));
 
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/policies"),
     );
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/workflows");
   });
 
   it("Risk 조회 진입 경로를 연결한다", async () => {
@@ -133,7 +135,12 @@ describe("WorkspaceListPage", () => {
     );
 
     await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: "open risk draft" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Risk draft" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Risk draft" }));
 
     await waitFor(() => expect(domainPackApi.getDraftEntry).toHaveBeenCalledWith(1));
     await waitFor(() =>
@@ -154,7 +161,12 @@ describe("WorkspaceListPage", () => {
     );
 
     await waitFor(() => expect(workspaceApi.list).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: "open policy draft" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Policy draft" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Policy draft" }));
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("수정 가능한 정책 초안이 없습니다."),
