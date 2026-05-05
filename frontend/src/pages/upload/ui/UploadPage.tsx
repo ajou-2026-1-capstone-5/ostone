@@ -5,6 +5,9 @@ import { Eyebrow, Mono, Dot, Pill } from "@/shared/ui/ostone/atoms";
 import { Dropzone } from "./sections/Dropzone";
 import { DatasetsTable } from "./sections/DatasetsTable";
 import { QualityIssues } from "./sections/QualityIssues";
+import { ActiveRunTimeline } from "./sections/ActiveRunTimeline";
+import { EvalChart } from "./sections/EvalChart";
+import { StagePips } from "./sections/StagePips";
 
 void LogUploadForm;
 
@@ -89,6 +92,16 @@ export const UploadPage: React.FC = () => {
                 RUN-2026-04-28-T1422
               </Mono>
               <Pill tone="signal">running</Pill>
+              <StagePips
+                stages={[
+                  { id: "ingestion", status: "done" },
+                  { id: "preprocessing", status: "done" },
+                  { id: "intent-discovery", status: "done" },
+                  { id: "draft-generation", status: "done" },
+                  { id: "evaluation", status: "running" },
+                  { id: "publish-candidate", status: "pending" },
+                ]}
+              />
               <div style={{ flex: 1 }} />
               <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
                 started 4m 12s ago
@@ -110,20 +123,16 @@ export const UploadPage: React.FC = () => {
               </Mono>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "16px 0",
-                background: "var(--paper-2)",
-                borderRadius: "var(--r-2)",
-              }}
-            >
-              <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                6-stage timeline (T12)
-              </Mono>
-            </div>
+            <ActiveRunTimeline
+              stages={[
+                { name: "ingestion", status: "complete", duration: "3m 22s" },
+                { name: "preprocessing", status: "complete", duration: "4m 12s" },
+                { name: "intent-discovery", status: "complete", duration: "6m 34s" },
+                { name: "draft-generation", status: "complete", duration: "4m 18s" },
+                { name: "evaluation", status: "running", duration: "8m 01s" },
+                { name: "publish-candidate", status: "pending", duration: "" },
+              ]}
+            />
 
             <div
               style={{
@@ -189,20 +198,15 @@ export const UploadPage: React.FC = () => {
             <div style={{ marginBottom: 12 }}>
               <Eyebrow>Evaluation timeline</Eyebrow>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: 120,
-                background: "var(--paper-2)",
-                borderRadius: "var(--r-2)",
-              }}
-            >
-              <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                EvalChart (T12)
-              </Mono>
-            </div>
+            <EvalChart
+              runs={[
+                { id: "run-1", label: "run-1", k1: 0.72, mappingRate: 0.65, separability: 0.78 },
+                { id: "run-2", label: "run-2", k1: 0.78, mappingRate: 0.71, separability: 0.82 },
+                { id: "run-3", label: "run-3", k1: 0.83, mappingRate: 0.74, separability: 0.85 },
+                { id: "run-4", label: "run-4", k1: 0.86, mappingRate: 0.79, separability: 0.89 },
+                { id: "run-5", label: "run-5", k1: 0.88, mappingRate: 0.82, separability: 0.92 },
+              ]}
+            />
             <div
               style={{
                 display: "flex",

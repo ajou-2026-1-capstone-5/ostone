@@ -52,7 +52,32 @@ const STAGES: StageInfo[] = [
   },
 ];
 
-export function ActiveRunTimeline() {
+interface TimelineStage {
+  name: string;
+  status: "complete" | "completed" | "running" | "pending";
+  duration?: string;
+}
+
+interface ActiveRunTimelineProps {
+  stages?: TimelineStage[];
+}
+
+function normalizeStatus(status: TimelineStage["status"]): StageInfo["status"] {
+  if (status === "complete") return "completed";
+  return status;
+}
+
+export function ActiveRunTimeline({ stages }: ActiveRunTimelineProps) {
+  const displayStages: StageInfo[] = stages
+    ? stages.map((s, i) => ({
+        id: s.name,
+        name: s.name,
+        description: STAGES[i]?.description ?? "",
+        status: normalizeStatus(s.status),
+        duration: s.duration,
+      }))
+    : STAGES;
+
   return (
     <div style={{ position: "relative" }}>
       <style>
@@ -63,7 +88,7 @@ export function ActiveRunTimeline() {
           }
         `}
       </style>
-      {STAGES.map((stage, index) => {
+      {displayStages.map((stage, index) => {
         const isLast = index === STAGES.length - 1;
         const isRunning = stage.status === "running";
         const isCompleted = stage.status === "completed";

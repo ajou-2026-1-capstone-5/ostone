@@ -399,6 +399,25 @@ export function WorkflowCanvas({
         </filter>
       </defs>
 
+      {[
+        { y: 12.5, label: "" },
+        { y: 40.5, label: "" },
+      ].map((lane, idx) => (
+        <g key={`lane-${idx}`}>
+          <path
+            d={`M0,${lane.y} L100,${lane.y}`}
+            stroke="var(--line-2)"
+            strokeWidth={0.3}
+            strokeDasharray="1 2"
+          />
+          <svg x={97} y={lane.y + 0.5} height={4} width={3}>
+            <svg x={0} y={0} height={3} width={1}>
+              <rect x={0} y={0} width={1} height={3} fill="var(--line-2)" opacity={0.5} />
+            </svg>
+          </svg>
+        </g>
+      ))}
+
       {edges.map((edge, i) => {
         const src = getNodeById(nodes, edge.from);
         const tgt = getNodeById(nodes, edge.to);
@@ -434,16 +453,28 @@ export function WorkflowCanvas({
               markerEnd={`url(#${markerId})`}
             />
             {edge.cond && (
-              <text
-                x={mx}
-                y={midY - 0.8}
-                textAnchor="middle"
-                fontSize="0.7"
-                fontFamily="var(--mono)"
-                fill="var(--ink-3)"
-              >
-                {edge.cond}
-              </text>
+              <g>
+                <rect
+                  x={mx - (edge.cond.length * 1.2 + 2)}
+                  y={midY - 1.8}
+                  width={edge.cond.length * 2.4 + 4}
+                  height={3.6}
+                  rx={1}
+                  fill="var(--paper)"
+                  stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
+                  strokeWidth={0.3}
+                />
+                <text
+                  x={mx}
+                  y={midY + 0.5}
+                  textAnchor="middle"
+                  fontSize={2.2}
+                  fontFamily="var(--mono)"
+                  fill="var(--ink-2)"
+                >
+                  {edge.cond}
+                </text>
+              </g>
             )}
             <text
               x={mx}
@@ -486,7 +517,73 @@ export function WorkflowCanvas({
           data-selected-halo={node.selected ? "" : undefined}
         >
           <NodeShape node={node} />
+          {node.kind !== "start" && node.kind !== "end" && (
+            <>
+              <circle
+                cx={node.x - 0.6}
+                cy={node.y + node.h / 2}
+                r={0.6}
+                fill="var(--line-2)"
+                stroke="var(--paper)"
+                strokeWidth={0.2}
+              />
+              <circle
+                cx={node.x + node.w + 0.6}
+                cy={node.y + node.h / 2}
+                r={0.6}
+                fill="var(--line-2)"
+                stroke="var(--paper)"
+                strokeWidth={0.2}
+              />
+            </>
+          )}
           <NodeLabels node={node} />
+          {node.n != null && (
+            <foreignObject
+              x={node.x + node.w - 12}
+              y={node.y + 1}
+              width={12}
+              height={5}
+            >
+              <div
+                style={{
+                  fontSize: "2.4px",
+                  fontFamily: "var(--mono)",
+                  color: "var(--ink-3)",
+                  textAlign: "right",
+                  background: "var(--paper)",
+                  borderRadius: "1px",
+                  padding: "0 1px",
+                  border: "0.3px solid var(--line-2)",
+                }}
+              >
+                {node.n >= 1000
+                  ? `${(node.n / 1000).toFixed(1)}k`
+                  : node.n}
+              </div>
+            </foreignObject>
+          )}
+          {node.pass != null && (
+            <>
+              <rect
+                x={node.x + 1.2}
+                y={node.y + node.h - 2.8}
+                width={node.w - 2.4}
+                height={0.7}
+                rx={0.3}
+                fill="var(--paper-2)"
+              />
+              <rect
+                x={node.x + 1.2}
+                y={node.y + node.h - 2.8}
+                width={(node.w - 2.4) * node.pass}
+                height={0.7}
+                rx={0.3}
+                fill="var(--signal)"
+                opacity={0.7}
+              />
+            </>
+          )}
         </g>
       ))}
     </svg>

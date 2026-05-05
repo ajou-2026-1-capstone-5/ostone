@@ -54,7 +54,7 @@ describe("WorkflowDraftReadPage", () => {
   it("3-pane 구조가 존재한다", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
     expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
-    expect(screen.getByText("Workflow Canvas (T10)")).toBeInTheDocument();
+    expect(screen.getByText("intent.refund_*")).toBeInTheDocument();
     expect(screen.getByText("Selected node")).toBeInTheDocument();
   });
 

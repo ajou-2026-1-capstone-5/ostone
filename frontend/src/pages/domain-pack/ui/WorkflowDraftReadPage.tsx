@@ -10,6 +10,7 @@ import { WorkflowList } from "./sections/WorkflowList";
 import { VersionsTimeline } from "./sections/VersionsTimeline";
 import { MetricsFooter } from "./sections/MetricsFooter";
 import { Inspector } from "./sections/Inspector";
+import { WorkflowCanvas, DEFAULT_NODES, DEFAULT_EDGES } from "./sections/WorkflowCanvas";
 
 function HeaderActions() {
   return (
@@ -234,23 +235,19 @@ export function WorkflowDraftReadPage() {
               <LegendChip shape="circle" bg="var(--signal-bg)" color="var(--signal)" label="task" />
             </div>
 
-            {/* Workflow Canvas placeholder */}
             <div
               style={{
                 flex: 1,
                 minHeight: "300px",
-                border: "1px dashed var(--line)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--ink-3)",
-                fontFamily: "var(--mono)",
-                fontSize: "11px",
+                position: "relative",
                 margin: "0 20px 12px",
                 borderRadius: "var(--r-2)",
+                border: "1px solid var(--line-2)",
+                background: "var(--paper)",
+                overflow: "hidden",
               }}
             >
-              Workflow Canvas (T10)
+              <WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />
             </div>
 
             {/* Metrics footer */}
