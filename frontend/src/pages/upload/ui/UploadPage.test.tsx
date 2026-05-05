@@ -1,0 +1,35 @@
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { UploadPage } from './UploadPage';
+
+vi.mock('@/widgets/ostone-shell', () => ({
+  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+describe('UploadPage', () => {
+  it('renders hero h1 with expected text', () => {
+    render(<UploadPage />);
+    const h1 = screen.getByRole('heading', { level: 1 });
+    expect(h1).toHaveTextContent('상담 로그');
+    expect(h1).toHaveTextContent('도메인 팩 초안');
+  });
+
+  it('renders dropzone with upload prompt', () => {
+    render(<UploadPage />);
+    expect(screen.getByText('파일을 드래그하거나 클릭하세요')).toBeInTheDocument();
+  });
+
+  it('renders datasets table with 5 or more rows', () => {
+    render(<UploadPage />);
+    const rows = screen.getAllByText(/\.jsonl|\.csv|\.parquet/);
+    expect(rows.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('renders 4 quality issues', () => {
+    render(<UploadPage />);
+    expect(screen.getByText('intent_023')).toBeInTheDocument();
+    expect(screen.getByText('slot_007')).toBeInTheDocument();
+    expect(screen.getByText('policy_004')).toBeInTheDocument();
+    expect(screen.getByText('risk_001')).toBeInTheDocument();
+  });
+});
