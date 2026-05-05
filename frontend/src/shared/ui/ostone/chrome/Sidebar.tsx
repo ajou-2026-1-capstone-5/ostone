@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Icon } from '../atoms/Icon';
+import type { IconName } from '../atoms/Icon';
 import { Avatar } from '../atoms/Avatar';
 
 export type SidebarActive =
@@ -16,13 +17,13 @@ interface SidebarProps {
   basePath?: string;
 }
 
-const NAV_ITEMS: { key: SidebarActive; icon: import('../atoms/Icon').IconName; label: string; path: string }[] = [
-  { key: 'workflows', icon: 'grid', label: 'Workflows', path: '/workflows' },
-  { key: 'domain', icon: 'folder', label: 'Domain Packs', path: '/domain-packs' },
-  { key: 'review', icon: 'eye', label: 'Review', path: '/review' },
-  { key: 'pipeline', icon: 'flow', label: 'Pipeline', path: '/pipeline' },
-  { key: 'consult', icon: 'msg', label: 'Consultation', path: '/consultations' },
-  { key: 'logs', icon: 'db', label: 'Logs', path: '/logs' },
+const NAV_ITEMS: { key: SidebarActive; icon: IconName; label: string; getPath: (base: string) => string }[] = [
+  { key: 'workflows', icon: 'grid', label: 'Workflows', getPath: (base) => `${base}/workflows` },
+  { key: 'domain', icon: 'folder', label: 'Domain Packs', getPath: (base) => `${base}/domain-packs` },
+  { key: 'review', icon: 'eye', label: 'Review', getPath: () => '/review' },
+  { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: (base) => `${base}/pipeline` },
+  { key: 'consult', icon: 'msg', label: 'Consultation', getPath: () => '/consultations' },
+  { key: 'logs', icon: 'db', label: 'Logs', getPath: () => '/logs' },
 ];
 
 export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: SidebarProps) {
@@ -76,14 +77,11 @@ export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: Si
       >
         {NAV_ITEMS.map((item) => {
           const isActive = active === item.key;
-          const toPath = item.path.startsWith('/workspaces')
-            ? item.path
-            : `${basePath}${item.path}`;
 
           return (
             <NavLink
               key={item.key}
-              to={toPath}
+              to={item.getPath(basePath)}
               end
               title={item.label}
               data-active={isActive ? 'true' : 'false'}
