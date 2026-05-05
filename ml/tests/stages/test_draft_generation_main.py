@@ -457,3 +457,132 @@ def test_write_candidate_creates_file(tmp_path: Path) -> None:
     assert candidate_path.name == "candidate.json"
     written = json.loads(candidate_path.read_text(encoding="utf-8"))
     assert written["schemaVersion"] == "1.0"
+
+
+# ---------------------------------------------------------------------------
+# _build_workflow_draft — evidenceJson
+# ---------------------------------------------------------------------------
+
+
+def test_build_workflow_draft_evidence_json_is_not_empty_stub() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "환불 문의",
+            "workflow_signal": {},
+            "keywords": ["환불", "결제"],
+            "exemplar_conv_ids": ["conv-1"],
+            "member_conv_ids": ["conv-2"],
+        }
+    ]
+
+    draft, _ = _build_workflow_draft(clusters)
+
+    evidence_json = draft["workflows"][0]["evidenceJson"]
+    assert evidence_json != "[]"
+    parsed = json.loads(evidence_json)
+    assert isinstance(parsed, list)
+
+
+def test_build_workflow_draft_evidence_first_entry_is_first_keyword() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "환불",
+            "workflow_signal": {},
+            "keywords": ["환불", "결제"],
+            "exemplar_conv_ids": [],
+            "member_conv_ids": [],
+        }
+    ]
+
+    draft, _ = _build_workflow_draft(clusters)
+
+    parsed = json.loads(draft["workflows"][0]["evidenceJson"])
+    assert parsed[0] == {"type": "keyword", "value": "환불"}
+
+
+def test_build_workflow_draft_evidence_json_format_has_type_value() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "환불",
+            "workflow_signal": {},
+            "keywords": ["kw"],
+            "exemplar_conv_ids": ["ex-id"],
+            "member_conv_ids": ["mb-id"],
+        }
+    ]
+
+    draft, _ = _build_workflow_draft(clusters)
+
+    parsed = json.loads(draft["workflows"][0]["evidenceJson"])
+    for item in parsed:
+        assert "type" in item
+        assert "value" in item
+        assert item["type"] in {"keyword", "exemplar_conv_id", "member_conv_id"}
+
+
+def test_build_workflow_draft_no_keywords_evidence_empty_stub_remains_empty_array() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "문의",
+            "workflow_signal": {},
+        }
+    ]
+
+    draft, _ = _build_workflow_draft(clusters)
+
+    evidence_json = draft["workflows"][0]["evidenceJson"]
+    assert json.loads(evidence_json) == []
+
+
+def test_build_workflow_draft_metrics_include_evidence_4_keys() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "A",
+            "workflow_signal": {},
+            "keywords": ["kw1", "kw2"],
+            "exemplar_conv_ids": ["ex-1"],
+            "member_conv_ids": ["mb-1", "mb-2"],
+        },
+        {
+            "cluster_id": 1,
+            "suggested_name": "B",
+            "workflow_signal": {},
+        },
+    ]
+
+    _, metrics = _build_workflow_draft(clusters)
+
+    assert "workflow_evidence_keyword_total" in metrics
+    assert "workflow_evidence_exemplar_total" in metrics
+    assert "workflow_evidence_member_total" in metrics
+    assert "workflow_with_empty_evidence_count" in metrics
+
+
+def test_build_workflow_draft_metrics_sum_matches_evidence() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "A",
+            "workflow_signal": {},
+            "keywords": ["kw1", "kw2"],
+            "exemplar_conv_ids": ["ex-1"],
+            "member_conv_ids": ["mb-1", "mb-2", "ex-1"],
+        },
+        {
+            "cluster_id": 1,
+            "suggested_name": "B",
+            "workflow_signal": {},
+        },
+    ]
+
+    _, metrics = _build_workflow_draft(clusters)
+
+    assert metrics["workflow_evidence_keyword_total"] == 2
+    assert metrics["workflow_evidence_exemplar_total"] == 1
+    assert metrics["workflow_evidence_member_total"] == 2
+    assert metrics["workflow_with_empty_evidence_count"] == 1
