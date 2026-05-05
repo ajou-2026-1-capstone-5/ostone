@@ -35,7 +35,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   private final AirflowApiProperties properties;
   private final ObjectMapper objectMapper;
   private final Clock clock;
-  private volatile RestClient restClient;
+  private RestClient restClient;
 
   public AirflowDomainPackGenerationTriggerAdapter(
       AirflowApiProperties properties, ObjectMapper objectMapper, Clock clock) {
@@ -205,17 +205,9 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
     return request;
   }
 
-  private RestClient restClient() {
-    RestClient current = restClient;
-    if (current == null) {
-      current = initializeRestClient(api());
-    }
-    return current;
-  }
-
-  private synchronized RestClient initializeRestClient(AirflowApiProperties.Api api) {
+  private synchronized RestClient restClient() {
     if (restClient == null) {
-      restClient = buildRestClient(api);
+      restClient = buildRestClient(api());
     }
     return restClient;
   }
