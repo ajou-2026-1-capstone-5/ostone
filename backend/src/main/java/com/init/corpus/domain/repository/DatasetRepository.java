@@ -8,5 +8,7 @@ public interface DatasetRepository {
 
   boolean existsByWorkspaceIdAndDatasetKey(Long workspaceId, String datasetKey);
 
+  boolean existsByIdAndWorkspaceId(Long id, Long workspaceId);
+
   void deleteById(Long id);
 }

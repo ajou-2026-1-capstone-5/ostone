@@ -104,8 +104,18 @@ public class PipelineJobCallbackSupportService {
     }
   }
 
-  public <T> T executeInTransaction(Supplier<T> callback) {
-    return transactionTemplate.execute(status -> callback.get());
+  public <T> T executeInTransactionOrMarkFailure(
+      Long jobId, String externalEventId, Supplier<T> callback) {
+    try {
+      return executeInTransaction(callback);
+    } catch (RuntimeException ex) {
+      try {
+        markFailure(jobId, externalEventId, ex);
+      } catch (RuntimeException markFailureException) {
+        ex.addSuppressed(markFailureException);
+      }
+      throw ex;
+    }
   }
 
   public void markReceiptProcessed(String externalEventId, OffsetDateTime processedAt) {
@@ -117,7 +127,7 @@ public class PipelineJobCallbackSupportService {
     webhookReceiptRepository.saveAndFlush(receipt);
   }
 
-  public void markFailure(Long jobId, String externalEventId, RuntimeException exception) {
+  private void markFailure(Long jobId, String externalEventId, RuntimeException exception) {
     transactionTemplate.executeWithoutResult(
         status -> {
           OffsetDateTime now = now();
@@ -162,6 +172,10 @@ public class PipelineJobCallbackSupportService {
 
   public OffsetDateTime now() {
     return OffsetDateTime.now(clock);
+  }
+
+  private <T> T executeInTransaction(Supplier<T> callback) {
+    return transactionTemplate.execute(status -> callback.get());
   }
 
   private String resolveErrorMessage(RuntimeException exception) {

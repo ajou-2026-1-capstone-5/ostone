@@ -73,16 +73,8 @@ public class ReceiveIntentDraftCallbackUseCase {
       return ReceiveIntentDraftCallbackResult.duplicateIgnored(command.externalEventId());
     }
 
-    try {
-      return callbackSupportService.executeInTransaction(() -> processCallback(command));
-    } catch (RuntimeException ex) {
-      try {
-        callbackSupportService.markFailure(command.jobId(), command.externalEventId(), ex);
-      } catch (RuntimeException markFailureException) {
-        ex.addSuppressed(markFailureException);
-      }
-      throw ex;
-    }
+    return callbackSupportService.executeInTransactionOrMarkFailure(
+        command.jobId(), command.externalEventId(), () -> processCallback(command));
   }
 
   private ReceiveIntentDraftCallbackResult processCallback(

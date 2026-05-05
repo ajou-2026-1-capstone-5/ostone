@@ -980,6 +980,8 @@ create index idx_taxonomy_drift_pack
 
 - `QUEUED`
 - `RUNNING`
+- `WAITING_INTENT_CALLBACK`
+- `WAITING_WORKFLOW_CALLBACK`
 - `FAILED`
 - `SUCCEEDED`
 - `CANCELLED`

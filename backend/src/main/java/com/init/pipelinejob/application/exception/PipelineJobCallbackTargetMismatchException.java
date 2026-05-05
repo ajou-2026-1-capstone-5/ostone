@@ -17,4 +17,24 @@ public class PipelineJobCallbackTargetMismatchException extends DuplicateExcepti
             + ", versionDomainPackId="
             + versionDomainPackId);
   }
+
+  public PipelineJobCallbackTargetMismatchException(
+      Long jobId,
+      String expectedDagId,
+      String actualDagId,
+      String expectedDagRunId,
+      String actualDagRunId) {
+    super(
+        "PIPELINE_JOB_CALLBACK_TARGET_MISMATCH",
+        "Pipeline job과 callback target DAG run이 일치하지 않습니다. jobId="
+            + jobId
+            + ", expectedDagId="
+            + expectedDagId
+            + ", actualDagId="
+            + actualDagId
+            + ", expectedDagRunId="
+            + expectedDagRunId
+            + ", actualDagRunId="
+            + actualDagRunId);
+  }
 }
