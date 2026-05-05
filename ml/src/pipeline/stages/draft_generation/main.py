@@ -12,6 +12,10 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.common.logging import get_stage_logger
+from pipeline.stages.draft_generation.workflow_evidence import (
+    build_workflow_evidence,
+    serialize_evidence_json,
+)
 from pipeline.stages.draft_generation.workflow_graph import (
     DUMMY_POLICY_CODE,
     ClusterContext,
@@ -54,11 +58,16 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
     metrics.update(workflow_metrics)
     logger.info(
-        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
+        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d"
+        " evidence_keyword_total=%d evidence_exemplar_total=%d evidence_member_total=%d empty_evidence_count=%d",
         workflow_metrics["workflow_count"],
         workflow_metrics["workflow_with_identify_count"],
         workflow_metrics["workflow_with_payment_check_count"],
         workflow_metrics["workflow_with_escalation_count"],
+        workflow_metrics["workflow_evidence_keyword_total"],
+        workflow_metrics["workflow_evidence_exemplar_total"],
+        workflow_metrics["workflow_evidence_member_total"],
+        workflow_metrics["workflow_with_empty_evidence_count"],
     )
 
     candidate = _build_candidate(intents, workflow_draft, stage_context)
@@ -201,6 +210,28 @@ def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
     return pack_key, pack_name
 
 
+def _aggregate_evidence_metrics(
+    evidence_items: list[dict[str, Any]],
+    evidence_json_str: str,
+    cluster_id: Any,
+) -> tuple[int, int, int]:
+    kw_count = sum(1 for item in evidence_items if item.get("type") == "keyword")
+    ex_count = sum(1 for item in evidence_items if item.get("type") == "exemplar_conv_id")
+    mb_count = sum(1 for item in evidence_items if item.get("type") == "member_conv_id")
+    _logger.info(
+        "draft_generation.workflow_evidence_built cluster_id=%s workflow_code=%s"
+        " keyword_count=%d exemplar_count=%d member_count=%d total_count=%d serialized_length=%d",
+        cluster_id,
+        f"WORKFLOW_{cluster_id}",
+        kw_count,
+        ex_count,
+        mb_count,
+        len(evidence_items),
+        len(evidence_json_str),
+    )
+    return kw_count, ex_count, mb_count
+
+
 def _default_dummy_policy() -> dict[str, Any]:
     return {
         "policyCode": DUMMY_POLICY_CODE,
@@ -218,6 +249,51 @@ def _default_dummy_policy() -> dict[str, Any]:
     }
 
 
+def _process_cluster_entry(
+    cluster: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], int, int, int, bool, dict[str, Any]] | None:
+    if not isinstance(cluster, dict):
+        return None
+    cluster_id = cluster.get("cluster_id")
+    suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
+    context = ClusterContext(
+        cluster_id=cluster_id,
+        suggested_name=suggested_name,
+        workflow_signal=cluster.get("workflow_signal") or {},
+    )
+    graph_spec = signal_based_generator(context)
+    signal = context.workflow_signal or {}
+    _logger.info(
+        "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
+        " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
+        cluster_id,
+        f"WORKFLOW_{cluster_id}",
+        bool(signal.get("requires_user_identification")),
+        bool(signal.get("requires_payment_check")),
+        bool(signal.get("has_escalation_cases")),
+        len(graph_spec.nodes),
+        len(graph_spec.edges),
+    )
+    evidence_items = build_workflow_evidence(cluster)
+    evidence_json_str = serialize_evidence_json(evidence_items)
+    kw_count, ex_count, mb_count = _aggregate_evidence_metrics(evidence_items, evidence_json_str, cluster_id)
+    workflow = {
+        "workflowCode": f"WORKFLOW_{cluster_id}",
+        "name": suggested_name,
+        "description": f"{suggested_name} 자동 생성 workflow",
+        "graphJson": serialize_graph_json(graph_spec),
+        "evidenceJson": evidence_json_str,
+        "metaJson": "{}",
+    }
+    binding = {
+        "intentCode": f"INTENT_{cluster_id}",
+        "workflowCode": f"WORKFLOW_{cluster_id}",
+        "isPrimary": True,
+        "routeConditionJson": "{}",
+    }
+    return workflow, binding, kw_count, ex_count, mb_count, not evidence_items, signal
+
+
 def _build_workflow_draft(
     clusters: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -227,55 +303,26 @@ def _build_workflow_draft(
     identify_count = 0
     payment_count = 0
     escalation_count = 0
+    keyword_total = 0
+    exemplar_total = 0
+    member_total = 0
+    empty_evidence_count = 0
 
     for cluster in clusters:
-        if not isinstance(cluster, dict):
+        result = _process_cluster_entry(cluster)
+        if result is None:
             continue
-        cluster_id = cluster.get("cluster_id")
-        suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
-        context = ClusterContext(
-            cluster_id=cluster_id,
-            suggested_name=suggested_name,
-            workflow_signal=cluster.get("workflow_signal") or {},
-        )
-        graph_spec = signal_based_generator(context)
-        signal = context.workflow_signal or {}
-        _logger.info(
-            "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
-            " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
-            cluster_id,
-            f"WORKFLOW_{cluster_id}",
-            bool(signal.get("requires_user_identification")),
-            bool(signal.get("requires_payment_check")),
-            bool(signal.get("has_escalation_cases")),
-            len(graph_spec.nodes),
-            len(graph_spec.edges),
-        )
-        workflows.append(
-            {
-                "workflowCode": f"WORKFLOW_{cluster_id}",
-                "name": suggested_name,
-                "description": f"{suggested_name} 자동 생성 workflow",
-                "graphJson": serialize_graph_json(graph_spec),
-                "evidenceJson": "[]",
-                "metaJson": "{}",
-            }
-        )
-        bindings.append(
-            {
-                "intentCode": f"INTENT_{cluster_id}",
-                "workflowCode": f"WORKFLOW_{cluster_id}",
-                "isPrimary": True,
-                "routeConditionJson": "{}",
-            }
-        )
+        workflow, binding, kw, ex, mb, is_empty, signal = result
+        workflows.append(workflow)
+        bindings.append(binding)
+        keyword_total += kw
+        exemplar_total += ex
+        member_total += mb
+        empty_evidence_count += is_empty
         workflow_count += 1
-        if signal.get("requires_user_identification"):
-            identify_count += 1
-        if signal.get("requires_payment_check"):
-            payment_count += 1
-        if signal.get("has_escalation_cases"):
-            escalation_count += 1
+        identify_count += bool(signal.get("requires_user_identification"))
+        payment_count += bool(signal.get("requires_payment_check"))
+        escalation_count += bool(signal.get("has_escalation_cases"))
 
     draft = {
         "slots": [],
@@ -290,6 +337,10 @@ def _build_workflow_draft(
         "workflow_with_identify_count": identify_count,
         "workflow_with_payment_check_count": payment_count,
         "workflow_with_escalation_count": escalation_count,
+        "workflow_evidence_keyword_total": keyword_total,
+        "workflow_evidence_exemplar_total": exemplar_total,
+        "workflow_evidence_member_total": member_total,
+        "workflow_with_empty_evidence_count": empty_evidence_count,
     }
     return draft, workflow_metrics
 
