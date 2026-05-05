@@ -114,6 +114,8 @@ class TriggerDomainPackGenerationUseCaseTest {
 
     assertThatThrownBy(() -> useCase.execute(command()))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
+
+    verify(triggerPort, never()).dagId();
   }
 
   @Test
@@ -152,16 +154,40 @@ class TriggerDomainPackGenerationUseCaseTest {
   }
 
   @Test
-  @DisplayName("Airflow 설정이 유효하지 않으면 job 생성 전에 실패한다")
+  @DisplayName("권한 검증 후 Airflow 설정이 유효하지 않으면 job 생성 전에 실패한다")
   void execute_invalidAirflowConfiguration_doesNotCreateJob() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
     given(triggerPort.dagId()).willThrow(new AirflowConfigurationInvalidException());
 
     assertThatThrownBy(() -> useCase.execute(command()))
         .isInstanceOf(AirflowConfigurationInvalidException.class);
 
-    verify(concurrencyGuard, never()).lockTriggerCreation(any(), any());
+    verify(concurrencyGuard).lockTriggerCreation(1L, 7L);
     verify(pipelineJobRepository, never()).saveAndFlush(any());
     verify(triggerPort, never()).trigger(any());
+  }
+
+  @Test
+  @DisplayName("Airflow trigger 성공 후 callback이 먼저 job을 종료했으면 현재 상태를 반환한다")
+  void execute_triggerSuccessButJobAlreadyFinalized_returnsCurrentJob() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
+    given(triggerPort.trigger(any()))
+        .willAnswer(
+            invocation -> {
+              savedJob.get().markFailed("Airflow callback failed", savedJob.get().getRequestedAt());
+              return new DomainPackGenerationTriggerResult(
+                  "domain_pack_generation", "pipeline_job_123");
+            });
+
+    TriggerDomainPackGenerationResult result = useCase.execute(command());
+
+    assertThat(result.status()).isEqualTo(PipelineJob.STATUS_FAILED);
+    assertThat(result.startedAt()).isNull();
+    assertThat(result.airflowRunId()).isEqualTo("pipeline_job_123");
   }
 
   @Test

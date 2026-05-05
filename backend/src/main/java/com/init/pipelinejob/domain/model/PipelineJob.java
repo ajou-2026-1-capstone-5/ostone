@@ -174,6 +174,9 @@ public class PipelineJob {
     if (!STATUS_QUEUED.equals(status)) {
       throw new IllegalStateException("Airflow trigger 성공은 QUEUED 상태에서만 반영할 수 있습니다.");
     }
+    if (airflowDagId == null || airflowRunId == null) {
+      throw new IllegalStateException("Airflow trigger 성공 반영 전에 assignAirflowRun을 호출해야 합니다.");
+    }
     this.status = STATUS_RUNNING;
     this.startedAt = startedAt;
     this.finishedAt = null;

@@ -13,7 +13,10 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +29,8 @@ import org.junit.jupiter.api.Test;
 class AirflowDomainPackGenerationTriggerAdapterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final Clock fixedClock =
+      Clock.fixed(Instant.parse("2026-05-04T10:00:00Z"), ZoneOffset.UTC);
   private HttpServer server;
   private ExecutorService executorService;
   private String baseUrl;
@@ -80,7 +85,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     assertThat(tokenJson.get("password").asText()).isEqualTo("admin-password");
     assertThat(triggerAuthorization.get()).isEqualTo("Bearer jwt-token-123");
     assertThat(triggerJson.get("dag_run_id").asText()).isEqualTo("pipeline_job_123");
-    assertThat(triggerJson.get("logical_date").asText()).isNotBlank();
+    assertThat(triggerJson.get("logical_date").asText()).isEqualTo("2026-05-04T10:00Z");
     assertThat(triggerJson.get("conf").get("workspace_id").asLong()).isEqualTo(1L);
     assertThat(triggerJson.get("conf").get("dataset_id").asLong()).isEqualTo(7L);
     assertThat(triggerJson.get("conf").get("pipeline_job_id").asLong()).isEqualTo(123L);
@@ -122,6 +127,24 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
   @DisplayName("base-url에 api/v2가 포함되어 있으면 설정 오류로 처리한다")
   void dagIdWithApiV2BaseUrlThrowsConfigurationInvalid() {
     baseUrl = baseUrl + "/api/v2/";
+
+    assertThatThrownBy(() -> adapter().dagId())
+        .isInstanceOf(AirflowConfigurationInvalidException.class);
+  }
+
+  @Test
+  @DisplayName("base-url에 origin 외 path가 포함되어 있으면 설정 오류로 처리한다")
+  void dagIdWithPathBaseUrlThrowsConfigurationInvalid() {
+    baseUrl = baseUrl + "/airflow";
+
+    assertThatThrownBy(() -> adapter().dagId())
+        .isInstanceOf(AirflowConfigurationInvalidException.class);
+  }
+
+  @Test
+  @DisplayName("base-url에 query가 포함되어 있으면 설정 오류로 처리한다")
+  void dagIdWithQueryBaseUrlThrowsConfigurationInvalid() {
+    baseUrl = baseUrl + "?api=v2";
 
     assertThatThrownBy(() -> adapter().dagId())
         .isInstanceOf(AirflowConfigurationInvalidException.class);
@@ -248,7 +271,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
                 baseUrl, "admin", "admin-password", connectTimeout, readTimeout),
             new AirflowApiProperties.Dags(
                 new AirflowApiProperties.DomainPackGeneration("domain_pack_generation")));
-    return new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper);
+    return new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
   }
 
   private String readBody(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

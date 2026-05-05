@@ -11,6 +11,8 @@ public interface WorkspaceRepository {
 
   Workspace save(Workspace workspace);
 
+  boolean existsById(Long id);
+
   Optional<Workspace> findById(Long id);
 
   List<Workspace> findAllByIdIn(Collection<Long> ids);

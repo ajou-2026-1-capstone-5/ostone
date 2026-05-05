@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(BadGatewayException.class)
   public ResponseEntity<ErrorResponse> handleBadGateway(BadGatewayException ex) {
-    log.warn("Bad gateway exception: {}, message={}", ex.getCode(), ex.getMessage());
+    log.warn("Bad gateway exception: {}, message={}", ex.getCode(), ex.getMessage(), ex);
     return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
         .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }

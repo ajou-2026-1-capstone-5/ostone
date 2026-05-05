@@ -96,6 +96,23 @@ class PipelineFailureCallbackControllerTest {
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
   }
 
+  @Test
+  @DisplayName("failure message가 너무 길면 400을 반환한다")
+  @WithMockUser
+  void receiveFailureCallback_tooLongMessage_returns400() throws Exception {
+    String requestJson = validFailureRequestJson().replace("PII masking failed", "a".repeat(5001));
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .with(csrf())
+                .header(WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET, "secret-123")
+                .contentType("application/json")
+                .content(requestJson))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
   private String validFailureRequestJson() {
     return """
         {

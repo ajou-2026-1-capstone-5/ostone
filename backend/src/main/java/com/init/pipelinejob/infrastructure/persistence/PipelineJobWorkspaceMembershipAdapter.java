@@ -22,7 +22,7 @@ public class PipelineJobWorkspaceMembershipAdapter implements WorkspaceMembershi
 
   @Override
   public boolean existsById(Long workspaceId) {
-    return workspaceRepository.findById(workspaceId).isPresent();
+    return workspaceRepository.existsById(workspaceId);
   }
 
   @Override

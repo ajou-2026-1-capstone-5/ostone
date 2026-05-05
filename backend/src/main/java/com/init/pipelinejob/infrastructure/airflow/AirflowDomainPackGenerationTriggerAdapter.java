@@ -8,6 +8,9 @@ import com.init.pipelinejob.application.DomainPackGenerationTriggerPort;
 import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -26,11 +29,15 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
 
   private final AirflowApiProperties properties;
   private final ObjectMapper objectMapper;
+  private final Clock clock;
+  private final RestClient restClient;
 
   public AirflowDomainPackGenerationTriggerAdapter(
-      AirflowApiProperties properties, ObjectMapper objectMapper) {
+      AirflowApiProperties properties, ObjectMapper objectMapper, Clock clock) {
     this.properties = properties;
     this.objectMapper = objectMapper;
+    this.clock = clock;
+    this.restClient = buildRestClient(properties.api());
   }
 
   @Override
@@ -126,7 +133,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   private ObjectNode buildDagRunRequest(DomainPackGenerationTriggerCommand command) {
     ObjectNode request = objectMapper.createObjectNode();
     request.put("dag_run_id", command.dagRunId());
-    request.put("logical_date", OffsetDateTime.now(ZoneOffset.UTC).toString());
+    request.put(
+        "logical_date", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).toString());
     ObjectNode conf = request.putObject("conf");
     conf.put("workspace_id", command.workspaceId());
     conf.put("dataset_id", command.datasetId());
@@ -135,11 +143,15 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   }
 
   private RestClient restClient() {
-    AirflowApiProperties.Api api = api();
+    return restClient;
+  }
+
+  private RestClient buildRestClient(AirflowApiProperties.Api api) {
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-    requestFactory.setConnectTimeout(
-        durationOrDefault(api.connectTimeout(), Duration.ofSeconds(3)));
-    requestFactory.setReadTimeout(durationOrDefault(api.readTimeout(), Duration.ofSeconds(10)));
+    Duration connectTimeout = api == null ? null : api.connectTimeout();
+    Duration readTimeout = api == null ? null : api.readTimeout();
+    requestFactory.setConnectTimeout(durationOrDefault(connectTimeout, Duration.ofSeconds(3)));
+    requestFactory.setReadTimeout(durationOrDefault(readTimeout, Duration.ofSeconds(10)));
     return RestClient.builder().requestFactory(requestFactory).build();
   }
 
@@ -153,18 +165,36 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
         || isBlank(api.baseUrl())
         || isBlank(api.username())
         || isBlank(api.password())
-        || hasApiV2Suffix(api.baseUrl())) {
+        || !isOriginOnlyBaseUrl(api.baseUrl())) {
       throw new AirflowConfigurationInvalidException();
     }
     return api;
   }
 
   private String normalizeBaseUrl(String baseUrl) {
-    return trimTrailingSlashes(baseUrl);
+    URI uri = parseBaseUrl(baseUrl);
+    String origin = uri.getScheme() + "://" + uri.getRawAuthority();
+    return trimTrailingSlashes(origin);
   }
 
-  private boolean hasApiV2Suffix(String baseUrl) {
-    return trimTrailingSlashes(baseUrl).endsWith("/api/v2");
+  private boolean isOriginOnlyBaseUrl(String baseUrl) {
+    URI uri = parseBaseUrl(baseUrl);
+    String scheme = uri.getScheme();
+    String path = uri.getPath();
+    return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+        && !isBlank(uri.getHost())
+        && uri.getUserInfo() == null
+        && (path == null || path.isBlank() || "/".equals(path))
+        && uri.getQuery() == null
+        && uri.getFragment() == null;
+  }
+
+  private URI parseBaseUrl(String baseUrl) {
+    try {
+      return new URI(trimTrailingSlashes(baseUrl));
+    } catch (URISyntaxException ex) {
+      throw new AirflowConfigurationInvalidException();
+    }
   }
 
   private String trimTrailingSlashes(String baseUrl) {

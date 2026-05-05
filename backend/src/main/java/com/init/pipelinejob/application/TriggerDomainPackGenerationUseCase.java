@@ -76,6 +76,9 @@ public class TriggerDomainPackGenerationUseCase {
                           () ->
                               new IllegalStateException(
                                   "생성된 pipeline job을 찾을 수 없습니다. id=" + createdJob.pipelineJobId()));
+              if (!PipelineJob.STATUS_QUEUED.equals(job.getStatus())) {
+                return job;
+              }
               job.markAirflowTriggered(OffsetDateTime.now(clock));
               return pipelineJobRepository.saveAndFlush(job);
             });
@@ -84,7 +87,6 @@ public class TriggerDomainPackGenerationUseCase {
   }
 
   private CreatedPipelineJob createQueuedPipelineJob(TriggerDomainPackGenerationCommand command) {
-    String dagId = triggerPort.dagId();
     return executeInTransaction(
         () -> {
           concurrencyGuard.lockTriggerCreation(command.workspaceId(), command.datasetId());
@@ -96,6 +98,7 @@ public class TriggerDomainPackGenerationUseCase {
                     throw new PipelineJobAlreadyRunningException(job.getId(), job.getStatus());
                   });
 
+          String dagId = triggerPort.dagId();
           PipelineJob job =
               PipelineJob.createDomainPackGeneration(
                   command.workspaceId(),

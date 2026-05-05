@@ -12,6 +12,6 @@ public record PipelineFailureCallbackRequest(
     @NotBlank @Size(max = 255) String dagRunId,
     @NotBlank @Size(max = 100) String failedStage,
     @NotBlank @Size(max = 100) String reason,
-    @NotBlank String message,
+    @NotBlank @Size(max = 5000) String message,
     @NotNull OffsetDateTime occurredAt,
     JsonNode error) {}

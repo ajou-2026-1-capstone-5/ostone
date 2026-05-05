@@ -1,0 +1,38 @@
+package com.init.pipelinejob.domain.model;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.OffsetDateTime;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("PipelineJob")
+class PipelineJobTest {
+
+  private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-05-04T10:00:00Z");
+
+  @Test
+  @DisplayName("Airflow run 할당 전에는 RUNNING으로 전환할 수 없다")
+  void markAirflowTriggered_withoutAssignedAirflowRun_throws() {
+    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
+
+    assertThatThrownBy(() -> job.markAirflowTriggered(NOW))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("assignAirflowRun");
+  }
+
+  @Test
+  @DisplayName("Airflow run 할당 후 RUNNING으로 전환한다")
+  void markAirflowTriggered_withAssignedAirflowRun_marksRunning() {
+    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
+    job.assignAirflowRun("domain_pack_generation", "pipeline_job_123", "{}");
+
+    job.markAirflowTriggered(NOW);
+
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(job.getStartedAt()).isEqualTo(NOW);
+    assertThat(job.getFinishedAt()).isNull();
+    assertThat(job.getLastErrorMessage()).isNull();
+  }
+}
