@@ -90,3 +90,32 @@ def test_dev_bootstrap_draft_to_publish_smoke(
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-bootstrap_dsds-bootstrap"
     assert len(candidate["workflowDraft"]["workflows"]) >= 1
     assert len(candidate["workflowDraft"]["intentWorkflowBindings"]) == len(candidate["intentDraft"]["intents"])
+    assert len(candidate["workflowDraft"]["workflows"][0]["evidenceJson"]) > 2
+
+
+def test_reproducibility_evidence_json(
+    dev_bootstrap_artifacts: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
+
+    result1 = run(upstream_manifest_path=str(dev_bootstrap_artifacts))
+    evidence1 = [
+        w["evidenceJson"]
+        for w in json.loads(
+            Path(cast(str, result1["candidateArtifactPath"])).read_text(encoding="utf-8")
+        )["workflowDraft"]["workflows"]
+    ]
+
+    result2 = run(upstream_manifest_path=str(dev_bootstrap_artifacts))
+    evidence2 = [
+        w["evidenceJson"]
+        for w in json.loads(
+            Path(cast(str, result2["candidateArtifactPath"])).read_text(encoding="utf-8")
+        )["workflowDraft"]["workflows"]
+    ]
+
+    assert evidence1 == evidence2

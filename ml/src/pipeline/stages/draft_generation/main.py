@@ -210,6 +210,28 @@ def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
     return pack_key, pack_name
 
 
+def _aggregate_evidence_metrics(
+    evidence_items: list[dict[str, Any]],
+    evidence_json_str: str,
+    cluster_id: Any,
+) -> tuple[int, int, int]:
+    kw_count = sum(1 for item in evidence_items if item.get("type") == "keyword")
+    ex_count = sum(1 for item in evidence_items if item.get("type") == "exemplar_conv_id")
+    mb_count = sum(1 for item in evidence_items if item.get("type") == "member_conv_id")
+    _logger.info(
+        "draft_generation.workflow_evidence_built cluster_id=%s workflow_code=%s"
+        " keyword_count=%d exemplar_count=%d member_count=%d total_count=%d serialized_length=%d",
+        cluster_id,
+        f"WORKFLOW_{cluster_id}",
+        kw_count,
+        ex_count,
+        mb_count,
+        len(evidence_items),
+        len(evidence_json_str),
+    )
+    return kw_count, ex_count, mb_count
+
+
 def _default_dummy_policy() -> dict[str, Any]:
     return {
         "policyCode": DUMMY_POLICY_CODE,
@@ -268,26 +290,12 @@ def _build_workflow_draft(
         evidence_items = build_workflow_evidence(cluster)
         evidence_json_str = serialize_evidence_json(evidence_items)
 
-        kw_count = sum(1 for item in evidence_items if item.get("type") == "keyword")
-        ex_count = sum(1 for item in evidence_items if item.get("type") == "exemplar_conv_id")
-        mb_count = sum(1 for item in evidence_items if item.get("type") == "member_conv_id")
+        kw_count, ex_count, mb_count = _aggregate_evidence_metrics(evidence_items, evidence_json_str, cluster_id)
         keyword_total += kw_count
         exemplar_total += ex_count
         member_total += mb_count
         if not evidence_items:
             empty_evidence_count += 1
-
-        _logger.info(
-            "draft_generation.workflow_evidence_built cluster_id=%s workflow_code=%s"
-            " keyword_count=%d exemplar_count=%d member_count=%d total_count=%d serialized_length=%d",
-            cluster_id,
-            f"WORKFLOW_{cluster_id}",
-            kw_count,
-            ex_count,
-            mb_count,
-            len(evidence_items),
-            len(evidence_json_str),
-        )
 
         workflows.append(
             {
