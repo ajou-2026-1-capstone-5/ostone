@@ -85,7 +85,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleBadGateway(BadGatewayException ex) {
     log.warn("Bad gateway exception: {}, message={}", ex.getCode(), ex.getMessage(), ex);
     return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
+        .body(new ErrorResponse(ex.getCode(), "Upstream service error"));
   }
 
   @ExceptionHandler(InternalException.class)

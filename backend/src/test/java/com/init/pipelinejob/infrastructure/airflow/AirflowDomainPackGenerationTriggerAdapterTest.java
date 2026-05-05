@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClientResponseException;
 
 @DisplayName("AirflowDomainPackGenerationTriggerAdapter")
 class AirflowDomainPackGenerationTriggerAdapterTest {
@@ -99,15 +100,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     baseUrl = baseUrl + "///";
     AtomicReference<String> triggerAuthorization = new AtomicReference<>();
 
-    server.createContext(
-        "/auth/token",
-        exchange -> {
-          byte[] response = "{\"access_token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          exchange.sendResponseHeaders(200, response.length);
-          exchange.getResponseBody().write(response);
-          exchange.close();
-        });
+    stubTokenSuccess();
     server.createContext(
         "/api/v2/dags/domain_pack_generation/dagRuns",
         exchange -> {
@@ -116,8 +109,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
           exchange.close();
         });
 
-    DomainPackGenerationTriggerResult result =
-        adapter().trigger(new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123"));
+    DomainPackGenerationTriggerResult result = trigger();
 
     assertThat(triggerAuthorization.get()).isEqualTo("Bearer jwt-token-123");
     assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
@@ -130,6 +122,20 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
 
     assertThatThrownBy(() -> adapter().dagId())
         .isInstanceOf(AirflowConfigurationInvalidException.class);
+  }
+
+  @Test
+  @DisplayName("Airflow API 설정이 없어도 생성자는 실패하지 않고 호출 시점에 설정 오류를 던진다")
+  void constructorWithoutApiDefersConfigurationInvalidUntilUse() {
+    AirflowApiProperties properties =
+        new AirflowApiProperties(
+            null,
+            new AirflowApiProperties.Dags(
+                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation")));
+    AirflowDomainPackGenerationTriggerAdapter adapter =
+        new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
+
+    assertThatThrownBy(adapter::dagId).isInstanceOf(AirflowConfigurationInvalidException.class);
   }
 
   @Test
@@ -193,56 +199,21 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
   }
 
   @Test
-  @DisplayName("dagRuns 생성 응답이 끊겨도 reconciliation GET에서 확인되면 성공 처리한다")
-  void triggerTimeoutButDagRunExistsReturnsSuccess() {
-    server.createContext(
-        "/auth/token",
-        exchange -> {
-          byte[] response = "{\"access_token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          exchange.sendResponseHeaders(200, response.length);
-          exchange.getResponseBody().write(response);
-          exchange.close();
-        });
-    server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns",
-        exchange -> {
-          exchange.close();
-        });
-    server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_123",
-        exchange -> {
-          assertThat(exchange.getRequestHeaders().getFirst("Authorization"))
-              .isEqualTo("Bearer jwt-token-123");
-          exchange.sendResponseHeaders(200, -1);
-          exchange.close();
-        });
+  @DisplayName("dagRuns 생성이 500을 반환하면 원인 예외를 보존한다")
+  void triggerWithServerErrorPreservesCause() {
+    stubTokenSuccess();
+    stubDagRunCreation(500);
 
-    DomainPackGenerationTriggerResult result =
-        adapter(Duration.ofMillis(50), Duration.ofMillis(50))
-            .trigger(new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123"));
-
-    assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
+    assertThatThrownBy(this::trigger)
+        .isInstanceOf(AirflowTriggerFailedException.class)
+        .hasCauseInstanceOf(RestClientResponseException.class);
   }
 
   @Test
   @DisplayName("Airflow가 이미 존재하는 dag_run_id로 409를 반환해도 GET에서 확인되면 성공 처리한다")
   void triggerConflictButDagRunExistsReturnsSuccess() {
-    server.createContext(
-        "/auth/token",
-        exchange -> {
-          byte[] response = "{\"access_token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          exchange.sendResponseHeaders(200, response.length);
-          exchange.getResponseBody().write(response);
-          exchange.close();
-        });
-    server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns",
-        exchange -> {
-          exchange.sendResponseHeaders(409, -1);
-          exchange.close();
-        });
+    stubTokenSuccess();
+    stubDagRunCreation(409);
     server.createContext(
         "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_123",
         exchange -> {
@@ -252,11 +223,72 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
           exchange.close();
         });
 
-    DomainPackGenerationTriggerResult result =
-        adapter().trigger(new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123"));
+    DomainPackGenerationTriggerResult result = trigger();
 
     assertThat(result.dagId()).isEqualTo("domain_pack_generation");
     assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
+  }
+
+  @Test
+  @DisplayName("409 reconciliation GET이 404를 반환하면 trigger 실패로 처리하되 POST 원인을 보존한다")
+  void triggerConflictButDagRunNotFoundPreservesCause() {
+    stubTokenSuccess();
+    stubDagRunCreation(409);
+    stubDagRunLookup(404);
+
+    assertThatThrownBy(this::trigger)
+        .isInstanceOf(AirflowTriggerFailedException.class)
+        .hasCauseInstanceOf(RestClientResponseException.class);
+  }
+
+  @Test
+  @DisplayName("409 reconciliation GET이 500을 반환하면 GET 원인을 보존한다")
+  void triggerConflictButDagRunLookupFailsPreservesCause() {
+    stubTokenSuccess();
+    stubDagRunCreation(409);
+    stubDagRunLookup(500);
+
+    assertThatThrownBy(this::trigger)
+        .isInstanceOf(AirflowTriggerFailedException.class)
+        .hasCauseInstanceOf(RestClientResponseException.class);
+  }
+
+  private DomainPackGenerationTriggerResult trigger() {
+    return adapter().trigger(command());
+  }
+
+  private DomainPackGenerationTriggerCommand command() {
+    return new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123");
+  }
+
+  private void stubTokenSuccess() {
+    server.createContext(
+        "/auth/token",
+        exchange -> {
+          byte[] response = "{\"access_token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.close();
+        });
+  }
+
+  private void stubDagRunCreation(int statusCode) {
+    server.createContext(
+        "/api/v2/dags/domain_pack_generation/dagRuns",
+        exchange -> {
+          exchange.sendResponseHeaders(statusCode, -1);
+          exchange.close();
+        });
+  }
+
+  private void stubDagRunLookup(int statusCode) {
+    server.createContext(
+        "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_123",
+        exchange -> {
+          exchange.sendResponseHeaders(statusCode, -1);
+          exchange.close();
+        });
   }
 
   private AirflowDomainPackGenerationTriggerAdapter adapter() {

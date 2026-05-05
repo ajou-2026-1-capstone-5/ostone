@@ -14,6 +14,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -27,17 +29,19 @@ import org.springframework.web.client.RestClientResponseException;
 @Component
 public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGenerationTriggerPort {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(AirflowDomainPackGenerationTriggerAdapter.class);
+
   private final AirflowApiProperties properties;
   private final ObjectMapper objectMapper;
   private final Clock clock;
-  private final RestClient restClient;
+  private volatile RestClient restClient;
 
   public AirflowDomainPackGenerationTriggerAdapter(
       AirflowApiProperties properties, ObjectMapper objectMapper, Clock clock) {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.clock = clock;
-    this.restClient = buildRestClient(properties.api());
   }
 
   @Override
@@ -72,25 +76,68 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
           .toBodilessEntity();
       return triggerResult(dagId, dagRunId);
     } catch (ResourceAccessException ex) {
-      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
+      log.warn(
+          "Airflow DAG run creation access failed, reconciling: pipelineJobId={}, dagId={},"
+              + " dagRunId={}",
+          pipelineJobId,
+          dagId,
+          dagRunId,
+          ex);
+      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
     } catch (RestClientResponseException ex) {
       if (ex.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
-        return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
+        log.warn(
+            "Airflow DAG run already exists, reconciling: pipelineJobId={}, dagId={}, dagRunId={}",
+            pipelineJobId,
+            dagId,
+            dagRunId,
+            ex);
+        return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
       }
-      throw new AirflowTriggerFailedException(pipelineJobId);
+      log.error(
+          "Airflow DAG run creation failed: pipelineJobId={}, dagId={}, dagRunId={}, status={}",
+          pipelineJobId,
+          dagId,
+          dagRunId,
+          ex.getStatusCode(),
+          ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, ex);
     } catch (RestClientException ex) {
-      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
+      log.warn(
+          "Airflow DAG run creation client failed, reconciling: pipelineJobId={}, dagId={},"
+              + " dagRunId={}",
+          pipelineJobId,
+          dagId,
+          dagRunId,
+          ex);
+      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
     } catch (HttpMessageConversionException ex) {
-      throw new AirflowTriggerFailedException(pipelineJobId);
+      log.error(
+          "Airflow DAG run creation response conversion failed: pipelineJobId={}, dagId={},"
+              + " dagRunId={}",
+          pipelineJobId,
+          dagId,
+          dagRunId,
+          ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, ex);
     }
   }
 
   private DomainPackGenerationTriggerResult reconcileDagRunOrThrow(
-      RestClient restClient, String token, String dagId, String dagRunId, Long pipelineJobId) {
-    if (dagRunExists(restClient, token, dagId, dagRunId)) {
-      return triggerResult(dagId, dagRunId);
+      RestClient restClient,
+      String token,
+      String dagId,
+      String dagRunId,
+      Long pipelineJobId,
+      RuntimeException triggerCause) {
+    try {
+      if (dagRunExists(restClient, token, dagId, dagRunId)) {
+        return triggerResult(dagId, dagRunId);
+      }
+    } catch (RestClientException | HttpMessageConversionException ex) {
+      throw new AirflowTriggerFailedException(pipelineJobId, ex);
     }
-    throw new AirflowTriggerFailedException(pipelineJobId);
+    throw new AirflowTriggerFailedException(pipelineJobId, triggerCause);
   }
 
   private DomainPackGenerationTriggerResult triggerResult(String dagId, String dagRunId) {
@@ -108,11 +155,14 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
               .retrieve()
               .body(TokenResponse.class);
       if (response == null || isBlank(response.accessToken())) {
+        log.error(
+            "Airflow token response did not include access_token: pipelineJobId={}", pipelineJobId);
         throw new AirflowTriggerFailedException(pipelineJobId);
       }
       return response.accessToken();
     } catch (RestClientException | HttpMessageConversionException ex) {
-      throw new AirflowTriggerFailedException(pipelineJobId);
+      log.error("Airflow token request failed: pipelineJobId={}", pipelineJobId, ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, ex);
     }
   }
 
@@ -125,8 +175,21 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
           .retrieve()
           .toBodilessEntity();
       return true;
+    } catch (RestClientResponseException ex) {
+      if (ex.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
+        return false;
+      }
+      log.error(
+          "Airflow DAG run reconciliation failed: dagId={}, dagRunId={}, status={}",
+          dagId,
+          dagRunId,
+          ex.getStatusCode(),
+          ex);
+      throw ex;
     } catch (RestClientException | HttpMessageConversionException ex) {
-      return false;
+      log.error(
+          "Airflow DAG run reconciliation failed: dagId={}, dagRunId={}", dagId, dagRunId, ex);
+      throw ex;
     }
   }
 
@@ -143,6 +206,17 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   }
 
   private RestClient restClient() {
+    RestClient current = restClient;
+    if (current == null) {
+      current = initializeRestClient(api());
+    }
+    return current;
+  }
+
+  private synchronized RestClient initializeRestClient(AirflowApiProperties.Api api) {
+    if (restClient == null) {
+      restClient = buildRestClient(api);
+    }
     return restClient;
   }
 

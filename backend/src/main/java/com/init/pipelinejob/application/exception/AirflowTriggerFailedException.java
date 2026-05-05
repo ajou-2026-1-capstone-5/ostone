@@ -15,6 +15,11 @@ public class AirflowTriggerFailedException extends BadGatewayException {
     this.pipelineJobId = pipelineJobId;
   }
 
+  public AirflowTriggerFailedException(Long pipelineJobId, Throwable cause) {
+    super("AIRFLOW_TRIGGER_FAILED", "Domain Pack Generation DAG 실행 요청에 실패했습니다.", cause);
+    this.pipelineJobId = pipelineJobId;
+  }
+
   public Long getPipelineJobId() {
     return pipelineJobId;
   }
