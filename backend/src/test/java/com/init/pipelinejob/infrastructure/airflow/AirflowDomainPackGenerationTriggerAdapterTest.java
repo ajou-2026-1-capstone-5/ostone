@@ -202,6 +202,40 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
   }
 
+  @Test
+  @DisplayName("Airflow가 이미 존재하는 dag_run_id로 409를 반환해도 GET에서 확인되면 성공 처리한다")
+  void triggerConflictButDagRunExistsReturnsSuccess() {
+    server.createContext(
+        "/auth/token",
+        exchange -> {
+          byte[] response = "{\"access_token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.close();
+        });
+    server.createContext(
+        "/api/v2/dags/domain_pack_generation/dagRuns",
+        exchange -> {
+          exchange.sendResponseHeaders(409, -1);
+          exchange.close();
+        });
+    server.createContext(
+        "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_123",
+        exchange -> {
+          assertThat(exchange.getRequestHeaders().getFirst("Authorization"))
+              .isEqualTo("Bearer jwt-token-123");
+          exchange.sendResponseHeaders(200, -1);
+          exchange.close();
+        });
+
+    DomainPackGenerationTriggerResult result =
+        adapter().trigger(new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123"));
+
+    assertThat(result.dagId()).isEqualTo("domain_pack_generation");
+    assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
+  }
+
   private AirflowDomainPackGenerationTriggerAdapter adapter() {
     return adapter(Duration.ofSeconds(1), Duration.ofSeconds(1));
   }

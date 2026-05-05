@@ -100,6 +100,7 @@ class TriggerDomainPackGenerationUseCaseTest {
     assertThat(result.status()).isEqualTo(PipelineJob.STATUS_RUNNING);
     assertThat(result.airflowDagId()).isEqualTo("domain_pack_generation");
     assertThat(result.airflowRunId()).isEqualTo("pipeline_job_123");
+    assertThat(result.requestedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(result.startedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(savedJob.get().getRequestPayloadJson()).contains("\"requestedBy\":55");
     verify(concurrencyGuard).lockTriggerCreation(1L, 7L);

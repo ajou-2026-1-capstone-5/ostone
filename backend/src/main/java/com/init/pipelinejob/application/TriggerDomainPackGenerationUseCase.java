@@ -98,7 +98,11 @@ public class TriggerDomainPackGenerationUseCase {
 
           PipelineJob job =
               PipelineJob.createDomainPackGeneration(
-                  command.workspaceId(), command.datasetId(), command.userId(), "{}");
+                  command.workspaceId(),
+                  command.datasetId(),
+                  command.userId(),
+                  "{}",
+                  OffsetDateTime.now(clock));
           PipelineJob savedJob = pipelineJobRepository.saveAndFlush(job);
           String dagRunId = "pipeline_job_" + savedJob.getId();
           savedJob.assignAirflowRun(

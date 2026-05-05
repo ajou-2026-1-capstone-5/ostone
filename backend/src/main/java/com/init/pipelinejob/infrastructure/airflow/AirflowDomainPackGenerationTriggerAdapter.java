@@ -11,6 +11,7 @@ import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -48,8 +49,10 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   @Override
   public DomainPackGenerationTriggerResult trigger(DomainPackGenerationTriggerCommand command) {
     String dagId = dagId();
+    String dagRunId = command.dagRunId();
+    Long pipelineJobId = command.pipelineJobId();
     RestClient restClient = restClient();
-    String token = requestToken(restClient, command.pipelineJobId());
+    String token = requestToken(restClient, pipelineJobId);
 
     try {
       restClient
@@ -60,22 +63,31 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
           .body(buildDagRunRequest(command))
           .retrieve()
           .toBodilessEntity();
-      return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
+      return triggerResult(dagId, dagRunId);
     } catch (ResourceAccessException ex) {
-      if (dagRunExists(restClient, token, dagId, command.dagRunId())) {
-        return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
-      }
-      throw new AirflowTriggerFailedException(command.pipelineJobId());
+      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
     } catch (RestClientResponseException ex) {
-      throw new AirflowTriggerFailedException(command.pipelineJobId());
-    } catch (RestClientException ex) {
-      if (dagRunExists(restClient, token, dagId, command.dagRunId())) {
-        return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
+      if (ex.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
+        return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
       }
-      throw new AirflowTriggerFailedException(command.pipelineJobId());
+      throw new AirflowTriggerFailedException(pipelineJobId);
+    } catch (RestClientException ex) {
+      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId);
     } catch (HttpMessageConversionException ex) {
-      throw new AirflowTriggerFailedException(command.pipelineJobId());
+      throw new AirflowTriggerFailedException(pipelineJobId);
     }
+  }
+
+  private DomainPackGenerationTriggerResult reconcileDagRunOrThrow(
+      RestClient restClient, String token, String dagId, String dagRunId, Long pipelineJobId) {
+    if (dagRunExists(restClient, token, dagId, dagRunId)) {
+      return triggerResult(dagId, dagRunId);
+    }
+    throw new AirflowTriggerFailedException(pipelineJobId);
+  }
+
+  private DomainPackGenerationTriggerResult triggerResult(String dagId, String dagRunId) {
+    return new DomainPackGenerationTriggerResult(dagId, dagRunId);
   }
 
   private String requestToken(RestClient restClient, Long pipelineJobId) {

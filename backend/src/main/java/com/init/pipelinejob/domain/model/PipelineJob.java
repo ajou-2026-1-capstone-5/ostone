@@ -88,11 +88,13 @@ public class PipelineJob {
       String jobType,
       String status,
       String triggerSource,
-      String requestPayloadJson) {
+      String requestPayloadJson,
+      OffsetDateTime requestedAt) {
     Objects.requireNonNull(workspaceId, "workspaceId must not be null");
     Objects.requireNonNull(jobType, "jobType must not be null");
     Objects.requireNonNull(status, "status must not be null");
     Objects.requireNonNull(triggerSource, "triggerSource must not be null");
+    Objects.requireNonNull(requestedAt, "requestedAt must not be null");
 
     PipelineJob pipelineJob = new PipelineJob();
     pipelineJob.workspaceId = workspaceId;
@@ -101,12 +103,16 @@ public class PipelineJob {
     pipelineJob.triggerSource = triggerSource;
     pipelineJob.requestPayloadJson = requestPayloadJson != null ? requestPayloadJson : "{}";
     pipelineJob.resultSummaryJson = "{}";
-    pipelineJob.requestedAt = OffsetDateTime.now();
+    pipelineJob.requestedAt = requestedAt;
     return pipelineJob;
   }
 
   public static PipelineJob createDomainPackGeneration(
-      Long workspaceId, Long datasetId, Long triggeredBy, String requestPayloadJson) {
+      Long workspaceId,
+      Long datasetId,
+      Long triggeredBy,
+      String requestPayloadJson,
+      OffsetDateTime requestedAt) {
     Objects.requireNonNull(datasetId, "datasetId must not be null");
     PipelineJob pipelineJob =
         create(
@@ -114,7 +120,8 @@ public class PipelineJob {
             JOB_TYPE_DOMAIN_PACK_GENERATION,
             STATUS_QUEUED,
             "MANUAL",
-            requestPayloadJson);
+            requestPayloadJson,
+            requestedAt);
     pipelineJob.datasetId = datasetId;
     pipelineJob.triggeredBy = triggeredBy;
     return pipelineJob;
