@@ -10,7 +10,7 @@ void LogUploadForm;
 
 export const UploadPage: React.FC = () => {
   return (
-    <OstoneShell active="workflows" crumbs={["CARD-CS", "Pipeline · Datasets"]}>
+    <OstoneShell active="upload" crumbs={["CARD-CS", "Pipeline · Datasets"]}>
       <div style={{ padding: "24px 28px 40px" }}>
         <div
           style={{

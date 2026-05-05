@@ -9,7 +9,8 @@ export type SidebarActive =
   | 'review'
   | 'pipeline'
   | 'consult'
-  | 'logs';
+  | 'logs'
+  | 'upload';
 
 interface SidebarProps {
   active: SidebarActive;
@@ -24,6 +25,7 @@ const NAV_ITEMS: { key: SidebarActive; icon: IconName; label: string; getPath: (
   { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: (base) => `${base}/pipeline` },
   { key: 'consult', icon: 'msg', label: 'Consultation', getPath: () => '/consultations' },
   { key: 'logs', icon: 'db', label: 'Logs', getPath: () => '/logs' },
+  { key: 'upload', icon: 'upload', label: 'Uploads', getPath: () => '/upload' },
 ];
 
 export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: SidebarProps) {

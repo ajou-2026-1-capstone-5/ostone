@@ -90,7 +90,7 @@ export const ConsultationPage: React.FC = () => {
         if (cancelled) return;
         setMessages(msgs.map(m => ({
           id: String(m.id),
-          senderRole: m.senderRole as any,
+          senderRole: m.senderRole as UiChatMessage['senderRole'],
           content: m.content,
           timestamp: formatTime(m.createdAt),
         })));
@@ -124,7 +124,7 @@ export const ConsultationPage: React.FC = () => {
         if (current === targetId) {
           setMessages(prev => [...prev, {
             id: String(newMsg.id),
-            senderRole: newMsg.senderRole as any,
+            senderRole: newMsg.senderRole as UiChatMessage['senderRole'],
             content: newMsg.content,
             timestamp: formatTime(newMsg.createdAt),
           }]);
