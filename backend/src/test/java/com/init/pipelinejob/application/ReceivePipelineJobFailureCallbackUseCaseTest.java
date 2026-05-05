@@ -104,6 +104,40 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
   }
 
   @Test
+  @DisplayName("이미 FAILED인 job의 새 failure callback은 상태 변경 없이 처리 완료로 기록한다")
+  void execute_alreadyFailedJob_returnsIgnoredAlreadyFailed() {
+    PipelineJob job = pipelineJob(PipelineJob.STATUS_FAILED);
+    WebhookReceipt receipt = receipt("evt-failure-1");
+    given(webhookReceiptRepository.findByExternalEventId("evt-failure-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt), Optional.of(receipt));
+    given(pipelineJobRepository.findById(123L)).willReturn(Optional.of(job), Optional.of(job));
+
+    ReceivePipelineJobFailureCallbackResult result = useCase.execute(command());
+
+    assertThat(result.status()).isEqualTo("IGNORED_ALREADY_FAILED");
+    assertThat(result.jobStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  @DisplayName("CANCELLED job의 failure callback은 상태 변경 없이 처리 완료로 기록한다")
+  void execute_cancelledJob_returnsIgnoredCancelled() {
+    PipelineJob job = pipelineJob(PipelineJob.STATUS_CANCELLED);
+    WebhookReceipt receipt = receipt("evt-failure-1");
+    given(webhookReceiptRepository.findByExternalEventId("evt-failure-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt), Optional.of(receipt));
+    given(pipelineJobRepository.findById(123L)).willReturn(Optional.of(job), Optional.of(job));
+
+    ReceivePipelineJobFailureCallbackResult result = useCase.execute(command());
+
+    assertThat(result.status()).isEqualTo("IGNORED_CANCELLED");
+    assertThat(result.jobStatus()).isEqualTo(PipelineJob.STATUS_CANCELLED);
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
   @DisplayName("dagRunId가 일치하지 않으면 409 예외를 던지고 job 상태를 바꾸지 않는다")
   void execute_targetMismatch_throws() {
     PipelineJob job = pipelineJob(PipelineJob.STATUS_RUNNING);
@@ -114,6 +148,32 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
             "evt-failure-1",
             "domain_pack_generation",
             "wrong-run-id",
+            "preprocessing",
+            "TASK_FAILED",
+            "PII masking failed",
+            OffsetDateTime.now(fixedClock),
+            "{}",
+            "{}");
+    given(webhookReceiptRepository.findByExternalEventId("evt-failure-1"))
+        .willReturn(Optional.empty());
+    given(pipelineJobRepository.findById(123L)).willReturn(Optional.of(job));
+
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(PipelineJobCallbackTargetMismatchException.class);
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+  }
+
+  @Test
+  @DisplayName("dagId가 일치하지 않으면 409 예외를 던지고 job 상태를 바꾸지 않는다")
+  void execute_dagIdMismatch_throws() {
+    PipelineJob job = pipelineJob(PipelineJob.STATUS_RUNNING);
+    ReceivePipelineJobFailureCallbackCommand command =
+        new ReceivePipelineJobFailureCallbackCommand(
+            123L,
+            "secret-123",
+            "evt-failure-1",
+            "wrong_dag",
+            "pipeline_job_123",
             "preprocessing",
             "TASK_FAILED",
             "PII masking failed",

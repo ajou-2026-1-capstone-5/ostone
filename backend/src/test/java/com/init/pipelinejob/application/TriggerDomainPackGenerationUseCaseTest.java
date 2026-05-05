@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
 import com.init.pipelinejob.domain.model.PipelineJob;
@@ -46,6 +48,7 @@ class TriggerDomainPackGenerationUseCaseTest {
   private final Clock fixedClock =
       Clock.fixed(Instant.parse("2026-05-04T10:00:00Z"), ZoneOffset.UTC);
   private final AtomicReference<PipelineJob> savedJob = new AtomicReference<>();
+  private final AtomicReference<String> activeStatus = new AtomicReference<>();
 
   @BeforeEach
   void setUp() {
@@ -121,6 +124,43 @@ class TriggerDomainPackGenerationUseCaseTest {
 
     assertThatThrownBy(() -> useCase.execute(command()))
         .isInstanceOf(PipelineJobAlreadyRunningException.class);
+  }
+
+  @Test
+  @DisplayName("대기 콜백 상태까지 active job으로 판단해 중복 실행을 막는다")
+  void execute_callbackWaitingStatuses_throwAlreadyRunning() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willAnswer(invocation -> Optional.of(pipelineJob(11L, activeStatus.get())));
+
+    for (String status :
+        new String[] {
+          PipelineJob.STATUS_QUEUED,
+          PipelineJob.STATUS_RUNNING,
+          PipelineJob.STATUS_WAITING_INTENT_CALLBACK,
+          PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK
+        }) {
+      activeStatus.set(status);
+
+      assertThatThrownBy(() -> useCase.execute(command()))
+          .as("status=%s", status)
+          .isInstanceOf(PipelineJobAlreadyRunningException.class);
+    }
+
+    verify(triggerPort, never()).trigger(any());
+  }
+
+  @Test
+  @DisplayName("Airflow 설정이 유효하지 않으면 job 생성 전에 실패한다")
+  void execute_invalidAirflowConfiguration_doesNotCreateJob() {
+    given(triggerPort.dagId()).willThrow(new AirflowConfigurationInvalidException());
+
+    assertThatThrownBy(() -> useCase.execute(command()))
+        .isInstanceOf(AirflowConfigurationInvalidException.class);
+
+    verify(concurrencyGuard, never()).lockTriggerCreation(any(), any());
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(triggerPort, never()).trigger(any());
   }
 
   @Test
