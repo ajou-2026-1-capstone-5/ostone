@@ -9,6 +9,7 @@ import { PackTabs } from "./sections/PackTabs";
 import { WorkflowList } from "./sections/WorkflowList";
 import { VersionsTimeline } from "./sections/VersionsTimeline";
 import { MetricsFooter } from "./sections/MetricsFooter";
+import { Inspector } from "./sections/Inspector";
 
 function HeaderActions() {
   return (
@@ -291,17 +292,7 @@ export function WorkflowDraftReadPage() {
               borderLeft: "1px solid var(--line-2)",
             }}
           >
-            <div
-              style={{
-                padding: "20px",
-                fontFamily: "var(--mono)",
-                fontSize: "11px",
-                color: "var(--ink-3)",
-                textAlign: "center",
-              }}
-            >
-              Inspector (T11)
-            </div>
+            <Inspector />
           </div>
         </div>
       </div>

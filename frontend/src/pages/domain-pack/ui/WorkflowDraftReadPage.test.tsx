@@ -55,7 +55,7 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
     expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
     expect(screen.getByText("Workflow Canvas (T10)")).toBeInTheDocument();
-    expect(screen.getByText("Inspector (T11)")).toBeInTheDocument();
+    expect(screen.getByText("Selected node")).toBeInTheDocument();
   });
 
   it("workflowId가 있는 경로에서 WorkflowEditSheet가 정상 렌더링된다", () => {
