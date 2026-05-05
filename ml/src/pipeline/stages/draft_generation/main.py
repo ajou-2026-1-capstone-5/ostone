@@ -12,6 +12,10 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.common.logging import get_stage_logger
+from pipeline.stages.draft_generation.workflow_evidence import (
+    build_workflow_evidence,
+    serialize_evidence_json,
+)
 from pipeline.stages.draft_generation.workflow_graph import (
     DUMMY_POLICY_CODE,
     ClusterContext,
@@ -54,11 +58,16 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
     metrics.update(workflow_metrics)
     logger.info(
-        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d",
+        "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d"
+        " evidence_keyword_total=%d evidence_exemplar_total=%d evidence_member_total=%d empty_evidence_count=%d",
         workflow_metrics["workflow_count"],
         workflow_metrics["workflow_with_identify_count"],
         workflow_metrics["workflow_with_payment_check_count"],
         workflow_metrics["workflow_with_escalation_count"],
+        workflow_metrics["workflow_evidence_keyword_total"],
+        workflow_metrics["workflow_evidence_exemplar_total"],
+        workflow_metrics["workflow_evidence_member_total"],
+        workflow_metrics["workflow_with_empty_evidence_count"],
     )
 
     candidate = _build_candidate(intents, workflow_draft, stage_context)
@@ -227,6 +236,10 @@ def _build_workflow_draft(
     identify_count = 0
     payment_count = 0
     escalation_count = 0
+    keyword_total = 0
+    exemplar_total = 0
+    member_total = 0
+    empty_evidence_count = 0
 
     for cluster in clusters:
         if not isinstance(cluster, dict):
@@ -251,13 +264,38 @@ def _build_workflow_draft(
             len(graph_spec.nodes),
             len(graph_spec.edges),
         )
+
+        evidence_items = build_workflow_evidence(cluster)
+        evidence_json_str = serialize_evidence_json(evidence_items)
+
+        kw_count = sum(1 for item in evidence_items if item.get("type") == "keyword")
+        ex_count = sum(1 for item in evidence_items if item.get("type") == "exemplar_conv_id")
+        mb_count = sum(1 for item in evidence_items if item.get("type") == "member_conv_id")
+        keyword_total += kw_count
+        exemplar_total += ex_count
+        member_total += mb_count
+        if not evidence_items:
+            empty_evidence_count += 1
+
+        _logger.info(
+            "draft_generation.workflow_evidence_built cluster_id=%s workflow_code=%s"
+            " keyword_count=%d exemplar_count=%d member_count=%d total_count=%d serialized_length=%d",
+            cluster_id,
+            f"WORKFLOW_{cluster_id}",
+            kw_count,
+            ex_count,
+            mb_count,
+            len(evidence_items),
+            len(evidence_json_str),
+        )
+
         workflows.append(
             {
                 "workflowCode": f"WORKFLOW_{cluster_id}",
                 "name": suggested_name,
                 "description": f"{suggested_name} 자동 생성 workflow",
                 "graphJson": serialize_graph_json(graph_spec),
-                "evidenceJson": "[]",
+                "evidenceJson": evidence_json_str,
                 "metaJson": "{}",
             }
         )
@@ -290,6 +328,10 @@ def _build_workflow_draft(
         "workflow_with_identify_count": identify_count,
         "workflow_with_payment_check_count": payment_count,
         "workflow_with_escalation_count": escalation_count,
+        "workflow_evidence_keyword_total": keyword_total,
+        "workflow_evidence_exemplar_total": exemplar_total,
+        "workflow_evidence_member_total": member_total,
+        "workflow_with_empty_evidence_count": empty_evidence_count,
     }
     return draft, workflow_metrics
 

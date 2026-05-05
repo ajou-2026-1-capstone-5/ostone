@@ -14,6 +14,7 @@ from pipeline.common.exceptions import PipelineConfigurationError, PipelineStage
 from pipeline.stages.preprocessing.io import read_stage_context
 
 SCHEMA_VERSION = "1.0"
+EVIDENCE_JSON_MAX_LEN = 5000
 CALLBACK_DOMAIN_PACK = "domain-pack-drafts"
 CALLBACK_INTENT = "intent-drafts"
 CALLBACK_WORKFLOW = "workflow-drafts"
@@ -219,6 +220,10 @@ def validate_candidate(candidate: dict[str, Any]) -> None:
     for workflow in workflow_lists["workflows"]:
         _required_non_blank(workflow, "name", 255)
         _required_non_blank(workflow, "graphJson", 20000)
+        _validate_evidence_json(
+            workflow.get("evidenceJson"),
+            context="workflowDraft.workflows[*].evidenceJson",
+        )
 
     for binding in workflow_lists["intentSlotBindings"]:
         intent_code = _required_non_blank(binding, "intentCode", 100)
@@ -536,9 +541,7 @@ def _validate_representative_case(case: Any, seen_ids: set[str]) -> None:
         raise PipelineStageError("intents[*].representativeCases must be a JSON array.")
     conv_id = case.get("conversationId")
     if not isinstance(conv_id, str) or not conv_id.strip() or len(conv_id) > 100:
-        raise PipelineStageError(
-            "representativeCases[*].conversationId must be a non-blank string up to 100 chars."
-        )
+        raise PipelineStageError("representativeCases[*].conversationId must be a non-blank string up to 100 chars.")
     if conv_id in seen_ids:
         raise PipelineStageError(f"representativeCases[*].conversationId duplicates within an intent: {conv_id}.")
     seen_ids.add(conv_id)
@@ -583,3 +586,18 @@ def _int_or_none(value: object) -> int | None:
     if isinstance(value, str) and value.isdecimal():
         return int(value)
     return None
+
+
+def _validate_evidence_json(value: object, *, context: str) -> None:
+    if value is None:
+        return
+    if not isinstance(value, str):
+        raise PipelineStageError(f"{context} must be a string when present.")
+    if len(value) > EVIDENCE_JSON_MAX_LEN:
+        raise PipelineStageError(f"{context} length ({len(value)}) exceeds {EVIDENCE_JSON_MAX_LEN}.")
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise PipelineStageError(f"{context} must be valid JSON.") from exc
+    if not isinstance(parsed, list):
+        raise PipelineStageError(f"{context} must encode a JSON array.")

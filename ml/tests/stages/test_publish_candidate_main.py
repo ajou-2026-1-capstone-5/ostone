@@ -510,3 +510,69 @@ def test_vrc7_no_duplicate_conversation_ids_within_intent() -> None:
 
     with pytest.raises(PipelineStageError, match="duplicates within an intent"):
         publish.validate_candidate(candidate)
+
+
+# ---------------------------------------------------------------------------
+# validate_candidate — workflow evidenceJson
+# ---------------------------------------------------------------------------
+
+
+def _candidate_with_workflow_evidence(evidence_json: object) -> dict[str, Any]:
+    candidate = _candidate()
+    candidate["workflowDraft"]["workflows"][0]["evidenceJson"] = evidence_json  # type: ignore[index]
+    return candidate
+
+
+def test_workflow_evidence_json_valid_array_passes() -> None:
+    candidate = _candidate_with_workflow_evidence(
+        '[{"type":"keyword","value":"환불"},{"type":"exemplar_conv_id","value":"conv-1"}]'
+    )
+    publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_none_passes() -> None:
+    candidate = _candidate_with_workflow_evidence(None)
+    publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_missing_key_passes() -> None:
+    candidate = _candidate()
+    del candidate["workflowDraft"]["workflows"][0]["evidenceJson"]  # type: ignore[attr-defined]
+    publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_empty_string_fails() -> None:
+    candidate = _candidate_with_workflow_evidence("")
+    with pytest.raises(PipelineStageError, match="must be valid JSON"):
+        publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_json_object_fails() -> None:
+    candidate = _candidate_with_workflow_evidence("{}")
+    with pytest.raises(PipelineStageError, match="must encode a JSON array"):
+        publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_not_json_fails() -> None:
+    candidate = _candidate_with_workflow_evidence("not-json")
+    with pytest.raises(PipelineStageError, match="must be valid JSON"):
+        publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_exceeds_5000_chars_fails() -> None:
+    long_value = "x" * 5001
+    candidate = _candidate_with_workflow_evidence(long_value)
+    with pytest.raises(PipelineStageError, match="exceeds 5000"):
+        publish.validate_candidate(candidate)
+
+
+def test_workflow_evidence_json_int_type_fails() -> None:
+    candidate = _candidate_with_workflow_evidence(123)
+    with pytest.raises(PipelineStageError, match="must be a string when present"):
+        publish.validate_candidate(candidate)
+
+
+def test_policy_evidence_json_not_validated() -> None:
+    candidate = _candidate()
+    candidate["workflowDraft"]["policies"][0]["evidenceJson"] = "not-valid-json"  # type: ignore[index]
+    publish.validate_candidate(candidate)
