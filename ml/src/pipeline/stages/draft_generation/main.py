@@ -249,6 +249,51 @@ def _default_dummy_policy() -> dict[str, Any]:
     }
 
 
+def _process_cluster_entry(
+    cluster: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], int, int, int, bool, dict[str, Any]] | None:
+    if not isinstance(cluster, dict):
+        return None
+    cluster_id = cluster.get("cluster_id")
+    suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
+    context = ClusterContext(
+        cluster_id=cluster_id,
+        suggested_name=suggested_name,
+        workflow_signal=cluster.get("workflow_signal") or {},
+    )
+    graph_spec = signal_based_generator(context)
+    signal = context.workflow_signal or {}
+    _logger.info(
+        "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
+        " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
+        cluster_id,
+        f"WORKFLOW_{cluster_id}",
+        bool(signal.get("requires_user_identification")),
+        bool(signal.get("requires_payment_check")),
+        bool(signal.get("has_escalation_cases")),
+        len(graph_spec.nodes),
+        len(graph_spec.edges),
+    )
+    evidence_items = build_workflow_evidence(cluster)
+    evidence_json_str = serialize_evidence_json(evidence_items)
+    kw_count, ex_count, mb_count = _aggregate_evidence_metrics(evidence_items, evidence_json_str, cluster_id)
+    workflow = {
+        "workflowCode": f"WORKFLOW_{cluster_id}",
+        "name": suggested_name,
+        "description": f"{suggested_name} 자동 생성 workflow",
+        "graphJson": serialize_graph_json(graph_spec),
+        "evidenceJson": evidence_json_str,
+        "metaJson": "{}",
+    }
+    binding = {
+        "intentCode": f"INTENT_{cluster_id}",
+        "workflowCode": f"WORKFLOW_{cluster_id}",
+        "isPrimary": True,
+        "routeConditionJson": "{}",
+    }
+    return workflow, binding, kw_count, ex_count, mb_count, not evidence_items, signal
+
+
 def _build_workflow_draft(
     clusters: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -264,64 +309,20 @@ def _build_workflow_draft(
     empty_evidence_count = 0
 
     for cluster in clusters:
-        if not isinstance(cluster, dict):
+        result = _process_cluster_entry(cluster)
+        if result is None:
             continue
-        cluster_id = cluster.get("cluster_id")
-        suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
-        context = ClusterContext(
-            cluster_id=cluster_id,
-            suggested_name=suggested_name,
-            workflow_signal=cluster.get("workflow_signal") or {},
-        )
-        graph_spec = signal_based_generator(context)
-        signal = context.workflow_signal or {}
-        _logger.info(
-            "draft_generation.workflow_built cluster_id=%s workflow_code=%s"
-            " identify=%s payment=%s escalation=%s node_count=%d edge_count=%d",
-            cluster_id,
-            f"WORKFLOW_{cluster_id}",
-            bool(signal.get("requires_user_identification")),
-            bool(signal.get("requires_payment_check")),
-            bool(signal.get("has_escalation_cases")),
-            len(graph_spec.nodes),
-            len(graph_spec.edges),
-        )
-
-        evidence_items = build_workflow_evidence(cluster)
-        evidence_json_str = serialize_evidence_json(evidence_items)
-
-        kw_count, ex_count, mb_count = _aggregate_evidence_metrics(evidence_items, evidence_json_str, cluster_id)
-        keyword_total += kw_count
-        exemplar_total += ex_count
-        member_total += mb_count
-        if not evidence_items:
-            empty_evidence_count += 1
-
-        workflows.append(
-            {
-                "workflowCode": f"WORKFLOW_{cluster_id}",
-                "name": suggested_name,
-                "description": f"{suggested_name} 자동 생성 workflow",
-                "graphJson": serialize_graph_json(graph_spec),
-                "evidenceJson": evidence_json_str,
-                "metaJson": "{}",
-            }
-        )
-        bindings.append(
-            {
-                "intentCode": f"INTENT_{cluster_id}",
-                "workflowCode": f"WORKFLOW_{cluster_id}",
-                "isPrimary": True,
-                "routeConditionJson": "{}",
-            }
-        )
+        workflow, binding, kw, ex, mb, is_empty, signal = result
+        workflows.append(workflow)
+        bindings.append(binding)
+        keyword_total += kw
+        exemplar_total += ex
+        member_total += mb
+        empty_evidence_count += is_empty
         workflow_count += 1
-        if signal.get("requires_user_identification"):
-            identify_count += 1
-        if signal.get("requires_payment_check"):
-            payment_count += 1
-        if signal.get("has_escalation_cases"):
-            escalation_count += 1
+        identify_count += bool(signal.get("requires_user_identification"))
+        payment_count += bool(signal.get("requires_payment_check"))
+        escalation_count += bool(signal.get("has_escalation_cases"))
 
     draft = {
         "slots": [],
