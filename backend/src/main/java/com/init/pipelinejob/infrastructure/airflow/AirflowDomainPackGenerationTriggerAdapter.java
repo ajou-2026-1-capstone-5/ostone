@@ -9,6 +9,8 @@ import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 @Component
 public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGenerationTriggerPort {
@@ -63,7 +66,14 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
         return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
       }
       throw new AirflowTriggerFailedException(command.pipelineJobId());
-    } catch (RestClientException | HttpMessageConversionException ex) {
+    } catch (RestClientResponseException ex) {
+      throw new AirflowTriggerFailedException(command.pipelineJobId());
+    } catch (RestClientException ex) {
+      if (dagRunExists(restClient, token, dagId, command.dagRunId())) {
+        return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
+      }
+      throw new AirflowTriggerFailedException(command.pipelineJobId());
+    } catch (HttpMessageConversionException ex) {
       throw new AirflowTriggerFailedException(command.pipelineJobId());
     }
   }
@@ -104,6 +114,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   private ObjectNode buildDagRunRequest(DomainPackGenerationTriggerCommand command) {
     ObjectNode request = objectMapper.createObjectNode();
     request.put("dag_run_id", command.dagRunId());
+    request.put("logical_date", OffsetDateTime.now(ZoneOffset.UTC).toString());
     ObjectNode conf = request.putObject("conf");
     conf.put("workspace_id", command.workspaceId());
     conf.put("dataset_id", command.datasetId());

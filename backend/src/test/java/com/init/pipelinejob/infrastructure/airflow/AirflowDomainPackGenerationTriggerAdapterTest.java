@@ -80,6 +80,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     assertThat(tokenJson.get("password").asText()).isEqualTo("admin-password");
     assertThat(triggerAuthorization.get()).isEqualTo("Bearer jwt-token-123");
     assertThat(triggerJson.get("dag_run_id").asText()).isEqualTo("pipeline_job_123");
+    assertThat(triggerJson.get("logical_date").asText()).isNotBlank();
     assertThat(triggerJson.get("conf").get("workspace_id").asLong()).isEqualTo(1L);
     assertThat(triggerJson.get("conf").get("dataset_id").asLong()).isEqualTo(7L);
     assertThat(triggerJson.get("conf").get("pipeline_job_id").asLong()).isEqualTo(123L);
@@ -183,8 +184,6 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     server.createContext(
         "/api/v2/dags/domain_pack_generation/dagRuns",
         exchange -> {
-          sleepLongerThanReadTimeout();
-          exchange.sendResponseHeaders(200, -1);
           exchange.close();
         });
     server.createContext(
@@ -220,13 +219,5 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
 
   private String readBody(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
     return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-  }
-
-  private void sleepLongerThanReadTimeout() {
-    try {
-      Thread.sleep(200);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-    }
   }
 }
