@@ -1,5 +1,6 @@
 package com.init.shared.presentation;
 
+import com.init.shared.application.exception.BadGatewayException;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.BusinessException;
 import com.init.shared.application.exception.DuplicateException;
@@ -77,6 +78,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
+  }
+
+  @ExceptionHandler(BadGatewayException.class)
+  public ResponseEntity<ErrorResponse> handleBadGateway(BadGatewayException ex) {
+    log.warn("Bad gateway exception: {}, message={}", ex.getCode(), ex.getMessage());
+    return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
         .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 

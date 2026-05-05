@@ -53,6 +53,15 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176}
 
 airflow:
+  api:
+    base-url: ${AIRFLOW_API_BASE_URL:}
+    username: ${AIRFLOW_API_USERNAME:}
+    password: ${AIRFLOW_API_PASSWORD:}
+    connect-timeout: ${AIRFLOW_API_CONNECT_TIMEOUT:3s}
+    read-timeout: ${AIRFLOW_API_READ_TIMEOUT:10s}
+  dags:
+    domain-pack-generation:
+      dag-id: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:domain_pack_generation}
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET}
 

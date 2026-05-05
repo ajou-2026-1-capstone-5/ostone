@@ -16,6 +16,8 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "pipeline_job", schema = "pipeline")
 public class PipelineJob {
 
+  public static final String JOB_TYPE_DOMAIN_PACK_GENERATION = "DOMAIN_PACK_GENERATION";
+
   public static final String STATUS_QUEUED = "QUEUED";
   public static final String STATUS_RUNNING = "RUNNING";
   public static final String STATUS_WAITING_INTENT_CALLBACK = "WAITING_INTENT_CALLBACK";
@@ -103,6 +105,21 @@ public class PipelineJob {
     return pipelineJob;
   }
 
+  public static PipelineJob createDomainPackGeneration(
+      Long workspaceId, Long datasetId, Long triggeredBy, String requestPayloadJson) {
+    Objects.requireNonNull(datasetId, "datasetId must not be null");
+    PipelineJob pipelineJob =
+        create(
+            workspaceId,
+            JOB_TYPE_DOMAIN_PACK_GENERATION,
+            STATUS_QUEUED,
+            "MANUAL",
+            requestPayloadJson);
+    pipelineJob.datasetId = datasetId;
+    pipelineJob.triggeredBy = triggeredBy;
+    return pipelineJob;
+  }
+
   public boolean canAcceptDomainPackDraftCallback() {
     return STATUS_QUEUED.equals(status) || STATUS_RUNNING.equals(status);
   }
@@ -119,6 +136,41 @@ public class PipelineJob {
     return STATUS_SUCCEEDED.equals(status)
         || STATUS_FAILED.equals(status)
         || STATUS_CANCELLED.equals(status);
+  }
+
+  public boolean isFailed() {
+    return STATUS_FAILED.equals(status);
+  }
+
+  public boolean isCancelled() {
+    return STATUS_CANCELLED.equals(status);
+  }
+
+  public boolean isSucceeded() {
+    return STATUS_SUCCEEDED.equals(status);
+  }
+
+  public void assignAirflowRun(
+      String airflowDagId, String airflowRunId, String requestPayloadJson) {
+    Objects.requireNonNull(airflowDagId, "airflowDagId must not be null");
+    Objects.requireNonNull(airflowRunId, "airflowRunId must not be null");
+    if (!STATUS_QUEUED.equals(status)) {
+      throw new IllegalStateException("Airflow run은 QUEUED 상태에서만 할당할 수 있습니다.");
+    }
+    this.airflowDagId = airflowDagId;
+    this.airflowRunId = airflowRunId;
+    this.requestPayloadJson = requestPayloadJson != null ? requestPayloadJson : "{}";
+  }
+
+  public void markAirflowTriggered(OffsetDateTime startedAt) {
+    Objects.requireNonNull(startedAt, "startedAt must not be null");
+    if (!STATUS_QUEUED.equals(status)) {
+      throw new IllegalStateException("Airflow trigger 성공은 QUEUED 상태에서만 반영할 수 있습니다.");
+    }
+    this.status = STATUS_RUNNING;
+    this.startedAt = startedAt;
+    this.finishedAt = null;
+    this.lastErrorMessage = null;
   }
 
   public void markSucceeded(
@@ -159,16 +211,48 @@ public class PipelineJob {
     return workspaceId;
   }
 
+  public Long getDatasetId() {
+    return datasetId;
+  }
+
   public Long getDomainPackId() {
     return domainPackId;
+  }
+
+  public String getJobType() {
+    return jobType;
   }
 
   public String getStatus() {
     return status;
   }
 
+  public String getAirflowDagId() {
+    return airflowDagId;
+  }
+
+  public String getAirflowRunId() {
+    return airflowRunId;
+  }
+
+  public String getRequestPayloadJson() {
+    return requestPayloadJson;
+  }
+
   public String getResultSummaryJson() {
     return resultSummaryJson;
+  }
+
+  public Long getTriggeredBy() {
+    return triggeredBy;
+  }
+
+  public OffsetDateTime getRequestedAt() {
+    return requestedAt;
+  }
+
+  public OffsetDateTime getStartedAt() {
+    return startedAt;
   }
 
   public OffsetDateTime getFinishedAt() {
