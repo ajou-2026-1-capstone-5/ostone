@@ -11,10 +11,11 @@ import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import java.time.Duration;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestClientException;
 
 @Component
 public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGenerationTriggerPort {
@@ -62,7 +63,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
         return new DomainPackGenerationTriggerResult(dagId, command.dagRunId());
       }
       throw new AirflowTriggerFailedException(command.pipelineJobId());
-    } catch (RestClientResponseException ex) {
+    } catch (RestClientException | HttpMessageConversionException ex) {
       throw new AirflowTriggerFailedException(command.pipelineJobId());
     }
   }
@@ -81,7 +82,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
         throw new AirflowTriggerFailedException(pipelineJobId);
       }
       return response.accessToken();
-    } catch (ResourceAccessException | RestClientResponseException ex) {
+    } catch (RestClientException | HttpMessageConversionException ex) {
       throw new AirflowTriggerFailedException(pipelineJobId);
     }
   }
@@ -95,9 +96,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
           .retrieve()
           .toBodilessEntity();
       return true;
-    } catch (RestClientResponseException ex) {
-      return false;
-    } catch (ResourceAccessException ex) {
+    } catch (RestClientException | HttpMessageConversionException ex) {
       return false;
     }
   }
@@ -130,13 +129,22 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
     if (api == null
         || isBlank(api.baseUrl())
         || isBlank(api.username())
-        || isBlank(api.password())) {
+        || isBlank(api.password())
+        || hasApiV2Suffix(api.baseUrl())) {
       throw new AirflowConfigurationInvalidException();
     }
     return api;
   }
 
   private String normalizeBaseUrl(String baseUrl) {
+    return trimTrailingSlashes(baseUrl);
+  }
+
+  private boolean hasApiV2Suffix(String baseUrl) {
+    return trimTrailingSlashes(baseUrl).endsWith("/api/v2");
+  }
+
+  private String trimTrailingSlashes(String baseUrl) {
     String normalized = baseUrl.trim();
     while (normalized.endsWith("/")) {
       normalized = normalized.substring(0, normalized.length() - 1);

@@ -201,6 +201,7 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(command()))
         .isInstanceOf(PipelineJobAlreadySucceededException.class);
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_SUCCEEDED);
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_FAILED);
   }
 
   @Test

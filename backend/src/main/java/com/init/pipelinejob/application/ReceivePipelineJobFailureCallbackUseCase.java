@@ -56,7 +56,8 @@ public class ReceivePipelineJobFailureCallbackUseCase {
           "DUPLICATE_IGNORED", command.externalEventId(), command.jobId(), job.getStatus());
     }
 
-    return callbackSupportService.executeInTransaction(() -> processCallback(command));
+    return callbackSupportService.executeInTransactionOrMarkFailure(
+        command.jobId(), command.externalEventId(), () -> processCallback(command));
   }
 
   private ReceivePipelineJobFailureCallbackResult processCallback(

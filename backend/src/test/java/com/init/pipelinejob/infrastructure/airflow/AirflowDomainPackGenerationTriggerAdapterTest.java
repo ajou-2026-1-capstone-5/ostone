@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.pipelinejob.application.DomainPackGenerationTriggerCommand;
 import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
+import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -117,12 +118,42 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
   }
 
   @Test
+  @DisplayName("base-url에 api/v2가 포함되어 있으면 설정 오류로 처리한다")
+  void dagIdWithApiV2BaseUrlThrowsConfigurationInvalid() {
+    baseUrl = baseUrl + "/api/v2/";
+
+    assertThatThrownBy(() -> adapter().dagId())
+        .isInstanceOf(AirflowConfigurationInvalidException.class);
+  }
+
+  @Test
   @DisplayName("token 응답에 access_token이 없으면 trigger 실패로 처리한다")
   void triggerWithoutAccessTokenThrows() {
     server.createContext(
         "/auth/token",
         exchange -> {
           byte[] response = "{\"token\":\"jwt-token-123\"}".getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.close();
+        });
+
+    assertThatThrownBy(
+            () ->
+                adapter()
+                    .trigger(
+                        new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123")))
+        .isInstanceOf(AirflowTriggerFailedException.class);
+  }
+
+  @Test
+  @DisplayName("token 응답 JSON을 파싱할 수 없으면 trigger 실패로 처리한다")
+  void triggerWithMalformedTokenResponseThrows() {
+    server.createContext(
+        "/auth/token",
+        exchange -> {
+          byte[] response = "{".getBytes(StandardCharsets.UTF_8);
           exchange.getResponseHeaders().add("Content-Type", "application/json");
           exchange.sendResponseHeaders(200, response.length);
           exchange.getResponseBody().write(response);
