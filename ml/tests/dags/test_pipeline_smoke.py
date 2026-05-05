@@ -90,7 +90,9 @@ def test_dev_bootstrap_draft_to_publish_smoke(
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-bootstrap_dsds-bootstrap"
     assert len(candidate["workflowDraft"]["workflows"]) >= 1
     assert len(candidate["workflowDraft"]["intentWorkflowBindings"]) == len(candidate["intentDraft"]["intents"])
-    assert len(candidate["workflowDraft"]["workflows"][0]["evidenceJson"]) > 2
+    evidence_items = json.loads(candidate["workflowDraft"]["workflows"][0]["evidenceJson"])
+    assert isinstance(evidence_items, list)
+    assert len(evidence_items) > 0
 
 
 def test_reproducibility_evidence_json(

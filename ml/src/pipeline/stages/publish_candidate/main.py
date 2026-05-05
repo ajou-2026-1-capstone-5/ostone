@@ -15,6 +15,7 @@ from pipeline.stages.preprocessing.io import read_stage_context
 
 SCHEMA_VERSION = "1.0"
 EVIDENCE_JSON_MAX_LEN = 5000
+_ALLOWED_EVIDENCE_TYPES = frozenset({"keyword", "exemplar_conv_id", "member_conv_id"})
 CALLBACK_DOMAIN_PACK = "domain-pack-drafts"
 CALLBACK_INTENT = "intent-drafts"
 CALLBACK_WORKFLOW = "workflow-drafts"
@@ -601,3 +602,13 @@ def _validate_evidence_json(value: object, *, context: str) -> None:
         raise PipelineStageError(f"{context} must be valid JSON.") from exc
     if not isinstance(parsed, list):
         raise PipelineStageError(f"{context} must encode a JSON array.")
+    for item in parsed:
+        if not isinstance(item, dict):
+            raise PipelineStageError(f"{context} items must be objects.")
+        if item.get("type") not in _ALLOWED_EVIDENCE_TYPES:
+            raise PipelineStageError(
+                f"{context} item has unsupported type {item.get('type')!r}."
+            )
+        value_field = item.get("value")
+        if not isinstance(value_field, str) or not value_field.strip():
+            raise PipelineStageError(f"{context} item 'value' must be a non-blank string.")
