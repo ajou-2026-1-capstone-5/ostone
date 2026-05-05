@@ -182,7 +182,7 @@ def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:
         "cluster_id": cluster.cluster_id,
         "member_indices": list(cluster.member_indices),
         "member_conv_ids": list(cluster.member_conv_ids),
-        "exemplar_indices": list(cluster.exemplar_indices),
+        "exemplar_conv_ids": list(cluster.exemplar_conv_ids),
         "keywords": list(cluster.keywords),
         "suggested_name": cluster.suggested_name,
         "suggested_description": cluster.suggested_description,

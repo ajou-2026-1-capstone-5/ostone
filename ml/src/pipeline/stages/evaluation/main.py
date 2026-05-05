@@ -86,6 +86,7 @@ def _build_development_candidate() -> dict[str, Any]:
                     "entryConditionJson": "{}",
                     "evidenceJson": "[]",
                     "metaJson": "{}",
+                    "representativeCases": [],
                 }
             ]
         },
@@ -110,9 +111,9 @@ def _build_development_candidate() -> dict[str, Any]:
                     "name": "Default flow",
                     "description": "Development default workflow.",
                     "graphJson": (
-                        '{"nodes":[{"id":"start","type":"START"},'
-                        '{"id":"answer","type":"ACTION","policyRef":"default_policy"},'
-                        '{"id":"terminal","type":"TERMINAL"}],'
+                        '{"direction":"LR","nodes":[{"id":"start","type":"START","label":"시작"},'
+                        '{"id":"answer","type":"ACTION","label":"Default flow","policyRef":"default_policy"},'
+                        '{"id":"terminal","type":"TERMINAL","label":"종료"}],'
                         '"edges":[{"id":"e1","from":"start","to":"answer"},'
                         '{"id":"e2","from":"answer","to":"terminal"}]}'
                     ),
