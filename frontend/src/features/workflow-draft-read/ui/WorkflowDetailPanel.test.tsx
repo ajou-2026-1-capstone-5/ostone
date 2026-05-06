@@ -1,12 +1,23 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
+import { useTransitionList } from "../model/useTransitionList";
 import { WorkflowDetailPanel } from "./WorkflowDetailPanel";
 
 vi.mock("../model/useWorkflowDetail", () => ({
   useWorkflowDetail: vi.fn(),
+}));
+
+vi.mock("../model/useTransitionList", () => ({
+  useTransitionList: vi.fn(),
+}));
+
+vi.mock("@/entities/policy", () => ({
+  policyApi: { list: vi.fn().mockResolvedValue([]) },
+  policyKeys: { list: (...args: unknown[]) => ["policies", "list", ...args] },
 }));
 
 vi.mock("sonner", () => ({
@@ -22,6 +33,7 @@ vi.mock("@/shared/ui/ErrorBoundary", () => ({
 }));
 
 const mockedUseWorkflowDetail = vi.mocked(useWorkflowDetail);
+const mockedUseTransitionList = vi.mocked(useTransitionList);
 
 const stubDetail = {
   id: 10,
@@ -37,7 +49,16 @@ const stubDetail = {
   updatedAt: "2026-04-01T00:00:00Z",
 };
 
+const stubTransitionResult = {
+  data: undefined,
+  isLoading: false,
+  isError: false,
+  error: null,
+  refetch: vi.fn(),
+} as unknown as ReturnType<typeof useTransitionList>;
+
 function renderPanel(props: Partial<React.ComponentProps<typeof WorkflowDetailPanel>> = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const defaults = {
     wsId: 1,
     packId: 2,
@@ -45,14 +66,20 @@ function renderPanel(props: Partial<React.ComponentProps<typeof WorkflowDetailPa
     workflowId: 10 as number | null,
     onEdit: vi.fn(),
   };
-  render(<WorkflowDetailPanel {...defaults} {...props} />);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <WorkflowDetailPanel {...defaults} {...props} />
+    </QueryClientProvider>,
+  );
   return defaults;
 }
 
 describe("WorkflowDetailPanel", () => {
   beforeEach(() => {
     mockedUseWorkflowDetail.mockReset();
+    mockedUseTransitionList.mockReset();
     vi.mocked(toast.error).mockReset();
+    mockedUseTransitionList.mockReturnValue(stubTransitionResult);
   });
 
   it("workflowId=null이면 선택 안내를 보여준다", () => {
@@ -234,7 +261,7 @@ describe("WorkflowDetailPanel", () => {
     expect(screen.getByRole("tab", { name: "Graph" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("End 키로 마지막 탭(Meta)으로 이동한다", () => {
+  it("End 키로 마지막 탭(Transitions)으로 이동한다", () => {
     mockedUseWorkflowDetail.mockReturnValue({
       data: stubDetail,
       isLoading: false,
@@ -244,7 +271,7 @@ describe("WorkflowDetailPanel", () => {
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
     fireEvent.keyDown(screen.getByRole("tab", { name: "Graph" }), { key: "End" });
-    expect(screen.getByRole("tab", { name: "Meta" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Transitions" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("Meta 탭 — evidenceJson이 malformed JSON이면 raw 문자열을 표시한다", () => {

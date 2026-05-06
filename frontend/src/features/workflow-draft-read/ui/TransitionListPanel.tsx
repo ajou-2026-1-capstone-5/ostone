@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
 import type { WorkflowTransitionDetail } from "@/entities/workflow";
@@ -22,9 +22,14 @@ export function TransitionListPanel({
   const errorMessage =
     isError && error instanceof ApiRequestError ? error.message : undefined;
 
+  const toastFiredRef = useRef(false);
   useEffect(() => {
-    if (isError) {
+    if (isError && !toastFiredRef.current) {
+      toastFiredRef.current = true;
       toast.error(errorMessage ?? "transition 목록을 불러오지 못했습니다.");
+    }
+    if (!isError) {
+      toastFiredRef.current = false;
     }
   }, [isError, errorMessage]);
 
