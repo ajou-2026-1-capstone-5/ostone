@@ -1,0 +1,94 @@
+.stateWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: -0.14px;
+}
+
+.skeleton {
+  width: 100%;
+  flex: 1;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.retryButton {
+  padding: 6px 14px 7px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.retryButton:focus-visible {
+  outline: dashed 2px var(--text-primary);
+  outline-offset: 2px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.id {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.route {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-self: flex-start;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+}
+
+.policyCode {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}

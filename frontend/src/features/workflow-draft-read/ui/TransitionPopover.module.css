@@ -1,0 +1,108 @@
+.popover {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 272px;
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.id {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.closeButton {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.closeButton:focus-visible {
+  outline: dashed 2px var(--text-primary);
+  outline-offset: 2px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.value {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  align-self: flex-start;
+}
+
+.policySection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.policyName {
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+}
+
+.policyDesc {
+  font-size: 12px;
+  font-weight: 340;
+  letter-spacing: -0.14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
