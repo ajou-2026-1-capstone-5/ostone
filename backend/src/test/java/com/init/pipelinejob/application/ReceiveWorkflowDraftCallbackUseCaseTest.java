@@ -13,9 +13,6 @@ import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.Workflow
 import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
 import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
-import com.init.domainpack.domain.model.DomainPackVersion;
-import com.init.domainpack.domain.repository.DomainPackRepository;
-import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackTargetMismatchException;
 import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
@@ -52,8 +49,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
   @Mock private PipelineArtifactRepository pipelineArtifactRepository;
   @Mock private AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase;
-  @Mock private DomainPackVersionRepository domainPackVersionRepository;
-  @Mock private DomainPackRepository domainPackRepository;
+  @Mock private DomainPackVersionPort domainPackVersionPort;
   @Mock private PlatformTransactionManager transactionManager;
 
   private ReceiveWorkflowDraftCallbackUseCase useCase;
@@ -71,8 +67,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
             pipelineJobRepository,
             pipelineArtifactRepository,
             addWorkflowDraftToVersionUseCase,
-            domainPackVersionRepository,
-            domainPackRepository,
+            domainPackVersionPort,
             new ObjectMapper(),
             new PipelineJobCallbackSupportService(
                 pipelineJobRepository,
@@ -120,9 +115,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         .willReturn(Optional.of(job), Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(domainPackVersionRepository.findById(101L))
-        .willReturn(
-            Optional.of(DomainPackVersion.ofForTest(101L, 8L, DomainPackVersion.STATUS_DRAFT)));
+    given(domainPackVersionPort.findDomainPackIdByVersionId(101L)).willReturn(Optional.of(8L));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobCallbackTargetMismatchException.class);
@@ -247,9 +240,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   }
 
   private void givenValidTargetVersion() {
-    given(domainPackVersionRepository.findById(101L))
-        .willReturn(
-            Optional.of(DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT)));
-    given(domainPackRepository.existsByIdAndWorkspaceId(7L, 3L)).willReturn(true);
+    given(domainPackVersionPort.findDomainPackIdByVersionId(101L)).willReturn(Optional.of(7L));
+    given(domainPackVersionPort.existsByDomainPackIdAndWorkspaceId(7L, 3L)).willReturn(true);
   }
 }
