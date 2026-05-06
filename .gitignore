@@ -53,6 +53,7 @@ agent-local-up.sh
 agent-local-down.sh
 agent-local-status.sh
 .agent-local/
+.claude/
 
 # Playwright MCP 파일
 .playwright-mcp
