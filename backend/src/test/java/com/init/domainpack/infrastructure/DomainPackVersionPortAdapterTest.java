@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DomainPackVersionPortAdapter")
@@ -71,15 +70,6 @@ class DomainPackVersionPortAdapterTest {
   }
 
   private DomainPackVersion newVersion(Long versionId, Long domainPackId) {
-    try {
-      var constructor = DomainPackVersion.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      DomainPackVersion version = constructor.newInstance();
-      ReflectionTestUtils.setField(version, "id", versionId);
-      ReflectionTestUtils.setField(version, "domainPackId", domainPackId);
-      return version;
-    } catch (ReflectiveOperationException ex) {
-      throw new RuntimeException("DomainPackVersion 테스트 인스턴스 생성 실패", ex);
-    }
+    return DomainPackVersion.ofForTest(versionId, domainPackId, DomainPackVersion.STATUS_DRAFT);
   }
 }
