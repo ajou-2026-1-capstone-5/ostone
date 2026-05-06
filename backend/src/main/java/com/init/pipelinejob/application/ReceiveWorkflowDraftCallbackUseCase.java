@@ -100,7 +100,7 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       throw new PipelineJobCallbackNotAllowedException(
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
-    validateTargetVersion(job, command.domainPackVersionId());
+    Long domainPackId = validateTargetVersion(job, command.domainPackVersionId());
 
     OffsetDateTime now = callbackSupportService.now();
     pipelineArtifactRepository.save(
@@ -118,14 +118,17 @@ public class ReceiveWorkflowDraftCallbackUseCase {
                 command.intentSlotBindings(),
                 command.intentWorkflowBindings()));
 
-    job.markSucceeded(workflowResult.domainPackId(), buildSuccessSummaryJson(workflowResult), now);
+    job.markSucceeded(
+        domainPackId,
+        buildSuccessSummaryJson(workflowResult, domainPackId, command.domainPackVersionId()),
+        now);
     callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
     callbackSupportService.markReceiptProcessed(command.externalEventId(), now);
 
     return ReceiveWorkflowDraftCallbackResult.created(
         command.externalEventId(),
-        workflowResult.domainPackId(),
-        workflowResult.domainPackVersionId(),
+        domainPackId,
+        command.domainPackVersionId(),
         workflowResult.addedSlotCount(),
         workflowResult.addedPolicyCount(),
         workflowResult.addedRiskCount(),
@@ -135,7 +138,7 @@ public class ReceiveWorkflowDraftCallbackUseCase {
         command.jobId());
   }
 
-  private void validateTargetVersion(PipelineJob job, Long domainPackVersionId) {
+  private Long validateTargetVersion(PipelineJob job, Long domainPackVersionId) {
     Long versionDomainPackId =
         domainPackVersionPort
             .findDomainPackIdByVersionId(domainPackVersionId)
@@ -149,12 +152,14 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       throw new PipelineJobCallbackTargetMismatchException(
           job.getId(), job.getDomainPackId(), domainPackVersionId, versionDomainPackId);
     }
+    return versionDomainPackId;
   }
 
-  private String buildSuccessSummaryJson(AddWorkflowDraftPortResult result) {
+  private String buildSuccessSummaryJson(
+      AddWorkflowDraftPortResult result, Long domainPackId, Long domainPackVersionId) {
     ObjectNode summary = objectMapper.createObjectNode();
-    summary.put("domainPackId", result.domainPackId());
-    summary.put("domainPackVersionId", result.domainPackVersionId());
+    summary.put("domainPackId", domainPackId);
+    summary.put("domainPackVersionId", domainPackVersionId);
     summary.put("addedSlotCount", result.addedSlotCount());
     summary.put("addedPolicyCount", result.addedPolicyCount());
     summary.put("addedRiskCount", result.addedRiskCount());

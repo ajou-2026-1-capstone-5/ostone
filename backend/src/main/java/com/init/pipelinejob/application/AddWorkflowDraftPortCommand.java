@@ -13,17 +13,13 @@ public record AddWorkflowDraftPortCommand(
     List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
 
   public AddWorkflowDraftPortCommand {
-    domainPackVersionId = Objects.requireNonNull(domainPackVersionId, "domainPackVersionId");
-    slots = immutableCopy(slots);
-    policies = immutableCopy(policies);
-    risks = immutableCopy(risks);
-    workflows = immutableCopy(workflows);
-    intentSlotBindings = immutableCopy(intentSlotBindings);
-    intentWorkflowBindings = immutableCopy(intentWorkflowBindings);
-  }
-
-  private static <T> List<T> immutableCopy(List<T> values) {
-    return values == null || values.isEmpty() ? List.of() : List.copyOf(values);
+    Objects.requireNonNull(domainPackVersionId, "domainPackVersionId");
+    slots = slots != null ? slots : List.of();
+    policies = policies != null ? policies : List.of();
+    risks = risks != null ? risks : List.of();
+    workflows = workflows != null ? workflows : List.of();
+    intentSlotBindings = intentSlotBindings != null ? intentSlotBindings : List.of();
+    intentWorkflowBindings = intentWorkflowBindings != null ? intentWorkflowBindings : List.of();
   }
 
   public record SlotDraft(

@@ -88,7 +88,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftPort.execute(any()))
-        .willReturn(new AddWorkflowDraftPortResult(101L, 7L, 1, 1, 1, 1, 1, 1));
+        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1));
 
     ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand());
 

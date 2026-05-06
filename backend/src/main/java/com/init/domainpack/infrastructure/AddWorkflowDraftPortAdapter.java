@@ -28,8 +28,6 @@ public class AddWorkflowDraftPortAdapter implements AddWorkflowDraftPort {
   public AddWorkflowDraftPortResult execute(AddWorkflowDraftPortCommand command) {
     var result = addWorkflowDraftToVersionUseCase.execute(toInternalCommand(command));
     return new AddWorkflowDraftPortResult(
-        result.domainPackVersionId(),
-        result.domainPackId(),
         result.addedSlotCount(),
         result.addedPolicyCount(),
         result.addedRiskCount(),

@@ -43,15 +43,12 @@ class AddWorkflowDraftPortAdapterTest {
     var command =
         new AddWorkflowDraftPortCommand(
             42L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
-    var useCaseResult =
-        new AddWorkflowDraftToVersionResult(42L, 7L, 0, 0, 0, 0, 0, 0);
+    var useCaseResult = new AddWorkflowDraftToVersionResult(42L, 7L, 0, 0, 0, 0, 0, 0);
     given(addWorkflowDraftToVersionUseCase.execute(org.mockito.ArgumentMatchers.any()))
         .willReturn(useCaseResult);
 
     AddWorkflowDraftPortResult result = adapter.execute(command);
 
-    assertThat(result.domainPackVersionId()).isEqualTo(42L);
-    assertThat(result.domainPackId()).isEqualTo(7L);
     assertThat(result.addedSlotCount()).isZero();
     assertThat(result.addedPolicyCount()).isZero();
     assertThat(result.addedRiskCount()).isZero();
