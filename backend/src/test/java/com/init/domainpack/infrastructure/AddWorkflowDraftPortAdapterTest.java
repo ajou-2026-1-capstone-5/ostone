@@ -39,7 +39,7 @@ class AddWorkflowDraftPortAdapterTest {
 
   @Test
   @DisplayName("execute — useCase 결과를 AddWorkflowDraftPortResult로 변환하여 반환한다")
-  void execute_mapsResultCorrectly() {
+  void should_mapPortResult_when_useCaseSucceeds() {
     var command =
         new AddWorkflowDraftPortCommand(
             42L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
@@ -62,7 +62,7 @@ class AddWorkflowDraftPortAdapterTest {
 
   @Test
   @DisplayName("execute — 모든 mapping 필드를 내부 커맨드로 정확히 변환한다")
-  void execute_mapsAllFieldsToInternalCommand() {
+  void should_mapAllFieldsToInternalCommand_when_commandHasAllFields() {
     var slot = new SlotDraft("SLOT_A", "슬롯A", "설명", "STRING", false, "{}", "{}", "{}");
     var policy = new PolicyDraft("POL_A", "정책A", "설명", "HIGH", "{}", "{}", "{}", "{}");
     var risk = new RiskDraft("RISK_A", "위험A", "설명", "MEDIUM", "{}", "{}", "{}", "{}");

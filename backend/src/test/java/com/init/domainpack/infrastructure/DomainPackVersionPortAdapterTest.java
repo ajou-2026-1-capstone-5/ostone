@@ -30,7 +30,7 @@ class DomainPackVersionPortAdapterTest {
 
   @Test
   @DisplayName("findDomainPackIdByVersionId — 버전이 존재하면 domainPackId를 반환한다")
-  void findDomainPackIdByVersionId_exists_returnsDomainPackId() {
+  void should_returnDomainPackId_when_versionExists() {
     DomainPackVersion version = newVersion(101L, 7L);
     given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
 
@@ -41,7 +41,7 @@ class DomainPackVersionPortAdapterTest {
 
   @Test
   @DisplayName("findDomainPackIdByVersionId — 버전이 없으면 Optional.empty를 반환한다")
-  void findDomainPackIdByVersionId_absent_returnsEmpty() {
+  void should_returnEmpty_when_versionNotFound() {
     given(domainPackVersionRepository.findById(999L)).willReturn(Optional.empty());
 
     Optional<Long> result = adapter.findDomainPackIdByVersionId(999L);
@@ -51,7 +51,7 @@ class DomainPackVersionPortAdapterTest {
 
   @Test
   @DisplayName("existsByDomainPackIdAndWorkspaceId — 존재하면 true를 반환한다")
-  void existsByDomainPackIdAndWorkspaceId_exists_returnsTrue() {
+  void should_returnTrue_when_domainPackExistsInWorkspace() {
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 3L)).willReturn(true);
 
     boolean result = adapter.existsByDomainPackIdAndWorkspaceId(7L, 3L);
@@ -61,7 +61,7 @@ class DomainPackVersionPortAdapterTest {
 
   @Test
   @DisplayName("existsByDomainPackIdAndWorkspaceId — 존재하지 않으면 false를 반환한다")
-  void existsByDomainPackIdAndWorkspaceId_absent_returnsFalse() {
+  void should_returnFalse_when_domainPackNotInWorkspace() {
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 99L)).willReturn(false);
 
     boolean result = adapter.existsByDomainPackIdAndWorkspaceId(7L, 99L);
