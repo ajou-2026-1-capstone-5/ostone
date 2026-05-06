@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { SlotEditSheet } from '@/features/update-slot';
 import {
   useIntentPreview,
   useSlotPreview,
@@ -32,6 +33,7 @@ export function ComponentCountGrid({
   workflowCount,
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
+  const [slotEditOpen, setSlotEditOpen] = useState(false);
   const basePath = `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}`;
 
   const intentPreview = useIntentPreview(wsId, packId, versionId);
@@ -60,37 +62,41 @@ export function ComponentCountGrid({
     if (workflowPreview.isError) toast.error('Workflow 미리보기 로드 실패');
   }, [workflowPreview.isError]);
 
+  const firstSlotId = slotPreview.data?.[0]?.id;
+
   return (
-    <div className={styles.grid}>
+    <>
+      <div className={styles.grid}>
       <CountCard
         label="Intent"
         count={intentCount}
-        disabled
-        tooltip="상세 화면 준비 중"
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/intents`)}
         previewNames={intentPreview.data?.map((i) => i.name)}
         isLoadingPreview={intentPreview.isLoading}
       />
       <CountCard
         label="Slot"
         count={slotCount}
-        disabled
-        tooltip="상세 화면 준비 중"
+        disabled={firstSlotId === undefined}
+        tooltip="수정할 Slot이 없습니다"
+        onNavigate={() => setSlotEditOpen(true)}
         previewNames={slotPreview.data?.map((s) => s.name)}
         isLoadingPreview={slotPreview.isLoading}
       />
       <CountCard
         label="Policy"
         count={policyCount}
-        disabled
-        tooltip="상세 화면 준비 중"
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/policies`)}
         previewNames={policyPreview.data?.map((p) => p.name)}
         isLoadingPreview={policyPreview.isLoading}
       />
       <CountCard
         label="Risk"
         count={riskCount}
-        disabled
-        tooltip="상세 화면 준비 중"
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/risks`)}
         previewNames={riskPreview.data?.map((r) => r.name)}
         isLoadingPreview={riskPreview.isLoading}
       />
@@ -103,7 +109,18 @@ export function ComponentCountGrid({
         isLoadingPreview={workflowPreview.isLoading}
         onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
       />
-    </div>
+      </div>
+      {firstSlotId !== undefined && (
+        <SlotEditSheet
+          workspaceId={wsId}
+          packId={packId}
+          versionId={versionId}
+          slotId={firstSlotId}
+          isOpen={slotEditOpen}
+          onClose={() => setSlotEditOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

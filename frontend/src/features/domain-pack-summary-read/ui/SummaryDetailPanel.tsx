@@ -1,9 +1,13 @@
-import type { UseQueryResult } from '@tanstack/react-query';
+import { QueryClient, type UseQueryResult } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { DomainPackVersionDetail } from '@/entities/domain-pack';
 import { ApiRequestError } from '@/shared/api';
+import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
 import { SummaryJsonCard } from './SummaryJsonCard';
 import { ComponentCountGrid } from './ComponentCountGrid';
 import styles from './SummaryDetailPanel.module.css';
+
+const mutationClient = new QueryClient();
 
 interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
@@ -12,6 +16,21 @@ interface SummaryDetailPanelProps {
 }
 
 export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelProps) {
+  const activateMutation = useActivate(
+    {
+      mutation: {
+        onSuccess: () => {
+          toast.success('버전이 활성화되었습니다.');
+          query.refetch();
+        },
+        onError: () => {
+          toast.error('버전 활성화에 실패했습니다.');
+        },
+      },
+    },
+    mutationClient,
+  );
+
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
     return (
       <div className={styles.panel}>
@@ -74,6 +93,18 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
             </>
           )}
         </div>
+        {v.lifecycleStatus === 'DRAFT' && (
+          <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className={styles.errorRetryBtn}
+              onClick={() => activateMutation.mutate({ workspaceId: wsId, packId, versionId: v.versionId })}
+              disabled={activateMutation.isPending}
+            >
+              활성화
+            </button>
+          </div>
+        )}
       </div>
 
       <div>
