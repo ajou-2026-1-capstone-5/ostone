@@ -54,6 +54,7 @@ agent-local-down.sh
 agent-local-status.sh
 .agent-local/
 .claude/
+.env.5stone-paths
 
 # Playwright MCP 파일
 .playwright-mcp
