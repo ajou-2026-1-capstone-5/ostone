@@ -8,7 +8,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('OstoneShell', () => {
-  it('renders Sidebar with 6 nav items', () => {
+  it('renders Sidebar with 5 nav items', () => {
     render(
       <OstoneShell active="consult" crumbs={[]}>
         <div>content</div>
@@ -17,10 +17,9 @@ describe('OstoneShell', () => {
     );
     expect(screen.getByTitle('Workflows')).toBeInTheDocument();
     expect(screen.getByTitle('Domain Packs')).toBeInTheDocument();
-    expect(screen.getByTitle('Review')).toBeInTheDocument();
     expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
-    expect(screen.getByTitle('Logs')).toBeInTheDocument();
+    expect(screen.getByTitle('Uploads')).toBeInTheDocument();
   });
 
   it('renders Topbar with OSTONE eyebrow', () => {

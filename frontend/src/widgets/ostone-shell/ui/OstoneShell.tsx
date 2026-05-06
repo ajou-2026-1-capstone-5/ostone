@@ -6,10 +6,11 @@ interface OstoneShellProps {
   crumbs: string[];
   topbarRight?: ReactNode;
   dark?: boolean;
+  basePath?: string;
   children: ReactNode;
 }
 
-export function OstoneShell({ active, crumbs, topbarRight, dark = false, children }: OstoneShellProps) {
+export function OstoneShell({ active, crumbs, topbarRight, dark = false, basePath, children }: OstoneShellProps) {
   return (
     <div
       style={{
@@ -19,7 +20,7 @@ export function OstoneShell({ active, crumbs, topbarRight, dark = false, childre
       }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Sidebar active={active} dark={dark} />
+        <Sidebar active={active} dark={dark} basePath={basePath} />
       </div>
       <div
         style={{

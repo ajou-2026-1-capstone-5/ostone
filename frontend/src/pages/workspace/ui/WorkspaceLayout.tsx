@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import { Navigate, Outlet, useParams } from "react-router-dom";
 
 import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
-import { Button } from "@/shared/ui/button";
-import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { Spinner } from "@/shared/ui/spinner";
-import { WorkspaceShell } from "@/widgets/workspace-shell/ui/WorkspaceShell";
-
-import styles from "./workspace-layout.module.css";
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
+  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : undefined;
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
@@ -59,41 +57,43 @@ export function WorkspaceLayout() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className={styles.statePanel} aria-live="polite">
-          <Spinner />
-          <p className={styles.stateText}>워크스페이스 정보를 불러오는 중입니다.</p>
+      <OstoneShell active="workflows" crumbs={[]} basePath={basePath}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "var(--s-3)",
+            height: "100%",
+          }}
+          aria-live="polite"
+        >
+          <LoadingSpinner />
+          <p style={{ color: "var(--ink)", fontSize: "14px" }}>워크스페이스 정보를 불러오는 중입니다.</p>
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
   if (error || !workspace) {
     return (
-      <DashboardLayout>
-        <div className={styles.statePanel} role="alert">
-          <p className={styles.stateTitle}>워크스페이스를 불러오지 못했습니다.</p>
-          <p className={styles.stateText}>{error || "워크스페이스를 찾을 수 없습니다."}</p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setIsLoading(true);
-              setError("");
-              setRetryNonce((value) => value + 1);
-            }}
-          >
-            다시 시도
-          </Button>
-        </div>
-      </DashboardLayout>
+      <OstoneShell active="workflows" crumbs={[]} basePath={basePath}>
+        <ErrorState
+          message={error || "워크스페이스를 찾을 수 없습니다."}
+          onRetry={() => {
+            setIsLoading(true);
+            setError("");
+            setRetryNonce((value) => value + 1);
+          }}
+        />
+      </OstoneShell>
     );
   }
 
   return (
-    <DashboardLayout>
-      <WorkspaceShell workspaceId={parsedWorkspaceId} workspaceName={workspace.name}>
-        <Outlet context={{ workspace }} />
-      </WorkspaceShell>
-    </DashboardLayout>
+    <OstoneShell active="workflows" crumbs={[workspace.name]} basePath={basePath}>
+      <Outlet context={{ workspace }} />
+    </OstoneShell>
   );
 }

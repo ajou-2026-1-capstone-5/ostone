@@ -6,10 +6,8 @@ import { Avatar } from '../atoms/Avatar';
 export type SidebarActive =
   | 'workflows'
   | 'domain'
-  | 'review'
   | 'pipeline'
   | 'consult'
-  | 'logs'
   | 'upload';
 
 interface SidebarProps {
@@ -21,11 +19,9 @@ interface SidebarProps {
 const NAV_ITEMS: { key: SidebarActive; icon: IconName; label: string; getPath: (base: string) => string }[] = [
   { key: 'workflows', icon: 'grid', label: 'Workflows', getPath: (base) => `${base}/workflows` },
   { key: 'domain', icon: 'folder', label: 'Domain Packs', getPath: (base) => `${base}/domain-packs` },
-  { key: 'review', icon: 'eye', label: 'Review', getPath: () => '/review' },
-  { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: (base) => `${base}/pipeline` },
-  { key: 'consult', icon: 'msg', label: 'Consultation', getPath: () => '/consultations' },
-  { key: 'logs', icon: 'db', label: 'Logs', getPath: () => '/logs' },
-  { key: 'upload', icon: 'upload', label: 'Uploads', getPath: () => '/upload' },
+  { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: () => '/upload' },
+  { key: 'consult', icon: 'msg', label: 'Consultation', getPath: () => '/consultation' },
+  { key: 'upload', icon: 'upload', label: 'Uploads', getPath: (base) => `${base}/upload` },
 ];
 
 export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: SidebarProps) {
