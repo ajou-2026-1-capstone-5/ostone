@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ReactFlow, Background, Controls, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { WorkflowGraph } from "../../../entities/workflow";
+import type { WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "./graphMapper";
 import { StartNode } from "./nodes/StartNode";
 import { ActionNode } from "./nodes/ActionNode";
@@ -22,9 +22,11 @@ const nodeTypes: NodeTypes = {
 
 interface GraphRendererProps {
   graph: WorkflowGraph;
+  onEdgeClick?: (edgeId: string) => void;
+  onPaneClick?: () => void;
 }
 
-export default function GraphRenderer({ graph }: GraphRendererProps) {
+export default function GraphRenderer({ graph, onEdgeClick, onPaneClick }: GraphRendererProps) {
   const { nodes, edges } = useMemo(() => toFlow(graph), [graph]);
 
   return (
@@ -39,6 +41,8 @@ export default function GraphRenderer({ graph }: GraphRendererProps) {
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
+        onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
+        onPaneClick={onPaneClick}
       >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} />

@@ -51,3 +51,13 @@ export interface UpdateWorkflowRequest {
   description?: string | null;
   graphJson: WorkflowGraph;
 }
+
+export interface WorkflowTransitionDetail {
+  id: string;
+  workflowDefinitionId: number;
+  domainPackVersionId: number;
+  from: string;
+  to: string;
+  label: string | null;
+  toPolicyRef: string | null;
+}

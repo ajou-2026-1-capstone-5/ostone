@@ -1,18 +1,37 @@
-import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent } from "react";
+import {
+  Suspense,
+  lazy,
+  useState,
+  useEffect,
+  useId,
+  useMemo,
+  type KeyboardEvent,
+} from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
+import { useTransitionList } from "../model/useTransitionList";
 import { parseTerminalStates } from "../model/parseTerminalStates";
 import { ApiRequestError } from "@/shared/api";
 import type { WorkflowDetail } from "@/entities/workflow";
+import { policyApi, policyKeys } from "@/entities/policy";
+import type { PolicySummary } from "@/entities/policy";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
+import { TransitionPopover } from "./TransitionPopover";
+import { TransitionListPanel } from "./TransitionListPanel";
 import styles from "./WorkflowDetailPanel.module.css";
 
 const GraphRenderer = lazy(() => import("./GraphRenderer"));
 
-type Tab = "graph" | "json" | "meta";
+type Tab = "graph" | "json" | "meta" | "transitions";
 
-const TABS = ["graph", "json", "meta"] as const;
-const TAB_LABELS: Record<Tab, string> = { graph: "Graph", json: "JSON", meta: "Meta" };
+const TABS = ["graph", "json", "meta", "transitions"] as const;
+const TAB_LABELS: Record<Tab, string> = {
+  graph: "Graph",
+  json: "JSON",
+  meta: "Meta",
+  transitions: "Transitions",
+};
 
 interface WorkflowDetailPanelProps {
   wsId: number;
@@ -29,13 +48,53 @@ export function WorkflowDetailPanel({
   workflowId,
   onEdit,
 }: WorkflowDetailPanelProps) {
-  const { data: detail, isLoading, isError, error, refetch } = useWorkflowDetail(wsId, packId, versionId, workflowId);
+  const { data: detail, isLoading, isError, error, refetch } = useWorkflowDetail(
+    wsId,
+    packId,
+    versionId,
+    workflowId,
+  );
   const [tab, setTab] = useState<Tab>("graph");
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const idPrefix = useId();
 
   useEffect(() => {
     setTab("graph");
+    setSelectedEdgeId(null);
   }, [workflowId]);
+
+  const {
+    data: transitionList,
+    isLoading: transitionLoading,
+    isError: transitionError,
+    error: transitionErr,
+    refetch: refetchTransitions,
+  } = useTransitionList(wsId, packId, versionId, workflowId);
+
+  const { data: policyList } = useQuery({
+    queryKey: policyKeys.list(wsId, packId, versionId),
+    queryFn: () => policyApi.list(wsId, packId, versionId),
+    enabled: workflowId != null,
+  });
+
+  const policyByCode = useMemo(
+    () =>
+      new Map<string, PolicySummary>(policyList?.map((p) => [p.policyCode, p]) ?? []),
+    [policyList],
+  );
+
+  const selectedTransition = useMemo(
+    () => transitionList?.find((t) => t.id === selectedEdgeId) ?? null,
+    [transitionList, selectedEdgeId],
+  );
+
+  const selectedPolicy = useMemo(
+    () =>
+      selectedTransition?.toPolicyRef != null
+        ? (policyByCode.get(selectedTransition.toPolicyRef) ?? null)
+        : null,
+    [selectedTransition, policyByCode],
+  );
 
   const apiError = isError && error instanceof ApiRequestError ? error : null;
   const apiErrorCode = apiError?.code;
@@ -129,13 +188,31 @@ export function WorkflowDetailPanel({
           id={`${idPrefix}-panel-graph`}
           role="tabpanel"
           aria-labelledby={`${idPrefix}-tab-graph`}
-          className={styles.body}
+          className={`${styles.body} ${styles.graphBody}`}
         >
-          <ErrorBoundary key={workflowId} fallback={<div className={styles.placeholder}><span>그래프를 표시할 수 없습니다.</span></div>}>
+          <ErrorBoundary
+            key={workflowId}
+            fallback={
+              <div className={styles.placeholder}>
+                <span>그래프를 표시할 수 없습니다.</span>
+              </div>
+            }
+          >
             <Suspense fallback={<div className={styles.skeleton} />}>
-              <GraphRenderer graph={detail.graphJson} />
+              <GraphRenderer
+                graph={detail.graphJson}
+                onEdgeClick={setSelectedEdgeId}
+                onPaneClick={() => setSelectedEdgeId(null)}
+              />
             </Suspense>
           </ErrorBoundary>
+          {selectedEdgeId !== null && selectedTransition !== null && (
+            <TransitionPopover
+              transition={selectedTransition}
+              policy={selectedPolicy}
+              onClose={() => setSelectedEdgeId(null)}
+            />
+          )}
         </div>
       )}
 
@@ -162,6 +239,23 @@ export function WorkflowDetailPanel({
           <MetaTab detail={detail} />
         </div>
       )}
+
+      {tab === "transitions" && (
+        <div
+          id={`${idPrefix}-panel-transitions`}
+          role="tabpanel"
+          aria-labelledby={`${idPrefix}-tab-transitions`}
+          className={styles.body}
+        >
+          <TransitionListPanel
+            transitions={transitionList}
+            isLoading={transitionLoading}
+            isError={transitionError}
+            error={transitionErr}
+            refetch={refetchTransitions}
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -173,8 +267,12 @@ function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () 
         <div className={styles.headerInfo}>
           <span className={styles.code}>{detail.workflowCode}</span>
           <span className={styles.name}>{detail.name}</span>
-          {detail.description && <span className={styles.description}>{detail.description}</span>}
-          <span className={styles.updatedAt}>UPDATED · {new Date(detail.updatedAt).toLocaleString()}</span>
+          {detail.description && (
+            <span className={styles.description}>{detail.description}</span>
+          )}
+          <span className={styles.updatedAt}>
+            UPDATED · {new Date(detail.updatedAt).toLocaleString()}
+          </span>
         </div>
         {onEdit && (
           <button type="button" className={styles.editButton} onClick={onEdit}>
