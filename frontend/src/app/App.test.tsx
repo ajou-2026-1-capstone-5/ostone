@@ -56,19 +56,40 @@ describe("App", () => {
   it("redirects workspace home alias to workflows and renders the representative-version empty state", async () => {
     seedAuthenticatedSession();
 
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        id: 1,
-        workspaceKey: "cs-team-alpha",
-        name: "CS Team Alpha",
-        description: null,
-        status: "ACTIVE",
-        myRole: "OWNER",
-        createdAt: "2026-04-01T00:00:00Z",
-        updatedAt: "2026-04-01T00:00:00Z",
-      }),
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/v1/workspaces") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: 1,
+              workspaceKey: "cs-team-alpha",
+              name: "CS Team Alpha",
+              description: null,
+              status: "ACTIVE",
+              myRole: "OWNER",
+              createdAt: "2026-04-01T00:00:00Z",
+              updatedAt: "2026-04-01T00:00:00Z",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 1,
+          workspaceKey: "cs-team-alpha",
+          name: "CS Team Alpha",
+          description: null,
+          status: "ACTIVE",
+          myRole: "OWNER",
+          createdAt: "2026-04-01T00:00:00Z",
+          updatedAt: "2026-04-01T00:00:00Z",
+        }),
+      });
     });
 
     vi.stubGlobal("fetch", fetchMock);

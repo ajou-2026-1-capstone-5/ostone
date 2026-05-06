@@ -9,6 +9,7 @@ import {
   validateCreateWorkspaceForm,
   workspaceApi,
   type WorkspaceFieldErrors,
+  type WorkspaceResponse,
 } from "@/entities/workspace";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
@@ -28,7 +29,7 @@ import styles from "./workspace-dialog.module.css";
 interface CreateWorkspaceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => Promise<void> | void;
+  onSuccess: (workspace: WorkspaceResponse) => Promise<void> | void;
 }
 
 export function CreateWorkspaceDialog({
@@ -65,13 +66,13 @@ export function CreateWorkspaceDialog({
       const trimmedName = name.trim();
       const workspaceKey = generateWorkspaceKey(trimmedName);
 
-      await workspaceApi.create({
+      const created = await workspaceApi.create({
         workspaceKey,
         name: trimmedName,
       });
 
       try {
-        await onSuccess();
+        await onSuccess(created);
       } catch {
         toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
         return;

@@ -3,10 +3,11 @@ import type { ReactNode } from 'react';
 interface TopbarProps {
   crumbs: string[];
   right?: ReactNode;
+  left?: ReactNode;
   dark?: boolean;
 }
 
-export function Topbar({ crumbs, right, dark = false }: TopbarProps) {
+export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
   const bg = dark ? 'var(--dark-bg)' : 'transparent';
   const borderColor = dark ? 'var(--dark-line)' : 'var(--line)';
   const ink = dark ? 'var(--dark-ink)' : 'var(--ink)';
@@ -34,6 +35,11 @@ export function Topbar({ crumbs, right, dark = false }: TopbarProps) {
         }}
       >
         <span className="t-eyebrow">OSTONE</span>
+        {left && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {left}
+          </div>
+        )}
         {crumbs.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
             {crumbs.map((crumb, index) => {

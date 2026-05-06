@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '../pages/login/ui/LoginPage';
 import { SignupPage } from '../pages/signup/ui/SignupPage';
 import { UploadPage } from '../pages/upload/ui/UploadPage';
-import { WorkspaceListPage } from '../pages/workspace-list/ui/WorkspaceListPage';
+import { WorkspaceRootRedirect } from '../pages/workspace/ui/WorkspaceRootRedirect';
 import { PasswordResetInitPage } from '../pages/password-reset/ui/PasswordResetInitPage';
 import { PasswordResetCompletePage } from '../pages/password-reset/ui/PasswordResetCompletePage';
 import { ConsultationPage } from '../pages/consultation/ui/ConsultationPage';
@@ -30,7 +30,7 @@ export function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordResetInitPage />} />
         <Route path="/password-reset/complete" element={<PasswordResetCompletePage />} />
-        <Route path="/workspaces" element={<PrivateRoute><WorkspaceListPage /></PrivateRoute>} />
+        <Route path="/workspaces" element={<PrivateRoute><WorkspaceRootRedirect /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
