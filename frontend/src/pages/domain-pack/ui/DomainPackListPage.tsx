@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -24,7 +24,7 @@ export function DomainPackListPage() {
   });
 
   if (parsedWorkspaceId === null) {
-    return <ErrorState message="잘못된 워크스페이스 ID입니다." />;
+    return <Navigate to="/workspaces" replace />;
   }
 
   if (query.isLoading) {
@@ -66,7 +66,33 @@ export function DomainPackListPage() {
           height: "100%",
         }}
       >
-        <EmptyState message="등록된 도메인 팩이 없습니다." />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "var(--s-4)",
+          }}
+        >
+          <EmptyState message="아직 도메인팩이 없습니다. 상담 로그를 업로드하여 첫 도메인팩을 생성하세요." />
+          <Link
+            to={`/workspaces/${parsedWorkspaceId}/upload`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "var(--s-2) var(--s-4)",
+              borderRadius: "var(--r-2)",
+              background: "var(--ink)",
+              color: "var(--paper)",
+              fontSize: "13px",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            상담 로그 업로드
+          </Link>
+        </div>
       </div>
     );
   }

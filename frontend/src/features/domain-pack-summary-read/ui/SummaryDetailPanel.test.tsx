@@ -15,6 +15,17 @@ vi.mock('./ComponentCountGrid', () => ({
   ComponentCountGrid: () => <div data-testid="component-count-grid" />,
 }));
 
+vi.mock('@/shared/ui/ostone/atoms/ErrorState', () => ({
+  ErrorState: ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+    <div role="alert">
+      <span>{message}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      )}
+    </div>
+  ),
+}));
+
 function makeQuery(
   overrides: Partial<UseQueryResult<DomainPackVersionDetail>>,
 ): UseQueryResult<DomainPackVersionDetail> {
@@ -67,7 +78,7 @@ describe('SummaryDetailPanel', () => {
       />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent(
-      '버전 상세 정보를 불러오지 못했습니다.',
+      '버전 정보를 불러오지 못했습니다.',
     );
   });
 

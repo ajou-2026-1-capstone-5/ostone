@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { IntentDetailPanel, IntentTreePanel } from "../../../features/intent-draft-read/ui";
-import { IntentDetailWithApproval } from "../../../features/approve-intent";
-import { parseRouteId } from "../../../shared/lib/parseRouteId";
-import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
+import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
+import { IntentDetailWithApproval } from "@/features/approve-intent";
+import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { OstoneShell } from "@/widgets/ostone-shell";
+import { Mono } from "@/shared/ui/ostone/atoms";
 import styles from "./intent-draft-read-page.module.css";
 
 export function IntentDraftReadPage() {
@@ -16,11 +17,11 @@ export function IntentDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || (intentId !== undefined && iId === null)) {
     return (
-      <DashboardLayout>
+      <OstoneShell active="domain" crumbs={[]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
@@ -35,15 +36,15 @@ export function IntentDraftReadPage() {
   const hasSelection = iId !== null;
 
   return (
-    <DashboardLayout>
+    <OstoneShell active="domain" crumbs={[`PACK · ${pId}`, `Version · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <nav className={styles.breadcrumb} aria-label="경로">
-            <span>WS · {wsId}</span>
+            <Mono>WS · {wsId}</Mono>
             <span className={styles.breadcrumbSeparator}>/</span>
-            <span>PACK · {pId}</span>
+            <Mono>PACK · {pId}</Mono>
             <span className={styles.breadcrumbSeparator}>/</span>
-            <span>VER · {vId}</span>
+            <Mono>VER · {vId}</Mono>
           </nav>
           <div className={styles.versionMeta}>
             <span className={styles.versionTitle}>Intent 초안 조회</span>
@@ -74,6 +75,6 @@ export function IntentDraftReadPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </OstoneShell>
   );
 }

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ApiRequestError } from '@/shared/api';
-import { DashboardLayout } from '@/shared/ui/layout/DashboardLayout';
+import { OstoneShell } from '@/widgets/ostone-shell';
+import { LoadingSpinner } from '@/shared/ui/ostone/atoms/LoadingSpinner';
+import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
 import { parseRouteId } from '@/shared/lib/parseRouteId';
 import { usePackDetail, useVersionDetail, VersionListPanel, SummaryDetailPanel } from '@/features/domain-pack-summary-read';
 import { CreateDraftModal } from '@/features/domain-pack-draft-create';
@@ -18,11 +20,11 @@ export function DomainPackSummaryPage() {
 
   if (wsId === null || pId === null) {
     return (
-      <DashboardLayout>
+      <OstoneShell active="domain" crumbs={[]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
@@ -88,24 +90,28 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
 
   const pack = packQuery.data;
 
+  if (packQuery.isLoading) {
+    return (
+      <OstoneShell active="domain" crumbs={[`PACK \u00b7 ${packId}`]}>
+        <LoadingSpinner />
+      </OstoneShell>
+    );
+  }
+
   if (packQuery.isError) {
     const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
     return (
-      <DashboardLayout>
-        <div className={styles.errorCard} role="alert">
-          <span>{is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.'}</span>
-          {!is404 && (
-            <button type="button" className={styles.retryBtn} onClick={() => packQuery.refetch()}>
-              다시 시도
-            </button>
-          )}
-        </div>
-      </DashboardLayout>
+      <OstoneShell active="domain" crumbs={[`PACK \u00b7 ${packId}`]}>
+        <ErrorState
+          message={is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.'}
+          onRetry={!is404 ? () => packQuery.refetch() : undefined}
+        />
+      </OstoneShell>
     );
   }
 
   return (
-    <DashboardLayout>
+    <OstoneShell active="domain" crumbs={[pack?.name || `PACK \u00b7 ${packId}`]}>
       <div className={styles.page}>
         <header className={styles.pageHeader}>
           <div>
@@ -155,6 +161,6 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
           onSuccess={handleCreateSuccess}
         />
       )}
-    </DashboardLayout>
+    </OstoneShell>
   );
 }

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { DomainPackVersionDetail } from '@/entities/domain-pack';
 import { ApiRequestError } from '@/shared/api';
 import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
+import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
 import { SummaryJsonCard } from './SummaryJsonCard';
 import { ComponentCountGrid } from './ComponentCountGrid';
 import styles from './SummaryDetailPanel.module.css';
@@ -55,14 +56,10 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
     const is404 = query.error instanceof ApiRequestError && query.error.status === 404;
     return (
       <div className={styles.panel}>
-        <div className={styles.error} role="alert">
-          <span>{is404 ? '버전을 찾을 수 없습니다.' : '버전 상세 정보를 불러오지 못했습니다.'}</span>
-          {!is404 && (
-            <button type="button" className={styles.errorRetryBtn} onClick={() => query.refetch()}>
-              다시 시도
-            </button>
-          )}
-        </div>
+        <ErrorState
+          message={is404 ? '버전을 찾을 수 없습니다.' : '버전 정보를 불러오지 못했습니다.'}
+          onRetry={!is404 ? () => query.refetch() : undefined}
+        />
       </div>
     );
   }
