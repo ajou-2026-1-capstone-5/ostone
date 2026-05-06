@@ -1,17 +1,21 @@
 import type { ReactNode } from 'react';
+import { useParams } from 'react-router-dom';
 import { Sidebar, Topbar, type SidebarActive } from '@/shared/ui/ostone/chrome';
 
 interface OstoneShellProps {
   active: SidebarActive;
   crumbs: string[];
   topbarRight?: ReactNode;
-  topbarLeft?: ReactNode;
+  sidebarSwitcher?: ReactNode;
   dark?: boolean;
   basePath?: string;
   children: ReactNode;
 }
 
-export function OstoneShell({ active, crumbs, topbarRight, topbarLeft, dark = false, basePath, children }: OstoneShellProps) {
+export function OstoneShell({ active, crumbs, topbarRight, sidebarSwitcher, dark = false, basePath, children }: OstoneShellProps) {
+  const { workspaceId } = useParams();
+  const resolvedBasePath = basePath ?? (workspaceId ? `/workspaces/${workspaceId}` : '/workspaces');
+
   return (
     <div
       style={{
@@ -21,7 +25,7 @@ export function OstoneShell({ active, crumbs, topbarRight, topbarLeft, dark = fa
       }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Sidebar active={active} dark={dark} basePath={basePath} />
+        <Sidebar active={active} dark={dark} basePath={resolvedBasePath} switcher={sidebarSwitcher} />
       </div>
       <div
         style={{
@@ -32,7 +36,7 @@ export function OstoneShell({ active, crumbs, topbarRight, topbarLeft, dark = fa
         }}
       >
         <div style={{ flexShrink: 0 }}>
-          <Topbar crumbs={crumbs} right={topbarRight} left={topbarLeft} dark={dark} />
+          <Topbar crumbs={crumbs} right={topbarRight} dark={dark} />
         </div>
         <main style={{ flex: 1, overflow: 'auto' }}>{children}</main>
       </div>

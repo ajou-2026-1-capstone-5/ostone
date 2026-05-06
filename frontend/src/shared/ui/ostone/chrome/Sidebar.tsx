@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '../atoms/Icon';
 import type { IconName } from '../atoms/Icon';
@@ -14,17 +15,18 @@ interface SidebarProps {
   active: SidebarActive;
   dark?: boolean;
   basePath?: string;
+  switcher?: ReactNode;
 }
 
 const NAV_ITEMS: { key: SidebarActive; icon: IconName; label: string; getPath: (base: string) => string }[] = [
   { key: 'workflows', icon: 'grid', label: 'Workflows', getPath: (base) => `${base}/workflows` },
   { key: 'domain', icon: 'folder', label: 'Domain Packs', getPath: (base) => `${base}/domain-packs` },
-  { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: () => '/upload' },
-  { key: 'consult', icon: 'msg', label: 'Consultation', getPath: () => '/consultation' },
+  { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: (base) => `${base}/pipeline` },
+  { key: 'consult', icon: 'msg', label: 'Consultation', getPath: (base) => `${base}/consultation` },
   { key: 'upload', icon: 'upload', label: 'Uploads', getPath: (base) => `${base}/upload` },
 ];
 
-export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: SidebarProps) {
+export function Sidebar({ active, dark = false, basePath = '/workspaces', switcher }: SidebarProps) {
   const containerBg = dark ? 'var(--dark-bg)' : 'var(--paper-2)';
   const borderColor = dark ? 'var(--dark-line)' : 'var(--line)';
   const defaultColor = dark ? 'var(--dark-ink-3)' : 'var(--ink-3)';
@@ -47,22 +49,8 @@ export function Sidebar({ active, dark = false, basePath = '/workspaces/1' }: Si
       }}
       aria-label="주요 낸비게이션"
     >
-      <div
-        style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: 'var(--r-2)',
-          background: dark ? 'var(--dark-ink)' : 'var(--ink)',
-          color: dark ? 'var(--dark-bg)' : 'var(--paper)',
-          fontFamily: 'var(--mono)',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 'var(--s-4)',
-        }}
-      >
-        {'\u25EF'}
+      <div style={{ marginBottom: 'var(--s-4)' }}>
+        {switcher}
       </div>
 
       <div

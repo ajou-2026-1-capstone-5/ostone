@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import type { ShellContext } from "@/pages/workspace/ui/WorkspaceLayout";
 import { LogUploadForm } from "../../../features/log-upload/ui/LogUploadForm";
-import { OstoneShell } from "@/widgets/ostone-shell";
 import { Eyebrow, Mono, Dot, Pill } from "@/shared/ui/ostone/atoms";
 import { Dropzone } from "./sections/Dropzone";
 import { DatasetsTable } from "./sections/DatasetsTable";
@@ -12,9 +13,15 @@ import { StagePips } from "./sections/StagePips";
 void LogUploadForm;
 
 export const UploadPage: React.FC = () => {
+  const { setCrumbs } = useOutletContext<ShellContext>();
+
+  useEffect(() => {
+    setCrumbs(["CARD-CS", "Pipeline · Datasets"]);
+    return () => setCrumbs([]);
+  }, [setCrumbs]);
+
   return (
-    <OstoneShell active="upload" crumbs={["CARD-CS", "Pipeline · Datasets"]}>
-      <div style={{ padding: "24px 28px 40px" }}>
+    <div style={{ padding: "24px 28px 40px" }}>
         <div
           style={{
             paddingBottom: "22px",
@@ -236,7 +243,6 @@ export const UploadPage: React.FC = () => {
 
           <QualityIssues />
         </div>
-      </div>
-    </OstoneShell>
+    </div>
   );
 };

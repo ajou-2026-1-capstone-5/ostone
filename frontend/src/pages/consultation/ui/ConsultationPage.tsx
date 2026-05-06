@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { OstoneShell } from '@/widgets/ostone-shell';
+import { useOutletContext } from 'react-router-dom';
+import type { ShellContext } from '@/pages/workspace/ui/WorkspaceLayout';
 import { Dot, Mono, Pill, Avatar, Eyebrow, Icon } from '@/shared/ui/ostone/atoms';
 import { QueuePanel } from '../../../features/consultation/ui/QueuePanel';
 import type { QueueCustomer } from '../../../features/consultation/ui/QueuePanel';
@@ -32,7 +33,28 @@ const SUGGESTIONS = [
   '카드사 확인이 필요합니다',
 ];
 
+const StatusRight = () => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Dot tone="signal" />
+      <span style={{ fontSize: 12 }}>응대 가능</span>
+    </div>
+    <div style={{ width: 1, height: 16, background: 'var(--line)' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>평균 첫응답</Mono>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>2분</span>
+      <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>14초</Mono>
+    </div>
+    <div style={{ width: 1, height: 16, background: 'var(--line)' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>오늘 처리</Mono>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>14건</span>
+    </div>
+  </div>
+);
+
 export const ConsultationPage: React.FC = () => {
+  const { setTopbarRight, setCrumbs } = useOutletContext<ShellContext>();
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
@@ -44,6 +66,15 @@ export const ConsultationPage: React.FC = () => {
   void setCategories;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
+
+  useEffect(() => {
+    setTopbarRight(<StatusRight />);
+    setCrumbs(['CARD-CS', '실시간 상담']);
+    return () => {
+      setTopbarRight(undefined);
+      setCrumbs([]);
+    };
+  }, [setTopbarRight, setCrumbs]);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -149,29 +180,8 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
-  const StatusRight = () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Dot tone="signal" />
-        <span style={{ fontSize: 12 }}>응대 가능</span>
-      </div>
-      <div style={{ width: 1, height: 16, background: 'var(--line)' }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>평균 첫응답</Mono>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>2분</span>
-        <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>14초</Mono>
-      </div>
-      <div style={{ width: 1, height: 16, background: 'var(--line)' }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Mono style={{ fontSize: 11, color: 'var(--ink-3)' }}>오늘 처리</Mono>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>14건</span>
-      </div>
-    </div>
-  );
-
   return (
-    <OstoneShell active="consult" crumbs={['CARD-CS', '실시간 상담']} topbarRight={<StatusRight />}>
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div style={{ width: 268, flexShrink: 0, background: 'var(--paper-2)', overflow: 'auto' }}>
           <QueuePanel
             customers={queue}
@@ -285,7 +295,6 @@ export const ConsultationPage: React.FC = () => {
             }
           }}
         />
-      </div>
-    </OstoneShell>
+    </div>
   );
 };

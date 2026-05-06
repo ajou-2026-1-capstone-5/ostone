@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import type { SidebarActive } from "@/shared/ui/ostone/chrome";
 
 import {
   mapWorkspaceActionError,
@@ -17,12 +18,28 @@ import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 
+export interface ShellContext {
+  setTopbarRight: (node: ReactNode | undefined) => void;
+  setCrumbs: (crumbs: string[]) => void;
+  workspace: WorkspaceResponse | null;
+}
+
+const getActiveFromPath = (pathname: string): SidebarActive => {
+  if (pathname.includes("/domain-packs")) return "domain";
+  if (pathname.includes("/pipeline")) return "pipeline";
+  if (pathname.includes("/consultation")) return "consult";
+  if (pathname.includes("/upload")) return "upload";
+  if (pathname.includes("/workflows")) return "workflows";
+
+  return "workflows";
+};
+
 export function WorkspaceLayout() {
   const { workspaceId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const parsedWorkspaceId = parseRouteId(workspaceId);
-  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : undefined;
+  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : "/workspaces";
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
@@ -31,6 +48,9 @@ export function WorkspaceLayout() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkspaceResponse | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<WorkspaceResponse | null>(null);
+  const [topbarRight, setTopbarRight] = useState<ReactNode>(null);
+  const [crumbs, setCrumbs] = useState<string[]>([]);
+  const active = getActiveFromPath(location.pathname);
 
   useEffect(() => {
     workspaceApi
@@ -94,7 +114,7 @@ export function WorkspaceLayout() {
     }
   };
 
-  const topbarLeft = (
+  const sidebarSwitcher = (
     <WorkspaceSwitcher
       workspaces={workspaces}
       currentWorkspaceId={parsedWorkspaceId}
@@ -104,10 +124,12 @@ export function WorkspaceLayout() {
       onArchive={(w) => setArchiveTarget(w)}
     />
   );
+  const defaultCrumbs = useMemo(() => (workspace ? [workspace.name] : []), [workspace]);
+  const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
 
   if (isLoading) {
     return (
-      <OstoneShell active="workflows" crumbs={[]} basePath={basePath} topbarLeft={topbarLeft}>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <div
           style={{
             display: "flex",
@@ -128,7 +150,7 @@ export function WorkspaceLayout() {
 
   if (error || !workspace) {
     return (
-      <OstoneShell active="workflows" crumbs={[]} basePath={basePath} topbarLeft={topbarLeft}>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <ErrorState
           message={error || "워크스페이스를 찾을 수 없습니다."}
           onRetry={() => {
@@ -142,8 +164,14 @@ export function WorkspaceLayout() {
   }
 
   return (
-    <OstoneShell active="workflows" crumbs={[workspace.name]} basePath={basePath} topbarLeft={topbarLeft}>
-      <Outlet context={{ workspace }} />
+    <OstoneShell
+      active={active}
+      crumbs={crumbs.length > 0 ? crumbs : defaultCrumbs}
+      topbarRight={topbarRight}
+      basePath={basePath}
+      sidebarSwitcher={sidebarSwitcher}
+    >
+      <Outlet context={outletContext} />
       <CreateWorkspaceDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}

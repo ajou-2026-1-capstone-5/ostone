@@ -2,9 +2,19 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { UploadPage } from './UploadPage';
 
-vi.mock('@/widgets/ostone-shell', () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
+const shellContext = {
+  setTopbarRight: vi.fn(),
+  setCrumbs: vi.fn(),
+  workspace: null,
+};
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useOutletContext: () => shellContext,
+  };
+});
 
 describe('UploadPage', () => {
   it('renders hero h1 with expected text', () => {

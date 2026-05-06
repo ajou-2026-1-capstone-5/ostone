@@ -34,12 +34,15 @@ export function App() {
         <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
+          <Route path="pipeline" element={<UploadPage />} />
+          <Route path="consultation" element={<ConsultationPage />} />
+          <Route path="consultation/:sessionId" element={<ConsultationPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
-        <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
-        <Route path="/consultation" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
-        <Route path="/consultation/:sessionId" element={<PrivateRoute><ConsultationPage /></PrivateRoute>} />
+        <Route path="/upload" element={<PrivateRoute><Navigate to="/workspaces" replace /></PrivateRoute>} />
+        <Route path="/consultation" element={<PrivateRoute><Navigate to="/workspaces" replace /></PrivateRoute>} />
+        <Route path="/consultation/:sessionId" element={<PrivateRoute><Navigate to="/workspaces" replace /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId" element={<PrivateRoute><DomainPackSummaryPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?" element={<PrivateRoute><IntentDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?" element={<PrivateRoute><PolicyDraftReadPage /></PrivateRoute>} />

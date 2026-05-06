@@ -3,6 +3,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ConsultationPage } from './ConsultationPage';
 
+const shellContext = {
+  setTopbarRight: vi.fn(),
+  setCrumbs: vi.fn(),
+  workspace: null,
+};
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useOutletContext: () => shellContext,
+  };
+});
+
 vi.mock('../../../features/consultation/api/consultationApi', () => ({
   consultationApi: {
     getQueue: vi.fn(() =>

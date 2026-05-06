@@ -37,8 +37,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         </div>
         <nav className={styles.navMenu}>
           <NavLink to="/workspaces" className={getNavLinkClass}>Workspaces</NavLink>
-          <NavLink to="/upload" className={getNavLinkClass}>Upload Log</NavLink>
-          <NavLink to="/consultation" className={getNavLinkClass}>Consultation</NavLink>
+          <NavLink to="/workspaces" className={getNavLinkClass}>Upload Log</NavLink>
+          <NavLink to="/workspaces" className={getNavLinkClass}>Consultation</NavLink>
           <span className={`${styles.navItem} ${styles.disabled}`}>Settings</span>
         </nav>
         <div className={styles.profileArea}>
