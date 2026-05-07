@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckIcon, ChevronDownIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 
-import type { WorkspaceResponse } from "@/entities/workspace/model/types";
+import type { WorkspaceResponse } from "@/shared/api/generated/zod";
 import {
   DropdownMenu,
   DropdownMenuContent,
