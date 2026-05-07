@@ -153,7 +153,7 @@ export function WorkflowDraftReadPage() {
       crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}
       topbarRight={<HeaderActions />}
     >
-      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <PackHeader />
         <PackTabs />
 
