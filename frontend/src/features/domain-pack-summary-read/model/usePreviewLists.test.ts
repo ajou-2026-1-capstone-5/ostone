@@ -33,13 +33,13 @@ describe('useIntentPreview', () => {
 
   it('versionId가 null이면 enabled:false로 호출한다', () => {
     useIntentPreview(1, 2, null);
-    const opts = mockedUseListIntents.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListIntents.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 호출한다', () => {
     useIntentPreview(1, 2, 3);
-    const opts = mockedUseListIntents.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListIntents.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -47,7 +47,7 @@ describe('useIntentPreview', () => {
     const result = { data: { data: [{ id: 1, name: 'test' }] } };
     mockedUseListIntents.mockReturnValueOnce(result as ReturnType<typeof useListIntents>);
     const preview = useIntentPreview(1, 2, 3);
-    expect(preview.data).toEqual([{ id: 1, name: 'test' }]);
+    expect(preview.data).toEqual(result.data);
   });
 });
 
@@ -56,13 +56,13 @@ describe('useSlotPreview', () => {
 
   it('versionId가 null이면 enabled:false로 호출한다', () => {
     useSlotPreview(1, 2, null);
-    const opts = mockedUseListSlots.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListSlots.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 호출한다', () => {
     useSlotPreview(1, 2, 3);
-    const opts = mockedUseListSlots.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListSlots.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -70,7 +70,7 @@ describe('useSlotPreview', () => {
     const result = { data: { data: [{ id: 1, name: 'slot1' }] } };
     mockedUseListSlots.mockReturnValueOnce(result as ReturnType<typeof useListSlots>);
     const preview = useSlotPreview(1, 2, 3);
-    expect(preview.data).toEqual([{ id: 1, name: 'slot1' }]);
+    expect(preview.data).toEqual(result.data);
   });
 });
 
@@ -79,13 +79,13 @@ describe('usePolicyPreview', () => {
 
   it('versionId가 null이면 enabled:false로 호출한다', () => {
     usePolicyPreview(1, 2, null);
-    const opts = mockedUseListPolicies.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListPolicies.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 호출한다', () => {
     usePolicyPreview(1, 2, 3);
-    const opts = mockedUseListPolicies.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListPolicies.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -93,7 +93,7 @@ describe('usePolicyPreview', () => {
     const result = { data: { data: [{ id: 1, name: 'policy1' }] } };
     mockedUseListPolicies.mockReturnValueOnce(result as ReturnType<typeof useListPolicies>);
     const preview = usePolicyPreview(1, 2, 3);
-    expect(preview.data).toEqual([{ id: 1, name: 'policy1' }]);
+    expect(preview.data).toEqual(result.data);
   });
 });
 
@@ -102,13 +102,13 @@ describe('useRiskPreview', () => {
 
   it('versionId가 null이면 enabled:false로 호출한다', () => {
     useRiskPreview(1, 2, null);
-    const opts = mockedUseListRisks.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListRisks.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 호출한다', () => {
     useRiskPreview(1, 2, 3);
-    const opts = mockedUseListRisks.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListRisks.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -116,7 +116,7 @@ describe('useRiskPreview', () => {
     const result = { data: { data: [{ id: 1, name: 'risk1' }] } };
     mockedUseListRisks.mockReturnValueOnce(result as ReturnType<typeof useListRisks>);
     const preview = useRiskPreview(1, 2, 3);
-    expect(preview.data).toEqual([{ id: 1, name: 'risk1' }]);
+    expect(preview.data).toEqual(result.data);
   });
 });
 
@@ -125,13 +125,13 @@ describe('useWorkflowPreview', () => {
 
   it('versionId가 null이면 enabled:false로 호출한다', () => {
     useWorkflowPreview(1, 2, null);
-    const opts = mockedUseListWorkflows.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it('versionId가 있으면 enabled:true로 호출한다', () => {
     useWorkflowPreview(1, 2, 3);
-    const opts = mockedUseListWorkflows.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -139,6 +139,6 @@ describe('useWorkflowPreview', () => {
     const result = { data: { data: [{ id: 1, name: 'wf1' }] } };
     mockedUseListWorkflows.mockReturnValueOnce(result as ReturnType<typeof useListWorkflows>);
     const preview = useWorkflowPreview(1, 2, 3);
-    expect(preview.data).toEqual([{ id: 1, name: 'wf1' }]);
+    expect(preview.data).toEqual(result.data);
   });
 });

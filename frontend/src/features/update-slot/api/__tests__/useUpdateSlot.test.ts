@@ -5,19 +5,12 @@ import React from "react";
 import { ApiRequestError } from "@/shared/api";
 import { SLOT_ERROR_MESSAGES } from "../messages";
 
-vi.mock("@/entities/slot", () => ({
-  slotApi: {
-    update: vi.fn(),
-    updateStatus: vi.fn(),
-    list: vi.fn(),
-    detail: vi.fn(),
-  },
-  slotKeys: {
-    all: ["slots"],
-    lists: () => ["slots", "list"],
-    list: (...args: number[]) => ["slots", "list", ...args],
-    detail: (...args: number[]) => ["slots", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/update-slot-controller/update-slot-controller", () => ({
+  updateSlot: vi.fn(),
+}));
+
+vi.mock("@/shared/api/generated/endpoints/update-slot-status-controller/update-slot-status-controller", () => ({
+  updateSlotStatus: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -27,13 +20,18 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { slotApi, slotKeys } from "@/entities/slot";
+import { updateSlot } from "@/shared/api/generated/endpoints/update-slot-controller/update-slot-controller";
+import { updateSlotStatus } from "@/shared/api/generated/endpoints/update-slot-status-controller/update-slot-status-controller";
 import { toast } from "sonner";
 import { useUpdateSlot } from "../useUpdateSlot";
 import { useUpdateSlotStatus } from "../useUpdateSlotStatus";
 
-const mockedUpdate = vi.mocked(slotApi.update);
-const mockedUpdateStatus = vi.mocked(slotApi.updateStatus);
+const mockedUpdateSlot = vi.mocked(updateSlot);
+const mockedUpdateSlotStatus = vi.mocked(updateSlotStatus);
+const slotKeys = {
+  list: (...args: number[]) => ["slots", "list", ...args] as const,
+  detail: (...args: number[]) => ["slots", "detail", ...args] as const,
+};
 
 function makeWrapper() {
   const qc = new QueryClient({
@@ -72,13 +70,13 @@ const stubSlot = {
 
 describe("useUpdateSlot", () => {
   beforeEach(() => {
-    mockedUpdate.mockReset();
+    mockedUpdateSlot.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdate.mockResolvedValue(stubSlot);
+    mockedUpdateSlot.mockResolvedValue({ data: { ...stubSlot, description: undefined, defaultValueJson: undefined }, status: 200, headers: new Headers() });
     const { result } = renderHook(() => useUpdateSlot(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -89,7 +87,7 @@ describe("useUpdateSlot", () => {
   });
 
   it("SLOT_NOT_EDITABLE 에러 시 전용 안내 메시지를 toast.error로 표시한다", async () => {
-    mockedUpdate.mockRejectedValue(new ApiRequestError(422, "SLOT_NOT_EDITABLE", "수정 불가"));
+    mockedUpdateSlot.mockRejectedValue(new ApiRequestError(422, "SLOT_NOT_EDITABLE", "수정 불가"));
     const { result } = renderHook(() => useUpdateSlot(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -102,7 +100,7 @@ describe("useUpdateSlot", () => {
   });
 
   it("네트워크 오류 시 일반 실패 메시지를 toast.error로 표시한다", async () => {
-    mockedUpdate.mockRejectedValue(new Error("network error"));
+    mockedUpdateSlot.mockRejectedValue(new Error("network error"));
     const { result } = renderHook(() => useUpdateSlot(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -117,12 +115,12 @@ describe("useUpdateSlot", () => {
 
 describe("useUpdateSlotStatus", () => {
   beforeEach(() => {
-    mockedUpdateStatus.mockReset();
+    mockedUpdateSlotStatus.mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
   it("성공 시 toast.error를 호출하지 않고 invalidateQueries를 호출한다", async () => {
-    mockedUpdateStatus.mockResolvedValue({ ...stubSlot, status: "INACTIVE" });
+    mockedUpdateSlotStatus.mockResolvedValue({ data: { ...stubSlot, description: undefined, defaultValueJson: undefined, status: "INACTIVE" }, status: 200, headers: new Headers() });
     const { wrapper, qc } = makeWrapperWithClient();
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useUpdateSlotStatus(), { wrapper });
@@ -142,7 +140,7 @@ describe("useUpdateSlotStatus", () => {
   });
 
   it("오류 시 STATUS_FAILED 메시지를 toast.error로 표시한다", async () => {
-    mockedUpdateStatus.mockRejectedValue(new Error("fail"));
+    mockedUpdateSlotStatus.mockRejectedValue(new Error("fail"));
     const { result } = renderHook(() => useUpdateSlotStatus(), { wrapper: makeWrapper() });
 
     act(() => {

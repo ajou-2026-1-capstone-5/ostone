@@ -2,25 +2,13 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { riskApi } from "@/entities/risk";
 import { ApiRequestError } from "@/shared/api";
 import { toast } from "sonner";
 import { RISK_ERROR_MESSAGES } from "./messages";
 import { useUpdateRisk } from "./useUpdateRisk";
 
-vi.mock("@/entities/risk", () => ({
-  riskApi: {
-    update: vi.fn(),
-    updateStatus: vi.fn(),
-    list: vi.fn(),
-    detail: vi.fn(),
-  },
-  riskKeys: {
-    all: ["risks"],
-    lists: () => ["risks", "list"],
-    list: (...args: number[]) => ["risks", "list", ...args],
-    detail: (...args: number[]) => ["risks", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/update-risk-controller/update-risk-controller", () => ({
+  updateRisk: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -30,8 +18,9 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const mockedUpdate = vi.mocked(riskApi.update);
-const mockedUpdateStatus = vi.mocked(riskApi.updateStatus);
+import { updateRisk } from "@/shared/api/generated/endpoints/update-risk-controller/update-risk-controller";
+
+const mockedUpdateRisk = vi.mocked(updateRisk);
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -62,14 +51,13 @@ const stubRisk = {
 
 describe("useUpdateRisk", () => {
   beforeEach(() => {
-    mockedUpdate.mockReset();
-    mockedUpdateStatus.mockReset();
+    mockedUpdateRisk.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdate.mockResolvedValue({ ...stubRisk, name: "새 위험요소" });
+    mockedUpdateRisk.mockResolvedValue({ data: { ...stubRisk, description: undefined, name: "새 위험요소" }, status: 200, headers: new Headers() });
     const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -83,7 +71,7 @@ describe("useUpdateRisk", () => {
   });
 
   it("RISK_NOT_EDITABLE 에러 시 전용 안내 메시지를 표시한다", async () => {
-    mockedUpdate.mockRejectedValue(new ApiRequestError(400, "RISK_NOT_EDITABLE", "수정 불가"));
+    mockedUpdateRisk.mockRejectedValue(new ApiRequestError(400, "RISK_NOT_EDITABLE", "수정 불가"));
     const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -99,7 +87,7 @@ describe("useUpdateRisk", () => {
   });
 
   it("VALIDATION_ERROR 에러 시 검증 안내 메시지를 표시한다", async () => {
-    mockedUpdate.mockRejectedValue(new ApiRequestError(400, "VALIDATION_ERROR", "검증 실패"));
+    mockedUpdateRisk.mockRejectedValue(new ApiRequestError(400, "VALIDATION_ERROR", "검증 실패"));
     const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });
 
     act(() => {

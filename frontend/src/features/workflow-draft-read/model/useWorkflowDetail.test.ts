@@ -12,6 +12,12 @@ vi.mock("../api/workflowApi", () => ({
   },
 }));
 
+vi.mock("@/entities/workflow", () => ({
+  workflowQueryKeys: {
+    detail: (...args: number[]) => ["workflows", "detail", ...args],
+  },
+}));
+
 import { workflowApi } from "../api/workflowApi";
 
 const mockedDetail = vi.mocked(workflowApi.detail);

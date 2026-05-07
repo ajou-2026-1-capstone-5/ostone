@@ -2,19 +2,15 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { policyApi } from "@/entities/policy";
 import { useGetPolicy } from "./useGetPolicy";
 
-vi.mock("@/entities/policy", () => ({
-  policyApi: {
-    detail: vi.fn(),
-  },
-  policyKeys: {
-    detail: (...args: number[]) => ["policies", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller", () => ({
+  getPolicy: vi.fn(),
 }));
 
-const mockedDetail = vi.mocked(policyApi.detail);
+import { getPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+
+const mockedGetPolicy = vi.mocked(getPolicy);
 
 const stubPolicy = {
   id: 4,
@@ -43,11 +39,11 @@ function makeWrapper() {
 
 describe("useGetPolicy", () => {
   beforeEach(() => {
-    mockedDetail.mockReset();
+    mockedGetPolicy.mockReset();
   });
 
   it("enabled 상태면 정책 상세를 조회한다", async () => {
-    mockedDetail.mockResolvedValue(stubPolicy);
+    mockedGetPolicy.mockResolvedValue({ data: stubPolicy, status: 200, headers: new Headers() });
 
     const { result } = renderHook(
       () =>
@@ -62,6 +58,6 @@ describe("useGetPolicy", () => {
     );
 
     await waitFor(() => expect(result.current.data).toEqual(stubPolicy));
-    expect(mockedDetail).toHaveBeenCalledWith(1, 2, 3, 4);
+    expect(mockedGetPolicy).toHaveBeenCalledWith(1, 2, 3, 4);
   });
 });

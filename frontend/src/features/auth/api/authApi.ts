@@ -25,25 +25,25 @@ export type {
 };
 
 export async function loginApi(data: LoginRequest): Promise<LoginResponse> {
-  return (await login(data)).data;
+  return login(data);
 }
 
 export async function signupApi(data: SignupRequest): Promise<SignupResponse> {
-  return (await signup(data)).data;
+  return signup(data);
 }
 
 export async function logoutApi(refreshToken: string): Promise<void> {
-  return (await logout({ refreshToken })).data;
+  await logout({ refreshToken });
 }
 
 export async function refreshTokenApi(refreshToken: string): Promise<TokenRefreshResponse> {
-  return (await refresh({ refreshToken })).data;
+  return refresh({ refreshToken });
 }
 
 export async function passwordResetInitApi(email: string): Promise<PasswordResetInitResponse> {
-  return (await passwordResetInit({ email })).data;
+  return passwordResetInit({ email });
 }
 
 export async function passwordResetCompleteApi(data: PasswordResetCompleteRequest): Promise<void> {
-  return (await passwordResetComplete(data)).data;
+  await passwordResetComplete(data);
 }

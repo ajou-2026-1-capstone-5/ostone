@@ -2,23 +2,14 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { riskApi, riskKeys } from "@/entities/risk";
 import type { RiskDefinition, RiskSummary } from "@/entities/risk";
 import { ApiRequestError } from "@/shared/api";
 import { toast } from "sonner";
 import { RISK_ERROR_MESSAGES } from "./messages";
 import { useUpdateRiskStatus } from "./useUpdateRiskStatus";
 
-vi.mock("@/entities/risk", () => ({
-  riskApi: {
-    updateStatus: vi.fn(),
-  },
-  riskKeys: {
-    all: ["risks"],
-    lists: () => ["risks", "list"],
-    list: (...args: number[]) => ["risks", "list", ...args],
-    detail: (...args: number[]) => ["risks", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/update-risk-status-controller/update-risk-status-controller", () => ({
+  updateRiskStatus: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -28,7 +19,13 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const mockedUpdateStatus = vi.mocked(riskApi.updateStatus);
+import { updateRiskStatus } from "@/shared/api/generated/endpoints/update-risk-status-controller/update-risk-status-controller";
+
+const mockedUpdateRiskStatus = vi.mocked(updateRiskStatus);
+const riskKeys = {
+  list: (...args: number[]) => ["risks", "list", ...args] as const,
+  detail: (...args: number[]) => ["risks", "detail", ...args] as const,
+};
 
 function makeWrapperWithClient() {
   const queryClient = new QueryClient({
@@ -60,13 +57,13 @@ const stubRisk: RiskDefinition = {
 
 describe("useUpdateRiskStatus", () => {
   beforeEach(() => {
-    mockedUpdateStatus.mockReset();
+    mockedUpdateRiskStatus.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
   it("성공 시 detail/list query cache를 갱신한다", async () => {
-    mockedUpdateStatus.mockResolvedValue({ ...stubRisk, status: "INACTIVE" });
+    mockedUpdateRiskStatus.mockResolvedValue({ data: { ...stubRisk, status: "INACTIVE" }, status: 200, headers: new Headers() });
     const { wrapper, queryClient } = makeWrapperWithClient();
     const detailKey = riskKeys.detail(
       params.workspaceId,
@@ -90,7 +87,7 @@ describe("useUpdateRiskStatus", () => {
   });
 
   it("RISK_NOT_EDITABLE 오류 시 rollback 후 전용 메시지를 표시한다", async () => {
-    mockedUpdateStatus.mockRejectedValue(
+    mockedUpdateRiskStatus.mockRejectedValue(
       new ApiRequestError(400, "RISK_NOT_EDITABLE", "수정 불가"),
     );
     const { wrapper, queryClient } = makeWrapperWithClient();

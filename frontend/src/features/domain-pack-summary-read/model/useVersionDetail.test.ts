@@ -1,33 +1,45 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { useGetDomainPackVersion } from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
 import { useVersionDetail } from './useVersionDetail';
 
-vi.mock('@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller', () => ({
-  useGetDomainPackVersion: vi.fn(),
+const mockDomainPackApi = vi.hoisted(() => ({
+  versionDetail: vi.fn(),
 }));
 
-const mockedUseGetDomainPackVersion = vi.mocked(useGetDomainPackVersion);
+vi.mock('@/entities/domain-pack', () => ({
+  domainPackApi: mockDomainPackApi,
+  domainPackKeys: {
+    versionDetail: (...args: number[]) => ['domain-packs', 'version-detail', ...args],
+  },
+}));
+
+const mockedVersionDetail = mockDomainPackApi.versionDetail;
+
+function makeWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
 
 describe('useVersionDetail', () => {
-  beforeEach(() => mockedUseGetDomainPackVersion.mockClear());
+  beforeEach(() => mockedVersionDetail.mockReset());
 
-  it('versionId가 null이면 fallback -1을 전달한다', () => {
-    mockedUseGetDomainPackVersion.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetDomainPackVersion>);
-    useVersionDetail(1, 2, null);
-    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(1, 2, -1, { query: { enabled: false } });
+  it('versionId가 null이면 상세 조회 함수를 호출하지 않는다', () => {
+    const { result } = renderHook(() => useVersionDetail(1, 2, null), { wrapper: makeWrapper() });
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(mockedVersionDetail).not.toHaveBeenCalled();
   });
 
-  it('versionId가 있으면 해당 값과 enabled:true를 전달한다', () => {
-    mockedUseGetDomainPackVersion.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetDomainPackVersion>);
-    useVersionDetail(1, 2, 3);
-    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(1, 2, 3, { query: { enabled: true } });
-  });
-
-  it('결과를 그대로 반환한다', () => {
-    const result = { isSuccess: true, data: { versionId: 3, versionNo: 1 } };
-    mockedUseGetDomainPackVersion.mockReturnValue(result as ReturnType<typeof useGetDomainPackVersion>);
-    const hookResult = useVersionDetail(1, 2, 3);
-    expect(hookResult.isSuccess).toBe(true);
-    expect(hookResult.data).toEqual(result.data);
+  it('versionId가 있으면 상세 API를 호출한다', async () => {
+    const data = { versionId: 3, versionNo: 1 };
+    mockedVersionDetail.mockResolvedValue(data);
+    const { result } = renderHook(() => useVersionDetail(1, 2, 3), { wrapper: makeWrapper() });
+    await waitFor(() => expect(result.current.data).toEqual(data));
+    expect(mockedVersionDetail).toHaveBeenCalledWith(1, 2, 3);
   });
 });

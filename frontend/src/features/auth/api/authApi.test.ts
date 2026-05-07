@@ -40,11 +40,11 @@ describe('Auth API Integration Tests', () => {
     // API_BASE === '/api/v1' 이므로, 엔드포인트가 정확한지 검증
     expect(mockFetch).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({
       method: 'POST',
-      headers: expect.objectContaining({
-        'Content-Type': 'application/json'
-      }),
       body: JSON.stringify({ email: 'test@test.com', password: 'password123' })
     }));
+    const headers = mockFetch.mock.calls[0]?.[1]?.headers;
+    expect(headers).toBeInstanceOf(Headers);
+    expect(headers.get('Content-Type')).toBe('application/json');
 
     // 응답 결과 확인
     expect(result.accessToken).toEqual('dummy-access');

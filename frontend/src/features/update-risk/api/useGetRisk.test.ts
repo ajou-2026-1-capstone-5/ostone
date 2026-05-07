@@ -2,19 +2,15 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { riskApi } from "@/entities/risk";
 import { useGetRisk } from "./useGetRisk";
 
-vi.mock("@/entities/risk", () => ({
-  riskApi: {
-    detail: vi.fn(),
-  },
-  riskKeys: {
-    detail: (...args: number[]) => ["risks", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller", () => ({
+  getRisk: vi.fn(),
 }));
 
-const mockedDetail = vi.mocked(riskApi.detail);
+import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+
+const mockedGetRisk = vi.mocked(getRisk);
 
 const stubRisk = {
   id: 4,
@@ -43,11 +39,11 @@ function makeWrapper() {
 
 describe("useGetRisk", () => {
   beforeEach(() => {
-    mockedDetail.mockReset();
+    mockedGetRisk.mockReset();
   });
 
   it("enabled 상태면 위험요소 상세를 조회한다", async () => {
-    mockedDetail.mockResolvedValue(stubRisk);
+    mockedGetRisk.mockResolvedValue({ data: stubRisk, status: 200, headers: new Headers() });
 
     const { result } = renderHook(
       () =>
@@ -62,6 +58,6 @@ describe("useGetRisk", () => {
     );
 
     await waitFor(() => expect(result.current.data).toEqual(stubRisk));
-    expect(mockedDetail).toHaveBeenCalledWith(1, 2, 3, 4);
+    expect(mockedGetRisk).toHaveBeenCalledWith(1, 2, 3, 4);
   });
 });
