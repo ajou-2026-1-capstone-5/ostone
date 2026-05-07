@@ -539,29 +539,30 @@ export function WorkflowCanvas({
           )}
           <NodeLabels node={node} />
           {node.n != null && (
-            <foreignObject
-              x={node.x + node.w - 12}
-              y={node.y + 1}
-              width={12}
-              height={5}
-            >
-              <div
-                style={{
-                  fontSize: "2.4px",
-                  fontFamily: "var(--mono)",
-                  color: "var(--ink-3)",
-                  textAlign: "right",
-                  background: "var(--paper)",
-                  borderRadius: "1px",
-                  padding: "0 1px",
-                  border: "0.3px solid var(--line-2)",
-                }}
+            <g>
+              <rect
+                x={node.x + node.w - 11.5}
+                y={node.y + 1}
+                width={11}
+                height={3.5}
+                rx={1}
+                fill="var(--paper)"
+                stroke="var(--line-2)"
+                strokeWidth={0.3}
+              />
+              <text
+                x={node.x + node.w - 0.5}
+                y={node.y + 3.5}
+                textAnchor="end"
+                fontSize="1.6"
+                fontFamily="var(--mono)"
+                fill="var(--ink-3)"
               >
                 {node.n >= 1000
                   ? `${(node.n / 1000).toFixed(1)}k`
                   : node.n}
-              </div>
-            </foreignObject>
+              </text>
+            </g>
           )}
           {node.pass != null && (
             <>
