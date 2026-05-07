@@ -1,27 +1,16 @@
 import { useParams, Link, Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { customFetch } from "@/shared/api/mutator";
-import type { DomainPackDetailResult } from "@/shared/api/generated/zod";
-
-async function listDomainPacks(workspaceId: number): Promise<{ data: DomainPackDetailResult[] }> {
-  return customFetch<{ data: DomainPackDetailResult[] }>(`/api/v1/workspaces/${workspaceId}/domain-packs`, {
-    method: "GET",
-  });
-}
+import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
+import type { DomainPackSummaryResult } from "@/shared/api/generated/zod";
 
 export function DomainPackListPage() {
   const { workspaceId } = useParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
 
-  const query = useQuery({
-    queryKey: ["/api/v1/workspaces", parsedWorkspaceId, "domain-packs"],
-    queryFn: () => listDomainPacks(parsedWorkspaceId!),
-    enabled: parsedWorkspaceId !== null,
-  });
+  const query = useListDomainPacks(parsedWorkspaceId!);
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -116,7 +105,7 @@ export function DomainPackListPage() {
           gap: "var(--s-3)",
         }}
       >
-        {packs.map((pack) => (
+        {packs.map((pack: DomainPackSummaryResult) => (
           <Link
             key={pack.packId}
             to={`/workspaces/${parsedWorkspaceId}/domain-packs/${pack.packId}`}
