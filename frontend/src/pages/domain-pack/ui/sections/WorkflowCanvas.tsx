@@ -296,7 +296,7 @@ function NodeLabels({ node }: { node: WorkflowNode }) {
         x={cx}
         y={labelY}
         textAnchor="middle"
-        fontSize="1.2"
+        fontSize="1.4"
         fontFamily="var(--mono)"
         fill="var(--ink)"
         fontWeight={700}
@@ -307,7 +307,7 @@ function NodeLabels({ node }: { node: WorkflowNode }) {
         x={cx}
         y={subY}
         textAnchor="middle"
-        fontSize="0.8"
+        fontSize="1.0"
         fontFamily="var(--mono)"
         fill="var(--ink-3)"
         opacity={0.7}
@@ -319,7 +319,7 @@ function NodeLabels({ node }: { node: WorkflowNode }) {
           x={cx}
           y={statY}
           textAnchor="middle"
-          fontSize="0.7"
+          fontSize="0.9"
           fontFamily="var(--mono)"
           fill="var(--ink-3)"
         >
@@ -480,7 +480,7 @@ export function WorkflowCanvas({
               x={mx}
               y={midY + 1.0}
               textAnchor="middle"
-              fontSize="0.7"
+              fontSize="0.9"
               fontFamily="var(--mono)"
               fill={stroke}
               opacity={edge.isHot ? 1 : 0.8}
