@@ -4,9 +4,9 @@ import type { SidebarActive } from "@/shared/ui/ostone/chrome";
 
 import {
   mapWorkspaceActionError,
-  workspaceApi,
   type WorkspaceResponse,
 } from "@/entities/workspace";
+import { useListWorkspaces, useGetWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import {
   ArchiveConfirmDialog,
   CreateWorkspaceDialog,
@@ -43,7 +43,6 @@ export function WorkspaceLayout() {
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
-  const [retryNonce, setRetryNonce] = useState(0);
   const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WorkspaceResponse | null>(null);
@@ -52,47 +51,34 @@ export function WorkspaceLayout() {
   const [crumbs, setCrumbs] = useState<string[]>([]);
   const active = getActiveFromPath(location.pathname);
 
-  useEffect(() => {
-    workspaceApi
-      .list()
-      .then(setWorkspaces)
-      .catch(() => {});
-  }, [retryNonce]);
+  const { data: fetchedWorkspaces, refetch } = useListWorkspaces();
+  const {
+    data: fetchedWorkspace,
+    isLoading,
+    error: fetchError,
+  } = useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
 
   useEffect(() => {
-    if (parsedWorkspaceId === null) {
-      return;
+    if (fetchedWorkspaces) {
+      setWorkspaces(fetchedWorkspaces.data);
     }
+  }, [fetchedWorkspaces]);
 
-    const controller = new AbortController();
+  useEffect(() => {
+    if (fetchedWorkspace) {
+      setWorkspace(fetchedWorkspace.data);
+      setError("");
+    } else if (parsedWorkspaceId !== null && fetchError) {
+      setError(mapWorkspaceActionError(fetchError));
+      setWorkspace(null);
+    }
+  }, [fetchedWorkspace, fetchError, parsedWorkspaceId]);
 
-    void workspaceApi
-      .get(parsedWorkspaceId, controller.signal)
-      .then((workspaceResult) => {
-        if (!controller.signal.aborted) {
-          setWorkspace(workspaceResult);
-        }
-      })
-      .catch((err) => {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
-
-        if (!controller.signal.aborted) {
-          setError(mapWorkspaceActionError(err));
-          setWorkspace(null);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [parsedWorkspaceId, retryNonce]);
+  useEffect(() => {
+    if (!isLoading && parsedWorkspaceId !== null) {
+      setIsLoading(false);
+    }
+  }, [isLoading, parsedWorkspaceId]);
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -105,13 +91,8 @@ export function WorkspaceLayout() {
     navigate(`/workspaces/${newWorkspaceId}${targetSubPath}`, { replace: true });
   };
 
-  const refreshWorkspaceList = async () => {
-    try {
-      const list = await workspaceApi.list();
-      setWorkspaces(list);
-    } catch {
-      /* silently fail */
-    }
+  const refreshWorkspaceList = () => {
+    refetch();
   };
 
   const sidebarSwitcher = (
@@ -127,7 +108,7 @@ export function WorkspaceLayout() {
   const defaultCrumbs = useMemo(() => (workspace ? [workspace.name] : []), [workspace]);
   const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
 
-  if (isLoading) {
+  if (isLoading || fetchedWorkspace === undefined) {
     return (
       <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <div
@@ -153,11 +134,7 @@ export function WorkspaceLayout() {
       <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <ErrorState
           message={error || "워크스페이스를 찾을 수 없습니다."}
-          onRetry={() => {
-            setIsLoading(true);
-            setError("");
-            setRetryNonce((value) => value + 1);
-          }}
+          onRetry={refetch}
         />
       </OstoneShell>
     );
@@ -181,10 +158,7 @@ export function WorkspaceLayout() {
         workspace={editTarget}
         open={editTarget !== null}
         onOpenChange={() => setEditTarget(null)}
-        onSuccess={async () => {
-          await refreshWorkspaceList();
-          setRetryNonce((v) => v + 1);
-        }}
+        onSuccess={refreshWorkspaceList}
       />
       <ArchiveConfirmDialog
         workspace={archiveTarget}

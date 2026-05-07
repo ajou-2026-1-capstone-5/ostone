@@ -1,4 +1,3 @@
-export { workspaceApi } from "@/entities/workspace/api/workspaceApi";
 export type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,

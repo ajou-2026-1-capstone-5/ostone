@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
-import { workspaceApi } from "@/entities/workspace";
+import { useListWorkspaces } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { CreateWorkspaceDialog } from "@/features/workspace";
 import { Spinner } from "@/shared/ui/spinner";
 
@@ -9,30 +9,28 @@ export function WorkspaceRootRedirect() {
   const [target, setTarget] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();
+  const { data: workspacesData, isLoading, isError } = useListWorkspaces();
 
   useEffect(() => {
-    let cancelled = false;
+    if (isLoading || isError) {
+      return;
+    }
 
-    workspaceApi
-      .list()
-      .then((workspaces) => {
-        if (cancelled) return;
-        if (workspaces.length === 0) {
-          setShowCreate(true);
-          return;
-        }
-        const active =
-          workspaces.find((w) => w.status === "ACTIVE") ?? workspaces[0];
-        setTarget(`/workspaces/${active.id}/workflows`);
-      })
-      .catch(() => {
-        if (!cancelled) setTarget("/login");
-      });
+    const workspaces = workspacesData?.data ?? [];
+    if (workspaces.length === 0) {
+      setShowCreate(true);
+      return;
+    }
+    const active =
+      workspaces.find((w) => w.status === "ACTIVE") ?? workspaces[0];
+    setTarget(`/workspaces/${active.id}/workflows`);
+  }, [isLoading, isError, workspacesData]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useEffect(() => {
+    if (isError) {
+      setTarget("/login");
+    }
+  }, [isError]);
 
   if (target) {
     return <Navigate to={target} replace />;

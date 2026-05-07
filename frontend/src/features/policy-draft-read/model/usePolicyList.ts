@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { policyApi, policyKeys } from "@/entities/policy";
+import { policyKeys } from "@/entities/policy";
+import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import { mapApiError } from "./mapApiError";
 import type { PolicySummary } from "@/entities/policy";
 
@@ -15,10 +16,7 @@ export function usePolicyList(
   versionId: number,
   retryKey = 0,
 ): PolicyListState {
-  const query = useQuery({
-    queryKey: policyKeys.list(workspaceId, packId, versionId),
-    queryFn: () => policyApi.list(workspaceId, packId, versionId),
-  });
+  const query = useListPolicies(workspaceId, packId, versionId, {});
 
   const { refetch } = query;
 
@@ -36,5 +34,5 @@ export function usePolicyList(
     return mapApiError(query.error);
   }
 
-  return { status: "ready", data: query.data ?? [] };
+  return { status: "ready", data: (query.data?.data ?? []) as unknown as PolicySummary[] };
 }

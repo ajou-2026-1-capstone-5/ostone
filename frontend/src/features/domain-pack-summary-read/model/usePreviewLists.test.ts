@@ -1,205 +1,144 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { useQuery } from '@tanstack/react-query';
-import { intentApi, intentKeys } from '@/entities/intent';
-import { slotApi, slotKeys } from '@/entities/slot';
-import { policyApi, policyKeys } from '@/entities/policy';
-import { riskApi, riskKeys } from '@/entities/risk';
-import { fetchWorkflowList, workflowQueryKeys } from '@/entities/workflow';
-import {
-  useIntentPreview,
-  useSlotPreview,
-  usePolicyPreview,
-  useRiskPreview,
-  useWorkflowPreview,
-} from './usePreviewLists';
+import { useListIntents } from '@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller';
+import { useListSlots } from '@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller';
+import { useListPolicies } from '@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller';
+import { useListRisks } from '@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller';
+import { useListWorkflows } from '@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller';
+import { useIntentPreview, useSlotPreview, usePolicyPreview, useRiskPreview, useWorkflowPreview } from './usePreviewLists';
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn().mockReturnValue({}),
+vi.mock('@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller', () => ({
+  useListIntents: vi.fn().mockReturnValue({ isLoading: false, isFetching: false, data: undefined, isError: false }),
+}));
+vi.mock('@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller', () => ({
+  useListSlots: vi.fn().mockReturnValue({ isLoading: false, isFetching: false, data: undefined, isError: false }),
+}));
+vi.mock('@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller', () => ({
+  useListPolicies: vi.fn().mockReturnValue({ isLoading: false, isFetching: false, data: undefined, isError: false }),
+}));
+vi.mock('@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller', () => ({
+  useListRisks: vi.fn().mockReturnValue({ isLoading: false, isFetching: false, data: undefined, isError: false }),
+}));
+vi.mock('@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller', () => ({
+  useListWorkflows: vi.fn().mockReturnValue({ isLoading: false, isFetching: false, data: undefined, isError: false }),
 }));
 
-vi.mock('@/entities/intent', () => ({
-  intentApi: { list: vi.fn() },
-  intentKeys: {
-    list: (wsId: number, packId: number, versionId: number) =>
-      ['intents', 'list', wsId, packId, versionId],
-  },
-}));
-
-vi.mock('@/entities/slot', () => ({
-  slotApi: { list: vi.fn() },
-  slotKeys: {
-    list: (workspaceId: number, packId: number, versionId: number) =>
-      ['slots', 'list', workspaceId, packId, versionId],
-  },
-}));
-
-vi.mock('@/entities/policy', () => ({
-  policyApi: { list: vi.fn() },
-  policyKeys: {
-    list: (workspaceId: number, packId: number, versionId: number) =>
-      ['policies', 'list', workspaceId, packId, versionId],
-  },
-}));
-
-vi.mock('@/entities/risk', () => ({
-  riskApi: { list: vi.fn() },
-  riskKeys: {
-    list: (workspaceId: number, packId: number, versionId: number) =>
-      ['risks', 'list', workspaceId, packId, versionId],
-  },
-}));
-
-vi.mock('@/entities/workflow', () => ({
-  fetchWorkflowList: vi.fn(),
-  workflowQueryKeys: {
-    list: (workspaceId: number, packId: number, versionId: number) =>
-      ['workflows', 'list', workspaceId, packId, versionId],
-  },
-}));
-
-const mockedUseQuery = vi.mocked(useQuery);
+const mockedUseListIntents = vi.mocked(useListIntents);
+const mockedUseListSlots = vi.mocked(useListSlots);
+const mockedUseListPolicies = vi.mocked(useListPolicies);
+const mockedUseListRisks = vi.mocked(useListRisks);
+const mockedUseListWorkflows = vi.mocked(useListWorkflows);
 
 describe('useIntentPreview', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => vi.clearAllMocks());
 
-  it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
+  it('versionId가 null이면 enabled:false로 호출한다', () => {
     useIntentPreview(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(false);
+    const opts = mockedUseListIntents.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(false);
   });
 
-  it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
+  it('versionId가 있으면 enabled:true로 호출한다', () => {
     useIntentPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(true);
+    const opts = mockedUseListIntents.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(true);
   });
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
-    useIntentPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(intentKeys.list(1, 2, 3));
-  });
-
-  it('queryFn이 intentApi.list를 호출한다', () => {
-    useIntentPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(intentApi.list).toHaveBeenCalledWith(1, 2, 3);
+  it('data를 .data에서 추출한다', () => {
+    const result = { data: { data: [{ id: 1, name: 'test' }] } };
+    mockedUseListIntents.mockReturnValueOnce(result as ReturnType<typeof useListIntents>);
+    const preview = useIntentPreview(1, 2, 3);
+    expect(preview.data).toEqual([{ id: 1, name: 'test' }]);
   });
 });
 
 describe('useSlotPreview', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => vi.clearAllMocks());
 
-  it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
+  it('versionId가 null이면 enabled:false로 호출한다', () => {
     useSlotPreview(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(false);
+    const opts = mockedUseListSlots.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(false);
   });
 
-  it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
+  it('versionId가 있으면 enabled:true로 호출한다', () => {
     useSlotPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(true);
+    const opts = mockedUseListSlots.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(true);
   });
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
-    useSlotPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(slotKeys.list(1, 2, 3));
-  });
-
-  it('queryFn이 slotApi.list를 호출한다', () => {
-    useSlotPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(slotApi.list).toHaveBeenCalledWith(1, 2, 3);
+  it('data를 .data에서 추출한다', () => {
+    const result = { data: { data: [{ id: 1, name: 'slot1' }] } };
+    mockedUseListSlots.mockReturnValueOnce(result as ReturnType<typeof useListSlots>);
+    const preview = useSlotPreview(1, 2, 3);
+    expect(preview.data).toEqual([{ id: 1, name: 'slot1' }]);
   });
 });
 
 describe('usePolicyPreview', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => vi.clearAllMocks());
 
-  it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
+  it('versionId가 null이면 enabled:false로 호출한다', () => {
     usePolicyPreview(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(false);
+    const opts = mockedUseListPolicies.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(false);
   });
 
-  it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
+  it('versionId가 있으면 enabled:true로 호출한다', () => {
     usePolicyPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(true);
+    const opts = mockedUseListPolicies.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(true);
   });
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
-    usePolicyPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(policyKeys.list(1, 2, 3));
-  });
-
-  it('queryFn이 policyApi.list를 호출한다', () => {
-    usePolicyPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(policyApi.list).toHaveBeenCalledWith(1, 2, 3);
+  it('data를 .data에서 추출한다', () => {
+    const result = { data: { data: [{ id: 1, name: 'policy1' }] } };
+    mockedUseListPolicies.mockReturnValueOnce(result as ReturnType<typeof useListPolicies>);
+    const preview = usePolicyPreview(1, 2, 3);
+    expect(preview.data).toEqual([{ id: 1, name: 'policy1' }]);
   });
 });
 
 describe('useRiskPreview', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => vi.clearAllMocks());
 
-  it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
+  it('versionId가 null이면 enabled:false로 호출한다', () => {
     useRiskPreview(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(false);
+    const opts = mockedUseListRisks.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(false);
   });
 
-  it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
+  it('versionId가 있으면 enabled:true로 호출한다', () => {
     useRiskPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(true);
+    const opts = mockedUseListRisks.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(true);
   });
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
-    useRiskPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(riskKeys.list(1, 2, 3));
-  });
-
-  it('queryFn이 riskApi.list를 호출한다', () => {
-    useRiskPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(riskApi.list).toHaveBeenCalledWith(1, 2, 3);
+  it('data를 .data에서 추출한다', () => {
+    const result = { data: { data: [{ id: 1, name: 'risk1' }] } };
+    mockedUseListRisks.mockReturnValueOnce(result as ReturnType<typeof useListRisks>);
+    const preview = useRiskPreview(1, 2, 3);
+    expect(preview.data).toEqual([{ id: 1, name: 'risk1' }]);
   });
 });
 
 describe('useWorkflowPreview', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => vi.clearAllMocks());
 
-  it('versionId가 null이면 enabled:false로 useQuery를 호출한다', () => {
+  it('versionId가 null이면 enabled:false로 호출한다', () => {
     useWorkflowPreview(1, 2, null);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(false);
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(false);
   });
 
-  it('versionId가 있으면 enabled:true로 useQuery를 호출한다', () => {
+  it('versionId가 있으면 enabled:true로 호출한다', () => {
     useWorkflowPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ enabled: boolean }];
-    expect(opts.enabled).toBe(true);
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[2]?.query as { enabled?: boolean };
+    expect(opts?.enabled).toBe(true);
   });
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
-    useWorkflowPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(workflowQueryKeys.list(1, 2, 3));
-  });
-
-  it('queryFn이 fetchWorkflowList를 호출한다', () => {
-    useWorkflowPreview(1, 2, 3);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(fetchWorkflowList).toHaveBeenCalledWith(1, 2, 3);
+  it('data를 .data에서 추출한다', () => {
+    const result = { data: { data: [{ id: 1, name: 'wf1' }] } };
+    mockedUseListWorkflows.mockReturnValueOnce(result as ReturnType<typeof useListWorkflows>);
+    const preview = useWorkflowPreview(1, 2, 3);
+    expect(preview.data).toEqual([{ id: 1, name: 'wf1' }]);
   });
 });

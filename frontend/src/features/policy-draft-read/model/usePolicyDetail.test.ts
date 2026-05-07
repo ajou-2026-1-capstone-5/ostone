@@ -1,89 +1,45 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { policyApi } from "@/entities/policy";
-import { ApiRequestError } from "@/shared/api";
-import { usePolicyDetail } from "./usePolicyDetail";
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { useGetPolicy } from '@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller';
+import { usePolicyDetail } from './usePolicyDetail';
 
-vi.mock("@/entities/policy", () => ({
-  policyApi: {
-    list: vi.fn(),
-    detail: vi.fn(),
-  },
-  policyKeys: {
-    all: ["policies"],
-    lists: () => ["policies", "list"],
-    list: (...args: number[]) => ["policies", "list", ...args],
-    detail: (...args: number[]) => ["policies", "detail", ...args],
-  },
+vi.mock('@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller', () => ({
+  useGetPolicy: vi.fn(),
 }));
 
-const mockedDetail = vi.mocked(policyApi.detail);
+const mockedUseGetPolicy = vi.mocked(useGetPolicy);
 
-const stubPolicy = {
-  id: 4,
-  domainPackVersionId: 3,
-  policyCode: "POL_REFUND",
-  name: "환불 정책",
-  description: "환불 조건",
-  severity: "HIGH",
-  conditionJson: "{}",
-  actionJson: "{}",
-  evidenceJson: "[]",
-  metaJson: "{}",
-  status: "ACTIVE" as const,
-  createdAt: "2026-04-16T10:00:00Z",
-  updatedAt: "2026-04-16T10:00:00Z",
-};
+describe('usePolicyDetail', () => {
+  beforeEach(() => mockedUseGetPolicy.mockClear());
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  it('policyId가 null이면 enabled:false로 호출한다', () => {
+    mockedUseGetPolicy.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetPolicy>);
+    usePolicyDetail(1, 2, 3, null);
+    expect(mockedUseGetPolicy).toHaveBeenCalledWith(1, 2, 3, -1, { query: { enabled: false } });
   });
 
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-}
-
-describe("usePolicyDetail", () => {
-  beforeEach(() => {
-    mockedDetail.mockReset();
+  it('policyId가 있으면 enabled:true로 호출한다', () => {
+    mockedUseGetPolicy.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetPolicy>);
+    usePolicyDetail(1, 2, 3, 4);
+    expect(mockedUseGetPolicy).toHaveBeenCalledWith(1, 2, 3, 4, { query: { enabled: true } });
   });
 
-  it("policyId가 없으면 idle 상태를 반환한다", () => {
-    const { result } = renderHook(() => usePolicyDetail(1, 2, 3, null), {
-      wrapper: makeWrapper(),
-    });
-
-    expect(result.current.status).toBe("idle");
-    expect(mockedDetail).not.toHaveBeenCalled();
+  it('loading 상태를 반환한다', () => {
+    mockedUseGetPolicy.mockReturnValue({ isLoading: true, isFetching: true } as ReturnType<typeof useGetPolicy>);
+    const result = usePolicyDetail(1, 2, 3, 4);
+    expect(result).toEqual({ status: 'loading' });
   });
 
-  it("성공 시 ready 상태와 상세 데이터를 반환한다", async () => {
-    mockedDetail.mockResolvedValue(stubPolicy);
-    const { result } = renderHook(() => usePolicyDetail(1, 2, 3, 4), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.status).toBe("ready"));
-
-    if (result.current.status === "ready") {
-      expect(result.current.data.policyCode).toBe("POL_REFUND");
-    }
+  it('error 상태를 반환한다', () => {
+    const err = new Error('fail');
+    mockedUseGetPolicy.mockReturnValue({ isError: true, error: err } as ReturnType<typeof useGetPolicy>);
+    const result = usePolicyDetail(1, 2, 3, 4);
+    expect(result).toEqual({ status: 'error', code: 'UNKNOWN_ERROR', message: '알 수 없는 오류가 발생했습니다.' });
   });
 
-  it("ApiRequestError를 error 상태로 변환한다", async () => {
-    mockedDetail.mockRejectedValue(new ApiRequestError(404, "POLICY_NOT_FOUND", "없음"));
-    const { result } = renderHook(() => usePolicyDetail(1, 2, 3, 404), {
-      wrapper: makeWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.status).toBe("error"));
-
-    if (result.current.status === "error") {
-      expect(result.current.httpStatus).toBe(404);
-      expect(result.current.code).toBe("POLICY_NOT_FOUND");
-    }
+  it('성공 상태를 반환한다', () => {
+    const data = { data: { id: 4, name: 'Test Policy' } };
+    mockedUseGetPolicy.mockReturnValue({ isSuccess: true, data } as ReturnType<typeof useGetPolicy>);
+    const result = usePolicyDetail(1, 2, 3, 4);
+    expect(result).toEqual({ status: 'ready', data: data.data });
   });
 });

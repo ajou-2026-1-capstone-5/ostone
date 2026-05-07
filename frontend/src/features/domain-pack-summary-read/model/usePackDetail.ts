@@ -1,9 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { domainPackApi, domainPackKeys } from '@/entities/domain-pack';
+import { useGetDomainPack, useGetDomainPackVersion } from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
 
 export function usePackDetail(wsId: number, packId: number) {
-  return useQuery({
-    queryKey: domainPackKeys.detail(wsId, packId),
-    queryFn: () => domainPackApi.detail(wsId, packId),
+  return useGetDomainPack(wsId, packId, {});
+}
+
+export function useVersionDetail(
+  wsId: number,
+  packId: number,
+  versionId: number | null,
+) {
+  return useGetDomainPackVersion(wsId, packId, versionId ?? -1, {
+    query: { enabled: versionId !== null },
   });
 }

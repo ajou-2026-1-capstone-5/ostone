@@ -1,14 +1,8 @@
-import { apiClient } from "../../../shared/api";
-import type { IntentDetail, IntentSummary } from "../../../entities/intent";
+import { getIntent, getListIntentsQueryKey, listIntents, useGetIntent, useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 
 export const intentApi = {
-  list: (wsId: number, packId: number, versionId: number) =>
-    apiClient.get<IntentSummary[]>(
-      `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}/intents`,
-    ),
-
-  detail: (wsId: number, packId: number, versionId: number, intentId: number) =>
-    apiClient.get<IntentDetail>(
-      `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`,
-    ),
+  list: listIntents,
+  detail: getIntent,
 };
+
+export { getListIntentsQueryKey, useListIntents, useGetIntent };
