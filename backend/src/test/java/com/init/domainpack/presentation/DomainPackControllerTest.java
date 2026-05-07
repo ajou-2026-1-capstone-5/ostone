@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.init.domainpack.application.DomainPackDetailResult;
 import com.init.domainpack.application.DomainPackVersionDetailResult;
 import com.init.domainpack.application.GetDomainPackDetailUseCase;
+import com.init.domainpack.application.GetDomainPackListUseCase;
 import com.init.domainpack.application.GetDomainPackVersionDetailUseCase;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
@@ -39,6 +40,7 @@ class DomainPackControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private GetDomainPackDetailUseCase packDetailUseCase;
+  @MockitoBean private GetDomainPackListUseCase packListUseCase;
   @MockitoBean private GetDomainPackVersionDetailUseCase versionDetailUseCase;
 
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2025-04-03T10:00:00+09:00");
