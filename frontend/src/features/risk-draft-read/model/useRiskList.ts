@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { riskApi, riskKeys } from "@/entities/risk";
+import { listRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 import { mapApiError } from "./mapApiError";
-import type { RiskSummary } from "@/entities/risk";
+import type { RiskDefinitionSummary } from "@/shared/api/generated/zod";
 
 export type RiskListState =
   | { status: "loading" }
   | { status: "error"; code: string; message: string; httpStatus?: number }
   | { status: "empty" }
-  | { status: "ready"; data: RiskSummary[] };
+  | { status: "ready"; data: RiskDefinitionSummary[] };
 
 export function useRiskList(
   workspaceId: number,
@@ -17,8 +17,11 @@ export function useRiskList(
   retryKey = 0,
 ): RiskListState {
   const query = useQuery({
-    queryKey: riskKeys.list(workspaceId, packId, versionId),
-    queryFn: () => riskApi.list(workspaceId, packId, versionId),
+    queryKey: ["risk", "list", workspaceId, packId, versionId],
+    queryFn: async () => {
+      const res = await listRisks(workspaceId, packId, versionId);
+      return res.data;
+    },
   });
 
   const { refetch } = query;

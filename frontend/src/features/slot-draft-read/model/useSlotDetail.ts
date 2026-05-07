@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { slotApi } from "@/entities/slot";
+import { getSlot } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
 import { mapApiError } from "./mapApiError";
-import type { SlotDefinition } from "@/entities/slot";
+import type { SlotDefinitionResponse } from "@/shared/api/generated/zod";
 
 export type SlotDetailState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; code: string; message: string; httpStatus?: number }
-  | { status: "ready"; data: SlotDefinition };
+  | { status: "ready"; data: SlotDefinitionResponse };
 
 export function useSlotDetail(
   wsId: number,
@@ -33,13 +33,12 @@ export function useSlotDetail(
 
     let cancelled = false;
 
-    slotApi
-      .detail(wsId, packId, versionId, slotId)
-      .then((data) => {
+    getSlot(wsId, packId, versionId, slotId)
+      .then((res) => {
         if (!cancelled) {
           setState({
             requestKey,
-            value: { status: "ready", data },
+            value: { status: "ready", data: res.data },
           });
         }
       })

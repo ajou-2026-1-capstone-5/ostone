@@ -1,7 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { policyApi, policyKeys } from "@/entities/policy";
-import type { PolicyDefinition, PolicyStatus, PolicySummary } from "@/entities/policy";
+import { updatePolicyStatus } from "@/shared/api/generated/endpoints/update-policy-status-controller/update-policy-status-controller";
+import type {
+  PolicyDefinitionResponse,
+  PolicyDefinitionSummary,
+  UpdatePolicyStatusRequest,
+} from "@/shared/api/generated/zod";
 import { ApiRequestError } from "@/shared/api";
 import { POLICY_ERROR_MESSAGES } from "./messages";
 
@@ -10,7 +14,7 @@ interface UpdatePolicyStatusParams {
   packId: number;
   versionId: number;
   policyId: number;
-  status: PolicyStatus;
+  status: UpdatePolicyStatusRequest["status"];
 }
 
 export const UPDATE_POLICY_STATUS_MUTATION_KEY = ["updatePolicyStatus"] as const;
@@ -20,22 +24,24 @@ export function useUpdatePolicyStatus() {
 
   return useMutation({
     mutationKey: UPDATE_POLICY_STATUS_MUTATION_KEY,
-    mutationFn: ({ workspaceId, packId, versionId, policyId, status }: UpdatePolicyStatusParams) =>
-      policyApi.updateStatus(workspaceId, packId, versionId, policyId, { status }),
+    mutationFn: async ({ workspaceId, packId, versionId, policyId, status }: UpdatePolicyStatusParams) => {
+      const res = await updatePolicyStatus(workspaceId, packId, versionId, policyId, { status });
+      return res.data;
+    },
     onMutate: async ({ workspaceId, packId, versionId, policyId, status }) => {
-      const detailKey = policyKeys.detail(workspaceId, packId, versionId, policyId);
-      const listKey = policyKeys.list(workspaceId, packId, versionId);
+      const detailKey = ["policies", "detail", workspaceId, packId, versionId, policyId] as const;
+      const listKey = ["policies", "list", workspaceId, packId, versionId] as const;
 
       await queryClient.cancelQueries({ queryKey: detailKey });
       await queryClient.cancelQueries({ queryKey: listKey });
 
-      const previousDetail = queryClient.getQueryData<PolicyDefinition>(detailKey);
-      const previousList = queryClient.getQueryData<PolicySummary[]>(listKey);
+      const previousDetail = queryClient.getQueryData<PolicyDefinitionResponse>(detailKey);
+      const previousList = queryClient.getQueryData<PolicyDefinitionSummary[]>(listKey);
 
-      queryClient.setQueryData<PolicyDefinition>(detailKey, (old) =>
+      queryClient.setQueryData<PolicyDefinitionResponse>(detailKey, (old) =>
         old ? { ...old, status } : old,
       );
-      queryClient.setQueryData<PolicySummary[]>(listKey, (old) =>
+      queryClient.setQueryData<PolicyDefinitionSummary[]>(listKey, (old) =>
         old?.map((item) => (item.id === policyId ? { ...item, status } : item)),
       );
 
@@ -62,11 +68,11 @@ export function useUpdatePolicyStatus() {
     },
     onSuccess: (updatedPolicy, { workspaceId, packId, versionId, policyId }) => {
       queryClient.setQueryData(
-        policyKeys.detail(workspaceId, packId, versionId, policyId),
+        ["policies", "detail", workspaceId, packId, versionId, policyId] as const,
         updatedPolicy,
       );
-      queryClient.setQueryData<PolicySummary[]>(
-        policyKeys.list(workspaceId, packId, versionId),
+      queryClient.setQueryData<PolicyDefinitionSummary[]>(
+        ["policies", "list", workspaceId, packId, versionId] as const,
         (old) =>
           old?.map((item) =>
             item.id === policyId
