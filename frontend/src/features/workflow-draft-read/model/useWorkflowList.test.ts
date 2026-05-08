@@ -12,6 +12,12 @@ vi.mock("../api/workflowApi", () => ({
   },
 }));
 
+vi.mock("@/entities/workflow", () => ({
+  workflowQueryKeys: {
+    list: (...args: number[]) => ["workflows", "list", ...args],
+  },
+}));
+
 import { workflowApi } from "../api/workflowApi";
 
 const mockedList = vi.mocked(workflowApi.list);
@@ -48,7 +54,7 @@ describe("useWorkflowList", () => {
   });
 
   it("성공 시 ready 상태로 전이되고 데이터를 반환한다", async () => {
-    mockedList.mockResolvedValue([stubWorkflow]);
+    mockedList.mockResolvedValue([stubWorkflow as any]);
     const { result } = renderHook(() => useWorkflowList(1, 2, 3), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([stubWorkflow]);

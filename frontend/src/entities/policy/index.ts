@@ -5,4 +5,3 @@ export type {
   UpdatePolicyRequest,
   UpdatePolicyStatusRequest,
 } from "./model/types";
-export { policyApi, policyKeys } from "./api/index";

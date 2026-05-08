@@ -17,6 +17,7 @@ export * from './datasetUploadRequest.zod';
 export * from './datasetUploadResponse.zod';
 export * from './domainPackDetailResult.zod';
 export * from './domainPackDraftEntryResponse.zod';
+export * from './domainPackSummaryResult.zod';
 export * from './domainPackVersionActivateResponse.zod';
 export * from './domainPackVersionDetailResult.zod';
 export * from './domainPackVersionSummaryEntry.zod';

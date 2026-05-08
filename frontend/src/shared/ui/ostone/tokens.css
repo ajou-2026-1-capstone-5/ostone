@@ -1,0 +1,72 @@
+/* ostone redesign — design tokens */
+:root {
+  /* paper / ink palette — warm-cool neutral */
+  --paper: oklch(0.985 0.003 100);
+  --paper-2: oklch(0.972 0.004 100);
+  --paper-3: oklch(0.955 0.005 100);
+  --line: oklch(0.90 0.006 260);
+  --line-2: oklch(0.94 0.005 260);
+  --ink: oklch(0.18 0.012 260);
+  --ink-2: oklch(0.36 0.012 260);
+  --ink-3: oklch(0.55 0.012 260);
+  --ink-4: oklch(0.72 0.010 260);
+
+  /* signal accent (single hue) */
+  --signal: oklch(0.62 0.18 145);
+  --signal-ink: oklch(0.32 0.16 145);
+  --signal-bg: oklch(0.95 0.06 145);
+
+  /* status hues — share chroma 0.14, lightness 0.62 */
+  --warn: oklch(0.74 0.14 80);
+  --warn-bg: oklch(0.96 0.05 80);
+  --danger: oklch(0.62 0.16 25);
+  --danger-bg: oklch(0.96 0.04 25);
+  --info: oklch(0.62 0.13 250);
+  --info-bg: oklch(0.96 0.03 250);
+
+  /* dark variant */
+  --dark-bg: oklch(0.155 0.012 260);
+  --dark-bg-2: oklch(0.195 0.012 260);
+  --dark-line: oklch(0.30 0.012 260);
+  --dark-ink: oklch(0.96 0.005 100);
+  --dark-ink-2: oklch(0.78 0.010 260);
+  --dark-ink-3: oklch(0.58 0.012 260);
+
+  /* type */
+  --sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: "Instrument Serif", "Times New Roman", serif;
+
+  /* radii — small, technical */
+  --r-1: 2px;
+  --r-2: 4px;
+  --r-3: 6px;
+  --r-pill: 999px;
+
+  /* spacing scale (4px base) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --s-12: 48px; --s-16: 64px; --s-20: 80px;
+}
+
+/* type primitives */
+.t-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.t-num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.t-title {
+  font-family: var(--sans);
+  font-weight: 450;
+  letter-spacing: -0.02em;
+}
+.t-display {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}

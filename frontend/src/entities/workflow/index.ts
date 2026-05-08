@@ -6,16 +6,8 @@ export type {
   GraphEdge,
   GraphNodeType,
   UpdateWorkflowRequest,
-  WorkflowTransitionDetail,
 } from "./model/types";
 
-export {
-  workflowQueryKeys,
-  fetchWorkflow,
-  fetchWorkflowList,
-  patchWorkflow,
-  transitionQueryKeys,
-  fetchTransitionList,
-} from "./api";
+export type { WorkflowTransitionDetail } from "@/shared/api/generated/zod";
 
 export { toFlow, convertFlowToWorkflowGraph } from "./lib/graphConverter";

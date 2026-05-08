@@ -82,7 +82,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("ready 상태에서 children이 없으면 기존 렌더링을 유지한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail });
+    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
 
     renderPanel();
 
@@ -92,7 +92,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail });
+    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
     const childrenFn = vi.fn((detail) => (
       <div data-testid="children">{detail.name}</div>
     ));

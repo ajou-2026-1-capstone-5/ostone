@@ -7,9 +7,10 @@ import {
   generateWorkspaceKey,
   mapWorkspaceActionError,
   validateCreateWorkspaceForm,
-  workspaceApi,
   type WorkspaceFieldErrors,
+  type WorkspaceResponse,
 } from "@/entities/workspace";
+import { useCreateWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -28,7 +29,7 @@ import styles from "./workspace-dialog.module.css";
 interface CreateWorkspaceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => Promise<void> | void;
+  onSuccess: (workspace: WorkspaceResponse) => Promise<void> | void;
 }
 
 export function CreateWorkspaceDialog({
@@ -40,6 +41,7 @@ export function CreateWorkspaceDialog({
   const [fieldErrors, setFieldErrors] = useState<WorkspaceFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameErrorId = fieldErrors.name ? "workspace-name-error" : undefined;
+  const createWorkspace = useCreateWorkspace();
 
   useEffect(() => {
     if (!open) {
@@ -61,41 +63,40 @@ export function CreateWorkspaceDialog({
 
     setIsSubmitting(true);
 
-    try {
-      const trimmedName = name.trim();
-      const workspaceKey = generateWorkspaceKey(trimmedName);
+    const trimmedName = name.trim();
+    const workspaceKey = generateWorkspaceKey(trimmedName);
 
-      await workspaceApi.create({
-        workspaceKey,
-        name: trimmedName,
-      });
-
-      try {
-        await onSuccess();
-      } catch {
-        toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
-        return;
-      }
-
-      toast.success("워크스페이스를 생성했습니다.");
-      onOpenChange(false);
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        if (error.code === "WORKSPACE_INVALID_NAME") {
-          setFieldErrors({ name: error.message });
-          return;
-        }
-
-        if (error.code === "WORKSPACE_KEY_CONFLICT") {
-          setFieldErrors({ name: "다른 워크스페이스 이름으로 다시 시도해주세요." });
-          return;
-        }
-      }
-
-      toast.error(mapWorkspaceActionError(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+    createWorkspace.mutate(
+      { data: { workspaceKey, name: trimmedName } },
+      {
+        onSuccess: (result) => {
+          const created = result.data;
+          void Promise.resolve(onSuccess(created))
+            .catch(() => {
+              toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
+              setIsSubmitting(false);
+            });
+          toast.success("워크스페이스를 생성했습니다.");
+          onOpenChange(false);
+        },
+        onError: (error) => {
+          if (error instanceof ApiRequestError) {
+            if (error.code === "WORKSPACE_INVALID_NAME") {
+              setFieldErrors({ name: error.message });
+              setIsSubmitting(false);
+              return;
+            }
+            if (error.code === "WORKSPACE_KEY_CONFLICT") {
+              setFieldErrors({ name: "다른 워크스페이스 이름으로 다시 시도해주세요." });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+          toast.error(mapWorkspaceActionError(error));
+          setIsSubmitting(false);
+        },
+      },
+    );
   };
 
   return (

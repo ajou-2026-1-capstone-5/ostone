@@ -51,15 +51,15 @@ export function RiskEditForm({
   const onSubmit = (values: RiskEditFormValues) => {
     const body: UpdateRiskRequest = {
       name: values.name,
-      description: normalizeNullableString(values.description),
-      riskLevel: values.riskLevel,
-      triggerConditionJson: values.triggerConditionJson,
-      handlingActionJson: values.handlingActionJson,
-      evidenceJson: values.evidenceJson,
-      metaJson: values.metaJson,
+      description: normalizeOptionalText(values.description),
+      riskLevel: values.riskLevel ?? undefined,
+      triggerConditionJson: values.triggerConditionJson ?? undefined,
+      handlingActionJson: values.handlingActionJson ?? undefined,
+      evidenceJson: values.evidenceJson ?? undefined,
+      metaJson: values.metaJson ?? undefined,
     };
 
-    mutate({ workspaceId, packId, versionId, riskId: risk.id, body }, { onSuccess: onClose });
+    mutate({ workspaceId, packId, versionId, riskId: risk.id!, body }, { onSuccess: onClose });
   };
 
   return (
@@ -126,8 +126,8 @@ export function RiskEditForm({
           )}
         />
 
-        <ReadonlyRiskValue label="위험요소 코드" value={risk.riskCode} />
-        <ReadonlyRiskValue label="버전 ID" value={risk.domainPackVersionId} />
+        <ReadonlyRiskValue label="위험요소 코드" value={risk.riskCode ?? ""} />
+        <ReadonlyRiskValue label="버전 ID" value={risk.domainPackVersionId ?? 0} />
 
         <RiskJsonFields />
 
@@ -137,8 +137,8 @@ export function RiskEditForm({
             workspaceId={workspaceId}
             packId={packId}
             versionId={versionId}
-            riskId={risk.id}
-            currentStatus={risk.status}
+            riskId={risk.id!}
+            currentStatus={(risk.status ?? "INACTIVE") as "ACTIVE" | "INACTIVE"}
             disabled={isAnyPending}
           />
         </div>
@@ -165,11 +165,6 @@ function ReadonlyRiskValue({ label, value }: Readonly<{ label: string; value: st
   );
 }
 
-function normalizeNullableString(value: string | null | undefined): string | null {
-  const trimmed = value?.trim() ?? "";
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 function formatJsonInput(raw: string): string {
   if (!raw) return raw;
   try {
@@ -179,14 +174,19 @@ function formatJsonInput(raw: string): string {
   }
 }
 
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 function getRiskDefaultValues(risk: RiskDefinition): RiskEditFormValues {
   return {
-    name: risk.name,
-    description: risk.description,
-    riskLevel: risk.riskLevel,
-    triggerConditionJson: formatJsonInput(risk.triggerConditionJson),
-    handlingActionJson: formatJsonInput(risk.handlingActionJson),
-    evidenceJson: formatJsonInput(risk.evidenceJson),
-    metaJson: formatJsonInput(risk.metaJson),
+    name: risk.name ?? "",
+    description: risk.description ?? undefined,
+    riskLevel: (risk.riskLevel ?? "LOW") as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+    triggerConditionJson: formatJsonInput(risk.triggerConditionJson ?? ""),
+    handlingActionJson: formatJsonInput(risk.handlingActionJson ?? ""),
+    evidenceJson: formatJsonInput(risk.evidenceJson ?? ""),
+    metaJson: formatJsonInput(risk.metaJson ?? ""),
   };
 }

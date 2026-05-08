@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { riskApi, riskKeys } from "@/entities/risk";
+import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 import { mapApiError } from "./mapApiError";
-import type { RiskDefinition } from "@/entities/risk";
+import type { RiskDefinitionResponse } from "@/shared/api/generated/zod";
 
 export type RiskDetailState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; code: string; message: string; httpStatus?: number }
-  | { status: "ready"; data: RiskDefinition };
+  | { status: "ready"; data: RiskDefinitionResponse };
 
 export function useRiskDetail(
   workspaceId: number,
@@ -17,18 +17,14 @@ export function useRiskDetail(
   riskId: number | null,
   retryKey = 0,
 ): RiskDetailState {
-  const queryKey =
-    riskId === null
-      ? ([...riskKeys.all, "detail", workspaceId, packId, versionId, "idle"] as const)
-      : riskKeys.detail(workspaceId, packId, versionId, riskId);
-
   const query = useQuery({
-    queryKey,
-    queryFn: () => {
+    queryKey: ["risk", "detail", workspaceId, packId, versionId, riskId],
+    queryFn: async () => {
       if (riskId === null) {
         throw new Error("riskId is required");
       }
-      return riskApi.detail(workspaceId, packId, versionId, riskId);
+      const res = await getRisk(workspaceId, packId, versionId, riskId);
+      return res.data;
     },
     enabled: riskId !== null,
   });

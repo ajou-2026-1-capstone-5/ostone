@@ -22,7 +22,7 @@ const stubVersion = {
   versionId: 1,
   versionNo: 1,
   lifecycleStatus: 'DRAFT' as const,
-  sourcePipelineJobId: null,
+  sourcePipelineJobId: undefined as any,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };
@@ -31,7 +31,7 @@ const stubVersion2 = {
   versionId: 2,
   versionNo: 2,
   lifecycleStatus: 'DRAFT' as const,
-  sourcePipelineJobId: null,
+  sourcePipelineJobId: undefined as any,
   createdAt: '2026-01-02T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 };
@@ -41,7 +41,7 @@ const stubPack: DomainPackDetail = {
   workspaceId: 1,
   code: 'CS',
   name: '고객지원',
-  description: null,
+  description: undefined as any,
   versions: [stubVersion],
   createdAt: '',
   updatedAt: '',

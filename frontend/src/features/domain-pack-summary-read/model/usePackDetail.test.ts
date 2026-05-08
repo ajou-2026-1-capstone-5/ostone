@@ -1,71 +1,27 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { useQuery } from '@tanstack/react-query';
-import { domainPackApi, domainPackKeys } from '@/entities/domain-pack';
+import { useGetDomainPack } from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
 import { usePackDetail } from './usePackDetail';
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn().mockReturnValue({}),
+vi.mock('@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller', () => ({
+  useGetDomainPack: vi.fn(),
 }));
 
-vi.mock('@/entities/domain-pack', () => ({
-  domainPackApi: { detail: vi.fn() },
-  domainPackKeys: {
-    detail: (wsId: number, packId: number) => ['domain-packs', 'detail', wsId, packId],
-  },
-}));
-
-const mockedUseQuery = vi.mocked(useQuery);
+const mockedUseGetDomainPack = vi.mocked(useGetDomainPack);
 
 describe('usePackDetail', () => {
-  beforeEach(() => mockedUseQuery.mockClear());
+  beforeEach(() => mockedUseGetDomainPack.mockClear());
 
-  it('올바른 queryKey로 useQuery를 호출한다', () => {
+  it('useGetDomainPack을 호출한다', () => {
+    mockedUseGetDomainPack.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetDomainPack>);
     usePackDetail(1, 2);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(['domain-packs', 'detail', 1, 2]);
+    expect(mockedUseGetDomainPack).toHaveBeenCalledWith(1, 2, { query: { select: expect.any(Function) } });
   });
 
-  it('queryFn이 domainPackApi.detail을 호출한다', () => {
-    usePackDetail(1, 2);
-    const [opts] = mockedUseQuery.mock.calls[0] as unknown as [{ queryFn: () => void }];
-    opts.queryFn();
-    expect(domainPackApi.detail).toHaveBeenCalledWith(1, 2);
-  });
-
-  it('loading 상태를 전달받아 반환한다', () => {
-    mockedUseQuery.mockReturnValueOnce({ isLoading: true, isFetching: true } as ReturnType<typeof useQuery>);
-    const result = usePackDetail(1, 2);
-    expect(result.isLoading).toBe(true);
-    expect(result.isFetching).toBe(true);
-  });
-
-  it('error 상태를 전달받아 반환한다', () => {
-    const err = new Error('fail');
-    mockedUseQuery.mockReturnValueOnce({ isError: true, error: err } as ReturnType<typeof useQuery>);
-    const result = usePackDetail(1, 2);
-    expect(result.isError).toBe(true);
-    expect(result.error).toBe(err);
-  });
-
-  it('성공 상태를 전달받아 반환한다', () => {
-    const data = { packId: 2, versions: [] };
-    mockedUseQuery.mockReturnValueOnce({ isSuccess: true, data } as ReturnType<typeof useQuery>);
-    const result = usePackDetail(1, 2);
-    expect(result.isSuccess).toBe(true);
-    expect(result.data).toBe(data);
-  });
-
-  it('queryKey에 wsId와 packId가 반영된다', () => {
-    usePackDetail(5, 99);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown[] }];
-    expect(opts.queryKey).toContain(5);
-    expect(opts.queryKey).toContain(99);
-  });
-
-  // domainPackKeys factory is exercised by the queryKey tests above
-  it('domainPackKeys.detail이 useQuery에 전달된다', () => {
-    usePackDetail(3, 7);
-    const [opts] = mockedUseQuery.mock.calls[0] as [{ queryKey: unknown }];
-    expect(opts.queryKey).toEqual(domainPackKeys.detail(3, 7));
+  it('결과를 그대로 반환한다', () => {
+    const result = { isSuccess: true, data: { packId: 2, name: 'Test Pack', versions: [] } };
+    mockedUseGetDomainPack.mockReturnValue(result as ReturnType<typeof useGetDomainPack>);
+    const hookResult = usePackDetail(1, 2);
+    expect(hookResult.isSuccess).toBe(true);
+    expect(hookResult.data).toEqual(result.data);
   });
 });

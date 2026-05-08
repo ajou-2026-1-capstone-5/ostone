@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { workflowQueryKeys } from "@/entities/workflow";
 import type { WorkflowDetail } from "@/entities/workflow";
 import { workflowApi } from "../api/workflowApi";
 
@@ -10,7 +9,7 @@ export function useWorkflowDetail(
   workflowId: number | null,
 ) {
   return useQuery<WorkflowDetail>({
-    queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId!),
+    queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
     queryFn: () => workflowApi.detail(wsId, packId, versionId, workflowId!),
     enabled: workflowId != null,
   });

@@ -2,6 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useIntentList } from "./useIntentList";
 import { ApiRequestError } from "../../../shared/api";
+import { intentApi } from "../api/intentApi";
 
 vi.mock("../api/intentApi", () => ({
   intentApi: {
@@ -9,8 +10,6 @@ vi.mock("../api/intentApi", () => ({
     detail: vi.fn(),
   },
 }));
-
-import { intentApi } from "../api/intentApi";
 
 const mockedList = vi.mocked(intentApi.list);
 
@@ -39,7 +38,7 @@ describe("useIntentList", () => {
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedList.mockResolvedValue([stubIntent]);
+    mockedList.mockResolvedValue([stubIntent] as any);
     const { result } = renderHook(() => useIntentList(1, 2, 3));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     if (result.current.status === "ready") {
@@ -48,7 +47,7 @@ describe("useIntentList", () => {
   });
 
   it("빈 배열 응답도 ready 상태로 처리한다", async () => {
-    mockedList.mockResolvedValue([]);
+    mockedList.mockResolvedValue([] as any);
     const { result } = renderHook(() => useIntentList(1, 2, 3));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     if (result.current.status === "ready") {

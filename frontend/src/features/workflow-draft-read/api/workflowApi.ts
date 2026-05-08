@@ -1,14 +1,16 @@
-import { apiClient } from "../../../shared/api";
-import type { WorkflowDetail, WorkflowSummary } from "../../../entities/workflow";
+import {
+  getWorkflow,
+  listWorkflows,
+} from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
 export const workflowApi = {
-  list: (wsId: number, packId: number, versionId: number) =>
-    apiClient.get<WorkflowSummary[]>(
-      `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}/workflows`,
-    ),
+  list: async (wsId: number, packId: number, versionId: number) => {
+    const res = await listWorkflows(wsId, packId, versionId);
+    return res.data;
+  },
 
-  detail: (wsId: number, packId: number, versionId: number, workflowId: number) =>
-    apiClient.get<WorkflowDetail>(
-      `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}`,
-    ),
+  detail: async (wsId: number, packId: number, versionId: number, workflowId: number) => {
+    const res = await getWorkflow(wsId, packId, versionId, workflowId);
+    return res.data;
+  },
 };

@@ -38,6 +38,10 @@ const defaultProps = {
   workflowCount: 4,
 };
 
+function renderSlotEditSheet(_slotId: number, isOpen: boolean) {
+  return isOpen ? <div role="dialog">슬롯 수정</div> : null;
+}
+
 describe('ComponentCountGrid', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -50,16 +54,38 @@ describe('ComponentCountGrid', () => {
   });
 
   it('카드 레이블과 카운트를 렌더링한다', () => {
-    render(<ComponentCountGrid {...defaultProps} />);
+    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
     expect(screen.getByText('Intent')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('Workflow')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
   });
 
-  it('disabled 카드는 "준비 중" 안내를 4개 표시한다', () => {
-    render(<ComponentCountGrid {...defaultProps} />);
-    expect(screen.getAllByText('준비 중')).toHaveLength(4);
+  it('Intent, Policy, Risk 카드 클릭 시 상세 목록으로 이동한다', () => {
+    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
+    fireEvent.click(screen.getByRole('button', { name: /Intent/ }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/workspaces/1/domain-packs/2/versions/3/intents',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Policy/ }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/workspaces/1/domain-packs/2/versions/3/policies',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Risk/ }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/workspaces/1/domain-packs/2/versions/3/risks',
+    );
+  });
+
+  it('Slot 카드 클릭 시 SlotEditSheet를 연다', () => {
+    vi.mocked(previewLists.useSlotPreview).mockReturnValue(
+      makeHook({ data: [{ id: 9, name: 'slot-1' }] }),
+    );
+    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
+    fireEvent.click(screen.getByRole('button', { name: /Slot/ }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('슬롯 수정');
   });
 
   it('로딩 중일 때 스켈레톤을 렌더링한다', () => {

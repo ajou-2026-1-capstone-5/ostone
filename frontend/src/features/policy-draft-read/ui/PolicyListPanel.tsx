@@ -117,7 +117,7 @@ function PolicyListRow({
     <button
       type="button"
       className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
-      onClick={() => onSelect(policy.id)}
+      onClick={() => policy.id != null && onSelect(policy.id!)}
       aria-pressed={isActive}
     >
       <div className={styles.itemInner}>

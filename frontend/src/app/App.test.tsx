@@ -56,19 +56,40 @@ describe("App", () => {
   it("redirects workspace home alias to workflows and renders the representative-version empty state", async () => {
     seedAuthenticatedSession();
 
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        id: 1,
-        workspaceKey: "cs-team-alpha",
-        name: "CS Team Alpha",
-        description: null,
-        status: "ACTIVE",
-        myRole: "OWNER",
-        createdAt: "2026-04-01T00:00:00Z",
-        updatedAt: "2026-04-01T00:00:00Z",
-      }),
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/v1/workspaces") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: 1,
+              workspaceKey: "cs-team-alpha",
+              name: "CS Team Alpha",
+              description: null,
+              status: "ACTIVE",
+              myRole: "OWNER",
+              createdAt: "2026-04-01T00:00:00Z",
+              updatedAt: "2026-04-01T00:00:00Z",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 1,
+          workspaceKey: "cs-team-alpha",
+          name: "CS Team Alpha",
+          description: null,
+          status: "ACTIVE",
+          myRole: "OWNER",
+          createdAt: "2026-04-01T00:00:00Z",
+          updatedAt: "2026-04-01T00:00:00Z",
+        }),
+      });
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -84,7 +105,8 @@ describe("App", () => {
       expect(window.location.pathname).toBe("/workspaces/1/workflows");
     });
 
-    expect(await screen.findByText("아직 표시할 대표 워크플로우가 없습니다")).toBeInTheDocument();
+    expect(await screen.findByText("Workflows")).toBeInTheDocument();
+    expect(screen.getByText("반품 접수 처리")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
       expect.objectContaining({ method: "GET" }),

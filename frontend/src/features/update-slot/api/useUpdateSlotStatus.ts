@@ -1,7 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { slotApi, slotKeys } from "@/entities/slot";
-import type { SlotDefinition, SlotSummary } from "@/entities/slot";
+import { updateSlotStatus } from "@/shared/api/generated/endpoints/update-slot-status-controller/update-slot-status-controller";
+import type {
+  SlotDefinitionResponse,
+  SlotDefinitionSummary,
+  UpdateSlotStatusRequest,
+} from "@/shared/api/generated/zod";
 import { SLOT_ERROR_MESSAGES } from "./messages";
 
 interface UpdateSlotStatusParams {
@@ -9,7 +13,7 @@ interface UpdateSlotStatusParams {
   packId: number;
   versionId: number;
   slotId: number;
-  status: "ACTIVE" | "INACTIVE";
+  status: UpdateSlotStatusRequest["status"];
 }
 
 export const UPDATE_SLOT_STATUS_MUTATION_KEY = ["updateSlotStatus"] as const;
@@ -18,19 +22,21 @@ export function useUpdateSlotStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: UPDATE_SLOT_STATUS_MUTATION_KEY,
-    mutationFn: ({ workspaceId, packId, versionId, slotId, status }: UpdateSlotStatusParams) =>
-      slotApi.updateStatus(workspaceId, packId, versionId, slotId, { status }),
+    mutationFn: async ({ workspaceId, packId, versionId, slotId, status }: UpdateSlotStatusParams) => {
+      const res = await updateSlotStatus(workspaceId, packId, versionId, slotId, { status });
+      return res.data;
+    },
     onMutate: async ({ workspaceId, packId, versionId, slotId, status }) => {
-      const detailKey = slotKeys.detail(workspaceId, packId, versionId, slotId);
-      const listKey = slotKeys.list(workspaceId, packId, versionId);
+      const detailKey = ["slots", "detail", workspaceId, packId, versionId, slotId] as const;
+      const listKey = ["slots", "list", workspaceId, packId, versionId] as const;
 
-      const previousDetail = queryClient.getQueryData<SlotDefinition>(detailKey);
-      const previousList = queryClient.getQueryData<SlotSummary[]>(listKey);
+      const previousDetail = queryClient.getQueryData<SlotDefinitionResponse>(detailKey);
+      const previousList = queryClient.getQueryData<SlotDefinitionSummary[]>(listKey);
 
-      queryClient.setQueryData<SlotDefinition>(detailKey, (old) =>
+      queryClient.setQueryData<SlotDefinitionResponse>(detailKey, (old) =>
         old ? { ...old, status } : old,
       );
-      queryClient.setQueryData<SlotSummary[]>(listKey, (old) =>
+      queryClient.setQueryData<SlotDefinitionSummary[]>(listKey, (old) =>
         old?.map((item) => (item.id === slotId ? { ...item, status } : item)),
       );
 
@@ -45,10 +51,10 @@ export function useUpdateSlotStatus() {
     },
     onSuccess: (_, { workspaceId, packId, versionId, slotId }) => {
       queryClient.invalidateQueries({
-        queryKey: slotKeys.detail(workspaceId, packId, versionId, slotId),
+        queryKey: ["slots", "detail", workspaceId, packId, versionId, slotId] as const,
       });
       queryClient.invalidateQueries({
-        queryKey: slotKeys.list(workspaceId, packId, versionId),
+        queryKey: ["slots", "list", workspaceId, packId, versionId] as const,
       });
     },
   });

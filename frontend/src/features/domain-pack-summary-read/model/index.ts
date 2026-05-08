@@ -1,5 +1,4 @@
-export { usePackDetail } from './usePackDetail';
-export { useVersionDetail } from './useVersionDetail';
+export { usePackDetail, useVersionDetail } from './usePackDetail';
 export { parseSummaryJson } from './parseSummaryJson';
 export type { ParsedSummary } from './parseSummaryJson';
 export {

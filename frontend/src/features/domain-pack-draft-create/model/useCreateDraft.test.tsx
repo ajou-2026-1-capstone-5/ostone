@@ -14,16 +14,9 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('@/entities/domain-pack', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/entities/domain-pack')>();
-  return {
-    ...original,
-    domainPackKeys: {
-      ...original.domainPackKeys,
-      detail: (wsId: number, packId: number) => ['domain-packs', 'detail', wsId, packId],
-    },
-  };
-});
+vi.mock('@/entities/domain-pack', () => ({
+  createDraftApi: { create: vi.fn() },
+}));
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const queryClient = new QueryClient({
@@ -37,14 +30,14 @@ const stubResponse = {
   domainPackId: 2,
   versionNo: 2,
   lifecycleStatus: 'DRAFT' as const,
-  sourcePipelineJobId: null,
+  sourcePipelineJobId: undefined as any,
   intentCount: 0,
   slotCount: 0,
   policyCount: 0,
   riskCount: 0,
   workflowCount: 0,
   createdAt: '',
-};
+} as any;
 
 const mutateParams = { wsId: 1, packId: 2, payload: {} };
 
@@ -56,7 +49,7 @@ describe('useCreateDraft', () => {
   });
 
   it('201 성공 시 toast.success를 호출한다', async () => {
-    vi.mocked(createDraftApi.create).mockResolvedValue(stubResponse);
+    vi.mocked(createDraftApi.create).mockResolvedValue(stubResponse as any);
     const { result } = renderHook(() => useCreateDraft(), { wrapper });
     result.current.mutate(mutateParams);
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('새 DRAFT 버전이 생성되었습니다.'));

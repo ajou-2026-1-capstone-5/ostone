@@ -12,7 +12,7 @@ const stubTransition: WorkflowTransitionDetail = {
   to: "STATE_B",
   label: "조건A",
   toPolicyRef: "POL_001",
-};
+} as any;
 
 const stubPolicy: PolicySummary = {
   id: 1,
@@ -20,11 +20,11 @@ const stubPolicy: PolicySummary = {
   policyCode: "POL_001",
   name: "정책 이름",
   description: "정책 설명",
-  severity: null,
+  severity: null as any,
   status: "ACTIVE",
   createdAt: "2026-01-01T00:00:00Z",
   updatedAt: "2026-01-01T00:00:00Z",
-};
+} as any;
 
 describe("TransitionPopover", () => {
   it("transition 기본 정보를 표시한다", () => {
@@ -67,7 +67,7 @@ describe("TransitionPopover", () => {
   });
 
   it("label=null이면 label 섹션을 표시하지 않는다", () => {
-    const noLabel = { ...stubTransition, label: null };
+    const noLabel = { ...stubTransition, label: null } as any;
     render(<TransitionPopover transition={noLabel} policy={null} onClose={vi.fn()} />);
     expect(screen.queryByText("Label")).not.toBeInTheDocument();
   });

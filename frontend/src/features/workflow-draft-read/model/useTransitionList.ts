@@ -1,6 +1,6 @@
 import { useQuery, skipToken } from "@tanstack/react-query";
-import { transitionQueryKeys, fetchTransitionList } from "@/entities/workflow";
 import type { WorkflowTransitionDetail } from "@/entities/workflow";
+import { listTransitions } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
 export function useTransitionList(
   wsId: number,
@@ -11,11 +11,14 @@ export function useTransitionList(
   return useQuery<WorkflowTransitionDetail[]>({
     queryKey:
       workflowId != null
-        ? transitionQueryKeys.list(wsId, packId, versionId, workflowId)
+        ? (["transitions", wsId, packId, versionId, workflowId] as const)
         : (["transitions", "disabled"] as const),
     queryFn:
       workflowId != null
-        ? () => fetchTransitionList(wsId, packId, versionId, workflowId)
+        ? async () => {
+            const res = await listTransitions(wsId, packId, versionId, workflowId);
+            return res.data;
+          }
         : skipToken,
   });
 }

@@ -145,7 +145,7 @@ function RiskListRow({
     <button
       type="button"
       className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
-      onClick={() => onSelect(risk.id)}
+      onClick={() => risk.id != null && onSelect(risk.id!)}
       aria-current={isActive ? "true" : undefined}
     >
       <div className={styles.itemInner}>

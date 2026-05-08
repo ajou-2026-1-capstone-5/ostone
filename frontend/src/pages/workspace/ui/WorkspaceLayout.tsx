@@ -1,99 +1,163 @@
-import { useEffect, useState } from "react";
-import { Navigate, Outlet, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import type { ShellContext, SidebarActive } from "@/shared/ui/ostone/chrome";
 
-import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
-import { Button } from "@/shared/ui/button";
-import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
+import {
+  mapWorkspaceActionError,
+  type WorkspaceResponse,
+} from "@/entities/workspace";
+import { useListWorkspaces, useGetWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
+import {
+  ArchiveConfirmDialog,
+  CreateWorkspaceDialog,
+  EditWorkspaceDialog,
+  WorkspaceSwitcher,
+} from "@/features/workspace";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { Spinner } from "@/shared/ui/spinner";
-import { WorkspaceShell } from "@/widgets/workspace-shell/ui/WorkspaceShell";
 
-import styles from "./workspace-layout.module.css";
+const getActiveFromPath = (pathname: string): SidebarActive => {
+  if (pathname.includes("/domain-packs")) return "domain";
+  if (pathname.includes("/pipeline")) return "pipeline";
+  if (pathname.includes("/consultation")) return "consult";
+  if (pathname.includes("/upload")) return "upload";
+  if (pathname.includes("/workflows")) return "workflows";
+
+  return "workflows";
+};
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const parsedWorkspaceId = parseRouteId(workspaceId);
+  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : "/workspaces";
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
-  const [retryNonce, setRetryNonce] = useState(0);
+  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<WorkspaceResponse | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<WorkspaceResponse | null>(null);
+  const [topbarRight, setTopbarRight] = useState<ReactNode>(null);
+  const [crumbs, setCrumbs] = useState<string[]>([]);
+  const active = getActiveFromPath(location.pathname);
+
+  const { data: fetchedWorkspaces, refetch: refetchWorkspaces } = useListWorkspaces();
+  const { data: fetchedWorkspace, isLoading: isFetchingWorkspace, error: fetchError, refetch: refetchWorkspace } =
+    useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
 
   useEffect(() => {
-    if (parsedWorkspaceId === null) {
-      return;
+    if (fetchedWorkspaces) {
+      setWorkspaces(fetchedWorkspaces as unknown as WorkspaceResponse[]);
     }
+  }, [fetchedWorkspaces]);
 
-    const controller = new AbortController();
+  useEffect(() => {
+    if (fetchedWorkspace) {
+      setWorkspace(fetchedWorkspace as unknown as WorkspaceResponse);
+      setError("");
+    } else if (parsedWorkspaceId !== null && fetchError) {
+      setError(mapWorkspaceActionError(fetchError));
+      setWorkspace(null);
+    }
+  }, [fetchedWorkspace, fetchError, parsedWorkspaceId]);
 
-    void workspaceApi
-      .get(parsedWorkspaceId, controller.signal)
-      .then((workspaceResult) => {
-        if (!controller.signal.aborted) {
-          setWorkspace(workspaceResult);
-        }
-      })
-      .catch((err) => {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
+  useEffect(() => {
+    if (!isFetchingWorkspace && parsedWorkspaceId !== null) {
+      setIsLoading(false);
+    }
+  }, [isFetchingWorkspace, parsedWorkspaceId]);
 
-        if (!controller.signal.aborted) {
-          setError(mapWorkspaceActionError(err));
-          setWorkspace(null);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [parsedWorkspaceId, retryNonce]);
+  const defaultCrumbs = useMemo(() => (workspace?.name ? [workspace.name] : []), [workspace]);
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
   }
 
+  const subPath = location.pathname.replace(/\/workspaces\/[^/]+/, "");
+
+  const handleSwitch = (newWorkspaceId: number) => {
+    const targetSubPath = subPath || "/workflows";
+    navigate(`/workspaces/${newWorkspaceId}${targetSubPath}`, { replace: true });
+  };
+
+  const refreshWorkspaceList = () => {
+    refetchWorkspaces();
+  };
+
+  const sidebarSwitcher = (
+    <WorkspaceSwitcher
+      workspaces={workspaces}
+      currentWorkspaceId={parsedWorkspaceId}
+      onSwitch={handleSwitch}
+      onCreate={() => setIsCreateOpen(true)}
+      onEdit={(w) => setEditTarget(w)}
+      onArchive={(w) => setArchiveTarget(w)}
+    />
+  );
+  const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
+
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className={styles.statePanel} aria-live="polite">
-          <Spinner />
-          <p className={styles.stateText}>워크스페이스 정보를 불러오는 중입니다.</p>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "var(--s-3)",
+            height: "100%",
+          }}
+          aria-live="polite"
+        >
+          <LoadingSpinner />
+          <p style={{ color: "var(--ink)", fontSize: "14px" }}>워크스페이스 정보를 불러오는 중입니다.</p>
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
   if (error || !workspace) {
     return (
-      <DashboardLayout>
-        <div className={styles.statePanel} role="alert">
-          <p className={styles.stateTitle}>워크스페이스를 불러오지 못했습니다.</p>
-          <p className={styles.stateText}>{error || "워크스페이스를 찾을 수 없습니다."}</p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setIsLoading(true);
-              setError("");
-              setRetryNonce((value) => value + 1);
-            }}
-          >
-            다시 시도
-          </Button>
-        </div>
-      </DashboardLayout>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
+        <ErrorState
+          message={error || "워크스페이스를 찾을 수 없습니다."}
+          onRetry={refetchWorkspace}
+        />
+      </OstoneShell>
     );
   }
 
   return (
-    <DashboardLayout>
-      <WorkspaceShell workspaceId={parsedWorkspaceId} workspaceName={workspace.name}>
-        <Outlet context={{ workspace }} />
-      </WorkspaceShell>
-    </DashboardLayout>
+    <OstoneShell
+      active={active}
+      crumbs={crumbs.length > 0 ? crumbs : defaultCrumbs}
+      topbarRight={topbarRight}
+      basePath={basePath}
+      sidebarSwitcher={sidebarSwitcher}
+    >
+      <Outlet context={outletContext} />
+      <CreateWorkspaceDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={refreshWorkspaceList}
+      />
+      <EditWorkspaceDialog
+        workspace={editTarget}
+        open={editTarget !== null}
+        onOpenChange={() => setEditTarget(null)}
+        onSuccess={refreshWorkspaceList}
+      />
+      <ArchiveConfirmDialog
+        workspace={archiveTarget}
+        open={archiveTarget !== null}
+        onOpenChange={() => setArchiveTarget(null)}
+        onSuccess={refreshWorkspaceList}
+      />
+    </OstoneShell>
   );
 }

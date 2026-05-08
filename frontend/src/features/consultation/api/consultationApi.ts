@@ -1,36 +1,31 @@
-import { apiClient } from '../../../shared/api';
+import {
+  getMessages,
+  getQueue,
+  sendMessage,
+  updateStatus,
+} from '@/shared/api/generated/endpoints/consultation-controller/consultation-controller';
+import type {
+  ChatMessageResponse,
+  ChatSessionResponse,
+} from '@/shared/api/generated/zod';
 
-export interface ChatSession {
-  id: number;
-  status: string;
-  channel: string;
-  metaJson: string; // JSON 형태의 문자열
-  startedAt: string;
-}
-
-export interface ChatMessage {
-  id: number;
-  seqNo: number;
-  senderRole: string; // 'CUSTOMER', 'SYSTEM', 'AGENT', 'NOTE'
-  messageType: string;
-  content: string;
-  createdAt: string;
-}
+export type ChatSession = ChatSessionResponse;
+export type ChatMessage = ChatMessageResponse;
 
 export const consultationApi = {
   getQueue: async (): Promise<ChatSession[]> => {
-    return apiClient.get<ChatSession[]>('/consultation/queue');
+    return (await getQueue()).data;
   },
 
   getMessages: async (sessionId: number): Promise<ChatMessage[]> => {
-    return apiClient.get<ChatMessage[]>(`/consultation/sessions/${sessionId}/messages`);
+    return (await getMessages(sessionId)).data;
   },
 
   sendMessage: async (sessionId: number, content: string, isNote: boolean = false): Promise<ChatMessage> => {
-    return apiClient.post<ChatMessage>(`/consultation/sessions/${sessionId}/messages`, { content, isNote });
+    return (await sendMessage(sessionId, { content, isNote })).data;
   },
 
   updateStatus: async (sessionId: number, status: string): Promise<ChatSession> => {
-    return apiClient.patch<ChatSession>(`/consultation/sessions/${sessionId}/status`, { status });
+    return (await updateStatus(sessionId, { status })).data;
   }
 };

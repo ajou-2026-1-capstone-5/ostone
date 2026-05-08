@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { workflowQueryKeys, patchWorkflow } from "@/entities/workflow";
-import type { UpdateWorkflowRequest } from "@/entities/workflow";
+import { updateWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import type { UpdateWorkflowRequest } from "@/shared/api/generated/zod";
 import { ApiRequestError } from "@/shared/api";
 
 interface UpdateWorkflowParams {
@@ -31,14 +31,16 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function useUpdateWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ wsId, packId, versionId, workflowId, body }: UpdateWorkflowParams) =>
-      patchWorkflow(wsId, packId, versionId, workflowId, body),
+    mutationFn: async ({ wsId, packId, versionId, workflowId, body }: UpdateWorkflowParams) => {
+      const res = await updateWorkflow(wsId, packId, versionId, workflowId, body);
+      return res.data;
+    },
     onSuccess: (_, { wsId, packId, versionId, workflowId }) => {
       queryClient.invalidateQueries({
-        queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId),
+        queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
       });
       queryClient.invalidateQueries({
-        queryKey: workflowQueryKeys.list(wsId, packId, versionId),
+        queryKey: ["workflows", "list", wsId, packId, versionId] as const,
       });
       toast.success("워크플로우가 수정되었습니다.");
     },

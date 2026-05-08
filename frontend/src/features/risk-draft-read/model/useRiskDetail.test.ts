@@ -2,24 +2,15 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { riskApi } from "@/entities/risk";
+import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 import { ApiRequestError } from "@/shared/api";
 import { useRiskDetail } from "./useRiskDetail";
 
-vi.mock("@/entities/risk", () => ({
-  riskApi: {
-    list: vi.fn(),
-    detail: vi.fn(),
-  },
-  riskKeys: {
-    all: ["risks"],
-    lists: () => ["risks", "list"],
-    list: (...args: number[]) => ["risks", "list", ...args],
-    detail: (...args: number[]) => ["risks", "detail", ...args],
-  },
+vi.mock("@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller", () => ({
+  getRisk: vi.fn(),
 }));
 
-const mockedDetail = vi.mocked(riskApi.detail);
+const mockedGetRisk = vi.mocked(getRisk);
 
 const stubRisk = {
   id: 4,
@@ -48,7 +39,7 @@ function makeWrapper() {
 
 describe("useRiskDetail", () => {
   beforeEach(() => {
-    mockedDetail.mockReset();
+    mockedGetRisk.mockReset();
   });
 
   it("riskId가 없으면 idle 상태를 반환한다", () => {
@@ -57,11 +48,11 @@ describe("useRiskDetail", () => {
     });
 
     expect(result.current.status).toBe("idle");
-    expect(mockedDetail).not.toHaveBeenCalled();
+    expect(mockedGetRisk).not.toHaveBeenCalled();
   });
 
   it("성공 시 ready 상태와 상세 데이터를 반환한다", async () => {
-    mockedDetail.mockResolvedValue(stubRisk);
+    mockedGetRisk.mockResolvedValue({ data: stubRisk, status: 200, headers: new Headers() });
     const { result } = renderHook(() => useRiskDetail(1, 2, 3, 4), {
       wrapper: makeWrapper(),
     });
@@ -74,7 +65,7 @@ describe("useRiskDetail", () => {
   });
 
   it("ApiRequestError를 error 상태로 변환한다", async () => {
-    mockedDetail.mockRejectedValue(new ApiRequestError(404, "RISK_DEFINITION_NOT_FOUND", "없음"));
+    mockedGetRisk.mockRejectedValue(new ApiRequestError(404, "RISK_DEFINITION_NOT_FOUND", "없음"));
     const { result } = renderHook(() => useRiskDetail(1, 2, 3, 404), {
       wrapper: makeWrapper(),
     });
@@ -88,9 +79,13 @@ describe("useRiskDetail", () => {
   });
 
   it("retryKey가 증가한 뒤 riskId가 바뀌어도 새 상세 조회를 한 번만 호출한다", async () => {
-    mockedDetail.mockImplementation(async (_workspaceId, _packId, _versionId, riskId) => ({
-      ...stubRisk,
-      id: riskId,
+    mockedGetRisk.mockImplementation(async (_workspaceId, _packId, _versionId, riskId) => ({
+      data: {
+        ...stubRisk,
+        id: riskId,
+      },
+      status: 200,
+      headers: new Headers(),
     }));
 
     const { result, rerender } = renderHook(
@@ -102,17 +97,17 @@ describe("useRiskDetail", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(mockedDetail).toHaveBeenCalledTimes(1);
-    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 4);
+    expect(mockedGetRisk).toHaveBeenCalledTimes(1);
+    expect(mockedGetRisk).toHaveBeenLastCalledWith(1, 2, 3, 4);
 
     rerender({ retryKey: 1, riskId: 4 });
 
-    await waitFor(() => expect(mockedDetail).toHaveBeenCalledTimes(2));
-    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 4);
+    await waitFor(() => expect(mockedGetRisk).toHaveBeenCalledTimes(2));
+    expect(mockedGetRisk).toHaveBeenLastCalledWith(1, 2, 3, 4);
 
     rerender({ retryKey: 1, riskId: 5 });
 
-    await waitFor(() => expect(mockedDetail).toHaveBeenCalledTimes(3));
-    expect(mockedDetail).toHaveBeenLastCalledWith(1, 2, 3, 5);
+    await waitFor(() => expect(mockedGetRisk).toHaveBeenCalledTimes(3));
+    expect(mockedGetRisk).toHaveBeenLastCalledWith(1, 2, 3, 5);
   });
 });

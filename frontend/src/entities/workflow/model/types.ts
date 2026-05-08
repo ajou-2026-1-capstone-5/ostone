@@ -1,13 +1,8 @@
-export interface WorkflowSummary {
-  id: number;
-  workflowCode: string;
-  name: string;
-  description: string | null;
-  initialState: string | null;
-  terminalStatesJson: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  UpdateWorkflowRequest,
+  WorkflowDefinitionDetail as WorkflowDetail,
+  WorkflowDefinitionSummary as WorkflowSummary,
+} from "@/shared/api/generated/zod";
 
 export type GraphNodeType = "START" | "ACTION" | "DECISION" | "ANSWER" | "HANDOFF" | "TERMINAL";
 
@@ -30,34 +25,5 @@ export interface WorkflowGraph {
   direction: "LR" | "TB";
   nodes: GraphNode[];
   edges: GraphEdge[];
-}
-
-export interface WorkflowDetail {
-  id: number;
-  workflowCode: string;
-  name: string;
-  description: string | null;
-  graphJson: WorkflowGraph;
-  initialState: string | null;
-  terminalStatesJson: string;
-  evidenceJson: string;
-  metaJson: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UpdateWorkflowRequest {
-  name: string;
-  description?: string | null;
-  graphJson: WorkflowGraph;
-}
-
-export interface WorkflowTransitionDetail {
-  id: string;
-  workflowDefinitionId: number;
-  domainPackVersionId: number;
-  from: string;
-  to: string;
-  label: string | null;
-  toPolicyRef: string | null;
+  [key: string]: unknown;
 }

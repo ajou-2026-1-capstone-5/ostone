@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { slotApi, slotKeys } from "@/entities/slot";
-import type { UpdateSlotRequest } from "@/entities/slot";
+import { updateSlot } from "@/shared/api/generated/endpoints/update-slot-controller/update-slot-controller";
+import type { UpdateSlotRequest } from "@/shared/api/generated/zod";
 import { ApiRequestError } from "@/shared/api";
 import { SLOT_ERROR_MESSAGES } from "./messages";
 
@@ -16,14 +16,16 @@ interface UpdateSlotParams {
 export function useUpdateSlot() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ workspaceId, packId, versionId, slotId, body }: UpdateSlotParams) =>
-      slotApi.update(workspaceId, packId, versionId, slotId, body),
+    mutationFn: async ({ workspaceId, packId, versionId, slotId, body }: UpdateSlotParams) => {
+      const res = await updateSlot(workspaceId, packId, versionId, slotId, body);
+      return res.data;
+    },
     onSuccess: (_, { workspaceId, packId, versionId, slotId }) => {
       queryClient.invalidateQueries({
-        queryKey: slotKeys.detail(workspaceId, packId, versionId, slotId),
+        queryKey: ["slots", "detail", workspaceId, packId, versionId, slotId] as const,
       });
       queryClient.invalidateQueries({
-        queryKey: slotKeys.list(workspaceId, packId, versionId),
+        queryKey: ["slots", "list", workspaceId, packId, versionId] as const,
       });
       toast.success("슬롯이 수정되었습니다.");
     },
