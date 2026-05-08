@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** 기존 DRAFT 버전에 intent를 추가 저장한다. Airflow 파이프라인 콜백의 2단계에서 사용한다. */
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class AddIntentsToDraftVersionUseCase {
 
   private final DomainPackVersionRepository domainPackVersionRepository;
@@ -22,6 +22,7 @@ public class AddIntentsToDraftVersionUseCase {
     this.domainPackDraftPersistenceService = domainPackDraftPersistenceService;
   }
 
+  @Transactional
   public AddIntentsToDraftVersionResult execute(AddIntentsToDraftVersionCommand command) {
     DomainPackVersion version =
         domainPackVersionRepository

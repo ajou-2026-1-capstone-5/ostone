@@ -12,9 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
+import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
-import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -113,7 +113,7 @@ class TriggerDomainPackGenerationUseCaseTest {
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(false);
 
     assertThatThrownBy(() -> useCase.execute(command()))
-        .isInstanceOf(WorkspaceAccessDeniedException.class);
+        .isInstanceOf(PipelineJobWorkspaceAccessDeniedException.class);
 
     verify(triggerPort, never()).dagId();
   }

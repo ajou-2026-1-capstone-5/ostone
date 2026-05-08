@@ -83,7 +83,12 @@ sonar {
         property("sonar.coverage.exclusions",
             "**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java,**/infrastructure/**/*")
         property("sonar.cpd.exclusions",
-            "**/pipelinejob/application/AddWorkflowDraftPortCommand.java")
+            "**/pipelinejob/application/AddWorkflowDraftPortCommand.java," +
+            "**/pipelinejob/application/CreateDomainPackDraftPortCommand.java," +
+            "**/pipelinejob/application/CreateDomainPackDraftPortResult.java," +
+            "**/pipelinejob/application/AddIntentsToDraftVersionPortCommand.java," +
+            "**/pipelinejob/application/AddIntentsToDraftVersionPortResult.java," +
+            "**/pipelinejob/application/IntentDraftInput.java")
     }
 }
 

@@ -29,6 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+// NOTE: 선언적 @Transactional 대신 TransactionTemplate을 사용한다.
+// Dataset 저장 → conversation 배치 flush → 실패 시 보상 트랜잭션(compensation)을
+// 독립된 트랜잭션 경계로 interleave해야 하므로 클래스 레벨 @Transactional(readOnly = true)
+// 컨벤션의 의도적 예외.
 @Service
 public class RawDatasetUploadService {
 

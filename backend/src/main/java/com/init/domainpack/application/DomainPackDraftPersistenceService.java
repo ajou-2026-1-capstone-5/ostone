@@ -35,7 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class DomainPackDraftPersistenceService {
 
   private final DomainPackVersionRepository domainPackVersionRepository;
@@ -67,6 +67,7 @@ public class DomainPackDraftPersistenceService {
   }
 
   /** DRAFT 버전만 생성한다 (intent/slot/policy 등은 저장하지 않음). Airflow 파이프라인 콜백의 1단계에서 사용한다. */
+  @Transactional
   public DomainPackVersion persistVersion(
       Long packId, Long createdBy, Long sourcePipelineJobId, String summaryJson) {
     int nextVersionNo =
@@ -84,6 +85,7 @@ public class DomainPackDraftPersistenceService {
   }
 
   /** 기존 DRAFT 버전에 intent를 추가 저장한다. 이미 존재하는 intentCode는 건너뛴다. Airflow 파이프라인 콜백의 2단계에서 사용한다. */
+  @Transactional
   public AddIntentsToDraftVersionResult persistIntents(
       Long domainPackVersionId, List<IntentDraft> intents) {
     DomainPackVersion version = requireDraftVersion(domainPackVersionId);
@@ -150,6 +152,7 @@ public class DomainPackDraftPersistenceService {
   }
 
   /** UI에서 수동으로 전체 draft를 한 번에 저장할 때 사용한다. */
+  @Transactional
   public CreateDomainPackDraftResult persist(
       Long packId,
       Long createdBy,
@@ -172,13 +175,14 @@ public class DomainPackDraftPersistenceService {
             toIntentWorkflowBindingInputs(intentWorkflowBindings));
     List<WorkflowInput> validatedWorkflows =
         validateDraftPayload(
-            intents,
-            components.slots(),
-            components.intentSlotBindings(),
-            components.policies(),
-            components.risks(),
-            components.workflows(),
-            components.intentWorkflowBindings(),
+            new DraftPayload(
+                intents,
+                components.slots(),
+                components.intentSlotBindings(),
+                components.policies(),
+                components.risks(),
+                components.workflows(),
+                components.intentWorkflowBindings()),
             Set.of());
 
     int nextVersionNo =
@@ -257,6 +261,7 @@ public class DomainPackDraftPersistenceService {
   }
 
   /** 기존 DRAFT 버전에 workflow 관련 초안을 추가 저장한다. intent는 새로 만들지 않고 기존 row를 참조한다. */
+  @Transactional
   public AddWorkflowDraftToVersionResult persistWorkflowDraft(
       Long domainPackVersionId,
       List<AddWorkflowDraftToVersionCommand.SlotDraft> slots,
@@ -434,19 +439,27 @@ public class DomainPackDraftPersistenceService {
   }
 
   private List<WorkflowInput> validateDraftPayload(
+      DraftPayload payload, Set<String> allowedPolicyCodes) {
+    ensureDraftPayloadUnique(
+        payload.intents(),
+        payload.slots(),
+        payload.intentSlotBindings(),
+        payload.policies(),
+        payload.risks(),
+        payload.workflows(),
+        payload.intentWorkflowBindings());
+    return validateParsedWorkflows(
+        parseWorkflowInputs(safeList(payload.workflows())), payload.policies(), allowedPolicyCodes);
+  }
+
+  private record DraftPayload(
       List<IntentDraft> intents,
       List<SlotInput> slots,
       List<IntentSlotBindingInput> intentSlotBindings,
       List<PolicyInput> policies,
       List<RiskInput> risks,
       List<WorkflowInput> workflows,
-      List<IntentWorkflowBindingInput> intentWorkflowBindings,
-      Set<String> allowedPolicyCodes) {
-    ensureDraftPayloadUnique(
-        intents, slots, intentSlotBindings, policies, risks, workflows, intentWorkflowBindings);
-    return validateParsedWorkflows(
-        parseWorkflowInputs(safeList(workflows)), policies, allowedPolicyCodes);
-  }
+      List<IntentWorkflowBindingInput> intentWorkflowBindings) {}
 
   private void ensureDraftPayloadUnique(
       List<IntentDraft> intents,

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class AddWorkflowDraftToVersionUseCase {
 
   private final DomainPackDraftPersistenceService domainPackDraftPersistenceService;
@@ -14,6 +14,7 @@ public class AddWorkflowDraftToVersionUseCase {
     this.domainPackDraftPersistenceService = domainPackDraftPersistenceService;
   }
 
+  @Transactional
   public AddWorkflowDraftToVersionResult execute(AddWorkflowDraftToVersionCommand command) {
     return domainPackDraftPersistenceService.persistWorkflowDraft(
         command.domainPackVersionId(),
