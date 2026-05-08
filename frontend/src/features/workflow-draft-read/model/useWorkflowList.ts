@@ -4,7 +4,7 @@ import { workflowApi } from "../api/workflowApi";
 
 export function useWorkflowList(wsId: number, packId: number, versionId: number) {
   return useQuery<WorkflowSummary[]>({
-    queryKey: ["workflows", wsId, packId, versionId] as const,
+    queryKey: ["workflows", "list", wsId, packId, versionId] as const,
     queryFn: () => workflowApi.list(wsId, packId, versionId),
   });
 }

@@ -9,8 +9,11 @@ import type { DomainPackSummaryResult } from "@/shared/api/generated/zod";
 export function DomainPackListPage() {
   const { workspaceId } = useParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
+  const safeWorkspaceId = parsedWorkspaceId ?? 0;
 
-  const query = useListDomainPacks(parsedWorkspaceId!);
+  const query = useListDomainPacks(safeWorkspaceId, {
+    query: { enabled: parsedWorkspaceId !== null },
+  });
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;

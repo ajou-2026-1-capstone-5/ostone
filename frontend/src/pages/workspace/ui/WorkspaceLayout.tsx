@@ -77,6 +77,8 @@ export function WorkspaceLayout() {
     }
   }, [isFetchingWorkspace, parsedWorkspaceId]);
 
+  const defaultCrumbs = useMemo(() => (workspace?.name ? [workspace.name] : []), [workspace]);
+
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
   }
@@ -102,7 +104,6 @@ export function WorkspaceLayout() {
       onArchive={(w) => setArchiveTarget(w)}
     />
   );
-  const defaultCrumbs = useMemo(() => (workspace ? [workspace.name] : []), [workspace]);
   const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
 
   if (isLoading || fetchedWorkspace === undefined) {
@@ -140,7 +141,7 @@ export function WorkspaceLayout() {
   return (
     <OstoneShell
       active={active}
-      crumbs={crumbs.length > 0 ? crumbs : (defaultCrumbs as string[])}
+      crumbs={crumbs.length > 0 ? crumbs : defaultCrumbs}
       topbarRight={topbarRight}
       basePath={basePath}
       sidebarSwitcher={sidebarSwitcher}

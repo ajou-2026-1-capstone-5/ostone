@@ -1,14 +1,13 @@
-import { QueryClient, type UseQueryResult } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { DomainPackVersionDetail } from '@/entities/domain-pack';
 import { ApiRequestError } from '@/shared/api';
 import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
+import { SlotEditSheet } from '@/features/update-slot';
 import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
 import { SummaryJsonCard } from './SummaryJsonCard';
 import { ComponentCountGrid } from './ComponentCountGrid';
 import styles from './SummaryDetailPanel.module.css';
-
-const mutationClient = new QueryClient();
 
 interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
@@ -29,7 +28,6 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
         },
       },
     },
-    mutationClient,
   );
 
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
@@ -120,6 +118,16 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
           policyCount={v.policyCount!}
           riskCount={v.riskCount!}
           workflowCount={v.workflowCount!}
+          renderSlotEditSheet={(slotId, isOpen, onClose) => (
+            <SlotEditSheet
+              workspaceId={wsId}
+              packId={packId}
+              versionId={v.versionId!}
+              slotId={slotId}
+              isOpen={isOpen}
+              onClose={onClose}
+            />
+          )}
         />
       </div>
     </div>

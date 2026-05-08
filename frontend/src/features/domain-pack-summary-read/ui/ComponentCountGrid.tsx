@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { SlotEditSheet } from '@/features/update-slot';
 import {
   useIntentPreview,
   useSlotPreview,
@@ -20,6 +20,7 @@ interface ComponentCountGridProps {
   policyCount: number;
   riskCount: number;
   workflowCount: number;
+  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => ReactNode;
 }
 
 export function ComponentCountGrid({
@@ -31,6 +32,7 @@ export function ComponentCountGrid({
   policyCount,
   riskCount,
   workflowCount,
+  renderSlotEditSheet,
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
   const [slotEditOpen, setSlotEditOpen] = useState(false);
@@ -110,16 +112,8 @@ export function ComponentCountGrid({
         onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
       />
       </div>
-      {firstSlotId !== undefined && (
-        <SlotEditSheet
-          workspaceId={wsId}
-          packId={packId}
-          versionId={versionId}
-          slotId={firstSlotId}
-          isOpen={slotEditOpen}
-          onClose={() => setSlotEditOpen(false)}
-        />
-      )}
+      {firstSlotId !== undefined &&
+        renderSlotEditSheet?.(firstSlotId, slotEditOpen, () => setSlotEditOpen(false))}
     </>
   );
 }

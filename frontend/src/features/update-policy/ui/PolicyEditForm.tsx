@@ -56,7 +56,7 @@ export function PolicyEditForm({
   const onSubmit = (values: PolicyEditFormValues) => {
     const body: UpdatePolicyRequest = {
       name: values.name,
-      description: values.description ?? undefined,
+      description: normalizeOptionalText(values.description),
       severity: values.severity ?? undefined,
       conditionJson: values.conditionJson ?? undefined,
       actionJson: values.actionJson ?? undefined,
@@ -192,6 +192,11 @@ function formatJsonInput(raw: string): string {
 function normalizeSeverity(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed.toUpperCase() : null;
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function getPolicyDefaultValues(policy: PolicyDefinition): PolicyEditFormValues {

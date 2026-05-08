@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiRequestError } from '@/shared/api';
+import { getGetDomainPackQueryKey } from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
 import type { CreateDomainPackDraftRequest } from '@/entities/domain-pack';
 import { createDraftApi } from '../api/createDraftApi';
 
@@ -16,7 +17,7 @@ export function useCreateDraft() {
     mutationFn: ({ wsId, packId, payload }: CreateDraftParams) =>
       createDraftApi.create(wsId, packId, payload as Parameters<typeof createDraftApi.create>[2]),
     onSuccess: (_data, { wsId, packId }) => {
-      queryClient.invalidateQueries({ queryKey: ['domainPack', 'detail', wsId, packId] });
+      queryClient.invalidateQueries({ queryKey: getGetDomainPackQueryKey(wsId, packId) });
       toast.success('새 DRAFT 버전이 생성되었습니다.');
     },
     onError: (error: unknown) => {
