@@ -17,7 +17,7 @@ export function useGetRisk({
   enabled,
 }: UseGetRiskParams) {
   return useQuery({
-    queryKey: ["risks", "detail", workspaceId, packId, versionId, riskId] as const,
+    queryKey: ["risk", "detail", workspaceId, packId, versionId, riskId] as const,
     queryFn: async () => {
       const res = await getRisk(workspaceId, packId, versionId, riskId);
       return res.data;

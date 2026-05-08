@@ -72,7 +72,7 @@ export function WorkflowDetailPanel({
   } = useTransitionList(wsId, packId, versionId, workflowId);
 
   const { data: policyList } = useQuery({
-    queryKey: ["policy", "list", wsId, packId, versionId],
+    queryKey: ["policies", "list", wsId, packId, versionId] as const,
     queryFn: () => listPolicies(wsId, packId, versionId).then((r) => r.data ?? []),
     enabled: workflowId != null,
   });
