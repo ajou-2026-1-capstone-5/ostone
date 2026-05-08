@@ -150,10 +150,10 @@ interface EdgeLabelSlot {
 }
 
 const LABEL_SLOTS: Record<string, EdgeLabelSlot> = {
-  "eligible->process": { condX: 72.5, condY: 1.5, pctX: 72.5, pctY: 1.5, combine: true },
+  "eligible->process": { condX: 62, condY: 3.5, pctX: 62, pctY: 3.5, combine: true },
   "eligible->risk":    { condX: 39, condY: 30, pctX: 39, pctY: 32 },
-  "eligible->reject":  { condX: 58, condY: 35, pctX: 58, pctY: 37, combine: true },
-  "risk->manual":      { condX: 72, condY: 34, pctX: 72, pctY: 34, combine: true },
+  "eligible->reject":  { condX: 58, condY: 32, pctX: 58, pctY: 32, combine: true },
+  "risk->manual":      { condX: 62, condY: 42, pctX: 62, pctY: 42, combine: true },
   "risk->reject":      { condX: 72.5, condY: 47, pctX: 72.5, pctY: 47, combine: true },
 };
 
@@ -394,51 +394,44 @@ export function WorkflowCanvas({
       <defs>
         <marker
           id="arrowhead"
-          markerWidth="4"
-          markerHeight="3"
-          refX="3.2"
-          refY="1.5"
+          markerWidth="2.5"
+          markerHeight="2"
+          refX="2"
+          refY="1"
           orient="auto"
         >
-          <polygon points="0 0, 4 1.5, 0 3" fill="var(--ink)" />
+          <polygon points="0 0, 2.5 1, 0 2" fill="var(--ink)" />
         </marker>
         <marker
           id="arrowheadHot"
-          markerWidth="4"
-          markerHeight="3"
-          refX="3.2"
-          refY="1.5"
+          markerWidth="2.5"
+          markerHeight="2"
+          refX="2"
+          refY="1"
           orient="auto"
         >
-          <polygon points="0 0, 4 1.5, 0 3" fill="var(--signal)" />
+          <polygon points="0 0, 2.5 1, 0 2" fill="var(--signal)" />
         </marker>
         <marker
           id="arrowheadWarn"
-          markerWidth="4"
-          markerHeight="3"
-          refX="3.2"
-          refY="1.5"
+          markerWidth="2.5"
+          markerHeight="2"
+          refX="2"
+          refY="1"
           orient="auto"
         >
-          <polygon points="0 0, 4 1.5, 0 3" fill="var(--warn)" />
+          <polygon points="0 0, 2.5 1, 0 2" fill="var(--warn)" />
         </marker>
         <marker
           id="arrowheadDanger"
-          markerWidth="4"
-          markerHeight="3"
-          refX="3.2"
-          refY="1.5"
+          markerWidth="2.5"
+          markerHeight="2"
+          refX="2"
+          refY="1"
           orient="auto"
         >
-          <polygon points="0 0, 4 1.5, 0 3" fill="var(--danger)" />
+          <polygon points="0 0, 2.5 1, 0 2" fill="var(--danger)" />
         </marker>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
 
       {[
@@ -466,8 +459,8 @@ export function WorkflowCanvas({
         if (!src || !tgt) return null;
 
         const { x1, y1, x2, y2, mx } = getEdgePoints(src, tgt);
-        const strokeWidth = 0.25 + edge.pct * 0.7;
-        const opacity = edge.isHot ? 1 : 0.55;
+        const strokeWidth = 0.12 + edge.pct * 0.3;
+        const opacity = edge.isHot ? 0.9 : 0.45;
 
         let markerId = "arrowhead";
         let stroke = "var(--ink-3)";
@@ -499,17 +492,17 @@ export function WorkflowCanvas({
         if (!node.selected) return null;
         return (
           <rect
-            key={`glow-${node.id}`}
-            x={node.x - 1}
-            y={node.y - 1}
-            width={node.w + 2}
-            height={node.h + 2}
-            rx={5}
-            ry={5}
+            key={`halo-${node.id}`}
+            x={node.x - 0.4}
+            y={node.y - 0.4}
+            width={node.w + 0.8}
+            height={node.h + 0.8}
+            rx={3}
+            ry={3}
             fill="transparent"
             stroke="var(--signal)"
-            strokeWidth={0.4}
-            filter="url(#glow)"
+            strokeWidth={0.15}
+            opacity={0.6}
           />
         );
       })}
@@ -543,7 +536,7 @@ export function WorkflowCanvas({
           )}
           <NodeLabels node={node} />
           {node.n != null && (
-            <g opacity={0.45}>
+            <g opacity={0.6}>
               <rect
                 x={node.x + node.w - 5.2}
                 y={node.y + 0.6}
@@ -622,10 +615,10 @@ export function WorkflowCanvas({
               x={pctX}
               y={pctY}
               textAnchor="middle"
-              fontSize="0.7"
+              fontSize="0.65"
               fontFamily="var(--mono)"
               fill={stroke}
-              opacity={edge.isHot ? 1 : 0.8}
+              opacity={0.6}
             >
               {pctText}
             </text>
@@ -640,24 +633,24 @@ export function WorkflowCanvas({
 
         if (slot?.combine) {
           const combinedText = `${edge.cond} · ${pctText}`;
-          const tw = combinedText.length * 0.4;
+          const tw = combinedText.length * 0.35;
           return (
             <g key={`elbl-comb-${i}`}>
               <rect
-                x={condX - tw - 1}
-                y={condY - 0.85}
-                width={tw * 2 + 2}
-                height={1.7}
-                rx={0.6}
+                x={condX - tw - 0.8}
+                y={condY - 0.7}
+                width={tw * 2 + 1.6}
+                height={1.4}
+                rx={0.5}
                 fill="var(--paper)"
                 stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
-                strokeWidth={0.25}
+                strokeWidth={0.15}
               />
               <text
                 x={condX}
                 y={condY + 0.25}
                 textAnchor="middle"
-                fontSize={0.85}
+                fontSize={0.75}
                 fontFamily="var(--mono)"
                 fill={edge.isHot ? "var(--signal)" : "var(--ink-2)"}
               >
@@ -670,20 +663,20 @@ export function WorkflowCanvas({
         return (
           <g key={`elbl-sep-${i}`}>
             <rect
-              x={condX - (edge.cond.length * 0.4 + 1)}
-              y={condY - 0.85}
-              width={edge.cond.length * 0.8 + 2}
-              height={1.7}
-              rx={0.6}
+              x={condX - (edge.cond.length * 0.35 + 0.8)}
+              y={condY - 0.7}
+              width={edge.cond.length * 0.7 + 1.6}
+              height={1.4}
+              rx={0.5}
               fill="var(--paper)"
               stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
-              strokeWidth={0.25}
+              strokeWidth={0.15}
             />
             <text
               x={condX}
               y={condY + 0.25}
               textAnchor="middle"
-              fontSize={0.85}
+              fontSize={0.75}
               fontFamily="var(--mono)"
               fill={edge.isHot ? "var(--signal)" : "var(--ink-2)"}
             >
@@ -693,10 +686,10 @@ export function WorkflowCanvas({
               x={pctX}
               y={pctY}
               textAnchor="middle"
-              fontSize="0.7"
+              fontSize="0.65"
               fontFamily="var(--mono)"
               fill={stroke}
-              opacity={edge.isHot ? 1 : 0.8}
+              opacity={0.65}
             >
               {pctText}
             </text>
