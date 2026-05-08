@@ -44,10 +44,10 @@ export function WorkflowEditForm({
   const { mutate, isPending } = useUpdateWorkflow();
 
   const parsedGraph = useRef(parseGraphJson(workflow.graphJson));
-  const { nodes: initialNodes, edges: initialEdges } = parsedGraph.current;
+  const initialFlow = useRef(toFlow(parsedGraph.current));
 
   // single source of truth for graph state; ref avoids re-renders on every node change
-  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes as any, edges: initialEdges as any });
+  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ ...initialFlow.current });
 
   const handleGraphStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
     graphStateRef.current = { nodes, edges };
@@ -135,8 +135,8 @@ export function WorkflowEditForm({
         <div className="h-[min(70vh,500px)]">
           <InteractiveGraphEditor
             key={workflow.id}
-            initialNodes={initialNodes as unknown as Node[]}
-            initialEdges={initialEdges as unknown as Edge[]}
+            initialNodes={initialFlow.current.nodes}
+            initialEdges={initialFlow.current.edges}
             onStateChange={handleGraphStateChange}
           />
         </div>

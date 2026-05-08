@@ -26,6 +26,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
         toast.success("업로드 완료");
       },
       onError: (error) => {
+        setStatus("idle");
         toast.error(
           error instanceof Error ? error.message : "업로드에 실패했습니다.",
           {

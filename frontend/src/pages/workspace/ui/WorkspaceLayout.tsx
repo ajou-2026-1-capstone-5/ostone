@@ -45,8 +45,8 @@ export function WorkspaceLayout() {
   const [crumbs, setCrumbs] = useState<string[]>([]);
   const active = getActiveFromPath(location.pathname);
 
-  const { data: fetchedWorkspaces, refetch } = useListWorkspaces();
-  const { data: fetchedWorkspace, isLoading: isFetchingWorkspace, error: fetchError } =
+  const { data: fetchedWorkspaces, refetch: refetchWorkspaces } = useListWorkspaces();
+  const { data: fetchedWorkspace, isLoading: isFetchingWorkspace, error: fetchError, refetch: refetchWorkspace } =
     useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function WorkspaceLayout() {
   };
 
   const refreshWorkspaceList = () => {
-    refetch();
+    refetchWorkspaces();
   };
 
   const sidebarSwitcher = (
@@ -100,7 +100,7 @@ export function WorkspaceLayout() {
   );
   const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
 
-  if (isLoading || fetchedWorkspace === undefined) {
+  if (isLoading) {
     return (
       <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <div
@@ -126,7 +126,7 @@ export function WorkspaceLayout() {
       <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
         <ErrorState
           message={error || "워크스페이스를 찾을 수 없습니다."}
-          onRetry={refetch}
+          onRetry={refetchWorkspace}
         />
       </OstoneShell>
     );
