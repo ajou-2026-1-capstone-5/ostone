@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ConsultationPage } from './ConsultationPage';
+import { consultationApi } from '../../../features/consultation/api/consultationApi';
 
 const shellContext = {
   setTopbarRight: vi.fn(),
@@ -106,5 +107,37 @@ describe('ConsultationPage', () => {
     expect(screen.getByText('부분환불 가능합니다')).toBeInTheDocument();
     expect(screen.getByText('환불 처리 중입니다')).toBeInTheDocument();
     expect(screen.getByText('카드사 확인이 필요합니다')).toBeInTheDocument();
+  });
+
+  it('ends session when 상담 종료 is clicked', async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('김민지')).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText('김민지').closest('div');
+    if (customerItem) {
+      customerItem.click();
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText('상담 종료')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('상담 종료'));
+
+    await waitFor(() => {
+      expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, 'COMPLETED');
+    });
+
+    expect(screen.queryByText('AI가 분류한 주제')).not.toBeInTheDocument();
+  });
+
+  it('cleans up topbar and crumbs on unmount', () => {
+    const { unmount } = render(<ConsultationPage />, { wrapper: Wrapper });
+    unmount();
+    expect(shellContext.setTopbarRight).toHaveBeenCalledWith(undefined);
+    expect(shellContext.setCrumbs).toHaveBeenCalledWith([]);
   });
 });

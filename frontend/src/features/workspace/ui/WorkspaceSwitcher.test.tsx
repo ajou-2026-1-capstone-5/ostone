@@ -6,14 +6,24 @@ vi.mock("@/shared/ui/dropdown-menu", () => ({
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
-    <div role="menuitem" onClick={onClick}>{children}</div>
+    <div
+      role="menuitem"
+      tabIndex={-1}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+    >{children}</div>
   ),
   DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuSub: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSubContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSubTrigger: ({ children, onClick }: { children: React.ReactNode; onClick?: (e: React.MouseEvent) => void }) => (
-    <div onClick={onClick}>{children}</div>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(e as unknown as React.MouseEvent); } }}
+    >{children}</div>
   ),
 }));
 

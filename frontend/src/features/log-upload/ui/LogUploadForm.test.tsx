@@ -90,5 +90,4 @@ describe('LogUploadForm', () => {
     if (btn) fireEvent.click(btn);
     expect(mockMutate).not.toHaveBeenCalled();
   });
-
 });
