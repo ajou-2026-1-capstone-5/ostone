@@ -23,8 +23,8 @@ import { updateRiskStatus } from "@/shared/api/generated/endpoints/update-risk-s
 
 const mockedUpdateRiskStatus = vi.mocked(updateRiskStatus);
 const riskKeys = {
-  list: (...args: number[]) => ["risks", "list", ...args] as const,
-  detail: (...args: number[]) => ["risks", "detail", ...args] as const,
+  list: (...args: number[]) => ["risk", "list", ...args] as const,
+  detail: (...args: number[]) => ["risk", "detail", ...args] as const,
 };
 
 function makeWrapperWithClient() {

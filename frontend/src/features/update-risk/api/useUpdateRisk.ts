@@ -22,9 +22,9 @@ export function useUpdateRisk() {
       return res.data;
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      queryClient.setQueryData(["risks", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
+      queryClient.setQueryData(["risk", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
       queryClient.setQueryData<RiskDefinitionSummary[]>(
-        ["risks", "list", workspaceId, packId, versionId] as const,
+        ["risk", "list", workspaceId, packId, versionId] as const,
         (old) =>
           old?.map((item) =>
             item.id === riskId

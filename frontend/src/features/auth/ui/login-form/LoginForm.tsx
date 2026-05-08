@@ -109,7 +109,7 @@ export const LoginForm: React.FC = () => {
       </div>
 
       <div className={styles.options}>
-        <Link to="/reset-password" className={styles.forgotLink}>
+        <Link to="/password-reset" className={styles.forgotLink}>
           비밀번호 찾기
         </Link>
       </div>

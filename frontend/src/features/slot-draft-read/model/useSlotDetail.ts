@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSlot } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
 import { mapApiError } from "./mapApiError";
 import type { SlotDefinitionResponse } from "@/shared/api/generated/zod";
@@ -16,50 +17,45 @@ export function useSlotDetail(
   slotId: number | null,
   retryKey = 0,
 ): SlotDetailState {
-  const requestKey =
-    slotId === null ? null : `${wsId}:${packId}:${versionId}:${slotId}:${retryKey}`;
-  const [state, setState] = useState<{
-    requestKey: string | null;
-    value: SlotDetailState;
-  }>({
-    requestKey: null,
-    value: { status: "idle" },
+  const query = useQuery({
+    queryKey: ["slots", "detail", wsId, packId, versionId, slotId],
+    queryFn: async () => {
+      if (slotId === null) {
+        throw new Error("slotId is required");
+      }
+      const res = await getSlot(wsId, packId, versionId, slotId);
+      return res.data;
+    },
+    enabled: slotId !== null,
   });
 
+  const { refetch } = query;
+  const handledRetryKeyRef = useRef(0);
+
   useEffect(() => {
-    if (slotId === null) {
+    if (slotId === null || retryKey === 0 || retryKey === handledRetryKeyRef.current) {
       return;
     }
 
-    let cancelled = false;
+    handledRetryKeyRef.current = retryKey;
+    refetch().catch(() => undefined);
+  }, [refetch, retryKey, slotId]);
 
-    getSlot(wsId, packId, versionId, slotId)
-      .then((res) => {
-        if (!cancelled) {
-          setState({
-            requestKey,
-            value: { status: "ready", data: res.data },
-          });
-        }
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          setState({
-            requestKey,
-            value: mapApiError(e),
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestKey]);
-
-  if (requestKey === null) {
+  if (slotId === null) {
     return { status: "idle" };
   }
 
-  return state.requestKey === requestKey ? state.value : { status: "loading" };
+  if (query.isLoading || (query.isFetching && !query.data)) {
+    return { status: "loading" };
+  }
+
+  if (query.isError) {
+    return mapApiError(query.error);
+  }
+
+  if (!query.data) {
+    return { status: "loading" };
+  }
+
+  return { status: "ready", data: query.data };
 }

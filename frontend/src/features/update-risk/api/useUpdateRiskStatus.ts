@@ -29,8 +29,8 @@ export function useUpdateRiskStatus() {
       return res.data;
     },
     onMutate: async ({ workspaceId, packId, versionId, riskId, status }) => {
-      const detailKey = ["risks", "detail", workspaceId, packId, versionId, riskId] as const;
-      const listKey = ["risks", "list", workspaceId, packId, versionId] as const;
+      const detailKey = ["risk", "detail", workspaceId, packId, versionId, riskId] as const;
+      const listKey = ["risk", "list", workspaceId, packId, versionId] as const;
 
       await queryClient.cancelQueries({ queryKey: detailKey });
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -61,9 +61,9 @@ export function useUpdateRiskStatus() {
       toast.error(RISK_ERROR_MESSAGES.STATUS_FAILED);
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      queryClient.setQueryData(["risks", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
+      queryClient.setQueryData(["risk", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
       queryClient.setQueryData<RiskDefinitionSummary[]>(
-        ["risks", "list", workspaceId, packId, versionId] as const,
+        ["risk", "list", workspaceId, packId, versionId] as const,
         (old) =>
           old?.map((item) =>
             item.id === riskId

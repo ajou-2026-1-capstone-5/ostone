@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import type { SidebarActive } from "@/shared/ui/ostone/chrome";
+import type { ShellContext, SidebarActive } from "@/shared/ui/ostone/chrome";
 
 import {
   mapWorkspaceActionError,
@@ -17,12 +17,6 @@ import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-
-export interface ShellContext {
-  setTopbarRight: (node: ReactNode | undefined) => void;
-  setCrumbs: (crumbs: string[]) => void;
-  workspace: WorkspaceResponse | null;
-}
 
 const getActiveFromPath = (pathname: string): SidebarActive => {
   if (pathname.includes("/domain-packs")) return "domain";

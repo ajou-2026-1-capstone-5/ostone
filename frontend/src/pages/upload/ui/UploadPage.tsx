@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import type { ShellContext } from "@/pages/workspace/ui/WorkspaceLayout";
+import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { LogUploadForm } from "../../../features/log-upload/ui/LogUploadForm";
 import { Eyebrow, Mono, Dot, Pill } from "@/shared/ui/ostone/atoms";
 import { Dropzone } from "./sections/Dropzone";

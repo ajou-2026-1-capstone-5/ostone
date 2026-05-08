@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import type { ShellContext } from '@/pages/workspace/ui/WorkspaceLayout';
+import { toast } from 'sonner';
+import type { ShellContext } from '@/shared/ui/ostone/chrome';
 import { Dot, Mono, Pill, Avatar, Eyebrow, Icon } from '@/shared/ui/ostone/atoms';
 import { QueuePanel } from '../../../features/consultation/ui/QueuePanel';
 import type { QueueCustomer } from '../../../features/consultation/ui/QueuePanel';
@@ -163,7 +164,7 @@ export const ConsultationPage: React.FC = () => {
         return current;
       });
     } catch(err) {
-      alert('메시지 전송 실패');
+      toast.error('메시지 전송 실패');
     }
   };
 
@@ -172,11 +173,11 @@ export const ConsultationPage: React.FC = () => {
     try {
       await consultationApi.updateStatus(Number(activeCustomerId), 'COMPLETED');
       setStatuses((prev) => ({ ...prev, [activeCustomerId]: 'COMPLETED' }));
-      alert('상담이 종료되었습니다.');
+      toast.success('상담이 종료되었습니다.');
       loadQueue();
       setActiveCustomerId(null);
     } catch(err) {
-      alert('세션 종료 실패');
+      toast.error('세션 종료 실패');
     }
   };
 

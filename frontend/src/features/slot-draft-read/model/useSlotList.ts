@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { listSlots } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
 import { mapApiError } from "./mapApiError";
 import type { SlotDefinitionSummary } from "@/shared/api/generated/zod";
@@ -14,40 +15,33 @@ export function useSlotList(
   versionId: number,
   retryKey = 0,
 ): SlotListState {
-  const requestKey = `${wsId}:${packId}:${versionId}:${retryKey}`;
-  const [state, setState] = useState<{
-    requestKey: string;
-    value: SlotListState;
-  }>({
-    requestKey,
-    value: { status: "loading" },
+  const query = useQuery({
+    queryKey: ["slots", "list", wsId, packId, versionId],
+    queryFn: async () => {
+      const res = await listSlots(wsId, packId, versionId);
+      return res.data;
+    },
   });
 
+  const { refetch } = query;
+  const handledRetryKeyRef = useRef(0);
+
   useEffect(() => {
-    let cancelled = false;
+    if (retryKey === 0 || retryKey === handledRetryKeyRef.current) {
+      return;
+    }
 
-    listSlots(wsId, packId, versionId)
-      .then((res) => {
-        if (!cancelled) {
-          setState({
-            requestKey,
-            value: { status: "ready", data: res.data },
-          });
-        }
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          setState({
-            requestKey,
-            value: mapApiError(e),
-          });
-        }
-      });
+    handledRetryKeyRef.current = retryKey;
+    refetch().catch(() => undefined);
+  }, [refetch, retryKey]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [packId, requestKey, retryKey, versionId, wsId]);
+  if (query.isLoading) {
+    return { status: "loading" };
+  }
 
-  return state.requestKey === requestKey ? state.value : { status: "loading" };
+  if (query.isError) {
+    return mapApiError(query.error);
+  }
+
+  return { status: "ready", data: query.data ?? [] };
 }
