@@ -36,7 +36,8 @@ class GetDomainPackListUseCaseTest {
 
   private static final Long WORKSPACE_ID = 1L;
   private static final Long USER_ID = 99L;
-  private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2025-03-01T09:00:00+09:00");
+  private static final OffsetDateTime CREATED_AT =
+      OffsetDateTime.parse("2025-03-01T09:00:00+09:00");
 
   @BeforeEach
   void setUp() {

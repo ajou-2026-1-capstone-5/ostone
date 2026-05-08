@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 
@@ -45,5 +45,41 @@ describe('Sidebar', () => {
   it('renders dark variant without error', () => {
     const { container } = render(<Sidebar active="consult" dark />, { wrapper: Wrapper });
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('renders switcher when provided', () => {
+    const switcher = <div data-testid="switcher">Switch</div>;
+    render(<Sidebar active="workflows" switcher={switcher} />, { wrapper: Wrapper });
+    expect(screen.getByTestId('switcher')).toBeInTheDocument();
+  });
+
+  it('handles mouse enter and leave on inactive nav items', () => {
+    const { container } = render(<Sidebar active="domain" />, { wrapper: Wrapper });
+    const workflowLink = container.querySelector('[title="Workflows"]') as HTMLElement;
+    expect(workflowLink).not.toBeNull();
+
+    fireEvent.mouseEnter(workflowLink);
+    expect(workflowLink.style.background).toBe('var(--paper-3)');
+
+    fireEvent.mouseLeave(workflowLink);
+    expect(workflowLink.style.background).toBe('transparent');
+  });
+
+  it('does not change active item on mouse enter/leave', () => {
+    const { container } = render(<Sidebar active="domain" />, { wrapper: Wrapper });
+    const activeLink = container.querySelector('[data-active="true"]') as HTMLElement;
+    expect(activeLink).not.toBeNull();
+    const bgBefore = activeLink.style.background;
+
+    activeLink.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(activeLink.style.background).toBe(bgBefore);
+
+    activeLink.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+    expect(activeLink.style.background).toBe(bgBefore);
+  });
+
+  it('renders avatar at the bottom', () => {
+    const { container } = render(<Sidebar active="upload" />, { wrapper: Wrapper });
+    expect(container.querySelector('nav')).toBeInTheDocument();
   });
 });
