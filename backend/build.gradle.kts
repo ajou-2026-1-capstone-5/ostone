@@ -22,6 +22,15 @@ repositories {
     mavenCentral()
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+// CVE overrides: Spring Boot BOM property keys override all modules in each group
+extra["tomcat.version"] = "10.1.54"           // CVE-2025-55752, CVE-2025-49125, CVE-2025-55668
+extra["spring-security.version"] = "6.4.10"  // CVE-2025-41232, CVE-2025-41248
+extra["netty.version"] = "4.1.133.Final"      // CVE-2025-67735, CVE-2026-42583
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
