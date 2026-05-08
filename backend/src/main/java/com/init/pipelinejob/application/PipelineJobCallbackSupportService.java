@@ -22,6 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+// NOTE: 선언적 @Transactional 대신 TransactionTemplate을 사용한다.
+// webhook receipt 저장과 pipeline job 상태 갱신을 독립된 트랜잭션으로 분리해야 하므로
+// 클래스 레벨 @Transactional(readOnly = true) 컨벤션의 의도적 예외.
 @Service
 public class PipelineJobCallbackSupportService {
 

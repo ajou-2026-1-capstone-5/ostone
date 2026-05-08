@@ -31,6 +31,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
 
   private static final Logger log =
       LoggerFactory.getLogger(AirflowDomainPackGenerationTriggerAdapter.class);
+  private static final String LOG_FMT_DAG_RUN_ID = ", dagRunId={}";
 
   private final AirflowApiProperties properties;
   private final ObjectMapper objectMapper;
@@ -77,8 +78,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
       return triggerResult(dagId, dagRunId);
     } catch (ResourceAccessException ex) {
       log.warn(
-          "Airflow DAG run creation access failed, reconciling: pipelineJobId={}, dagId={},"
-              + " dagRunId={}",
+          "Airflow DAG run creation access failed, reconciling: pipelineJobId={}, dagId={}"
+              + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
@@ -87,7 +88,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
     } catch (RestClientResponseException ex) {
       if (ex.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
         log.warn(
-            "Airflow DAG run already exists, reconciling: pipelineJobId={}, dagId={}, dagRunId={}",
+            "Airflow DAG run already exists, reconciling: pipelineJobId={}, dagId={}"
+                + LOG_FMT_DAG_RUN_ID,
             pipelineJobId,
             dagId,
             dagRunId,
@@ -104,8 +106,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
       throw new AirflowTriggerFailedException(pipelineJobId, ex);
     } catch (RestClientException ex) {
       log.warn(
-          "Airflow DAG run creation client failed, reconciling: pipelineJobId={}, dagId={},"
-              + " dagRunId={}",
+          "Airflow DAG run creation client failed, reconciling: pipelineJobId={}, dagId={}"
+              + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
@@ -113,8 +115,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
       return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
     } catch (HttpMessageConversionException ex) {
       log.error(
-          "Airflow DAG run creation response conversion failed: pipelineJobId={}, dagId={},"
-              + " dagRunId={}",
+          "Airflow DAG run creation response conversion failed: pipelineJobId={}, dagId={}"
+              + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
@@ -179,16 +181,8 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
       if (ex.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
         return false;
       }
-      log.error(
-          "Airflow DAG run reconciliation failed: dagId={}, dagRunId={}, status={}",
-          dagId,
-          dagRunId,
-          ex.getStatusCode(),
-          ex);
       throw ex;
     } catch (RestClientException | HttpMessageConversionException ex) {
-      log.error(
-          "Airflow DAG run reconciliation failed: dagId={}, dagRunId={}", dagId, dagRunId, ex);
       throw ex;
     }
   }

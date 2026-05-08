@@ -3,9 +3,6 @@ package com.init.pipelinejob.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.init.domainpack.application.AddIntentsToDraftVersionCommand;
-import com.init.domainpack.application.AddIntentsToDraftVersionResult;
-import com.init.domainpack.application.AddIntentsToDraftVersionUseCase;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
@@ -22,17 +19,17 @@ public class ReceiveIntentDraftCallbackUseCase {
   private static final String WEBHOOK_TYPE = "INTENT_DRAFT_CALLBACK";
 
   private final PipelineJobRepository pipelineJobRepository;
-  private final AddIntentsToDraftVersionUseCase addIntentsToDraftVersionUseCase;
+  private final AddIntentsToDraftVersionPort addIntentsToDraftVersionPort;
   private final ObjectMapper objectMapper;
   private final PipelineJobCallbackSupportService callbackSupportService;
 
   public ReceiveIntentDraftCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
-      AddIntentsToDraftVersionUseCase addIntentsToDraftVersionUseCase,
+      AddIntentsToDraftVersionPort addIntentsToDraftVersionPort,
       ObjectMapper objectMapper,
       PipelineJobCallbackSupportService callbackSupportService) {
     this.pipelineJobRepository = pipelineJobRepository;
-    this.addIntentsToDraftVersionUseCase = addIntentsToDraftVersionUseCase;
+    this.addIntentsToDraftVersionPort = addIntentsToDraftVersionPort;
     this.objectMapper = objectMapper;
     this.callbackSupportService = callbackSupportService;
   }
@@ -91,9 +88,10 @@ public class ReceiveIntentDraftCallbackUseCase {
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
 
-    AddIntentsToDraftVersionResult intentResult =
-        addIntentsToDraftVersionUseCase.execute(
-            new AddIntentsToDraftVersionCommand(command.domainPackVersionId(), command.intents()));
+    AddIntentsToDraftVersionPortResult intentResult =
+        addIntentsToDraftVersionPort.execute(
+            new AddIntentsToDraftVersionPortCommand(
+                command.domainPackVersionId(), command.intents()));
 
     OffsetDateTime now = callbackSupportService.now();
     job.markAwaitingWorkflowCallback(
@@ -110,7 +108,7 @@ public class ReceiveIntentDraftCallbackUseCase {
         command.jobId());
   }
 
-  private String buildSuccessSummaryJson(AddIntentsToDraftVersionResult result) {
+  private String buildSuccessSummaryJson(AddIntentsToDraftVersionPortResult result) {
     ObjectNode summary = objectMapper.createObjectNode();
     summary.put("domainPackId", result.domainPackId());
     summary.put("domainPackVersionId", result.domainPackVersionId());
