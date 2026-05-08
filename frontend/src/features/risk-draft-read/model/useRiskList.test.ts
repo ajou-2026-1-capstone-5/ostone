@@ -45,7 +45,7 @@ describe("useRiskList", () => {
   });
 
   it("성공 시 ready 상태와 위험요소 목록을 반환한다", async () => {
-    mockedListRisks.mockResolvedValue({ data: [stubRisk], status: 200, headers: new Headers() });
+    mockedListRisks.mockResolvedValue({ data: [stubRisk as any], status: 200, headers: new Headers() });
     const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -63,7 +63,7 @@ describe("useRiskList", () => {
   });
 
   it("retryKey가 증가한 뒤 versionId가 바뀌어도 새 목록 조회를 한 번만 호출한다", async () => {
-    mockedListRisks.mockResolvedValue({ data: [stubRisk], status: 200, headers: new Headers() });
+    mockedListRisks.mockResolvedValue({ data: [stubRisk as any], status: 200, headers: new Headers() });
 
     const { result, rerender } = renderHook(
       ({ retryKey, versionId }) => useRiskList(1, 2, versionId, retryKey),

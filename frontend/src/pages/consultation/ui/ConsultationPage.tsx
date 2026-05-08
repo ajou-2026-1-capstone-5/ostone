@@ -89,9 +89,9 @@ export const ConsultationPage: React.FC = () => {
         return {
           id: String(s.id),
           name: meta.customerName,
-          channel: s.channel,
+          channel: s.channel ?? "",
           handoffReason: meta.handoffReason,
-          waitMinutes: calcWaitMinutes(s.startedAt),
+          waitMinutes: calcWaitMinutes(s.startedAt ?? ""),
           hasUnread: false,
         };
       });
@@ -122,8 +122,8 @@ export const ConsultationPage: React.FC = () => {
         setMessages(msgs.map(m => ({
           id: String(m.id),
           senderRole: m.senderRole as UiChatMessage['senderRole'],
-          content: m.content,
-          timestamp: formatTime(m.createdAt),
+          content: m.content ?? "",
+          timestamp: formatTime(m.createdAt ?? ""),
         })));
       } catch (error) {
         if (!cancelled) console.error('Failed to load messages:', error);
@@ -156,8 +156,8 @@ export const ConsultationPage: React.FC = () => {
           setMessages(prev => [...prev, {
             id: String(newMsg.id),
             senderRole: newMsg.senderRole as UiChatMessage['senderRole'],
-            content: newMsg.content,
-            timestamp: formatTime(newMsg.createdAt),
+            content: newMsg.content ?? "",
+            timestamp: formatTime(newMsg.createdAt ?? ""),
           }]);
         }
         return current;
@@ -199,7 +199,7 @@ export const ConsultationPage: React.FC = () => {
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{activeCustomer.name} 고객</div>
                     <Mono style={{ fontSize: 10, color: 'var(--ink-3)' }}>
-                      {activeCustomer.channel} · {activeCustomer.waitMinutes}분 대기 중
+                      {activeCustomer.channel ?? ""} · {activeCustomer.waitMinutes}분 대기 중
                     </Mono>
                   </div>
                 </div>

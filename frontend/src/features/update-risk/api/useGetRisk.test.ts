@@ -43,7 +43,7 @@ describe("useGetRisk", () => {
   });
 
   it("enabled 상태면 위험요소 상세를 조회한다", async () => {
-    mockedGetRisk.mockResolvedValue({ data: stubRisk, status: 200, headers: new Headers() });
+    mockedGetRisk.mockResolvedValue({ data: stubRisk as any, status: 200, headers: new Headers() });
 
     const { result } = renderHook(
       () =>

@@ -35,7 +35,7 @@ describe("useSlotList", () => {
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedListSlots.mockResolvedValue({ data: [stubSlot], status: 200, headers: new Headers() });
+    mockedListSlots.mockResolvedValue({ data: [stubSlot as any], status: 200, headers: new Headers() });
     const { result } = renderHook(() => useSlotList(1, 2, 3));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     if (result.current.status === "ready") {

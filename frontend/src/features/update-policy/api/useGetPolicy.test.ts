@@ -43,7 +43,7 @@ describe("useGetPolicy", () => {
   });
 
   it("enabled 상태면 정책 상세를 조회한다", async () => {
-    mockedGetPolicy.mockResolvedValue({ data: stubPolicy, status: 200, headers: new Headers() });
+    mockedGetPolicy.mockResolvedValue({ data: stubPolicy as any, status: 200, headers: new Headers() });
 
     const { result } = renderHook(
       () =>

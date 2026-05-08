@@ -1,9 +1,7 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { policyKeys } from "@/entities/policy";
-import { useGetPolicy, useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+import { useGetPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import { mapApiError } from "./mapApiError";
-import type { PolicyDefinition, PolicySummary } from "@/entities/policy";
+import type { PolicyDefinition } from "@/entities/policy";
 
 export type PolicyDetailState =
   | { status: "idle" }
@@ -18,11 +16,6 @@ export function usePolicyDetail(
   policyId: number | null,
   retryKey = 0,
 ): PolicyDetailState {
-  const policyQueryKey =
-    policyId === null
-      ? [...policyKeys.all, "detail", workspaceId, packId, versionId, "idle"] as const
-      : policyKeys.detail(workspaceId, packId, versionId, policyId);
-
   const query = useGetPolicy(workspaceId, packId, versionId, policyId ?? -1, {
     query: { enabled: policyId !== null },
   });

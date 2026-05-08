@@ -81,13 +81,13 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
           />
           <InfoCard
             label="Created At"
-            value={<span className={styles.value}>{formatDate(state.data.createdAt)}</span>}
+            value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
         </div>
-        <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef} />
-        <JsonCard label="Entry Condition" value={state.data.entryConditionJson} />
-        <JsonCard label="Evidence" value={state.data.evidenceJson} />
-        <JsonCard label="Meta" value={state.data.metaJson} />
+        <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
+        <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
+        <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
+        <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
       </div>
       {children?.(state.data)}
     </section>
@@ -98,9 +98,9 @@ function DetailHeader({ detail }: { detail: IntentDetail }) {
   return (
     <header className={styles.header}>
       <span className={styles.code}>{detail.intentCode}</span>
-      <span className={styles.name}>{detail.name}</span>
+      <span className={styles.name}>{detail.name ?? ""}</span>
       {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt)}</span>
+      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
     </header>
   );
 }

@@ -14,7 +14,7 @@ import { useTransitionList } from "../model/useTransitionList";
 import { parseTerminalStates } from "../model/parseTerminalStates";
 import { ApiRequestError } from "@/shared/api";
 import type { WorkflowDetail } from "@/entities/workflow";
-import { policyApi, policyKeys } from "@/entities/policy";
+import { listPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import type { PolicySummary } from "@/entities/policy";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { TransitionPopover } from "./TransitionPopover";
@@ -72,14 +72,20 @@ export function WorkflowDetailPanel({
   } = useTransitionList(wsId, packId, versionId, workflowId);
 
   const { data: policyList } = useQuery({
-    queryKey: policyKeys.list(wsId, packId, versionId),
-    queryFn: () => policyApi.list(wsId, packId, versionId),
+    queryKey: ["policy", "list", wsId, packId, versionId],
+    queryFn: () => listPolicies(wsId, packId, versionId).then((r) => r.data ?? []),
     enabled: workflowId != null,
   });
 
   const policyByCode = useMemo(
     () =>
-      new Map<string, PolicySummary>(policyList?.map((p) => [p.policyCode, p]) ?? []),
+      new Map<string, PolicySummary>(
+        (policyList ?? [])
+          .filter((p): p is PolicySummary & { policyCode: string } =>
+            typeof p.policyCode === "string"
+          )
+          .map((p) => [p.policyCode, p] as [string, PolicySummary]),
+      ),
     [policyList],
   );
 
@@ -198,13 +204,7 @@ export function WorkflowDetailPanel({
               </div>
             }
           >
-            <Suspense fallback={<div className={styles.skeleton} />}>
-              <GraphRenderer
-                graph={detail.graphJson}
-                onEdgeClick={setSelectedEdgeId}
-                onPaneClick={() => setSelectedEdgeId(null)}
-              />
-            </Suspense>
+            <GraphContent detail={detail} onEdgeClick={setSelectedEdgeId} onPaneClick={() => setSelectedEdgeId(null)} />
           </ErrorBoundary>
           {selectedEdgeId !== null && selectedTransition !== null && (
             <TransitionPopover
@@ -260,6 +260,32 @@ export function WorkflowDetailPanel({
   );
 }
 
+function GraphContent({
+  detail,
+  onEdgeClick,
+  onPaneClick,
+}: {
+  detail: WorkflowDetail;
+  onEdgeClick: (id: string) => void;
+  onPaneClick: () => void;
+}) {
+  const graphJson = detail.graphJson;
+  if (graphJson == null) {
+    return (
+      <div className={styles.placeholder}>
+        <span>그래프 데이터 없음</span>
+      </div>
+    );
+  }
+  const graph: import("@/entities/workflow").WorkflowGraph =
+    typeof graphJson === "string" ? JSON.parse(graphJson) : graphJson;
+  return (
+    <Suspense fallback={<div className={styles.skeleton} />}>
+      <GraphRenderer graph={graph} onEdgeClick={onEdgeClick} onPaneClick={onPaneClick} />
+    </Suspense>
+  );
+}
+
 function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () => void }) {
   return (
     <header className={styles.header}>
@@ -271,7 +297,7 @@ function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () 
             <span className={styles.description}>{detail.description}</span>
           )}
           <span className={styles.updatedAt}>
-            UPDATED · {new Date(detail.updatedAt).toLocaleString()}
+            UPDATED · {detail.updatedAt ? new Date(detail.updatedAt).toLocaleString() : "—"}
           </span>
         </div>
         {onEdit && (
@@ -293,7 +319,7 @@ function formatJsonForDisplay(raw: string): string {
 }
 
 function MetaTab({ detail }: { detail: WorkflowDetail }) {
-  const terminals = parseTerminalStates(detail.terminalStatesJson);
+  const terminals = parseTerminalStates(detail.terminalStatesJson ?? "");
   return (
     <div className={styles.metaSection}>
       <div className={styles.metaItem}>
@@ -325,13 +351,13 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Evidence (raw)</span>
         <pre className={styles.rawCode}>
-          <code>{formatJsonForDisplay(detail.evidenceJson)}</code>
+          <code>{formatJsonForDisplay(detail.evidenceJson ?? "")}</code>
         </pre>
       </div>
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Meta (raw)</span>
         <pre className={styles.rawCode}>
-          <code>{formatJsonForDisplay(detail.metaJson)}</code>
+          <code>{formatJsonForDisplay(detail.metaJson ?? "")}</code>
         </pre>
       </div>
     </div>

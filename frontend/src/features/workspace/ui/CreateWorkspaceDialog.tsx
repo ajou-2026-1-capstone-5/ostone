@@ -71,7 +71,7 @@ export function CreateWorkspaceDialog({
       {
         onSuccess: (result) => {
           const created = result.data;
-          onSuccess(created)
+          void Promise.resolve(onSuccess(created))
             .catch(() => {
               toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
               setIsSubmitting(false);

@@ -1,6 +1,4 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { policyKeys } from "@/entities/policy";
 import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import { mapApiError } from "./mapApiError";
 import type { PolicySummary } from "@/entities/policy";

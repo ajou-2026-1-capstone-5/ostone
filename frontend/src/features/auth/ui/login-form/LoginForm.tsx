@@ -52,12 +52,12 @@ export const LoginForm: React.FC = () => {
 
       saveAuthSession(
         {
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-          tokenType: result.tokenType,
-          expiresIn: result.expiresIn,
+          accessToken: result.accessToken ?? "",
+          refreshToken: result.refreshToken ?? "",
+          tokenType: result.tokenType ?? "Bearer",
+          expiresIn: result.expiresIn ?? 0,
         },
-        result.user,
+        result.user as any,
       );
 
       navigate(resolvePostLoginDestination(location.state), { replace: true });

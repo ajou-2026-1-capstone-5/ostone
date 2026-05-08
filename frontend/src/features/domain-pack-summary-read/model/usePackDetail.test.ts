@@ -14,7 +14,7 @@ describe('usePackDetail', () => {
   it('useGetDomainPack을 호출한다', () => {
     mockedUseGetDomainPack.mockReturnValue({ isLoading: false } as ReturnType<typeof useGetDomainPack>);
     usePackDetail(1, 2);
-    expect(mockedUseGetDomainPack).toHaveBeenCalledWith(1, 2, {});
+    expect(mockedUseGetDomainPack).toHaveBeenCalledWith(1, 2, { query: { select: expect.any(Function) } });
   });
 
   it('결과를 그대로 반환한다', () => {

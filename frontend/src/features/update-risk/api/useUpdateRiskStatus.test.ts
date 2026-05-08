@@ -44,7 +44,7 @@ const stubRisk: RiskDefinition = {
   domainPackVersionId: 3,
   riskCode: "RISK_FRAUD",
   name: "사기 위험",
-  description: null,
+  description: undefined as any,
   riskLevel: "HIGH",
   triggerConditionJson: "{}",
   handlingActionJson: "{}",
@@ -63,7 +63,7 @@ describe("useUpdateRiskStatus", () => {
   });
 
   it("성공 시 detail/list query cache를 갱신한다", async () => {
-    mockedUpdateRiskStatus.mockResolvedValue({ data: { ...stubRisk, status: "INACTIVE" }, status: 200, headers: new Headers() });
+    mockedUpdateRiskStatus.mockResolvedValue({ data: { ...stubRisk, status: "INACTIVE" } as any, status: 200, headers: new Headers() });
     const { wrapper, queryClient } = makeWrapperWithClient();
     const detailKey = riskKeys.detail(
       params.workspaceId,

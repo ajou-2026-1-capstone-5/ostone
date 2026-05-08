@@ -29,17 +29,17 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
     resolver: zodResolver(slotEditSchema),
     defaultValues: {
       name: slot.name,
-      description: slot.description,
+      description: slot.description ?? undefined,
       isSensitive: slot.isSensitive,
-      validationRuleJson: slot.validationRuleJson,
-      defaultValueJson: slot.defaultValueJson,
-      metaJson: slot.metaJson,
+      validationRuleJson: slot.validationRuleJson ?? undefined,
+      defaultValueJson: slot.defaultValueJson ?? undefined,
+      metaJson: slot.metaJson ?? undefined,
     },
   });
 
   const onSubmit = (values: SlotEditFormValues) => {
     mutate(
-      { workspaceId, packId, versionId, slotId: slot.id, body: values },
+      { workspaceId, packId, versionId, slotId: slot.id!, body: values as any },
       { onSuccess: onClose },
     );
   };
@@ -112,8 +112,8 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
             workspaceId={workspaceId}
             packId={packId}
             versionId={versionId}
-            slotId={slot.id}
-            currentStatus={slot.status}
+            slotId={slot.id!}
+            currentStatus={(slot.status ?? "INACTIVE") as "ACTIVE" | "INACTIVE"}
             disabled={isAnyPending}
           />
         </div>

@@ -72,7 +72,7 @@ export function ComponentCountGrid({
         count={intentCount}
         disabled={false}
         onNavigate={() => navigate(`${basePath}/intents`)}
-        previewNames={intentPreview.data?.map((i) => i.name)}
+        previewNames={intentPreview.data?.map((i) => i.name) as string[]}
         isLoadingPreview={intentPreview.isLoading}
       />
       <CountCard
@@ -81,7 +81,7 @@ export function ComponentCountGrid({
         disabled={firstSlotId === undefined}
         tooltip="수정할 Slot이 없습니다"
         onNavigate={() => setSlotEditOpen(true)}
-        previewNames={slotPreview.data?.map((s) => s.name)}
+        previewNames={slotPreview.data?.map((s) => s.name) as string[]}
         isLoadingPreview={slotPreview.isLoading}
       />
       <CountCard
@@ -89,7 +89,7 @@ export function ComponentCountGrid({
         count={policyCount}
         disabled={false}
         onNavigate={() => navigate(`${basePath}/policies`)}
-        previewNames={policyPreview.data?.map((p) => p.name)}
+        previewNames={policyPreview.data?.map((p) => p.name) as string[]}
         isLoadingPreview={policyPreview.isLoading}
       />
       <CountCard
@@ -97,7 +97,7 @@ export function ComponentCountGrid({
         count={riskCount}
         disabled={false}
         onNavigate={() => navigate(`${basePath}/risks`)}
-        previewNames={riskPreview.data?.map((r) => r.name)}
+        previewNames={riskPreview.data?.map((r) => r.name) as string[]}
         isLoadingPreview={riskPreview.isLoading}
       />
       <CountCard
@@ -105,7 +105,7 @@ export function ComponentCountGrid({
         count={workflowCount}
         disabled={false}
         onNavigate={() => navigate(`${basePath}/workflows`)}
-        previewItems={workflowPreview.data?.map((w) => ({ id: w.id, name: w.name }))}
+        previewItems={workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as { id: number; name: string }[]}
         isLoadingPreview={workflowPreview.isLoading}
         onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
       />

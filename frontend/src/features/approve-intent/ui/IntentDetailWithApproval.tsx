@@ -74,13 +74,13 @@ export function IntentDetailWithApproval({
       {(detail) => (
         <>
           <IntentStatusControl
-            intentStatus={normalizeIntentStatus(detail.status, statusOverride)}
+            intentStatus={normalizeIntentStatus(detail.status ?? "DRAFT", statusOverride)}
             onPublish={() => setDialogAction("publish")}
             onReject={() => setDialogAction("reject")}
             isPending={mutation.isPending}
           />
           <ApproveIntentDialog
-            intentName={detail.name}
+            intentName={detail.name ?? ""}
             action={dialogAction ?? "publish"}
             open={dialogAction !== null}
             onOpenChange={handleDialogOpenChange}

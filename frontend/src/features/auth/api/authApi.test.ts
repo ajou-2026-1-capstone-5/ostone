@@ -1,27 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vite-plus/test';
 import { loginApi, signupApi, passwordResetInitApi, logoutApi } from './authApi';
+import { login, signup, logout, passwordResetInit } from '@/shared/api/generated/endpoints/auth-controller/auth-controller';
 
-// fetch API를 Mocking합니다.
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.mock('@/shared/api/generated/endpoints/auth-controller/auth-controller', () => ({
+  login: vi.fn(),
+  signup: vi.fn(),
+  logout: vi.fn(),
+  passwordResetInit: vi.fn(),
+}));
+
+const mockedLogin = vi.mocked(login);
+const mockedSignup = vi.mocked(signup);
+const mockedLogout = vi.mocked(logout);
+const mockedPasswordResetInit = vi.mocked(passwordResetInit);
 
 describe('Auth API Integration Tests', () => {
   let originalGetItem: typeof Storage.prototype.getItem;
 
   beforeEach(() => {
-    // 매 테스트 전에 mock 초기화
-    mockFetch.mockClear();
-    // 로컬 스토리지 모킹 (로그아웃 테스트 등에 활용)
+    mockedLogin.mockClear();
+    mockedSignup.mockClear();
+    mockedLogout.mockClear();
+    mockedPasswordResetInit.mockClear();
     originalGetItem = Storage.prototype.getItem;
     Storage.prototype.getItem = vi.fn(() => 'mock-token');
   });
 
   afterEach(() => {
-    // 원래 getItem 복원
     Storage.prototype.getItem = originalGetItem;
   });
 
-  it('loginApi 메서드가 올바른 URL(/api/v1/auth/login)과 데이터를 사용하여 fetch를 호출하는지 확인한다', async () => {
+  it('loginApi 메서드가 올바른 데이터와 함께 login()을 호출하는지 확인한다', async () => {
     const mockResponse = {
       accessToken: 'dummy-access',
       refreshToken: 'dummy-refresh',
@@ -30,60 +39,35 @@ describe('Auth API Integration Tests', () => {
       user: { id: 1, email: 'test@test.com', name: 'Tester', role: 'OPERATOR' }
     };
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    mockedLogin.mockResolvedValueOnce(mockResponse as any);
 
     const result = await loginApi({ email: 'test@test.com', password: 'password123' });
 
-    // API_BASE === '/api/v1' 이므로, 엔드포인트가 정확한지 검증
-    expect(mockFetch).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ email: 'test@test.com', password: 'password123' })
-    }));
-    const headers = mockFetch.mock.calls[0]?.[1]?.headers;
-    expect(headers).toBeInstanceOf(Headers);
-    expect(headers.get('Content-Type')).toBe('application/json');
-
-    // 응답 결과 확인
+    expect(mockedLogin).toHaveBeenCalledWith({ email: 'test@test.com', password: 'password123' });
     expect(result.accessToken).toEqual('dummy-access');
-    expect(result.user.name).toEqual('Tester');
+    expect(result.user?.name).toEqual('Tester');
   });
 
-  it('signupApi 메서드가 올바른 URL(/api/v1/auth/signup)을 호출하는지 확인한다', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ id: 2, email: 'new@test.com', name: 'NewUser' }),
-    });
+  it('signupApi 메서드가 signup()을 호출하는지 확인한다', async () => {
+    mockedSignup.mockResolvedValueOnce({ id: 2, email: 'new@test.com', name: 'NewUser' } as any);
 
     const result = await signupApi({ email: 'new@test.com', name: 'NewUser', password: 'pwd' });
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/v1/auth/signup', expect.anything());
+    expect(mockedSignup).toHaveBeenCalledWith({ email: 'new@test.com', name: 'NewUser', password: 'pwd' });
     expect(result.email).toEqual('new@test.com');
   });
 
-  it('로그아웃 시 리프레시 토큰을 포함하여 /api/v1/auth/logout 을 호출하는지 확인한다', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 204, // No Content
-    });
+  it('로그아웃 시 리프레시 토큰을 포함하여 logout()을 호출하는지 확인한다', async () => {
+ mockedLogout.mockResolvedValueOnce(undefined as any);
 
     await logoutApi('dummy-refresh');
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/v1/auth/logout', expect.objectContaining({
-      body: JSON.stringify({ refreshToken: 'dummy-refresh' })
-    }));
+    expect(mockedLogout).toHaveBeenCalledWith({ refreshToken: 'dummy-refresh' });
   });
 
   it('passwordResetInitApi 요청 시 에러 응답을 올바르게 던지는지 확인한다', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      json: async () => ({ code: 'USER_NOT_FOUND', message: '가입되지 않은 이메일입니다.' }),
-    });
+    mockedPasswordResetInit.mockRejectedValueOnce(new Error('가입되지 않은 이메일입니다.'));
 
-    // rejects.toThrow 로 예외가 제대로 발생하는지 확인
     await expect(passwordResetInitApi('wrong@test.com')).rejects.toThrow('가입되지 않은 이메일입니다.');
   });
 });

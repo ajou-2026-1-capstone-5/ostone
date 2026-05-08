@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { ApiRequestError } from '@/shared/api';
 import { OstoneShell } from '@/widgets/ostone-shell';
 import { LoadingSpinner } from '@/shared/ui/ostone/atoms/LoadingSpinner';
@@ -8,6 +9,7 @@ import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
 import { parseRouteId } from '@/shared/lib/parseRouteId';
 import { usePackDetail, useVersionDetail, VersionListPanel, SummaryDetailPanel } from '@/features/domain-pack-summary-read';
 import { CreateDraftModal } from '@/features/domain-pack-draft-create';
+import type { DomainPackDetail, DomainPackVersionDetail } from '@/entities/domain-pack';
 import styles from './domain-pack-summary-page.module.css';
 
 export function DomainPackSummaryPage() {
@@ -41,7 +43,7 @@ interface ContentProps {
 }
 
 function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreateOpen, setCreateOpen }: ContentProps) {
-  const packQuery = usePackDetail(wsId, packId);
+  const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
 
   useEffect(() => {
     if (!packQuery.isError) return;
@@ -55,9 +57,10 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
   useEffect(() => {
     if (!packQuery.data) return;
     if (selectedVersionId !== null) return;
-    if (packQuery.data.versions.length === 0) return;
-    const latest = packQuery.data.versions.reduce((a, b) =>
-      a.versionNo >= b.versionNo ? a : b,
+    const versions = packQuery.data?.versions;
+    if (!versions || versions.length === 0) return;
+    const latest = versions.reduce((a, b) =>
+      (a.versionNo ?? 0) >= (b.versionNo ?? 0) ? a : b,
     );
     setSearch(
       (prev) => {
@@ -69,7 +72,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
     );
   }, [packQuery.data, search, setSearch]);
 
-  const versionQuery = useVersionDetail(wsId, packId, selectedVersionId);
+  const versionQuery = useVersionDetail(wsId, packId, selectedVersionId) as UseQueryResult<DomainPackVersionDetail>;
 
   const handleSelectVersion = (versionId: number) => {
     setSearch((prev) => {

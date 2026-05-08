@@ -141,6 +141,27 @@ export const DEFAULT_EDGES: WorkflowEdge[] = [
   { from: "manual", to: "confirm", pct: 0.86 },
 ];
 
+interface EdgeLabelSlot {
+  condX: number;
+  condY: number;
+  pctX: number;
+  pctY: number;
+  combine?: boolean;
+}
+
+const LABEL_SLOTS: Record<string, EdgeLabelSlot> = {
+  "eligible->process": { condX: 72.5, condY: 1.5, pctX: 72.5, pctY: 1.5, combine: true },
+  "eligible->risk":    { condX: 39, condY: 30, pctX: 39, pctY: 32 },
+  "eligible->reject":  { condX: 58, condY: 35, pctX: 58, pctY: 37, combine: true },
+  "risk->manual":      { condX: 72, condY: 34, pctX: 72, pctY: 34, combine: true },
+  "risk->reject":      { condX: 72.5, condY: 47, pctX: 72.5, pctY: 47, combine: true },
+};
+
+function truncateSvgText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars - 1) + "…";
+}
+
 function getNodeById(nodes: WorkflowNode[], id: string): WorkflowNode | undefined {
   return nodes.find((n) => n.id === id);
 }
@@ -172,6 +193,25 @@ function getEdgePoints(
   }
 
   return { x1, y1, x2, y2, mx: (x1 + x2) / 2 };
+}
+
+function getEdgeLabelPosition(
+  src: WorkflowNode,
+  tgt: WorkflowNode,
+  mx: number,
+  midY: number,
+): { condX: number; condY: number; pctY: number } {
+  const srcC = src.y + src.h / 2;
+  const tgtC = tgt.y + tgt.h / 2;
+  const sameRow = Math.abs(srcC - tgtC) < Math.max(src.h, tgt.h);
+
+  if (sameRow) {
+    return { condX: mx, condY: midY - 2.0, pctY: midY - 2.0 + 1.8 };
+  }
+
+  const rightBound = Math.min(src.x + src.w, tgt.x + tgt.w) - 1.5;
+  const rightX = Math.min(mx + 3.0, Math.max(mx, rightBound));
+  return { condX: rightX, condY: midY, pctY: midY + 2.0 };
 }
 
 function NodeShape({ node }: { node: WorkflowNode }) {
@@ -286,9 +326,11 @@ function NodeShape({ node }: { node: WorkflowNode }) {
 function NodeLabels({ node }: { node: WorkflowNode }) {
   const { x, y, w, h, label, sub, pass, n } = node;
   const cx = x + w / 2;
-  const labelY = y + h / 2 - 0.2;
-  const subY = labelY + 1.3;
-  const statY = y + h - 0.6;
+  const labelMaxChars = Math.max(6, Math.floor((w - 1.5) / 0.85));
+  const subMaxChars = Math.max(8, Math.floor((w - 1.5) / 0.65));
+  const labelY = y + h / 2 - 0.15;
+  const subY = labelY + 1.2;
+  const statY = y + h - 0.45;
 
   return (
     <>
@@ -296,30 +338,30 @@ function NodeLabels({ node }: { node: WorkflowNode }) {
         x={cx}
         y={labelY}
         textAnchor="middle"
-        fontSize="1.4"
+        fontSize="1.35"
         fontFamily="var(--mono)"
         fill="var(--ink)"
         fontWeight={700}
       >
-        {label}
+        {truncateSvgText(label, labelMaxChars)}
       </text>
       <text
         x={cx}
         y={subY}
         textAnchor="middle"
-        fontSize="1.0"
+        fontSize="0.9"
         fontFamily="var(--mono)"
         fill="var(--ink-3)"
         opacity={0.7}
       >
-        {sub}
+        {truncateSvgText(sub, subMaxChars)}
       </text>
       {(typeof pass === "number" || typeof n === "number") && (
         <text
           x={cx}
           y={statY}
           textAnchor="middle"
-          fontSize="0.9"
+          fontSize="0.8"
           fontFamily="var(--mono)"
           fill="var(--ink-3)"
         >
@@ -440,54 +482,16 @@ export function WorkflowCanvas({
           stroke = "var(--danger)";
         }
 
-        const midY = (y1 + y2) / 2;
-
         return (
-          <g key={`edge-${i}`}>
-            <path
-              d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={strokeWidth}
-              opacity={opacity}
-              markerEnd={`url(#${markerId})`}
-            />
-            {edge.cond && (
-              <g>
-                <rect
-                  x={mx - (edge.cond.length * 1.2 + 2)}
-                  y={midY - 1.8}
-                  width={edge.cond.length * 2.4 + 4}
-                  height={3.6}
-                  rx={1}
-                  fill="var(--paper)"
-                  stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
-                  strokeWidth={0.3}
-                />
-                <text
-                  x={mx}
-                  y={midY + 0.5}
-                  textAnchor="middle"
-                  fontSize={2.2}
-                  fontFamily="var(--mono)"
-                  fill="var(--ink-2)"
-                >
-                  {edge.cond}
-                </text>
-              </g>
-            )}
-            <text
-              x={mx}
-              y={midY + 1.0}
-              textAnchor="middle"
-              fontSize="0.9"
-              fontFamily="var(--mono)"
-              fill={stroke}
-              opacity={edge.isHot ? 1 : 0.8}
-            >
-              {Math.round(edge.pct * 100)}%
-            </text>
-          </g>
+          <path
+            key={`edge-${i}`}
+            d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={opacity}
+            markerEnd={`url(#${markerId})`}
+          />
         );
       })}
 
@@ -539,22 +543,22 @@ export function WorkflowCanvas({
           )}
           <NodeLabels node={node} />
           {node.n != null && (
-            <g>
+            <g opacity={0.45}>
               <rect
-                x={node.x + node.w - 11.5}
-                y={node.y + 1}
-                width={11}
-                height={3.5}
-                rx={1}
+                x={node.x + node.w - 5.2}
+                y={node.y + 0.6}
+                width={4.8}
+                height={1.3}
+                rx={0.3}
                 fill="var(--paper)"
                 stroke="var(--line-2)"
-                strokeWidth={0.3}
+                strokeWidth={0.1}
               />
               <text
-                x={node.x + node.w - 0.5}
-                y={node.y + 3.5}
+                x={node.x + node.w - 0.4}
+                y={node.y + 1.55}
                 textAnchor="end"
-                fontSize="1.6"
+                fontSize="0.68"
                 fontFamily="var(--mono)"
                 fill="var(--ink-3)"
               >
@@ -587,6 +591,118 @@ export function WorkflowCanvas({
           )}
         </g>
       ))}
+
+      {edges.map((edge, i) => {
+        const src = getNodeById(nodes, edge.from);
+        const tgt = getNodeById(nodes, edge.to);
+        if (!src || !tgt) return null;
+
+        const { y1, y2, mx } = getEdgePoints(src, tgt);
+        const midY = (y1 + y2) / 2;
+
+        let stroke = "var(--ink-3)";
+        if (edge.tone === "signal" || edge.isHot) {
+          stroke = "var(--signal)";
+        } else if (edge.tone === "warn") {
+          stroke = "var(--warn)";
+        } else if (edge.tone === "danger") {
+          stroke = "var(--danger)";
+        }
+
+        const labelKey = `${edge.from}->${edge.to}`;
+        const slot = LABEL_SLOTS[labelKey];
+        const pctText = `${Math.round(edge.pct * 100)}%`;
+
+        if (!edge.cond) {
+          const pctX = slot?.pctX ?? mx;
+          const pctY = slot?.pctY ?? midY + 1.0;
+          return (
+            <text
+              key={`elpct-${i}`}
+              x={pctX}
+              y={pctY}
+              textAnchor="middle"
+              fontSize="0.7"
+              fontFamily="var(--mono)"
+              fill={stroke}
+              opacity={edge.isHot ? 1 : 0.8}
+            >
+              {pctText}
+            </text>
+          );
+        }
+
+        const fallback = getEdgeLabelPosition(src, tgt, mx, midY);
+        const condX = slot?.condX ?? fallback.condX;
+        const condY = slot?.condY ?? fallback.condY;
+        const pctX = slot?.pctX ?? fallback.condX;
+        const pctY = slot?.pctY ?? fallback.pctY;
+
+        if (slot?.combine) {
+          const combinedText = `${edge.cond} · ${pctText}`;
+          const tw = combinedText.length * 0.4;
+          return (
+            <g key={`elbl-comb-${i}`}>
+              <rect
+                x={condX - tw - 1}
+                y={condY - 0.85}
+                width={tw * 2 + 2}
+                height={1.7}
+                rx={0.6}
+                fill="var(--paper)"
+                stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
+                strokeWidth={0.25}
+              />
+              <text
+                x={condX}
+                y={condY + 0.25}
+                textAnchor="middle"
+                fontSize={0.85}
+                fontFamily="var(--mono)"
+                fill={edge.isHot ? "var(--signal)" : "var(--ink-2)"}
+              >
+                {truncateSvgText(combinedText, 22)}
+              </text>
+            </g>
+          );
+        }
+
+        return (
+          <g key={`elbl-sep-${i}`}>
+            <rect
+              x={condX - (edge.cond.length * 0.4 + 1)}
+              y={condY - 0.85}
+              width={edge.cond.length * 0.8 + 2}
+              height={1.7}
+              rx={0.6}
+              fill="var(--paper)"
+              stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
+              strokeWidth={0.25}
+            />
+            <text
+              x={condX}
+              y={condY + 0.25}
+              textAnchor="middle"
+              fontSize={0.85}
+              fontFamily="var(--mono)"
+              fill={edge.isHot ? "var(--signal)" : "var(--ink-2)"}
+            >
+              {truncateSvgText(edge.cond, 20)}
+            </text>
+            <text
+              x={pctX}
+              y={pctY}
+              textAnchor="middle"
+              fontSize="0.7"
+              fontFamily="var(--mono)"
+              fill={stroke}
+              opacity={edge.isHot ? 1 : 0.8}
+            >
+              {pctText}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }

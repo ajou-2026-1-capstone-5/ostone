@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
+import type { WorkspaceResponse } from "@/shared/api/generated/zod";
 import { useListWorkspaces } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { CreateWorkspaceDialog } from "@/features/workspace";
 import { Spinner } from "@/shared/ui/spinner";
@@ -16,7 +17,7 @@ export function WorkspaceRootRedirect() {
       return;
     }
 
-    const workspaces = workspacesData?.data ?? [];
+    const workspaces = (workspacesData ?? []) as unknown as WorkspaceResponse[];
     if (workspaces.length === 0) {
       setShowCreate(true);
       return;

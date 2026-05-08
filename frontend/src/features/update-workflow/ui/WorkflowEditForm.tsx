@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
@@ -9,8 +9,22 @@ import { workflowEditSchema, type WorkflowEditFormValues } from "../model/schema
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
 import { toWorkflowGraph } from "../lib/graphToWorkflow";
-import type { WorkflowDetail } from "@/entities/workflow";
+import type { WorkflowDetail, WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow";
+
+const EMPTY_GRAPH: WorkflowGraph = { direction: "LR", nodes: [], edges: [] };
+
+function parseGraphJson(graphJson: WorkflowDetail["graphJson"]): WorkflowGraph {
+  if (!graphJson) return EMPTY_GRAPH;
+  if (typeof graphJson === "string") {
+    try {
+      return JSON.parse(graphJson);
+    } catch {
+      return EMPTY_GRAPH;
+    }
+  }
+  return graphJson;
+}
 
 interface WorkflowEditFormProps {
   workflow: WorkflowDetail;
@@ -29,12 +43,11 @@ export function WorkflowEditForm({
 }: WorkflowEditFormProps) {
   const { mutate, isPending } = useUpdateWorkflow();
 
-  const initialFlow = useMemo(() => toFlow(workflow.graphJson), [workflow.graphJson]);
-  const initialGraphRef = useRef(initialFlow);
-  const { nodes: initialNodes, edges: initialEdges } = initialGraphRef.current;
+  const parsedGraph = useRef(parseGraphJson(workflow.graphJson));
+  const { nodes: initialNodes, edges: initialEdges } = parsedGraph.current;
 
   // single source of truth for graph state; ref avoids re-renders on every node change
-  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes, edges: initialEdges });
+  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ nodes: initialNodes as any, edges: initialEdges as any });
 
   const handleGraphStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
     graphStateRef.current = { nodes, edges };
@@ -43,8 +56,8 @@ export function WorkflowEditForm({
   const form = useForm<WorkflowEditFormValues>({
     resolver: zodResolver(workflowEditSchema),
     defaultValues: {
-      name: workflow.name,
-      description: workflow.description,
+      name: workflow.name ?? "",
+      description: workflow.description ?? undefined,
     },
   });
 
@@ -52,22 +65,27 @@ export function WorkflowEditForm({
   // graphStateRef must not reinitialize on name/description/graphJson updates for
   // the same workflow, so in-progress edits are preserved across prop refreshes.
   useEffect(() => {
-    const flow = toFlow(workflow.graphJson);
-    form.reset({ name: workflow.name, description: workflow.description });
-    initialGraphRef.current = flow;
+    const graph = parseGraphJson(workflow.graphJson);
+    const flow = toFlow(graph);
+    form.reset({ name: workflow.name ?? "", description: workflow.description ?? undefined });
     graphStateRef.current = flow;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflow.id]);
 
-  const direction = workflow.graphJson.direction;
-  const workflowId = workflow.id;
+  const direction = parsedGraph.current.direction;
+  const workflowId = workflow.id!;
 
   const onSubmit = useCallback(
     (values: WorkflowEditFormValues) => {
       const { nodes, edges } = graphStateRef.current;
-      const graphJson = toWorkflowGraph(nodes, edges, direction);
+      const graph = toWorkflowGraph(nodes, edges, direction);
+      const body = {
+        ...values,
+        graphJson: graph,
+        description: values.description ?? undefined,
+      } as Parameters<typeof mutate>[0]["body"];
       mutate(
-        { wsId, packId, versionId, workflowId, body: { ...values, graphJson } },
+        { wsId, packId, versionId, workflowId, body },
         { onSuccess: onClose },
       );
     },
@@ -101,7 +119,7 @@ export function WorkflowEditForm({
                 <Input
                   {...field}
                   value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
+                  onChange={(e) => field.onChange(e.target.value || undefined)}
                 />
               </FormControl>
               <FormMessage />
@@ -117,8 +135,8 @@ export function WorkflowEditForm({
         <div className="h-[min(70vh,500px)]">
           <InteractiveGraphEditor
             key={workflow.id}
-            initialNodes={initialNodes}
-            initialEdges={initialEdges}
+            initialNodes={initialNodes as unknown as Node[]}
+            initialEdges={initialEdges as unknown as Edge[]}
             onStateChange={handleGraphStateChange}
           />
         </div>

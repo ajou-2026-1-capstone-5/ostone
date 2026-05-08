@@ -52,21 +52,18 @@ export function WorkspaceLayout() {
   const active = getActiveFromPath(location.pathname);
 
   const { data: fetchedWorkspaces, refetch } = useListWorkspaces();
-  const {
-    data: fetchedWorkspace,
-    isLoading,
-    error: fetchError,
-  } = useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
+  const { data: fetchedWorkspace, isLoading: isFetchingWorkspace, error: fetchError } =
+    useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
 
   useEffect(() => {
     if (fetchedWorkspaces) {
-      setWorkspaces(fetchedWorkspaces.data);
+      setWorkspaces(fetchedWorkspaces as unknown as WorkspaceResponse[]);
     }
   }, [fetchedWorkspaces]);
 
   useEffect(() => {
     if (fetchedWorkspace) {
-      setWorkspace(fetchedWorkspace.data);
+      setWorkspace(fetchedWorkspace as unknown as WorkspaceResponse);
       setError("");
     } else if (parsedWorkspaceId !== null && fetchError) {
       setError(mapWorkspaceActionError(fetchError));
@@ -75,10 +72,10 @@ export function WorkspaceLayout() {
   }, [fetchedWorkspace, fetchError, parsedWorkspaceId]);
 
   useEffect(() => {
-    if (!isLoading && parsedWorkspaceId !== null) {
+    if (!isFetchingWorkspace && parsedWorkspaceId !== null) {
       setIsLoading(false);
     }
-  }, [isLoading, parsedWorkspaceId]);
+  }, [isFetchingWorkspace, parsedWorkspaceId]);
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -143,7 +140,7 @@ export function WorkspaceLayout() {
   return (
     <OstoneShell
       active={active}
-      crumbs={crumbs.length > 0 ? crumbs : defaultCrumbs}
+      crumbs={crumbs.length > 0 ? crumbs : (defaultCrumbs as string[])}
       topbarRight={topbarRight}
       basePath={basePath}
       sidebarSwitcher={sidebarSwitcher}

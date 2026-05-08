@@ -44,7 +44,7 @@ export function EditWorkspaceDialog({
 
   useEffect(() => {
     if (workspace && open) {
-      setName(workspace.name);
+      setName(workspace.name ?? "");
       setFieldErrors({});
       setIsSubmitting(false);
     }
@@ -67,7 +67,7 @@ export function EditWorkspaceDialog({
     setIsSubmitting(true);
 
     updateWorkspace.mutate(
-      { id: workspace.id, data: { name: name.trim() } },
+      { id: workspace.id!, data: { name: name.trim() } },
       {
         onSuccess: () => {
           onSuccess();

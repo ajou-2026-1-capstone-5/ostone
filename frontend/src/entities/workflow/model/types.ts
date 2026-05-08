@@ -25,4 +25,5 @@ export interface WorkflowGraph {
   direction: "LR" | "TB";
   nodes: GraphNode[];
   edges: GraphEdge[];
+  [key: string]: unknown;
 }

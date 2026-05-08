@@ -38,7 +38,7 @@ export function useIntentDetail(
         if (!cancelled) {
           setState({
             requestKey,
-            value: { status: "ready", data },
+            value: { status: "ready", data: data as any },
           });
         }
       })

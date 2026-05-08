@@ -45,7 +45,7 @@ const stubDetail: DomainPackVersionDetail = {
   packId: 2,
   versionNo: 1,
   lifecycleStatus: 'DRAFT',
-  sourcePipelineJobId: null,
+  sourcePipelineJobId: null as any,
   summaryJson: '{"key":"val"}',
   intentCount: 5,
   slotCount: 2,

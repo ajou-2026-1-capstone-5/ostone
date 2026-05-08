@@ -25,11 +25,11 @@ export type {
 };
 
 export async function loginApi(data: LoginRequest): Promise<LoginResponse> {
-  return login(data);
+  return login(data) as unknown as Promise<LoginResponse>;
 }
 
 export async function signupApi(data: SignupRequest): Promise<SignupResponse> {
-  return signup(data);
+  return signup(data) as unknown as Promise<SignupResponse>;
 }
 
 export async function logoutApi(refreshToken: string): Promise<void> {
@@ -37,11 +37,11 @@ export async function logoutApi(refreshToken: string): Promise<void> {
 }
 
 export async function refreshTokenApi(refreshToken: string): Promise<TokenRefreshResponse> {
-  return refresh({ refreshToken });
+  return refresh({ refreshToken }) as unknown as Promise<TokenRefreshResponse>;
 }
 
 export async function passwordResetInitApi(email: string): Promise<PasswordResetInitResponse> {
-  return passwordResetInit({ email });
+  return passwordResetInit({ email }) as unknown as Promise<PasswordResetInitResponse>;
 }
 
 export async function passwordResetCompleteApi(data: PasswordResetCompleteRequest): Promise<void> {

@@ -77,9 +77,9 @@ export function WorkspaceSwitcher({
           <DropdownMenuItem
             key={workspace.id}
             className={styles.workspaceItem}
-            onClick={() => handleSwitch(workspace.id)}
+            onClick={() => workspace.id != null && handleSwitch(workspace.id!)}
           >
-            <span className={styles.workspaceName}>{workspace.name}</span>
+            <span className={styles.workspaceName}>{workspace.name ?? ""}</span>
             <span className={styles.workspaceItemRight}>
               {workspace.id === currentWorkspaceId && (
                 <CheckIcon className={styles.currentBadge} />
@@ -113,9 +113,9 @@ export function WorkspaceSwitcher({
               <DropdownMenuItem
                 key={workspace.id}
                 className={styles.workspaceItemArchived}
-                onClick={() => handleSwitch(workspace.id)}
+                onClick={() => workspace.id != null && handleSwitch(workspace.id!)}
               >
-                <span className={styles.workspaceName}>{workspace.name}</span>
+                <span className={styles.workspaceName}>{workspace.name ?? ""}</span>
               </DropdownMenuItem>
             ))}
           </>

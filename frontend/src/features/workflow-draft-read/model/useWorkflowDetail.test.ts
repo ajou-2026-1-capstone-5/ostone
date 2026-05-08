@@ -68,7 +68,7 @@ describe("useWorkflowDetail", () => {
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedDetail.mockResolvedValue(stubDetail);
+    mockedDetail.mockResolvedValue(stubDetail as any);
     const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10), {
       wrapper: makeWrapper(),
     });

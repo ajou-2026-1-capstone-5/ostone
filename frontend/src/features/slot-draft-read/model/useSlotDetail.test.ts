@@ -44,7 +44,7 @@ describe("useSlotDetail", () => {
   });
 
   it("성공 시 ready 상태로 전이되고 validationRuleJson을 포함한다", async () => {
-    mockedGetSlot.mockResolvedValue({ data: stubDetail, status: 200, headers: new Headers() });
+    mockedGetSlot.mockResolvedValue({ data: stubDetail as any, status: 200, headers: new Headers() });
     const { result } = renderHook(() => useSlotDetail(1, 2, 3, 10));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     if (result.current.status === "ready") {
@@ -76,7 +76,7 @@ describe("useSlotDetail", () => {
   });
 
   it("retryKey가 변경되면 getSlot이 다시 호출된다", async () => {
-    mockedGetSlot.mockResolvedValue({ data: stubDetail, status: 200, headers: new Headers() });
+    mockedGetSlot.mockResolvedValue({ data: stubDetail as any, status: 200, headers: new Headers() });
     const { result, rerender } = renderHook(
       ({ key }: { key: number }) => useSlotDetail(1, 2, 3, 10, key),
       { initialProps: { key: 0 } },

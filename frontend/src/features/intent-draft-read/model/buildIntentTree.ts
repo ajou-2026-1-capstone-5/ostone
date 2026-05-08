@@ -6,24 +6,24 @@ export function buildIntentTree(items: IntentSummary[]): IntentTreeNode[] {
   const orderedItems: IntentSummary[] = [];
 
   for (const item of items) {
-    if (nodeMap.has(item.id)) {
+    if (nodeMap.has(item.id!)) {
       continue;
     }
 
-    nodeMap.set(item.id, { ...item, children: [] });
-    itemMap.set(item.id, item);
+    nodeMap.set(item.id!, { ...item, id: item.id!, children: [] });
+    itemMap.set(item.id!, item);
     orderedItems.push(item);
   }
 
   const roots: IntentTreeNode[] = [];
 
   for (const item of orderedItems) {
-    const node = nodeMap.get(item.id);
+    const node = nodeMap.get(item.id!);
     if (!node) continue;
 
-    const parent = item.parentIntentId === null ? undefined : nodeMap.get(item.parentIntentId);
+    const parent = item.parentIntentId == null ? undefined : nodeMap.get(item.parentIntentId);
 
-    if (!parent || createsCycle(parent.id, node.id, itemMap)) {
+    if (!parent || createsCycle(parent.id!, node.id!, itemMap)) {
       roots.push(node);
       continue;
     }

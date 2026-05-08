@@ -82,7 +82,7 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
         </div>
         <div className={styles.metaGrid}>
           <span className={styles.metaKey}>생성</span>
-          <span className={styles.metaValue}>{formatDate(v.createdAt)}</span>
+          <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
           {v.sourcePipelineJobId !== null && (
             <>
               <span className={styles.metaKey}>Pipeline Job</span>
@@ -95,7 +95,7 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
             <button
               type="button"
               className={styles.errorRetryBtn}
-              onClick={() => activateMutation.mutate({ workspaceId: wsId, packId, versionId: v.versionId })}
+              onClick={() => activateMutation.mutate({ workspaceId: wsId, packId, versionId: v.versionId! })}
               disabled={activateMutation.isPending}
             >
               활성화
@@ -106,7 +106,7 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
 
       <div>
         <div className={styles.sectionTitle}>Summary JSON</div>
-        <SummaryJsonCard summaryJson={v.summaryJson} />
+        <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
       </div>
 
       <div>
@@ -114,12 +114,12 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
         <ComponentCountGrid
           wsId={wsId}
           packId={packId}
-          versionId={v.versionId}
-          intentCount={v.intentCount}
-          slotCount={v.slotCount}
-          policyCount={v.policyCount}
-          riskCount={v.riskCount}
-          workflowCount={v.workflowCount}
+          versionId={v.versionId!}
+          intentCount={v.intentCount!}
+          slotCount={v.slotCount!}
+          policyCount={v.policyCount!}
+          riskCount={v.riskCount!}
+          workflowCount={v.workflowCount!}
         />
       </div>
     </div>

@@ -96,7 +96,7 @@ function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionList
         className={styles.itemBtn}
         tabIndex={isTabStop ? 0 : -1}
         aria-current={isActive || undefined}
-        onClick={() => onSelect(version.versionId)}
+        onClick={() => onSelect(version.versionId!)}
       >
         <div className={styles.itemRow}>
           <span className={styles.versionNo}>v{version.versionNo}</span>
@@ -111,7 +111,7 @@ function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionList
             <span className={styles.sourceBadge}>PIPELINE</span>
           )}
         </div>
-        <span className={styles.createdAt}>{formatDate(version.createdAt)}</span>
+        <span className={styles.createdAt}>{formatDate(version.createdAt ?? "")}</span>
       </button>
     </li>
   );
