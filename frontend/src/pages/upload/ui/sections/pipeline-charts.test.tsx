@@ -91,4 +91,21 @@ describe("RunHistoryStrip", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("18")).toBeInTheDocument();
   });
+
+  it("uses deterministic bar heights (no Math.random)", () => {
+    const { container: first } = render(<RunHistoryStrip hours={24} />);
+    const { container: second } = render(<RunHistoryStrip hours={24} />);
+    const bars1 = first.querySelectorAll("div[style*='width: 8px']");
+    const bars2 = second.querySelectorAll("div[style*='width: 8px']");
+    bars1.forEach((bar, i) => {
+      const s1 = bar.getAttribute("style") || "";
+      const s2 = bars2[i].getAttribute("style") || "";
+      expect(s1).toBe(s2);
+    });
+  });
+
+  it("renders 3-hour summary text", () => {
+    render(<RunHistoryStrip hours={24} />);
+    expect(screen.getByText(/Last 3h/)).toBeInTheDocument();
+  });
 });

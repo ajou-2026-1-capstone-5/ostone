@@ -27,6 +27,9 @@ export function Queue({
           <div
             key={item.id}
             onClick={() => onSelect?.(item.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(item.id); } }}
+            role="button"
+            tabIndex={0}
             style={{
               padding: '12px 14px 12px 16px',
               borderBottom: '1px solid var(--line)',

@@ -19,6 +19,9 @@ export function SuggestStrip({ onSelect }: { onSelect?: (text: string) => void }
         <span
           key={text}
           onClick={() => onSelect?.(text)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(text); } }}
+          role="button"
+          tabIndex={0}
           style={{
             padding: '5px 11px',
             borderRadius: 'var(--r-pill)',

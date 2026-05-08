@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.init.domainpack.application.DomainPackDetailResult;
+import com.init.domainpack.application.DomainPackSummaryResult;
 import com.init.domainpack.application.DomainPackVersionDetailResult;
 import com.init.domainpack.application.GetDomainPackDetailUseCase;
 import com.init.domainpack.application.GetDomainPackListUseCase;
@@ -44,6 +45,34 @@ class DomainPackControllerTest {
   @MockitoBean private GetDomainPackVersionDetailUseCase versionDetailUseCase;
 
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2025-04-03T10:00:00+09:00");
+
+  @Test
+  @DisplayName("GET / → 200 OK, domain pack summary 목록 JSON 구조 검증")
+  @WithLongPrincipal(10L)
+  void should_200_when_listDomainPacks() throws Exception {
+    DomainPackSummaryResult fixture =
+        new DomainPackSummaryResult(10L, 1L, "CS Support Pack", "고객 지원용", NOW);
+    given(
+            packListUseCase.execute(
+                argThat(q -> q.workspaceId().equals(1L) && q.userId().equals(10L))))
+        .willReturn(List.of(fixture));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/domain-packs"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$[0].packId").value(10))
+        .andExpect(jsonPath("$[0].workspaceId").value(1))
+        .andExpect(jsonPath("$[0].name").value("CS Support Pack"))
+        .andExpect(jsonPath("$[0].description").value("고객 지원용"))
+        .andExpect(jsonPath("$[0].createdAt").value("2025-04-03T10:00:00+09:00"));
+  }
+
+  @Test
+  @DisplayName("GET / 미인증 → 401")
+  void should_401_when_unauthenticated_listDomainPacks() throws Exception {
+    mockMvc.perform(get("/api/v1/workspaces/1/domain-packs")).andExpect(status().isUnauthorized());
+  }
 
   @Test
   @DisplayName("GET /{packId} → 200 OK, JSON 구조 검증")

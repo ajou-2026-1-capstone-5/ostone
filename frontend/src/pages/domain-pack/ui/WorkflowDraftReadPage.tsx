@@ -267,7 +267,7 @@ export function WorkflowDraftReadPage() {
               {Array.from({ length: 24 }).map((_, i) => (
                 <div key={i} style={{ flexShrink: 0, textAlign: "center" }}>
                   <Bar
-                    value={0.2 + Math.random() * 0.6}
+                    value={0.2 + ((i * 7 + 11) % 7) * 0.1}
                     tone={i % 5 === 0 ? "signal" : "ink"}
                     w={24}
                     h={3}

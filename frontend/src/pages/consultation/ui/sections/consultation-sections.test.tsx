@@ -63,6 +63,22 @@ describe('SuggestStrip', () => {
     fireEvent.click(screen.getByText('부분환불 가능합니다'));
     expect(onSelect).toHaveBeenCalledWith('부분환불 가능합니다');
   });
+
+  it('calls onSelect with pill text on Enter key', () => {
+    const onSelect = vi.fn();
+    render(<SuggestStrip onSelect={onSelect} />);
+    const pill = screen.getByText('부분환불 가능합니다');
+    fireEvent.keyDown(pill, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledWith('부분환불 가능합니다');
+  });
+
+  it('calls onSelect with pill text on Space key', () => {
+    const onSelect = vi.fn();
+    render(<SuggestStrip onSelect={onSelect} />);
+    const pill = screen.getByText('환불 처리 중입니다');
+    fireEvent.keyDown(pill, { key: ' ' });
+    expect(onSelect).toHaveBeenCalledWith('환불 처리 중입니다');
+  });
 });
 
 describe('Queue', () => {
@@ -97,6 +113,22 @@ describe('Queue', () => {
     render(<Queue items={items} onSelect={onSelect} />);
     fireEvent.click(screen.getByText('김민지'));
     expect(onSelect).toHaveBeenCalledWith('c1');
+  });
+
+  it('calls onSelect on Enter key on queue item', () => {
+    const onSelect = vi.fn();
+    render(<Queue items={items} onSelect={onSelect} />);
+    const item = screen.getByText('김민지');
+    fireEvent.keyDown(item, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledWith('c1');
+  });
+
+  it('calls onSelect on Space key on queue item', () => {
+    const onSelect = vi.fn();
+    render(<Queue items={items} onSelect={onSelect} />);
+    const item = screen.getByText('이성민');
+    fireEvent.keyDown(item, { key: ' ' });
+    expect(onSelect).toHaveBeenCalledWith('c2');
   });
 });
 
