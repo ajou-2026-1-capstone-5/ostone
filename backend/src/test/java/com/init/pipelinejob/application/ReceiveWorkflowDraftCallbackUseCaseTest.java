@@ -9,13 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.WorkflowDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
-import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
-import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
-import com.init.domainpack.domain.model.DomainPackVersion;
-import com.init.domainpack.domain.repository.DomainPackRepository;
-import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.WorkflowDraft;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackTargetMismatchException;
 import com.init.pipelinejob.application.exception.WebhookReceiptTypeConflictException;
@@ -51,9 +45,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
   @Mock private PipelineArtifactRepository pipelineArtifactRepository;
-  @Mock private AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase;
-  @Mock private DomainPackVersionRepository domainPackVersionRepository;
-  @Mock private DomainPackRepository domainPackRepository;
+  @Mock private AddWorkflowDraftPort addWorkflowDraftPort;
+  @Mock private DomainPackVersionPort domainPackVersionPort;
   @Mock private PlatformTransactionManager transactionManager;
 
   private ReceiveWorkflowDraftCallbackUseCase useCase;
@@ -70,9 +63,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         new ReceiveWorkflowDraftCallbackUseCase(
             pipelineJobRepository,
             pipelineArtifactRepository,
-            addWorkflowDraftToVersionUseCase,
-            domainPackVersionRepository,
-            domainPackRepository,
+            addWorkflowDraftPort,
+            domainPackVersionPort,
             new ObjectMapper(),
             new PipelineJobCallbackSupportService(
                 pipelineJobRepository,
@@ -95,8 +87,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     givenValidTargetVersion();
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addWorkflowDraftToVersionUseCase.execute(any()))
-        .willReturn(new AddWorkflowDraftToVersionResult(101L, 7L, 1, 1, 1, 1, 1, 1));
+    given(addWorkflowDraftPort.execute(any()))
+        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1));
 
     ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -120,14 +112,12 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         .willReturn(Optional.of(job), Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(domainPackVersionRepository.findById(101L))
-        .willReturn(
-            Optional.of(DomainPackVersion.ofForTest(101L, 8L, DomainPackVersion.STATUS_DRAFT)));
+    given(domainPackVersionPort.findDomainPackIdByVersionId(101L)).willReturn(Optional.of(8L));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PipelineJobCallbackTargetMismatchException.class);
 
-    verify(addWorkflowDraftToVersionUseCase, never()).execute(any());
+    verify(addWorkflowDraftPort, never()).execute(any());
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_FAILED);
   }
@@ -143,7 +133,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
-    verify(addWorkflowDraftToVersionUseCase, never()).execute(any());
+    verify(addWorkflowDraftPort, never()).execute(any());
   }
 
   @Test
@@ -183,11 +173,12 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     givenValidTargetVersion();
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addWorkflowDraftToVersionUseCase.execute(any()))
-        .willThrow(new DomainPackDraftRequestInvalidException("중복된 workflowCode 값이 존재합니다."));
+    given(addWorkflowDraftPort.execute(any()))
+        .willThrow(new RuntimeException("중복된 workflowCode 값이 존재합니다."));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
-        .isInstanceOf(DomainPackDraftRequestInvalidException.class);
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("중복된 workflowCode");
 
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(job.getLastErrorMessage()).contains("중복된 workflowCode");
@@ -247,9 +238,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   }
 
   private void givenValidTargetVersion() {
-    given(domainPackVersionRepository.findById(101L))
-        .willReturn(
-            Optional.of(DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT)));
-    given(domainPackRepository.existsByIdAndWorkspaceId(7L, 3L)).willReturn(true);
+    given(domainPackVersionPort.findDomainPackIdByVersionId(101L)).willReturn(Optional.of(7L));
+    given(domainPackVersionPort.existsByDomainPackIdAndWorkspaceId(7L, 3L)).willReturn(true);
   }
 }

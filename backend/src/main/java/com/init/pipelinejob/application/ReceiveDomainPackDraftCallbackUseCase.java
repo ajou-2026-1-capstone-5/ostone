@@ -3,9 +3,6 @@ package com.init.pipelinejob.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.init.domainpack.application.CreateDomainPackDraftFromPipelineCommand;
-import com.init.domainpack.application.CreateDomainPackDraftFromPipelineResult;
-import com.init.domainpack.application.CreateDomainPackDraftFromPipelineUseCase;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
@@ -27,19 +24,19 @@ public class ReceiveDomainPackDraftCallbackUseCase {
 
   private final PipelineJobRepository pipelineJobRepository;
   private final PipelineArtifactRepository pipelineArtifactRepository;
-  private final CreateDomainPackDraftFromPipelineUseCase createDomainPackDraftFromPipelineUseCase;
+  private final CreateDomainPackDraftPort createDomainPackDraftPort;
   private final ObjectMapper objectMapper;
   private final PipelineJobCallbackSupportService callbackSupportService;
 
   public ReceiveDomainPackDraftCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
       PipelineArtifactRepository pipelineArtifactRepository,
-      CreateDomainPackDraftFromPipelineUseCase createDomainPackDraftFromPipelineUseCase,
+      CreateDomainPackDraftPort createDomainPackDraftPort,
       ObjectMapper objectMapper,
       PipelineJobCallbackSupportService callbackSupportService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.pipelineArtifactRepository = pipelineArtifactRepository;
-    this.createDomainPackDraftFromPipelineUseCase = createDomainPackDraftFromPipelineUseCase;
+    this.createDomainPackDraftPort = createDomainPackDraftPort;
     this.objectMapper = objectMapper;
     this.callbackSupportService = callbackSupportService;
   }
@@ -104,9 +101,9 @@ public class ReceiveDomainPackDraftCallbackUseCase {
         PipelineArtifact.create(
             job.getId(), STAGE_NAME, ARTIFACT_TYPE, null, null, command.requestBodyJson(), now));
 
-    CreateDomainPackDraftFromPipelineResult draftResult =
-        createDomainPackDraftFromPipelineUseCase.execute(
-            new CreateDomainPackDraftFromPipelineCommand(
+    CreateDomainPackDraftPortResult draftResult =
+        createDomainPackDraftPort.execute(
+            new CreateDomainPackDraftPortCommand(
                 job.getWorkspaceId(),
                 command.packKey(),
                 command.packName(),
@@ -128,7 +125,7 @@ public class ReceiveDomainPackDraftCallbackUseCase {
         draftResult.sourcePipelineJobId());
   }
 
-  private String buildIntermediateSummaryJson(CreateDomainPackDraftFromPipelineResult result) {
+  private String buildIntermediateSummaryJson(CreateDomainPackDraftPortResult result) {
     ObjectNode summary = objectMapper.createObjectNode();
     summary.put("domainPackId", result.domainPackId());
     summary.put("domainPackVersionId", result.domainPackVersionId());

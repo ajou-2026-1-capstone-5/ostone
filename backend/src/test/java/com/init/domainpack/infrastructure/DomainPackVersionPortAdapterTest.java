@@ -1,0 +1,75 @@
+package com.init.domainpack.infrastructure;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.repository.DomainPackRepository;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("DomainPackVersionPortAdapter")
+class DomainPackVersionPortAdapterTest {
+
+  @Mock private DomainPackVersionRepository domainPackVersionRepository;
+  @Mock private DomainPackRepository domainPackRepository;
+
+  private DomainPackVersionPortAdapter adapter;
+
+  @BeforeEach
+  void setUp() {
+    adapter = new DomainPackVersionPortAdapter(domainPackVersionRepository, domainPackRepository);
+  }
+
+  @Test
+  @DisplayName("findDomainPackIdByVersionId — 버전이 존재하면 domainPackId를 반환한다")
+  void should_returnDomainPackId_when_versionExists() {
+    DomainPackVersion version = newVersion(101L, 7L);
+    given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
+
+    Optional<Long> result = adapter.findDomainPackIdByVersionId(101L);
+
+    assertThat(result).contains(7L);
+  }
+
+  @Test
+  @DisplayName("findDomainPackIdByVersionId — 버전이 없으면 Optional.empty를 반환한다")
+  void should_returnEmpty_when_versionNotFound() {
+    given(domainPackVersionRepository.findById(999L)).willReturn(Optional.empty());
+
+    Optional<Long> result = adapter.findDomainPackIdByVersionId(999L);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("existsByDomainPackIdAndWorkspaceId — 존재하면 true를 반환한다")
+  void should_returnTrue_when_domainPackExistsInWorkspace() {
+    given(domainPackRepository.existsByIdAndWorkspaceId(7L, 3L)).willReturn(true);
+
+    boolean result = adapter.existsByDomainPackIdAndWorkspaceId(7L, 3L);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  @DisplayName("existsByDomainPackIdAndWorkspaceId — 존재하지 않으면 false를 반환한다")
+  void should_returnFalse_when_domainPackNotInWorkspace() {
+    given(domainPackRepository.existsByIdAndWorkspaceId(7L, 99L)).willReturn(false);
+
+    boolean result = adapter.existsByDomainPackIdAndWorkspaceId(7L, 99L);
+
+    assertThat(result).isFalse();
+  }
+
+  private DomainPackVersion newVersion(Long versionId, Long domainPackId) {
+    return DomainPackVersion.ofForTest(versionId, domainPackId, DomainPackVersion.STATUS_DRAFT);
+  }
+}

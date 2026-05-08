@@ -9,8 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.init.domainpack.application.CreateDomainPackDraftFromPipelineResult;
-import com.init.domainpack.application.CreateDomainPackDraftFromPipelineUseCase;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
@@ -50,7 +48,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
   @Mock private PipelineArtifactRepository pipelineArtifactRepository;
 
-  @Mock private CreateDomainPackDraftFromPipelineUseCase createDomainPackDraftFromPipelineUseCase;
+  @Mock private CreateDomainPackDraftPort createDomainPackDraftPort;
 
   @Mock private PlatformTransactionManager transactionManager;
 
@@ -69,7 +67,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
         new ReceiveDomainPackDraftCallbackUseCase(
             pipelineJobRepository,
             pipelineArtifactRepository,
-            createDomainPackDraftFromPipelineUseCase,
+            createDomainPackDraftPort,
             new ObjectMapper(),
             new PipelineJobCallbackSupportService(
                 pipelineJobRepository,
@@ -89,9 +87,8 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(createDomainPackDraftFromPipelineUseCase.execute(any()))
-        .willReturn(
-            new CreateDomainPackDraftFromPipelineResult(7L, 101L, 3, "refund-pack", true, 11L));
+    given(createDomainPackDraftPort.execute(any()))
+        .willReturn(new CreateDomainPackDraftPortResult(7L, 101L, 3, "refund-pack", true, 11L));
 
     ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -119,7 +116,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
-    verify(createDomainPackDraftFromPipelineUseCase, never()).execute(any());
+    verify(createDomainPackDraftPort, never()).execute(any());
   }
 
   @Test
@@ -132,7 +129,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(WebhookReceiptTypeConflictException.class);
 
-    verify(createDomainPackDraftFromPipelineUseCase, never()).execute(any());
+    verify(createDomainPackDraftPort, never()).execute(any());
   }
 
   @Test
@@ -149,7 +146,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(WebhookReceiptTypeConflictException.class);
 
-    verify(createDomainPackDraftFromPipelineUseCase, never()).execute(any());
+    verify(createDomainPackDraftPort, never()).execute(any());
   }
 
   @Test
@@ -167,7 +164,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
-    verify(createDomainPackDraftFromPipelineUseCase, never()).execute(any());
+    verify(createDomainPackDraftPort, never()).execute(any());
   }
 
   @Test
@@ -181,9 +178,8 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(createDomainPackDraftFromPipelineUseCase.execute(any()))
-        .willReturn(
-            new CreateDomainPackDraftFromPipelineResult(7L, 101L, 3, "refund-pack", true, 11L));
+    given(createDomainPackDraftPort.execute(any()))
+        .willReturn(new CreateDomainPackDraftPortResult(7L, 101L, 3, "refund-pack", true, 11L));
 
     ReceiveDomainPackDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -201,9 +197,8 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(createDomainPackDraftFromPipelineUseCase.execute(any()))
-        .willReturn(
-            new CreateDomainPackDraftFromPipelineResult(7L, 101L, 3, "refund-pack", true, 11L));
+    given(createDomainPackDraftPort.execute(any()))
+        .willReturn(new CreateDomainPackDraftPortResult(7L, 101L, 3, "refund-pack", true, 11L));
     given(pipelineJobRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(PipelineJob.class, 11L));
 

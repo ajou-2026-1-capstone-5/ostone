@@ -3,13 +3,7 @@ package com.init.pipelinejob.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand;
-import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
-import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
-import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
-import com.init.domainpack.domain.model.DomainPackVersion;
-import com.init.domainpack.domain.repository.DomainPackRepository;
-import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.pipelinejob.application.exception.CallbackTargetVersionNotFoundException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackNotAllowedException;
 import com.init.pipelinejob.application.exception.PipelineJobCallbackTargetMismatchException;
@@ -33,25 +27,22 @@ public class ReceiveWorkflowDraftCallbackUseCase {
 
   private final PipelineJobRepository pipelineJobRepository;
   private final PipelineArtifactRepository pipelineArtifactRepository;
-  private final AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase;
-  private final DomainPackVersionRepository domainPackVersionRepository;
-  private final DomainPackRepository domainPackRepository;
+  private final AddWorkflowDraftPort addWorkflowDraftPort;
+  private final DomainPackVersionPort domainPackVersionPort;
   private final ObjectMapper objectMapper;
   private final PipelineJobCallbackSupportService callbackSupportService;
 
   public ReceiveWorkflowDraftCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
       PipelineArtifactRepository pipelineArtifactRepository,
-      AddWorkflowDraftToVersionUseCase addWorkflowDraftToVersionUseCase,
-      DomainPackVersionRepository domainPackVersionRepository,
-      DomainPackRepository domainPackRepository,
+      AddWorkflowDraftPort addWorkflowDraftPort,
+      DomainPackVersionPort domainPackVersionPort,
       ObjectMapper objectMapper,
       PipelineJobCallbackSupportService callbackSupportService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.pipelineArtifactRepository = pipelineArtifactRepository;
-    this.addWorkflowDraftToVersionUseCase = addWorkflowDraftToVersionUseCase;
-    this.domainPackVersionRepository = domainPackVersionRepository;
-    this.domainPackRepository = domainPackRepository;
+    this.addWorkflowDraftPort = addWorkflowDraftPort;
+    this.domainPackVersionPort = domainPackVersionPort;
     this.objectMapper = objectMapper;
     this.callbackSupportService = callbackSupportService;
   }
@@ -109,16 +100,16 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       throw new PipelineJobCallbackNotAllowedException(
           command.jobId(), job.getStatus(), WEBHOOK_TYPE);
     }
-    validateTargetVersion(job, command.domainPackVersionId());
+    Long domainPackId = validateTargetVersion(job, command.domainPackVersionId());
 
     OffsetDateTime now = callbackSupportService.now();
     pipelineArtifactRepository.save(
         PipelineArtifact.create(
             job.getId(), STAGE_NAME, ARTIFACT_TYPE, null, null, command.requestBodyJson(), now));
 
-    AddWorkflowDraftToVersionResult workflowResult =
-        addWorkflowDraftToVersionUseCase.execute(
-            new AddWorkflowDraftToVersionCommand(
+    AddWorkflowDraftPortResult workflowResult =
+        addWorkflowDraftPort.execute(
+            new AddWorkflowDraftPortCommand(
                 command.domainPackVersionId(),
                 command.slots(),
                 command.policies(),
@@ -127,14 +118,17 @@ public class ReceiveWorkflowDraftCallbackUseCase {
                 command.intentSlotBindings(),
                 command.intentWorkflowBindings()));
 
-    job.markSucceeded(workflowResult.domainPackId(), buildSuccessSummaryJson(workflowResult), now);
+    job.markSucceeded(
+        domainPackId,
+        buildSuccessSummaryJson(workflowResult, domainPackId, command.domainPackVersionId()),
+        now);
     callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
     callbackSupportService.markReceiptProcessed(command.externalEventId(), now);
 
     return ReceiveWorkflowDraftCallbackResult.created(
         command.externalEventId(),
-        workflowResult.domainPackId(),
-        workflowResult.domainPackVersionId(),
+        domainPackId,
+        command.domainPackVersionId(),
         workflowResult.addedSlotCount(),
         workflowResult.addedPolicyCount(),
         workflowResult.addedRiskCount(),
@@ -144,26 +138,28 @@ public class ReceiveWorkflowDraftCallbackUseCase {
         command.jobId());
   }
 
-  private void validateTargetVersion(PipelineJob job, Long domainPackVersionId) {
-    DomainPackVersion version =
-        domainPackVersionRepository
-            .findById(domainPackVersionId)
-            .orElseThrow(() -> new DomainPackVersionNotFoundException(domainPackVersionId));
-    if (!Objects.equals(job.getDomainPackId(), version.getDomainPackId())) {
+  private Long validateTargetVersion(PipelineJob job, Long domainPackVersionId) {
+    Long versionDomainPackId =
+        domainPackVersionPort
+            .findDomainPackIdByVersionId(domainPackVersionId)
+            .orElseThrow(() -> new CallbackTargetVersionNotFoundException(domainPackVersionId));
+    if (!Objects.equals(job.getDomainPackId(), versionDomainPackId)) {
       throw new PipelineJobCallbackTargetMismatchException(
-          job.getId(), job.getDomainPackId(), domainPackVersionId, version.getDomainPackId());
+          job.getId(), job.getDomainPackId(), domainPackVersionId, versionDomainPackId);
     }
-    if (!domainPackRepository.existsByIdAndWorkspaceId(
-        version.getDomainPackId(), job.getWorkspaceId())) {
+    if (!domainPackVersionPort.existsByDomainPackIdAndWorkspaceId(
+        versionDomainPackId, job.getWorkspaceId())) {
       throw new PipelineJobCallbackTargetMismatchException(
-          job.getId(), job.getDomainPackId(), domainPackVersionId, version.getDomainPackId());
+          job.getId(), job.getDomainPackId(), domainPackVersionId, versionDomainPackId);
     }
+    return versionDomainPackId;
   }
 
-  private String buildSuccessSummaryJson(AddWorkflowDraftToVersionResult result) {
+  private String buildSuccessSummaryJson(
+      AddWorkflowDraftPortResult result, Long domainPackId, Long domainPackVersionId) {
     ObjectNode summary = objectMapper.createObjectNode();
-    summary.put("domainPackId", result.domainPackId());
-    summary.put("domainPackVersionId", result.domainPackVersionId());
+    summary.put("domainPackId", domainPackId);
+    summary.put("domainPackVersionId", domainPackVersionId);
     summary.put("addedSlotCount", result.addedSlotCount());
     summary.put("addedPolicyCount", result.addedPolicyCount());
     summary.put("addedRiskCount", result.addedRiskCount());

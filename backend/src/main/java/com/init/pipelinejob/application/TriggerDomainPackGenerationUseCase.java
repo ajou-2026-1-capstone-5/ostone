@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.DatasetNotFoundException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
+import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
+import com.init.pipelinejob.application.exception.PipelineJobWorkspaceNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
-import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
-import com.init.workspace.application.exception.WorkspaceNotFoundException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+// NOTE: 선언적 @Transactional 대신 TransactionTemplate을 사용한다.
+// Airflow trigger(외부 호출)와 DB 상태 갱신을 2-phase로 interleave해야 하므로
+// 클래스 레벨 @Transactional(readOnly = true) 컨벤션의 의도적 예외.
 @Service
 public class TriggerDomainPackGenerationUseCase {
 
@@ -117,11 +120,12 @@ public class TriggerDomainPackGenerationUseCase {
 
   private void validateAccess(TriggerDomainPackGenerationCommand command) {
     if (!workspaceMembershipPort.existsById(command.workspaceId())) {
-      throw new WorkspaceNotFoundException("Workspace를 찾을 수 없습니다. id=" + command.workspaceId());
+      throw new PipelineJobWorkspaceNotFoundException(
+          "Workspace를 찾을 수 없습니다. id=" + command.workspaceId());
     }
     if (!workspaceMembershipPort.hasAnyRole(
         command.workspaceId(), command.userId(), ALLOWED_ROLES)) {
-      throw new WorkspaceAccessDeniedException("Domain Pack Generation 실행 권한이 없습니다.");
+      throw new PipelineJobWorkspaceAccessDeniedException("Domain Pack Generation 실행 권한이 없습니다.");
     }
     if (!datasetOwnershipPort.existsByIdAndWorkspaceId(
         command.datasetId(), command.workspaceId())) {

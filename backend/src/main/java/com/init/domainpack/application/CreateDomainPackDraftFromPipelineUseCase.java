@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Airflow 파이프라인 콜백에서 DomainPack(없으면 생성) + DRAFT Version을 생성한다. Intent는 별도 API에서 추가한다. */
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class CreateDomainPackDraftFromPipelineUseCase {
 
   private final DomainPackCommandRepository domainPackCommandRepository;
@@ -23,6 +23,7 @@ public class CreateDomainPackDraftFromPipelineUseCase {
     this.domainPackDraftPersistenceService = domainPackDraftPersistenceService;
   }
 
+  @Transactional
   public CreateDomainPackDraftFromPipelineResult execute(
       CreateDomainPackDraftFromPipelineCommand command) {
     DomainPackResolution resolution = resolveDomainPack(command);

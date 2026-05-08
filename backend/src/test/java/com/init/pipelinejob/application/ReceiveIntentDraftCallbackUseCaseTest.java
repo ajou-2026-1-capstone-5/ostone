@@ -9,9 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.init.domainpack.application.AddIntentsToDraftVersionResult;
-import com.init.domainpack.application.AddIntentsToDraftVersionUseCase;
-import com.init.domainpack.application.IntentDraft;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.pipelinejob.application.exception.AirflowWebhookUnauthorizedException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyFinalizedException;
@@ -50,7 +47,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
 
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
-  @Mock private AddIntentsToDraftVersionUseCase addIntentsToDraftVersionUseCase;
+  @Mock private AddIntentsToDraftVersionPort addIntentsToDraftVersionPort;
   @Mock private PlatformTransactionManager transactionManager;
 
   private ReceiveIntentDraftCallbackUseCase useCase;
@@ -67,7 +64,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     useCase =
         new ReceiveIntentDraftCallbackUseCase(
             pipelineJobRepository,
-            addIntentsToDraftVersionUseCase,
+            addIntentsToDraftVersionPort,
             new ObjectMapper(),
             new PipelineJobCallbackSupportService(
                 pipelineJobRepository,
@@ -87,8 +84,8 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addIntentsToDraftVersionUseCase.execute(any()))
-        .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 2, 0, 5));
+    given(addIntentsToDraftVersionPort.execute(any()))
+        .willReturn(new AddIntentsToDraftVersionPortResult(101L, 7L, 2, 0, 5));
 
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -115,7 +112,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
-    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+    verify(addIntentsToDraftVersionPort, never()).execute(any());
   }
 
   @Test
@@ -127,7 +124,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(WebhookReceiptTypeConflictException.class);
 
-    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+    verify(addIntentsToDraftVersionPort, never()).execute(any());
   }
 
   @Test
@@ -144,7 +141,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(WebhookReceiptTypeConflictException.class);
 
-    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+    verify(addIntentsToDraftVersionPort, never()).execute(any());
   }
 
   @Test
@@ -162,7 +159,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
     assertThat(result.status()).isEqualTo("DUPLICATE_IGNORED");
-    verify(addIntentsToDraftVersionUseCase, never()).execute(any());
+    verify(addIntentsToDraftVersionPort, never()).execute(any());
   }
 
   @Test
@@ -176,8 +173,8 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addIntentsToDraftVersionUseCase.execute(any()))
-        .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 1, 0, 3));
+    given(addIntentsToDraftVersionPort.execute(any()))
+        .willReturn(new AddIntentsToDraftVersionPortResult(101L, 7L, 1, 0, 3));
 
     ReceiveIntentDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -195,8 +192,8 @@ class ReceiveIntentDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addIntentsToDraftVersionUseCase.execute(any()))
-        .willReturn(new AddIntentsToDraftVersionResult(101L, 7L, 2, 0, 5));
+    given(addIntentsToDraftVersionPort.execute(any()))
+        .willReturn(new AddIntentsToDraftVersionPortResult(101L, 7L, 2, 0, 5));
     given(pipelineJobRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(PipelineJob.class, 11L));
 
@@ -274,7 +271,7 @@ class ReceiveIntentDraftCallbackUseCaseTest {
         .willReturn(Optional.of(job), Optional.of(job), Optional.of(job));
     given(webhookReceiptRepository.saveAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(addIntentsToDraftVersionUseCase.execute(any()))
+    given(addIntentsToDraftVersionPort.execute(any()))
         .willThrow(new DomainPackDraftRequestInvalidException("중복된 intentCode 값이 존재합니다."));
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
@@ -291,7 +288,8 @@ class ReceiveIntentDraftCallbackUseCaseTest {
         "secret-123",
         "evt-1",
         101L,
-        List.of(new IntentDraft("refund_request", "환불 요청", null, 1, null, null, null, null, null)),
+        List.of(
+            new IntentDraftInput("refund_request", "환불 요청", null, 1, null, null, null, null, null)),
         "{\"content-type\":\"application/json\"}",
         "{\"domainPackVersionId\":101}");
   }

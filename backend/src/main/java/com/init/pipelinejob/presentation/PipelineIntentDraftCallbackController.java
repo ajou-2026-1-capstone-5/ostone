@@ -1,7 +1,7 @@
 package com.init.pipelinejob.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.init.domainpack.application.IntentDraft;
+import com.init.pipelinejob.application.IntentDraftInput;
 import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackCommand;
 import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackResult;
 import com.init.pipelinejob.application.ReceiveDomainPackDraftCallbackUseCase;
@@ -94,7 +94,7 @@ public class PipelineIntentDraftCallbackController {
                 request.intents().stream()
                     .map(
                         intent ->
-                            new IntentDraft(
+                            new IntentDraftInput(
                                 intent.intentCode(),
                                 intent.name(),
                                 intent.description(),

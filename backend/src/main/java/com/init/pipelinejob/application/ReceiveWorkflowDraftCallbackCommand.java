@@ -1,11 +1,11 @@
 package com.init.pipelinejob.application;
 
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.PolicyDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.RiskDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.SlotDraft;
-import com.init.domainpack.application.AddWorkflowDraftToVersionCommand.WorkflowDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentSlotBindingDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentWorkflowBindingDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.PolicyDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.RiskDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.SlotDraft;
+import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.WorkflowDraft;
 import java.util.List;
 
 public record ReceiveWorkflowDraftCallbackCommand(
