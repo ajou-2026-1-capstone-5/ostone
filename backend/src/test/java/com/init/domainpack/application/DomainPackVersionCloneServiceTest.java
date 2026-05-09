@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.application.exception.DomainPackDraftAlreadyExistsException;
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
+import com.init.domainpack.application.exception.DomainPackVersionCloneFailedException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
@@ -124,6 +125,10 @@ class DomainPackVersionCloneServiceTest {
         .willReturn(List.of(slotBinding));
     given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))
         .willReturn(List.of(workflowBinding));
+    given(intentSlotBindingRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(intentWorkflowBindingRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
 
     DomainPackVersionCloneResult result =
         service.cloneVersion(
@@ -137,17 +142,63 @@ class DomainPackVersionCloneServiceTest {
 
     ArgumentCaptor<Iterable<IntentSlotBinding>> slotBindings =
         ArgumentCaptor.forClass(Iterable.class);
-    verify(intentSlotBindingRepository).saveAll(slotBindings.capture());
+    verify(intentSlotBindingRepository).saveAllAndFlush(slotBindings.capture());
     IntentSlotBinding copiedSlotBinding = slotBindings.getValue().iterator().next();
     assertThat(copiedSlotBinding.getIntentDefinitionId()).isEqualTo(112L);
     assertThat(copiedSlotBinding.getSlotDefinitionId()).isEqualTo(121L);
 
     ArgumentCaptor<Iterable<IntentWorkflowBinding>> workflowBindings =
         ArgumentCaptor.forClass(Iterable.class);
-    verify(intentWorkflowBindingRepository).saveAll(workflowBindings.capture());
+    verify(intentWorkflowBindingRepository).saveAllAndFlush(workflowBindings.capture());
     IntentWorkflowBinding copiedWorkflowBinding = workflowBindings.getValue().iterator().next();
     assertThat(copiedWorkflowBinding.getIntentDefinitionId()).isEqualTo(112L);
     assertThat(copiedWorkflowBinding.getWorkflowDefinitionId()).isEqualTo(151L);
+  }
+
+  @Test
+  @DisplayName("정의 복제 중 DB 오류는 DomainPackVersionCloneFailedException으로 변환한다")
+  void cloneVersion_whenComponentCloneFails_throwsCloneFailed() {
+    DomainPackVersion baseVersion =
+        version(100L, 7L, 2, DomainPackVersion.STATUS_PUBLISHED, "{\"origin\":\"manual\"}");
+    IntentDefinition intent = intent(11L, 100L, "refund", "환불", null);
+
+    given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
+        .willReturn(Optional.of(DomainPack.create(1L, "cs", "CS", null, 10L)));
+    given(
+            versionRepository.existsByDomainPackIdAndLifecycleStatus(
+                7L, DomainPackVersion.STATUS_DRAFT))
+        .willReturn(false);
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(2));
+    given(versionRepository.saveAndFlush(any(DomainPackVersion.class)))
+        .willAnswer(
+            invocation -> {
+              DomainPackVersion draft = invocation.getArgument(0);
+              ReflectionTestUtils.setField(draft, "id", 200L);
+              return draft;
+            });
+    given(intentRepository.findByDomainPackVersionId(100L)).willReturn(List.of(intent));
+    given(slotRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(100L))
+        .willReturn(List.of());
+    given(policyRepository.findAllByDomainPackVersionIdOrderByPolicyCodeAsc(100L))
+        .willReturn(List.of());
+    given(riskRepository.findAllByDomainPackVersionIdOrderByRiskCodeAsc(100L))
+        .willReturn(List.of());
+    given(workflowRepository.findAllByDomainPackVersionId(100L)).willReturn(List.of());
+    given(intentRepository.saveAllAndFlush(any()))
+        .willThrow(new DataIntegrityViolationException("duplicate intent"));
+
+    assertThatThrownBy(
+            () ->
+                service.cloneVersion(
+                    new DomainPackVersionCloneCommand(
+                        1L,
+                        7L,
+                        baseVersion,
+                        10L,
+                        DomainPackDraftSourceType.INTENT_REVISION,
+                        "보정")))
+        .isInstanceOf(DomainPackVersionCloneFailedException.class)
+        .hasCauseInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test

@@ -8,6 +8,7 @@ import com.init.domainpack.application.exception.DomainPackDraftAlreadyExistsExc
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
 import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
+import com.init.domainpack.application.exception.DomainPackVersionCloneFailedException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
@@ -93,7 +94,11 @@ public class DomainPackVersionCloneService {
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
       throw new DomainPackVersionConflictException(command.packId(), ex);
     }
-    cloneComponents(command.baseVersion().getId(), savedDraft.getId());
+    try {
+      cloneComponents(command.baseVersion().getId(), savedDraft.getId());
+    } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
+      throw new DomainPackVersionCloneFailedException(command.packId(), ex);
+    }
 
     return DomainPackVersionCloneResult.from(
         savedDraft, command.sourceType(), command.baseVersion(), command.reason());
@@ -225,7 +230,7 @@ public class DomainPackVersionCloneService {
     if (sourceIntentIds.isEmpty()) {
       return;
     }
-    intentSlotBindingRepository.saveAll(
+    intentSlotBindingRepository.saveAllAndFlush(
         intentSlotBindingRepository.findAllByIntentDefinitionIdIn(sourceIntentIds).stream()
             .map(
                 binding ->
@@ -237,7 +242,7 @@ public class DomainPackVersionCloneService {
                         binding.getPromptHint(),
                         binding.getConditionJson()))
             .toList());
-    intentWorkflowBindingRepository.saveAll(
+    intentWorkflowBindingRepository.saveAllAndFlush(
         intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(sourceIntentIds).stream()
             .map(
                 binding ->
