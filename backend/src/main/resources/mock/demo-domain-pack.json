@@ -142,6 +142,7 @@
       "name": "취소 가능 여부 확인",
       "description": "배송 전 상태인지 확인하여 취소 가능 여부 판단",
       "status": "ACTIVE",
+      "severity": "LOW",
       "conditionJson": {},
       "actionJson": {},
       "evidenceJson": [],
@@ -153,6 +154,7 @@
       "name": "배송지 변경 제한",
       "description": "배송 시작 전까지만 배송지 변경 허용",
       "status": "ACTIVE",
+      "severity": "LOW",
       "conditionJson": {},
       "actionJson": {},
       "evidenceJson": [],
@@ -164,6 +166,7 @@
       "name": "환불 금액 확인",
       "description": "주문 금액에 따른 환불 가능 금액 확인",
       "status": "ACTIVE",
+      "severity": "MEDIUM",
       "conditionJson": {},
       "actionJson": {},
       "evidenceJson": [],
@@ -175,6 +178,7 @@
       "name": "고액 취소 알림",
       "description": "일정 금액 이상 취소 시 관리자 알림",
       "status": "ACTIVE",
+      "severity": "HIGH",
       "conditionJson": {},
       "actionJson": {},
       "evidenceJson": [],
@@ -186,6 +190,7 @@
       "name": "반품 기한 확인",
       "description": "반품 가능 기한 내 요청인지 확인",
       "status": "ACTIVE",
+      "severity": "MEDIUM",
       "conditionJson": {},
       "actionJson": {},
       "evidenceJson": [],
@@ -260,7 +265,8 @@
           {
             "id": "n3",
             "type": "ACTION",
-            "label": "취소 처리"
+            "label": "고액 취소 알림",
+            "policyRef": "high_value_alert"
           },
           {
             "id": "end_cancelled",
