@@ -191,12 +191,7 @@ class DomainPackVersionCloneServiceTest {
             () ->
                 service.cloneVersion(
                     new DomainPackVersionCloneCommand(
-                        1L,
-                        7L,
-                        baseVersion,
-                        10L,
-                        DomainPackDraftSourceType.INTENT_REVISION,
-                        "보정")))
+                        1L, 7L, baseVersion, 10L, DomainPackDraftSourceType.INTENT_REVISION, "보정")))
         .isInstanceOf(DomainPackVersionCloneFailedException.class)
         .hasCauseInstanceOf(DataIntegrityViolationException.class);
   }
