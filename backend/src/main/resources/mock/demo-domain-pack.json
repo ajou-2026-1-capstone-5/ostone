@@ -1,0 +1,443 @@
+{
+  "domainPack": {
+    "id": 100,
+    "workspaceId": 1,
+    "packKey": "cs-demo-ecommerce",
+    "name": "이커머스 고객센터 데모",
+    "description": "이커머스 CS 시나리오 기반 데모용 도메인 팩",
+    "status": "ACTIVE"
+  },
+  "version": {
+    "id": 101,
+    "domainPackId": 100,
+    "versionNo": 1,
+    "lifecycleStatus": "PUBLISHED",
+    "summaryJson": {}
+  },
+  "intents": [
+    {
+      "id": 110,
+      "intentCode": "cancel_order",
+      "name": "주문 취소",
+      "description": "고객이 배송 전 주문을 취소하려는 의도",
+      "taxonomyLevel": 1,
+      "parentIntentId": null,
+      "status": "PUBLISHED",
+      "requiredSlotIds": [120, 121],
+      "workflowIds": [150],
+      "entryConditionJson": {},
+      "sourceClusterRef": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 111,
+      "intentCode": "change_address",
+      "name": "배송지 변경",
+      "description": "고객이 배송 전 주문의 배송지를 변경하려는 의도",
+      "taxonomyLevel": 1,
+      "parentIntentId": null,
+      "status": "PUBLISHED",
+      "requiredSlotIds": [120, 122],
+      "workflowIds": [151],
+      "entryConditionJson": {},
+      "sourceClusterRef": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 112,
+      "intentCode": "check_refund_status",
+      "name": "환불 상태 조회",
+      "description": "고객이 주문 취소 또는 반품 후 환불 진행 상태를 조회하려는 의도",
+      "taxonomyLevel": 1,
+      "parentIntentId": null,
+      "status": "PUBLISHED",
+      "requiredSlotIds": [120],
+      "workflowIds": [152],
+      "entryConditionJson": {},
+      "sourceClusterRef": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    }
+  ],
+  "slots": [
+    {
+      "id": 120,
+      "slotCode": "order_number",
+      "name": "주문번호",
+      "description": "취소 또는 조회 대상 주문의 식별 번호",
+      "dataType": "STRING",
+      "isSensitive": false,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    },
+    {
+      "id": 121,
+      "slotCode": "cancel_reason",
+      "name": "취소 사유",
+      "description": "고객이 주문을 취소하려는 이유",
+      "dataType": "STRING",
+      "isSensitive": false,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    },
+    {
+      "id": 122,
+      "slotCode": "new_address",
+      "name": "새 배송지",
+      "description": "배송지 변경 요청에 적용할 새 주소",
+      "dataType": "ADDRESS",
+      "isSensitive": true,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    },
+    {
+      "id": 123,
+      "slotCode": "refund_amount",
+      "name": "환불 금액",
+      "description": "주문 취소 또는 반품 후 환불될 금액",
+      "dataType": "NUMBER",
+      "isSensitive": false,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    },
+    {
+      "id": 124,
+      "slotCode": "customer_name",
+      "name": "고객명",
+      "description": "상담 대상 고객의 이름",
+      "dataType": "STRING",
+      "isSensitive": false,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    },
+    {
+      "id": 125,
+      "slotCode": "contact_number",
+      "name": "연락처",
+      "description": "고객에게 안내할 때 사용할 연락처",
+      "dataType": "STRING",
+      "isSensitive": true,
+      "status": "ACTIVE",
+      "validationRuleJson": {},
+      "defaultValueJson": null,
+      "metaJson": {}
+    }
+  ],
+  "policies": [
+    {
+      "id": 130,
+      "policyCode": "check_available",
+      "name": "취소 가능 여부 확인",
+      "description": "배송 전 상태인지 확인하여 취소 가능 여부 판단",
+      "status": "ACTIVE",
+      "conditionJson": {},
+      "actionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 131,
+      "policyCode": "address_change_limit",
+      "name": "배송지 변경 제한",
+      "description": "배송 시작 전까지만 배송지 변경 허용",
+      "status": "ACTIVE",
+      "conditionJson": {},
+      "actionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 132,
+      "policyCode": "refund_amount_check",
+      "name": "환불 금액 확인",
+      "description": "주문 금액에 따른 환불 가능 금액 확인",
+      "status": "ACTIVE",
+      "conditionJson": {},
+      "actionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 133,
+      "policyCode": "high_value_alert",
+      "name": "고액 취소 알림",
+      "description": "일정 금액 이상 취소 시 관리자 알림",
+      "status": "ACTIVE",
+      "conditionJson": {},
+      "actionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 134,
+      "policyCode": "return_deadline_check",
+      "name": "반품 기한 확인",
+      "description": "반품 가능 기한 내 요청인지 확인",
+      "status": "ACTIVE",
+      "conditionJson": {},
+      "actionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    }
+  ],
+  "risks": [
+    {
+      "id": 140,
+      "riskCode": "high_value_cancel",
+      "name": "고액 주문 취소",
+      "description": "고액 주문 취소 시 추가 확인 필요",
+      "riskLevel": "HIGH",
+      "status": "ACTIVE",
+      "triggerConditionJson": {},
+      "handlingActionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 141,
+      "riskCode": "address_fraud",
+      "name": "주소 사기 위험",
+      "description": "반복적인 배송지 변경 시 사기 가능성",
+      "riskLevel": "MEDIUM",
+      "status": "ACTIVE",
+      "triggerConditionJson": {},
+      "handlingActionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 142,
+      "riskCode": "refund_delay",
+      "name": "환불 지연",
+      "description": "결제 수단에 따라 환불 지연 가능성",
+      "riskLevel": "LOW",
+      "status": "ACTIVE",
+      "triggerConditionJson": {},
+      "handlingActionJson": {},
+      "evidenceJson": [],
+      "metaJson": {}
+    }
+  ],
+  "workflows": [
+    {
+      "id": 150,
+      "workflowCode": "cancel_order_flow",
+      "name": "주문 취소 처리",
+      "description": "주문 취소 요청을 접수하고 처리하는 워크플로우",
+      "initialState": "start",
+      "terminalStatesJson": ["cancelled", "rejected"],
+      "graphJson": {
+        "direction": "top-to-bottom",
+        "nodes": [
+          {
+            "id": "start",
+            "type": "START",
+            "label": "시작"
+          },
+          {
+            "id": "n1",
+            "type": "ACTION",
+            "label": "주문 확인",
+            "policyRef": "check_available"
+          },
+          {
+            "id": "n2",
+            "type": "DECISION",
+            "label": "취소 가능?"
+          },
+          {
+            "id": "n3",
+            "type": "ACTION",
+            "label": "취소 처리"
+          },
+          {
+            "id": "end_cancelled",
+            "type": "TERMINAL",
+            "label": "취소 완료",
+            "state": "cancelled"
+          },
+          {
+            "id": "end_rejected",
+            "type": "TERMINAL",
+            "label": "취소 불가",
+            "state": "rejected"
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "from": "start",
+            "to": "n1"
+          },
+          {
+            "id": "e2",
+            "from": "n1",
+            "to": "n2"
+          },
+          {
+            "id": "e3",
+            "from": "n2",
+            "to": "n3",
+            "label": "가능"
+          },
+          {
+            "id": "e4",
+            "from": "n2",
+            "to": "end_rejected",
+            "label": "불가능"
+          },
+          {
+            "id": "e5",
+            "from": "n3",
+            "to": "end_cancelled"
+          }
+        ]
+      },
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 151,
+      "workflowCode": "change_address_flow",
+      "name": "배송지 변경",
+      "description": "배송지 변경 요청을 접수하고 처리하는 워크플로우",
+      "initialState": "start",
+      "terminalStatesJson": ["changed", "rejected"],
+      "graphJson": {
+        "direction": "top-to-bottom",
+        "nodes": [
+          {
+            "id": "start",
+            "type": "START",
+            "label": "시작"
+          },
+          {
+            "id": "n1",
+            "type": "ACTION",
+            "label": "주문 상태 확인",
+            "policyRef": "address_change_limit"
+          },
+          {
+            "id": "n2",
+            "type": "DECISION",
+            "label": "변경 가능?"
+          },
+          {
+            "id": "n3",
+            "type": "ACTION",
+            "label": "주소 변경 처리"
+          },
+          {
+            "id": "end_done",
+            "type": "TERMINAL",
+            "label": "변경 완료",
+            "state": "changed"
+          },
+          {
+            "id": "end_rejected",
+            "type": "TERMINAL",
+            "label": "변경 불가",
+            "state": "rejected"
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "from": "start",
+            "to": "n1"
+          },
+          {
+            "id": "e2",
+            "from": "n1",
+            "to": "n2"
+          },
+          {
+            "id": "e3",
+            "from": "n2",
+            "to": "n3",
+            "label": "가능"
+          },
+          {
+            "id": "e4",
+            "from": "n2",
+            "to": "end_rejected",
+            "label": "불가"
+          },
+          {
+            "id": "e5",
+            "from": "n3",
+            "to": "end_done"
+          }
+        ]
+      },
+      "evidenceJson": [],
+      "metaJson": {}
+    },
+    {
+      "id": 152,
+      "workflowCode": "check_refund_status_flow",
+      "name": "환불 상태 조회",
+      "description": "환불 상태 조회 요청을 접수하고 안내하는 워크플로우",
+      "initialState": "start",
+      "terminalStatesJson": ["checked"],
+      "graphJson": {
+        "direction": "top-to-bottom",
+        "nodes": [
+          {
+            "id": "start",
+            "type": "START",
+            "label": "시작"
+          },
+          {
+            "id": "n1",
+            "type": "ACTION",
+            "label": "주문 정보 조회",
+            "policyRef": "refund_amount_check"
+          },
+          {
+            "id": "n2",
+            "type": "ACTION",
+            "label": "정보 제공"
+          },
+          {
+            "id": "end_done",
+            "type": "TERMINAL",
+            "label": "조회 완료",
+            "state": "checked"
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "from": "start",
+            "to": "n1"
+          },
+          {
+            "id": "e2",
+            "from": "n1",
+            "to": "n2"
+          },
+          {
+            "id": "e3",
+            "from": "n2",
+            "to": "end_done"
+          }
+        ]
+      },
+      "evidenceJson": [],
+      "metaJson": {}
+    }
+  ]
+}
