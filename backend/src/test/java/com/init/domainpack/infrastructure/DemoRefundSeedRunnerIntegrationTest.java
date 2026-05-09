@@ -65,6 +65,9 @@ class DemoRefundSeedRunnerIntegrationTest {
 
     @Bean
     WorkflowDefinitionRepository workflowDefinitionRepository() {
+      // Auto-run triggered by @SpringBootTest calls seedIfMissing().
+      // Returning an existing workflow causes seedIfMissing to short-circuit
+      // so the test verifies bean loading without actual persistence.
       WorkflowDefinitionRepository repository = mock(WorkflowDefinitionRepository.class);
       given(repository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(101L))
           .willReturn(List.of(existingWorkflow()));
