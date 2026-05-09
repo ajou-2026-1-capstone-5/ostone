@@ -40,9 +40,13 @@ class RefundChatMappingTest {
     assertThat(meta.path("scenario").asText()).isEqualTo("refund_request");
     assertThat(meta.path("workflowCode").asText()).isEqualTo(WORKFLOW_CODE);
 
-    assertThat(messages).hasSize(5).extracting(ChatMessage::getSeqNo).containsExactly(1, 2, 3, 4, 5);
     assertThat(messages)
-        .zipSatisfy(expectedMessages, (message, expected) -> assertMessageMatches(message, expected));
+        .hasSize(5)
+        .extracting(ChatMessage::getSeqNo)
+        .containsExactly(1, 2, 3, 4, 5);
+    assertThat(messages)
+        .zipSatisfy(
+            expectedMessages, (message, expected) -> assertMessageMatches(message, expected));
   }
 
   @Test
@@ -156,13 +160,7 @@ class RefundChatMappingTest {
     return List.of(
         new ExpectedMessage(1, "USER", "TEXT", "환불 요청합니다", "start", null, null),
         new ExpectedMessage(
-            2,
-            "AGENT",
-            "TEXT",
-            "주문번호와 환불 예상 금액을 확인하겠습니다.",
-            "n1",
-            "e1",
-            "refund_amount_check"),
+            2, "AGENT", "TEXT", "주문번호와 환불 예상 금액을 확인하겠습니다.", "n1", "e1", "refund_amount_check"),
         new ExpectedMessage(
             3,
             "AGENT",
@@ -172,13 +170,7 @@ class RefundChatMappingTest {
             "e3",
             "return_deadline_check"),
         new ExpectedMessage(
-            4,
-            "NOTE",
-            "SYSTEM",
-            "고객명과 연락처 확인 완료. 고액 환불 알림 대상입니다.",
-            "n5",
-            "e6",
-            "high_value_alert"),
+            4, "NOTE", "SYSTEM", "고객명과 연락처 확인 완료. 고액 환불 알림 대상입니다.", "n5", "e6", "high_value_alert"),
         new ExpectedMessage(
             5,
             "AGENT",

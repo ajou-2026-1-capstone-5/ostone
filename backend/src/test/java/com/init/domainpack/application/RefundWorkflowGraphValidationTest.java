@@ -48,14 +48,17 @@ class RefundWorkflowGraphValidationTest {
   @DisplayName("환불 워크플로우 graphJson은 V1-V8 검증을 통과한다")
   void should_validateRefundWorkflowGraph_when_graphJsonMatchesSeedData() {
     assertThatNoException()
-        .isThrownBy(() -> WorkflowGraphValidator.parseAndValidate(REFUND_REQUEST_GRAPH_JSON, WORKFLOW_CODE));
+        .isThrownBy(
+            () ->
+                WorkflowGraphValidator.parseAndValidate(REFUND_REQUEST_GRAPH_JSON, WORKFLOW_CODE));
   }
 
   @Test
   @DisplayName("환불 워크플로우 transitions는 8개 edge의 from/to/label/toPolicyRef를 반환한다")
   void should_returnTransitionDetails_when_graphJsonMatchesSeedData() {
     List<WorkflowTransitionDetail> details =
-        WorkflowTransitionDetail.listFromGraphJson(REFUND_REQUEST_GRAPH_JSON, WORKFLOW_ID, VERSION_ID);
+        WorkflowTransitionDetail.listFromGraphJson(
+            REFUND_REQUEST_GRAPH_JSON, WORKFLOW_ID, VERSION_ID);
 
     assertThat(details)
         .hasSize(8)
@@ -79,9 +82,11 @@ class RefundWorkflowGraphValidationTest {
   @Test
   @DisplayName("invalid node type은 validator가 거부한다")
   void should_rejectGraph_when_nodeTypeIsInvalid() {
-    String invalidGraphJson = REFUND_REQUEST_GRAPH_JSON.replace("\"type\": \"START\"", "\"type\": \"INVALID_TYPE\"");
+    String invalidGraphJson =
+        REFUND_REQUEST_GRAPH_JSON.replace("\"type\": \"START\"", "\"type\": \"INVALID_TYPE\"");
 
-    assertThatThrownBy(() -> WorkflowGraphValidator.parseAndValidate(invalidGraphJson, WORKFLOW_CODE))
+    assertThatThrownBy(
+            () -> WorkflowGraphValidator.parseAndValidate(invalidGraphJson, WORKFLOW_CODE))
         .isInstanceOf(WorkflowInvalidStartNodeException.class);
   }
 
@@ -93,7 +98,8 @@ class RefundWorkflowGraphValidationTest {
             "{\"id\": \"e3\", \"from\": \"n2\", \"to\": \"n3\", \"label\": \"가능\"}",
             "{\"id\": \"e3\", \"from\": \"n2\", \"to\": \"n3\"}");
 
-    assertThatThrownBy(() -> WorkflowGraphValidator.parseAndValidate(invalidGraphJson, WORKFLOW_CODE))
+    assertThatThrownBy(
+            () -> WorkflowGraphValidator.parseAndValidate(invalidGraphJson, WORKFLOW_CODE))
         .isInstanceOf(WorkflowUnlabeledBranchException.class);
   }
 }

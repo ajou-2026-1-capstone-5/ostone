@@ -119,7 +119,8 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
             IntentSlotBinding.create(savedIntent.getId(), 125L, true, 4, null, "{}")));
 
     intentWorkflowBindingRepository.saveAll(
-        List.of(IntentWorkflowBinding.create(savedIntent.getId(), savedWorkflow.getId(), true, "{}")));
+        List.of(
+            IntentWorkflowBinding.create(savedIntent.getId(), savedWorkflow.getId(), true, "{}")));
 
     seedChatMessages(savedWorkflow.getId());
   }
@@ -201,7 +202,8 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
 
   private void validateGraph(String graphJson) {
     try {
-      Class<?> validatorClass = Class.forName("com.init.domainpack.application.WorkflowGraphValidator");
+      Class<?> validatorClass =
+          Class.forName("com.init.domainpack.application.WorkflowGraphValidator");
       Method parseAndValidate =
           validatorClass.getDeclaredMethod("parseAndValidate", String.class, String.class);
       parseAndValidate.setAccessible(true);
