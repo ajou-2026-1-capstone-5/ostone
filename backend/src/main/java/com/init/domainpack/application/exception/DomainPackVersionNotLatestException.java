@@ -2,6 +2,7 @@ package com.init.domainpack.application.exception;
 
 import com.init.shared.application.exception.DuplicateException;
 
+@SuppressWarnings("java:S110")
 public class DomainPackVersionNotLatestException extends DuplicateException {
 
   public DomainPackVersionNotLatestException(Long versionId) {

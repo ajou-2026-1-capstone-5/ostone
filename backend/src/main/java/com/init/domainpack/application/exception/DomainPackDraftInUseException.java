@@ -2,6 +2,7 @@ package com.init.domainpack.application.exception;
 
 import com.init.shared.application.exception.BadRequestException;
 
+@SuppressWarnings("java:S110")
 public class DomainPackDraftInUseException extends BadRequestException {
 
   public DomainPackDraftInUseException(Long versionId) {

@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -280,7 +281,7 @@ public class DomainPackVersionCloneService {
       List<T> sources,
       List<T> copies,
       Function<T, String> codeExtractor,
-      Function<T, Long> idExtractor,
+      ToLongFunction<T> idExtractor,
       String fieldName) {
     Map<String, T> copiesByCode = indexBy(copies, codeExtractor, fieldName);
     Map<Long, Long> idMap = new LinkedHashMap<>();
@@ -289,7 +290,7 @@ public class DomainPackVersionCloneService {
       if (copy == null) {
         throw new DomainPackDraftRequestInvalidException(fieldName + " 복제 매핑에 실패했습니다.");
       }
-      idMap.put(idExtractor.apply(source), idExtractor.apply(copy));
+      idMap.put(idExtractor.applyAsLong(source), idExtractor.applyAsLong(copy));
     }
     return idMap;
   }

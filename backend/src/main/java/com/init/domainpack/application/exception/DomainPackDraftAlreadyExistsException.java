@@ -2,6 +2,7 @@ package com.init.domainpack.application.exception;
 
 import com.init.shared.application.exception.DuplicateException;
 
+@SuppressWarnings("java:S110")
 public class DomainPackDraftAlreadyExistsException extends DuplicateException {
 
   public DomainPackDraftAlreadyExistsException(Long packId) {

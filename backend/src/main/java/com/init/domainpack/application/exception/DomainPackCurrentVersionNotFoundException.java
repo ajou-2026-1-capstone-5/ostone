@@ -2,6 +2,7 @@ package com.init.domainpack.application.exception;
 
 import com.init.shared.application.exception.NotFoundException;
 
+@SuppressWarnings("java:S110")
 public class DomainPackCurrentVersionNotFoundException extends NotFoundException {
 
   public DomainPackCurrentVersionNotFoundException(Long packId) {
