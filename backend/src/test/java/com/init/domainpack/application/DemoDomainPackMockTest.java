@@ -48,8 +48,8 @@ class DemoDomainPackMockTest {
           "refund_delay", "refund_amount_check");
 
   @Test
-  @DisplayName("데모 도메인 팩 JSON을 파싱할 수 있다")
-  void should_parseJsonSuccessfully() throws Exception {
+  @DisplayName("JSON 파싱 성공")
+  void should_JSON파싱성공_when_리소스읽기() throws Exception {
     JsonNode root = loadRoot();
 
     assertThat(root).isNotNull();
@@ -57,8 +57,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("최상위 필드가 계약과 일치한다")
-  void should_haveTopLevelFields() throws Exception {
+  @DisplayName("최상위 필드 일치")
+  void should_최상위필드일치_when_JSON파싱() throws Exception {
     JsonNode root = loadRoot();
 
     assertThat(fieldNames(root)).containsExactlyInAnyOrderElementsOf(TOP_LEVEL_FIELDS);
@@ -68,8 +68,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("엔티티 컬렉션이 비어 있지 않고 기대 개수와 일치한다")
-  void should_haveNonEmptyCollections() throws Exception {
+  @DisplayName("컬렉션이 비어 있지 않음")
+  void should_컬렉션이비어있지않음_when_JSON파싱() throws Exception {
     JsonNode root = loadRoot();
 
     assertArraySize(root, "intents", 3);
@@ -80,8 +80,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("엔티티 ID가 타입별로 유일하고 타입 간에도 충돌하지 않는다")
-  void should_haveUniqueIds() throws Exception {
+  @DisplayName("모든 엔티티 ID 유일")
+  void should_ID가유일함_when_모든엔티티검사() throws Exception {
     JsonNode root = loadRoot();
     List<Long> allIds = new ArrayList<>();
 
@@ -97,8 +97,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("엔티티 코드가 타입별로 유일하다")
-  void should_haveUniqueCodes() throws Exception {
+  @DisplayName("모든 엔티티 코드 유일")
+  void should_코드가유일함_when_모든엔티티검사() throws Exception {
     JsonNode root = loadRoot();
 
     CODE_FIELDS.forEach(
@@ -110,8 +110,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("엔티티 간 참조가 존재하는 대상만 가리킨다")
-  void should_haveValidCrossReferences() throws Exception {
+  @DisplayName("엔티티 간 참조 무결성")
+  void should_참조무결성성립_when_엔티티간참조검사() throws Exception {
     JsonNode root = loadRoot();
     Set<Long> slotIds = collectLongValuesAsSet(root.path("slots"), "id");
     Set<Long> workflowIds = collectLongValuesAsSet(root.path("workflows"), "id");
@@ -138,8 +138,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("워크플로우 그래프 구조가 유효하다")
-  void should_haveValidWorkflowGraphs() throws Exception {
+  @DisplayName("워크플로우 그래프 일관성")
+  void should_워크플로우그래프일관_when_그래프검증() throws Exception {
     JsonNode root = loadRoot();
     Set<String> policyCodes = collectTextValuesAsSet(root.path("policies"), "policyCode");
 
@@ -149,8 +149,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("의도 상태는 폐기된 ACTIVE를 사용하지 않고 허용된 상태만 사용한다")
-  void should_notUseForbiddenIntentStatus() throws Exception {
+  @DisplayName("금지된 intent status 미사용")
+  void should_금지된상태미사용_when_intent상태검사() throws Exception {
     JsonNode root = loadRoot();
     Set<String> allowedStatuses = Set.of("DRAFT", "PUBLISHED", "REJECTED");
 
@@ -165,8 +165,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("버전이 같은 도메인 팩을 참조한다")
-  void should_haveConsistentVersionReference() throws Exception {
+  @DisplayName("버전 참조 일관성")
+  void should_버전참조일관_when_버전필드검사() throws Exception {
     JsonNode root = loadRoot();
 
     assertThat(root.path("version").path("domainPackId").asLong())
@@ -174,8 +174,8 @@ class DemoDomainPackMockTest {
   }
 
   @Test
-  @DisplayName("데모 데이터 ID는 결정적인 100번대 범위를 사용한다")
-  void should_haveDeterministicIds() throws Exception {
+  @DisplayName("결정론적 ID 범위")
+  void should_결정론적ID범위_when_ID검사() throws Exception {
     JsonNode root = loadRoot();
     List<Long> allIds = new ArrayList<>();
 
