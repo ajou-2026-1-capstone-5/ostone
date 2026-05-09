@@ -1,22 +1,10 @@
-export interface IntentSummary {
-  id: number;
-  intentCode: string;
-  name: string;
-  description: string | null;
-  taxonomyLevel: number;
-  parentIntentId: number | null;
-  status: string;
-  sourceClusterRef: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  IntentDefinitionDetail as IntentDetail,
+  IntentDefinitionSummary as IntentSummary,
+} from "@/shared/api/generated/zod";
 
-export interface IntentDetail extends IntentSummary {
-  entryConditionJson: string;
-  evidenceJson: string;
-  metaJson: string;
-}
+import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
 
-export interface IntentTreeNode extends IntentSummary {
+export interface IntentTreeNode extends IntentDefinitionSummary {
   children: IntentTreeNode[];
 }

@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { policyApi, policyKeys } from "@/entities/policy";
+import { useGetPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import { mapApiError } from "./mapApiError";
 import type { PolicyDefinition } from "@/entities/policy";
 
@@ -17,20 +16,8 @@ export function usePolicyDetail(
   policyId: number | null,
   retryKey = 0,
 ): PolicyDetailState {
-  const queryKey =
-    policyId === null
-      ? [...policyKeys.all, "detail", workspaceId, packId, versionId, "idle"] as const
-      : policyKeys.detail(workspaceId, packId, versionId, policyId);
-
-  const query = useQuery({
-    queryKey,
-    queryFn: () => {
-      if (policyId === null) {
-        throw new Error("policyId is required");
-      }
-      return policyApi.detail(workspaceId, packId, versionId, policyId);
-    },
-    enabled: policyId !== null,
+  const query = useGetPolicy(workspaceId, packId, versionId, policyId ?? -1, {
+    query: { enabled: policyId !== null },
   });
 
   const { refetch } = query;
@@ -57,5 +44,5 @@ export function usePolicyDetail(
     return { status: "loading" };
   }
 
-  return { status: "ready", data: query.data };
+  return { status: "ready", data: query.data.data as unknown as PolicyDefinition };
 }

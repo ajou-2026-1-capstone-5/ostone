@@ -116,21 +116,21 @@ export function RiskDetailPanel({
 
   const detail = state.data;
   const infoFields: RiskInfoField[] = [
-    { label: "Risk Code", value: detail.riskCode },
-    { label: "Risk Level", value: detail.riskLevel },
+    { label: "Risk Code", value: <span>{detail.riskCode}</span> },
+    { label: "Risk Level", value: <span>{detail.riskLevel}</span> },
     { label: "Status", value: <StatusBadge status={detail.status} /> },
-    { label: "Version Id", value: detail.domainPackVersionId },
-    { label: "Created At", value: formatDate(detail.createdAt) },
-    { label: "Updated At", value: formatDate(detail.updatedAt) },
+    { label: "Version Id", value: <span>{detail.domainPackVersionId}</span> },
+    { label: "Created At", value: formatDate(detail.createdAt ?? "") },
+    { label: "Updated At", value: formatDate(detail.updatedAt ?? "") },
   ];
 
   return (
     <section className={styles.panel} aria-label="위험요소 상세">
-      <DetailHeader detail={detail} onEdit={() => onEdit(detail.id)} />
+      <DetailHeader detail={detail} onEdit={() => onEdit(detail.id!)} />
       <div className={styles.body}>
         <InfoGrid fields={infoFields} />
         {RISK_JSON_FIELDS.map(([label, key]) => (
-          <JsonCard key={key} label={label} value={detail[key]} />
+          <JsonCard key={key} label={label} value={detail[key] ?? ""} />
         ))}
       </div>
     </section>
@@ -147,7 +147,7 @@ function DetailHeader({
         <span className={styles.code}>{detail.riskCode}</span>
         <span className={styles.name}>{detail.name}</span>
         {detail.description && <span className={styles.description}>{detail.description}</span>}
-        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt)}</span>
+        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
       <button
         type="button"
@@ -184,7 +184,7 @@ function JsonCard({
       <div className={styles.cardHeader}>{label}</div>
       <div className={styles.cardBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay(value)}</code>
+          <code>{formatJsonForDisplay((value ?? "") as string)}</code>
         </pre>
       </div>
     </article>
@@ -194,7 +194,7 @@ function JsonCard({
 function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>) {
   const statusClassName = status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive;
 
-  return <span className={`${styles.badge} ${statusClassName}`}>{STATUS_LABELS[status]}</span>;
+  return <span className={`${styles.badge} ${statusClassName}`}>{STATUS_LABELS[status as keyof typeof STATUS_LABELS]}</span>;
 }
 
 function formatJsonForDisplay(raw: string): string {

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
-import { mapWorkspaceActionError, workspaceApi, type WorkspaceResponse } from "@/entities/workspace";
+import { mapWorkspaceActionError, type WorkspaceResponse } from "@/entities/workspace";
+import { useArchiveWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { Button } from "@/shared/ui/button";
 import {
   AlertDialog,
@@ -27,6 +28,7 @@ export function ArchiveConfirmDialog({
   onSuccess,
 }: ArchiveConfirmDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const archiveWorkspace = useArchiveWorkspace();
 
   if (!workspace) {
     return null;
@@ -38,20 +40,25 @@ export function ArchiveConfirmDialog({
     }
 
     setIsSubmitting(true);
-    try {
-      await workspaceApi.archive(workspace.id);
-      toast.success("워크스페이스를 삭제했습니다.");
-      onOpenChange(false);
-      try {
-        await onSuccess();
-      } catch {
-        toast.warning("목록 갱신에 실패했습니다. 화면을 새로고침해 주세요.");
-      }
-    } catch (error) {
-      toast.error(mapWorkspaceActionError(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+    archiveWorkspace.mutate(
+      { id: workspace.id! },
+      {
+        onSuccess: () => {
+          toast.success("워크스페이스를 삭제했습니다.");
+          onOpenChange(false);
+          void Promise.resolve(onSuccess())
+            .catch(() => {
+              toast.warning("목록 갱신에 실패했습니다. 화면을 새로고침해 주세요.");
+            });
+        },
+        onError: (error) => {
+          toast.error(mapWorkspaceActionError(error));
+        },
+        onSettled: () => {
+          setIsSubmitting(false);
+        },
+      },
+    );
   };
 
   return (
@@ -67,7 +74,7 @@ export function ArchiveConfirmDialog({
         </div>
         <div className={styles.warningPanel}>
           <p className={styles.warningPanelText}>
-            <strong>{workspace.name}</strong>은(는) 목록에서 즉시 숨겨지고, 이후 운영 화면에서 다시
+            <strong>{workspace.name ?? ""}</strong>은(는) 목록에서 즉시 숨겨지고, 이후 운영 화면에서 다시
             접근하기 어려울 수 있습니다.
           </p>
         </div>

@@ -1,0 +1,128 @@
+.trigger {
+  min-height: 28px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.12s ease;
+}
+
+.trigger:hover,
+.triggerActive {
+  background: var(--paper-2);
+}
+
+.triggerLabel {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+
+.dropdownContent {
+  min-width: 240px;
+  padding: 0;
+}
+
+.workspaceItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.workspaceName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.workspaceItemRight {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-shrink: 0;
+}
+
+.currentBadge {
+  width: 14px;
+  height: 14px;
+  color: var(--signal);
+  flex-shrink: 0;
+}
+
+.actionButton {
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--r-1);
+  color: var(--ink-3);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.workspaceItem:hover .actionButton {
+  opacity: 1;
+}
+
+.actionButton:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.actionButton :global(.lucide-chevron-right) {
+  display: none;
+}
+
+.workspaceItemArchived {
+  opacity: 0.55;
+  font-size: 13px;
+}
+
+.archivedLabel {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-3);
+  padding: var(--s-1) var(--s-2);
+}
+
+.createItem {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.createIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}

@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import {
   mapWorkspaceActionError,
   validateUpdateWorkspaceForm,
-  workspaceApi,
   type WorkspaceFieldErrors,
   type WorkspaceResponse,
 } from "@/entities/workspace";
+import { useUpdateWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -40,10 +40,11 @@ export function EditWorkspaceDialog({
   const [name, setName] = useState("");
   const [fieldErrors, setFieldErrors] = useState<WorkspaceFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const updateWorkspace = useUpdateWorkspace();
 
   useEffect(() => {
     if (workspace && open) {
-      setName(workspace.name);
+      setName(workspace.name ?? "");
       setFieldErrors({});
       setIsSubmitting(false);
     }
@@ -65,25 +66,27 @@ export function EditWorkspaceDialog({
 
     setIsSubmitting(true);
 
-    try {
-      await workspaceApi.update(workspace.id, {
-        name: name.trim(),
-      });
-      await onSuccess();
-      toast.success("워크스페이스를 수정했습니다.");
-      onOpenChange(false);
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        if (error.code === "WORKSPACE_INVALID_NAME") {
-          setFieldErrors({ name: error.message });
-          return;
-        }
-      }
-
-      toast.error(mapWorkspaceActionError(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+    updateWorkspace.mutate(
+      { id: workspace.id!, data: { name: name.trim() } },
+      {
+        onSuccess: () => {
+          onSuccess();
+          toast.success("워크스페이스를 수정했습니다.");
+          onOpenChange(false);
+        },
+        onError: (error) => {
+          if (error instanceof ApiRequestError) {
+            if (error.code === "WORKSPACE_INVALID_NAME") {
+              setFieldErrors({ name: error.message });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+          toast.error(mapWorkspaceActionError(error));
+          setIsSubmitting(false);
+        },
+      },
+    );
   };
 
   return (

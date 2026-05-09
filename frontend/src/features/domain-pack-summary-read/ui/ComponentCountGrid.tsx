@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -19,6 +20,7 @@ interface ComponentCountGridProps {
   policyCount: number;
   riskCount: number;
   workflowCount: number;
+  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => ReactNode;
 }
 
 export function ComponentCountGrid({
@@ -30,8 +32,10 @@ export function ComponentCountGrid({
   policyCount,
   riskCount,
   workflowCount,
+  renderSlotEditSheet,
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
+  const [slotEditOpen, setSlotEditOpen] = useState(false);
   const basePath = `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}`;
 
   const intentPreview = useIntentPreview(wsId, packId, versionId);
@@ -60,38 +64,42 @@ export function ComponentCountGrid({
     if (workflowPreview.isError) toast.error('Workflow 미리보기 로드 실패');
   }, [workflowPreview.isError]);
 
+  const firstSlotId = slotPreview.data?.[0]?.id;
+
   return (
-    <div className={styles.grid}>
+    <>
+      <div className={styles.grid}>
       <CountCard
         label="Intent"
         count={intentCount}
-        disabled
-        tooltip="상세 화면 준비 중"
-        previewNames={intentPreview.data?.map((i) => i.name)}
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/intents`)}
+        previewNames={intentPreview.data?.map((i) => i.name) as string[]}
         isLoadingPreview={intentPreview.isLoading}
       />
       <CountCard
         label="Slot"
         count={slotCount}
-        disabled
-        tooltip="상세 화면 준비 중"
-        previewNames={slotPreview.data?.map((s) => s.name)}
+        disabled={firstSlotId === undefined}
+        tooltip="수정할 Slot이 없습니다"
+        onNavigate={() => setSlotEditOpen(true)}
+        previewNames={slotPreview.data?.map((s) => s.name) as string[]}
         isLoadingPreview={slotPreview.isLoading}
       />
       <CountCard
         label="Policy"
         count={policyCount}
-        disabled
-        tooltip="상세 화면 준비 중"
-        previewNames={policyPreview.data?.map((p) => p.name)}
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/policies`)}
+        previewNames={policyPreview.data?.map((p) => p.name) as string[]}
         isLoadingPreview={policyPreview.isLoading}
       />
       <CountCard
         label="Risk"
         count={riskCount}
-        disabled
-        tooltip="상세 화면 준비 중"
-        previewNames={riskPreview.data?.map((r) => r.name)}
+        disabled={false}
+        onNavigate={() => navigate(`${basePath}/risks`)}
+        previewNames={riskPreview.data?.map((r) => r.name) as string[]}
         isLoadingPreview={riskPreview.isLoading}
       />
       <CountCard
@@ -99,11 +107,14 @@ export function ComponentCountGrid({
         count={workflowCount}
         disabled={false}
         onNavigate={() => navigate(`${basePath}/workflows`)}
-        previewItems={workflowPreview.data?.map((w) => ({ id: w.id, name: w.name }))}
+        previewItems={workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as { id: number; name: string }[]}
         isLoadingPreview={workflowPreview.isLoading}
         onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
       />
-    </div>
+      </div>
+      {firstSlotId !== undefined &&
+        renderSlotEditSheet?.(firstSlotId, slotEditOpen, () => setSlotEditOpen(false))}
+    </>
   );
 }
 

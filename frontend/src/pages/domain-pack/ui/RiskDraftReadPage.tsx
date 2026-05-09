@@ -1,9 +1,9 @@
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RiskDetailPanel, RiskListPanel } from "@/features/risk-draft-read/ui";
 import { RiskEditPanel } from "@/features/update-risk";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./risk-draft-read-page.module.css";
 
 interface EditingRiskState {
@@ -25,11 +25,11 @@ export function RiskDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || hasInvalidRiskId) {
     return (
-      <DashboardLayout>
+      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
@@ -39,28 +39,14 @@ export function RiskDraftReadPage() {
     editingRisk?.routeKey === routeKey && editingRisk.riskId === selectedRiskId
       ? editingRisk.riskId
       : null;
-  const breadcrumbs = [
-    ["WS", wsId],
-    ["PACK", pId],
-    ["VER", vId],
-  ] as const;
 
   return (
-    <DashboardLayout>
+    <OstoneShell
+      active="domain"
+      crumbs={[`WS · ${wsId}`, `PACK · ${pId}`, `VER · ${vId}`]}
+    >
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
-          <nav className={styles.breadcrumb} aria-label="경로">
-            {breadcrumbs.map(([label, value], index) => (
-              <Fragment key={label}>
-                <span>
-                  {label} · {value}
-                </span>
-                {index < breadcrumbs.length - 1 && (
-                  <span className={styles.breadcrumbSeparator}>/</span>
-                )}
-              </Fragment>
-            ))}
-          </nav>
           <div className={styles.versionMeta}>
             <span className={styles.versionTitle}>Risk Factor 초안 편집</span>
             <span className={styles.versionBadge}>READ / EDIT</span>
@@ -112,6 +98,6 @@ export function RiskDraftReadPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </OstoneShell>
   );
 }

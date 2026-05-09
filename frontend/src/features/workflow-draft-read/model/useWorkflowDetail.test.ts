@@ -12,6 +12,12 @@ vi.mock("../api/workflowApi", () => ({
   },
 }));
 
+vi.mock("@/entities/workflow", () => ({
+  workflowQueryKeys: {
+    detail: (...args: number[]) => ["workflows", "detail", ...args],
+  },
+}));
+
 import { workflowApi } from "../api/workflowApi";
 
 const mockedDetail = vi.mocked(workflowApi.detail);
@@ -62,7 +68,7 @@ describe("useWorkflowDetail", () => {
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedDetail.mockResolvedValue(stubDetail);
+    mockedDetail.mockResolvedValue(stubDetail as any);
     const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10), {
       wrapper: makeWrapper(),
     });

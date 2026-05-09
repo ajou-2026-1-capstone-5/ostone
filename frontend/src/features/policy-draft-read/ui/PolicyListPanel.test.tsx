@@ -49,7 +49,7 @@ describe("PolicyListPanel", () => {
   });
 
   it("ready 상태에서는 목록을 렌더링하고 선택 이벤트를 전달한다", () => {
-    mockedUsePolicyList.mockReturnValue({ status: "ready", data: [stubPolicy] });
+    mockedUsePolicyList.mockReturnValue({ status: "ready", data: [stubPolicy as any] });
     const { onSelect } = renderPanel();
 
     fireEvent.click(screen.getByRole("button", { name: /POL_REFUND/ }));

@@ -4,6 +4,7 @@ import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.repository.DomainPackDraftEntryRow;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface JpaDomainPackRepository
-    extends JpaRepository<DomainPackRef, Long>, DomainPackRepository {
+    extends JpaRepository<DomainPack, Long>, DomainPackRepository {
 
   boolean existsByIdAndWorkspaceId(Long id, Long workspaceId);
 
@@ -25,6 +26,12 @@ public interface JpaDomainPackRepository
   @Query("SELECT p FROM DomainPack p WHERE p.id = :packId AND p.workspaceId = :workspaceId")
   Optional<DomainPack> findByIdAndWorkspaceIdForUpdate(
       @Param("packId") Long packId, @Param("workspaceId") Long workspaceId);
+
+  List<DomainPack> findByWorkspaceIdOrderByCreatedAtDesc(Long workspaceId);
+
+  default List<DomainPack> findByWorkspaceId(Long workspaceId) {
+    return findByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+  }
 
   @Query(
       value =

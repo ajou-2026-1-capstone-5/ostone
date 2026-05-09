@@ -93,16 +93,16 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
           />
           <InfoCard
             label="Created At"
-            value={<span className={styles.value}>{formatDate(state.data.createdAt)}</span>}
+            value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
           <InfoCard
             label="Updated At"
-            value={<span className={styles.value}>{formatDate(state.data.updatedAt)}</span>}
+            value={<span className={styles.value}>{formatDate(state.data.updatedAt ?? "")}</span>}
           />
         </div>
-        <JsonCard label="Validation Rule" value={state.data.validationRuleJson} />
-        <JsonCard label="Default Value" value={state.data.defaultValueJson} />
-        <JsonCard label="Meta" value={state.data.metaJson} />
+        <JsonCard label="Validation Rule" value={state.data.validationRuleJson ?? ""} />
+        <JsonCard label="Default Value" value={(state.data.defaultValueJson ?? "") || null} />
+        <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
       </div>
     </section>
   );
@@ -116,7 +116,7 @@ function DetailHeader({ detail }: { detail: SlotDefinition }) {
       {detail.description && (
         <span className={styles.description}>{detail.description}</span>
       )}
-      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt)}</span>
+      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
     </header>
   );
 }

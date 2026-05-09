@@ -55,7 +55,7 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
       { wsId, packId, payload },
       {
         onSuccess: (data) => {
-          onSuccess(data.versionId);
+          onSuccess(data.versionId!);
         },
         onError: (error: unknown) => {
           if (error instanceof ApiRequestError) {

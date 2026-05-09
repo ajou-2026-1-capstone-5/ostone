@@ -1,6 +1,9 @@
 import type { UseQueryResult } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { DomainPackVersionDetail } from '@/entities/domain-pack';
 import { ApiRequestError } from '@/shared/api';
+import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
+import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
 import { SummaryJsonCard } from './SummaryJsonCard';
 import { ComponentCountGrid } from './ComponentCountGrid';
 import styles from './SummaryDetailPanel.module.css';
@@ -9,9 +12,24 @@ interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
   wsId: number;
   packId: number;
+  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
-export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelProps) {
+export function SummaryDetailPanel({ query, wsId, packId, renderSlotEditSheet }: SummaryDetailPanelProps) {
+  const activateMutation = useActivate(
+    {
+      mutation: {
+        onSuccess: () => {
+          toast.success('버전이 활성화되었습니다.');
+          query.refetch();
+        },
+        onError: () => {
+          toast.error('버전 활성화에 실패했습니다.');
+        },
+      },
+    },
+  );
+
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
     return (
       <div className={styles.panel}>
@@ -36,14 +54,10 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
     const is404 = query.error instanceof ApiRequestError && query.error.status === 404;
     return (
       <div className={styles.panel}>
-        <div className={styles.error} role="alert">
-          <span>{is404 ? '버전을 찾을 수 없습니다.' : '버전 상세 정보를 불러오지 못했습니다.'}</span>
-          {!is404 && (
-            <button type="button" className={styles.errorRetryBtn} onClick={() => query.refetch()}>
-              다시 시도
-            </button>
-          )}
-        </div>
+        <ErrorState
+          message={is404 ? '버전을 찾을 수 없습니다.' : '버전 정보를 불러오지 못했습니다.'}
+          onRetry={!is404 ? () => query.refetch() : undefined}
+        />
       </div>
     );
   }
@@ -66,7 +80,7 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
         </div>
         <div className={styles.metaGrid}>
           <span className={styles.metaKey}>생성</span>
-          <span className={styles.metaValue}>{formatDate(v.createdAt)}</span>
+          <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
           {v.sourcePipelineJobId !== null && (
             <>
               <span className={styles.metaKey}>Pipeline Job</span>
@@ -74,11 +88,23 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
             </>
           )}
         </div>
+        {v.lifecycleStatus === 'DRAFT' && (
+          <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className={styles.errorRetryBtn}
+              onClick={() => activateMutation.mutate({ workspaceId: wsId, packId, versionId: v.versionId! })}
+              disabled={activateMutation.isPending}
+            >
+              활성화
+            </button>
+          </div>
+        )}
       </div>
 
       <div>
         <div className={styles.sectionTitle}>Summary JSON</div>
-        <SummaryJsonCard summaryJson={v.summaryJson} />
+        <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
       </div>
 
       <div>
@@ -86,12 +112,13 @@ export function SummaryDetailPanel({ query, wsId, packId }: SummaryDetailPanelPr
         <ComponentCountGrid
           wsId={wsId}
           packId={packId}
-          versionId={v.versionId}
-          intentCount={v.intentCount}
-          slotCount={v.slotCount}
-          policyCount={v.policyCount}
-          riskCount={v.riskCount}
-          workflowCount={v.workflowCount}
+          versionId={v.versionId!}
+          intentCount={v.intentCount!}
+          slotCount={v.slotCount!}
+          policyCount={v.policyCount!}
+          riskCount={v.riskCount!}
+          workflowCount={v.workflowCount!}
+          renderSlotEditSheet={renderSlotEditSheet}
         />
       </div>
     </div>

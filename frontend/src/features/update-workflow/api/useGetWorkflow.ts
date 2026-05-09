@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { workflowQueryKeys, fetchWorkflow } from "@/entities/workflow";
+import { getWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
 export function useGetWorkflow(
   wsId: number,
@@ -9,8 +9,11 @@ export function useGetWorkflow(
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId),
-    queryFn: () => fetchWorkflow(wsId, packId, versionId, workflowId),
+    queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
+    queryFn: async () => {
+      const res = await getWorkflow(wsId, packId, versionId, workflowId);
+      return res.data;
+    },
     enabled,
   });
 }

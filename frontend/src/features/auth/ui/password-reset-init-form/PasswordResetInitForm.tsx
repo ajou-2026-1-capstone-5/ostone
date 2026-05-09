@@ -18,8 +18,8 @@ export const PasswordResetInitForm: React.FC = () => {
       setError(null);
       setSuccessMessage(null);
 
-      const response = await passwordResetInitApi(email);
-      setSuccessMessage(response.message);
+      const response = await passwordResetInitApi(email ?? "");
+      setSuccessMessage(response.message ?? "");
     } catch (err: any) {
       setError(err.message || '요청 처리 중 오류가 발생했습니다.');
     } finally {

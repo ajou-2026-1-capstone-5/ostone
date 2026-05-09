@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { riskApi, riskKeys } from "@/entities/risk";
-import type { RiskSummary, UpdateRiskRequest } from "@/entities/risk";
+import { updateRisk } from "@/shared/api/generated/endpoints/update-risk-controller/update-risk-controller";
+import type { RiskDefinitionSummary, UpdateRiskRequest } from "@/shared/api/generated/zod";
 import { ApiRequestError } from "@/shared/api";
 import { RISK_ERROR_MESSAGES } from "./messages";
 
@@ -17,12 +17,14 @@ export function useUpdateRisk() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ workspaceId, packId, versionId, riskId, body }: UpdateRiskParams) =>
-      riskApi.update(workspaceId, packId, versionId, riskId, body),
+    mutationFn: async ({ workspaceId, packId, versionId, riskId, body }: UpdateRiskParams) => {
+      const res = await updateRisk(workspaceId, packId, versionId, riskId, body);
+      return res.data;
+    },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      queryClient.setQueryData(riskKeys.detail(workspaceId, packId, versionId, riskId), updatedRisk);
-      queryClient.setQueryData<RiskSummary[]>(
-        riskKeys.list(workspaceId, packId, versionId),
+      queryClient.setQueryData(["risk", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
+      queryClient.setQueryData<RiskDefinitionSummary[]>(
+        ["risk", "list", workspaceId, packId, versionId] as const,
         (old) =>
           old?.map((item) =>
             item.id === riskId

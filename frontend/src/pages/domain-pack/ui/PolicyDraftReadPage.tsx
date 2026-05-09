@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
 import { PolicyEditPanel } from "@/features/update-policy";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./policy-draft-read-page.module.css";
 
 export function PolicyDraftReadPage() {
@@ -23,11 +23,11 @@ export function PolicyDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
-      <DashboardLayout>
+      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
@@ -44,16 +44,12 @@ export function PolicyDraftReadPage() {
   const hasSelection = selectedPolicyId !== null;
 
   return (
-    <DashboardLayout>
+    <OstoneShell
+      active="domain"
+      crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}
+    >
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
-          <nav className={styles.breadcrumb} aria-label="경로">
-            <span>WS · {wsId}</span>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <span>PACK · {pId}</span>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <span>VER · {vId}</span>
-          </nav>
           <div className={styles.versionMeta}>
             <span className={styles.versionTitle}>Policy 초안 편집</span>
             <span className={styles.versionBadge}>READ / EDIT</span>
@@ -95,6 +91,6 @@ export function PolicyDraftReadPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </OstoneShell>
   );
 }

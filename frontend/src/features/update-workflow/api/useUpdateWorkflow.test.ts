@@ -5,25 +5,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import { useUpdateWorkflow } from "./useUpdateWorkflow";
 
-vi.mock("@/entities/workflow", () => ({
-  patchWorkflow: vi.fn(),
-  workflowQueryKeys: {
-    all: ["workflows"] as const,
-    lists: () => ["workflows", "list"] as const,
-    list: (...args: number[]) => ["workflows", "list", ...args] as const,
-    details: () => ["workflows", "detail"] as const,
-    detail: (...args: number[]) => ["workflows", "detail", ...args] as const,
-  },
+vi.mock("@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller", () => ({
+  updateWorkflow: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { patchWorkflow } from "@/entities/workflow";
+import { updateWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import { toast } from "sonner";
 
-const mockedPatch = vi.mocked(patchWorkflow);
+const mockedUpdateWorkflow = vi.mocked(updateWorkflow);
 
 const stubDetail = {
   id: 10,
@@ -60,13 +53,13 @@ function makeWrapper() {
 
 describe("useUpdateWorkflow", () => {
   beforeEach(() => {
-    mockedPatch.mockReset();
+    mockedUpdateWorkflow.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedPatch.mockResolvedValue(stubDetail);
+    mockedUpdateWorkflow.mockResolvedValue({ data: { ...stubDetail, description: undefined, graphJson: "{}", initialState: undefined }, status: 200, headers: new Headers() });
     const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
 
     await act(async () => {
@@ -77,7 +70,7 @@ describe("useUpdateWorkflow", () => {
   });
 
   it("알려진 에러 코드 WORKFLOW_NOT_EDITABLE에 대해 매핑된 메시지를 표시한다", async () => {
-    mockedPatch.mockRejectedValue(
+    mockedUpdateWorkflow.mockRejectedValue(
       new ApiRequestError(422, "WORKFLOW_NOT_EDITABLE", "수정 불가"),
     );
     const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
@@ -94,7 +87,7 @@ describe("useUpdateWorkflow", () => {
   });
 
   it("알려진 에러 코드 WORKFLOW_INVALID_START_NODE에 대해 매핑된 메시지를 표시한다", async () => {
-    mockedPatch.mockRejectedValue(
+    mockedUpdateWorkflow.mockRejectedValue(
       new ApiRequestError(422, "WORKFLOW_INVALID_START_NODE", "노드 오류"),
     );
     const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
@@ -109,7 +102,7 @@ describe("useUpdateWorkflow", () => {
   });
 
   it("알 수 없는 에러의 경우 기본 에러 메시지를 표시한다", async () => {
-    mockedPatch.mockRejectedValue(new Error("unexpected"));
+    mockedUpdateWorkflow.mockRejectedValue(new Error("unexpected"));
     const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
 
     act(() => {

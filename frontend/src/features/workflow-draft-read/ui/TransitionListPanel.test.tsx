@@ -18,16 +18,16 @@ const stubTransitions: WorkflowTransitionDetail[] = [
     to: "B",
     label: "조건",
     toPolicyRef: "POL_001",
-  },
+  } as any,
   {
     id: "edge-2",
     workflowDefinitionId: 10,
     domainPackVersionId: 3,
     from: "B",
     to: "C",
-    label: null,
-    toPolicyRef: null,
-  },
+    label: null as any,
+    toPolicyRef: null as any,
+  } as any,
 ];
 
 describe("TransitionListPanel", () => {

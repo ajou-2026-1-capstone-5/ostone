@@ -1,30 +1,10 @@
 import { ApiRequestError } from "@/shared/api";
 
+export type { CreateWorkspaceRequest, UpdateWorkspaceRequest, WorkspaceResponse } from "@/shared/api/generated/zod";
+
 export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
 export const WORKSPACE_MEMBER_ROLES = ["OWNER", "ADMIN", "REVIEWER", "OPERATOR"] as const;
 export type WorkspaceMemberRole = typeof WORKSPACE_MEMBER_ROLES[number];
-
-export interface WorkspaceResponse {
-  id: number;
-  workspaceKey: string;
-  name: string;
-  description: string | null;
-  status: WorkspaceStatus;
-  myRole: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateWorkspaceRequest {
-  workspaceKey: string;
-  name: string;
-  description?: string;
-}
-
-export interface UpdateWorkspaceRequest {
-  name?: string;
-  description?: string | null;
-}
 
 export interface WorkspaceFieldErrors {
   name?: string;

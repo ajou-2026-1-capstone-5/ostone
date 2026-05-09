@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
+import { useUploadRawFile } from "../../../shared/api/generated/endpoints/dataset-controller/dataset-controller";
 
 import styles from "./log-upload-form.module.css";
 
-type UploadStatus = "idle" | "uploading" | "analyzing" | "success";
+type UploadStatus = "idle" | "uploading" | "success";
 
 interface LogUploadFormProps {
   workspaceId?: number;
@@ -17,23 +18,31 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
-  const [progress, setProgress] = useState(0);
-  const uploadIntervalRef = useRef<number | null>(null);
-  const analyzeTimeoutRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (uploadIntervalRef.current) {
-        clearInterval(uploadIntervalRef.current);
-      }
-      if (analyzeTimeoutRef.current) {
-        clearTimeout(analyzeTimeoutRef.current);
-      }
-    };
-  }, []);
+  const uploadMutation = useUploadRawFile({
+    mutation: {
+      onSuccess: () => {
+        setStatus("success");
+        toast.success("업로드 완료");
+      },
+      onError: (error) => {
+        setStatus("idle");
+        toast.error(
+          error instanceof Error ? error.message : "업로드에 실패했습니다.",
+          {
+            action: {
+              label: "재시도",
+              onClick: () => {
+                if (file) handleUpload(file);
+              },
+            },
+          }
+        );
+      },
+    },
+  });
 
   const handleFileSelect = (selectedFile: File) => {
-    // Only accept csv or json roughly
     const name = selectedFile.name.toLowerCase();
     if (!name.endsWith(".csv") && !name.endsWith(".json")) {
       toast.error("CSV 또는 JSON 파일만 업로드할 수 있습니다.");
@@ -41,51 +50,31 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     }
     setFile(selectedFile);
     setStatus("idle");
-    setProgress(0);
   };
 
-  const handleUpload = () => {
-    if (!file) return;
+  const handleUpload = (fileToUpload: File) => {
+    if (!workspaceId) return;
     setStatus("uploading");
-
-    // Simulate Fake Upload Progress
-    let currentProgress = 0;
-    uploadIntervalRef.current = window.setInterval(() => {
-      currentProgress += Math.random() * 15;
-      if (currentProgress >= 100) {
-        if (uploadIntervalRef.current) {
-          clearInterval(uploadIntervalRef.current);
-          uploadIntervalRef.current = null;
-        }
-        setProgress(100);
-        setStatus("analyzing");
-
-        // Simulate analyzing delay
-        analyzeTimeoutRef.current = window.setTimeout(() => {
-          setStatus("success");
-          analyzeTimeoutRef.current = null;
-        }, 2000);
-      } else {
-        setProgress(currentProgress);
-      }
-    }, 400); // Progress updates every 400ms
+    uploadMutation.mutate({
+      workspaceId,
+      params: {
+        datasetKey: crypto.randomUUID(),
+        name: fileToUpload.name,
+        sourceType: "RAW",
+      },
+      data: { file: fileToUpload },
+    });
   };
 
   const handleReset = () => {
-    if (uploadIntervalRef.current) {
-      clearInterval(uploadIntervalRef.current);
-      uploadIntervalRef.current = null;
-    }
-    if (analyzeTimeoutRef.current) {
-      clearTimeout(analyzeTimeoutRef.current);
-      analyzeTimeoutRef.current = null;
-    }
+    uploadMutation.reset();
     setFile(null);
     setStatus("idle");
-    setProgress(0);
   };
 
-  const completionPath = workspaceId ? `/workspaces/${workspaceId}/workflows` : "/workspaces";
+  const domainPacksPath = workspaceId
+    ? `/workspaces/${workspaceId}/domain-packs`
+    : "/workspaces";
 
   return (
     <div className={styles.container}>
@@ -99,8 +88,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
           onFileSelect={handleFileSelect}
           acceptedTypes=".csv,.json"
           status={status}
-          progress={progress}
-          isUploading={status === "uploading" || status === "analyzing"}
+          progress={0}
+          isUploading={uploadMutation.isPending}
         />
       </div>
 
@@ -110,15 +99,15 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
             <span className={styles.fileName}>{file.name}</span>
             <span className={styles.fileSize}>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
           </div>
-          <Button onClick={handleUpload}>Start Processing</Button>
+          <Button onClick={() => handleUpload(file)}>Start Processing</Button>
         </div>
       )}
 
       {status === "success" && (
         <div className={styles.successActions}>
           <Button variant="secondary" onClick={handleReset}>Upload Another File</Button>
-          <Button onClick={() => navigate(completionPath)}>
-            {workspaceId ? "View Workspace Workflows" : "Go to Workspaces"}
+          <Button onClick={() => navigate(domainPacksPath)}>
+            도메인팩 보기
           </Button>
         </div>
       )}

@@ -1,40 +1,48 @@
-import React, { useState } from 'react';
-import { Mail, Lock } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Input } from '../../../../shared/ui/input/Input';
-import { Button } from '../../../../shared/ui/button/Button';
-import { loginApi } from '../../api/authApi';
-import { resolvePostLoginDestination } from '../../model/resolvePostLoginDestination';
-import { saveAuthSession } from '../../../../shared/lib/auth';
-import { ApiRequestError } from '../../../../shared/api';
-import styles from './login-form.module.css';
+import React, { useEffect, useState } from "react";
+import { Mail, Lock } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Input } from "../../../../shared/ui/input/Input";
+import { Button } from "../../../../shared/ui/button/Button";
+import { loginApi } from "../../api/authApi";
+import { resolvePostLoginDestination } from "../../model/resolvePostLoginDestination";
+import { saveAuthSession } from "../../../../shared/lib/auth";
+import { ApiRequestError } from "../../../../shared/api";
+import styles from "./login-form.module.css";
 
 /**
  * 운영자 로그인을 위한 폼 컴포넌트입니다.
  * 이메일과 비밀번호 입력을 받고, 인증 성공 시 대시보드로 리다이렉트합니다.
- * 
+ *
  * @returns {JSX.Element} 로그인 폼 컴포넌트
  */
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (location.state?.fromSignup === true) {
+      toast.success("가입이 완료되었습니다");
+      navigate(".", { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
 
   /**
    * 로그인 폼 제출 핸들러
    * API를 호출하여 인증을 수행하고 세션을 저장합니다.
-   * 
+   *
    * @param {React.FormEvent} e - 폼 제출 이벤트
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!email || !password) {
-      setError('이메일과 비밀번호를 모두 입력해주세요.');
+      setError("이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
 
@@ -44,28 +52,28 @@ export const LoginForm: React.FC = () => {
 
       saveAuthSession(
         {
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-          tokenType: result.tokenType,
-          expiresIn: result.expiresIn,
+          accessToken: result.accessToken ?? "",
+          refreshToken: result.refreshToken ?? "",
+          tokenType: result.tokenType ?? "Bearer",
+          expiresIn: result.expiresIn ?? 0,
         },
-        result.user,
+        result.user as any,
       );
 
       navigate(resolvePostLoginDestination(location.state), { replace: true });
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        if (err.code === 'INVALID_CREDENTIALS') {
-          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-        } else if (err.code === 'PASSWORD_RESET_REQUIRED') {
-          setError('비밀번호 재설정이 필요합니다.');
-        } else if (err.code === 'VALIDATION_ERROR') {
+        if (err.code === "INVALID_CREDENTIALS") {
+          setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        } else if (err.code === "PASSWORD_RESET_REQUIRED") {
+          setError("비밀번호 재설정이 필요합니다.");
+        } else if (err.code === "VALIDATION_ERROR") {
           setError(err.message);
         } else {
-          setError(err.message || '로그인에 실패했습니다.');
+          setError(err.message || "로그인에 실패했습니다.");
         }
       } else {
-        setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
       }
     } finally {
       setIsLoading(false);
@@ -87,7 +95,7 @@ export const LoginForm: React.FC = () => {
           icon={<Mail size={18} />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          error={error && !email ? '이메일을 입력하세요' : undefined}
+          error={error && !email ? "이메일을 입력하세요" : undefined}
         />
         <Input
           type="password"
@@ -96,12 +104,12 @@ export const LoginForm: React.FC = () => {
           icon={<Lock size={18} />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          error={error && !password ? '비밀번호를 입력하세요' : undefined}
+          error={error && !password ? "비밀번호를 입력하세요" : undefined}
         />
       </div>
 
       <div className={styles.options}>
-        <Link to="/reset-password" className={styles.forgotLink}>
+        <Link to="/password-reset" className={styles.forgotLink}>
           비밀번호 찾기
         </Link>
       </div>
@@ -113,7 +121,10 @@ export const LoginForm: React.FC = () => {
       </Button>
 
       <div className={styles.footer}>
-        계정이 없으신가요? <Link to="/signup" className={styles.signupLink}>운영자 등록하기</Link>
+        계정이 없으신가요?{" "}
+        <Link to="/signup" className={styles.signupLink}>
+          운영자 등록하기
+        </Link>
       </div>
     </form>
   );

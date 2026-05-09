@@ -56,15 +56,15 @@ export function PolicyEditForm({
   const onSubmit = (values: PolicyEditFormValues) => {
     const body: UpdatePolicyRequest = {
       name: values.name,
-      description: normalizeNullableString(values.description),
-      severity: normalizeNullableString(values.severity),
-      conditionJson: values.conditionJson,
-      actionJson: values.actionJson,
-      evidenceJson: values.evidenceJson,
-      metaJson: values.metaJson,
+      description: normalizeOptionalText(values.description),
+      severity: values.severity ?? undefined,
+      conditionJson: values.conditionJson ?? undefined,
+      actionJson: values.actionJson ?? undefined,
+      evidenceJson: values.evidenceJson ?? undefined,
+      metaJson: values.metaJson ?? undefined,
     };
 
-    mutate({ workspaceId, packId, versionId, policyId: policy.id, body }, { onSuccess: onClose });
+    mutate({ workspaceId, packId, versionId, policyId: policy.id!, body }, { onSuccess: onClose });
   };
 
   const textFields: ReadonlyArray<
@@ -138,8 +138,8 @@ export function PolicyEditForm({
           )}
         />
 
-        <ReadonlyPolicyValue label="정책 코드" value={policy.policyCode} />
-        <ReadonlyPolicyValue label="버전 ID" value={policy.domainPackVersionId} />
+        <ReadonlyPolicyValue label="정책 코드" value={policy.policyCode ?? ""} />
+        <ReadonlyPolicyValue label="버전 ID" value={policy.domainPackVersionId ?? 0} />
 
         <PolicyJsonFields />
 
@@ -149,8 +149,8 @@ export function PolicyEditForm({
             workspaceId={workspaceId}
             packId={packId}
             versionId={versionId}
-            policyId={policy.id}
-            currentStatus={policy.status}
+            policyId={policy.id!}
+            currentStatus={(policy.status ?? "INACTIVE") as "ACTIVE" | "INACTIVE"}
             disabled={isAnyPending}
           />
         </div>
@@ -180,11 +180,6 @@ function ReadonlyPolicyValue({
   );
 }
 
-function normalizeNullableString(value: string | null | undefined): string | null {
-  const trimmed = value?.trim() ?? "";
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 function formatJsonInput(raw: string): string {
   if (!raw) return raw;
   try {
@@ -199,14 +194,19 @@ function normalizeSeverity(value: string | null | undefined): string | null {
   return trimmed ? trimmed.toUpperCase() : null;
 }
 
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 function getPolicyDefaultValues(policy: PolicyDefinition): PolicyEditFormValues {
   return {
-    name: policy.name,
-    description: policy.description,
+    name: policy.name ?? "",
+    description: policy.description ?? undefined,
     severity: normalizeSeverity(policy.severity),
-    conditionJson: formatJsonInput(policy.conditionJson),
-    actionJson: formatJsonInput(policy.actionJson),
-    evidenceJson: formatJsonInput(policy.evidenceJson),
-    metaJson: formatJsonInput(policy.metaJson),
+    conditionJson: formatJsonInput(policy.conditionJson ?? ""),
+    actionJson: formatJsonInput(policy.actionJson ?? ""),
+    evidenceJson: formatJsonInput(policy.evidenceJson ?? ""),
+    metaJson: formatJsonInput(policy.metaJson ?? ""),
   };
 }

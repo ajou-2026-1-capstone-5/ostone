@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { SlotListPanel, SlotDetailPanel } from "../../../features/slot-draft-read/ui";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
-import { DashboardLayout } from "../../../shared/ui/layout/DashboardLayout";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./slot-draft-read-page.module.css";
 
 export function SlotDraftReadPage() {
@@ -15,11 +15,11 @@ export function SlotDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || (slotId !== undefined && sId === null)) {
     return (
-      <DashboardLayout>
+      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
-      </DashboardLayout>
+      </OstoneShell>
     );
   }
 
@@ -34,7 +34,7 @@ export function SlotDraftReadPage() {
   const hasSelection = sId !== null;
 
   return (
-    <DashboardLayout>
+    <OstoneShell active="domain" crumbs={[`PACK · ${pId}`, `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <nav className={styles.breadcrumb} aria-label="경로">
@@ -69,6 +69,6 @@ export function SlotDraftReadPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </OstoneShell>
   );
 }

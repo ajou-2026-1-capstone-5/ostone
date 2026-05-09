@@ -2,20 +2,14 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
-import { fetchTransitionList } from "@/entities/workflow";
 import { useTransitionList } from "./useTransitionList";
+import { listTransitions } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
-vi.mock("@/entities/workflow", () => ({
-  fetchTransitionList: vi.fn(),
-  transitionQueryKeys: {
-    all: ["transitions"] as const,
-    lists: () => ["transitions", "list"] as const,
-    list: (wsId: number, packId: number, versionId: number, workflowId: number) =>
-      ["transitions", "list", wsId, packId, versionId, workflowId] as const,
-  },
+vi.mock("@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller", () => ({
+  listTransitions: vi.fn(),
 }));
 
-const mockedFetch = vi.mocked(fetchTransitionList);
+const mockedListTransitions = vi.mocked(listTransitions);
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -24,16 +18,16 @@ function wrapper({ children }: { children: ReactNode }) {
 
 describe("useTransitionList", () => {
   beforeEach(() => {
-    mockedFetch.mockReset();
+    mockedListTransitions.mockReset();
   });
 
   it("workflowId=null이면 쿼리가 비활성화되어 fetch를 호출하지 않는다", () => {
     const { result } = renderHook(() => useTransitionList(1, 2, 3, null), { wrapper });
     expect(result.current.isPending).toBe(true);
-    expect(mockedFetch).not.toHaveBeenCalled();
+    expect(mockedListTransitions).not.toHaveBeenCalled();
   });
 
-  it("workflowId가 있으면 fetchTransitionList를 호출하고 데이터를 반환한다", async () => {
+  it("workflowId가 있으면 listTransitions를 호출하고 데이터를 반환한다", async () => {
     const stub = [
       {
         id: "edge-1",
@@ -45,15 +39,19 @@ describe("useTransitionList", () => {
         toPolicyRef: null,
       },
     ];
-    mockedFetch.mockResolvedValue(stub);
+    mockedListTransitions.mockResolvedValue({
+      data: stub as any,
+      status: 200,
+      headers: new Headers(),
+    });
     const { result } = renderHook(() => useTransitionList(1, 2, 3, 10), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(stub);
-    expect(mockedFetch).toHaveBeenCalledWith(1, 2, 3, 10);
+    expect(mockedListTransitions).toHaveBeenCalledWith(1, 2, 3, 10);
   });
 
   it("fetch 실패 시 isError=true가 된다", async () => {
-    mockedFetch.mockRejectedValue(new Error("network error"));
+    mockedListTransitions.mockRejectedValue(new Error("network error"));
     const { result } = renderHook(() => useTransitionList(1, 2, 3, 10), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });

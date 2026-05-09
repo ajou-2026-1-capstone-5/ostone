@@ -86,12 +86,12 @@ function WorkflowRow({
   active: boolean;
   onSelect: (id: number) => void;
 }) {
-  const tCount = terminalCount(workflow.terminalStatesJson);
+  const tCount = terminalCount(workflow.terminalStatesJson ?? "");
   return (
     <button
       type="button"
       className={`${styles.item} ${active ? styles.itemActive : ""}`}
-      onClick={() => onSelect(workflow.id)}
+      onClick={() => onSelect(workflow.id!)}
       aria-current={active ? "true" : undefined}
     >
       <span className={styles.code}>{workflow.workflowCode}</span>

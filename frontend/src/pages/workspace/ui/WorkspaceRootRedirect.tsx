@@ -1,0 +1,57 @@
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+
+import type { WorkspaceResponse } from "@/shared/api/generated/zod";
+import { useListWorkspaces } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
+import { CreateWorkspaceDialog } from "@/features/workspace";
+import { Spinner } from "@/shared/ui/spinner";
+
+export function WorkspaceRootRedirect() {
+  const [target, setTarget] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const navigate = useNavigate();
+  const { data: workspacesData, isLoading, isError } = useListWorkspaces();
+
+  useEffect(() => {
+    if (isLoading || isError) {
+      return;
+    }
+
+    const workspaces = (workspacesData ?? []) as unknown as WorkspaceResponse[];
+    if (workspaces.length === 0) {
+      setShowCreate(true);
+      return;
+    }
+    const active =
+      workspaces.find((w) => w.status === "ACTIVE") ?? workspaces[0];
+    setTarget(`/workspaces/${active.id}/workflows`);
+  }, [isLoading, isError, workspacesData]);
+
+  useEffect(() => {
+    if (isError) {
+      setTarget("/login");
+    }
+  }, [isError]);
+
+  if (target) {
+    return <Navigate to={target} replace />;
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
+      {showCreate ? (
+        <CreateWorkspaceDialog
+          open={true}
+          onOpenChange={() => {
+            window.location.reload();
+          }}
+          onSuccess={async (created) => {
+            navigate(`/workspaces/${created.id}/workflows`, { replace: true });
+          }}
+        />
+      ) : (
+        <Spinner />
+      )}
+    </div>
+  );
+}

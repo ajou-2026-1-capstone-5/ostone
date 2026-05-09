@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from "react";
 import { Mail, Lock, User, KeyRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '../../../../shared/ui/input/Input';
@@ -15,22 +15,12 @@ import styles from './signup-form.module.css';
  */
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
-  const redirectTimerRef = useRef<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    return () => {
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current);
-      }
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +28,6 @@ export const SignupForm: React.FC = () => {
     if (isLoading) return;
 
     setError('');
-    setSuccess('');
 
     if (!name || !email || !password || !confirmPassword) {
       setError('모든 필드를 입력해주세요.');
@@ -58,13 +47,7 @@ export const SignupForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signupApi({ name, email, password });
-      setSuccess('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current);
-      }
-      redirectTimerRef.current = window.setTimeout(() => {
-        navigate('/login');
-      }, 1500);
+      navigate('/login', { replace: true, state: { fromSignup: true } });
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.code === 'EMAIL_ALREADY_EXISTS') {
@@ -125,7 +108,6 @@ export const SignupForm: React.FC = () => {
       </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>}
-      {success && <div className={styles.successMessage}>{success}</div>}
 
       <Button type="submit" fullWidth isLoading={isLoading} className={styles.submitBtn}>
         계정 생성 요청

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { policyApi, policyKeys } from "@/entities/policy";
+import { getPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 
 export interface UseGetPolicyParams {
   workspaceId: number;
@@ -17,8 +17,11 @@ export function useGetPolicy({
   enabled,
 }: UseGetPolicyParams) {
   return useQuery({
-    queryKey: policyKeys.detail(workspaceId, packId, versionId, policyId),
-    queryFn: () => policyApi.detail(workspaceId, packId, versionId, policyId),
+    queryKey: ["policies", "detail", workspaceId, packId, versionId, policyId] as const,
+    queryFn: async () => {
+      const res = await getPolicy(workspaceId, packId, versionId, policyId);
+      return res.data;
+    },
     enabled,
   });
 }

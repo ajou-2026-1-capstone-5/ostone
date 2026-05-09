@@ -2,6 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useIntentDetail } from "./useIntentDetail";
 import { ApiRequestError } from "../../../shared/api";
+import { intentApi } from "../api/intentApi";
 
 vi.mock("../api/intentApi", () => ({
   intentApi: {
@@ -9,8 +10,6 @@ vi.mock("../api/intentApi", () => ({
     detail: vi.fn(),
   },
 }));
-
-import { intentApi } from "../api/intentApi";
 
 const mockedDetail = vi.mocked(intentApi.detail);
 
@@ -48,7 +47,7 @@ describe("useIntentDetail", () => {
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedDetail.mockResolvedValue(stubDetail);
+    mockedDetail.mockResolvedValue(stubDetail as any);
     const { result } = renderHook(() => useIntentDetail(1, 2, 3, 10));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     if (result.current.status === "ready") {

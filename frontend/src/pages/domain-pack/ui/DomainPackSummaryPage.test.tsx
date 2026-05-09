@@ -12,8 +12,23 @@ vi.mock('sonner', () => ({
 
 const ROUTE = '/workspaces/:workspaceId/domain-packs/:packId';
 
-vi.mock('@/shared/ui/layout/DashboardLayout', () => ({
-  DashboardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+vi.mock('@/widgets/ostone-shell', () => ({
+  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@/shared/ui/ostone/atoms/LoadingSpinner', () => ({
+  LoadingSpinner: () => <div data-testid="loading-spinner" />,
+}));
+
+vi.mock('@/shared/ui/ostone/atoms/ErrorState', () => ({
+  ErrorState: ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+    <div data-testid="error-state" role="alert">
+      <span>{message}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      )}
+    </div>
+  ),
 }));
 
 vi.mock('@/features/domain-pack-summary-read', () => ({
@@ -119,10 +134,11 @@ describe('DomainPackSummaryPage', () => {
     );
   });
 
-  it('packDetail 로딩 중에도 VersionListPanel을 렌더링한다', () => {
+  it('packDetail 로딩 중 LoadingSpinner를 표시한다', () => {
     vi.mocked(usePackDetail).mockReturnValue(makePackQuery({ isLoading: true }));
     renderPage();
-    expect(screen.getByTestId('version-list-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    expect(screen.queryByTestId('version-list-panel')).not.toBeInTheDocument();
   });
 
   it('packDetail 비404 에러 시 toast.error를 1회 호출한다', async () => {

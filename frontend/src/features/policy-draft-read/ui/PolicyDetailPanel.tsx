@@ -92,15 +92,15 @@ export function PolicyDetailPanel({
   }
 
   const jsonFields: PolicyJsonField[] = [
-    { label: "Condition", value: state.data.conditionJson },
-    { label: "Action", value: state.data.actionJson },
-    { label: "Evidence", value: state.data.evidenceJson },
-    { label: "Meta", value: state.data.metaJson },
+    { label: "Condition", value: state.data.conditionJson ?? "" },
+    { label: "Action", value: state.data.actionJson ?? "" },
+    { label: "Evidence", value: state.data.evidenceJson ?? "" },
+    { label: "Meta", value: state.data.metaJson ?? "" },
   ];
 
   return (
     <section className={styles.panel} aria-label="정책 상세">
-      <DetailHeader detail={state.data} onEdit={() => onEdit(state.data.id)} />
+      <DetailHeader detail={state.data} onEdit={() => onEdit(state.data.id!)} />
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
@@ -129,11 +129,11 @@ export function PolicyDetailPanel({
           />
           <InfoCard
             label="Created At"
-            value={<span className={styles.value}>{formatDate(state.data.createdAt)}</span>}
+            value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
           <InfoCard
             label="Updated At"
-            value={<span className={styles.value}>{formatDate(state.data.updatedAt)}</span>}
+            value={<span className={styles.value}>{formatDate(state.data.updatedAt ?? "")}</span>}
           />
         </div>
         {jsonFields.map((field) => (
@@ -155,9 +155,9 @@ function DetailHeader({
     <header className={styles.header}>
       <div className={styles.headerText}>
         <span className={styles.code}>{detail.policyCode}</span>
-        <span className={styles.name}>{detail.name}</span>
+        <span className={styles.name}>{detail.name ?? ""}</span>
         {detail.description && <span className={styles.description}>{detail.description}</span>}
-        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt)}</span>
+        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
       <button
         type="button"

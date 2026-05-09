@@ -101,7 +101,7 @@ function IntentTreeRow({
         type="button"
         className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
         style={{ paddingLeft }}
-        onClick={() => onSelect(node.id)}
+        onClick={() => node.id != null && onSelect(node.id!)}
         aria-current={isActive ? "true" : undefined}
       >
         <div className={styles.itemInner}>
