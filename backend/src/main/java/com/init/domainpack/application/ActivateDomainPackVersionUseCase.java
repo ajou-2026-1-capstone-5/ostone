@@ -4,6 +4,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
@@ -65,7 +66,14 @@ public class ActivateDomainPackVersionUseCase {
       throw new DomainPackVersionNotFoundException(command.versionId());
     }
 
-    // lifecycle_status 전이: PUBLISHED가 아닌 모든 상태에서 허용 (U-001 Confirmed)
+    if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
+      throw new DomainPackVersionInvalidStateException("DRAFT 상태의 version에서만 수행할 수 있습니다.");
+    }
+    int maxVersionNo = versionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0);
+    if (version.getVersionNo() < maxVersionNo) {
+      throw new DomainPackVersionNotLatestException(command.versionId());
+    }
+
     try {
       version.activate(OffsetDateTime.now(clock));
     } catch (IllegalStateException e) {

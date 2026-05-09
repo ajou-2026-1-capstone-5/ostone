@@ -106,6 +106,22 @@ public class RiskDefinition {
     return entity;
   }
 
+  public static RiskDefinition copyToVersion(RiskDefinition source, Long domainPackVersionId) {
+    RiskDefinition entity =
+        create(
+            domainPackVersionId,
+            source.riskCode,
+            source.name,
+            source.description,
+            source.riskLevel,
+            source.triggerConditionJson,
+            source.handlingActionJson,
+            source.evidenceJson,
+            source.metaJson);
+    entity.status = source.status;
+    return entity;
+  }
+
   public void updateFields(
       String name,
       String description,

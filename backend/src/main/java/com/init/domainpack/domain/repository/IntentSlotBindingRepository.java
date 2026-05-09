@@ -6,4 +6,6 @@ import java.util.List;
 public interface IntentSlotBindingRepository {
 
   <S extends IntentSlotBinding> List<S> saveAll(Iterable<S> entities);
+
+  List<IntentSlotBinding> findAllByIntentDefinitionIdIn(List<Long> intentDefinitionIds);
 }

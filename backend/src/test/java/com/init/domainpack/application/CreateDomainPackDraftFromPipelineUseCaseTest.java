@@ -36,7 +36,9 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
 
     given(domainPackCommandRepository.findByWorkspaceIdAndPackKey(3L, "refund-pack"))
         .willReturn(Optional.of(existingPack));
-    given(domainPackDraftPersistenceService.persistVersion(7L, null, 11L, "{\"summary\":\"test\"}"))
+    given(
+            domainPackDraftPersistenceService.persistVersion(
+                3L, 7L, null, 11L, "{\"summary\":\"test\"}"))
         .willReturn(version);
 
     CreateDomainPackDraftFromPipelineResult result =
@@ -62,7 +64,7 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
     given(domainPackCommandRepository.findByWorkspaceIdAndPackKey(3L, "refund-pack"))
         .willReturn(Optional.empty());
     given(domainPackCommandRepository.saveAndFlush(any())).willReturn(newPack);
-    given(domainPackDraftPersistenceService.persistVersion(7L, null, 11L, null))
+    given(domainPackDraftPersistenceService.persistVersion(3L, 7L, null, 11L, null))
         .willReturn(version);
 
     CreateDomainPackDraftFromPipelineResult result =
@@ -87,7 +89,7 @@ class CreateDomainPackDraftFromPipelineUseCaseTest {
         .willReturn(Optional.empty(), Optional.of(existingPack));
     given(domainPackCommandRepository.saveAndFlush(any()))
         .willThrow(new DataIntegrityViolationException("unique violation"));
-    given(domainPackDraftPersistenceService.persistVersion(7L, null, 11L, null))
+    given(domainPackDraftPersistenceService.persistVersion(3L, 7L, null, 11L, null))
         .willReturn(version);
 
     CreateDomainPackDraftFromPipelineResult result =

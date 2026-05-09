@@ -39,6 +39,7 @@ public class CreateDomainPackDraftUseCase {
     validateWorkspaceAccess(command);
     validateDomainPack(command);
     return domainPackDraftPersistenceService.persist(
+        command.workspaceId(),
         command.packId(),
         command.userId(),
         command.sourcePipelineJobId(),

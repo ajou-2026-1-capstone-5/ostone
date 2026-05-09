@@ -737,3 +737,16 @@ CREATE TABLE corpus.dataset_raw_file (
 
 CREATE INDEX idx_dataset_raw_file_dataset_id
     ON corpus.dataset_raw_file(dataset_id);
+
+--changeset codex:20260509-normalize-intent-definition-status
+--comment: Convert legacy ACTIVE intent rows to PUBLISHED before revision draft APIs enforce PUBLISHED only
+UPDATE pack.intent_definition
+SET status = 'PUBLISHED'
+WHERE status = 'ACTIVE';
+
+ALTER TABLE pack.intent_definition
+    ALTER COLUMN status SET DEFAULT 'PUBLISHED';
+
+ALTER TABLE pack.intent_definition
+    ADD CONSTRAINT chk_intent_definition_status
+    CHECK (status IN ('DRAFT', 'PUBLISHED', 'REJECTED'));

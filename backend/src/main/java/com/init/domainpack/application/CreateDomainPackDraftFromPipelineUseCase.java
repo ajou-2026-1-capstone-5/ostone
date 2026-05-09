@@ -30,6 +30,7 @@ public class CreateDomainPackDraftFromPipelineUseCase {
 
     DomainPackVersion savedVersion =
         domainPackDraftPersistenceService.persistVersion(
+            command.workspaceId(),
             resolution.domainPack().getId(),
             null,
             command.sourcePipelineJobId(),

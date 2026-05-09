@@ -100,6 +100,20 @@ public class WorkflowDefinition {
     return entity;
   }
 
+  public static WorkflowDefinition copyToVersion(
+      WorkflowDefinition source, Long domainPackVersionId) {
+    return create(
+        domainPackVersionId,
+        source.workflowCode,
+        source.name,
+        source.description,
+        source.graphJson,
+        source.initialState,
+        source.terminalStatesJson,
+        source.evidenceJson,
+        source.metaJson);
+  }
+
   public void updateGraph(
       String name,
       String description,

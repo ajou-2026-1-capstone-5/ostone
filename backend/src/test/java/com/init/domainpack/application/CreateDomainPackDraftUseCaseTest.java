@@ -39,7 +39,6 @@ import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -91,6 +90,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
+  @Mock private DomainPackVersionCloneService domainPackVersionCloneService;
 
   private CreateDomainPackDraftUseCase useCase;
   private DomainPackDraftPersistenceService domainPackDraftPersistenceService;
@@ -106,7 +106,8 @@ class CreateDomainPackDraftUseCaseTest {
             riskDefinitionRepository,
             workflowDefinitionRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository);
+            intentWorkflowBindingRepository,
+            domainPackVersionCloneService);
     useCase =
         new CreateDomainPackDraftUseCase(
             domainPackRepository,
@@ -121,10 +122,10 @@ class CreateDomainPackDraftUseCaseTest {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
-    given(domainPackVersionRepository.findMaxVersionNoByDomainPackId(7L))
-        .willReturn(Optional.of(2));
-    given(domainPackVersionRepository.saveAndFlush(any()))
-        .willAnswer(invocation -> createSavedVersion(101L, 7L, 3));
+    given(
+            domainPackVersionCloneService.createEmptyDraft(
+                1L, 7L, 10L, 55L, "{\"summary\":\"draft\"}"))
+        .willReturn(createSavedVersion(101L, 7L, 3));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L, 1002L)))
         .willAnswer(invocation -> invocation.getArgument(0));
@@ -182,10 +183,8 @@ class CreateDomainPackDraftUseCaseTest {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
-    given(domainPackVersionRepository.findMaxVersionNoByDomainPackId(7L))
-        .willReturn(Optional.empty());
-    given(domainPackVersionRepository.saveAndFlush(any()))
-        .willAnswer(invocation -> createSavedVersion(101L, 7L, 1));
+    given(domainPackVersionCloneService.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+        .willReturn(createSavedVersion(101L, 7L, 1));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L)));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(invocation -> List.of());
@@ -553,10 +552,8 @@ class CreateDomainPackDraftUseCaseTest {
   }
 
   private void stubSaveAll() {
-    given(domainPackVersionRepository.findMaxVersionNoByDomainPackId(7L))
-        .willReturn(Optional.of(2));
-    given(domainPackVersionRepository.saveAndFlush(any()))
-        .willAnswer(invocation -> createSavedVersion(101L, 7L, 3));
+    given(domainPackVersionCloneService.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+        .willReturn(createSavedVersion(101L, 7L, 3));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(slotDefinitionRepository.saveAll(any()))

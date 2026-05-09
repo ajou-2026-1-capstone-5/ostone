@@ -116,6 +116,22 @@ public class IntentDefinition {
     return entity;
   }
 
+  public static IntentDefinition copyToVersion(IntentDefinition source, Long domainPackVersionId) {
+    IntentDefinition entity =
+        create(
+            domainPackVersionId,
+            source.intentCode,
+            source.name,
+            source.description,
+            source.taxonomyLevel,
+            source.sourceClusterRef,
+            source.entryConditionJson,
+            source.evidenceJson,
+            source.metaJson);
+    entity.status = source.status;
+    return entity;
+  }
+
   public Long getId() {
     return id;
   }
@@ -149,6 +165,34 @@ public class IntentDefinition {
       throw new IllegalArgumentException("Intent cannot be its own parent: id=" + this.id);
     }
     this.parentIntentId = parentIntentId;
+  }
+
+  public void reviseDefinition(
+      String name,
+      String description,
+      Integer taxonomyLevel,
+      String entryConditionJson,
+      String metaJson) {
+    Objects.requireNonNull(name, "name must not be null");
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name은 필수 항목입니다.");
+    }
+    if (taxonomyLevel != null && taxonomyLevel < 1) {
+      throw new IllegalArgumentException("taxonomyLevel은 1 이상이어야 합니다.");
+    }
+    this.name = name;
+    if (description != null) {
+      this.description = description;
+    }
+    if (taxonomyLevel != null) {
+      this.taxonomyLevel = taxonomyLevel;
+    }
+    if (entryConditionJson != null) {
+      this.entryConditionJson = entryConditionJson;
+    }
+    if (metaJson != null) {
+      this.metaJson = metaJson;
+    }
   }
 
   public String getStatus() {
