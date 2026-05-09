@@ -38,18 +38,7 @@ public class CreateDomainPackDraftUseCase {
   public CreateDomainPackDraftResult execute(CreateDomainPackDraftCommand command) {
     validateWorkspaceAccess(command);
     validateDomainPack(command);
-    return domainPackDraftPersistenceService.persist(
-        command.packId(),
-        command.userId(),
-        command.sourcePipelineJobId(),
-        command.summaryJson(),
-        command.intents(),
-        command.slots(),
-        command.intentSlotBindings(),
-        command.policies(),
-        command.risks(),
-        command.workflows(),
-        command.intentWorkflowBindings());
+    return domainPackDraftPersistenceService.persist(command);
   }
 
   private void validateWorkspaceAccess(CreateDomainPackDraftCommand command) {

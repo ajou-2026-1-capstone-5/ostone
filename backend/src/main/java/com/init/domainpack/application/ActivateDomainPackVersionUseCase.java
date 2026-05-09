@@ -1,12 +1,15 @@
 package com.init.domainpack.application;
 
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
+import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
@@ -25,16 +28,19 @@ public class ActivateDomainPackVersionUseCase {
       Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final DomainPackVersionRepository versionRepository;
+  private final DomainPackRepository domainPackRepository;
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
+      DomainPackRepository domainPackRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort,
       Clock clock) {
     this.versionRepository = versionRepository;
+    this.domainPackRepository = domainPackRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.clock = clock;
@@ -55,6 +61,10 @@ public class ActivateDomainPackVersionUseCase {
           "워크스페이스에 접근 권한이 없습니다. workspaceId=" + command.workspaceId());
     }
 
+    domainPackRepository
+        .findByIdAndWorkspaceIdForUpdate(command.packId(), command.workspaceId())
+        .orElseThrow(() -> new DomainPackNotFoundException(command.packId()));
+
     DomainPackVersion version =
         versionRepository
             .findByIdAndWorkspaceId(command.workspaceId(), command.versionId())
@@ -65,7 +75,11 @@ public class ActivateDomainPackVersionUseCase {
       throw new DomainPackVersionNotFoundException(command.versionId());
     }
 
-    // lifecycle_status 전이: PUBLISHED가 아닌 모든 상태에서 허용 (U-001 Confirmed)
+    int maxVersionNo = versionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0);
+    if (version.getVersionNo() < maxVersionNo) {
+      throw new DomainPackVersionNotLatestException(command.versionId());
+    }
+
     try {
       version.activate(OffsetDateTime.now(clock));
     } catch (IllegalStateException e) {

@@ -2,8 +2,10 @@ package com.init.domainpack.infrastructure.persistence;
 
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,6 +19,24 @@ public interface JpaDomainPackVersionRepository
           + " AND EXISTS (SELECT p FROM DomainPackRef p WHERE p.id = v.domainPackId AND p.workspaceId = :workspaceId)")
   Optional<DomainPackVersion> findByIdAndWorkspaceId(
       @Param("workspaceId") Long workspaceId, @Param("versionId") Long versionId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT v FROM DomainPackVersion v WHERE v.id = :versionId")
+  Optional<DomainPackVersion> findByIdForUpdate(@Param("versionId") Long versionId);
+
+  @Query(
+      value =
+          """
+          SELECT *
+          FROM pack.domain_pack_version
+          WHERE domain_pack_id = :domainPackId
+            AND lifecycle_status = 'PUBLISHED'
+          ORDER BY version_no DESC
+          LIMIT 1
+          """,
+      nativeQuery = true)
+  Optional<DomainPackVersion> findCurrentPublishedByDomainPackId(
+      @Param("domainPackId") Long domainPackId);
 
   @Query("SELECT MAX(v.versionNo) FROM DomainPackVersion v WHERE v.domainPackId = :domainPackId")
   Optional<Integer> findMaxVersionNoByDomainPackId(@Param("domainPackId") Long domainPackId);

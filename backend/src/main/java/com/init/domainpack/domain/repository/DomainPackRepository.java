@@ -10,6 +10,8 @@ public interface DomainPackRepository {
 
   Optional<DomainPack> findByIdAndWorkspaceId(Long packId, Long workspaceId);
 
+  Optional<DomainPack> findByIdAndWorkspaceIdForUpdate(Long packId, Long workspaceId);
+
   List<DomainPack> findByWorkspaceId(Long workspaceId);
 
   Optional<DomainPackDraftEntryRow> findLatestDraftEntryByWorkspaceId(Long workspaceId);

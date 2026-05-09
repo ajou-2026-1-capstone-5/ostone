@@ -9,6 +9,8 @@ public interface PolicyDefinitionRepository {
 
   <S extends PolicyDefinition> List<S> saveAll(Iterable<S> entities);
 
+  <S extends PolicyDefinition> List<S> saveAllAndFlush(Iterable<S> entities);
+
   PolicyDefinition findByIdOrThrow(Long id);
 
   long countByDomainPackVersionId(Long domainPackVersionId);

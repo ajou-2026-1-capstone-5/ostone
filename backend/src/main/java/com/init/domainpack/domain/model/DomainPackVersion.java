@@ -113,16 +113,11 @@ public class DomainPackVersion {
     return v;
   }
 
-  /**
-   * PUBLISHED가 아닌 모든 상태에서 PUBLISHED로 전이한다 (U-001 Confirmed).
-   *
-   * @param now 활성화 시각
-   * @throws IllegalStateException 이미 PUBLISHED 상태인 경우
-   */
+  /** DRAFT 상태의 버전을 PUBLISHED로 전이한다. */
   public void activate(OffsetDateTime now) {
     Objects.requireNonNull(now, "publishedAt (now) must not be null");
-    if (STATUS_PUBLISHED.equals(this.lifecycleStatus)) {
-      throw new IllegalStateException("Domain pack version is already published");
+    if (!STATUS_DRAFT.equals(this.lifecycleStatus)) {
+      throw new IllegalStateException("DRAFT 상태의 version에서만 수행할 수 있습니다.");
     }
     this.lifecycleStatus = STATUS_PUBLISHED;
     this.publishedAt = now;

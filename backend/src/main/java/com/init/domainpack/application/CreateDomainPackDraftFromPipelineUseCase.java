@@ -28,12 +28,15 @@ public class CreateDomainPackDraftFromPipelineUseCase {
       CreateDomainPackDraftFromPipelineCommand command) {
     DomainPackResolution resolution = resolveDomainPack(command);
 
-    DomainPackVersion savedVersion =
+    PersistDomainPackVersionResult versionResult =
         domainPackDraftPersistenceService.persistVersion(
-            resolution.domainPack().getId(),
-            null,
-            command.sourcePipelineJobId(),
-            command.summaryJson());
+            new PersistDomainPackVersionCommand(
+                command.workspaceId(),
+                resolution.domainPack().getId(),
+                null,
+                command.sourcePipelineJobId(),
+                command.summaryJson()));
+    DomainPackVersion savedVersion = versionResult.version();
 
     return new CreateDomainPackDraftFromPipelineResult(
         resolution.domainPack().getId(),

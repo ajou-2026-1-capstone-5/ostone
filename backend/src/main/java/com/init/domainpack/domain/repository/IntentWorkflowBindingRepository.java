@@ -6,4 +6,8 @@ import java.util.List;
 public interface IntentWorkflowBindingRepository {
 
   <S extends IntentWorkflowBinding> List<S> saveAll(Iterable<S> entities);
+
+  <S extends IntentWorkflowBinding> List<S> saveAllAndFlush(Iterable<S> entities);
+
+  List<IntentWorkflowBinding> findAllByIntentDefinitionIdIn(List<Long> intentDefinitionIds);
 }

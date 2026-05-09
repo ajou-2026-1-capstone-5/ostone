@@ -25,13 +25,13 @@ class DomainPackVersionTest {
   }
 
   @Test
-  @DisplayName("activate: 이미 PUBLISHED 상태에서 호출 시 IllegalStateException 발생")
-  void should_예외발생_when_이미PUBLISHED() {
+  @DisplayName("activate: DRAFT가 아닌 상태에서 호출 시 IllegalStateException 발생")
+  void should_예외발생_when_DRAFT아님() {
     DomainPackVersion version = createPublishedVersion();
 
     assertThatThrownBy(() -> version.activate(OffsetDateTime.now()))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already published");
+        .hasMessageContaining("DRAFT 상태");
   }
 
   // ── factories ──────────────────────────────────────────────────────────────

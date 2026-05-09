@@ -1,7 +1,6 @@
 package com.init.domainpack.application;
 
 import com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException;
-import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionNotDraftException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
@@ -29,8 +28,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +43,7 @@ public class DomainPackDraftPersistenceService {
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
   private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
+  private final DomainPackVersionCloneService domainPackVersionCloneService;
 
   public DomainPackDraftPersistenceService(
       DomainPackVersionRepository domainPackVersionRepository,
@@ -55,7 +53,8 @@ public class DomainPackDraftPersistenceService {
       RiskDefinitionRepository riskDefinitionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      IntentWorkflowBindingRepository intentWorkflowBindingRepository) {
+      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
+      DomainPackVersionCloneService domainPackVersionCloneService) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.slotDefinitionRepository = slotDefinitionRepository;
@@ -64,24 +63,21 @@ public class DomainPackDraftPersistenceService {
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
     this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
+    this.domainPackVersionCloneService = domainPackVersionCloneService;
   }
 
   /** DRAFT 버전만 생성한다 (intent/slot/policy 등은 저장하지 않음). Airflow 파이프라인 콜백의 1단계에서 사용한다. */
   @Transactional
-  public DomainPackVersion persistVersion(
-      Long packId, Long createdBy, Long sourcePipelineJobId, String summaryJson) {
-    int nextVersionNo =
-        domainPackVersionRepository.findMaxVersionNoByDomainPackId(packId).orElse(0) + 1;
-
-    DomainPackVersion draftVersion =
-        DomainPackVersion.createDraft(
-            packId, nextVersionNo, createdBy, sourcePipelineJobId, summaryJson);
-
-    try {
-      return domainPackVersionRepository.saveAndFlush(draftVersion);
-    } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
-      throw new DomainPackVersionConflictException(packId, ex);
-    }
+  public PersistDomainPackVersionResult persistVersion(PersistDomainPackVersionCommand command) {
+    DomainPackVersion version =
+        domainPackVersionCloneService.createEmptyDraft(
+            new DomainPackVersionCreateCommand(
+                command.workspaceId(),
+                command.packId(),
+                command.createdBy(),
+                command.sourcePipelineJobId(),
+                command.summaryJson()));
+    return new PersistDomainPackVersionResult(version);
   }
 
   /** 기존 DRAFT 버전에 intent를 추가 저장한다. 이미 존재하는 intentCode는 건너뛴다. Airflow 파이프라인 콜백의 2단계에서 사용한다. */
@@ -153,30 +149,19 @@ public class DomainPackDraftPersistenceService {
 
   /** UI에서 수동으로 전체 draft를 한 번에 저장할 때 사용한다. */
   @Transactional
-  public CreateDomainPackDraftResult persist(
-      Long packId,
-      Long createdBy,
-      Long sourcePipelineJobId,
-      String summaryJson,
-      List<IntentDraft> intents,
-      List<CreateDomainPackDraftCommand.SlotDraft> slots,
-      List<CreateDomainPackDraftCommand.IntentSlotBindingDraft> intentSlotBindings,
-      List<CreateDomainPackDraftCommand.PolicyDraft> policies,
-      List<CreateDomainPackDraftCommand.RiskDraft> risks,
-      List<CreateDomainPackDraftCommand.WorkflowDraft> workflows,
-      List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
+  public CreateDomainPackDraftResult persist(CreateDomainPackDraftCommand command) {
     DraftComponentsInput components =
         new DraftComponentsInput(
-            toSlotInputs(slots),
-            toPolicyInputs(policies),
-            toRiskInputs(risks),
-            toWorkflowInputs(workflows),
-            toIntentSlotBindingInputs(intentSlotBindings),
-            toIntentWorkflowBindingInputs(intentWorkflowBindings));
+            toSlotInputs(command.slots()),
+            toPolicyInputs(command.policies()),
+            toRiskInputs(command.risks()),
+            toWorkflowInputs(command.workflows()),
+            toIntentSlotBindingInputs(command.intentSlotBindings()),
+            toIntentWorkflowBindingInputs(command.intentWorkflowBindings()));
     List<WorkflowInput> validatedWorkflows =
         validateDraftPayload(
             new DraftPayload(
-                intents,
+                command.intents(),
                 components.slots(),
                 components.intentSlotBindings(),
                 components.policies(),
@@ -185,23 +170,18 @@ public class DomainPackDraftPersistenceService {
                 components.intentWorkflowBindings()),
             Set.of());
 
-    int nextVersionNo =
-        domainPackVersionRepository.findMaxVersionNoByDomainPackId(packId).orElse(0) + 1;
-
-    DomainPackVersion draftVersion =
-        DomainPackVersion.createDraft(
-            packId, nextVersionNo, createdBy, sourcePipelineJobId, summaryJson);
-
-    DomainPackVersion savedVersion;
-    try {
-      savedVersion = domainPackVersionRepository.saveAndFlush(draftVersion);
-    } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
-      throw new DomainPackVersionConflictException(packId, ex);
-    }
+    DomainPackVersion savedVersion =
+        domainPackVersionCloneService.createEmptyDraft(
+            new DomainPackVersionCreateCommand(
+                command.workspaceId(),
+                command.packId(),
+                command.userId(),
+                command.sourcePipelineJobId(),
+                command.summaryJson()));
 
     List<IntentDefinition> savedIntents =
         intentDefinitionRepository.saveAllAndFlush(
-            safeList(intents).stream()
+            safeList(command.intents()).stream()
                 .map(
                     intent ->
                         IntentDefinition.create(
@@ -219,7 +199,7 @@ public class DomainPackDraftPersistenceService {
         indexByCode(savedIntents, IntentDefinition::getIntentCode);
 
     boolean hasParentIntent = false;
-    for (IntentDraft draft : safeList(intents)) {
+    for (IntentDraft draft : safeList(command.intents())) {
       if (draft.parentIntentCode() == null || draft.parentIntentCode().isBlank()) {
         continue;
       }

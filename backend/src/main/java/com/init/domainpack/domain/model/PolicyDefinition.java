@@ -106,6 +106,22 @@ public class PolicyDefinition {
     return entity;
   }
 
+  public static PolicyDefinition copyToVersion(PolicyDefinition source, Long domainPackVersionId) {
+    PolicyDefinition entity =
+        create(
+            domainPackVersionId,
+            source.policyCode,
+            source.name,
+            source.description,
+            source.severity,
+            source.conditionJson,
+            source.actionJson,
+            source.evidenceJson,
+            source.metaJson);
+    entity.changeStatus(source.getStatus());
+    return entity;
+  }
+
   public void updateFields(
       String name,
       String description,

@@ -8,7 +8,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
+import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
@@ -17,6 +19,7 @@ import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +51,27 @@ class DomainPackValidatorTest {
             domainPackRepository,
             domainPackVersionRepository,
             policyDefinitionRepository);
+  }
+
+  @Test
+  @DisplayName("domain pack row lock을 획득할 수 있으면 예외 없이 반환한다")
+  void lockDomainPack_whenPackExists_locksPack() {
+    given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
+        .willReturn(Optional.of(DomainPack.create(1L, "cs", "CS", null, 10L)));
+
+    assertThatCode(() -> validator.lockDomainPack(7L, 1L)).doesNotThrowAnyException();
+
+    verify(domainPackRepository).findByIdAndWorkspaceIdForUpdate(7L, 1L);
+  }
+
+  @Test
+  @DisplayName("lock 대상 domain pack이 없으면 예외를 던진다")
+  void lockDomainPack_whenPackMissing_throws() {
+    given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> validator.lockDomainPack(7L, 1L))
+        .isInstanceOf(DomainPackNotFoundException.class);
   }
 
   @Test

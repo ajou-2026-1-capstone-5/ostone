@@ -109,6 +109,22 @@ public class SlotDefinition {
     return entity;
   }
 
+  public static SlotDefinition copyToVersion(SlotDefinition source, Long domainPackVersionId) {
+    SlotDefinition entity =
+        create(
+            domainPackVersionId,
+            source.slotCode,
+            source.name,
+            source.description,
+            source.dataType,
+            source.isSensitive,
+            source.validationRuleJson,
+            source.defaultValueJson,
+            source.metaJson);
+    entity.changeStatus(source.getStatus());
+    return entity;
+  }
+
   public void updateFields(
       String name,
       String description,

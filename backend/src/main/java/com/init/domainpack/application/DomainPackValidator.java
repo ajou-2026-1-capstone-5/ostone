@@ -56,6 +56,12 @@ public class DomainPackValidator {
     }
   }
 
+  public void lockDomainPack(Long packId, Long workspaceId) {
+    domainPackRepository
+        .findByIdAndWorkspaceIdForUpdate(packId, workspaceId)
+        .orElseThrow(() -> new DomainPackNotFoundException(packId));
+  }
+
   public void validateVersion(Long versionId, Long packId) {
     DomainPackVersion version =
         domainPackVersionRepository

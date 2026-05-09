@@ -11,8 +11,11 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
+import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
@@ -39,6 +42,7 @@ class ActivateDomainPackVersionUseCaseTest {
   private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
 
   @Mock private DomainPackVersionRepository versionRepository;
+  @Mock private DomainPackRepository domainPackRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
@@ -48,7 +52,11 @@ class ActivateDomainPackVersionUseCaseTest {
   void setUp() {
     useCase =
         new ActivateDomainPackVersionUseCase(
-            versionRepository, workspaceExistencePort, workspaceMembershipPort, FIXED_CLOCK);
+            versionRepository,
+            domainPackRepository,
+            workspaceExistencePort,
+            workspaceMembershipPort,
+            FIXED_CLOCK);
   }
 
   @Test
@@ -56,9 +64,11 @@ class ActivateDomainPackVersionUseCaseTest {
   void should_PUBLISHED반환_when_유효한DRAFT() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
 
     DomainPackVersion saved = createSavedVersion(42L, 7L);
     given(versionRepository.saveAndFlush(any())).willReturn(saved);
@@ -102,6 +112,7 @@ class ActivateDomainPackVersionUseCaseTest {
   void should_버전없음예외발생_when_존재하지않는versionId() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -114,6 +125,7 @@ class ActivateDomainPackVersionUseCaseTest {
   void should_버전없음예외발생_when_packId불일치() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
 
     DomainPackVersion version = createDraftVersion(42L, 99L); // domainPackId=99, not 7
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
@@ -128,9 +140,11 @@ class ActivateDomainPackVersionUseCaseTest {
   void should_잘못된상태예외발생_when_이미PUBLISHED() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
 
     DomainPackVersion published = createPublishedVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(published));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -138,13 +152,33 @@ class ActivateDomainPackVersionUseCaseTest {
   }
 
   @Test
+  @DisplayName("최신 버전이 아니면 활성화 불가 → DomainPackVersionNotLatestException")
+  void should_최신버전아님예외발생_when_더높은versionNo존재() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
+
+    DomainPackVersion version = createDraftVersion(42L, 7L);
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(2));
+
+    assertThatThrownBy(
+            () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
+        .isInstanceOf(DomainPackVersionNotLatestException.class);
+
+    verify(versionRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
   @DisplayName("동시 활성화 충돌 → DomainPackVersionConflictException")
   void should_충돌예외발생_when_동시활성화충돌() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
     given(versionRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(DomainPackVersion.class, 42L));
 
@@ -163,6 +197,11 @@ class ActivateDomainPackVersionUseCaseTest {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private void givenPackLock() {
+    given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
+        .willReturn(Optional.of(DomainPack.create(1L, "cs", "CS", null, 10L)));
   }
 
   private DomainPackVersion createDraftVersion(Long id, Long domainPackId) {

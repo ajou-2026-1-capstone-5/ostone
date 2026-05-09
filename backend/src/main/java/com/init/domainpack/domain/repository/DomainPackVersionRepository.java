@@ -10,11 +10,21 @@ public interface DomainPackVersionRepository {
 
   Optional<DomainPackVersion> findByIdAndWorkspaceId(Long workspaceId, Long versionId);
 
+  Optional<DomainPackVersion> findByIdForUpdate(Long versionId);
+
+  Optional<DomainPackVersion> findCurrentPublishedByDomainPackId(Long domainPackId);
+
   List<DomainPackVersion> findAllByDomainPackIdOrderByVersionNoDesc(Long domainPackId);
 
   Optional<Integer> findMaxVersionNoByDomainPackId(Long domainPackId);
 
+  boolean existsByDomainPackIdAndLifecycleStatus(Long domainPackId, String lifecycleStatus);
+
   DomainPackVersion save(DomainPackVersion version);
 
   DomainPackVersion saveAndFlush(DomainPackVersion version);
+
+  void delete(DomainPackVersion version);
+
+  void flush();
 }
