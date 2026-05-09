@@ -259,6 +259,7 @@ class DemoDomainPackMockTest {
 
   private static void assertTerminalNodesHaveNoOutgoingEdges(
       JsonNode edges, List<String> terminalNodeIds) {
+    assertThat(terminalNodeIds).isNotEmpty();
     edges.forEach(edge -> assertThat(terminalNodeIds).doesNotContain(edge.path("from").asText()));
   }
 
