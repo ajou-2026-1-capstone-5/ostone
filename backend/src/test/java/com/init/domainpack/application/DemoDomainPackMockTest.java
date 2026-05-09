@@ -237,7 +237,8 @@ class DemoDomainPackMockTest {
     assertThat(terminalStates).containsExactlyInAnyOrderElementsOf(terminalNodeStates);
     assertThat(collectTextValues(nodes, "id")).doesNotHaveDuplicates();
     assertThat(collectTextValues(nodes, "type"))
-        .allSatisfy(type -> assertThat(Set.of("START", "TERMINAL", "DECISION", "ACTION")).contains(type));
+        .allSatisfy(
+            type -> assertThat(Set.of("START", "TERMINAL", "DECISION", "ACTION")).contains(type));
     assertThat(nodeIds).allSatisfy(nodeId -> assertThat(nodeId).matches("^[a-z][a-z0-9_]*$"));
     assertThat(collectTextValues(edges, "id")).doesNotHaveDuplicates();
     assertEdgesReferenceExistingNodes(edges, nodeIds);
