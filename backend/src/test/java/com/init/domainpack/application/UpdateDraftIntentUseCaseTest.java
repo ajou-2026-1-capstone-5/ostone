@@ -45,7 +45,7 @@ class UpdateDraftIntentUseCaseTest {
   void execute_success() {
     DomainPackVersion version = version(200L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition intent = intent(300L, 200L, IntentDefinition.STATUS_PUBLISHED);
-    given(versionRepository.findById(200L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(200L)).willReturn(Optional.of(version));
     given(intentRepository.findByIdAndDomainPackVersionId(300L, 200L))
         .willReturn(Optional.of(intent));
     given(intentRepository.save(any(IntentDefinition.class)))
@@ -66,7 +66,7 @@ class UpdateDraftIntentUseCaseTest {
   @DisplayName("DRAFT version이 아니면 intent 수정이 불가능하다")
   void execute_whenVersionIsNotDraft_throws() {
     DomainPackVersion version = version(200L, 7L, DomainPackVersion.STATUS_PUBLISHED);
-    given(versionRepository.findById(200L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(200L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(() -> executeWithJson("{\"ok\":true}", "{}"))
         .isInstanceOf(DomainPackVersionInvalidStateException.class);
@@ -77,7 +77,7 @@ class UpdateDraftIntentUseCaseTest {
   void execute_whenIntentIsNotPublished_throws() {
     DomainPackVersion version = version(200L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition intent = intent(300L, 200L, IntentDefinition.STATUS_DRAFT);
-    given(versionRepository.findById(200L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(200L)).willReturn(Optional.of(version));
     given(intentRepository.findByIdAndDomainPackVersionId(300L, 200L))
         .willReturn(Optional.of(intent));
 
@@ -90,7 +90,7 @@ class UpdateDraftIntentUseCaseTest {
   void execute_whenJsonIsNotObject_throwsBadRequest() {
     DomainPackVersion version = version(200L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition intent = intent(300L, 200L, IntentDefinition.STATUS_PUBLISHED);
-    given(versionRepository.findById(200L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(200L)).willReturn(Optional.of(version));
     given(intentRepository.findByIdAndDomainPackVersionId(300L, 200L))
         .willReturn(Optional.of(intent));
 
@@ -102,7 +102,7 @@ class UpdateDraftIntentUseCaseTest {
   void execute_whenDomainValidationFails_preservesCause() {
     DomainPackVersion version = version(200L, 7L, DomainPackVersion.STATUS_DRAFT);
     IntentDefinition intent = intent(300L, 200L, IntentDefinition.STATUS_PUBLISHED);
-    given(versionRepository.findById(200L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(200L)).willReturn(Optional.of(version));
     given(intentRepository.findByIdAndDomainPackVersionId(300L, 200L))
         .willReturn(Optional.of(intent));
 

@@ -41,7 +41,7 @@ public class UpdateDraftIntentUseCase {
 
     DomainPackVersion version =
         versionRepository
-            .findById(command.draftVersionId())
+            .findByIdForUpdate(command.draftVersionId())
             .orElseThrow(() -> new DomainPackVersionNotFoundException(command.draftVersionId()));
     if (!version.getDomainPackId().equals(command.packId())) {
       throw new DomainPackVersionNotFoundException(command.draftVersionId());
