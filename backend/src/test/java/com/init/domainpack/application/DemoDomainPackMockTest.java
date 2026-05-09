@@ -43,7 +43,7 @@ class DemoDomainPackMockTest {
           "workflows", new int[] {150, 159});
   private static final Map<String, String> RISK_POLICY_CODES =
       Map.of(
-          "high_value_cancel", "high_value_alert",
+          "high_value_cancel", "check_available",
           "address_fraud", "address_change_limit",
           "refund_delay", "refund_amount_check");
 
@@ -85,6 +85,8 @@ class DemoDomainPackMockTest {
     JsonNode root = loadRoot();
     List<Long> allIds = new ArrayList<>();
 
+    allIds.add(root.path("domainPack").path("id").asLong());
+    allIds.add(root.path("version").path("id").asLong());
     COLLECTION_FIELDS.forEach(
         field -> {
           List<Long> ids = collectLongValues(root.path(field), "id");
@@ -134,9 +136,17 @@ class DemoDomainPackMockTest {
     // 슬롯은 선택적일 수 있으므로 참조 무결성만 검증 (위 isSubsetOf에서 검증 완료)
     root.path("risks")
         .forEach(
-            risk ->
-                assertThat(policyCodes)
-                    .contains(RISK_POLICY_CODES.get(risk.path("riskCode").asText())));
+            risk -> {
+              String riskCode = risk.path("riskCode").asText();
+              String policyCode = RISK_POLICY_CODES.get(riskCode);
+
+              assertThat(policyCode)
+                  .withFailMessage(
+                      "Unknown risk code %s: no matching policy mapping in RISK_POLICY_CODES",
+                      riskCode)
+                  .isNotNull();
+              assertThat(policyCodes).contains(policyCode);
+            });
   }
 
   @Test
@@ -215,18 +225,26 @@ class DemoDomainPackMockTest {
     JsonNode edges = graphJson.path("edges");
     List<String> terminalNodeIds = collectNodeIdsByType(nodes, "TERMINAL");
     List<String> startNodeIds = collectNodeIdsByType(nodes, "START");
+    Set<String> terminalStates = collectTextValuesAsSet(workflow.path("terminalStatesJson"));
+    Set<String> terminalNodeStates = collectNodeStatesByType(nodes, "TERMINAL");
     Set<String> nodeIds = collectTextValuesAsSet(nodes, "id");
 
+    assertThat(graphJson.path("direction").asText()).isEqualTo("top-to-bottom");
     assertThat(nodes.isArray()).isTrue();
     assertThat(edges.isArray()).isTrue();
     assertThat(startNodeIds).hasSize(1);
     assertThat(terminalNodeIds).isNotEmpty();
+    assertThat(terminalStates).containsExactlyInAnyOrderElementsOf(terminalNodeStates);
     assertThat(collectTextValues(nodes, "id")).doesNotHaveDuplicates();
+    assertThat(collectTextValues(nodes, "type"))
+        .allSatisfy(type -> assertThat(Set.of("START", "TERMINAL", "DECISION", "ACTION")).contains(type));
+    assertThat(nodeIds).allSatisfy(nodeId -> assertThat(nodeId).matches("^[a-z][a-z0-9_]*$"));
     assertThat(collectTextValues(edges, "id")).doesNotHaveDuplicates();
     assertEdgesReferenceExistingNodes(edges, nodeIds);
     assertTerminalNodesHaveNoOutgoingEdges(edges, terminalNodeIds);
     assertDecisionNodesHaveValidOutgoingEdges(nodes, edges);
     assertActionPolicyRefsAreValid(nodes, policyCodes);
+    assertGraphHasNoCycle(startNodeIds.get(0), edges);
     assertThat(reachableNodeIds(startNodeIds.get(0), edges)).containsAll(nodeIds);
   }
 
@@ -262,12 +280,7 @@ class DemoDomainPackMockTest {
   }
 
   private static Set<String> reachableNodeIds(String startNodeId, JsonNode edges) {
-    Map<String, List<String>> nextNodeIdsByNodeId = new HashMap<>();
-    edges.forEach(
-        edge ->
-            nextNodeIdsByNodeId
-                .computeIfAbsent(edge.path("from").asText(), ignored -> new ArrayList<>())
-                .add(edge.path("to").asText()));
+    Map<String, List<String>> nextNodeIdsByNodeId = nextNodeIdsByNodeId(edges);
 
     Set<String> visited = new HashSet<>();
     ArrayDeque<String> queue = new ArrayDeque<>();
@@ -282,6 +295,43 @@ class DemoDomainPackMockTest {
     return visited;
   }
 
+  private static void assertGraphHasNoCycle(String startNodeId, JsonNode edges) {
+    assertThat(hasCycle(startNodeId, nextNodeIdsByNodeId(edges), new HashSet<>(), new HashSet<>()))
+        .isFalse();
+  }
+
+  private static boolean hasCycle(
+      String nodeId,
+      Map<String, List<String>> nextNodeIdsByNodeId,
+      Set<String> visited,
+      Set<String> stack) {
+    if (stack.contains(nodeId)) {
+      return true;
+    }
+    if (!visited.add(nodeId)) {
+      return false;
+    }
+
+    stack.add(nodeId);
+    for (String nextNodeId : nextNodeIdsByNodeId.getOrDefault(nodeId, List.of())) {
+      if (hasCycle(nextNodeId, nextNodeIdsByNodeId, visited, stack)) {
+        return true;
+      }
+    }
+    stack.remove(nodeId);
+    return false;
+  }
+
+  private static Map<String, List<String>> nextNodeIdsByNodeId(JsonNode edges) {
+    Map<String, List<String>> nextNodeIdsByNodeId = new HashMap<>();
+    edges.forEach(
+        edge ->
+            nextNodeIdsByNodeId
+                .computeIfAbsent(edge.path("from").asText(), ignored -> new ArrayList<>())
+                .add(edge.path("to").asText()));
+    return nextNodeIdsByNodeId;
+  }
+
   private static List<JsonNode> outgoingEdges(JsonNode edges, String nodeId) {
     return stream(edges).filter(edge -> nodeId.equals(edge.path("from").asText())).toList();
   }
@@ -291,6 +341,13 @@ class DemoDomainPackMockTest {
         .filter(node -> type.equals(node.path("type").asText()))
         .map(node -> node.path("id").asText())
         .toList();
+  }
+
+  private static Set<String> collectNodeStatesByType(JsonNode nodes, String type) {
+    return stream(nodes)
+        .filter(node -> type.equals(node.path("type").asText()))
+        .map(node -> node.path("state").asText())
+        .collect(Collectors.toSet());
   }
 
   private static List<Long> collectLongValues(JsonNode array, String field) {
@@ -303,6 +360,10 @@ class DemoDomainPackMockTest {
 
   private static Set<Long> collectLongValuesAsSet(JsonNode array) {
     return stream(array).map(JsonNode::asLong).collect(Collectors.toSet());
+  }
+
+  private static Set<String> collectTextValuesAsSet(JsonNode array) {
+    return stream(array).map(JsonNode::asText).collect(Collectors.toSet());
   }
 
   private static List<String> collectTextValues(JsonNode array, String field) {
