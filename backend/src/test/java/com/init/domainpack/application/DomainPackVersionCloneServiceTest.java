@@ -114,8 +114,8 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0)));
     given(slotRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignSlotIds(invocation.getArgument(0)));
-    given(policyRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
-    given(riskRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+    given(policyRepository.saveAllAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
+    given(riskRepository.saveAllAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
     given(workflowRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0)));
     given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -59,6 +60,15 @@ class CreateRestoreDraftUseCaseTest {
     assertThat(result.draftVersion().versionId()).isEqualTo(200L);
     assertThat(result.draftVersion().sourceType()).isEqualTo("RESTORE");
     verify(validator).lockDomainPack(7L, 1L);
+    ArgumentCaptor<DomainPackVersionCloneCommand> captor =
+        ArgumentCaptor.forClass(DomainPackVersionCloneCommand.class);
+    verify(cloneService).cloneVersion(captor.capture());
+    assertThat(captor.getValue().workspaceId()).isEqualTo(1L);
+    assertThat(captor.getValue().packId()).isEqualTo(7L);
+    assertThat(captor.getValue().baseVersion()).isSameAs(base);
+    assertThat(captor.getValue().createdBy()).isEqualTo(10L);
+    assertThat(captor.getValue().sourceType()).isEqualTo(DomainPackDraftSourceType.RESTORE);
+    assertThat(captor.getValue().reason()).isEqualTo("복원");
   }
 
   @Test

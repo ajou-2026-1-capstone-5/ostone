@@ -68,6 +68,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
 
     DomainPackVersion saved = createSavedVersion(42L, 7L);
     given(versionRepository.saveAndFlush(any())).willReturn(saved);
@@ -143,6 +144,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
     DomainPackVersion published = createPublishedVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(published));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -176,6 +178,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
     given(versionRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(DomainPackVersion.class, 42L));
 

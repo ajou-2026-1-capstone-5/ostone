@@ -1,6 +1,7 @@
 package com.init.domainpack.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.application.exception.DomainPackDraftAlreadyExistsException;
@@ -165,11 +166,11 @@ public class DomainPackVersionCloneService {
             SlotDefinition::getId,
             "slotCode");
 
-    policyRepository.saveAll(
+    policyRepository.saveAllAndFlush(
         sourcePolicies.stream()
             .map(policy -> PolicyDefinition.copyToVersion(policy, targetVersionId))
             .toList());
-    riskRepository.saveAll(
+    riskRepository.saveAllAndFlush(
         sourceRisks.stream()
             .map(risk -> RiskDefinition.copyToVersion(risk, targetVersionId))
             .toList());
@@ -246,23 +247,36 @@ public class DomainPackVersionCloneService {
 
   private String buildSummaryJson(
       DomainPackVersion baseVersion, DomainPackDraftSourceType sourceType, String reason) {
-    try {
-      ObjectNode root =
-          baseVersion.getSummaryJson() == null || baseVersion.getSummaryJson().isBlank()
-              ? objectMapper.createObjectNode()
-              : (ObjectNode) objectMapper.readTree(baseVersion.getSummaryJson());
-      ObjectNode draftSource = objectMapper.createObjectNode();
-      draftSource.put("type", sourceType.name());
-      draftSource.put("baseVersionId", baseVersion.getId());
-      draftSource.put("baseVersionNo", baseVersion.getVersionNo());
-      if (reason != null) {
-        draftSource.put("reason", reason);
-      }
-      root.set("draftSource", draftSource);
-      return objectMapper.writeValueAsString(root);
-    } catch (ClassCastException | JsonProcessingException ex) {
-      throw new DomainPackDraftRequestInvalidException("summaryJson은 JSON object 문자열이어야 합니다.", ex);
+    ObjectNode root = readSummaryRoot(baseVersion.getSummaryJson());
+    ObjectNode draftSource = objectMapper.createObjectNode();
+    draftSource.put("type", sourceType.name());
+    draftSource.put("baseVersionId", baseVersion.getId());
+    draftSource.put("baseVersionNo", baseVersion.getVersionNo());
+    if (reason != null) {
+      draftSource.put("reason", reason);
     }
+    root.set("draftSource", draftSource);
+    try {
+      return objectMapper.writeValueAsString(root);
+    } catch (JsonProcessingException ex) {
+      throw new DomainPackDraftRequestInvalidException("summaryJson 직렬화에 실패했습니다.", ex);
+    }
+  }
+
+  private ObjectNode readSummaryRoot(String summaryJson) {
+    if (summaryJson == null || summaryJson.isBlank()) {
+      return objectMapper.createObjectNode();
+    }
+    JsonNode node;
+    try {
+      node = objectMapper.readTree(summaryJson);
+    } catch (JsonProcessingException ex) {
+      throw new DomainPackDraftRequestInvalidException("summaryJson은 유효한 JSON이어야 합니다.", ex);
+    }
+    if (!node.isObject()) {
+      throw new DomainPackDraftRequestInvalidException("summaryJson은 JSON object 문자열이어야 합니다.");
+    }
+    return (ObjectNode) node;
   }
 
   private <T> Map<String, T> indexBy(

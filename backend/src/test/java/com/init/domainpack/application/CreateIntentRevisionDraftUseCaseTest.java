@@ -61,8 +61,12 @@ class CreateIntentRevisionDraftUseCaseTest {
     ArgumentCaptor<DomainPackVersionCloneCommand> captor =
         ArgumentCaptor.forClass(DomainPackVersionCloneCommand.class);
     verify(cloneService).cloneVersion(captor.capture());
+    assertThat(captor.getValue().workspaceId()).isEqualTo(1L);
+    assertThat(captor.getValue().packId()).isEqualTo(7L);
     assertThat(captor.getValue().baseVersion()).isSameAs(base);
+    assertThat(captor.getValue().createdBy()).isEqualTo(10L);
     assertThat(captor.getValue().sourceType()).isEqualTo(DomainPackDraftSourceType.INTENT_REVISION);
+    assertThat(captor.getValue().reason()).isEqualTo("보정");
   }
 
   @Test
