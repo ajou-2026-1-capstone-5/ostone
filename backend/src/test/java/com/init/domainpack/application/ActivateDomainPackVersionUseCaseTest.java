@@ -11,6 +11,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
+import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
@@ -146,6 +147,24 @@ class ActivateDomainPackVersionUseCaseTest {
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
         .isInstanceOf(DomainPackVersionInvalidStateException.class);
+  }
+
+  @Test
+  @DisplayName("최신 버전이 아니면 활성화 불가 → DomainPackVersionNotLatestException")
+  void should_최신버전아님예외발생_when_더높은versionNo존재() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
+
+    DomainPackVersion version = createDraftVersion(42L, 7L);
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(2));
+
+    assertThatThrownBy(
+            () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
+        .isInstanceOf(DomainPackVersionNotLatestException.class);
+
+    verify(versionRepository, never()).saveAndFlush(any());
   }
 
   @Test
