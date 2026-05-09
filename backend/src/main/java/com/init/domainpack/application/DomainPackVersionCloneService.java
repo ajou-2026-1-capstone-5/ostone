@@ -153,7 +153,7 @@ public class DomainPackVersionCloneService {
     remapParentIntents(sourceIntents, copiedIntentsByCode, intentIdMap);
 
     List<SlotDefinition> copiedSlots =
-        slotRepository.saveAll(
+        slotRepository.saveAllAndFlush(
             sourceSlots.stream()
                 .map(slot -> SlotDefinition.copyToVersion(slot, targetVersionId))
                 .toList());
@@ -175,7 +175,7 @@ public class DomainPackVersionCloneService {
             .toList());
 
     List<WorkflowDefinition> copiedWorkflows =
-        workflowRepository.saveAll(
+        workflowRepository.saveAllAndFlush(
             sourceWorkflows.stream()
                 .map(workflow -> WorkflowDefinition.copyToVersion(workflow, targetVersionId))
                 .toList());

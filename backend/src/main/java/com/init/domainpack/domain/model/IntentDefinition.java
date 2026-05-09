@@ -128,7 +128,9 @@ public class IntentDefinition {
             source.entryConditionJson,
             source.evidenceJson,
             source.metaJson);
-    entity.changeStatus(source.getStatus());
+    if (!STATUS_DRAFT.equals(source.getStatus())) {
+      entity.changeStatus(source.getStatus());
+    }
     return entity;
   }
 

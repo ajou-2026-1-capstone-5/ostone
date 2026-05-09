@@ -1,9 +1,9 @@
 package com.init.domainpack.application.exception;
 
-import com.init.shared.application.exception.DuplicateException;
+import com.init.shared.application.exception.BadRequestException;
 
 @SuppressWarnings("java:S110")
-public class DomainPackVersionNotLatestException extends DuplicateException {
+public class DomainPackVersionNotLatestException extends BadRequestException {
 
   public DomainPackVersionNotLatestException(Long versionId) {
     super(

@@ -79,6 +79,7 @@ class DomainPackVersionCloneServiceTest {
         version(100L, 7L, 2, DomainPackVersion.STATUS_PUBLISHED, "{\"origin\":\"manual\"}");
     IntentDefinition parent = intent(11L, 100L, "refund", "환불", null);
     IntentDefinition child = intent(12L, 100L, "refund_cancel", "환불 취소", 11L);
+    ReflectionTestUtils.setField(child, "status", IntentDefinition.STATUS_DRAFT);
     SlotDefinition slot = slot(21L, 100L, "order_id");
     PolicyDefinition policy = policy(31L, 100L, "refund_policy");
     RiskDefinition risk = risk(41L, 100L, "fraud_risk");
@@ -111,11 +112,11 @@ class DomainPackVersionCloneServiceTest {
     given(workflowRepository.findAllByDomainPackVersionId(100L)).willReturn(List.of(workflow));
     given(intentRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0)));
-    given(slotRepository.saveAll(any()))
+    given(slotRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignSlotIds(invocation.getArgument(0)));
     given(policyRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
     given(riskRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
-    given(workflowRepository.saveAll(any()))
+    given(workflowRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0)));
     given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))
         .willReturn(List.of(slotBinding));
