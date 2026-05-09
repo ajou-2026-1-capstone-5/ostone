@@ -27,6 +27,7 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -156,7 +157,12 @@ public class DomainPackVersionCloneService {
                 .map(slot -> SlotDefinition.copyToVersion(slot, targetVersionId))
                 .toList());
     Map<Long, Long> slotIdMap =
-        mapIdsByCode(sourceSlots, copiedSlots, SlotDefinition::getSlotCode, "slotCode");
+        mapIdsByCode(
+            sourceSlots,
+            copiedSlots,
+            SlotDefinition::getSlotCode,
+            SlotDefinition::getId,
+            "slotCode");
 
     policyRepository.saveAll(
         sourcePolicies.stream()
@@ -174,7 +180,11 @@ public class DomainPackVersionCloneService {
                 .toList());
     Map<Long, Long> workflowIdMap =
         mapIdsByCode(
-            sourceWorkflows, copiedWorkflows, WorkflowDefinition::getWorkflowCode, "workflowCode");
+            sourceWorkflows,
+            copiedWorkflows,
+            WorkflowDefinition::getWorkflowCode,
+            WorkflowDefinition::getId,
+            "workflowCode");
 
     cloneBindings(sourceIntents, intentIdMap, slotIdMap, workflowIdMap);
   }
@@ -255,7 +265,7 @@ public class DomainPackVersionCloneService {
   }
 
   private <T> Map<String, T> indexBy(
-      List<T> values, java.util.function.Function<T, String> keyExtractor, String fieldName) {
+      List<T> values, Function<T, String> keyExtractor, String fieldName) {
     Map<String, T> indexed = new LinkedHashMap<>();
     for (T value : values) {
       String key = keyExtractor.apply(value);
@@ -269,7 +279,8 @@ public class DomainPackVersionCloneService {
   private <T> Map<Long, Long> mapIdsByCode(
       List<T> sources,
       List<T> copies,
-      java.util.function.Function<T, String> codeExtractor,
+      Function<T, String> codeExtractor,
+      Function<T, Long> idExtractor,
       String fieldName) {
     Map<String, T> copiesByCode = indexBy(copies, codeExtractor, fieldName);
     Map<Long, Long> idMap = new LinkedHashMap<>();
@@ -278,7 +289,7 @@ public class DomainPackVersionCloneService {
       if (copy == null) {
         throw new DomainPackDraftRequestInvalidException(fieldName + " 복제 매핑에 실패했습니다.");
       }
-      idMap.put(entityId(source), entityId(copy));
+      idMap.put(idExtractor.apply(source), idExtractor.apply(copy));
     }
     return idMap;
   }
@@ -289,18 +300,5 @@ public class DomainPackVersionCloneService {
       throw new DomainPackDraftRequestInvalidException(resourceName + " 복제 매핑에 실패했습니다.");
     }
     return mappedId;
-  }
-
-  private Long entityId(Object entity) {
-    if (entity instanceof IntentDefinition value) {
-      return value.getId();
-    }
-    if (entity instanceof SlotDefinition value) {
-      return value.getId();
-    }
-    if (entity instanceof WorkflowDefinition value) {
-      return value.getId();
-    }
-    throw new IllegalArgumentException("Unsupported entity: " + entity.getClass().getName());
   }
 }
