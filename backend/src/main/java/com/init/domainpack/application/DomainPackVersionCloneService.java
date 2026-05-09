@@ -89,10 +89,10 @@ public class DomainPackVersionCloneService {
     DomainPackVersion savedDraft;
     try {
       savedDraft = versionRepository.saveAndFlush(draft);
-      cloneComponents(command.baseVersion().getId(), savedDraft.getId());
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
       throw new DomainPackVersionConflictException(command.packId(), ex);
     }
+    cloneComponents(command.baseVersion().getId(), savedDraft.getId());
 
     return DomainPackVersionCloneResult.from(
         savedDraft, command.sourceType(), command.baseVersion(), command.reason());
