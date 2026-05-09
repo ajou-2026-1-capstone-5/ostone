@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.application.exception.RestoreSourceNotPreviousPublishedException;
 import com.init.domainpack.application.exception.RestoreSourceNotPublishedException;
@@ -57,6 +58,7 @@ class CreateRestoreDraftUseCaseTest {
 
     assertThat(result.draftVersion().versionId()).isEqualTo(200L);
     assertThat(result.draftVersion().sourceType()).isEqualTo("RESTORE");
+    verify(validator).lockDomainPack(7L, 1L);
   }
 
   @Test

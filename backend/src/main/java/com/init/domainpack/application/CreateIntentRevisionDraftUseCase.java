@@ -30,7 +30,7 @@ public class CreateIntentRevisionDraftUseCase {
   @Transactional
   public IntentRevisionDraftResult execute(CreateIntentRevisionDraftCommand command) {
     validator.validateWorkspaceAccess(command.workspaceId(), command.userId());
-    validator.validateDomainPack(command.packId(), command.workspaceId());
+    validator.lockDomainPack(command.packId(), command.workspaceId());
     validateReason(command.reason());
 
     DomainPackVersion baseVersion =

@@ -57,6 +57,7 @@ class CreateIntentRevisionDraftUseCaseTest {
 
     assertThat(result.draftVersion().versionId()).isEqualTo(200L);
     assertThat(result.draftVersion().sourceType()).isEqualTo("INTENT_REVISION");
+    verify(validator).lockDomainPack(7L, 1L);
     ArgumentCaptor<DomainPackVersionCloneCommand> captor =
         ArgumentCaptor.forClass(DomainPackVersionCloneCommand.class);
     verify(cloneService).cloneVersion(captor.capture());

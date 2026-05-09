@@ -1,5 +1,6 @@
 package com.init.domainpack.application;
 
+import com.init.domainpack.application.exception.DomainPackNotFoundException;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
@@ -8,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackVersionNotLatestExcep
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkspaceMemberRole;
+import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
@@ -26,16 +28,19 @@ public class ActivateDomainPackVersionUseCase {
       Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final DomainPackVersionRepository versionRepository;
+  private final DomainPackRepository domainPackRepository;
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
+      DomainPackRepository domainPackRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort,
       Clock clock) {
     this.versionRepository = versionRepository;
+    this.domainPackRepository = domainPackRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.clock = clock;
@@ -55,6 +60,10 @@ public class ActivateDomainPackVersionUseCase {
       throw new DomainPackUnauthorizedWorkspaceAccessException(
           "워크스페이스에 접근 권한이 없습니다. workspaceId=" + command.workspaceId());
     }
+
+    domainPackRepository
+        .findByIdAndWorkspaceIdForUpdate(command.packId(), command.workspaceId())
+        .orElseThrow(() -> new DomainPackNotFoundException(command.packId()));
 
     DomainPackVersion version =
         versionRepository
