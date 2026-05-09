@@ -118,7 +118,7 @@ public class RiskDefinition {
             source.handlingActionJson,
             source.evidenceJson,
             source.metaJson);
-    entity.status = source.status;
+    entity.changeStatus(source.getStatus());
     return entity;
   }
 

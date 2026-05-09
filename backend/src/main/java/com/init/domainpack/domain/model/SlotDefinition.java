@@ -121,7 +121,7 @@ public class SlotDefinition {
             source.validationRuleJson,
             source.defaultValueJson,
             source.metaJson);
-    entity.status = source.status;
+    entity.changeStatus(source.getStatus());
     return entity;
   }
 
