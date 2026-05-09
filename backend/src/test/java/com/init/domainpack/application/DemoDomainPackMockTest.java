@@ -134,7 +134,9 @@ class DemoDomainPackMockTest {
     // 슬롯은 선택적일 수 있으므로 참조 무결성만 검증 (위 isSubsetOf에서 검증 완료)
     root.path("risks")
         .forEach(
-            risk -> assertThat(policyCodes).contains(RISK_POLICY_CODES.get(risk.path("riskCode").asText())));
+            risk ->
+                assertThat(policyCodes)
+                    .contains(RISK_POLICY_CODES.get(risk.path("riskCode").asText())));
   }
 
   @Test
@@ -193,7 +195,8 @@ class DemoDomainPackMockTest {
   }
 
   private static JsonNode loadRoot() throws Exception {
-    try (InputStream inputStream = DemoDomainPackMockTest.class.getResourceAsStream(RESOURCE_PATH)) {
+    try (InputStream inputStream =
+        DemoDomainPackMockTest.class.getResourceAsStream(RESOURCE_PATH)) {
       assertThat(inputStream).isNotNull();
       return OBJECT_MAPPER.readTree(inputStream);
     }
@@ -235,7 +238,8 @@ class DemoDomainPackMockTest {
         });
   }
 
-  private static void assertTerminalNodesHaveNoOutgoingEdges(JsonNode edges, List<String> terminalNodeIds) {
+  private static void assertTerminalNodesHaveNoOutgoingEdges(
+      JsonNode edges, List<String> terminalNodeIds) {
     edges.forEach(edge -> assertThat(terminalNodeIds).doesNotContain(edge.path("from").asText()));
   }
 
