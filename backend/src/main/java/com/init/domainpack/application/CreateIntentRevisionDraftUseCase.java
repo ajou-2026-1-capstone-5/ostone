@@ -6,7 +6,6 @@ import com.init.domainpack.application.exception.DomainPackVersionNotCurrentExce
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
-import com.init.shared.application.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,7 @@ public class CreateIntentRevisionDraftUseCase {
   public IntentRevisionDraftResult execute(CreateIntentRevisionDraftCommand command) {
     validator.validateWorkspaceAccess(command.workspaceId(), command.userId());
     validator.lockDomainPack(command.packId(), command.workspaceId());
-    validateReason(command.reason());
+    DomainPackDraftReasonValidator.validate(command.reason());
 
     DomainPackVersion baseVersion =
         versionRepository
@@ -62,11 +61,5 @@ public class CreateIntentRevisionDraftUseCase {
                 DomainPackDraftSourceType.INTENT_REVISION,
                 command.reason()));
     return IntentRevisionDraftResult.from(result);
-  }
-
-  private void validateReason(String reason) {
-    if (reason != null && reason.length() > 1000) {
-      throw new BadRequestException("VALIDATION_ERROR", "reason은 1000자 이하여야 합니다.");
-    }
   }
 }

@@ -100,17 +100,21 @@ public class DomainPackVersionCloneService {
   }
 
   @Transactional
-  public DomainPackVersion createEmptyDraft(
-      Long workspaceId, Long packId, Long createdBy, Long sourcePipelineJobId, String summaryJson) {
-    lockPackAndEnsureNoDraft(workspaceId, packId);
-    int nextVersionNo = versionRepository.findMaxVersionNoByDomainPackId(packId).orElse(0) + 1;
+  public DomainPackVersion createEmptyDraft(DomainPackVersionCreateCommand command) {
+    lockPackAndEnsureNoDraft(command.workspaceId(), command.packId());
+    int nextVersionNo =
+        versionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0) + 1;
     DomainPackVersion draft =
         DomainPackVersion.createDraft(
-            packId, nextVersionNo, createdBy, sourcePipelineJobId, summaryJson);
+            command.packId(),
+            nextVersionNo,
+            command.createdBy(),
+            command.sourcePipelineJobId(),
+            command.summaryJson());
     try {
       return versionRepository.saveAndFlush(draft);
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
-      throw new DomainPackVersionConflictException(packId, ex);
+      throw new DomainPackVersionConflictException(command.packId(), ex);
     }
   }
 

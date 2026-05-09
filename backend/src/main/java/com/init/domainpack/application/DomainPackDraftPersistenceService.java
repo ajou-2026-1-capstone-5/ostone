@@ -71,11 +71,12 @@ public class DomainPackDraftPersistenceService {
   public PersistDomainPackVersionResult persistVersion(PersistDomainPackVersionCommand command) {
     DomainPackVersion version =
         domainPackVersionCloneService.createEmptyDraft(
-            command.workspaceId(),
-            command.packId(),
-            command.createdBy(),
-            command.sourcePipelineJobId(),
-            command.summaryJson());
+            new DomainPackVersionCreateCommand(
+                command.workspaceId(),
+                command.packId(),
+                command.createdBy(),
+                command.sourcePipelineJobId(),
+                command.summaryJson()));
     return new PersistDomainPackVersionResult(version);
   }
 
@@ -171,11 +172,12 @@ public class DomainPackDraftPersistenceService {
 
     DomainPackVersion savedVersion =
         domainPackVersionCloneService.createEmptyDraft(
-            command.workspaceId(),
-            command.packId(),
-            command.userId(),
-            command.sourcePipelineJobId(),
-            command.summaryJson());
+            new DomainPackVersionCreateCommand(
+                command.workspaceId(),
+                command.packId(),
+                command.userId(),
+                command.sourcePipelineJobId(),
+                command.summaryJson()));
 
     List<IntentDefinition> savedIntents =
         intentDefinitionRepository.saveAllAndFlush(

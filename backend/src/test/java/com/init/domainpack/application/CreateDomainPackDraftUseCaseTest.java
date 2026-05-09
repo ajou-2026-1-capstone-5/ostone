@@ -124,7 +124,7 @@ class CreateDomainPackDraftUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
     given(
             domainPackVersionCloneService.createEmptyDraft(
-                1L, 7L, 10L, 55L, "{\"summary\":\"draft\"}"))
+                new DomainPackVersionCreateCommand(1L, 7L, 10L, 55L, "{\"summary\":\"draft\"}")))
         .willReturn(createSavedVersion(101L, 7L, 3));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L, 1002L)))
@@ -164,7 +164,7 @@ class CreateDomainPackDraftUseCaseTest {
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
 
     verify(domainPackVersionCloneService, never())
-        .createEmptyDraft(any(), any(), any(), any(), any());
+        .createEmptyDraft(any(DomainPackVersionCreateCommand.class));
   }
 
   @Test
@@ -178,7 +178,7 @@ class CreateDomainPackDraftUseCaseTest {
         .isInstanceOf(DomainPackNotFoundException.class);
 
     verify(domainPackVersionCloneService, never())
-        .createEmptyDraft(any(), any(), any(), any(), any());
+        .createEmptyDraft(any(DomainPackVersionCreateCommand.class));
   }
 
   @Test
@@ -187,7 +187,9 @@ class CreateDomainPackDraftUseCaseTest {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(domainPackRepository.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
-    given(domainPackVersionCloneService.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+    given(
+            domainPackVersionCloneService.createEmptyDraft(
+                new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .willReturn(createSavedVersion(101L, 7L, 1));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L)));
@@ -556,7 +558,9 @@ class CreateDomainPackDraftUseCaseTest {
   }
 
   private void stubSaveAll() {
-    given(domainPackVersionCloneService.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+    given(
+            domainPackVersionCloneService.createEmptyDraft(
+                new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .willReturn(createSavedVersion(101L, 7L, 3));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));

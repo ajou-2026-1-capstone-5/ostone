@@ -114,8 +114,10 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0)));
     given(slotRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignSlotIds(invocation.getArgument(0)));
-    given(policyRepository.saveAllAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
-    given(riskRepository.saveAllAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
+    given(policyRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(riskRepository.saveAllAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
     given(workflowRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0)));
     given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))
@@ -158,7 +160,10 @@ class DomainPackVersionCloneServiceTest {
                 7L, DomainPackVersion.STATUS_DRAFT))
         .willReturn(true);
 
-    assertThatThrownBy(() -> service.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+    assertThatThrownBy(
+            () ->
+                service.createEmptyDraft(
+                    new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .isInstanceOf(DomainPackDraftAlreadyExistsException.class);
   }
 
@@ -175,7 +180,10 @@ class DomainPackVersionCloneServiceTest {
     given(versionRepository.saveAndFlush(any(DomainPackVersion.class)))
         .willThrow(new DataIntegrityViolationException("duplicate"));
 
-    assertThatThrownBy(() -> service.createEmptyDraft(1L, 7L, 10L, null, "{}"))
+    assertThatThrownBy(
+            () ->
+                service.createEmptyDraft(
+                    new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .isInstanceOf(DomainPackVersionConflictException.class);
   }
 
