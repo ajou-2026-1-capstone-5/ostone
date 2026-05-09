@@ -25,4 +25,6 @@ public interface DomainPackVersionRepository {
   DomainPackVersion saveAndFlush(DomainPackVersion version);
 
   void delete(DomainPackVersion version);
+
+  void flush();
 }

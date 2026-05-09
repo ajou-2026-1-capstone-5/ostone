@@ -47,6 +47,7 @@ public class DiscardDraftVersionUseCase {
     }
     try {
       versionRepository.delete(version);
+      versionRepository.flush();
     } catch (DataIntegrityViolationException ex) {
       throw new DomainPackDraftInUseException(version.getId(), ex);
     }
