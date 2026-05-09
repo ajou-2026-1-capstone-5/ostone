@@ -106,7 +106,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
             "환불 요청을 접수하고 금액, 기한, 고액 알림 조건을 확인하는 워크플로우",
             graphJson,
             "start",
-            "[\"refund_requested\",\"rejected\"]",
+            "[\"end_requested\",\"end_rejected\"]",
             "[]",
             "{}");
     WorkflowDefinition savedWorkflow = workflowDefinitionRepository.save(workflow);
@@ -121,10 +121,10 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
     intentWorkflowBindingRepository.saveAll(
         List.of(IntentWorkflowBinding.create(savedIntent.getId(), savedWorkflow.getId(), true, "{}")));
 
-    seedChatMessages();
+    seedChatMessages(savedWorkflow.getId());
   }
 
-  private void seedChatMessages() {
+  private void seedChatMessages(Long workflowId) {
     ChatSession session =
         ChatSession.create(
             1L,
@@ -141,7 +141,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         "TEXT",
         "환불 요청합니다",
         "{\"workflowCode\":\"refund_request_flow\",\"workflowId\":"
-            + WORKFLOW_ID
+            + workflowId
             + ",\"currentNodeId\":\"start\"}");
     saveMessage(
         savedSession.getId(),
@@ -150,7 +150,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         "TEXT",
         "주문번호와 환불 예상 금액을 확인하겠습니다.",
         "{\"workflowCode\":\"refund_request_flow\",\"workflowId\":"
-            + WORKFLOW_ID
+            + workflowId
             + ",\"incomingEdgeId\":\"e1\",\"currentNodeId\":\"n1\",\"policyRef\":\"refund_amount_check\"}");
     saveMessage(
         savedSession.getId(),
@@ -159,7 +159,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         "TEXT",
         "환불 가능 금액이 확인되었습니다. 반품 가능 기한을 이어서 확인하겠습니다.",
         "{\"workflowCode\":\"refund_request_flow\",\"workflowId\":"
-            + WORKFLOW_ID
+            + workflowId
             + ",\"incomingEdgeId\":\"e3\",\"currentNodeId\":\"n3\",\"policyRef\":\"return_deadline_check\"}");
     saveMessage(
         savedSession.getId(),
@@ -168,7 +168,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         "SYSTEM",
         "고객명과 연락처 확인 완료. 고액 환불 알림 대상입니다.",
         "{\"workflowCode\":\"refund_request_flow\",\"workflowId\":"
-            + WORKFLOW_ID
+            + workflowId
             + ",\"incomingEdgeId\":\"e6\",\"currentNodeId\":\"n5\",\"policyRef\":\"high_value_alert\"}");
     saveMessage(
         savedSession.getId(),
@@ -177,7 +177,7 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         "TEXT",
         "환불 요청이 접수되었습니다. 처리 결과는 등록된 연락처로 안내드리겠습니다.",
         "{\"workflowCode\":\"refund_request_flow\",\"workflowId\":"
-            + WORKFLOW_ID
+            + workflowId
             + ",\"incomingEdgeId\":\"e8\",\"currentNodeId\":\"end_requested\"}");
   }
 
