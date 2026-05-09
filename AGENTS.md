@@ -409,6 +409,14 @@ type(scope): subject
 - `chore/*`, `docs/*` → 스펙 불필요
 - `main` → 직접 push 금지
 
+**스펙 파일명 규칙**:
+
+- 스펙 파일 경로: `.agent/specs/{이슈번호}.md`
+- CI `spec-check`가 정확히 `.agent/specs/${ISSUE_NUM}.md` 파일을 찾으므로, 파일명은 **반드시 이슈 번호만** 포함해야 한다.
+- ✅ 올바른 예: `.agent/specs/4.1.3.md`
+- ❌ 잘못된 예: `.agent/specs/4.1.3-demo-runtime-domain-pack-mock.md`
+- `spec/{번호}` 브랜치에서 스펙을 작성할 때 파일명을 `{번호}.md`로 생성한다
+
 ---
 
 ## 참고
