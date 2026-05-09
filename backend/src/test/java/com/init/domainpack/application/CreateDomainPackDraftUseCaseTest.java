@@ -163,7 +163,8 @@ class CreateDomainPackDraftUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
 
-    verify(domainPackVersionRepository, never()).saveAndFlush(any());
+    verify(domainPackVersionCloneService, never())
+        .createEmptyDraft(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -175,6 +176,9 @@ class CreateDomainPackDraftUseCaseTest {
 
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(DomainPackNotFoundException.class);
+
+    verify(domainPackVersionCloneService, never())
+        .createEmptyDraft(any(), any(), any(), any(), any());
   }
 
   @Test

@@ -3,7 +3,9 @@ package com.init.domainpack.application;
 import com.init.domainpack.domain.model.DomainPackVersion;
 
 public record DomainPackVersionCloneResult(
-    DomainPackVersion draftVersion,
+    Long draftVersionId,
+    Integer draftVersionNo,
+    String draftLifecycleStatus,
     DomainPackDraftSourceType sourceType,
     Long baseVersionId,
     Integer baseVersionNo,
@@ -15,6 +17,12 @@ public record DomainPackVersionCloneResult(
       DomainPackVersion baseVersion,
       String reason) {
     return new DomainPackVersionCloneResult(
-        draftVersion, sourceType, baseVersion.getId(), baseVersion.getVersionNo(), reason);
+        draftVersion.getId(),
+        draftVersion.getVersionNo(),
+        draftVersion.getLifecycleStatus(),
+        sourceType,
+        baseVersion.getId(),
+        baseVersion.getVersionNo(),
+        reason);
   }
 }

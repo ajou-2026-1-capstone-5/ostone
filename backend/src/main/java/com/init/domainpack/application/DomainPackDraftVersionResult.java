@@ -11,9 +11,9 @@ public record DomainPackDraftVersionResult(
 
   public static DomainPackDraftVersionResult from(DomainPackVersionCloneResult result) {
     return new DomainPackDraftVersionResult(
-        result.draftVersion().getId(),
-        result.draftVersion().getVersionNo(),
-        result.draftVersion().getLifecycleStatus(),
+        result.draftVersionId(),
+        result.draftVersionNo(),
+        result.draftLifecycleStatus(),
         result.sourceType().name(),
         result.baseVersionId(),
         result.baseVersionNo(),

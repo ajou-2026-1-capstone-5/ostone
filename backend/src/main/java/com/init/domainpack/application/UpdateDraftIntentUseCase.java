@@ -71,7 +71,7 @@ public class UpdateDraftIntentUseCase {
           command.entryConditionJson(),
           command.metaJson());
     } catch (IllegalArgumentException ex) {
-      throw new BadRequestException("VALIDATION_ERROR", ex.getMessage());
+      throw new BadRequestException("VALIDATION_ERROR", ex.getMessage(), ex);
     }
     return IntentDefinitionDetail.from(intentRepository.save(intent));
   }
@@ -85,7 +85,7 @@ public class UpdateDraftIntentUseCase {
         throw new BadRequestException("VALIDATION_ERROR", fieldName + "은 JSON object 문자열이어야 합니다.");
       }
     } catch (JsonProcessingException ex) {
-      throw new BadRequestException("VALIDATION_ERROR", fieldName + "은 유효한 JSON이어야 합니다.");
+      throw new BadRequestException("VALIDATION_ERROR", fieldName + "은 유효한 JSON이어야 합니다.", ex);
     }
   }
 }

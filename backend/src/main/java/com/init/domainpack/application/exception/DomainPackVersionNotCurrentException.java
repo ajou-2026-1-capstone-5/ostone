@@ -1,8 +1,8 @@
 package com.init.domainpack.application.exception;
 
-import com.init.shared.application.exception.DuplicateException;
+import com.init.shared.application.exception.BadRequestException;
 
-public class DomainPackVersionNotCurrentException extends DuplicateException {
+public class DomainPackVersionNotCurrentException extends BadRequestException {
 
   public DomainPackVersionNotCurrentException(Long versionId) {
     super(

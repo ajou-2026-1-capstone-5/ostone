@@ -66,9 +66,6 @@ public class ActivateDomainPackVersionUseCase {
       throw new DomainPackVersionNotFoundException(command.versionId());
     }
 
-    if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
-      throw new DomainPackVersionInvalidStateException("DRAFT 상태의 version에서만 수행할 수 있습니다.");
-    }
     int maxVersionNo = versionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0);
     if (version.getVersionNo() < maxVersionNo) {
       throw new DomainPackVersionNotLatestException(command.versionId());
