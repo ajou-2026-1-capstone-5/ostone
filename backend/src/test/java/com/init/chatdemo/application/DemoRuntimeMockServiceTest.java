@@ -10,6 +10,8 @@ import com.init.chatdemo.presentation.dto.DemoExecutionResponse;
 import com.init.chatdemo.presentation.dto.DemoMessageResponse;
 import com.init.chatdemo.presentation.dto.DemoPolicyHitResponse;
 import com.init.chatdemo.presentation.dto.DemoRiskHitResponse;
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -125,7 +127,7 @@ class DemoRuntimeMockServiceTest {
                     String.class,
                     "unknown-session-id",
                     DemoChatSessionResponse.class))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(NotFoundException.class);
   }
 
   @Test
@@ -141,7 +143,7 @@ class DemoRuntimeMockServiceTest {
                     String.class,
                     "unknown-execution-id",
                     DemoExecutionResponse.class))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(NotFoundException.class);
 
     assertThatThrownBy(
             () ->
@@ -151,7 +153,7 @@ class DemoRuntimeMockServiceTest {
                     String.class,
                     "unknown-execution-id",
                     DemoDecisionLogEndpointResponse.class))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(NotFoundException.class);
   }
 
   @Test
@@ -167,7 +169,7 @@ class DemoRuntimeMockServiceTest {
                     String.class,
                     " ",
                     DemoDecisionLogEndpointResponse.class))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(BadRequestException.class);
   }
 
   @Test
