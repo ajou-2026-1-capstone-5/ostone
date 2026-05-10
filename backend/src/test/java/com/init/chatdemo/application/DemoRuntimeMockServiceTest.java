@@ -24,7 +24,7 @@ class DemoRuntimeMockServiceTest {
 
   private static final String SERVICE_CLASS_NAME =
       "com.init.chatdemo.application.DemoRuntimeMockService";
-  private static final String FIXTURE_CLASS_NAME = "com.init.chatdemo.domain.DemoRuntimeFixture";
+  private static final String FIXTURE_CLASS_NAME = "com.init.chatdemo.application.DemoRuntimeFixture";
 
   private static final Set<String> ALLOWED_EVENT_TYPES =
       Set.of(
@@ -150,6 +150,22 @@ class DemoRuntimeMockServiceTest {
                     "getDecisionLogs",
                     String.class,
                     "unknown-execution-id",
+                    DemoDecisionLogEndpointResponse.class))
+        .isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  @DisplayName("blank executionId로 decisionLogs 조회 시 오류가 발생한다")
+  void should_throw_when_lookingUpBlankDecisionLogsExecutionId() {
+    Object service = newService();
+
+    assertThatThrownBy(
+            () ->
+                invoke(
+                    service,
+                    "getDecisionLogs",
+                    String.class,
+                    " ",
                     DemoDecisionLogEndpointResponse.class))
         .isInstanceOf(RuntimeException.class);
   }

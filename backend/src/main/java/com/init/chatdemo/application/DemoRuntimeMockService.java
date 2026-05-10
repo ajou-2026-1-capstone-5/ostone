@@ -1,6 +1,5 @@
 package com.init.chatdemo.application;
 
-import com.init.chatdemo.domain.DemoRuntimeFixture;
 import com.init.chatdemo.presentation.dto.DemoChatSessionEndpointResponse;
 import com.init.chatdemo.presentation.dto.DemoChatSessionResponse;
 import com.init.chatdemo.presentation.dto.DemoChatWorkflowResponse;
@@ -12,8 +11,10 @@ import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class DemoRuntimeMockService {
 
   private final DemoRuntimeFixture fixture;
@@ -50,7 +51,7 @@ public class DemoRuntimeMockService {
   }
 
   public DemoDecisionLogEndpointResponse getDecisionLogs(String executionId) {
-    if (executionId == null) {
+    if (executionId == null || executionId.isBlank()) {
       throw new BadRequestException("DEMO_EXECUTION_ID_REQUIRED", "executionId is required");
     }
     List<DemoDecisionLogResponse> decisionLogs = fixture.findDecisionLogs(executionId);

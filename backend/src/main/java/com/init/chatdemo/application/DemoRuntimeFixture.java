@@ -1,4 +1,4 @@
-package com.init.chatdemo.domain;
+package com.init.chatdemo.application;
 
 import com.init.chatdemo.presentation.dto.DemoChatSessionResponse;
 import com.init.chatdemo.presentation.dto.DemoChatWorkflowResponse;
@@ -35,7 +35,7 @@ public class DemoRuntimeFixture {
           "배송 문의 처리",
           "배송 문의를 확인하고 정책과 위험을 점검합니다.",
           List.of("start", "slot_filling", "resolved"),
-          List.of(new DemoTransitionResponse("start", "slot_filling", "intent_detected")));
+          List.of(new DemoTransitionResponse("start", "slot_filling", "INTENT_DETECTED")));
   private static final DemoChatSessionResponse CHAT_SESSION =
       new DemoChatSessionResponse(
           "session-1", "completed", "2026-05-10T09:00:00Z", "2026-05-10T09:05:30Z");

@@ -188,7 +188,7 @@ class DemoRuntimeControllerTest {
         .andExpect(jsonPath("$.decisionLogs[0].id").value("log-1"))
         .andExpect(jsonPath("$.decisionLogs[0].step").value(1))
         .andExpect(jsonPath("$.decisionLogs[0].messageId").value("message-1"))
-        .andExpect(jsonPath("$.decisionLogs[0].eventType").value("intent_detected"))
+        .andExpect(jsonPath("$.decisionLogs[0].eventType").value("INTENT_DETECTED"))
         .andExpect(jsonPath("$.decisionLogs[0].stateFrom").value("start"))
         .andExpect(jsonPath("$.decisionLogs[0].stateTo").value("slot_filling"))
         .andExpect(jsonPath("$.decisionLogs[0].decision").value("배송 조회 의도 감지"))
@@ -267,7 +267,7 @@ class DemoRuntimeControllerTest {
         "배송 문의 처리",
         "배송 문의를 확인하고 정책과 위험을 점검합니다.",
         List.of("start", "slot_filling", "resolved"),
-        List.of(new DemoTransitionResponse("start", "slot_filling", "intent_detected")));
+        List.of(new DemoTransitionResponse("start", "slot_filling", "INTENT_DETECTED")));
   }
 
   private DemoChatSessionResponse sessionResponse() {
@@ -299,7 +299,7 @@ class DemoRuntimeControllerTest {
             "log-1",
             1,
             "message-1",
-            "intent_detected",
+            "INTENT_DETECTED",
             "start",
             "slot_filling",
             "배송 조회 의도 감지",
