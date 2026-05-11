@@ -89,6 +89,7 @@ function IntentDraftReadContent({
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const [existingDraftTarget, setExistingDraftTarget] = useState<ExistingDraftTarget | null>(null);
   const [recoveryVersionId, setRecoveryVersionId] = useState<number | null>(null);
+  const [selectedIntentCode, setSelectedIntentCode] = useState<string | null>(null);
 
   const currentPublishedVersion = useMemo(() => {
     const versions = packQuery.data?.versions ?? [];
@@ -208,8 +209,11 @@ function IntentDraftReadContent({
     setExistingDraftTarget({ versionId: drafts[0].versionId, intentCode });
   };
 
-  const handleSaveRevision = async (detail: IntentDetail, values: UpdateDraftIntentBody) => {
-    if (detail.id == null || !detail.intentCode) return;
+  const handleSaveRevision = async (
+    detail: IntentDetail,
+    values: UpdateDraftIntentBody,
+  ): Promise<boolean> => {
+    if (detail.id == null || !detail.intentCode) return false;
 
     if (isCurrentPublished) {
       try {
@@ -232,13 +236,14 @@ function IntentDraftReadContent({
           setRecoveryVersionId(result.draftVersionId);
         }
         navigateToIntentRoute(result.draftVersionId, result.clonedIntentId);
+        return true;
       } catch (error) {
         if (
           error instanceof ApiRequestError &&
           error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS"
         ) {
           await resolveExistingDraftTarget(detail.intentCode);
-          return;
+          return false;
         }
 
         if (
@@ -247,12 +252,12 @@ function IntentDraftReadContent({
         ) {
           await packQuery.refetch();
           toast.error("현재 운영 버전이 변경되었습니다. 최신 버전에서 다시 수정해 주세요.");
-          return;
+          return false;
         }
 
         toast.error("Intent 수정 내용 저장에 실패했습니다.");
+        return false;
       }
-      return;
     }
 
     if (isRevisionDraft) {
@@ -266,13 +271,17 @@ function IntentDraftReadContent({
         });
         resetDirty();
         refreshIntentViews();
+        return true;
       } catch {
         toast.error("Intent 수정 내용 저장에 실패했습니다.");
+        return false;
       }
     }
+
+    return false;
   };
 
-  const handleApplyRevisionDraft = async (detail: IntentDetail) => {
+  const handleApplyRevisionDraft = async (intentCode?: string | null) => {
     const summary = summaryState.status === "ready" ? summaryState.data : null;
     if (!summary || summary.changedIntents.length === 0) return;
 
@@ -282,7 +291,7 @@ function IntentDraftReadContent({
       await packQuery.refetch();
       await versionQuery.refetch();
       toast.success("Intent 수정 초안이 적용되었습니다.");
-      await navigateToIntentCode(activated.versionId ?? vId, detail.intentCode);
+      await navigateToIntentCode(activated.activatedVersionId, intentCode);
     } catch {
       toast.error("Intent 수정 초안 적용에 실패했습니다.");
     } finally {
@@ -290,7 +299,7 @@ function IntentDraftReadContent({
     }
   };
 
-  const handleDiscardRevisionDraft = async (detail: IntentDetail) => {
+  const handleDiscardRevisionDraft = async (intentCode?: string | null) => {
     setVersionActionPending(true);
     try {
       await intentRevisionDraftApi.discardDraft(wsId, pId, vId);
@@ -299,7 +308,7 @@ function IntentDraftReadContent({
       await packQuery.refetch();
       toast.success("Intent 수정 초안이 취소되었습니다.");
       if (targetVersionId !== null) {
-        await navigateToIntentCode(targetVersionId, detail.intentCode);
+        await navigateToIntentCode(targetVersionId, intentCode);
       } else {
         navigate(`/workspaces/${wsId}/domain-packs/${pId}`);
       }
@@ -337,6 +346,15 @@ function IntentDraftReadContent({
           <div className={styles.versionMeta}>
             <span className={styles.versionTitle}>Intent 조회</span>
             <span className={styles.versionBadge}>{versionLabel}</span>
+            {isRevisionDraft && (
+              <IntentRevisionDraftActions
+                summary={summaryState.status === "ready" ? summaryState.data : undefined}
+                isSummaryLoading={summaryState.status === "loading"}
+                isPending={isMutationPending}
+                onApply={() => void handleApplyRevisionDraft(selectedIntentCode)}
+                onDiscard={() => void handleDiscardRevisionDraft(selectedIntentCode)}
+              />
+            )}
           </div>
         </header>
         {hasSelection && (
@@ -368,20 +386,15 @@ function IntentDraftReadContent({
                   versionId={vId}
                   intentId={iId}
                   refreshKey={detailRefreshKey}
-                  headerActions={(detail) =>
-                    isRevisionDraft ? (
-                      <IntentRevisionDraftActions
-                        summary={summaryState.status === "ready" ? summaryState.data : undefined}
-                        isSummaryLoading={summaryState.status === "loading"}
-                        isPending={isMutationPending}
-                        onApply={() => void handleApplyRevisionDraft(detail)}
-                        onDiscard={() => void handleDiscardRevisionDraft(detail)}
+                  afterHeader={(detail) => (
+                    <>
+                      <SelectedIntentCodeSync
+                        intentCode={detail.intentCode ?? null}
+                        onChange={setSelectedIntentCode}
                       />
-                    ) : undefined
-                  }
-                  afterHeader={() =>
-                    recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null
-                  }
+                      {recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
+                    </>
+                  )}
                   beforeJsonCards={() =>
                     isRevisionDraft ? <IntentRevisionDiffPanel change={selectedChange} /> : null
                   }
@@ -461,6 +474,21 @@ function IntentDraftReadContent({
       </AlertDialog>
     </OstoneShell>
   );
+}
+
+function SelectedIntentCodeSync({
+  intentCode,
+  onChange,
+}: {
+  intentCode: string | null;
+  onChange: (intentCode: string | null) => void;
+}) {
+  useEffect(() => {
+    onChange(intentCode);
+    return () => onChange(null);
+  }, [intentCode, onChange]);
+
+  return null;
 }
 
 function getVersionLabel({

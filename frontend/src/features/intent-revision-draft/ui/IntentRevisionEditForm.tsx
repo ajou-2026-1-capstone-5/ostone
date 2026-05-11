@@ -18,7 +18,7 @@ interface IntentRevisionEditFormProps {
   detail: IntentDetail;
   canEdit: boolean;
   isSaving: boolean;
-  onSave: (values: UpdateDraftIntentBody) => Promise<void>;
+  onSave: (values: UpdateDraftIntentBody) => Promise<boolean>;
   onDirtyChange: (dirty: boolean, intentId: number | null) => void;
 }
 
@@ -110,11 +110,13 @@ export function IntentRevisionEditForm({
       return;
     }
 
-    await onSave({
+    const saved = await onSave({
       name: values.name.trim(),
       description: values.description,
     });
-    setEditing(false);
+    if (saved) {
+      setEditing(false);
+    }
   };
 
   const loadLatest = () => {

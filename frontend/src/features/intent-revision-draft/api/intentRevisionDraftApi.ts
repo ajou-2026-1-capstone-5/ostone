@@ -18,6 +18,12 @@ interface RevisionDraftResponse {
   data?: RevisionDraftResponse;
 }
 
+interface ActivateVersionResponse {
+  id?: number;
+  versionId?: number;
+  data?: ActivateVersionResponse;
+}
+
 function unwrapData<T>(response: T | { data?: T }): T {
   if (
     response &&
@@ -41,6 +47,17 @@ function normalizeDraftVersionId(response: RevisionDraftResponse): number {
 
   if (typeof id !== "number") {
     throw new Error("Intent 수정 초안 version id를 확인할 수 없습니다.");
+  }
+
+  return id;
+}
+
+function normalizeActivatedVersionId(response: ActivateVersionResponse): number {
+  const unwrapped = unwrapData(response);
+  const id = unwrapped.versionId ?? unwrapped.id;
+
+  if (typeof id !== "number") {
+    throw new Error("활성화된 version id를 확인할 수 없습니다.");
   }
 
   return id;
@@ -77,12 +94,12 @@ export const intentRevisionDraftApi = {
     workspaceId: number,
     packId: number,
     versionId: number,
-  ): Promise<DomainPackVersionDetail> {
-    const response = await apiClient.post<DomainPackVersionDetail | { data: DomainPackVersionDetail }>(
+  ): Promise<{ activatedVersionId: number }> {
+    const response = await apiClient.post<ActivateVersionResponse>(
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/activate`,
       {},
     );
-    return unwrapData(response);
+    return { activatedVersionId: normalizeActivatedVersionId(response) };
   },
 
   async discardDraft(
