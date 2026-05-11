@@ -12,8 +12,10 @@ import {
   IntentRevisionDraftActions,
   IntentRevisionEditForm,
   IntentRevisionRecoveryBanner,
+  classifyExistingDraftSource,
   intentRevisionDraftApi,
   parseIntentRevisionDraftSource,
+  resolveSingleExistingDraft,
   useIntentRevisionMarkers,
   useIntentRevisionSummary,
   useSaveIntentRevisionDraft,
@@ -42,6 +44,7 @@ interface DirtyState {
 interface ExistingDraftTarget {
   versionId: number;
   intentCode: string;
+  sourceType: "INTENT_REVISION" | "GENERAL_DRAFT";
 }
 
 export function IntentDraftReadPage() {
@@ -196,17 +199,19 @@ function IntentDraftReadContent({
 
   const resolveExistingDraftTarget = async (intentCode: string) => {
     const refetched = await packQuery.refetch();
-    const drafts = (refetched.data?.versions ?? []).filter(
-      (version) => version.lifecycleStatus === "DRAFT" && version.versionId != null,
-    );
+    const resolution = resolveSingleExistingDraft(refetched.data?.versions);
 
-    if (drafts.length !== 1 || drafts[0].versionId == null) {
+    if (resolution.status === "invalid") {
       toast.error("초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.");
       return;
     }
 
-    await intentRevisionDraftApi.getVersionDetail(wsId, pId, drafts[0].versionId);
-    setExistingDraftTarget({ versionId: drafts[0].versionId, intentCode });
+    const draftDetail = await intentRevisionDraftApi.getVersionDetail(wsId, pId, resolution.versionId);
+    setExistingDraftTarget({
+      versionId: resolution.versionId,
+      intentCode,
+      sourceType: classifyExistingDraftSource(draftDetail.summaryJson),
+    });
   };
 
   const handleSaveRevision = async (
@@ -452,7 +457,10 @@ function IntentDraftReadContent({
         <AlertDialogContent size="sm">
           <AlertDialogTitle>진행 중인 초안이 있습니다.</AlertDialogTitle>
           <AlertDialogDescription>
-            저장하지 않고 이동 시 수정 내역은 사라집니다. 기존 초안으로 이동할까요?
+            저장하지 않고 이동 시 수정 내역은 사라집니다.{" "}
+            {existingDraftTarget?.sourceType === "INTENT_REVISION"
+              ? "기존 Intent 수정 초안으로 이동할까요?"
+              : "기존 초안으로 이동할까요?"}
           </AlertDialogDescription>
           <AlertDialogFooter>
             <Button type="button" variant="outline" onClick={() => setExistingDraftTarget(null)}>

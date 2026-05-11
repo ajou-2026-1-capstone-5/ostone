@@ -5,6 +5,11 @@ export {
   parseIntentRevisionDraftSource,
   type IntentRevisionDraftSource,
 } from "./model/draftSource";
+export {
+  classifyExistingDraftSource,
+  resolveSingleExistingDraft,
+  type ExistingDraftSourceType,
+} from "./model/existingDraftTarget";
 export { useIntentRevisionMarkers } from "./model/useIntentRevisionMarkers";
 export {
   buildIntentRevisionSummary,
