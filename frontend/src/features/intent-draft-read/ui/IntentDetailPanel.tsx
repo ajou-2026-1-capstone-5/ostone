@@ -10,10 +10,23 @@ interface IntentDetailPanelProps {
   versionId: number;
   intentId: number | null;
   refreshKey?: number;
+  headerActions?: (detail: IntentDetail) => ReactNode;
+  afterHeader?: (detail: IntentDetail) => ReactNode;
+  beforeJsonCards?: (detail: IntentDetail) => ReactNode;
   children?: (detail: IntentDetail) => ReactNode;
 }
 
-export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKey, children }: IntentDetailPanelProps) {
+export function IntentDetailPanel({
+  wsId,
+  packId,
+  versionId,
+  intentId,
+  refreshKey,
+  headerActions,
+  afterHeader,
+  beforeJsonCards,
+  children,
+}: IntentDetailPanelProps) {
   const state = useIntentDetail(wsId, packId, versionId, intentId, refreshKey);
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
@@ -64,7 +77,8 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
 
   return (
     <section className={styles.panel} aria-label="intent 상세">
-      <DetailHeader detail={state.data} />
+      <DetailHeader detail={state.data} actions={headerActions?.(state.data)} />
+      {afterHeader?.(state.data)}
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
@@ -84,6 +98,7 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
             value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
         </div>
+        {beforeJsonCards?.(state.data)}
         <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
         <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
         <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
@@ -94,13 +109,18 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
   );
 }
 
-function DetailHeader({ detail }: { detail: IntentDetail }) {
+function DetailHeader({ detail, actions }: { detail: IntentDetail; actions?: ReactNode }) {
   return (
     <header className={styles.header}>
-      <span className={styles.code}>{detail.intentCode}</span>
-      <span className={styles.name}>{detail.name ?? ""}</span>
-      {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+      <div className={styles.headerTop}>
+        <span className={styles.code}>{detail.intentCode}</span>
+        {actions}
+      </div>
+      <div className={styles.headerText}>
+        <span className={styles.name}>{detail.name ?? ""}</span>
+        {detail.description && <span className={styles.description}>{detail.description}</span>}
+        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+      </div>
     </header>
   );
 }

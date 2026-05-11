@@ -36,9 +36,12 @@ export function useIntentDetail(
       .detail(wsId, packId, versionId, intentId)
       .then((data) => {
         if (!cancelled) {
+          const detail = "data" in Object(data)
+            ? (data as { data?: IntentDetail }).data
+            : data;
           setState({
             requestKey,
-            value: { status: "ready", data: data as any },
+            value: { status: "ready", data: detail as IntentDetail },
           });
         }
       })

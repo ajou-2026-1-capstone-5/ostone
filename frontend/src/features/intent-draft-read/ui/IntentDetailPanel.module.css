@@ -15,6 +15,19 @@
   gap: 10px;
 }
 
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .code {
   font-family: "Geist Mono", monospace;
   font-size: 12px;

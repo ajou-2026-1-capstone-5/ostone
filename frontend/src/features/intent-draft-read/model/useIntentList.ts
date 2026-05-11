@@ -8,8 +8,13 @@ export type IntentListState =
   | { status: "error"; code: string; message: string; httpStatus?: number }
   | { status: "ready"; data: IntentSummary[] };
 
-export function useIntentList(wsId: number, packId: number, versionId: number): IntentListState {
-  const requestKey = `${wsId}:${packId}:${versionId}`;
+export function useIntentList(
+  wsId: number,
+  packId: number,
+  versionId: number,
+  refreshKey?: number,
+): IntentListState {
+  const requestKey = `${wsId}:${packId}:${versionId}:${refreshKey ?? 0}`;
   const [state, setState] = useState<{
     requestKey: string;
     value: IntentListState;
@@ -25,9 +30,12 @@ export function useIntentList(wsId: number, packId: number, versionId: number): 
       .list(wsId, packId, versionId)
       .then((data) => {
         if (!cancelled) {
+          const list = Array.isArray(data)
+            ? data
+            : (data as { data?: IntentSummary[] }).data ?? [];
           setState({
             requestKey,
-            value: { status: "ready", data: data as any },
+            value: { status: "ready", data: list },
           });
         }
       })

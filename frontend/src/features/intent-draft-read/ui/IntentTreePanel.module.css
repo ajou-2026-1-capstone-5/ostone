@@ -139,6 +139,25 @@
   background: transparent;
 }
 
+.marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  padding: 4px 10px 5px;
+  border-radius: var(--radius-xl);
+  border: 1px dashed currentcolor;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.itemActive .marker {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .skeletonGroup {
   display: flex;
   flex-direction: column;
