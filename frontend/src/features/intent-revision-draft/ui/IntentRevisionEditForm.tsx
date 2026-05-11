@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -63,6 +63,7 @@ export function IntentRevisionEditForm({
   const [baseline, setBaseline] = useState<Baseline>(() => normalizeDetail(detail));
   const [values, setValues] = useState<FormValues>(() => normalizeDetail(detail));
   const [latestConflict, setLatestConflict] = useState<IntentDetail | null>(null);
+  const skipNextDirtyReportRef = useRef(false);
   const nameId = useId();
   const descriptionId = useId();
   const nameErrorId = `${nameId}-error`;
@@ -70,6 +71,7 @@ export function IntentRevisionEditForm({
 
   useEffect(() => {
     const next = normalizeDetail(detail);
+    skipNextDirtyReportRef.current = true;
     // The form mirrors a freshly loaded server baseline whenever the selected
     // intent/detail refresh changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -98,6 +100,10 @@ export function IntentRevisionEditForm({
   const hasError = Boolean(errors.name || errors.description);
 
   useEffect(() => {
+    if (skipNextDirtyReportRef.current) {
+      skipNextDirtyReportRef.current = false;
+      return;
+    }
     onDirtyChange(isEditing && isDirty, isEditing && detail.id != null ? detail.id : null);
   }, [detail.id, isDirty, isEditing, onDirtyChange]);
 

@@ -159,7 +159,6 @@ export function useIntentDraftReadController({
     vId,
     summaryState,
     packQuery,
-    versionQuery,
     navigateToIntentCode,
     setVersionActionPending,
   });
@@ -448,7 +447,6 @@ function useApplyRevisionDraftHandler({
   vId,
   summaryState,
   packQuery,
-  versionQuery,
   navigateToIntentCode,
   setVersionActionPending,
 }: {
@@ -457,7 +455,6 @@ function useApplyRevisionDraftHandler({
   vId: number;
   summaryState: ReturnType<typeof useIntentRevisionSummary>;
   packQuery: UseQueryResult<DomainPackDetail>;
-  versionQuery: UseQueryResult<DomainPackVersionDetail>;
   navigateToIntentCode: (versionId: number, intentCode?: string | null) => Promise<void>;
   setVersionActionPending: (isPending: boolean) => void;
 }) {
@@ -470,7 +467,6 @@ function useApplyRevisionDraftHandler({
       try {
         const activated = await intentRevisionDraftApi.activateVersion(wsId, pId, vId);
         await packQuery.refetch();
-        await versionQuery.refetch();
         toast.success("Intent 수정 초안이 적용되었습니다.");
         await navigateToIntentCode(activated.activatedVersionId, intentCode);
       } catch {
@@ -486,7 +482,6 @@ function useApplyRevisionDraftHandler({
       setVersionActionPending,
       summaryState,
       vId,
-      versionQuery,
       wsId,
     ],
   );

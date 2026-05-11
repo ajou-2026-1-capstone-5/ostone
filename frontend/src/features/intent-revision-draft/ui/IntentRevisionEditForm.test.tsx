@@ -40,8 +40,8 @@ function renderForm(
     onDirtyChange: vi.fn(),
   };
 
-  render(<IntentRevisionEditForm {...defaults} {...props} />);
-  return defaults;
+  const view = render(<IntentRevisionEditForm {...defaults} {...props} />);
+  return { ...defaults, ...view };
 }
 
 describe("IntentRevisionEditForm", () => {
@@ -161,6 +161,35 @@ describe("IntentRevisionEditForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
 
     expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
+  });
+
+  it("detail이 바뀌는 순간 stale dirty 상태를 다시 보고하지 않는다", async () => {
+    const onDirtyChange = vi.fn();
+    const { rerender } = renderForm({ onDirtyChange });
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.change(screen.getByLabelText("이름"), {
+      target: { value: "임시 수정" },
+    });
+
+    await waitFor(() => expect(onDirtyChange).toHaveBeenCalledWith(true, 10));
+    onDirtyChange.mockClear();
+
+    rerender(
+      <IntentRevisionEditForm
+        wsId={1}
+        packId={2}
+        versionId={3}
+        detail={{ ...detail, id: 11, intentCode: "delivery", name: "배송 문의" } as IntentDetail}
+        canEdit
+        isSaving={false}
+        onSave={vi.fn().mockResolvedValue(true)}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+
+    await waitFor(() => expect(onDirtyChange).toHaveBeenCalledWith(false, null));
+    expect(onDirtyChange).not.toHaveBeenCalledWith(true, 11);
   });
 
   it("최신 내용 불러오기를 누르면 conflict 데이터를 form baseline으로 반영한다", async () => {
