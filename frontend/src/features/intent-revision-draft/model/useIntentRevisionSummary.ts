@@ -155,7 +155,7 @@ export function useIntentRevisionSummary({
       });
 
     return () => controller.abort();
-  }, [baseVersionId, draftVersionId, enabled, packId, requestKey, refreshKey, workspaceId]);
+  }, [baseVersionId, draftVersionId, enabled, packId, requestKey, workspaceId]);
 
   return useMemo(() => {
     if (requestKey === null) return { status: "idle" };
