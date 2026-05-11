@@ -161,8 +161,8 @@ export function IntentRevisionEditForm({
         if (!hasError && isDirty && !isSaving) void handleSave();
       }}
     >
-      <label className={styles.field} htmlFor={nameId}>
-        <span>이름</span>
+      <div className={styles.field}>
+        <label htmlFor={nameId}>이름</label>
         <input
           id={nameId}
           value={values.name}
@@ -175,9 +175,9 @@ export function IntentRevisionEditForm({
             {errors.name}
           </span>
         )}
-      </label>
-      <label className={styles.field} htmlFor={descriptionId}>
-        <span>설명</span>
+      </div>
+      <div className={styles.field}>
+        <label htmlFor={descriptionId}>설명</label>
         <textarea
           id={descriptionId}
           value={values.description}
@@ -193,7 +193,7 @@ export function IntentRevisionEditForm({
             {errors.description}
           </span>
         )}
-      </label>
+      </div>
       <div className={styles.buttonRow}>
         <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
           취소
