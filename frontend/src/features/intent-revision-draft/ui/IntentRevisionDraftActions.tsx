@@ -13,7 +13,9 @@ import styles from "./intent-revision-draft.module.css";
 interface IntentRevisionDraftActionsProps {
   summary?: IntentRevisionSummary;
   isSummaryLoading: boolean;
+  summaryError?: Error | string | null;
   isPending: boolean;
+  onRetrySummary: () => void;
   onApply: () => void;
   onDiscard: () => void;
 }
@@ -21,24 +23,43 @@ interface IntentRevisionDraftActionsProps {
 export function IntentRevisionDraftActions({
   summary,
   isSummaryLoading,
+  summaryError,
   isPending,
+  onRetrySummary,
   onApply,
   onDiscard,
 }: IntentRevisionDraftActionsProps) {
   const [dialog, setDialog] = useState<"apply" | "discard" | null>(null);
   const changedCount = summary?.changedIntents.length ?? 0;
-  const canApply = changedCount > 0 && !isSummaryLoading && !isPending;
+  const canApply = changedCount > 0 && !isSummaryLoading && !summaryError && !isPending;
+  const errorMessage =
+    summaryError instanceof Error
+      ? summaryError.message
+      : summaryError || "변경 요약을 불러오지 못했습니다.";
 
   return (
     <div className={styles.actions}>
       <div className={styles.summaryText}>
         {isSummaryLoading
           ? "변경 요약을 불러오는 중입니다."
-          : changedCount > 0
-            ? `변경된 intent ${changedCount}개`
-            : "변경된 intent가 없습니다."}
+          : summaryError
+            ? errorMessage
+            : changedCount > 0
+              ? `변경된 intent ${changedCount}개`
+              : "변경된 intent가 없습니다."}
       </div>
       <div className={styles.actionButtons}>
+        {summaryError && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetrySummary}
+            disabled={isPending || isSummaryLoading}
+          >
+            다시 시도
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"

@@ -1,4 +1,5 @@
 import { apiClient } from "@/shared/api";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import type { IntentDetail, IntentSummary } from "@/entities/intent";
 
@@ -24,20 +25,8 @@ interface ActivateVersionResponse {
   data?: ActivateVersionResponse;
 }
 
-function unwrapData<T>(response: T | { data?: T }): T {
-  if (
-    response &&
-    typeof response === "object" &&
-    "data" in response &&
-    (response as { data?: T }).data !== undefined
-  ) {
-    return (response as { data: T }).data;
-  }
-  return response as T;
-}
-
 function normalizeDraftVersionId(response: RevisionDraftResponse): number {
-  const unwrapped = unwrapData(response);
+  const unwrapped = unwrapApiResponse(response);
   const id =
     unwrapped.draftVersionId ??
     unwrapped.versionId ??
@@ -53,7 +42,7 @@ function normalizeDraftVersionId(response: RevisionDraftResponse): number {
 }
 
 function normalizeActivatedVersionId(response: ActivateVersionResponse): number {
-  const unwrapped = unwrapData(response);
+  const unwrapped = unwrapApiResponse(response);
   const id = unwrapped.versionId ?? unwrapped.id;
 
   if (typeof id !== "number") {
@@ -87,7 +76,7 @@ export const intentRevisionDraftApi = {
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/intents/${intentId}`,
       body,
     );
-    return unwrapData(response);
+    return unwrapApiResponse(response);
   },
 
   async activateVersion(
@@ -97,7 +86,7 @@ export const intentRevisionDraftApi = {
   ): Promise<{ activatedVersionId: number }> {
     const response = await apiClient.post<ActivateVersionResponse>(
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/activate`,
-      {},
+      undefined,
     );
     return { activatedVersionId: normalizeActivatedVersionId(response) };
   },
@@ -122,7 +111,7 @@ export const intentRevisionDraftApi = {
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`,
       options,
     );
-    return unwrapData(response);
+    return unwrapApiResponse(response);
   },
 
   async getIntent(
@@ -134,7 +123,7 @@ export const intentRevisionDraftApi = {
     const response = await apiClient.get<IntentDetail | { data: IntentDetail }>(
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`,
     );
-    return unwrapData(response);
+    return unwrapApiResponse(response);
   },
 
   async getVersionDetail(
@@ -145,6 +134,6 @@ export const intentRevisionDraftApi = {
     const response = await apiClient.get<DomainPackVersionDetail | { data: DomainPackVersionDetail }>(
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`,
     );
-    return unwrapData(response);
+    return unwrapApiResponse(response);
   },
 };

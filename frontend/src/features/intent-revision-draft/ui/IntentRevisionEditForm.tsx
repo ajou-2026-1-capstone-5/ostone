@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -62,6 +63,10 @@ export function IntentRevisionEditForm({
   const [baseline, setBaseline] = useState<Baseline>(() => normalizeDetail(detail));
   const [values, setValues] = useState<FormValues>(() => normalizeDetail(detail));
   const [latestConflict, setLatestConflict] = useState<IntentDetail | null>(null);
+  const nameId = useId();
+  const descriptionId = useId();
+  const nameErrorId = `${nameId}-error`;
+  const descriptionErrorId = `${descriptionId}-error`;
 
   useEffect(() => {
     const next = normalizeDetail(detail);
@@ -104,7 +109,18 @@ export function IntentRevisionEditForm({
   };
 
   const handleSave = async () => {
-    const latest = await intentRevisionDraftApi.getIntent(wsId, packId, versionId, detail.id!);
+    let latest: IntentDetail;
+    try {
+      latest = await intentRevisionDraftApi.getIntent(wsId, packId, versionId, detail.id!);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? `최신 Intent 정보를 확인하지 못했습니다. ${error.message}`
+          : "최신 Intent 정보를 확인하지 못했습니다.",
+      );
+      return;
+    }
+
     if (hasBaselineChanged(baseline, latest)) {
       setLatestConflict(latest);
       return;
@@ -145,27 +161,37 @@ export function IntentRevisionEditForm({
         if (!hasError && isDirty && !isSaving) void handleSave();
       }}
     >
-      <label className={styles.field}>
-        <span>Name</span>
+      <label className={styles.field} htmlFor={nameId}>
+        <span>이름</span>
         <input
+          id={nameId}
           value={values.name}
           onChange={(event) => setValues((prev) => ({ ...prev, name: event.target.value }))}
           aria-invalid={Boolean(errors.name)}
+          aria-describedby={errors.name ? nameErrorId : undefined}
         />
-        {errors.name && <span className={styles.errorText}>{errors.name}</span>}
+        {errors.name && (
+          <span id={nameErrorId} className={styles.errorText}>
+            {errors.name}
+          </span>
+        )}
       </label>
-      <label className={styles.field}>
-        <span>Description</span>
+      <label className={styles.field} htmlFor={descriptionId}>
+        <span>설명</span>
         <textarea
+          id={descriptionId}
           value={values.description}
           onChange={(event) =>
             setValues((prev) => ({ ...prev, description: event.target.value }))
           }
           aria-invalid={Boolean(errors.description)}
+          aria-describedby={errors.description ? descriptionErrorId : undefined}
           rows={5}
         />
         {errors.description && (
-          <span className={styles.errorText}>{errors.description}</span>
+          <span id={descriptionErrorId} className={styles.errorText}>
+            {errors.description}
+          </span>
         )}
       </label>
       <div className={styles.buttonRow}>

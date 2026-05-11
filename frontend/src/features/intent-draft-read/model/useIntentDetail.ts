@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { intentApi } from "../api/intentApi";
 import { mapApiError } from "./mapApiError";
 import type { IntentDetail } from "../../../entities/intent";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 
 export type IntentDetailState =
   | { status: "idle" }
@@ -36,12 +37,9 @@ export function useIntentDetail(
       .detail(wsId, packId, versionId, intentId)
       .then((data) => {
         if (!cancelled) {
-          const detail = "data" in Object(data)
-            ? (data as { data?: IntentDetail }).data
-            : data;
           setState({
             requestKey,
-            value: { status: "ready", data: detail as IntentDetail },
+            value: { status: "ready", data: unwrapApiResponse<IntentDetail>(data) },
           });
         }
       })

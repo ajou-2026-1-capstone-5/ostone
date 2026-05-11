@@ -50,6 +50,10 @@ describe("intentRevisionDraftApi", () => {
     await expect(intentRevisionDraftApi.activateVersion(1, 2, 15)).resolves.toEqual({
       activatedVersionId: 16,
     });
+    expect(mockedPost).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/2/versions/15/activate",
+      undefined,
+    );
   });
 
   it("data wrapper가 있는 list/detail 응답을 unwrap한다", async () => {

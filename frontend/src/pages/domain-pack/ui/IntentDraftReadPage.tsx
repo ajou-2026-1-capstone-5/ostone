@@ -165,9 +165,13 @@ function IntentDraftReadContent({
         return;
       }
 
-      const intents = await intentRevisionDraftApi.listIntents(wsId, pId, versionId);
-      const target = intents.find((intent) => intent.intentCode === intentCode);
-      navigateToIntentRoute(versionId, target?.id ?? null);
+      try {
+        const intents = await intentRevisionDraftApi.listIntents(wsId, pId, versionId);
+        const target = intents.find((intent) => intent.intentCode === intentCode);
+        navigateToIntentRoute(versionId, target?.id ?? null);
+      } catch {
+        navigateToIntentRoute(versionId, null);
+      }
     },
     [navigateToIntentRoute, pId, wsId],
   );
@@ -197,21 +201,31 @@ function IntentDraftReadContent({
     setSummaryRefreshKey((key) => key + 1);
   };
 
-  const resolveExistingDraftTarget = async (intentCode: string) => {
-    const refetched = await packQuery.refetch();
-    const resolution = resolveSingleExistingDraft(refetched.data?.versions);
+  const resolveExistingDraftTarget = async (intentCode: string): Promise<boolean> => {
+    try {
+      const refetched = await packQuery.refetch();
+      const resolution = resolveSingleExistingDraft(refetched.data?.versions);
 
-    if (resolution.status === "invalid") {
-      toast.error("초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.");
-      return;
+      if (resolution.status === "invalid") {
+        toast.error("초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.");
+        return false;
+      }
+
+      const draftDetail = await intentRevisionDraftApi.getVersionDetail(
+        wsId,
+        pId,
+        resolution.versionId,
+      );
+      setExistingDraftTarget({
+        versionId: resolution.versionId,
+        intentCode,
+        sourceType: classifyExistingDraftSource(draftDetail.summaryJson),
+      });
+      return true;
+    } catch {
+      toast.error("진행 중인 초안을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return false;
     }
-
-    const draftDetail = await intentRevisionDraftApi.getVersionDetail(wsId, pId, resolution.versionId);
-    setExistingDraftTarget({
-      versionId: resolution.versionId,
-      intentCode,
-      sourceType: classifyExistingDraftSource(draftDetail.summaryJson),
-    });
   };
 
   const handleSaveRevision = async (
@@ -324,6 +338,18 @@ function IntentDraftReadContent({
     }
   };
 
+  const handleApplyRevisionDraftAction = () => {
+    guardNavigation(() => {
+      void handleApplyRevisionDraft(selectedIntentCode);
+    });
+  };
+
+  const handleDiscardRevisionDraftAction = () => {
+    guardNavigation(() => {
+      void handleDiscardRevisionDraft(selectedIntentCode);
+    });
+  };
+
   const versionLabel = getVersionLabel({
     lifecycleStatus: versionDetail?.lifecycleStatus,
     isCurrentPublished,
@@ -355,9 +381,13 @@ function IntentDraftReadContent({
               <IntentRevisionDraftActions
                 summary={summaryState.status === "ready" ? summaryState.data : undefined}
                 isSummaryLoading={summaryState.status === "loading"}
+                summaryError={
+                  summaryState.status === "error" ? summaryState.message : null
+                }
                 isPending={isMutationPending}
-                onApply={() => void handleApplyRevisionDraft(selectedIntentCode)}
-                onDiscard={() => void handleDiscardRevisionDraft(selectedIntentCode)}
+                onRetrySummary={() => setSummaryRefreshKey((key) => key + 1)}
+                onApply={handleApplyRevisionDraftAction}
+                onDiscard={handleDiscardRevisionDraftAction}
               />
             )}
           </div>

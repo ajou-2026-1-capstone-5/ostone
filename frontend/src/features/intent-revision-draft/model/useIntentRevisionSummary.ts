@@ -131,6 +131,7 @@ export function useIntentRevisionSummary({
       }),
     ])
       .then(([baseIntents, draftIntents]) => {
+        if (controller.signal.aborted) return;
         setState({
           requestKey,
           value: {
