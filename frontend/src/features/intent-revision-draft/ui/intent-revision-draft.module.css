@@ -1,0 +1,240 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.summaryText {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.actionButtons,
+.buttonRow,
+.dialogButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formShell {
+  margin: 0 28px 28px;
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 15px;
+  font-weight: 330;
+  line-height: 1.45;
+  letter-spacing: -0.14px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: 2px dashed var(--text-primary);
+  outline-offset: 2px;
+}
+
+.field input[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: var(--text-primary);
+}
+
+.errorText {
+  color: var(--text-primary);
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 12px;
+  letter-spacing: -0.14px;
+  text-transform: none;
+}
+
+.recoveryBanner {
+  margin: 16px 28px 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--text-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: -0.14px;
+}
+
+.diffPanel {
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 0;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.diffGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.diffRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diffLabel,
+.diffCaption {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.diffValues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.diffValues div {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  padding: 10px;
+}
+
+.diffValues p {
+  margin: 6px 0 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.14px;
+  overflow-wrap: anywhere;
+}
+
+.dialogContent {
+  border-radius: 8px;
+  padding: 24px !important;
+  gap: 16px;
+}
+
+.dialogTitle {
+  font-size: 1.25rem;
+  font-weight: 540;
+  letter-spacing: -0.26px;
+  line-height: 1.2;
+}
+
+.dialogDescription {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  letter-spacing: -0.14px;
+}
+
+.changePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.changeCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.changeCounts span,
+.changeList em {
+  display: inline-flex;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 4px 10px 5px;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  font-style: normal;
+}
+
+.changeList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.changeList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: -0.14px;
+  color: var(--text-secondary);
+}
+
+.changeList strong {
+  color: var(--text-primary);
+  font-weight: 540;
+}
+
+@media (max-width: 767px) {
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .formShell {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .diffValues {
+    grid-template-columns: 1fr;
+  }
+}

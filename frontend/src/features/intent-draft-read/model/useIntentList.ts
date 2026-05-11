@@ -2,14 +2,20 @@ import { useEffect, useState } from "react";
 import { intentApi } from "../api/intentApi";
 import { mapApiError } from "./mapApiError";
 import type { IntentSummary } from "../../../entities/intent";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 
 export type IntentListState =
   | { status: "loading" }
   | { status: "error"; code: string; message: string; httpStatus?: number }
   | { status: "ready"; data: IntentSummary[] };
 
-export function useIntentList(wsId: number, packId: number, versionId: number): IntentListState {
-  const requestKey = `${wsId}:${packId}:${versionId}`;
+export function useIntentList(
+  wsId: number,
+  packId: number,
+  versionId: number,
+  refreshKey?: number,
+): IntentListState {
+  const requestKey = `${wsId}:${packId}:${versionId}:${refreshKey ?? 0}`;
   const [state, setState] = useState<{
     requestKey: string;
     value: IntentListState;
@@ -25,9 +31,10 @@ export function useIntentList(wsId: number, packId: number, versionId: number): 
       .list(wsId, packId, versionId)
       .then((data) => {
         if (!cancelled) {
+          const list = unwrapApiResponse<IntentSummary[]>(data) ?? [];
           setState({
             requestKey,
-            value: { status: "ready", data: data as any },
+            value: { status: "ready", data: list },
           });
         }
       })
