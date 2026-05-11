@@ -101,7 +101,9 @@ function IntentTreeRow({
 }) {
   const isActive = node.id === selectedId;
   const paddingLeft = 20 + depth * 18;
-  const marker = node.id == null ? undefined : markers[node.id];
+  const intentId = node.id;
+  const hasIntentId = intentId !== null && intentId !== undefined;
+  const marker = hasIntentId ? markers[intentId] : undefined;
   const isLevelOne = node.taxonomyLevel === 1;
   const itemClassName = [
     styles.item,
@@ -117,7 +119,9 @@ function IntentTreeRow({
         type="button"
         className={itemClassName}
         style={{ paddingLeft }}
-        onClick={() => node.id != null && onSelect(node.id!)}
+        onClick={() => {
+          if (hasIntentId) onSelect(intentId);
+        }}
         aria-current={isActive ? "true" : undefined}
       >
         <div className={styles.itemInner}>

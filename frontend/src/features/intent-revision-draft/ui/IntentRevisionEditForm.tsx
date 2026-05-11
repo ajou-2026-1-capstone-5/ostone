@@ -126,10 +126,21 @@ export function IntentRevisionEditForm({
       return;
     }
 
-    const saved = await onSave({
-      name: values.name.trim(),
-      description: values.description,
-    });
+    let saved = false;
+    try {
+      saved = await onSave({
+        name: values.name.trim(),
+        description: values.description,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? `Intent 수정 내용 저장에 실패했습니다. ${error.message}`
+          : "Intent 수정 내용 저장에 실패했습니다.",
+      );
+      return;
+    }
+
     if (saved) {
       setEditing(false);
     }

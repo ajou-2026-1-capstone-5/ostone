@@ -17,6 +17,7 @@ const mockedPost = vi.mocked(apiClient.post);
 const mockedPatch = vi.mocked(apiClient.patch);
 const mockedDelete = vi.mocked(apiClient.delete);
 const mockedGet = vi.mocked(apiClient.get);
+const mockedWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
 describe("intentRevisionDraftApi", () => {
   beforeEach(() => {
@@ -24,9 +25,23 @@ describe("intentRevisionDraftApi", () => {
     mockedPatch.mockReset();
     mockedDelete.mockReset();
     mockedGet.mockReset();
+    mockedWarn.mockClear();
   });
 
-  it("revision draft 생성 응답의 draftVersion.versionId를 정규화한다", async () => {
+  it("revision draft 생성 응답의 canonical draftVersionId를 정규화한다", async () => {
+    mockedPost.mockResolvedValue({ draftVersionId: 15 });
+
+    await expect(intentRevisionDraftApi.createRevisionDraft(1, 2, 12)).resolves.toEqual({
+      draftVersionId: 15,
+    });
+    expect(mockedWarn).not.toHaveBeenCalled();
+    expect(mockedPost).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/2/versions/12/revision-drafts",
+      undefined,
+    );
+  });
+
+  it("revision draft 생성 응답의 legacy draftVersion.versionId를 warning과 함께 정규화한다", async () => {
     mockedPost.mockResolvedValue({
       draftVersion: { versionId: 15, versionNo: 5, lifecycleStatus: "DRAFT" },
     });
@@ -37,6 +52,9 @@ describe("intentRevisionDraftApi", () => {
     expect(mockedPost).toHaveBeenCalledWith(
       "/workspaces/1/domain-packs/2/versions/12/revision-drafts",
       undefined,
+    );
+    expect(mockedWarn).toHaveBeenCalledWith(
+      "[intentRevisionDraftApi] using legacy revision draft id response field",
     );
   });
 

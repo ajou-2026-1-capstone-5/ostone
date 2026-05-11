@@ -133,6 +133,24 @@ describe("IntentRevisionEditForm", () => {
     expect(screen.getByLabelText("이름")).toHaveValue("닫히면 안 되는 수정");
   });
 
+  it("저장 요청이 reject되면 toast를 띄우고 사용자의 입력을 유지한다", async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error("patch failed"));
+    renderForm({ onSave });
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.change(screen.getByLabelText("이름"), {
+      target: { value: "유지되어야 하는 수정" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    await waitFor(() =>
+      expect(mockedToastError).toHaveBeenCalledWith(
+        "Intent 수정 내용 저장에 실패했습니다. patch failed",
+      ),
+    );
+    expect(screen.getByLabelText("이름")).toHaveValue("유지되어야 하는 수정");
+  });
+
   it("취소하면 입력을 baseline으로 되돌리고 편집 상태를 닫는다", () => {
     renderForm();
 

@@ -81,6 +81,15 @@ describe("IntentRevisionDraftActions", () => {
     expect(onRetrySummary).toHaveBeenCalledTimes(1);
   });
 
+  it("요약 조회 실패 Error 메시지가 비어 있으면 fallback 문구를 보여준다", () => {
+    renderActions({
+      summary: undefined,
+      summaryError: new Error(""),
+    });
+
+    expect(screen.getByText("변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
   it("변경된 intent가 없으면 적용을 막는다", () => {
     renderActions({
       summary: {

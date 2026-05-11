@@ -32,10 +32,8 @@ export function IntentRevisionDraftActions({
   const [dialog, setDialog] = useState<"apply" | "discard" | null>(null);
   const changedCount = summary?.changedIntents.length ?? 0;
   const canApply = changedCount > 0 && !isSummaryLoading && !summaryError && !isPending;
-  const errorMessage =
-    summaryError instanceof Error
-      ? summaryError.message
-      : summaryError || "변경 요약을 불러오지 못했습니다.";
+  const rawErrorMessage = summaryError instanceof Error ? summaryError.message : summaryError;
+  const errorMessage = rawErrorMessage || "변경 요약을 불러오지 못했습니다.";
 
   return (
     <div className={styles.actions}>

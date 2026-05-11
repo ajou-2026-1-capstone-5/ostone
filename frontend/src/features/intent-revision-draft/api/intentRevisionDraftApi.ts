@@ -27,12 +27,15 @@ interface ActivateVersionResponse {
 
 function normalizeDraftVersionId(response: RevisionDraftResponse): number {
   const unwrapped = unwrapApiResponse(response);
-  const id =
-    unwrapped.draftVersionId ??
-    unwrapped.versionId ??
-    unwrapped.id ??
-    unwrapped.draftVersion?.versionId ??
-    unwrapped.draftVersion?.id;
+  const canonicalId = unwrapped.draftVersionId;
+  const legacyId =
+    unwrapped.versionId ?? unwrapped.id ?? unwrapped.draftVersion?.versionId ?? unwrapped.draftVersion?.id;
+  const id = canonicalId ?? legacyId;
+
+  if (canonicalId === undefined && legacyId !== undefined) {
+    // TODO: remove fallback handling once RevisionDraftResponse always returns draftVersionId.
+    console.warn("[intentRevisionDraftApi] using legacy revision draft id response field");
+  }
 
   if (typeof id !== "number") {
     throw new Error("Intent 수정 초안 version id를 확인할 수 없습니다.");
