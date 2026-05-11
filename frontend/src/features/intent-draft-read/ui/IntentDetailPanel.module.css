@@ -81,7 +81,7 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   background: var(--bg-color);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cardHeader {
@@ -120,11 +120,91 @@
   color: var(--bg-color);
 }
 
+.resourceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.resourceSectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resourceSectionTitle {
+  margin: 0;
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 18px;
+  font-weight: 540;
+  line-height: 1.2;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+}
+
+.resourceSectionMeta {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.resourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.resourceCard {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.resourceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px 11px;
+  border-bottom: 1px solid var(--divider-subtle);
+}
+
+.resourceLabel {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.resourceMeta {
+  flex-shrink: 0;
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.resourceBody {
+  min-width: 0;
+  padding: 12px;
+}
+
 .jsonBlock {
+  margin: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 14px;
   font-family: "Geist Mono", monospace;
   font-size: 12px;
   line-height: 1.55;
@@ -132,6 +212,8 @@
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  max-height: none;
+  min-height: 96px;
 }
 
 .placeholder {
@@ -184,6 +266,10 @@
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resourceGrid {
     grid-template-columns: 1fr;
   }
 

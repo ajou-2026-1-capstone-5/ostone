@@ -67,6 +67,16 @@
   border-color: var(--hover-border);
 }
 
+.itemLevelOne {
+  background: var(--bg-secondary);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.itemLevelOne:hover {
+  background: var(--hover-bg);
+  border-color: var(--text-primary);
+}
+
 .itemActive {
   background: var(--text-primary);
   color: var(--bg-color);
@@ -82,20 +92,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.depthGuide {
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    currentcolor 0 4px,
-    transparent 4px 8px
-  );
-  opacity: 0.22;
 }
 
 .code {

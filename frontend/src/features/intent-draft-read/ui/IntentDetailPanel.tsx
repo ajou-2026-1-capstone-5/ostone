@@ -99,10 +99,20 @@ export function IntentDetailPanel({
           />
         </div>
         {beforeJsonCards?.(state.data)}
-        <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
-        <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
-        <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
-        <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
+        <section className={styles.resourceSection} aria-labelledby="intent-resource-section-title">
+          <div className={styles.resourceSectionHeader}>
+            <h2 id="intent-resource-section-title" className={styles.resourceSectionTitle}>
+              내부 리소스
+            </h2>
+            <span className={styles.resourceSectionMeta}>JSON FIELDS</span>
+          </div>
+          <div className={styles.resourceGrid}>
+            <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
+            <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
+            <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
+            <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
+          </div>
+        </section>
       </div>
       {children?.(state.data)}
     </section>
@@ -135,12 +145,18 @@ function InfoCard({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function JsonCard({ label, value }: { label: string; value: string }) {
+  const formatted = formatJsonForDisplay(value);
+  const meta = describeJson(value);
+
   return (
-    <section className={styles.card}>
-      <header className={styles.cardHeader}>{label}</header>
-      <div className={styles.cardBody}>
+    <section className={styles.resourceCard}>
+      <header className={styles.resourceHeader}>
+        <span className={styles.resourceLabel}>{label}</span>
+        <span className={styles.resourceMeta}>{meta}</span>
+      </header>
+      <div className={styles.resourceBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay(value)}</code>
+          <code>{formatted}</code>
         </pre>
       </div>
     </section>
@@ -153,6 +169,20 @@ function formatJsonForDisplay(raw: string): string {
     return JSON.stringify(JSON.parse(raw), null, 2);
   } catch {
     return raw;
+  }
+}
+
+function describeJson(raw: string): string {
+  if (!raw) return "EMPTY";
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return `${parsed.length} ITEMS`;
+    if (parsed !== null && typeof parsed === "object") {
+      return `${Object.keys(parsed).length} KEYS`;
+    }
+    return typeof parsed === "string" ? "STRING" : "VALUE";
+  } catch {
+    return "RAW";
   }
 }
 
