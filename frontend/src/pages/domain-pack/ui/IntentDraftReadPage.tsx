@@ -1,28 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { UseQueryResult } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
-import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domain-pack";
-import type { IntentDetail } from "@/entities/intent";
+import { useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
-import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import {
   IntentRevisionDiffPanel,
   IntentRevisionDraftActions,
   IntentRevisionEditForm,
   IntentRevisionRecoveryBanner,
-  classifyExistingDraftSource,
-  intentRevisionDraftApi,
-  parseIntentRevisionDraftSource,
-  resolveSingleExistingDraft,
-  useIntentRevisionMarkers,
-  useIntentRevisionSummary,
-  useSaveIntentRevisionDraft,
-  useUpdateDraftIntent,
-  type UpdateDraftIntentBody,
 } from "@/features/intent-revision-draft";
-import { ApiRequestError } from "@/shared/api";
+import {
+  type ExistingDraftTarget,
+  useIntentDraftReadController,
+} from "@/pages/domain-pack/model/useIntentDraftReadController";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -35,17 +24,6 @@ import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { Mono } from "@/shared/ui/ostone/atoms";
 import styles from "./intent-draft-read-page.module.css";
-
-interface DirtyState {
-  isDirty: boolean;
-  intentId: number | null;
-}
-
-interface ExistingDraftTarget {
-  versionId: number;
-  intentCode: string;
-  sourceType: "INTENT_REVISION" | "GENERAL_DRAFT";
-}
 
 export function IntentDraftReadPage() {
   const { workspaceId, packId, versionId, intentId } = useParams();
@@ -79,438 +57,249 @@ function IntentDraftReadContent({
   vId: number;
   iId: number | null;
 }) {
-  const navigate = useNavigate();
-  const packQuery = usePackDetail(wsId, pId) as UseQueryResult<DomainPackDetail>;
-  const versionQuery = useVersionDetail(wsId, pId, vId) as UseQueryResult<DomainPackVersionDetail>;
-  const { saveIntentRevisionDraft, isPending: isCreatingRevision } = useSaveIntentRevisionDraft();
-  const { updateDraftIntent, isPending: isUpdatingDraft } = useUpdateDraftIntent();
-  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
-  const [listRefreshKey, setListRefreshKey] = useState(0);
-  const [summaryRefreshKey, setSummaryRefreshKey] = useState(0);
-  const [versionActionPending, setVersionActionPending] = useState(false);
-  const [dirtyState, setDirtyState] = useState<DirtyState>({ isDirty: false, intentId: null });
-  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
-  const [existingDraftTarget, setExistingDraftTarget] = useState<ExistingDraftTarget | null>(null);
-  const [recoveryVersionId, setRecoveryVersionId] = useState<number | null>(null);
-  const [selectedIntentCode, setSelectedIntentCode] = useState<string | null>(null);
-
-  const currentPublishedVersion = useMemo(() => {
-    const versions = packQuery.data?.versions ?? [];
-    return versions
-      .filter((version) => version.lifecycleStatus === "PUBLISHED" && version.versionId != null)
-      .reduce<NonNullable<DomainPackDetail["versions"]>[number] | null>((current, version) => {
-        if (!current) return version;
-        return (version.versionNo ?? 0) > (current.versionNo ?? 0) ? version : current;
-      }, null);
-  }, [packQuery.data?.versions]);
-
-  const versionDetail = versionQuery.data;
-  const revisionSource = parseIntentRevisionDraftSource(versionDetail?.summaryJson);
-  const isRevisionDraft =
-    versionDetail?.lifecycleStatus === "DRAFT" && revisionSource?.type === "INTENT_REVISION";
-  const isCurrentPublished =
-    versionDetail?.lifecycleStatus === "PUBLISHED" &&
-    currentPublishedVersion?.versionId === versionDetail.versionId;
-  const isGeneralDraft = versionDetail?.lifecycleStatus === "DRAFT" && !isRevisionDraft;
-  const canEditIntent = isCurrentPublished || isRevisionDraft;
+  const controller = useIntentDraftReadController({ wsId, pId, vId, iId });
   const hasSelection = iId !== null;
 
-  const summaryState = useIntentRevisionSummary({
-    workspaceId: wsId,
-    packId: pId,
-    draftVersionId: vId,
-    baseVersionId: revisionSource?.baseVersionId ?? null,
-    refreshKey: summaryRefreshKey,
-    enabled: isRevisionDraft,
-  });
-
-  const markers = useIntentRevisionMarkers({
-    editingIntentId: dirtyState.intentId,
-    isDirty: dirtyState.isDirty,
-    summaryState,
-  });
-
-  const resetDirty = useCallback(() => {
-    setDirtyState({ isDirty: false, intentId: null });
-  }, []);
-
-  const handleDirtyChange = useCallback((isDirty: boolean, intentId: number | null) => {
-    setDirtyState({ isDirty, intentId });
-  }, []);
-
-  useEffect(() => {
-    if (!dirtyState.isDirty) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [dirtyState.isDirty]);
-
-  const navigateToIntentRoute = useCallback(
-    (versionId: number, intentId: number | null) => {
-      const suffix = intentId === null ? "" : `/${intentId}`;
-      navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${versionId}/intents${suffix}`);
-    },
-    [navigate, pId, wsId],
-  );
-
-  const navigateToIntentCode = useCallback(
-    async (versionId: number, intentCode?: string | null) => {
-      if (!intentCode) {
-        navigateToIntentRoute(versionId, null);
-        return;
-      }
-
-      try {
-        const intents = await intentRevisionDraftApi.listIntents(wsId, pId, versionId);
-        const target = intents.find((intent) => intent.intentCode === intentCode);
-        navigateToIntentRoute(versionId, target?.id ?? null);
-      } catch {
-        navigateToIntentRoute(versionId, null);
-      }
-    },
-    [navigateToIntentRoute, pId, wsId],
-  );
-
-  const guardNavigation = useCallback(
-    (next: () => void) => {
-      if (!dirtyState.isDirty) {
-        next();
-        return;
-      }
-      setPendingNavigation(() => next);
-    },
-    [dirtyState.isDirty],
-  );
-
-  const handleSelect = (id: number) => {
-    guardNavigation(() => navigateToIntentRoute(vId, id));
-  };
-
-  const handleBack = () => {
-    guardNavigation(() => navigateToIntentRoute(vId, null));
-  };
-
-  const refreshIntentViews = () => {
-    setDetailRefreshKey((key) => key + 1);
-    setListRefreshKey((key) => key + 1);
-    setSummaryRefreshKey((key) => key + 1);
-  };
-
-  const resolveExistingDraftTarget = async (intentCode: string): Promise<boolean> => {
-    try {
-      const refetched = await packQuery.refetch();
-      const resolution = resolveSingleExistingDraft(refetched.data?.versions);
-
-      if (resolution.status === "invalid") {
-        toast.error("초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.");
-        return false;
-      }
-
-      const draftDetail = await intentRevisionDraftApi.getVersionDetail(
-        wsId,
-        pId,
-        resolution.versionId,
-      );
-      setExistingDraftTarget({
-        versionId: resolution.versionId,
-        intentCode,
-        sourceType: classifyExistingDraftSource(draftDetail.summaryJson),
-      });
-      return true;
-    } catch {
-      toast.error("진행 중인 초안을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-      return false;
-    }
-  };
-
-  const handleSaveRevision = async (
-    detail: IntentDetail,
-    values: UpdateDraftIntentBody,
-  ): Promise<boolean> => {
-    if (detail.id == null || !detail.intentCode) return false;
-
-    if (isCurrentPublished) {
-      try {
-        const result = await saveIntentRevisionDraft({
-          workspaceId: wsId,
-          packId: pId,
-          baseVersionId: vId,
-          intentCode: detail.intentCode,
-          values,
-        });
-
-        resetDirty();
-        await packQuery.refetch();
-        if (!result.patchSucceeded) {
-          toast.error(
-            result.clonedIntentId === null
-              ? "Intent 수정 초안에서 같은 intent를 찾지 못했습니다."
-              : "Intent 수정 초안은 생성됐지만 수정 내용 저장에 실패했습니다.",
-          );
-          setRecoveryVersionId(result.draftVersionId);
-        }
-        navigateToIntentRoute(result.draftVersionId, result.clonedIntentId);
-        return true;
-      } catch (error) {
-        if (
-          error instanceof ApiRequestError &&
-          error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS"
-        ) {
-          await resolveExistingDraftTarget(detail.intentCode);
-          return false;
-        }
-
-        if (
-          error instanceof ApiRequestError &&
-          error.code === "DOMAIN_PACK_VERSION_NOT_CURRENT"
-        ) {
-          await packQuery.refetch();
-          toast.error("현재 운영 버전이 변경되었습니다. 최신 버전에서 다시 수정해 주세요.");
-          return false;
-        }
-
-        toast.error("Intent 수정 내용 저장에 실패했습니다.");
-        return false;
-      }
-    }
-
-    if (isRevisionDraft) {
-      try {
-        await updateDraftIntent({
-          workspaceId: wsId,
-          packId: pId,
-          draftVersionId: vId,
-          intentId: detail.id,
-          values,
-        });
-        resetDirty();
-        refreshIntentViews();
-        return true;
-      } catch {
-        toast.error("Intent 수정 내용 저장에 실패했습니다.");
-        return false;
-      }
-    }
-
-    return false;
-  };
-
-  const handleApplyRevisionDraft = async (intentCode?: string | null) => {
-    const summary = summaryState.status === "ready" ? summaryState.data : null;
-    if (!summary || summary.changedIntents.length === 0) return;
-
-    setVersionActionPending(true);
-    try {
-      const activated = await intentRevisionDraftApi.activateVersion(wsId, pId, vId);
-      await packQuery.refetch();
-      await versionQuery.refetch();
-      toast.success("Intent 수정 초안이 적용되었습니다.");
-      await navigateToIntentCode(activated.activatedVersionId, intentCode);
-    } catch {
-      toast.error("Intent 수정 초안 적용에 실패했습니다.");
-    } finally {
-      setVersionActionPending(false);
-    }
-  };
-
-  const handleDiscardRevisionDraft = async (intentCode?: string | null) => {
-    setVersionActionPending(true);
-    try {
-      await intentRevisionDraftApi.discardDraft(wsId, pId, vId);
-      const targetVersionId =
-        currentPublishedVersion?.versionId ?? revisionSource?.baseVersionId ?? null;
-      await packQuery.refetch();
-      toast.success("Intent 수정 초안이 취소되었습니다.");
-      if (targetVersionId !== null) {
-        await navigateToIntentCode(targetVersionId, intentCode);
-      } else {
-        navigate(`/workspaces/${wsId}/domain-packs/${pId}`);
-      }
-    } catch {
-      toast.error("Intent 수정 초안 취소에 실패했습니다.");
-    } finally {
-      setVersionActionPending(false);
-    }
-  };
-
-  const handleApplyRevisionDraftAction = () => {
-    guardNavigation(() => {
-      void handleApplyRevisionDraft(selectedIntentCode);
-    });
-  };
-
-  const handleDiscardRevisionDraftAction = () => {
-    guardNavigation(() => {
-      void handleDiscardRevisionDraft(selectedIntentCode);
-    });
-  };
-
   const versionLabel = getVersionLabel({
-    lifecycleStatus: versionDetail?.lifecycleStatus,
-    isCurrentPublished,
-    isRevisionDraft,
+    lifecycleStatus: controller.versionDetail?.lifecycleStatus,
+    isCurrentPublished: controller.isCurrentPublished,
+    isRevisionDraft: controller.isRevisionDraft,
   });
-
-  const selectedChange =
-    iId !== null && summaryState.status === "ready"
-      ? summaryState.data.changedByDraftIntentId[iId]
-      : undefined;
-
-  const isMutationPending = isCreatingRevision || isUpdatingDraft || versionActionPending;
 
   return (
     <OstoneShell active="domain" crumbs={[`PACK · ${pId}`, `Version · ${vId}`]}>
       <div className={styles.pageWrapper}>
-        <header className={styles.pageHeader}>
-          <nav className={styles.breadcrumb} aria-label="경로">
-            <Mono>WS · {wsId}</Mono>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <Mono>PACK · {pId}</Mono>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <Mono>VER · {vId}</Mono>
-          </nav>
-          <div className={styles.versionMeta}>
-            <span className={styles.versionTitle}>Intent 조회</span>
-            <span className={styles.versionBadge}>{versionLabel}</span>
-            {isRevisionDraft && (
-              <IntentRevisionDraftActions
-                summary={summaryState.status === "ready" ? summaryState.data : undefined}
-                isSummaryLoading={summaryState.status === "loading"}
-                summaryError={
-                  summaryState.status === "error" ? summaryState.message : null
-                }
-                isPending={isMutationPending}
-                onRetrySummary={() => setSummaryRefreshKey((key) => key + 1)}
-                onApply={handleApplyRevisionDraftAction}
-                onDiscard={handleDiscardRevisionDraftAction}
-              />
-            )}
-          </div>
-        </header>
+        <IntentDraftHeader
+          controller={controller}
+          versionLabel={versionLabel}
+          wsId={wsId}
+          pId={pId}
+          vId={vId}
+        />
         {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={handleBack}>
+          <button type="button" className={styles.backButton} onClick={controller.handleBack}>
             ← 목록
           </button>
         )}
-        <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
-          <div className={styles.listSlot}>
-            <IntentTreePanel
-              wsId={wsId}
-              packId={pId}
-              versionId={vId}
-              selectedId={iId}
-              onSelect={handleSelect}
-              refreshKey={listRefreshKey}
-              markers={markers}
-            />
-          </div>
-          <div className={styles.detailSlot}>
-            {iId !== null ? (
-              isGeneralDraft ? (
-                <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId} />
-              ) : (
-                <IntentDetailPanel
-                  key={iId}
-                  wsId={wsId}
-                  packId={pId}
-                  versionId={vId}
-                  intentId={iId}
-                  refreshKey={detailRefreshKey}
-                  afterHeader={(detail) => (
-                    <>
-                      <SelectedIntentCodeSync
-                        intentCode={detail.intentCode ?? null}
-                        onChange={setSelectedIntentCode}
-                      />
-                      {recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
-                    </>
-                  )}
-                  beforeJsonCards={() =>
-                    isRevisionDraft ? <IntentRevisionDiffPanel change={selectedChange} /> : null
-                  }
-                >
-                  {(detail) => (
-                    <IntentRevisionEditForm
-                      wsId={wsId}
-                      packId={pId}
-                      versionId={vId}
-                      detail={detail}
-                      canEdit={canEditIntent}
-                      isSaving={isMutationPending}
-                      onSave={(values) => handleSaveRevision(detail, values)}
-                      onDirtyChange={handleDirtyChange}
-                    />
-                  )}
-                </IntentDetailPanel>
-              )
-            ) : (
-              <IntentDetailPanel wsId={wsId} packId={pId} versionId={vId} intentId={null} />
-            )}
-          </div>
-        </div>
+        <IntentDraftTwoPane
+          controller={controller}
+          hasSelection={hasSelection}
+          wsId={wsId}
+          pId={pId}
+          vId={vId}
+          iId={iId}
+        />
       </div>
 
-      <AlertDialog open={pendingNavigation !== null} onOpenChange={() => setPendingNavigation(null)}>
-        <AlertDialogContent size="sm">
-          <AlertDialogTitle>저장하지 않고 이동할까요?</AlertDialogTitle>
-          <AlertDialogDescription>
-            저장하지 않고 이동 시 수정 내역은 사라집니다.
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPendingNavigation(null)}>
-              취소
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                const next = pendingNavigation;
-                setPendingNavigation(null);
-                resetDirty();
-                next?.();
-              }}
-            >
-              이동
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={existingDraftTarget !== null}
-        onOpenChange={() => setExistingDraftTarget(null)}
-      >
-        <AlertDialogContent size="sm">
-          <AlertDialogTitle>진행 중인 초안이 있습니다.</AlertDialogTitle>
-          <AlertDialogDescription>
-            저장하지 않고 이동 시 수정 내역은 사라집니다.{" "}
-            {existingDraftTarget?.sourceType === "INTENT_REVISION"
-              ? "기존 Intent 수정 초안으로 이동할까요?"
-              : "기존 초안으로 이동할까요?"}
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={() => setExistingDraftTarget(null)}>
-              취소
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                const target = existingDraftTarget;
-                setExistingDraftTarget(null);
-                resetDirty();
-                if (target) void navigateToIntentCode(target.versionId, target.intentCode);
-              }}
-            >
-              이동
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PendingNavigationDialog controller={controller} />
+      <ExistingDraftDialog controller={controller} />
     </OstoneShell>
+  );
+}
+
+type IntentDraftController = ReturnType<typeof useIntentDraftReadController>;
+
+function IntentDraftHeader({
+  controller,
+  versionLabel,
+  wsId,
+  pId,
+  vId,
+}: {
+  controller: IntentDraftController;
+  versionLabel: string;
+  wsId: number;
+  pId: number;
+  vId: number;
+}) {
+  const summaryState = controller.summaryState;
+
+  return (
+    <header className={styles.pageHeader}>
+      <nav className={styles.breadcrumb} aria-label="경로">
+        <Mono>WS · {wsId}</Mono>
+        <span className={styles.breadcrumbSeparator}>/</span>
+        <Mono>PACK · {pId}</Mono>
+        <span className={styles.breadcrumbSeparator}>/</span>
+        <Mono>VER · {vId}</Mono>
+      </nav>
+      <div className={styles.versionMeta}>
+        <span className={styles.versionTitle}>Intent 조회</span>
+        <span className={styles.versionBadge}>{versionLabel}</span>
+        {controller.isRevisionDraft && (
+          <IntentRevisionDraftActions
+            summary={summaryState.status === "ready" ? summaryState.data : undefined}
+            isSummaryLoading={summaryState.status === "loading"}
+            summaryError={summaryState.status === "error" ? summaryState.message : null}
+            isPending={controller.isMutationPending}
+            onRetrySummary={controller.retrySummary}
+            onApply={controller.handleApplyRevisionDraftAction}
+            onDiscard={controller.handleDiscardRevisionDraftAction}
+          />
+        )}
+      </div>
+    </header>
+  );
+}
+
+function IntentDraftTwoPane({
+  controller,
+  hasSelection,
+  wsId,
+  pId,
+  vId,
+  iId,
+}: {
+  controller: IntentDraftController;
+  hasSelection: boolean;
+  wsId: number;
+  pId: number;
+  vId: number;
+  iId: number | null;
+}) {
+  return (
+    <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
+      <div className={styles.listSlot}>
+        <IntentTreePanel
+          wsId={wsId}
+          packId={pId}
+          versionId={vId}
+          selectedId={iId}
+          onSelect={controller.handleSelect}
+          refreshKey={controller.listRefreshKey}
+          markers={controller.markers}
+        />
+      </div>
+      <IntentDetailSlot controller={controller} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+    </div>
+  );
+}
+
+function IntentDetailSlot({
+  controller,
+  wsId,
+  pId,
+  vId,
+  iId,
+}: {
+  controller: IntentDraftController;
+  wsId: number;
+  pId: number;
+  vId: number;
+  iId: number | null;
+}) {
+  if (iId === null) {
+    return (
+      <div className={styles.detailSlot}>
+        <IntentDetailPanel wsId={wsId} packId={pId} versionId={vId} intentId={null} />
+      </div>
+    );
+  }
+
+  if (controller.isGeneralDraft) {
+    return (
+      <div className={styles.detailSlot}>
+        <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.detailSlot}>
+      <IntentDetailPanel
+        key={iId}
+        wsId={wsId}
+        packId={pId}
+        versionId={vId}
+        intentId={iId}
+        refreshKey={controller.detailRefreshKey}
+        afterHeader={(detail) => (
+          <>
+            <SelectedIntentCodeSync
+              intentCode={detail.intentCode ?? null}
+              onChange={controller.setSelectedIntentCode}
+            />
+            {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
+          </>
+        )}
+        beforeJsonCards={() =>
+          controller.isRevisionDraft ? (
+            <IntentRevisionDiffPanel change={controller.selectedChange} />
+          ) : null
+        }
+      >
+        {(detail) => (
+          <IntentRevisionEditForm
+            wsId={wsId}
+            packId={pId}
+            versionId={vId}
+            detail={detail}
+            canEdit={controller.canEditIntent}
+            isSaving={controller.isMutationPending}
+            onSave={(values) => controller.handleSaveRevision(detail, values)}
+            onDirtyChange={controller.handleDirtyChange}
+          />
+        )}
+      </IntentDetailPanel>
+    </div>
+  );
+}
+
+function PendingNavigationDialog({ controller }: { controller: IntentDraftController }) {
+  return (
+    <AlertDialog
+      open={controller.pendingNavigation !== null}
+      onOpenChange={() => controller.setPendingNavigation(null)}
+    >
+      <AlertDialogContent size="sm">
+        <AlertDialogTitle>저장하지 않고 이동할까요?</AlertDialogTitle>
+        <AlertDialogDescription>
+          저장하지 않고 이동 시 수정 내역은 사라집니다.
+        </AlertDialogDescription>
+        <AlertDialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => controller.setPendingNavigation(null)}
+          >
+            취소
+          </Button>
+          <Button type="button" onClick={controller.confirmPendingNavigation}>
+            이동
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ExistingDraftDialog({ controller }: { controller: IntentDraftController }) {
+  const target = controller.existingDraftTarget;
+
+  return (
+    <AlertDialog
+      open={target !== null}
+      onOpenChange={() => controller.setExistingDraftTarget(null)}
+    >
+      <AlertDialogContent size="sm">
+        <AlertDialogTitle>진행 중인 초안이 있습니다.</AlertDialogTitle>
+        <AlertDialogDescription>
+          저장하지 않고 이동 시 수정 내역은 사라집니다. {getExistingDraftDescription(target)}
+        </AlertDialogDescription>
+        <AlertDialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => controller.setExistingDraftTarget(null)}
+          >
+            취소
+          </Button>
+          <Button type="button" onClick={controller.confirmExistingDraftNavigation}>
+            이동
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -543,4 +332,10 @@ function getVersionLabel({
   if (lifecycleStatus === "PUBLISHED") return "이전 버전";
   if (lifecycleStatus === "DRAFT") return "DRAFT";
   return "확인 중";
+}
+
+function getExistingDraftDescription(target: ExistingDraftTarget | null): string {
+  return target?.sourceType === "INTENT_REVISION"
+    ? "기존 Intent 수정 초안으로 이동할까요?"
+    : "기존 초안으로 이동할까요?";
 }
