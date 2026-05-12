@@ -56,7 +56,8 @@ public class DemoRuntimeFixture {
               STATE_COMPLETED,
               "HANDOFF"),
           List.of(
-              new DemoTransitionResponse(STATE_INITIAL, STATE_INTENT_DETECTED, "INTENT_DETECTED"),
+              new DemoTransitionResponse(
+                  STATE_INITIAL, STATE_INTENT_DETECTED, STATE_INTENT_DETECTED),
               new DemoTransitionResponse(
                   STATE_INTENT_DETECTED, STATE_SLOT_COLLECTING, "SLOT_FILLED"),
               new DemoTransitionResponse(
