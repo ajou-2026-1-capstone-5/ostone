@@ -1,0 +1,351 @@
+package com.init.domainpack.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
+import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
+import com.init.domainpack.application.exception.WorkflowTransitionActionNotEditableException;
+import com.init.domainpack.application.exception.WorkflowTransitionConditionNotEditableException;
+import com.init.domainpack.application.exception.WorkflowTransitionNotFoundException;
+import com.init.domainpack.application.exception.WorkflowTransitionOutcomeEmptyException;
+import com.init.domainpack.application.exception.WorkflowTransitionOutcomeNotEditableException;
+import com.init.domainpack.application.exception.WorkflowTransitionPatchEmptyException;
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.shared.application.exception.BadRequestException;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("UpdateWorkflowTransitionUseCase")
+class UpdateWorkflowTransitionUseCaseTest {
+
+  private static final Long WORKSPACE_ID = 1L;
+  private static final Long PACK_ID = 7L;
+  private static final Long VERSION_ID = 101L;
+  private static final Long WORKFLOW_ID = 3001L;
+  private static final Long USER_ID = 10L;
+
+  private static final String GRAPH =
+      "{\"direction\":\"LR\","
+          + "\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\"START\"},"
+          + "{\"id\":\"check\",\"type\":\"DECISION\"},"
+          + "{\"id\":\"action\",\"type\":\"ACTION\",\"policyRef\":\"policy_old\"},"
+          + "{\"id\":\"end_ok\",\"type\":\"TERMINAL\",\"state\":\"approved\",\"label\":\"승인\"},"
+          + "{\"id\":\"end_reject\",\"type\":\"TERMINAL\",\"state\":\"rejected\",\"label\":\"거절\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e_start_check\",\"from\":\"start\",\"to\":\"check\"},"
+          + "{\"id\":\"e_check_action\",\"from\":\"check\",\"to\":\"action\",\"label\":\"가능\"},"
+          + "{\"id\":\"e_check_reject\",\"from\":\"check\",\"to\":\"end_reject\",\"label\":\"불가능\"},"
+          + "{\"id\":\"e_action_end\",\"from\":\"action\",\"to\":\"end_ok\"}]}";
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Mock private DomainPackValidator validator;
+  @Mock private DomainPackVersionRepository versionRepository;
+  @Mock private WorkflowDefinitionRepository workflowRepository;
+
+  private UpdateWorkflowTransitionUseCase useCase;
+
+  @BeforeEach
+  void setUp() {
+    useCase = new UpdateWorkflowTransitionUseCase(validator, versionRepository, workflowRepository);
+  }
+
+  @Test
+  @DisplayName("DECISION -> ACTION transition에서 condition과 action을 수정한다")
+  void should_updateConditionAndAction_when_decisionToActionTransition() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow();
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    UpdateWorkflowTransitionCommand command =
+        command(
+            "e_check_action",
+            new UpdateWorkflowTransitionCommand.ConditionPatch("  가능함  "),
+            new UpdateWorkflowTransitionCommand.ActionPatch("policy_new"),
+            null);
+
+    // when
+    WorkflowTransitionDetail result = useCase.execute(command);
+
+    // then
+    assertThat(result.label()).isEqualTo("가능함");
+    assertThat(result.toPolicyRef()).isEqualTo("policy_new");
+    assertThat(result.condition().editable()).isTrue();
+    assertThat(result.action().editable()).isTrue();
+
+    JsonNode graph = objectMapper.readTree(workflow.getGraphJson());
+    assertThat(findEdge(graph, "e_check_action").path("label").asText()).isEqualTo("가능함");
+    assertThat(findNode(graph, "action").path("policyRef").asText()).isEqualTo("policy_new");
+    verify(validator).validatePolicyCodes(eq(VERSION_ID), eq(Set.of("policy_new")));
+    verify(workflowRepository).save(workflow);
+  }
+
+  @Test
+  @DisplayName("DECISION -> TERMINAL transition에서 outcome.state와 outcome.label을 수정한다")
+  void should_updateOutcome_when_decisionToTerminalTransition() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow();
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    UpdateWorkflowTransitionCommand command =
+        command(
+            "e_check_reject",
+            new UpdateWorkflowTransitionCommand.ConditionPatch("보류"),
+            null,
+            new UpdateWorkflowTransitionCommand.OutcomePatch("pending", "보류 처리"));
+
+    // when
+    WorkflowTransitionDetail result = useCase.execute(command);
+
+    // then
+    assertThat(result.condition().label()).isEqualTo("보류");
+    assertThat(result.outcome().editable()).isTrue();
+    assertThat(result.outcome().state()).isEqualTo("pending");
+    assertThat(result.outcome().label()).isEqualTo("보류 처리");
+
+    JsonNode graph = objectMapper.readTree(workflow.getGraphJson());
+    assertThat(findNode(graph, "end_reject").path("state").asText()).isEqualTo("pending");
+    assertThat(findNode(graph, "end_reject").path("label").asText()).isEqualTo("보류 처리");
+  }
+
+  @Test
+  @DisplayName("outcome.state만 보내면 label은 유지한다")
+  void should_keepOutcomeLabel_when_onlyStateProvided() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow();
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    // when
+    useCase.execute(
+        command(
+            "e_check_reject",
+            null,
+            null,
+            new UpdateWorkflowTransitionCommand.OutcomePatch("failed", null)));
+
+    // then
+    JsonNode terminal = findNode(objectMapper.readTree(workflow.getGraphJson()), "end_reject");
+    assertThat(terminal.path("state").asText()).isEqualTo("failed");
+    assertThat(terminal.path("label").asText()).isEqualTo("거절");
+  }
+
+  @Test
+  @DisplayName("빈 PATCH 요청이면 WORKFLOW_TRANSITION_PATCH_EMPTY")
+  void should_WORKFLOW_TRANSITION_PATCH_EMPTY_when_emptyPatch() {
+    assertThatThrownBy(() -> useCase.execute(command("e_check_action", null, null, null)))
+        .isInstanceOf(WorkflowTransitionPatchEmptyException.class);
+
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("non-DECISION edge에 condition 요청 시 WORKFLOW_TRANSITION_CONDITION_NOT_EDITABLE")
+  void should_WORKFLOW_TRANSITION_CONDITION_NOT_EDITABLE_when_nonDecisionEdge() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_action_end",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("완료"),
+                        null,
+                        null)))
+        .isInstanceOf(WorkflowTransitionConditionNotEditableException.class);
+  }
+
+  @Test
+  @DisplayName("non-ACTION 목적지에 action 요청 시 WORKFLOW_TRANSITION_ACTION_NOT_EDITABLE")
+  void should_WORKFLOW_TRANSITION_ACTION_NOT_EDITABLE_when_toNodeIsNotAction() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_reject",
+                        null,
+                        new UpdateWorkflowTransitionCommand.ActionPatch("policy_new"),
+                        null)))
+        .isInstanceOf(WorkflowTransitionActionNotEditableException.class);
+  }
+
+  @Test
+  @DisplayName("non-TERMINAL 목적지에 outcome 요청 시 WORKFLOW_TRANSITION_OUTCOME_NOT_EDITABLE")
+  void should_WORKFLOW_TRANSITION_OUTCOME_NOT_EDITABLE_when_toNodeIsNotTerminal() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_action",
+                        null,
+                        null,
+                        new UpdateWorkflowTransitionCommand.OutcomePatch("done", null))))
+        .isInstanceOf(WorkflowTransitionOutcomeNotEditableException.class);
+  }
+
+  @Test
+  @DisplayName("outcome 내부가 비어 있으면 WORKFLOW_TRANSITION_OUTCOME_EMPTY")
+  void should_WORKFLOW_TRANSITION_OUTCOME_EMPTY_when_outcomeEmpty() {
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_reject",
+                        null,
+                        null,
+                        new UpdateWorkflowTransitionCommand.OutcomePatch(null, null))))
+        .isInstanceOf(WorkflowTransitionOutcomeEmptyException.class);
+  }
+
+  @Test
+  @DisplayName("action section이 없어도 전체 ACTION node policyRef 존재 검증을 수행한다")
+  void should_validateAllPolicyRefs_when_actionSectionMissing() {
+    // given
+    stubDraftWorkflow();
+    doThrow(new WorkflowActionNodePolicyRefNotFoundException("policy_old"))
+        .when(validator)
+        .validatePolicyCodes(eq(VERSION_ID), eq(Set.of("policy_old")));
+
+    // when & then
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_reject",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("보류"),
+                        null,
+                        null)))
+        .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("PUBLISHED version이면 WORKFLOW_NOT_EDITABLE")
+  void should_WORKFLOW_NOT_EDITABLE_when_publishedVersion() {
+    given(versionRepository.findById(VERSION_ID))
+        .willReturn(
+            Optional.of(
+                DomainPackVersion.ofForTest(
+                    VERSION_ID, PACK_ID, DomainPackVersion.STATUS_PUBLISHED)));
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_action",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("가능함"),
+                        null,
+                        null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("DRAFT");
+  }
+
+  @Test
+  @DisplayName("transitionId 미존재이면 WORKFLOW_TRANSITION_NOT_FOUND")
+  void should_WORKFLOW_TRANSITION_NOT_FOUND_when_transitionMissing() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "missing_edge",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("가능함"),
+                        null,
+                        null)))
+        .isInstanceOf(WorkflowTransitionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("workflowId 미존재이면 WORKFLOW_DEFINITION_NOT_FOUND")
+  void should_WORKFLOW_DEFINITION_NOT_FOUND_when_workflowMissing() {
+    given(versionRepository.findById(VERSION_ID))
+        .willReturn(
+            Optional.of(
+                DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
+    given(workflowRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_action",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("가능함"),
+                        null,
+                        null)))
+        .isInstanceOf(WorkflowDefinitionNotFoundException.class);
+  }
+
+  private UpdateWorkflowTransitionCommand command(
+      String transitionId,
+      UpdateWorkflowTransitionCommand.ConditionPatch condition,
+      UpdateWorkflowTransitionCommand.ActionPatch action,
+      UpdateWorkflowTransitionCommand.OutcomePatch outcome) {
+    return new UpdateWorkflowTransitionCommand(
+        WORKSPACE_ID,
+        PACK_ID,
+        VERSION_ID,
+        WORKFLOW_ID,
+        transitionId,
+        USER_ID,
+        condition,
+        action,
+        outcome);
+  }
+
+  private WorkflowDefinition stubDraftWorkflow() {
+    given(versionRepository.findById(VERSION_ID))
+        .willReturn(
+            Optional.of(
+                DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
+    WorkflowDefinition workflow =
+        WorkflowDefinition.create(
+            VERSION_ID, "wf_refund", "환불 플로우", null, GRAPH, "start", "[\"end_ok\"]", null, null);
+    ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
+    given(workflowRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+        .willReturn(Optional.of(workflow));
+    return workflow;
+  }
+
+  private JsonNode findNode(JsonNode graph, String nodeId) {
+    for (JsonNode node : graph.path("nodes")) {
+      if (nodeId.equals(node.path("id").asText())) {
+        return node;
+      }
+    }
+    throw new AssertionError("node not found: " + nodeId);
+  }
+
+  private JsonNode findEdge(JsonNode graph, String edgeId) {
+    for (JsonNode edge : graph.path("edges")) {
+      if (edgeId.equals(edge.path("id").asText())) {
+        return edge;
+      }
+    }
+    throw new AssertionError("edge not found: " + edgeId);
+  }
+}

@@ -10,6 +10,7 @@ import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionListUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionUseCase;
+import com.init.domainpack.application.UpdateWorkflowTransitionUseCase;
 import com.init.domainpack.application.UpdateWorkflowUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
 import com.init.domainpack.application.WorkflowDefinitionSummary;
@@ -52,6 +53,7 @@ class WorkflowDefinitionControllerTest {
   @MockitoBean private UpdateWorkflowUseCase updateUseCase;
   @MockitoBean private GetWorkflowTransitionUseCase transitionUseCase;
   @MockitoBean private GetWorkflowTransitionListUseCase transitionListUseCase;
+  @MockitoBean private UpdateWorkflowTransitionUseCase updateTransitionUseCase;
 
   @Test
   @DisplayName("GET .../workflows → 200 OK, 목록 반환")

@@ -94,8 +94,15 @@ class GetWorkflowTransitionUseCaseTest {
     assertThat(result.domainPackVersionId()).isEqualTo(VERSION_ID);
     assertThat(result.from()).isEqualTo("check");
     assertThat(result.to()).isEqualTo("answer");
+    assertThat(result.fromType()).isEqualTo("DECISION");
+    assertThat(result.toType()).isEqualTo("ACTION");
     assertThat(result.label()).isEqualTo("eligible");
     assertThat(result.toPolicyRef()).isEqualTo("refund_policy");
+    assertThat(result.condition().editable()).isTrue();
+    assertThat(result.condition().label()).isEqualTo("eligible");
+    assertThat(result.action().editable()).isTrue();
+    assertThat(result.action().policyRef()).isEqualTo("refund_policy");
+    assertThat(result.outcome().editable()).isFalse();
   }
 
   @Test
@@ -111,6 +118,10 @@ class GetWorkflowTransitionUseCaseTest {
 
     // then
     assertThat(result.label()).isNull();
+    assertThat(result.fromType()).isEqualTo("START");
+    assertThat(result.toType()).isEqualTo("TERMINAL");
+    assertThat(result.condition().editable()).isFalse();
+    assertThat(result.outcome().editable()).isTrue();
   }
 
   @Test

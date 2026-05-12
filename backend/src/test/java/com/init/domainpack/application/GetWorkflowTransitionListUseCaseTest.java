@@ -113,16 +113,24 @@ class GetWorkflowTransitionListUseCaseTest {
     assertThat(first.domainPackVersionId()).isEqualTo(VERSION_ID);
     assertThat(first.from()).isEqualTo("check");
     assertThat(first.to()).isEqualTo("answer");
+    assertThat(first.fromType()).isEqualTo("DECISION");
+    assertThat(first.toType()).isEqualTo("ACTION");
     assertThat(first.label()).isEqualTo("eligible");
     assertThat(first.toPolicyRef()).isEqualTo("refund_policy");
+    assertThat(first.condition().editable()).isTrue();
+    assertThat(first.action().editable()).isTrue();
+    assertThat(first.outcome().editable()).isFalse();
 
     WorkflowTransitionDetail second = result.get(1);
     assertThat(second.label()).isEqualTo("not_eligible");
     assertThat(second.toPolicyRef()).isEqualTo("handoff_policy");
 
     WorkflowTransitionDetail third = result.get(2);
+    assertThat(third.fromType()).isEqualTo("ACTION");
+    assertThat(third.toType()).isEqualTo("TERMINAL");
     assertThat(third.label()).isNull();
     assertThat(third.toPolicyRef()).isNull();
+    assertThat(third.outcome().editable()).isTrue();
   }
 
   @Test
