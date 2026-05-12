@@ -37,8 +37,8 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
             <span
               style={{
                 fontSize: 'var(--fs-sm)',
-                color: 'var(--positive, #2a9d8f)',
-                background: 'color-mix(in srgb, var(--positive, #2a9d8f) 12%, transparent)',
+                color: 'var(--app-positive, #2a9d8f)',
+                background: 'color-mix(in srgb, var(--app-positive, #2a9d8f) 12%, transparent)',
                 borderRadius: 'var(--r-1)',
                 padding: '0 var(--s-1)',
                 fontWeight: 500,
@@ -63,8 +63,8 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
           fontSize: 'var(--fs-sm)',
           padding: 'var(--s-1) var(--s-3)',
           borderRadius: 'var(--r-1)',
-          border: '1px solid var(--negative, #d32f2f)',
-          color: 'var(--negative, #d32f2f)',
+          border: '1px solid var(--app-negative, #d32f2f)',
+          color: 'var(--app-negative, #d32f2f)',
           background: 'transparent',
           cursor: 'pointer',
         }}
@@ -79,7 +79,7 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
           borderRadius: 'var(--r-1)',
           border: 'none',
           color: '#fff',
-          background: 'var(--accent, #2563eb)',
+          background: 'var(--app-accent, #2563eb)',
           cursor: 'pointer',
           fontWeight: 600,
         }}
