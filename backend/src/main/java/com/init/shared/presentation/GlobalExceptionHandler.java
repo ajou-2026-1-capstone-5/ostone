@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
@@ -138,6 +139,13 @@ public class GlobalExceptionHandler {
             .toList();
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new ValidationErrorResponse("VALIDATION_ERROR", errors));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse("VALIDATION_ERROR", "요청 본문이 유효한 JSON 형식이 아닙니다."));
   }
 
   @ExceptionHandler(Exception.class)

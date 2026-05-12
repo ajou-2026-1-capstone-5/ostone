@@ -71,10 +71,10 @@ class UpdateWorkflowUseCaseTest {
   void should_수정완료_when_유효한요청() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
 
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     given(workflowRepository.save(any())).willReturn(workflow);
 
@@ -88,13 +88,17 @@ class UpdateWorkflowUseCaseTest {
     assertThat(result.name()).isEqualTo("수정된 이름");
     assertThat(result.description()).isEqualTo("새 설명");
     assertThat(result.initialState()).isEqualTo("start");
+    verify(versionRepository).findByIdForUpdate(10L);
+    verify(versionRepository, never()).findById(10L);
+    verify(workflowRepository).findByIdAndDomainPackVersionIdForUpdate(99L, 10L);
+    verify(workflowRepository, never()).findByIdAndDomainPackVersionId(99L, 10L);
     verify(workflowRepository).save(workflow);
   }
 
   @Test
   @DisplayName("버전 미존재 시 NotFoundException")
   void should_버전없음예외_when_버전미존재() {
-    given(versionRepository.findById(10L)).willReturn(Optional.empty());
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
@@ -109,7 +113,7 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("packId 불일치 시 NotFoundException")
   void should_버전없음예외_when_packId불일치() {
     DomainPackVersion version = draftVersion(10L, 999L); // packId=999, not 7
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(
             () ->
@@ -124,7 +128,7 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("DRAFT가 아닌 버전 수정 시 BadRequestException(WORKFLOW_NOT_EDITABLE)")
   void should_WORKFLOW_NOT_EDITABLE_when_버전이PUBLISHED() {
     DomainPackVersion version = publishedVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
 
     assertThatThrownBy(
             () ->
@@ -140,7 +144,7 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("graphJson 크기 초과 시 BadRequestException(GRAPH_JSON_TOO_LARGE)")
   void should_GRAPH_JSON_TOO_LARGE_when_크기초과() {
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
 
     String oversizedGraph = "x".repeat(100_001);
     assertThatThrownBy(
@@ -157,8 +161,9 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("존재하지 않는 workflowId 요청 시 NotFoundException")
   void should_404_when_workflowNotFound() {
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L)).willReturn(Optional.empty());
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
+        .willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
@@ -174,9 +179,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V1예외_when_START노드이상() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String noStartGraph =
         "{\"direction\":\"LR\","
@@ -197,9 +202,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V2예외_when_TERMINAL노드없음() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String noTerminalGraph =
         "{\"direction\":\"LR\","
@@ -222,9 +227,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V3예외_when_dangling엣지() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String danglingGraph =
         "{\"direction\":\"LR\","
@@ -247,9 +252,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V4예외_when_미도달노드() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String unreachableGraph =
         "{\"direction\":\"LR\","
@@ -273,9 +278,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V5예외_when_사이클() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     // n1 → start creates a back-edge (cycle)
     String cycleGraph =
@@ -303,9 +308,9 @@ class UpdateWorkflowUseCaseTest {
   void should_V6예외_when_DECISION레이블없음() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     // d1 DECISION node has one unlabeled outgoing edge
     String unlabeledDecisionGraph =
@@ -334,9 +339,9 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("V7a 위반(edge id 누락) 시 WorkflowEdgeIdMissingException")
   void should_V7a예외_when_edge아이디누락() {
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String noEdgeIdGraph =
         "{\"direction\":\"LR\","
@@ -355,9 +360,9 @@ class UpdateWorkflowUseCaseTest {
   @DisplayName("V7b 위반(edge id 중복) 시 WorkflowEdgeIdDuplicateException")
   void should_V7b예외_when_edge아이디중복() {
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     String duplicateEdgeIdGraph =
         "{\"direction\":\"LR\","
@@ -383,9 +388,9 @@ class UpdateWorkflowUseCaseTest {
   void should_성공_when_ACTION노드policyRef유효() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     given(workflowRepository.save(any())).willReturn(workflow);
     UpdateWorkflowCommand command =
@@ -405,9 +410,9 @@ class UpdateWorkflowUseCaseTest {
   void should_예외_when_ACTION노드policyRef미존재() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     doThrow(new WorkflowActionNodePolicyRefNotFoundException("policy-1"))
         .when(validator)
@@ -429,13 +434,13 @@ class UpdateWorkflowUseCaseTest {
   }
 
   @Test
-  @DisplayName("ACTION 노드가 없으면 validatePolicyCodes를 호출하지 않는다")
-  void should_validatePolicyCodes미호출_when_ACTION노드없음() {
+  @DisplayName("ACTION 노드가 없어도 빈 policyRef set으로 검증을 위임한다")
+  void should_delegatePolicyCodeValidationWithEmptySet_when_ACTION노드없음() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
-    given(versionRepository.findById(10L)).willReturn(Optional.of(version));
+    given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
     WorkflowDefinition workflow = workflow(99L, 10L);
-    given(workflowRepository.findByIdAndDomainPackVersionId(99L, 10L))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(99L, 10L))
         .willReturn(Optional.of(workflow));
     given(workflowRepository.save(any())).willReturn(workflow);
     UpdateWorkflowCommand command =
@@ -445,7 +450,7 @@ class UpdateWorkflowUseCaseTest {
     useCase.execute(command);
 
     // then
-    verify(validator, never()).validatePolicyCodes(anyLong(), anySet());
+    verify(validator).validatePolicyCodes(eq(10L), eq(Set.<String>of()));
   }
 
   // ── factories ──────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionListUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionUseCase;
 import com.init.domainpack.application.UpdateWorkflowCommand;
+import com.init.domainpack.application.UpdateWorkflowTransitionUseCase;
 import com.init.domainpack.application.UpdateWorkflowUseCase;
 import com.init.domainpack.application.WorkflowDefinitionDetail;
 import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspaceAccessException;
@@ -62,6 +63,7 @@ class WorkflowDefinitionUpdateControllerTest {
   @MockitoBean private UpdateWorkflowUseCase updateUseCase;
   @MockitoBean private GetWorkflowTransitionUseCase transitionUseCase;
   @MockitoBean private GetWorkflowTransitionListUseCase transitionListUseCase;
+  @MockitoBean private UpdateWorkflowTransitionUseCase updateTransitionUseCase;
 
   @Test
   @DisplayName("유효한 요청 시 200 OK + WorkflowDefinitionDetail 반환")
