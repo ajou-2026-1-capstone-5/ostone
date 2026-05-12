@@ -100,7 +100,7 @@ public class DemoRuntimeFixture {
               "log-1",
               1,
               "msg-1",
-              "INTENT_DETECTED",
+              STATE_INTENT_DETECTED,
               STATE_INITIAL,
               STATE_INTENT_DETECTED,
               DECISION_ALLOW,
