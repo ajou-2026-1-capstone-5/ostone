@@ -262,8 +262,8 @@ class UpdateWorkflowTransitionUseCaseTest {
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("transitionId");
 
-    verify(versionRepository, never()).findById(any());
-    verify(workflowRepository, never()).findByIdAndDomainPackVersionId(any(), any());
+    verify(versionRepository, never()).findByIdForUpdate(any());
+    verify(workflowRepository, never()).findByIdAndDomainPackVersionIdForUpdate(any(), any());
     verify(workflowRepository, never()).save(any());
   }
 
@@ -329,7 +329,7 @@ class UpdateWorkflowTransitionUseCaseTest {
   @Test
   @DisplayName("PUBLISHED version이면 WORKFLOW_NOT_EDITABLE")
   void should_WORKFLOW_NOT_EDITABLE_when_publishedVersion() {
-    given(versionRepository.findById(VERSION_ID))
+    given(versionRepository.findByIdForUpdate(VERSION_ID))
         .willReturn(
             Optional.of(
                 DomainPackVersion.ofForTest(
@@ -366,11 +366,11 @@ class UpdateWorkflowTransitionUseCaseTest {
   @Test
   @DisplayName("workflowId 미존재이면 WORKFLOW_DEFINITION_NOT_FOUND")
   void should_WORKFLOW_DEFINITION_NOT_FOUND_when_workflowMissing() {
-    given(versionRepository.findById(VERSION_ID))
+    given(versionRepository.findByIdForUpdate(VERSION_ID))
         .willReturn(
             Optional.of(
                 DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
-    given(workflowRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -382,6 +382,28 @@ class UpdateWorkflowTransitionUseCaseTest {
                         null,
                         null)))
         .isInstanceOf(WorkflowDefinitionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("수정 대상 version과 workflow는 for update 조회를 사용한다")
+  void should_useForUpdateLookups_when_updateTransition() {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow();
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    // when
+    useCase.execute(
+        command(
+            "e_check_action",
+            new UpdateWorkflowTransitionCommand.ConditionPatch("가능함"),
+            null,
+            null));
+
+    // then
+    verify(versionRepository).findByIdForUpdate(VERSION_ID);
+    verify(versionRepository, never()).findById(VERSION_ID);
+    verify(workflowRepository).findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID);
+    verify(workflowRepository, never()).findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID);
   }
 
   private UpdateWorkflowTransitionCommand command(
@@ -402,7 +424,7 @@ class UpdateWorkflowTransitionUseCaseTest {
   }
 
   private WorkflowDefinition stubDraftWorkflow() {
-    given(versionRepository.findById(VERSION_ID))
+    given(versionRepository.findByIdForUpdate(VERSION_ID))
         .willReturn(
             Optional.of(
                 DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
@@ -410,7 +432,7 @@ class UpdateWorkflowTransitionUseCaseTest {
         WorkflowDefinition.create(
             VERSION_ID, "wf_refund", "환불 플로우", null, GRAPH, "start", "[\"end_ok\"]", null, null);
     ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
-    given(workflowRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+    given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(workflow));
     return workflow;
   }

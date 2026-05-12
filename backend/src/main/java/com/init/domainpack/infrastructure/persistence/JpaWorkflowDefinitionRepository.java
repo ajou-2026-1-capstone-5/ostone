@@ -3,9 +3,11 @@ package com.init.domainpack.infrastructure.persistence;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,6 +25,14 @@ public interface JpaWorkflowDefinitionRepository
 
   @Override
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
+
+  @Override
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      "SELECT w FROM WorkflowDefinition w"
+          + " WHERE w.id = :id AND w.domainPackVersionId = :domainPackVersionId")
+  Optional<WorkflowDefinition> findByIdAndDomainPackVersionIdForUpdate(
+      @Param("id") Long id, @Param("domainPackVersionId") Long domainPackVersionId);
 
   @Override
   @Query(

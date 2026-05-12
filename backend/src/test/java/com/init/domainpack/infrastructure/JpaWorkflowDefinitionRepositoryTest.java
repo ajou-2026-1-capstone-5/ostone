@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import com.init.domainpack.infrastructure.persistence.JpaWorkflowDefinitionRepository;
+import jakarta.persistence.LockModeType;
+import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -99,6 +101,17 @@ class JpaWorkflowDefinitionRepositoryTest {
         repository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(VERSION_ID);
 
     assertThat(results).isEmpty();
+  }
+
+  @Test
+  @DisplayName("findByIdAndDomainPackVersionIdForUpdate: PESSIMISTIC_WRITE lock 사용")
+  void should_usePessimisticWriteLock_when_forUpdate조회() throws NoSuchMethodException {
+    Method method =
+        JpaWorkflowDefinitionRepository.class.getMethod(
+            "findByIdAndDomainPackVersionIdForUpdate", Long.class, Long.class);
+
+    assertThat(method.getAnnotation(org.springframework.data.jpa.repository.Lock.class).value())
+        .isEqualTo(LockModeType.PESSIMISTIC_WRITE);
   }
 
   private WorkflowDefinition workflow(Long versionId, String code, String name) {

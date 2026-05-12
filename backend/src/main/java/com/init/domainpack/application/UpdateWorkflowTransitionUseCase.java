@@ -52,7 +52,7 @@ public class UpdateWorkflowTransitionUseCase {
 
     DomainPackVersion version =
         versionRepository
-            .findById(command.versionId())
+            .findByIdForUpdate(command.versionId())
             .orElseThrow(() -> new DomainPackVersionNotFoundException(command.versionId()));
     if (!version.getDomainPackId().equals(command.packId())) {
       throw new DomainPackVersionNotFoundException(command.versionId());
@@ -63,7 +63,7 @@ public class UpdateWorkflowTransitionUseCase {
 
     WorkflowDefinition workflow =
         workflowRepository
-            .findByIdAndDomainPackVersionId(command.workflowId(), command.versionId())
+            .findByIdAndDomainPackVersionIdForUpdate(command.workflowId(), command.versionId())
             .orElseThrow(() -> new WorkflowDefinitionNotFoundException(command.workflowId()));
 
     WorkflowGraphValidator.parseAndValidate(workflow.getGraphJson(), workflow.getWorkflowCode());
