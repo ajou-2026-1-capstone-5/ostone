@@ -23,6 +23,8 @@ final class WorkflowGraphDocument {
   private static final Logger log = LoggerFactory.getLogger(WorkflowGraphDocument.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final Pattern POLICY_REF_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+  private static final String NODE_TYPE_ACTION = "ACTION";
+  private static final String POLICY_REF_FIELD = "policyRef";
 
   private final Long workflowId;
   private final ObjectNode root;
@@ -94,10 +96,10 @@ final class WorkflowGraphDocument {
   Set<String> collectActionPolicyRefs() {
     Set<String> policyRefs = new LinkedHashSet<>();
     for (ObjectNode node : nodeMap.values()) {
-      if (!"ACTION".equals(text(node, "type"))) {
+      if (!NODE_TYPE_ACTION.equals(text(node, "type"))) {
         continue;
       }
-      String policyRef = text(node, "policyRef");
+      String policyRef = text(node, POLICY_REF_FIELD);
       if (policyRef != null && !policyRef.isBlank()) {
         policyRefs.add(policyRef);
       }
@@ -126,11 +128,11 @@ final class WorkflowGraphDocument {
     String toType = toNode == null ? null : trimToNull(text(toNode, "type"));
 
     boolean conditionEditable = "DECISION".equals(fromType);
-    boolean actionEditable = "ACTION".equals(toType);
+    boolean actionEditable = NODE_TYPE_ACTION.equals(toType);
     boolean outcomeEditable = "TERMINAL".equals(toType);
 
     String label = conditionEditable ? text(edge, "label") : null;
-    String policyRef = actionEditable && toNode != null ? text(toNode, "policyRef") : null;
+    String policyRef = actionEditable && toNode != null ? text(toNode, POLICY_REF_FIELD) : null;
     String outcomeState = outcomeEditable && toNode != null ? text(toNode, "state") : null;
     String outcomeLabel = outcomeEditable && toNode != null ? text(toNode, "label") : null;
 
@@ -163,8 +165,8 @@ final class WorkflowGraphDocument {
         continue;
       }
       nodes.put(nodeId, objectNode);
-      if ("ACTION".equals(nodeType)) {
-        validateActionPolicyRef(workflowId, nodeId, text(objectNode, "policyRef"));
+      if (NODE_TYPE_ACTION.equals(nodeType)) {
+        validateActionPolicyRef(workflowId, nodeId, text(objectNode, POLICY_REF_FIELD));
       }
     }
     return nodes;

@@ -30,6 +30,9 @@ public class UpdateWorkflowTransitionUseCase {
 
   private static final Pattern TRANSITION_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
   private static final Pattern MACHINE_CODE_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
+  private static final String NODE_TYPE_ACTION = "ACTION";
+  private static final String NODE_TYPE_DECISION = "DECISION";
+  private static final String NODE_TYPE_TERMINAL = "TERMINAL";
 
   private final DomainPackValidator validator;
   private final DomainPackVersionRepository versionRepository;
@@ -84,7 +87,7 @@ public class UpdateWorkflowTransitionUseCase {
 
     Set<String> policyRefs =
         parsed.nodes().stream()
-            .filter(node -> "ACTION".equals(node.type()))
+            .filter(node -> NODE_TYPE_ACTION.equals(node.type()))
             .map(WorkflowGraphValidator.GraphNode::policyRef)
             .collect(Collectors.toCollection(LinkedHashSet::new));
     validator.validatePolicyCodes(command.versionId(), policyRefs);
@@ -135,41 +138,62 @@ public class UpdateWorkflowTransitionUseCase {
       ObjectNode fromNode,
       ObjectNode toNode) {
     if (command.condition() != null) {
-      if (!"DECISION".equals(fromNode.path("type").asText(null))) {
-        throw new WorkflowTransitionConditionNotEditableException(command.transitionId());
-      }
-      document.putText(
-          edge, "label", normalizeRequired(command.condition().label(), "condition.label", 255));
+      applyConditionPatch(command, document, edge, fromNode);
     }
-
     if (command.action() != null) {
-      if (!"ACTION".equals(toNode.path("type").asText(null))) {
-        throw new WorkflowTransitionActionNotEditableException(command.transitionId());
-      }
-      String policyRef = normalizeRequired(command.action().policyRef(), "action.policyRef", 100);
-      if (!MACHINE_CODE_PATTERN.matcher(policyRef).matches()) {
-        throw new WorkflowActionNodePolicyRefInvalidCharsException(
-            command.workflowId(), toNode.path("id").asText());
-      }
-      document.putText(toNode, "policyRef", policyRef);
+      applyActionPatch(command, document, toNode);
     }
-
     if (command.outcome() != null) {
-      if (!"TERMINAL".equals(toNode.path("type").asText(null))) {
-        throw new WorkflowTransitionOutcomeNotEditableException(command.transitionId());
-      }
-      if (command.outcome().state() != null) {
-        String state = normalizeRequired(command.outcome().state(), "outcome.state", 100);
-        if (!MACHINE_CODE_PATTERN.matcher(state).matches()) {
-          throw new WorkflowTransitionOutcomeStateInvalidCharsException(state);
-        }
-        document.putText(toNode, "state", state);
-      }
-      if (command.outcome().label() != null) {
-        document.putText(
-            toNode, "label", normalizeRequired(command.outcome().label(), "outcome.label", 255));
-      }
+      applyOutcomePatch(command, document, toNode);
     }
+  }
+
+  private void applyConditionPatch(
+      UpdateWorkflowTransitionCommand command,
+      WorkflowGraphDocument document,
+      ObjectNode edge,
+      ObjectNode fromNode) {
+    if (!NODE_TYPE_DECISION.equals(fromNode.path("type").asText(null))) {
+      throw new WorkflowTransitionConditionNotEditableException(command.transitionId());
+    }
+    document.putText(
+        edge, "label", normalizeRequired(command.condition().label(), "condition.label", 255));
+  }
+
+  private void applyActionPatch(
+      UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
+    if (!NODE_TYPE_ACTION.equals(toNode.path("type").asText(null))) {
+      throw new WorkflowTransitionActionNotEditableException(command.transitionId());
+    }
+    String policyRef = normalizeRequired(command.action().policyRef(), "action.policyRef", 100);
+    if (!MACHINE_CODE_PATTERN.matcher(policyRef).matches()) {
+      throw new WorkflowActionNodePolicyRefInvalidCharsException(
+          command.workflowId(), toNode.path("id").asText());
+    }
+    document.putText(toNode, "policyRef", policyRef);
+  }
+
+  private void applyOutcomePatch(
+      UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
+    if (!NODE_TYPE_TERMINAL.equals(toNode.path("type").asText(null))) {
+      throw new WorkflowTransitionOutcomeNotEditableException(command.transitionId());
+    }
+    if (command.outcome().state() != null) {
+      applyOutcomeStatePatch(command, document, toNode);
+    }
+    if (command.outcome().label() != null) {
+      document.putText(
+          toNode, "label", normalizeRequired(command.outcome().label(), "outcome.label", 255));
+    }
+  }
+
+  private void applyOutcomeStatePatch(
+      UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
+    String state = normalizeRequired(command.outcome().state(), "outcome.state", 100);
+    if (!MACHINE_CODE_PATTERN.matcher(state).matches()) {
+      throw new WorkflowTransitionOutcomeStateInvalidCharsException(state);
+    }
+    document.putText(toNode, "state", state);
   }
 
   private String normalizeRequired(String value, String fieldName, int maxLength) {
