@@ -33,6 +33,7 @@ public class UpdateWorkflowTransitionUseCase {
   private static final String NODE_TYPE_ACTION = "ACTION";
   private static final String NODE_TYPE_DECISION = "DECISION";
   private static final String NODE_TYPE_TERMINAL = "TERMINAL";
+  private static final String SHARED_TARGET_NOT_EDITABLE = "WORKFLOW_TRANSITION_TARGET_SHARED";
 
   private final DomainPackValidator validator;
   private final DomainPackVersionRepository versionRepository;
@@ -165,6 +166,7 @@ public class UpdateWorkflowTransitionUseCase {
     if (!NODE_TYPE_ACTION.equals(toNode.path("type").asText(null))) {
       throw new WorkflowTransitionActionNotEditableException(command.transitionId());
     }
+    validateTargetNotShared(command, document, toNode);
     String policyRef = normalizeRequired(command.action().policyRef(), "action.policyRef", 100);
     if (!MACHINE_CODE_PATTERN.matcher(policyRef).matches()) {
       throw new WorkflowActionNodePolicyRefInvalidCharsException(
@@ -178,6 +180,7 @@ public class UpdateWorkflowTransitionUseCase {
     if (!NODE_TYPE_TERMINAL.equals(toNode.path("type").asText(null))) {
       throw new WorkflowTransitionOutcomeNotEditableException(command.transitionId());
     }
+    validateTargetNotShared(command, document, toNode);
     if (command.outcome().state() != null) {
       applyOutcomeStatePatch(command, document, toNode);
     }
@@ -194,6 +197,15 @@ public class UpdateWorkflowTransitionUseCase {
       throw new WorkflowTransitionOutcomeStateInvalidCharsException(state);
     }
     document.putText(toNode, "state", state);
+  }
+
+  private void validateTargetNotShared(
+      UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
+    if (!document.hasSingleInboundEdge(toNode)) {
+      throw new BadRequestException(
+          SHARED_TARGET_NOT_EDITABLE,
+          "공유 목적지 node를 가진 transition에서는 action/outcome을 수정할 수 없습니다: " + command.transitionId());
+    }
   }
 
   private String normalizeRequired(String value, String fieldName, int maxLength) {

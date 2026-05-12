@@ -60,6 +60,30 @@ class UpdateWorkflowTransitionUseCaseTest {
           + "{\"id\":\"e_check_reject\",\"from\":\"check\",\"to\":\"end_reject\",\"label\":\"불가능\"},"
           + "{\"id\":\"e_action_end\",\"from\":\"action\",\"to\":\"end_ok\"}]}";
 
+  private static final String SHARED_ACTION_TARGET_GRAPH =
+      "{\"direction\":\"LR\","
+          + "\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\"START\"},"
+          + "{\"id\":\"check\",\"type\":\"DECISION\"},"
+          + "{\"id\":\"action\",\"type\":\"ACTION\",\"policyRef\":\"policy_old\"},"
+          + "{\"id\":\"end\",\"type\":\"TERMINAL\",\"state\":\"done\",\"label\":\"완료\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e_start_check\",\"from\":\"start\",\"to\":\"check\"},"
+          + "{\"id\":\"e_start_action\",\"from\":\"start\",\"to\":\"action\"},"
+          + "{\"id\":\"e_check_action\",\"from\":\"check\",\"to\":\"action\",\"label\":\"가능\"},"
+          + "{\"id\":\"e_action_end\",\"from\":\"action\",\"to\":\"end\"}]}";
+
+  private static final String SHARED_TERMINAL_TARGET_GRAPH =
+      "{\"direction\":\"LR\","
+          + "\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\"START\"},"
+          + "{\"id\":\"check\",\"type\":\"DECISION\"},"
+          + "{\"id\":\"end\",\"type\":\"TERMINAL\",\"state\":\"done\",\"label\":\"완료\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e_start_check\",\"from\":\"start\",\"to\":\"check\"},"
+          + "{\"id\":\"e_start_end\",\"from\":\"start\",\"to\":\"end\"},"
+          + "{\"id\":\"e_check_end\",\"from\":\"check\",\"to\":\"end\",\"label\":\"가능\"}]}";
+
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Mock private DomainPackValidator validator;
@@ -286,6 +310,44 @@ class UpdateWorkflowTransitionUseCaseTest {
   }
 
   @Test
+  @DisplayName("공유 ACTION 목적지 transition에는 action을 수정할 수 없다")
+  void should_WORKFLOW_TRANSITION_TARGET_SHARED_when_actionTargetHasMultipleInboundEdges() {
+    stubDraftWorkflow(SHARED_ACTION_TARGET_GRAPH);
+    UpdateWorkflowTransitionCommand command =
+        command(
+            "e_check_action",
+            null,
+            new UpdateWorkflowTransitionCommand.ActionPatch("policy_new"),
+            null);
+
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(BadRequestException.class)
+        .extracting("code")
+        .isEqualTo("WORKFLOW_TRANSITION_TARGET_SHARED");
+
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("공유 TERMINAL 목적지 transition에는 outcome을 수정할 수 없다")
+  void should_WORKFLOW_TRANSITION_TARGET_SHARED_when_outcomeTargetHasMultipleInboundEdges() {
+    stubDraftWorkflow(SHARED_TERMINAL_TARGET_GRAPH);
+    UpdateWorkflowTransitionCommand command =
+        command(
+            "e_check_end",
+            null,
+            null,
+            new UpdateWorkflowTransitionCommand.OutcomePatch("pending", null));
+
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(BadRequestException.class)
+        .extracting("code")
+        .isEqualTo("WORKFLOW_TRANSITION_TARGET_SHARED");
+
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("outcome.state 패턴 위반 시 WORKFLOW_TRANSITION_OUTCOME_STATE_INVALID_CHARS")
   void should_WORKFLOW_TRANSITION_OUTCOME_STATE_INVALID_CHARS_when_outcomeStateInvalidChars() {
     stubDraftWorkflow();
@@ -424,13 +486,17 @@ class UpdateWorkflowTransitionUseCaseTest {
   }
 
   private WorkflowDefinition stubDraftWorkflow() {
+    return stubDraftWorkflow(GRAPH);
+  }
+
+  private WorkflowDefinition stubDraftWorkflow(String graph) {
     given(versionRepository.findByIdForUpdate(VERSION_ID))
         .willReturn(
             Optional.of(
                 DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
     WorkflowDefinition workflow =
         WorkflowDefinition.create(
-            VERSION_ID, "wf_refund", "환불 플로우", null, GRAPH, "start", "[\"end_ok\"]", null, null);
+            VERSION_ID, "wf_refund", "환불 플로우", null, graph, "start", "[\"end_ok\"]", null, null);
     ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
     given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(workflow));

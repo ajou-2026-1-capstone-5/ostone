@@ -39,7 +39,7 @@ public class UpdateWorkflowUseCase {
 
     DomainPackVersion version =
         versionRepository
-            .findById(command.versionId())
+            .findByIdForUpdate(command.versionId())
             .orElseThrow(
                 () -> new NotFoundException("NOT_FOUND", "버전을 찾을 수 없습니다: " + command.versionId()));
     if (!version.getDomainPackId().equals(command.packId())) {
@@ -59,7 +59,7 @@ public class UpdateWorkflowUseCase {
 
     WorkflowDefinition workflow =
         workflowRepository
-            .findByIdAndDomainPackVersionId(command.workflowId(), command.versionId())
+            .findByIdAndDomainPackVersionIdForUpdate(command.workflowId(), command.versionId())
             .orElseThrow(
                 () ->
                     new NotFoundException(

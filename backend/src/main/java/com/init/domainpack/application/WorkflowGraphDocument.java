@@ -119,6 +119,20 @@ final class WorkflowGraphDocument {
     node.put(fieldName, value);
   }
 
+  boolean hasSingleInboundEdge(ObjectNode node) {
+    String nodeId = trimToNull(text(node, "id"));
+    if (nodeId == null) {
+      return false;
+    }
+    int inboundCount = 0;
+    for (JsonNode edge : root.path("edges")) {
+      if (nodeId.equals(trimToNull(text(edge, "to")))) {
+        inboundCount++;
+      }
+    }
+    return inboundCount == 1;
+  }
+
   private WorkflowTransitionDetail buildDetail(JsonNode edge, String edgeId, Long versionId) {
     String fromNodeId = trimToNull(text(edge, "from"));
     String toNodeId = trimToNull(text(edge, "to"));
