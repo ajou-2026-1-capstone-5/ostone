@@ -9,13 +9,13 @@ import type {
 describe('chatWorkflow types', () => {
   it('ChatMessage는 허용된 role과 문자열 필드를 가진다', () => {
     const messages: ChatMessage[] = [
-      { id: '1', role: 'user', content: '문의', timestamp: '2026-05-12T09:00:00.000Z' },
-      { id: '2', role: 'assistant', content: '답변', timestamp: '2026-05-12T09:00:01.000Z' },
-      { id: '3', role: 'system', content: '상태', timestamp: '2026-05-12T09:00:02.000Z' },
+      { id: '1', role: 'user', content: '문의' },
+      { id: '2', role: 'assistant', content: '답변' },
+      { id: '3', role: 'system', content: '상태' },
     ];
 
     expect(messages.map((message) => message.role)).toEqual(['user', 'assistant', 'system']);
-    expect(messages.every(({ id, content, timestamp }) => [id, content, timestamp].every((value) => typeof value === 'string'))).toBe(true);
+    expect(messages.every(({ id, content }) => [id, content].every((value) => typeof value === 'string'))).toBe(true);
   });
 
   it('WorkflowState는 허용된 status와 실행 컨텍스트를 가진다', () => {
@@ -36,9 +36,9 @@ describe('chatWorkflow types', () => {
       step: 'intent-routing',
       action: 'select-workflow',
       reason: '의도가 일치합니다.',
-      timestamp: '2026-05-12T09:00:00.000Z',
     };
 
+    expect(Object.keys(entry)).toEqual(['id', 'step', 'action', 'reason']);
     expect(Object.values(entry).every((value) => typeof value === 'string')).toBe(true);
   });
 

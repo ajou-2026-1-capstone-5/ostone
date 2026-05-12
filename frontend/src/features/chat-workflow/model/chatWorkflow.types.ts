@@ -26,3 +26,11 @@ export interface DecisionLogEntry {
   action: string;
   reason: string;
 }
+
+export interface ChatWorkflowDemoState {
+  messages: ChatMessage[];
+  workflow: WorkflowState;
+  decisionLog: DecisionLogEntry[];
+  domainPack: DomainPackInfo | null;
+  scenario: ScenarioInfo | null;
+}

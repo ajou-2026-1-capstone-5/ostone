@@ -17,14 +17,13 @@ export const mockTimestamps = {
 } as const;
 
 export const demoMessages: ChatMessage[] = [
-  { id: 'msg-001', role: 'user', content: '배송 상태를 확인하고 싶어요.', timestamp: mockTimestamps.firstMessage },
+  { id: 'msg-001', role: 'user', content: '배송 상태를 확인하고 싶어요.' },
   {
     id: 'msg-002',
     role: 'assistant',
     content: '주문 번호를 알려주시면 배송 상태를 확인해드릴게요.',
-    timestamp: mockTimestamps.secondMessage,
   },
-  { id: 'msg-003', role: 'user', content: '주문 번호는 ORDER-2026-0512입니다.', timestamp: mockTimestamps.thirdMessage },
+  { id: 'msg-003', role: 'user', content: '주문 번호는 ORDER-2026-0512입니다.' },
 ];
 
 export const demoWorkflowState: WorkflowState = {
@@ -39,14 +38,12 @@ export const demoDecisionLog: DecisionLogEntry[] = [
     step: 'intent-routing',
     action: 'select-delivery-workflow',
     reason: '사용자 발화가 배송 상태 확인 의도와 일치합니다.',
-    timestamp: mockTimestamps.firstDecision,
   },
   {
     id: 'decision-002',
     step: 'slot-collection',
     action: 'request-order-number',
     reason: '배송 조회를 위해 주문 번호 슬롯이 필요합니다.',
-    timestamp: mockTimestamps.secondDecision,
   },
 ];
 
@@ -58,7 +55,6 @@ export const demoDomainPack: DomainPackInfo = {
 
 export const demoScenario: ScenarioInfo = {
   name: '배송 상태 확인',
-  description: '고객이 주문 번호를 제공하면 배송 진행 상태를 안내하는 시나리오입니다.',
 };
 
 export const demoChatWorkflowState: ChatWorkflowDemoState = {
