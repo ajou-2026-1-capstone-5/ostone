@@ -197,6 +197,7 @@
 - 상태 기반 graph 정의
 - `graph_json`을 source of truth로 사용
 - initial state / terminal states 저장
+- 현재 구현에서 `terminal_states_json`은 TERMINAL node의 `state` 값이 아니라 TERMINAL node `id` 배열을 저장한다.
 
 ### `pack.intent_workflow_binding`
 - 특정 intent가 어떤 workflow로 연결되는지 정의
@@ -521,6 +522,7 @@ create table pack.workflow_definition (
     description         text,
     graph_json          jsonb not null,
     initial_state       varchar(100),
+    -- TERMINAL node id array, not TERMINAL node.state values.
     terminal_states_json jsonb not null default '[]'::jsonb,
     evidence_json       jsonb not null default '[]'::jsonb,
     meta_json           jsonb not null default '{}'::jsonb,
