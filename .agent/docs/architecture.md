@@ -79,6 +79,7 @@
 - 핵심 산출물은 개별 intent나 policy가 아니라 **Domain Pack**이다.
 - AI가 생성한 초안은 바로 운영에 쓰지 않고, **사람 검토 루프**를 거쳐 확정한다.
 - workflow는 발화 트리가 아니라 **상태 기반 graph**로 본다.
+- workflow의 `terminal_states_json`은 현재 구현 기준 TERMINAL node의 `state` 값이 아니라 TERMINAL node `id` 배열에서 파생한다.
 - intent discovery는 semantic similarity뿐 아니라 **workflow equivalence**까지 고려한다.
 
 ### 4.3 구현 원칙
