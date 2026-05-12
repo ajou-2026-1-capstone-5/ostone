@@ -10,12 +10,12 @@ export function DecisionLogDrawer({ entries }: DecisionLogDrawerProps) {
 
   return (
     <>
-      <button onClick={() => setOpen(!open)} aria-label="Decision Log" />
+      <button onClick={() => setOpen(!open)} aria-label="Decision Log" aria-expanded={open} />
       {open && (
         <div style={{ maxHeight: '260px', overflow: 'auto' }}>
           <h3>Decision Log</h3>
           {entries.length === 0 ? (
-            <p>No decisions recorded.</p>
+            <p>기록된 결정이 없습니다.</p>
           ) : (
             <ul>
               {entries.map((entry) => (

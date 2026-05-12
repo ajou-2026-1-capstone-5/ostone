@@ -5,12 +5,12 @@ import type {
   DomainPackInfo,
   ScenarioInfo,
   WorkflowState,
-} from '../model/chatWorkflow.types';
-import { ChatTimelinePanel } from '../ui/ChatTimelinePanel';
-import { WorkflowGraphPanel } from '../ui/WorkflowGraphPanel';
-import { ExecutionDetailPanel } from '../ui/ExecutionDetailPanel';
-import { DecisionLogDrawer } from '../ui/DecisionLogDrawer';
-import { ChatWorkflowHeader } from '../ui/ChatWorkflowHeader';
+} from '@/features/chat-workflow';
+import { ChatTimelinePanel } from '@/features/chat-workflow/ui/ChatTimelinePanel';
+import { WorkflowGraphPanel } from '@/features/chat-workflow/ui/WorkflowGraphPanel';
+import { ExecutionDetailPanel } from '@/features/chat-workflow/ui/ExecutionDetailPanel';
+import { DecisionLogDrawer } from '@/features/chat-workflow/ui/DecisionLogDrawer';
+import { ChatWorkflowHeader } from '@/features/chat-workflow/ui/ChatWorkflowHeader';
 
 export interface ChatWorkflowDemoPageProps {
   domainPack: DomainPackInfo | null;
@@ -42,8 +42,7 @@ export function ChatWorkflowDemoPage({
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '38% 37% 25%',
+            display: 'flex',
             gap: 'var(--s-3)',
             flex: 1,
             minHeight: 0,
@@ -51,6 +50,7 @@ export function ChatWorkflowDemoPage({
         >
           <div
             style={{
+              flex: '0.38 0 0',
               background: 'var(--paper-2)',
               borderRadius: 'var(--r-2)',
               overflow: 'hidden',
@@ -60,6 +60,7 @@ export function ChatWorkflowDemoPage({
           </div>
           <div
             style={{
+              flex: '0.37 0 0',
               background: 'var(--paper-2)',
               borderRadius: 'var(--r-2)',
               overflow: 'hidden',
@@ -69,6 +70,7 @@ export function ChatWorkflowDemoPage({
           </div>
           <div
             style={{
+              flex: '0.25 0 0',
               background: 'var(--paper-2)',
               borderRadius: 'var(--r-2)',
               overflow: 'hidden',

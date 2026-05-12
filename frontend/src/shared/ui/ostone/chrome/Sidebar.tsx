@@ -24,7 +24,7 @@ const NAV_ITEMS: { key: SidebarActive; icon: IconName; label: string; getPath: (
   { key: 'domain', icon: 'folder', label: 'Domain Packs', getPath: (base) => `${base}/domain-packs` },
   { key: 'pipeline', icon: 'flow', label: 'Pipeline', getPath: (base) => `${base}/pipeline` },
   { key: 'consult', icon: 'msg', label: 'Consultation', getPath: (base) => `${base}/consultation` },
-  { key: 'chat-demo', icon: 'msg' as IconName, label: 'Chat Demo', getPath: (base) => `${base}/chat-demo` },
+  { key: 'chat-demo', icon: 'msg', label: 'Chat Demo', getPath: (base) => `${base}/chat-demo` },
   { key: 'upload', icon: 'upload', label: 'Uploads', getPath: (base) => `${base}/upload` },
 ];
 

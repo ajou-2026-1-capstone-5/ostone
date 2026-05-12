@@ -35,6 +35,6 @@ describe('DecisionLogDrawer', () => {
     render(<DecisionLogDrawer entries={[]} />, { wrapper: Wrapper });
     const trigger = screen.getByRole('button', { name: /decision log/i });
     fireEvent.click(trigger);
-    expect(screen.getByText(/no decisions/i)).toBeInTheDocument();
+    expect(screen.getByText('기록된 결정이 없습니다.')).toBeInTheDocument();
   });
 });

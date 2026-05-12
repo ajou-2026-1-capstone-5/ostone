@@ -19,7 +19,7 @@ import { WorkspaceUploadPage } from '../pages/upload/ui/WorkspaceUploadPage';
 import { DomainPackListPage } from '../pages/domain-pack/ui/DomainPackListPage';
 import { PrivateRoute } from '../shared/ui/PrivateRoute';
 import { Toaster } from '../shared/ui/sonner';
-import { ChatWorkflowDemoPageWrapper } from '../features/chat-workflow/pages/ChatWorkflowDemoPageWrapper';
+import { ChatWorkflowDemoPageWrapper } from '../pages/chat-demo/ui/ChatWorkflowDemoPageWrapper';
 
 export function App() {
   return (

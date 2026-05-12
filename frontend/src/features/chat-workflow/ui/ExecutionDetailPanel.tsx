@@ -15,7 +15,7 @@ export function ExecutionDetailPanel({ status, context }: ExecutionDetailPanelPr
         <div className="space-y-2">
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
             <span className="text-xs text-muted-foreground">Status:</span>{" "}
-            <span className="font-medium capitalize">{status}</span>
+            <span className="font-medium capitalize" data-testid="execution-status">{status}</span>
           </div>
           {Object.keys(context).length > 0 && (
             <div className="rounded-md border px-3 py-2 text-sm">

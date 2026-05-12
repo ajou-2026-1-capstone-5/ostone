@@ -1,18 +1,19 @@
 import { ChatWorkflowDemoPage } from './ChatWorkflowDemoPage';
+import type { ChatMessage, DecisionLogEntry, DomainPackInfo, ScenarioInfo, WorkflowState } from '@/features/chat-workflow';
 
-const mockDomainPack = {
+const mockDomainPack: DomainPackInfo = {
   name: '커머스 배송 문의 팩',
   version: '1.2.0',
   publishedAt: '2026-05-10T12:00:00.000Z',
 };
-const mockScenario = { name: '배송 상태 확인', description: '배송 진행 상태를 안내하는 시나리오' };
-const mockMessages: import('../model/chatWorkflow.types').ChatMessage[] = [];
-const mockWorkflow: import('../model/chatWorkflow.types').WorkflowState = {
+const mockScenario: ScenarioInfo = { name: '배송 상태 확인' };
+const mockMessages: ChatMessage[] = [];
+const mockWorkflow: WorkflowState = {
   currentNodeId: null,
   status: 'idle',
   context: {},
 };
-const mockDecisionLog: import('../model/chatWorkflow.types').DecisionLogEntry[] = [];
+const mockDecisionLog: DecisionLogEntry[] = [];
 
 export function ChatWorkflowDemoPageWrapper() {
   return (
