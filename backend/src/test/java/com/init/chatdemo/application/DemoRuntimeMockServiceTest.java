@@ -80,6 +80,7 @@ class DemoRuntimeMockServiceTest {
         invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
+        .isNotEmpty()
         .allSatisfy(decisionLog -> assertThat(decisionLog.confidence()).isBetween(0.0, 1.0));
   }
 
@@ -90,6 +91,7 @@ class DemoRuntimeMockServiceTest {
         invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
+        .isNotEmpty()
         .allSatisfy(
             decisionLog -> assertThat(ALLOWED_EVENT_TYPES).contains(decisionLog.eventType()));
   }
@@ -181,6 +183,7 @@ class DemoRuntimeMockServiceTest {
         invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
+        .isNotEmpty()
         .allSatisfy(
             decisionLog -> {
               assertThat(decisionLog.stateFrom()).isNotBlank();
