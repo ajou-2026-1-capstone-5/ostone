@@ -105,7 +105,7 @@ public class UpdateWorkflowTransitionUseCase {
           initialState,
           terminalStatesJson);
     } catch (IllegalArgumentException e) {
-      throw new BadRequestException("VALIDATION_ERROR", e.getMessage());
+      throw new BadRequestException("VALIDATION_ERROR", e.getMessage(), e);
     }
 
     workflowRepository.save(workflow);
