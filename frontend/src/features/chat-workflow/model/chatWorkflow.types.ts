@@ -1,6 +1,7 @@
 export interface DomainPackInfo {
   name: string;
   version: string;
+  publishedAt?: string;
 }
 
 export interface ScenarioInfo {

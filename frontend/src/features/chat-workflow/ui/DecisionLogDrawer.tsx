@@ -12,7 +12,7 @@ export function DecisionLogDrawer({ entries }: DecisionLogDrawerProps) {
     <>
       <button onClick={() => setOpen(!open)} aria-label="Decision Log" />
       {open && (
-        <div>
+        <div style={{ maxHeight: '260px', overflow: 'auto' }}>
           <h3>Decision Log</h3>
           {entries.length === 0 ? (
             <p>No decisions recorded.</p>

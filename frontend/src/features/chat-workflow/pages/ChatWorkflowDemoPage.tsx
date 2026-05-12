@@ -42,7 +42,8 @@ export function ChatWorkflowDemoPage({
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--s-4)',
-            paddingBottom: 'var(--s-3)',
+            minHeight: '56px',
+            padding: 'var(--s-2) var(--s-1)',
             borderBottom: '1px solid var(--line)',
           }}
         >
@@ -62,6 +63,20 @@ export function ChatWorkflowDemoPage({
               >
                 v{domainPack.version}
               </span>
+              {domainPack.publishedAt && (
+                <span
+                  style={{
+                    fontSize: 'var(--fs-sm)',
+                    color: 'var(--positive, #2a9d8f)',
+                    background: 'color-mix(in srgb, var(--positive, #2a9d8f) 12%, transparent)',
+                    borderRadius: 'var(--r-1)',
+                    padding: '0 var(--s-1)',
+                    fontWeight: 500,
+                  }}
+                >
+                  Published
+                </span>
+              )}
             </div>
           )}
           {scenario && (
@@ -69,6 +84,38 @@ export function ChatWorkflowDemoPage({
               {scenario.name}
             </span>
           )}
+
+          <div style={{ flex: 1 }} />
+
+          <button
+            type="button"
+            style={{
+              fontSize: 'var(--fs-sm)',
+              padding: 'var(--s-1) var(--s-3)',
+              borderRadius: 'var(--r-1)',
+              border: '1px solid var(--negative, #d32f2f)',
+              color: 'var(--negative, #d32f2f)',
+              background: 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            style={{
+              fontSize: 'var(--fs-sm)',
+              padding: 'var(--s-1) var(--s-3)',
+              borderRadius: 'var(--r-1)',
+              border: 'none',
+              color: '#fff',
+              background: 'var(--accent, #2563eb)',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Next Step
+          </button>
         </header>
 
         <div

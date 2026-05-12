@@ -44,7 +44,7 @@ describe("App", () => {
 
   it("renders chat-demo page title", () => {
     seedAuthenticatedSession();
-    window.history.pushState({}, "", "/chat-demo");
+    window.history.pushState({}, "", "/workspaces/1/chat-demo");
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
     vi.stubGlobal("fetch", fetchMock);
     render(<AppProviders><App /></AppProviders>);
