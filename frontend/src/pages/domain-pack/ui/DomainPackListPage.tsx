@@ -3,6 +3,7 @@ import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { unwrapApiResponse } from "@/shared/api";
 import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import type { DomainPackSummaryResult } from "@/shared/api/generated/zod";
 
@@ -46,7 +47,7 @@ export function DomainPackListPage() {
     );
   }
 
-  const packs = query.data?.data ?? [];
+  const packs = unwrapApiResponse<DomainPackSummaryResult[]>(query.data) ?? [];
 
   if (packs.length === 0) {
     return (

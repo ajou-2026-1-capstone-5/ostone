@@ -10,10 +10,23 @@ interface IntentDetailPanelProps {
   versionId: number;
   intentId: number | null;
   refreshKey?: number;
+  headerActions?: (detail: IntentDetail) => ReactNode;
+  afterHeader?: (detail: IntentDetail) => ReactNode;
+  beforeJsonCards?: (detail: IntentDetail) => ReactNode;
   children?: (detail: IntentDetail) => ReactNode;
 }
 
-export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKey, children }: IntentDetailPanelProps) {
+export function IntentDetailPanel({
+  wsId,
+  packId,
+  versionId,
+  intentId,
+  refreshKey,
+  headerActions,
+  afterHeader,
+  beforeJsonCards,
+  children,
+}: IntentDetailPanelProps) {
   const state = useIntentDetail(wsId, packId, versionId, intentId, refreshKey);
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
@@ -64,7 +77,8 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
 
   return (
     <section className={styles.panel} aria-label="intent 상세">
-      <DetailHeader detail={state.data} />
+      <DetailHeader detail={state.data} actions={headerActions?.(state.data)} />
+      {afterHeader?.(state.data)}
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
@@ -84,23 +98,39 @@ export function IntentDetailPanel({ wsId, packId, versionId, intentId, refreshKe
             value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
         </div>
-        <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
-        <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
-        <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
-        <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
+        {beforeJsonCards?.(state.data)}
+        <section className={styles.resourceSection} aria-labelledby="intent-resource-section-title">
+          <div className={styles.resourceSectionHeader}>
+            <h2 id="intent-resource-section-title" className={styles.resourceSectionTitle}>
+              내부 리소스
+            </h2>
+            <span className={styles.resourceSectionMeta}>JSON FIELDS</span>
+          </div>
+          <div className={styles.resourceGrid}>
+            <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
+            <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
+            <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
+            <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
+          </div>
+        </section>
       </div>
       {children?.(state.data)}
     </section>
   );
 }
 
-function DetailHeader({ detail }: { detail: IntentDetail }) {
+function DetailHeader({ detail, actions }: { detail: IntentDetail; actions?: ReactNode }) {
   return (
     <header className={styles.header}>
-      <span className={styles.code}>{detail.intentCode}</span>
-      <span className={styles.name}>{detail.name ?? ""}</span>
-      {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+      <div className={styles.headerTop}>
+        <span className={styles.code}>{detail.intentCode}</span>
+        {actions}
+      </div>
+      <div className={styles.headerText}>
+        <span className={styles.name}>{detail.name ?? ""}</span>
+        {detail.description && <span className={styles.description}>{detail.description}</span>}
+        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+      </div>
     </header>
   );
 }
@@ -115,12 +145,18 @@ function InfoCard({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function JsonCard({ label, value }: { label: string; value: string }) {
+  const formatted = formatJsonForDisplay(value);
+  const meta = describeJson(value);
+
   return (
-    <section className={styles.card}>
-      <header className={styles.cardHeader}>{label}</header>
-      <div className={styles.cardBody}>
+    <section className={styles.resourceCard}>
+      <header className={styles.resourceHeader}>
+        <span className={styles.resourceLabel}>{label}</span>
+        <span className={styles.resourceMeta}>{meta}</span>
+      </header>
+      <div className={styles.resourceBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay(value)}</code>
+          <code>{formatted}</code>
         </pre>
       </div>
     </section>
@@ -133,6 +169,20 @@ function formatJsonForDisplay(raw: string): string {
     return JSON.stringify(JSON.parse(raw), null, 2);
   } catch {
     return raw;
+  }
+}
+
+function describeJson(raw: string): string {
+  if (!raw) return "EMPTY";
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return `${parsed.length} ITEMS`;
+    if (parsed !== null && typeof parsed === "object") {
+      return `${Object.keys(parsed).length} KEYS`;
+    }
+    return typeof parsed === "string" ? "STRING" : "VALUE";
+  } catch {
+    return "RAW";
   }
 }
 

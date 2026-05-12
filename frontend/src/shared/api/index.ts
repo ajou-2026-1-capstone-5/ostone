@@ -130,3 +130,4 @@ export class ApiRequestError extends Error {
 }
 
 export const apiClient = new ApiClient(API_BASE);
+export { unwrapApiResponse } from "./unwrapApiResponse";

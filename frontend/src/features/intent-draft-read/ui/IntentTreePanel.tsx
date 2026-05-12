@@ -11,6 +11,8 @@ interface IntentTreePanelProps {
   versionId: number;
   selectedId: number | null;
   onSelect: (id: number) => void;
+  refreshKey?: number;
+  markers?: Record<number, "수정 중" | "수정됨">;
 }
 
 export function IntentTreePanel({
@@ -19,8 +21,10 @@ export function IntentTreePanel({
   versionId,
   selectedId,
   onSelect,
+  refreshKey,
+  markers = {},
 }: IntentTreePanelProps) {
-  const state = useIntentList(wsId, packId, versionId);
+  const state = useIntentList(wsId, packId, versionId, refreshKey);
   const errorMessage = state.status === "error" ? state.message : undefined;
   const tree = useMemo(
     () => (state.status === "ready" ? buildIntentTree(state.data) : []),
@@ -72,6 +76,7 @@ export function IntentTreePanel({
                 depth={0}
                 selectedId={selectedId}
                 onSelect={onSelect}
+                markers={markers}
               />
             ))}
           </div>
@@ -86,29 +91,44 @@ function IntentTreeRow({
   depth,
   selectedId,
   onSelect,
+  markers,
 }: {
   node: IntentTreeNode;
   depth: number;
   selectedId: number | null;
   onSelect: (id: number) => void;
+  markers: Record<number, "수정 중" | "수정됨">;
 }) {
   const isActive = node.id === selectedId;
   const paddingLeft = 20 + depth * 18;
+  const intentId = node.id;
+  const hasIntentId = intentId !== null && intentId !== undefined;
+  const marker = hasIntentId ? markers[intentId] : undefined;
+  const isLevelOne = node.taxonomyLevel === 1;
+  const itemClassName = [
+    styles.item,
+    isLevelOne ? styles.itemLevelOne : "",
+    isActive ? styles.itemActive : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <>
       <button
         type="button"
-        className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+        className={itemClassName}
         style={{ paddingLeft }}
-        onClick={() => node.id != null && onSelect(node.id!)}
+        onClick={() => {
+          if (hasIntentId) onSelect(intentId);
+        }}
         aria-current={isActive ? "true" : undefined}
       >
         <div className={styles.itemInner}>
-          {depth > 0 && <span className={styles.depthGuide} aria-hidden="true" />}
           <span className={styles.code}>{node.intentCode}</span>
           <span className={styles.name}>{node.name}</span>
           <span className={styles.meta}>
+            {marker && <span className={styles.marker}>{marker}</span>}
             <span className={styles.badge}>LV · {node.taxonomyLevel}</span>
             <span className={styles.badge}>{node.status}</span>
           </span>
@@ -122,6 +142,7 @@ function IntentTreeRow({
           depth={depth + 1}
           selectedId={selectedId}
           onSelect={onSelect}
+          markers={markers}
         />
       ))}
     </>
