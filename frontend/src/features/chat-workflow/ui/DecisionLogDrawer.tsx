@@ -10,7 +10,9 @@ export function DecisionLogDrawer({ entries }: DecisionLogDrawerProps) {
 
   return (
     <>
-      <button onClick={() => setOpen(!open)} aria-label="Decision Log" aria-expanded={open} />
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        Decision Log
+      </button>
       {open && (
         <div style={{ maxHeight: '260px', overflow: 'auto' }}>
           <h3>Decision Log</h3>

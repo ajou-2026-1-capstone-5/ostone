@@ -10,14 +10,14 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe('DecisionLogDrawer', () => {
   it('is collapsed by default', () => {
     render(<DecisionLogDrawer entries={[]} />, { wrapper: Wrapper });
-    expect(screen.queryByText(/decision log/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /decision log/i })).not.toBeInTheDocument();
   });
 
   it('opens on trigger click', () => {
     render(<DecisionLogDrawer entries={[]} />, { wrapper: Wrapper });
     const trigger = screen.getByRole('button', { name: /decision log/i });
     fireEvent.click(trigger);
-    expect(screen.getByText(/decision log/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /decision log/i })).toBeInTheDocument();
   });
 
   it('shows entries when open', () => {

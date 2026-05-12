@@ -9,12 +9,16 @@ export function ChatTimelinePanel({ messages }: ChatTimelinePanelProps) {
     <div className="flex h-full flex-col">
       <h3 className="px-4 py-2 text-sm font-semibold">Chat Timeline</h3>
       <div data-scrollable className="flex-1 overflow-y-auto px-4" style={{ maxHeight: '100%' }}>
-        {messages.map((msg) => (
-          <div key={msg.id} className="mb-2 rounded-md bg-muted px-3 py-2 text-sm">
-            <strong className="mr-1">{msg.role}:</strong>
-            {msg.content}
-          </div>
-        ))}
+        {messages.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">대화 내역이 없습니다.</p>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} className="mb-2 rounded-md bg-muted px-3 py-2 text-sm">
+              <strong className="mr-1">{msg.role}:</strong>
+              {msg.content}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
