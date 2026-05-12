@@ -9,11 +9,9 @@ import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefMiss
 import com.init.domainpack.application.exception.WorkflowGraphJsonInvalidException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,20 +89,6 @@ final class WorkflowGraphDocument {
 
   ObjectNode requireToNode(ObjectNode edge) {
     return requireNode(text(edge, "to"));
-  }
-
-  Set<String> collectActionPolicyRefs() {
-    Set<String> policyRefs = new LinkedHashSet<>();
-    for (ObjectNode node : nodeMap.values()) {
-      if (!NODE_TYPE_ACTION.equals(text(node, "type"))) {
-        continue;
-      }
-      String policyRef = text(node, POLICY_REF_FIELD);
-      if (policyRef != null && !policyRef.isBlank()) {
-        policyRefs.add(policyRef);
-      }
-    }
-    return policyRefs;
   }
 
   String toJson() {
