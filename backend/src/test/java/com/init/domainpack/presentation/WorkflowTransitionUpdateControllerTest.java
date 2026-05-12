@@ -126,6 +126,59 @@ class WorkflowTransitionUpdateControllerTest {
   }
 
   @Test
+  @DisplayName("빈 본문이면 400 VALIDATION_ERROR")
+  @WithLongPrincipal(5L)
+  void should_400_when_emptyBody() throws Exception {
+    mockMvc
+        .perform(patch(BASE_URL).with(csrf()).contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+    verifyNoInteractions(updateTransitionUseCase);
+  }
+
+  @Test
+  @DisplayName("blank 문자열 field이면 400 VALIDATION_ERROR")
+  @WithLongPrincipal(5L)
+  void should_400_when_blankField() throws Exception {
+    mockMvc
+        .perform(
+            patch(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"condition\":{\"label\":\"   \"}}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+    verifyNoInteractions(updateTransitionUseCase);
+  }
+
+  @Test
+  @DisplayName("outcome 빈 객체는 command에 빈 outcome으로 전달한다")
+  @WithLongPrincipal(5L)
+  void should_passEmptyOutcomeToUseCase_when_outcomeObjectEmpty() throws Exception {
+    ArgumentCaptor<UpdateWorkflowTransitionCommand> captor =
+        ArgumentCaptor.forClass(UpdateWorkflowTransitionCommand.class);
+    given(updateTransitionUseCase.execute(any()))
+        .willThrow(
+            new BadRequestException("WORKFLOW_TRANSITION_OUTCOME_EMPTY", "outcome이 비어 있습니다."));
+
+    mockMvc
+        .perform(
+            patch(BASE_URL)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"outcome\":{}}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKFLOW_TRANSITION_OUTCOME_EMPTY"));
+
+    verify(updateTransitionUseCase).execute(captor.capture());
+    assertThat(captor.getValue().outcome()).isNotNull();
+    assertThat(captor.getValue().outcome().state()).isNull();
+    assertThat(captor.getValue().outcome().label()).isNull();
+  }
+
+  @Test
   @DisplayName("malformed JSON이면 400 VALIDATION_ERROR")
   @WithLongPrincipal(5L)
   void should_400_when_malformedJson() throws Exception {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefInvalidCharsException;
 import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotFoundException;
 import com.init.domainpack.application.exception.WorkflowDefinitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowTransitionActionNotEditableException;
@@ -18,6 +19,7 @@ import com.init.domainpack.application.exception.WorkflowTransitionConditionNotE
 import com.init.domainpack.application.exception.WorkflowTransitionNotFoundException;
 import com.init.domainpack.application.exception.WorkflowTransitionOutcomeEmptyException;
 import com.init.domainpack.application.exception.WorkflowTransitionOutcomeNotEditableException;
+import com.init.domainpack.application.exception.WorkflowTransitionOutcomeStateInvalidCharsException;
 import com.init.domainpack.application.exception.WorkflowTransitionPatchEmptyException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.WorkflowDefinition;
@@ -151,6 +153,31 @@ class UpdateWorkflowTransitionUseCaseTest {
   }
 
   @Test
+  @DisplayName("outcome.label만 보내면 state는 유지한다")
+  void should_keepOutcomeState_when_onlyLabelProvided() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow();
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    // when
+    WorkflowTransitionDetail result =
+        useCase.execute(
+            command(
+                "e_check_reject",
+                null,
+                null,
+                new UpdateWorkflowTransitionCommand.OutcomePatch(null, "검토 필요")));
+
+    // then
+    assertThat(result.outcome().state()).isEqualTo("rejected");
+    assertThat(result.outcome().label()).isEqualTo("검토 필요");
+
+    JsonNode terminal = findNode(objectMapper.readTree(workflow.getGraphJson()), "end_reject");
+    assertThat(terminal.path("state").asText()).isEqualTo("rejected");
+    assertThat(terminal.path("label").asText()).isEqualTo("검토 필요");
+  }
+
+  @Test
   @DisplayName("빈 PATCH 요청이면 WORKFLOW_TRANSITION_PATCH_EMPTY")
   void should_WORKFLOW_TRANSITION_PATCH_EMPTY_when_emptyPatch() {
     assertThatThrownBy(() -> useCase.execute(command("e_check_action", null, null, null)))
@@ -222,6 +249,61 @@ class UpdateWorkflowTransitionUseCaseTest {
   }
 
   @Test
+  @DisplayName("transitionId 패턴 위반 시 DB 조회 전에 VALIDATION_ERROR")
+  void should_VALIDATION_ERROR_beforeRepositoryLookup_when_transitionIdInvalid() {
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "edge.with.dot",
+                        new UpdateWorkflowTransitionCommand.ConditionPatch("가능"),
+                        null,
+                        null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("transitionId");
+
+    verify(versionRepository, never()).findById(any());
+    verify(workflowRepository, never()).findByIdAndDomainPackVersionId(any(), any());
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("action.policyRef 패턴 위반 시 WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS")
+  void should_WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS_when_policyRefInvalidChars() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_action",
+                        null,
+                        new UpdateWorkflowTransitionCommand.ActionPatch("policy ref"),
+                        null)))
+        .isInstanceOf(WorkflowActionNodePolicyRefInvalidCharsException.class);
+
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("outcome.state 패턴 위반 시 WORKFLOW_TRANSITION_OUTCOME_STATE_INVALID_CHARS")
+  void should_WORKFLOW_TRANSITION_OUTCOME_STATE_INVALID_CHARS_when_outcomeStateInvalidChars() {
+    stubDraftWorkflow();
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(
+                    command(
+                        "e_check_reject",
+                        null,
+                        null,
+                        new UpdateWorkflowTransitionCommand.OutcomePatch("검토 필요", null))))
+        .isInstanceOf(WorkflowTransitionOutcomeStateInvalidCharsException.class);
+
+    verify(workflowRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("action section이 없어도 전체 ACTION node policyRef 존재 검증을 수행한다")
   void should_validateAllPolicyRefs_when_actionSectionMissing() {
     // given
@@ -240,6 +322,8 @@ class UpdateWorkflowTransitionUseCaseTest {
                         null,
                         null)))
         .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class);
+
+    verify(workflowRepository, never()).save(any());
   }
 
   @Test
