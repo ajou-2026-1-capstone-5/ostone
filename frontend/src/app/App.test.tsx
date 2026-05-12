@@ -42,6 +42,15 @@ describe("App", () => {
     expect(container).toBeTruthy();
   });
 
+  it("renders chat-demo page title", () => {
+    seedAuthenticatedSession();
+    window.history.pushState({}, "", "/chat-demo");
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AppProviders><App /></AppProviders>);
+    expect(screen.getByText("Chat Workflow Demo")).toBeInTheDocument();
+  });
+
   it("renders login page title on initial load", () => {
     window.history.pushState({}, "", "/login");
 
