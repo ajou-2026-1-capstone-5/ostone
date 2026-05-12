@@ -84,6 +84,20 @@ class UpdateWorkflowTransitionUseCaseTest {
           + "{\"id\":\"e_start_end\",\"from\":\"start\",\"to\":\"end\"},"
           + "{\"id\":\"e_check_end\",\"from\":\"check\",\"to\":\"end\",\"label\":\"가능\"}]}";
 
+  private static final String GRAPH_WITH_PADDED_NODE_TYPES =
+      "{\"direction\":\"LR\","
+          + "\"nodes\":["
+          + "{\"id\":\"start\",\"type\":\" START \"},"
+          + "{\"id\":\"check\",\"type\":\" DECISION \"},"
+          + "{\"id\":\"action\",\"type\":\" ACTION \",\"policyRef\":\"policy_old\"},"
+          + "{\"id\":\"end_ok\",\"type\":\" TERMINAL \",\"state\":\"approved\",\"label\":\"승인\"},"
+          + "{\"id\":\"end_reject\",\"type\":\" TERMINAL \",\"state\":\"rejected\",\"label\":\"거절\"}],"
+          + "\"edges\":["
+          + "{\"id\":\"e_start_check\",\"from\":\"start\",\"to\":\"check\"},"
+          + "{\"id\":\"e_check_action\",\"from\":\"check\",\"to\":\"action\",\"label\":\"가능\"},"
+          + "{\"id\":\"e_check_reject\",\"from\":\"check\",\"to\":\"end_reject\",\"label\":\"불가능\"},"
+          + "{\"id\":\"e_action_end\",\"from\":\"action\",\"to\":\"end_ok\"}]}";
+
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Mock private DomainPackValidator validator;
@@ -146,6 +160,59 @@ class UpdateWorkflowTransitionUseCaseTest {
 
     // then
     assertThat(result.condition().label()).isEqualTo("보류");
+    assertThat(result.outcome().editable()).isTrue();
+    assertThat(result.outcome().state()).isEqualTo("pending");
+    assertThat(result.outcome().label()).isEqualTo("보류 처리");
+
+    JsonNode graph = objectMapper.readTree(workflow.getGraphJson());
+    assertThat(findNode(graph, "end_reject").path("state").asText()).isEqualTo("pending");
+    assertThat(findNode(graph, "end_reject").path("label").asText()).isEqualTo("보류 처리");
+  }
+
+  @Test
+  @DisplayName("node type에 공백이 있어도 condition과 action을 수정한다")
+  void should_updateConditionAndAction_when_nodeTypesHavePadding() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow(GRAPH_WITH_PADDED_NODE_TYPES);
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    // when
+    WorkflowTransitionDetail result =
+        useCase.execute(
+            command(
+                "e_check_action",
+                new UpdateWorkflowTransitionCommand.ConditionPatch("가능함"),
+                new UpdateWorkflowTransitionCommand.ActionPatch("policy_new"),
+                null));
+
+    // then
+    assertThat(result.condition().editable()).isTrue();
+    assertThat(result.action().editable()).isTrue();
+    assertThat(result.label()).isEqualTo("가능함");
+    assertThat(result.toPolicyRef()).isEqualTo("policy_new");
+
+    JsonNode graph = objectMapper.readTree(workflow.getGraphJson());
+    assertThat(findEdge(graph, "e_check_action").path("label").asText()).isEqualTo("가능함");
+    assertThat(findNode(graph, "action").path("policyRef").asText()).isEqualTo("policy_new");
+  }
+
+  @Test
+  @DisplayName("node type에 공백이 있어도 outcome을 수정한다")
+  void should_updateOutcome_when_nodeTypesHavePadding() throws Exception {
+    // given
+    WorkflowDefinition workflow = stubDraftWorkflow(GRAPH_WITH_PADDED_NODE_TYPES);
+    given(workflowRepository.save(any())).willReturn(workflow);
+
+    // when
+    WorkflowTransitionDetail result =
+        useCase.execute(
+            command(
+                "e_check_reject",
+                null,
+                null,
+                new UpdateWorkflowTransitionCommand.OutcomePatch("pending", "보류 처리")));
+
+    // then
     assertThat(result.outcome().editable()).isTrue();
     assertThat(result.outcome().state()).isEqualTo("pending");
     assertThat(result.outcome().label()).isEqualTo("보류 처리");

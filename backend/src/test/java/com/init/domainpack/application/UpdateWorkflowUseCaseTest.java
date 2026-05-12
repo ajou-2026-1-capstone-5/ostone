@@ -434,8 +434,8 @@ class UpdateWorkflowUseCaseTest {
   }
 
   @Test
-  @DisplayName("ACTION 노드가 없으면 validatePolicyCodes를 호출하지 않는다")
-  void should_validatePolicyCodes미호출_when_ACTION노드없음() {
+  @DisplayName("ACTION 노드가 없어도 빈 policyRef set으로 검증을 위임한다")
+  void should_delegatePolicyCodeValidationWithEmptySet_when_ACTION노드없음() {
     // given
     DomainPackVersion version = draftVersion(10L, 7L);
     given(versionRepository.findByIdForUpdate(10L)).willReturn(Optional.of(version));
@@ -450,7 +450,7 @@ class UpdateWorkflowUseCaseTest {
     useCase.execute(command);
 
     // then
-    verify(validator, never()).validatePolicyCodes(anyLong(), anySet());
+    verify(validator).validatePolicyCodes(eq(10L), eq(Set.<String>of()));
   }
 
   // ── factories ──────────────────────────────────────────────────────────────

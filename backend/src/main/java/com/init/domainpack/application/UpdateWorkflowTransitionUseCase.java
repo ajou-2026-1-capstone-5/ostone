@@ -154,7 +154,7 @@ public class UpdateWorkflowTransitionUseCase {
       WorkflowGraphDocument document,
       ObjectNode edge,
       ObjectNode fromNode) {
-    if (!NODE_TYPE_DECISION.equals(fromNode.path("type").asText(null))) {
+    if (!NODE_TYPE_DECISION.equals(nodeType(fromNode))) {
       throw new WorkflowTransitionConditionNotEditableException(command.transitionId());
     }
     document.putText(
@@ -163,7 +163,7 @@ public class UpdateWorkflowTransitionUseCase {
 
   private void applyActionPatch(
       UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
-    if (!NODE_TYPE_ACTION.equals(toNode.path("type").asText(null))) {
+    if (!NODE_TYPE_ACTION.equals(nodeType(toNode))) {
       throw new WorkflowTransitionActionNotEditableException(command.transitionId());
     }
     validateTargetNotShared(command, document, toNode);
@@ -177,7 +177,7 @@ public class UpdateWorkflowTransitionUseCase {
 
   private void applyOutcomePatch(
       UpdateWorkflowTransitionCommand command, WorkflowGraphDocument document, ObjectNode toNode) {
-    if (!NODE_TYPE_TERMINAL.equals(toNode.path("type").asText(null))) {
+    if (!NODE_TYPE_TERMINAL.equals(nodeType(toNode))) {
       throw new WorkflowTransitionOutcomeNotEditableException(command.transitionId());
     }
     validateTargetNotShared(command, document, toNode);
@@ -188,6 +188,18 @@ public class UpdateWorkflowTransitionUseCase {
       document.putText(
           toNode, "label", normalizeRequired(command.outcome().label(), "outcome.label", 255));
     }
+  }
+
+  private String nodeType(ObjectNode node) {
+    return trimToNull(node.path("type").asText(null));
+  }
+
+  private String trimToNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isBlank() ? null : trimmed;
   }
 
   private void applyOutcomeStatePatch(

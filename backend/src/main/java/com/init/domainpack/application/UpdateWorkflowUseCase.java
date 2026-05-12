@@ -75,9 +75,7 @@ public class UpdateWorkflowUseCase {
             .filter(n -> "ACTION".equals(n.type()))
             .map(WorkflowGraphValidator.GraphNode::policyRef)
             .collect(Collectors.toCollection(LinkedHashSet::new));
-    if (!policyRefs.isEmpty()) {
-      validator.validatePolicyCodes(command.versionId(), policyRefs);
-    }
+    validator.validatePolicyCodes(command.versionId(), policyRefs);
 
     String initialState = WorkflowGraphValidator.extractInitialState(parsed);
     String terminalStatesJson;
