@@ -3,6 +3,7 @@ package com.init.chatdemo.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.init.chatdemo.presentation.dto.DemoChatSessionEndpointResponse;
 import com.init.chatdemo.presentation.dto.DemoChatSessionResponse;
 import com.init.chatdemo.presentation.dto.DemoChatWorkflowResponse;
 import com.init.chatdemo.presentation.dto.DemoDecisionLogEndpointResponse;
@@ -26,7 +27,8 @@ class DemoRuntimeMockServiceTest {
 
   private static final String SERVICE_CLASS_NAME =
       "com.init.chatdemo.application.DemoRuntimeMockService";
-  private static final String FIXTURE_CLASS_NAME = "com.init.chatdemo.application.DemoRuntimeFixture";
+  private static final String FIXTURE_CLASS_NAME =
+      "com.init.chatdemo.application.DemoRuntimeFixture";
 
   private static final Set<String> ALLOWED_EVENT_TYPES =
       Set.of(
@@ -126,7 +128,7 @@ class DemoRuntimeMockServiceTest {
                     "getChatSession",
                     String.class,
                     "unknown-session-id",
-                    DemoChatSessionResponse.class))
+                    DemoChatSessionEndpointResponse.class))
         .isInstanceOf(NotFoundException.class);
   }
 

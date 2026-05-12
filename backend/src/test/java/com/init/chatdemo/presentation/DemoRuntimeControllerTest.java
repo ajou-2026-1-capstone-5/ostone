@@ -87,8 +87,8 @@ class DemoRuntimeControllerTest {
         .andExpect(jsonPath("$.domainPack.policies").isArray())
         .andExpect(jsonPath("$.domainPack.risks").isArray())
         .andExpect(jsonPath("$.workflow.id").value("workflow-1"))
-        .andExpect(jsonPath("$.workflow.name").value("배송 문의 처리"))
-        .andExpect(jsonPath("$.workflow.description").value("배송 문의를 확인하고 정책과 위험을 점검합니다."))
+        .andExpect(jsonPath("$.workflow.name").value("환불 처리 워크플로우"))
+        .andExpect(jsonPath("$.workflow.description").value("고객 환불 요청을 처리하는 워크플로우"))
         .andExpect(jsonPath("$.workflow.states").isArray())
         .andExpect(jsonPath("$.workflow.transitions").isArray());
   }
@@ -108,10 +108,12 @@ class DemoRuntimeControllerTest {
         .andExpect(jsonPath("$.chatSession.startedAt").value("2026-05-10T09:00:00Z"))
         .andExpect(jsonPath("$.chatSession.completedAt").value("2026-05-10T09:05:30Z"))
         .andExpect(jsonPath("$.messages").isArray())
-        .andExpect(jsonPath("$.messages[0].id").value("message-1"))
-        .andExpect(jsonPath("$.messages[0].role").value("customer"))
-        .andExpect(jsonPath("$.messages[0].content").value("배송 상태를 알고 싶어요."))
-        .andExpect(jsonPath("$.messages[0].timestamp").value("2026-05-10T09:00:10Z"));
+        .andExpect(jsonPath("$.messages[0].id").value("msg-1"))
+        .andExpect(jsonPath("$.messages[0].role").value("user"))
+        .andExpect(jsonPath("$.messages[0].content").value("제품 환불하고 싶습니다"))
+        .andExpect(jsonPath("$.messages[0].timestamp").value("2026-05-10T09:00:00Z"))
+        .andExpect(jsonPath("$.messages[3].id").value("msg-4"))
+        .andExpect(jsonPath("$.messages[3].role").value("assistant"));
   }
 
   @Test
@@ -139,23 +141,24 @@ class DemoRuntimeControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("exec-1"))
-        .andExpect(jsonPath("$.status").value("completed"))
-        .andExpect(jsonPath("$.currentState").value("resolved"))
-        .andExpect(jsonPath("$.currentNodeId").value("node-3"))
-        .andExpect(jsonPath("$.intent").value("delivery_status"))
+        .andExpect(jsonPath("$.status").value("COMPLETED"))
+        .andExpect(jsonPath("$.currentState").value("COMPLETED"))
+        .andExpect(jsonPath("$.currentNodeId").value("wf-node-final"))
+        .andExpect(jsonPath("$.intent").value("환불 요청"))
         .andExpect(jsonPath("$.slotValues").isMap())
-        .andExpect(jsonPath("$.slotValues.orderId").value("ORD-2026-001"))
+        .andExpect(jsonPath("$.slotValues.orderNumber").value("ORD-12345"))
+        .andExpect(jsonPath("$.slotValues.refundAmount").value(59000))
         .andExpect(jsonPath("$.missingSlots").isArray())
         .andExpect(jsonPath("$.policyHits").isArray())
         .andExpect(jsonPath("$.policyHits[0].policyId").value("policy-1"))
-        .andExpect(jsonPath("$.policyHits[0].policyName").value("배송 조회 정책"))
-        .andExpect(jsonPath("$.policyHits[0].result").value("pass"))
-        .andExpect(jsonPath("$.policyHits[0].detail").value("주문번호로 배송 조회 가능"))
+        .andExpect(jsonPath("$.policyHits[0].policyName").value("환불 가능 기간"))
+        .andExpect(jsonPath("$.policyHits[0].result").value("PASS"))
+        .andExpect(jsonPath("$.policyHits[0].detail").value("구매일로부터 14일 이내"))
         .andExpect(jsonPath("$.riskHits").isArray())
         .andExpect(jsonPath("$.riskHits[0].riskId").value("risk-1"))
-        .andExpect(jsonPath("$.riskHits[0].riskName").value("개인정보 노출"))
-        .andExpect(jsonPath("$.riskHits[0].result").value("safe"))
-        .andExpect(jsonPath("$.riskHits[0].detail").value("민감 정보 노출 없음"));
+        .andExpect(jsonPath("$.riskHits[0].riskName").value("고액 환불"))
+        .andExpect(jsonPath("$.riskHits[0].result").value("LOW"))
+        .andExpect(jsonPath("$.riskHits[0].detail").value("환불 금액 59,000원 — 고액 환불 기준 미만"));
   }
 
   @Test
@@ -187,13 +190,14 @@ class DemoRuntimeControllerTest {
         .andExpect(jsonPath("$.decisionLogs").isArray())
         .andExpect(jsonPath("$.decisionLogs[0].id").value("log-1"))
         .andExpect(jsonPath("$.decisionLogs[0].step").value(1))
-        .andExpect(jsonPath("$.decisionLogs[0].messageId").value("message-1"))
+        .andExpect(jsonPath("$.decisionLogs[0].messageId").value("msg-1"))
         .andExpect(jsonPath("$.decisionLogs[0].eventType").value("INTENT_DETECTED"))
-        .andExpect(jsonPath("$.decisionLogs[0].stateFrom").value("start"))
-        .andExpect(jsonPath("$.decisionLogs[0].stateTo").value("slot_filling"))
-        .andExpect(jsonPath("$.decisionLogs[0].decision").value("배송 조회 의도 감지"))
-        .andExpect(jsonPath("$.decisionLogs[0].confidence").value(0.92))
-        .andExpect(jsonPath("$.decisionLogs[0].reason").value("배송 상태 문의 표현이 포함됨"));
+        .andExpect(jsonPath("$.decisionLogs[0].stateFrom").value("INITIAL"))
+        .andExpect(jsonPath("$.decisionLogs[0].stateTo").value("INTENT_DETECTED"))
+        .andExpect(jsonPath("$.decisionLogs[0].decision").value("ALLOW"))
+        .andExpect(jsonPath("$.decisionLogs[0].confidence").value(0.95))
+        .andExpect(jsonPath("$.decisionLogs[0].reason").value("환불 요청 패턴 감지"))
+        .andExpect(jsonPath("$.decisionLogs[4].eventType").value("ANSWER_GENERATED"));
   }
 
   @Test
@@ -256,18 +260,35 @@ class DemoRuntimeControllerTest {
         "CS Support Domain Pack",
         "1.0.0",
         "PUBLISHED",
-        List.of(new DemoIntentResponse("intent-1", "delivery_status", "배송 상태 확인")),
-        List.of(new DemoPolicyResponse("policy-1", "배송 조회 정책", "주문번호로 배송 조회", "medium")),
-        List.of(new DemoRiskResponse("risk-1", "개인정보 노출", "민감 정보 노출 여부", "low")));
+        List.of(
+            new DemoIntentResponse("intent-1", "환불 요청", "고객이 제품 환불을 요청하는 경우"),
+            new DemoIntentResponse("intent-2", "배송 조회", "고객이 배송 상태를 문의하는 경우")),
+        List.of(new DemoPolicyResponse("policy-1", "환불 가능 기간", "구매일로부터 14일 이내 환불 가능", "HARD")),
+        List.of(new DemoRiskResponse("risk-1", "고액 환불", "100만원 이상 환불 요청 시 리뷰 필요", "HIGH")));
   }
 
   private DemoWorkflowResponse workflowResponse() {
     return new DemoWorkflowResponse(
         "workflow-1",
-        "배송 문의 처리",
-        "배송 문의를 확인하고 정책과 위험을 점검합니다.",
-        List.of("start", "slot_filling", "resolved"),
-        List.of(new DemoTransitionResponse("start", "slot_filling", "INTENT_DETECTED")));
+        "환불 처리 워크플로우",
+        "고객 환불 요청을 처리하는 워크플로우",
+        List.of(
+            "INITIAL",
+            "INTENT_DETECTED",
+            "SLOT_COLLECTING",
+            "POLICY_CHECKING",
+            "RISK_CHECKING",
+            "DECIDING",
+            "COMPLETED",
+            "HANDOFF"),
+        List.of(
+            new DemoTransitionResponse("INITIAL", "INTENT_DETECTED", "INTENT_DETECTED"),
+            new DemoTransitionResponse("INTENT_DETECTED", "SLOT_COLLECTING", "SLOT_FILLED"),
+            new DemoTransitionResponse("SLOT_COLLECTING", "POLICY_CHECKING", "POLICY_CHECKED"),
+            new DemoTransitionResponse("POLICY_CHECKING", "RISK_CHECKING", "RISK_CHECKED"),
+            new DemoTransitionResponse("RISK_CHECKING", "DECIDING", "STATE_TRANSITIONED"),
+            new DemoTransitionResponse("DECIDING", "COMPLETED", "ANSWER_GENERATED"),
+            new DemoTransitionResponse("DECIDING", "HANDOFF", "HANDOFF_TRIGGERED")));
   }
 
   private DemoChatSessionResponse sessionResponse() {
@@ -277,20 +298,28 @@ class DemoRuntimeControllerTest {
 
   private List<DemoMessageResponse> messageResponses() {
     return List.of(
-        new DemoMessageResponse("message-1", "customer", "배송 상태를 알고 싶어요.", "2026-05-10T09:00:10Z"));
+        new DemoMessageResponse("msg-1", "user", "제품 환불하고 싶습니다", "2026-05-10T09:00:00Z"),
+        new DemoMessageResponse(
+            "msg-2", "assistant", "네, 환불 도와드리겠습니다. 주문번호를 알려주세요.", "2026-05-10T09:00:15Z"),
+        new DemoMessageResponse("msg-3", "user", "주문번호는 ORD-12345입니다", "2026-05-10T09:01:00Z"),
+        new DemoMessageResponse(
+            "msg-4",
+            "assistant",
+            "ORD-12345 주문에 대한 환불이 완료되었습니다. 14일 이내에 계좌로 입금됩니다.",
+            "2026-05-10T09:05:30Z"));
   }
 
   private DemoExecutionResponse executionResponse() {
     return new DemoExecutionResponse(
         "exec-1",
-        "completed",
-        "resolved",
-        "node-3",
-        "delivery_status",
-        Map.of("orderId", "ORD-2026-001"),
+        "COMPLETED",
+        "COMPLETED",
+        "wf-node-final",
+        "환불 요청",
+        Map.of("orderNumber", "ORD-12345", "refundAmount", 59000),
         List.of(),
-        List.of(new DemoPolicyHitResponse("policy-1", "배송 조회 정책", "pass", "주문번호로 배송 조회 가능")),
-        List.of(new DemoRiskHitResponse("risk-1", "개인정보 노출", "safe", "민감 정보 노출 없음")));
+        List.of(new DemoPolicyHitResponse("policy-1", "환불 가능 기간", "PASS", "구매일로부터 14일 이내")),
+        List.of(new DemoRiskHitResponse("risk-1", "고액 환불", "LOW", "환불 금액 59,000원 — 고액 환불 기준 미만")));
   }
 
   private List<DemoDecisionLogResponse> decisionLogResponses() {
@@ -298,12 +327,52 @@ class DemoRuntimeControllerTest {
         new DemoDecisionLogResponse(
             "log-1",
             1,
-            "message-1",
+            "msg-1",
             "INTENT_DETECTED",
-            "start",
-            "slot_filling",
-            "배송 조회 의도 감지",
+            "INITIAL",
+            "INTENT_DETECTED",
+            "ALLOW",
+            0.95,
+            "환불 요청 패턴 감지"),
+        new DemoDecisionLogResponse(
+            "log-2",
+            2,
+            "msg-3",
+            "SLOT_FILLED",
+            "INTENT_DETECTED",
+            "SLOT_COLLECTING",
+            "ALLOW",
+            0.88,
+            "주문번호 slot 수집 완료"),
+        new DemoDecisionLogResponse(
+            "log-3",
+            3,
+            "msg-3",
+            "POLICY_CHECKED",
+            "SLOT_COLLECTING",
+            "POLICY_CHECKING",
+            "ALLOW",
+            1.0,
+            "환불 가능 기간 정책 통과"),
+        new DemoDecisionLogResponse(
+            "log-4",
+            4,
+            "msg-3",
+            "RISK_CHECKED",
+            "POLICY_CHECKING",
+            "RISK_CHECKING",
+            "ALLOW",
+            0.75,
+            "고액 환불 위험 낮음"),
+        new DemoDecisionLogResponse(
+            "log-5",
+            5,
+            "msg-4",
+            "ANSWER_GENERATED",
+            "DECIDING",
+            "COMPLETED",
+            "ALLOW",
             0.92,
-            "배송 상태 문의 표현이 포함됨"));
+            "환불 완료 안내 생성"));
   }
 }
