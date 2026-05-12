@@ -8,12 +8,13 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('Sidebar', () => {
-  it('renders 5 nav buttons', () => {
+  it('renders 6 nav buttons', () => {
     render(<Sidebar active="workflows" />, { wrapper: Wrapper });
     expect(screen.getByTitle('Workflows')).toBeInTheDocument();
     expect(screen.getByTitle('Domain Packs')).toBeInTheDocument();
     expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
+    expect(screen.getByTitle('Chat Demo')).toBeInTheDocument();
     expect(screen.getByTitle('Uploads')).toBeInTheDocument();
   });
 
@@ -24,13 +25,14 @@ describe('Sidebar', () => {
     expect(activeBtn?.getAttribute('title')).toBe('Domain Packs');
   });
 
-  it('switches active on 5 different values', () => {
-    const actives = ['workflows', 'domain', 'pipeline', 'consult', 'upload'] as const;
+  it('switches active on 6 different values', () => {
+    const actives = ['workflows', 'domain', 'pipeline', 'consult', 'chat-demo', 'upload'] as const;
     const titleMap: Record<(typeof actives)[number], string> = {
       workflows: 'Workflows',
       domain: 'Domain Packs',
       pipeline: 'Pipeline',
       consult: 'Consultation',
+      'chat-demo': 'Chat Demo',
       upload: 'Uploads',
     };
 

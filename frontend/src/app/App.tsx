@@ -19,6 +19,7 @@ import { WorkspaceUploadPage } from '../pages/upload/ui/WorkspaceUploadPage';
 import { DomainPackListPage } from '../pages/domain-pack/ui/DomainPackListPage';
 import { PrivateRoute } from '../shared/ui/PrivateRoute';
 import { Toaster } from '../shared/ui/sonner';
+import { ChatWorkflowDemoPageWrapper } from '../pages/chat-demo/ui/ChatWorkflowDemoPageWrapper';
 
 export function App() {
   return (
@@ -50,6 +51,7 @@ export function App() {
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/slots/:slotId?" element={<PrivateRoute><SlotDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/chat-demo" element={<PrivateRoute><ChatWorkflowDemoPageWrapper /></PrivateRoute>} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
