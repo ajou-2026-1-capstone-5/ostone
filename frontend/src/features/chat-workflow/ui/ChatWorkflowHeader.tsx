@@ -37,8 +37,8 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
             <span
               style={{
                 fontSize: 'var(--font-size-sm)',
-                color: 'var(--app-positive, #2a9d8f)',
-                background: 'color-mix(in srgb, var(--app-positive, #2a9d8f) 12%, transparent)',
+                color: 'var(--signal-ink)',
+                background: 'var(--signal-bg)',
                 borderRadius: 'var(--r-1)',
                 padding: '0 var(--s-1)',
                 fontWeight: 500,
@@ -59,28 +59,30 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
 
       <button
         type="button"
+        disabled
         style={{
           fontSize: 'var(--font-size-sm)',
           padding: 'var(--s-1) var(--s-3)',
           borderRadius: 'var(--r-1)',
-          border: '1px solid var(--app-negative, #d32f2f)',
-          color: 'var(--app-negative, #d32f2f)',
+          border: '1px solid var(--line)',
+          color: 'var(--ink-4)',
           background: 'transparent',
-          cursor: 'pointer',
+          cursor: 'not-allowed',
         }}
       >
         Reset
       </button>
       <button
         type="button"
+        disabled
         style={{
           fontSize: 'var(--font-size-sm)',
           padding: 'var(--s-1) var(--s-3)',
           borderRadius: 'var(--r-1)',
-          border: 'none',
-          color: '#fff',
-          background: 'var(--app-accent, #2563eb)',
-          cursor: 'pointer',
+          border: '1px solid var(--line)',
+          color: 'var(--ink-3)',
+          background: 'var(--paper-3)',
+          cursor: 'not-allowed',
           fontWeight: 600,
         }}
       >
