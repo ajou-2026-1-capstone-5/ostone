@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from pipeline.common.artifacts import ensure_stage_directory, write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
@@ -29,6 +29,29 @@ _logger = logging.getLogger("pipeline.draft_generation")
 DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
 DEFAULT_PREPROCESSED_ARTIFACT = "preprocessed_data.json"
+
+
+class SlotTemplate(NamedTuple):
+    code_suffix: str
+    name: str
+    description: str
+    data_type: str
+    is_sensitive: bool
+
+
+SIGNAL_SLOT_MAPPING: dict[str, tuple[SlotTemplate, ...]] = {
+    "requires_payment_check": (
+        SlotTemplate("order_id", "주문 ID", "결제·환불 대상 주문 식별자", "STRING", False),
+        SlotTemplate("payment_method", "결제 수단", "결제 수단 (카드/계좌이체 등)", "STRING", False),
+    ),
+    "requires_user_identification": (
+        SlotTemplate("customer_name", "고객 이름", "본인 확인용 고객 이름", "STRING", True),
+        SlotTemplate("customer_phone", "고객 연락처", "본인 확인용 휴대폰 번호", "STRING", True),
+    ),
+    "has_escalation_cases": (
+        SlotTemplate("escalation_reason", "에스컬레이션 사유", "상담사 전환 사유", "STRING", False),
+    ),
+}
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
@@ -68,6 +91,21 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         workflow_metrics["workflow_evidence_exemplar_total"],
         workflow_metrics["workflow_evidence_member_total"],
         workflow_metrics["workflow_with_empty_evidence_count"],
+    )
+
+    slots, intent_slot_bindings, slot_metrics = _build_slot_draft(clusters)
+    workflow_draft["slots"] = slots
+    workflow_draft["intentSlotBindings"] = intent_slot_bindings
+    metrics.update(slot_metrics)
+    logger.info(
+        "draft_generation.slot_summary slot_count=%d cluster_with_slot_count=%d "
+        "signal_slot_hit_payment_check=%d signal_slot_hit_user_identification=%d "
+        "signal_slot_hit_escalation=%d",
+        slot_metrics["slot_count"],
+        slot_metrics["cluster_with_slot_count"],
+        slot_metrics["signal_slot_hit_payment_check"],
+        slot_metrics["signal_slot_hit_user_identification"],
+        slot_metrics["signal_slot_hit_escalation"],
     )
 
     candidate = _build_candidate(intents, workflow_draft, stage_context)
@@ -343,6 +381,69 @@ def _build_workflow_draft(
         "workflow_with_empty_evidence_count": empty_evidence_count,
     }
     return draft, workflow_metrics
+
+
+def _build_slot_draft(
+    clusters: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, int]]:
+    """cluster.workflow_signal 기반으로 slots + intentSlotBindings 도출.
+
+    Returns:
+        (slots, intentSlotBindings, metrics)
+    """
+    slots: list[dict[str, Any]] = []
+    bindings: list[dict[str, Any]] = []
+    cluster_with_slot_count = 0
+    signal_hit_counts: dict[str, int] = {key: 0 for key in SIGNAL_SLOT_MAPPING}
+
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        cluster_id = cluster.get("cluster_id")
+        signal = cluster.get("workflow_signal") or {}
+        intent_code = f"INTENT_{cluster_id}"
+        cluster_slot_counter = 0
+
+        for signal_key, templates in SIGNAL_SLOT_MAPPING.items():
+            if not signal.get(signal_key):
+                continue
+            signal_hit_counts[signal_key] += 1
+            for template in templates:
+                cluster_slot_counter += 1
+                slot_code = f"SLOT_{cluster_id}_{cluster_slot_counter}"
+                slots.append(
+                    {
+                        "slotCode": slot_code,
+                        "name": template.name,
+                        "description": template.description,
+                        "dataType": template.data_type,
+                        "isSensitive": template.is_sensitive,
+                        "validationRuleJson": "{}",
+                        "defaultValueJson": None,
+                        "metaJson": "{}",
+                    }
+                )
+                bindings.append(
+                    {
+                        "intentCode": intent_code,
+                        "slotCode": slot_code,
+                        "isRequired": True,
+                        "collectionOrder": cluster_slot_counter,
+                        "promptHint": "",
+                        "conditionJson": "{}",
+                    }
+                )
+        if cluster_slot_counter > 0:
+            cluster_with_slot_count += 1
+
+    metrics: dict[str, int] = {
+        "slot_count": len(slots),
+        "cluster_with_slot_count": cluster_with_slot_count,
+        "signal_slot_hit_payment_check": signal_hit_counts["requires_payment_check"],
+        "signal_slot_hit_user_identification": signal_hit_counts["requires_user_identification"],
+        "signal_slot_hit_escalation": signal_hit_counts["has_escalation_cases"],
+    }
+    return slots, bindings, metrics
 
 
 def _build_candidate(
