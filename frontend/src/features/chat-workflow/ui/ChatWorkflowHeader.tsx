@@ -1,11 +1,10 @@
-import type { DomainPackInfo, ScenarioInfo } from '../model/chatWorkflow.types';
+import type { DemoDomainPack } from '../model/chatWorkflow.types';
 
 export interface ChatWorkflowHeaderProps {
-  domainPack?: DomainPackInfo | null;
-  scenario?: ScenarioInfo | null;
+  domainPack: DemoDomainPack | null;
 }
 
-export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderProps) {
+export function ChatWorkflowHeader({ domainPack }: ChatWorkflowHeaderProps) {
   return (
     <header
       style={{
@@ -19,10 +18,14 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
     >
       {domainPack && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
-          <span style={{ fontWeight: 600, fontSize: 'var(--fs-body-2)' }}>
+          <span
+            data-testid="header-domain-name"
+            style={{ fontWeight: 600, fontSize: 'var(--fs-body-2)' }}
+          >
             {domainPack.name}
           </span>
           <span
+            data-testid="header-version"
             style={{
               fontSize: 'var(--fs-sm)',
               color: 'var(--ink-3)',
@@ -33,8 +36,9 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
           >
             v{domainPack.version}
           </span>
-          {domainPack.publishedAt && (
+          {domainPack.status === 'PUBLISHED' && (
             <span
+              data-testid="header-published"
               style={{
                 fontSize: 'var(--fs-sm)',
                 color: 'var(--app-positive, #2a9d8f)',
@@ -48,11 +52,6 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
             </span>
           )}
         </div>
-      )}
-      {scenario && (
-        <span style={{ fontSize: 'var(--fs-body-2)', color: 'var(--ink-2)' }}>
-          {scenario.name}
-        </span>
       )}
 
       <div style={{ flex: 1 }} />
