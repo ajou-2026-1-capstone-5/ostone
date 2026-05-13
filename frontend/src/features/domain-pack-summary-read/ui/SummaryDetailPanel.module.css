@@ -118,3 +118,218 @@
   letter-spacing: 0.04em;
   margin-bottom: 8px;
 }
+
+.approvalCard {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-color);
+}
+
+.approvalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.approvalTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-heading);
+  color: var(--text-primary);
+  letter-spacing: -0.14px;
+}
+
+.approvalDescription {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.approvalBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 3px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-heading);
+  white-space: nowrap;
+}
+
+.approvalBadgeReady {
+  background: var(--text-primary);
+  color: var(--bg-color);
+  border-color: var(--text-primary);
+}
+
+.approvalSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.approvalSkeleton .skeletonBlock {
+  height: 28px;
+}
+
+.blockerArea {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blockerIntro {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.blockerList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.blockerAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.blockerAction svg {
+  width: 13px;
+  height: 13px;
+}
+
+.blockerAction:hover {
+  text-decoration: underline;
+}
+
+.blockerAction:focus-visible,
+.approvalButton:focus-visible,
+.approvalDialogCancel:focus-visible,
+.approvalDialogConfirm:focus-visible {
+  outline: 2px dashed var(--text-primary);
+  outline-offset: 3px;
+}
+
+.approvalActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.approvalButton {
+  min-height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-size: 13px;
+  font-weight: var(--font-weight-heading);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.approvalButton:hover {
+  opacity: 0.84;
+}
+
+.approvalButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.approvalDialogContent {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--bg-color);
+  padding: 24px !important;
+  gap: 16px;
+}
+
+.approvalDialogTitle {
+  font-size: 20px;
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.26px;
+  line-height: 1.2;
+}
+
+.approvalDialogDescription {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: -0.14px;
+}
+
+.approvalDialogFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.approvalDialogCancel,
+.approvalDialogConfirm {
+  min-height: 40px;
+  border-radius: var(--radius-xl);
+  font-size: 14px;
+  font-weight: var(--font-weight-heading);
+}
+
+.approvalDialogCancel {
+  background: var(--hover-bg) !important;
+  color: var(--text-secondary) !important;
+}
+
+.approvalDialogConfirm {
+  background: var(--text-primary) !important;
+  color: var(--bg-color) !important;
+}
+
+@media (max-width: 640px) {
+  .approvalHeader,
+  .blockerItem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .approvalActions,
+  .approvalButton {
+    width: 100%;
+  }
+}

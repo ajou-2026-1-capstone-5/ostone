@@ -7,4 +7,11 @@ export {
   useRiskPreview,
   useWorkflowPreview,
 } from './model';
-export { VersionListPanel, SummaryDetailPanel, SummaryJsonCard, ComponentCountGrid } from './ui';
+export {
+  VersionListPanel,
+  SummaryDetailPanel,
+  DomainPackApprovalCard,
+  DomainPackApprovalDialog,
+  SummaryJsonCard,
+  ComponentCountGrid,
+} from './ui';
