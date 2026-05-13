@@ -27,7 +27,7 @@ export function SummaryDetailPanel({
   versions,
   onActivated,
   renderSlotEditSheet,
-}: SummaryDetailPanelProps) {
+}: Readonly<SummaryDetailPanelProps>) {
   const activateMutation = useActivate();
   const v = query.data;
   const readiness = useDomainPackApprovalReadiness({

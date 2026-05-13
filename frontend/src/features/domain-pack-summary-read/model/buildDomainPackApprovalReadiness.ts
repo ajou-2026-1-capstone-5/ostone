@@ -45,8 +45,7 @@ export function buildDomainPackApprovalReadiness({
   "ready" | "blockers"
 > {
   if (
-    !version ||
-    version.versionId == null ||
+    version?.versionId == null ||
     version.versionNo == null ||
     version.lifecycleStatus == null
   ) {
@@ -65,7 +64,7 @@ export function buildDomainPackApprovalReadiness({
     };
   }
 
-  const maxVersionNo = findMaxVersionNo(versions);
+  const maxVersionNo = findMaxDomainPackVersionNo(versions);
   if (maxVersionNo == null) {
     return blockedByRequiredInfo();
   }
@@ -126,7 +125,7 @@ function blockedByRequiredInfo(): Pick<
   };
 }
 
-function findMaxVersionNo(versions: DomainPackVersionSummary[]): number | null {
+export function findMaxDomainPackVersionNo(versions: DomainPackVersionSummary[]): number | null {
   const versionNos = versions
     .map((version) => version.versionNo)
     .filter((versionNo): versionNo is number => versionNo != null);

@@ -21,7 +21,7 @@ export function DomainPackApprovalDialog({
   onOpenChange,
   onConfirm,
   isLoading,
-}: DomainPackApprovalDialogProps) {
+}: Readonly<DomainPackApprovalDialogProps>) {
   return (
     <AlertDialog
       open={open}

@@ -4,6 +4,7 @@ import { useListIntents } from "@/shared/api/generated/endpoints/intent-definiti
 import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
 import {
   buildDomainPackApprovalReadiness,
+  findMaxDomainPackVersionNo,
   type DomainPackApprovalReadiness,
 } from "./buildDomainPackApprovalReadiness";
 
@@ -41,6 +42,11 @@ export function useDomainPackApprovalReadiness({
       },
     },
   );
+  const retry = () => {
+    intentQuery.refetch().catch((error: unknown) => {
+      console.error("Failed to refetch domain pack approval readiness", error);
+    });
+  };
 
   if (shouldLoadIntents && intentQuery.isLoading) {
     return {
@@ -48,9 +54,7 @@ export function useDomainPackApprovalReadiness({
       isLoading: true,
       isError: false,
       blockers: [],
-      retry: () => {
-        void intentQuery.refetch();
-      },
+      retry,
     };
   }
 
@@ -65,9 +69,7 @@ export function useDomainPackApprovalReadiness({
           message: "승인 준비 상태를 확인하지 못했습니다.",
         },
       ],
-      retry: () => {
-        void intentQuery.refetch();
-      },
+      retry,
     };
   }
 
@@ -82,9 +84,7 @@ export function useDomainPackApprovalReadiness({
     ...readiness,
     isLoading: false,
     isError: false,
-    retry: () => {
-      void intentQuery.refetch();
-    },
+    retry,
   };
 }
 
@@ -94,11 +94,6 @@ function isSelectedVersionLatest(
 ): boolean {
   if (version.versionNo == null) return false;
 
-  const versionNos = versions
-    .map((candidate) => candidate.versionNo)
-    .filter((versionNo): versionNo is number => versionNo != null);
-
-  if (versionNos.length === 0) return false;
-
-  return version.versionNo === Math.max(...versionNos);
+  const maxVersionNo = findMaxDomainPackVersionNo(versions);
+  return maxVersionNo != null && version.versionNo === maxVersionNo;
 }

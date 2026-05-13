@@ -19,14 +19,19 @@ export function DomainPackApprovalCard({
   isPublished,
   onApprove,
   onRetryReadiness,
-}: DomainPackApprovalCardProps) {
+}: Readonly<DomainPackApprovalCardProps>) {
   const navigate = useNavigate();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const isBlocked = !readiness.ready && !isPublished;
 
   const handleConfirm = async () => {
-    await Promise.resolve(onApprove()).catch(() => undefined);
-    setDialogOpen(false);
+    try {
+      await Promise.resolve(onApprove());
+    } catch (error) {
+      console.error("Unhandled domain pack approval error", error);
+    } finally {
+      setDialogOpen(false);
+    }
   };
 
   return (

@@ -312,7 +312,8 @@
 }
 
 .approvalDialogCancel {
-  background: rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: #ffffff !important;
   color: #000000 !important;
 }
 
