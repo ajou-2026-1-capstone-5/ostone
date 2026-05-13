@@ -11,7 +11,7 @@ import type {
 
 export interface SidePanelProps {
   workflow: DemoWorkflow;
-  execution: DemoExecution;
+  execution: DemoExecution | null;
   decisionLogs: DemoDecisionLogEntry[];
   selectedMessageId: string | null;
   domainPack: DemoDomainPack | null;

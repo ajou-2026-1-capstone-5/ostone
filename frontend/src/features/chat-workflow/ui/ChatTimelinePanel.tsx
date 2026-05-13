@@ -29,11 +29,12 @@ export function ChatTimelinePanel({
           </p>
         ) : (
           messages.map((msg) => (
-            <div
+            <button
+              type="button"
               key={msg.id}
               data-testid={`chat-message-${msg.id}`}
               onClick={() => onMessageSelect?.(msg.id)}
-              className={`mb-2 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors ${
+              className={`mb-2 w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm transition-colors ${
                 msg.id === selectedMessageId
                   ? "border-l-2 border-l-blue-500 bg-blue-50"
                   : "bg-muted"
@@ -54,7 +55,7 @@ export function ChatTimelinePanel({
                 </span>
               </div>
               <p className="mt-1">{msg.content}</p>
-            </div>
+            </button>
           ))
         )}
       </div>

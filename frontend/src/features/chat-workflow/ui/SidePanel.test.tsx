@@ -8,7 +8,6 @@ import {
   demoDecisionLogs,
   demoDomainPack,
 } from '../model/chatWorkflowDemo.mock';
-import type { DemoExecution } from '../model/chatWorkflow.types';
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
@@ -94,7 +93,7 @@ describe('SidePanel', () => {
     render(
       <SidePanel
         workflow={demoWorkflow}
-        execution={null as unknown as DemoExecution}
+        execution={null}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
         domainPack={demoDomainPack}

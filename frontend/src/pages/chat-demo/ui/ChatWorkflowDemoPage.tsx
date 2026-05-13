@@ -73,7 +73,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
             {workflow ? (
               <SidePanel
                 workflow={workflow}
-                execution={execution!}
+                execution={execution}
                 decisionLogs={decisionLogs}
                 selectedMessageId={selectedMessageId}
                 domainPack={domainPack}

@@ -159,7 +159,7 @@ export const demoDecisionLogs: DemoDecisionLogEntry[] = [
     stateFrom: 'INITIAL',
     stateTo: 'INTENT_DETECTED',
     decision: 'ALLOW',
-    confidence: 0.95,
+    confidence: 95,
     reason: '환불 요청 패턴 감지',
   },
   {
@@ -170,7 +170,7 @@ export const demoDecisionLogs: DemoDecisionLogEntry[] = [
     stateFrom: 'INTENT_DETECTED',
     stateTo: 'SLOT_COLLECTING',
     decision: 'ALLOW',
-    confidence: 0.88,
+    confidence: 88,
     reason: '주문번호 slot 수집 완료',
   },
   {
@@ -181,7 +181,7 @@ export const demoDecisionLogs: DemoDecisionLogEntry[] = [
     stateFrom: 'SLOT_COLLECTING',
     stateTo: 'POLICY_CHECKING',
     decision: 'ALLOW',
-    confidence: 1,
+    confidence: 100,
     reason: '환불 가능 기간 정책 통과',
   },
   {
@@ -192,7 +192,7 @@ export const demoDecisionLogs: DemoDecisionLogEntry[] = [
     stateFrom: 'POLICY_CHECKING',
     stateTo: 'RISK_CHECKING',
     decision: 'ALLOW',
-    confidence: 0.75,
+    confidence: 75,
     reason: '고액 환불 위험 낮음',
   },
   {
@@ -203,7 +203,7 @@ export const demoDecisionLogs: DemoDecisionLogEntry[] = [
     stateFrom: 'DECIDING',
     stateTo: 'COMPLETED',
     decision: 'ALLOW',
-    confidence: 0.92,
+    confidence: 92,
     reason: '환불 완료 안내 생성',
   },
 ];
