@@ -70,7 +70,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
       },
       { replace: true },
     );
-  }, [packQuery.data, search, setSearch]);
+  }, [packQuery.data, search, selectedVersionId, setSearch]);
 
   const versionQuery = useVersionDetail(wsId, packId, selectedVersionId) as UseQueryResult<DomainPackVersionDetail>;
 
@@ -152,6 +152,8 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
             query={versionQuery}
             wsId={wsId}
             packId={packId}
+            versions={pack?.versions ?? []}
+            onActivated={() => packQuery.refetch()}
           />
         </div>
       </div>

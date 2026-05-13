@@ -1,34 +1,77 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { DomainPackVersionDetail } from '@/entities/domain-pack';
+import type { DomainPackVersionDetail, DomainPackVersionSummary } from '@/entities/domain-pack';
 import { ApiRequestError } from '@/shared/api';
 import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
 import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
+import { useDomainPackApprovalReadiness } from '../model/useDomainPackApprovalReadiness';
+import { resolveDomainPackApprovalErrorMessage } from '../model/resolveDomainPackApprovalErrorMessage';
 import { SummaryJsonCard } from './SummaryJsonCard';
 import { ComponentCountGrid } from './ComponentCountGrid';
+import { DomainPackApprovalCard } from './DomainPackApprovalCard';
 import styles from './SummaryDetailPanel.module.css';
 
 interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
   wsId: number;
   packId: number;
+  versions: DomainPackVersionSummary[];
+  onActivated: () => void | Promise<unknown>;
   renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
-export function SummaryDetailPanel({ query, wsId, packId, renderSlotEditSheet }: SummaryDetailPanelProps) {
-  const activateMutation = useActivate(
-    {
-      mutation: {
-        onSuccess: () => {
-          toast.success('버전이 활성화되었습니다.');
-          query.refetch();
-        },
-        onError: () => {
-          toast.error('버전 활성화에 실패했습니다.');
-        },
-      },
-    },
-  );
+export function SummaryDetailPanel({
+  query,
+  wsId,
+  packId,
+  versions,
+  onActivated,
+  renderSlotEditSheet,
+}: Readonly<SummaryDetailPanelProps>) {
+  const activateMutation = useActivate();
+  const v = query.data;
+  const readiness = useDomainPackApprovalReadiness({
+    workspaceId: wsId,
+    packId,
+    version: v,
+    versions,
+  });
+  const versionId = v?.versionId;
+
+  const handleApprove = async () => {
+    if (versionId == null) {
+      toast.error('승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.');
+      return;
+    }
+
+    if (readiness.isLoading) {
+      toast.error('승인 준비 상태를 확인하는 중입니다.');
+      return;
+    }
+
+    if (!readiness.ready) {
+      toast.error(readiness.blockers[0]?.message ?? '승인 조건을 먼저 처리해 주세요.');
+      return;
+    }
+
+    try {
+      await activateMutation.mutateAsync({ workspaceId: wsId, packId, versionId });
+    } catch (error) {
+      toast.error(resolveDomainPackApprovalErrorMessage(error));
+      return;
+    }
+
+    toast.success('Domain Pack 버전이 승인되었습니다.');
+
+    try {
+      await query.refetch();
+      await onActivated();
+      readiness.retry();
+    } catch (error) {
+      console.error('Failed to sync domain pack approval state', error);
+      toast.error('승인 후 화면 정보를 갱신하지 못했습니다.');
+    }
+  };
 
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
     return (
@@ -62,8 +105,7 @@ export function SummaryDetailPanel({ query, wsId, packId, renderSlotEditSheet }:
     );
   }
 
-  if (!query.data) return null;
-  const v = query.data;
+  if (!v) return null;
 
   return (
     <div className={styles.panel}>
@@ -81,26 +123,22 @@ export function SummaryDetailPanel({ query, wsId, packId, renderSlotEditSheet }:
         <div className={styles.metaGrid}>
           <span className={styles.metaKey}>생성</span>
           <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
-          {v.sourcePipelineJobId !== null && (
+          {v.sourcePipelineJobId != null && (
             <>
               <span className={styles.metaKey}>Pipeline Job</span>
               <span className={styles.metaValue}>{v.sourcePipelineJobId}</span>
             </>
           )}
         </div>
-        {v.lifecycleStatus === 'DRAFT' && (
-          <div style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className={styles.errorRetryBtn}
-              onClick={() => activateMutation.mutate({ workspaceId: wsId, packId, versionId: v.versionId! })}
-              disabled={activateMutation.isPending}
-            >
-              활성화
-            </button>
-          </div>
-        )}
       </div>
+
+      <DomainPackApprovalCard
+        readiness={readiness}
+        isActivating={activateMutation.isPending}
+        isPublished={v.lifecycleStatus === 'PUBLISHED'}
+        onApprove={handleApprove}
+        onRetryReadiness={readiness.retry}
+      />
 
       <div>
         <div className={styles.sectionTitle}>Summary JSON</div>
@@ -109,17 +147,19 @@ export function SummaryDetailPanel({ query, wsId, packId, renderSlotEditSheet }:
 
       <div>
         <div className={styles.sectionTitle}>구성요소</div>
-        <ComponentCountGrid
-          wsId={wsId}
-          packId={packId}
-          versionId={v.versionId!}
-          intentCount={v.intentCount!}
-          slotCount={v.slotCount!}
-          policyCount={v.policyCount!}
-          riskCount={v.riskCount!}
-          workflowCount={v.workflowCount!}
-          renderSlotEditSheet={renderSlotEditSheet}
-        />
+        {versionId != null && (
+          <ComponentCountGrid
+            wsId={wsId}
+            packId={packId}
+            versionId={versionId}
+            intentCount={v.intentCount ?? 0}
+            slotCount={v.slotCount ?? 0}
+            policyCount={v.policyCount ?? 0}
+            riskCount={v.riskCount ?? 0}
+            workflowCount={v.workflowCount ?? 0}
+            renderSlotEditSheet={renderSlotEditSheet}
+          />
+        )}
       </div>
     </div>
   );
