@@ -19,12 +19,12 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
     >
       {domainPack && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
-          <span style={{ fontWeight: 600, fontSize: 'var(--fs-body-2)' }}>
+          <span style={{ fontWeight: 600, fontSize: 'var(--font-size-base)' }}>
             {domainPack.name}
           </span>
           <span
             style={{
-              fontSize: 'var(--fs-sm)',
+              fontSize: 'var(--font-size-sm)',
               color: 'var(--ink-3)',
               background: 'var(--paper-2)',
               borderRadius: 'var(--r-1)',
@@ -36,7 +36,7 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
           {domainPack.publishedAt && (
             <span
               style={{
-                fontSize: 'var(--fs-sm)',
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--app-positive, #2a9d8f)',
                 background: 'color-mix(in srgb, var(--app-positive, #2a9d8f) 12%, transparent)',
                 borderRadius: 'var(--r-1)',
@@ -50,7 +50,7 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
         </div>
       )}
       {scenario && (
-        <span style={{ fontSize: 'var(--fs-body-2)', color: 'var(--ink-2)' }}>
+        <span style={{ fontSize: 'var(--font-size-base)', color: 'var(--ink-2)' }}>
           {scenario.name}
         </span>
       )}
@@ -60,7 +60,7 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
       <button
         type="button"
         style={{
-          fontSize: 'var(--fs-sm)',
+          fontSize: 'var(--font-size-sm)',
           padding: 'var(--s-1) var(--s-3)',
           borderRadius: 'var(--r-1)',
           border: '1px solid var(--app-negative, #d32f2f)',
@@ -74,7 +74,7 @@ export function ChatWorkflowHeader({ domainPack, scenario }: ChatWorkflowHeaderP
       <button
         type="button"
         style={{
-          fontSize: 'var(--fs-sm)',
+          fontSize: 'var(--font-size-sm)',
           padding: 'var(--s-1) var(--s-3)',
           borderRadius: 'var(--r-1)',
           border: 'none',
