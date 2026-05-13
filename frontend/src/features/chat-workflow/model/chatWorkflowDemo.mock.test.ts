@@ -1,39 +1,50 @@
 import { describe, expect, it } from 'vitest';
 import {
   demoChatWorkflowState,
-  demoDecisionLog,
+  demoDecisionLogs,
+  demoDomainPack,
   demoMessages,
-  demoWorkflowState,
+  demoWorkflow,
   emptyChatWorkflowState,
 } from './chatWorkflowDemo.mock';
 
 describe('chatWorkflowDemo mock data', () => {
-  it('demoMessages는 최소 3개 메시지를 가지며 첫 메시지는 사용자 발화이다', () => {
-    expect(demoMessages.length).toBeGreaterThanOrEqual(3);
+  it('demoMessages는 4개 메시지를 가지며 첫 메시지는 사용자 발화이다', () => {
+    expect(demoMessages).toHaveLength(4);
+    expect(demoMessages[0]?.id).toBe('msg-1');
     expect(demoMessages[0]?.role).toBe('user');
   });
 
-  it('demoWorkflowState는 실행 중인 워크플로우 노드를 가진다', () => {
-    expect(demoWorkflowState.status).toBe('running');
-    expect(demoWorkflowState.currentNodeId).not.toBeNull();
+  it('demoWorkflow는 8개 상태와 7개 전이를 가진다', () => {
+    expect(demoWorkflow.states).toHaveLength(8);
+    expect(demoWorkflow.transitions).toHaveLength(7);
+    expect(demoWorkflow.states).toContain('COMPLETED');
   });
 
-  it('demoDecisionLog는 최소 2개 엔트리와 문자열 설명 필드를 가진다', () => {
-    expect(demoDecisionLog.length).toBeGreaterThanOrEqual(2);
-    expect(demoDecisionLog.every(({ step, action, reason }) => [step, action, reason].every((value) => typeof value === 'string'))).toBe(true);
+  it('demoDecisionLogs는 5개 로그와 메시지 및 상태 연결 필드를 가진다', () => {
+    expect(demoDecisionLogs).toHaveLength(5);
+    expect(demoDecisionLogs.every(({ messageId, stateFrom, stateTo }) => messageId && stateFrom && stateTo)).toBe(true);
   });
 
-  it('demoChatWorkflowState는 모든 하위 필드를 포함한다', () => {
-    expect(demoChatWorkflowState.messages).toBeDefined();
-    expect(demoChatWorkflowState.workflow).toBeDefined();
-    expect(demoChatWorkflowState.decisionLog).toBeDefined();
-    expect(demoChatWorkflowState.domainPack).toBeDefined();
-    expect(demoChatWorkflowState.scenario).toBeDefined();
+  it('demoDomainPack은 intent, policy, risk fixture를 포함한다', () => {
+    expect(demoDomainPack.intents.length).toBeGreaterThanOrEqual(1);
+    expect(demoDomainPack.policies.length).toBeGreaterThanOrEqual(1);
+    expect(demoDomainPack.risks.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('emptyChatWorkflowState는 빈 대화와 idle 워크플로우를 가진다', () => {
-    expect(emptyChatWorkflowState.messages).toEqual([]);
-    expect(emptyChatWorkflowState.workflow.status).toBe('idle');
-    expect(emptyChatWorkflowState.decisionLog).toEqual([]);
+  it('demoChatWorkflowState는 응답과 선택 및 로딩 상태를 포함한다', () => {
+    expect(demoChatWorkflowState.response).toBeDefined();
+    expect(demoChatWorkflowState.response?.messages).toBe(demoMessages);
+    expect(demoChatWorkflowState.response?.decisionLogs).toBe(demoDecisionLogs);
+    expect(demoChatWorkflowState.selectedMessageId).toBeNull();
+    expect(demoChatWorkflowState.loading).toBe(false);
+    expect(demoChatWorkflowState.error).toBeNull();
+  });
+
+  it('emptyChatWorkflowState는 비어 있는 응답과 기본 상태를 가진다', () => {
+    expect(emptyChatWorkflowState.response).toBeNull();
+    expect(emptyChatWorkflowState.selectedMessageId).toBeNull();
+    expect(emptyChatWorkflowState.loading).toBe(false);
+    expect(emptyChatWorkflowState.error).toBeNull();
   });
 });
