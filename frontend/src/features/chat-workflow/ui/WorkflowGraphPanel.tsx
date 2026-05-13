@@ -1,7 +1,8 @@
-import type { WorkflowState } from "../model/chatWorkflow.types";
+// WorkflowGraphPanel is deprecated — replaced by StateMachineGraph + SidePanel
+// File kept to avoid git-rm conflicts; import uses inline type for build compatibility
 
 interface WorkflowGraphPanelProps {
-  workflowState: WorkflowState;
+  workflowState: { currentNodeId: string | null; status: string; context: Record<string, unknown> };
 }
 
 export function WorkflowGraphPanel({ workflowState }: WorkflowGraphPanelProps) {
