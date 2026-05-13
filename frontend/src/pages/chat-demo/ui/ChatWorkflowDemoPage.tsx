@@ -13,7 +13,7 @@ export interface ChatWorkflowDemoPageProps {
 }
 
 export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(state.selectedMessageId);
 
   const { loading, error } = state;
   const response = state.response;
