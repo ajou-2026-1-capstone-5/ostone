@@ -56,12 +56,20 @@ export function SummaryDetailPanel({
 
     try {
       await activateMutation.mutateAsync({ workspaceId: wsId, packId, versionId });
-      toast.success('Domain Pack 버전이 승인되었습니다.');
+    } catch (error) {
+      toast.error(resolveDomainPackApprovalErrorMessage(error));
+      return;
+    }
+
+    toast.success('Domain Pack 버전이 승인되었습니다.');
+
+    try {
       await query.refetch();
       await onActivated();
       readiness.retry();
     } catch (error) {
-      toast.error(resolveDomainPackApprovalErrorMessage(error));
+      console.error('Failed to sync domain pack approval state', error);
+      toast.error('승인 후 화면 정보를 갱신하지 못했습니다.');
     }
   };
 

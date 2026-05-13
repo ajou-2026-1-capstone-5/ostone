@@ -26,9 +26,7 @@ export function DomainPackApprovalCard({
 
   const handleConfirm = async () => {
     try {
-      await Promise.resolve(onApprove());
-    } catch (error) {
-      console.error("Unhandled domain pack approval error", error);
+      await onApprove();
     } finally {
       setDialogOpen(false);
     }
