@@ -86,6 +86,18 @@ describe('ChatWorkflowDemoPage', () => {
     expect(screen.getByTestId('page-container')).toBeInTheDocument();
   });
 
+  it('shows loading state', () => {
+    const loadingState: ChatWorkflowDemoState = { response: null, selectedMessageId: null, loading: true, error: null };
+    render(<ChatWorkflowDemoPage state={loadingState} />, { wrapper: Wrapper });
+    expect(screen.getByTestId('loading-state')).toBeInTheDocument();
+  });
+
+  it('shows error state', () => {
+    const errorState: ChatWorkflowDemoState = { response: null, selectedMessageId: null, loading: false, error: 'Something went wrong' };
+    render(<ChatWorkflowDemoPage state={errorState} />, { wrapper: Wrapper });
+    expect(screen.getByTestId('error-state')).toBeInTheDocument();
+  });
+
   it('renders timeline and side panel containers', () => {
     render(<ChatWorkflowDemoPage state={fullState()} />, { wrapper: Wrapper });
     expect(screen.getByTestId('chat-timeline')).toBeInTheDocument();

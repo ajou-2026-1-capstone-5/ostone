@@ -6,7 +6,6 @@ import type {
   DemoDecisionLogEntry,
 } from '@/features/chat-workflow';
 import { ChatTimelinePanel } from '@/features/chat-workflow/ui/ChatTimelinePanel';
-import { ChatWorkflowHeader } from '@/features/chat-workflow/ui/ChatWorkflowHeader';
 import { SidePanel } from '@/features/chat-workflow/ui/SidePanel';
 
 export interface ChatWorkflowDemoPageProps {
@@ -16,12 +15,33 @@ export interface ChatWorkflowDemoPageProps {
 export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
+  const { loading, error } = state;
   const response = state.response;
   const messages: DemoChatMessage[] = response?.messages ?? [];
   const execution = response?.execution ?? null;
   const decisionLogs: DemoDecisionLogEntry[] = response?.decisionLogs ?? [];
   const domainPack = response?.domainPack ?? null;
   const workflow = response?.workflow ?? null;
+
+  if (loading) {
+    return (
+      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+        <div data-testid="loading-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--text-3)' }}>
+          Loading workflow data...
+        </div>
+      </OstoneShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+        <div data-testid="error-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--danger)' }}>
+          Error: {error}
+        </div>
+      </OstoneShell>
+    );
+  }
 
   return (
     <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
@@ -35,8 +55,6 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
           gap: 'var(--s-4)',
         }}
       >
-        <ChatWorkflowHeader domainPack={domainPack} />
-
         <div
           style={{
             display: 'flex',

@@ -47,7 +47,7 @@ export function StateMachineGraph({
   const hasFilter = selectedMessageId !== null;
 
   return (
-    <div data-testid="graph-container" className="w-full overflow-hidden">
+    <div data-testid="graph-container" className="w-full overflow-x-auto">
       <svg width={svgWidth(states.length)} height={SVG_H} className="block">
         <defs>
           <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
