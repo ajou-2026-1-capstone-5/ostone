@@ -1,36 +1,111 @@
-export interface DomainPackInfo {
+export interface DemoDomainPack {
+  id: string;
   name: string;
   version: string;
-  publishedAt?: string;
-}
-
-export interface ScenarioInfo {
-  name: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: string;
-  content: string;
-}
-
-export interface WorkflowState {
-  currentNodeId: string | null;
   status: string;
-  context: Record<string, unknown>;
+  intents: DemoIntent[];
+  policies: DemoPolicy[];
+  risks: DemoRisk[];
 }
 
-export interface DecisionLogEntry {
+export interface DemoIntent {
   id: string;
-  step: string;
-  action: string;
+  name: string;
+  description: string;
+}
+
+export interface DemoPolicy {
+  id: string;
+  name: string;
+  description: string;
+  severity: string;
+}
+
+export interface DemoRisk {
+  id: string;
+  name: string;
+  description: string;
+  level: string;
+}
+
+export interface DemoWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  states: string[];
+  transitions: DemoWorkflowTransition[];
+}
+
+export interface DemoWorkflowTransition {
+  from: string;
+  to: string;
+  on: string;
+}
+
+export interface DemoChatSession {
+  id: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface DemoChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface DemoExecution {
+  id: string;
+  status: string;
+  currentState: string;
+  currentNodeId: string;
+  intent: string;
+  slotValues: Record<string, string | number>;
+  missingSlots: string[];
+  policyHits: DemoPolicyHit[];
+  riskHits: DemoRiskHit[];
+}
+
+export interface DemoPolicyHit {
+  policyId: string;
+  policyName: string;
+  result: string;
+  detail: string;
+}
+
+export interface DemoRiskHit {
+  riskId: string;
+  riskName: string;
+  result: string;
+  detail: string;
+}
+
+export interface DemoDecisionLogEntry {
+  id: string;
+  step: number;
+  messageId: string;
+  eventType: string;
+  stateFrom: string;
+  stateTo: string;
+  decision: string;
+  confidence: number;
   reason: string;
 }
 
+export interface DemoChatWorkflowResponse {
+  domainPack: DemoDomainPack;
+  workflow: DemoWorkflow;
+  chatSession: DemoChatSession;
+  messages: DemoChatMessage[];
+  execution: DemoExecution;
+  decisionLogs: DemoDecisionLogEntry[];
+}
+
 export interface ChatWorkflowDemoState {
-  messages: ChatMessage[];
-  workflow: WorkflowState;
-  decisionLog: DecisionLogEntry[];
-  domainPack: DomainPackInfo | null;
-  scenario: ScenarioInfo | null;
+  response: DemoChatWorkflowResponse | null;
+  selectedMessageId: string | null;
+  loading: boolean;
+  error: string | null;
 }

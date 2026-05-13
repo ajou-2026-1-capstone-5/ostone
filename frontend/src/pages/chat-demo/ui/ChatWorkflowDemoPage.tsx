@@ -1,35 +1,52 @@
+import { useState } from 'react';
 import { OstoneShell } from '@/widgets/ostone-shell';
 import type {
-  ChatMessage,
-  DecisionLogEntry,
-  DomainPackInfo,
-  ScenarioInfo,
-  WorkflowState,
+  ChatWorkflowDemoState,
+  DemoChatMessage,
+  DemoDecisionLogEntry,
 } from '@/features/chat-workflow';
 import { ChatTimelinePanel } from '@/features/chat-workflow/ui/ChatTimelinePanel';
-import { WorkflowGraphPanel } from '@/features/chat-workflow/ui/WorkflowGraphPanel';
-import { ExecutionDetailPanel } from '@/features/chat-workflow/ui/ExecutionDetailPanel';
-import { DecisionLogDrawer } from '@/features/chat-workflow/ui/DecisionLogDrawer';
-import { ChatWorkflowHeader } from '@/features/chat-workflow/ui/ChatWorkflowHeader';
+import { SidePanel } from '@/features/chat-workflow/ui/SidePanel';
 
 export interface ChatWorkflowDemoPageProps {
-  domainPack: DomainPackInfo | null;
-  scenario: ScenarioInfo | null;
-  messages: ChatMessage[];
-  workflow: WorkflowState;
-  decisionLog: DecisionLogEntry[];
+  state: ChatWorkflowDemoState;
 }
 
-export function ChatWorkflowDemoPage({
-  domainPack,
-  scenario,
-  messages,
-  workflow,
-  decisionLog,
-}: ChatWorkflowDemoPageProps) {
+export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(state.selectedMessageId);
+
+  const { loading, error } = state;
+  const response = state.response;
+  const messages: DemoChatMessage[] = response?.messages ?? [];
+  const execution = response?.execution ?? null;
+  const decisionLogs: DemoDecisionLogEntry[] = response?.decisionLogs ?? [];
+  const domainPack = response?.domainPack ?? null;
+  const workflow = response?.workflow ?? null;
+
+  if (loading) {
+    return (
+      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+        <div data-testid="loading-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--text-3)' }}>
+          Loading workflow data...
+        </div>
+      </OstoneShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+        <div data-testid="error-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--danger)' }}>
+          Error: {error}
+        </div>
+      </OstoneShell>
+    );
+  }
+
   return (
     <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
       <div
+        data-testid="page-container"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -38,8 +55,6 @@ export function ChatWorkflowDemoPage({
           gap: 'var(--s-4)',
         }}
       >
-        <ChatWorkflowHeader domainPack={domainPack} scenario={scenario} />
-
         <div
           style={{
             display: 'flex',
@@ -49,39 +64,50 @@ export function ChatWorkflowDemoPage({
           }}
         >
           <div
+            data-testid="chat-timeline"
             style={{
-              flex: '0.38 0 0',
+              flex: '0.35 0 0',
               background: 'var(--paper-2)',
               borderRadius: 'var(--r-2)',
               overflow: 'hidden',
             }}
           >
-            <ChatTimelinePanel messages={messages} />
+            <ChatTimelinePanel
+              messages={messages}
+              selectedMessageId={selectedMessageId}
+              onMessageSelect={(id) => setSelectedMessageId(id)}
+            />
           </div>
-          <div
-            style={{
-              flex: '0.37 0 0',
-              background: 'var(--paper-2)',
-              borderRadius: 'var(--r-2)',
-              overflow: 'hidden',
-            }}
-          >
-            <WorkflowGraphPanel workflowState={workflow} />
-          </div>
-          <div
-            style={{
-              flex: '0.25 0 0',
-              background: 'var(--paper-2)',
-              borderRadius: 'var(--r-2)',
-              overflow: 'hidden',
-            }}
-          >
-            <ExecutionDetailPanel status={workflow.status} context={workflow.context} />
-          </div>
-        </div>
 
-        <div>
-          <DecisionLogDrawer entries={decisionLog} />
+          <div
+            data-testid="side-panel-container"
+            style={{
+              flex: '0.65 0 0',
+              background: 'var(--paper-2)',
+              borderRadius: 'var(--r-2)',
+              overflow: 'hidden',
+            }}
+          >
+            {workflow ? (
+              <SidePanel
+                workflow={workflow}
+                execution={execution}
+                decisionLogs={decisionLogs}
+                selectedMessageId={selectedMessageId}
+                domainPack={domainPack}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: 'var(--s-8)',
+                  textAlign: 'center',
+                  color: 'var(--text-3)',
+                }}
+              >
+                No workflow data available
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </OstoneShell>
