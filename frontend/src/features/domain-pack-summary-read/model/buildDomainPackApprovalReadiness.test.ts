@@ -107,4 +107,17 @@ describe("buildDomainPackApprovalReadiness", () => {
       message: "승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.",
     });
   });
+
+  it("intent 목록 데이터가 누락되면 SERVER blocker를 반환한다", () => {
+    const result = buildDomainPackApprovalReadiness({
+      version: latestDraftVersion,
+      versions,
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers[0]).toMatchObject({
+      type: "SERVER",
+      message: "승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.",
+    });
+  });
 });

@@ -56,31 +56,35 @@ export function DomainPackApprovalCard({
         <div className={styles.blockerArea}>
           <p className={styles.blockerIntro}>승인 전에 아래 항목을 먼저 처리해 주세요.</p>
           <ul className={styles.blockerList}>
-            {readiness.blockers.map((blocker, index) => (
-              <li key={`${blocker.type}-${index}`} className={styles.blockerItem}>
-                <span>{blocker.message}</span>
-                {blocker.actionPath && (
-                  <button
-                    type="button"
-                    className={styles.blockerAction}
-                    onClick={() => navigate(blocker.actionPath as string)}
-                  >
-                    Intent 검토하기
-                    <ArrowRightIcon aria-hidden />
-                  </button>
-                )}
-                {!blocker.actionPath && blocker.type === "SERVER" && (
-                  <button
-                    type="button"
-                    className={styles.blockerAction}
-                    onClick={onRetryReadiness}
-                  >
-                    다시 시도
-                    <RefreshCwIcon aria-hidden />
-                  </button>
-                )}
-              </li>
-            ))}
+            {readiness.blockers.map((blocker, index) => {
+              const actionPath = blocker.actionPath;
+
+              return (
+                <li key={`${blocker.type}-${index}`} className={styles.blockerItem}>
+                  <span>{blocker.message}</span>
+                  {actionPath && (
+                    <button
+                      type="button"
+                      className={styles.blockerAction}
+                      onClick={() => navigate(actionPath)}
+                    >
+                      Intent 검토하기
+                      <ArrowRightIcon aria-hidden />
+                    </button>
+                  )}
+                  {!actionPath && blocker.type === "SERVER" && (
+                    <button
+                      type="button"
+                      className={styles.blockerAction}
+                      onClick={onRetryReadiness}
+                    >
+                      다시 시도
+                      <RefreshCwIcon aria-hidden />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

@@ -120,13 +120,13 @@
 }
 
 .approvalCard {
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-lg);
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: var(--bg-color);
+  background: #ffffff;
 }
 
 .approvalHeader {
@@ -140,13 +140,13 @@
   margin: 0;
   font-size: 15px;
   font-weight: var(--font-weight-heading);
-  color: var(--text-primary);
+  color: #000000;
   letter-spacing: -0.14px;
 }
 
 .approvalDescription {
   margin: 4px 0 0;
-  color: var(--text-secondary);
+  color: #000000;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -158,18 +158,18 @@
   flex: 0 0 auto;
   min-height: 24px;
   padding: 3px 10px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-xl);
-  color: var(--text-secondary);
+  color: #000000;
   font-size: 11px;
   font-weight: var(--font-weight-heading);
   white-space: nowrap;
 }
 
 .approvalBadgeReady {
-  background: var(--text-primary);
-  color: var(--bg-color);
-  border-color: var(--text-primary);
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
 }
 
 .approvalSkeleton {
@@ -190,7 +190,7 @@
 
 .blockerIntro {
   margin: 0;
-  color: var(--text-muted);
+  color: #000000;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -210,9 +210,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: #000000;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -224,7 +224,7 @@
   flex: 0 0 auto;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: #000000;
   font-size: 12px;
   font-weight: var(--font-weight-heading);
   cursor: pointer;
@@ -244,7 +244,7 @@
 .approvalButton:focus-visible,
 .approvalDialogCancel:focus-visible,
 .approvalDialogConfirm:focus-visible {
-  outline: 2px dashed var(--text-primary);
+  outline: 2px dashed #000000;
   outline-offset: 3px;
 }
 
@@ -258,8 +258,8 @@
   padding: 0 18px;
   border: none;
   border-radius: var(--radius-xl);
-  background: var(--text-primary);
-  color: var(--bg-color);
+  background: #000000;
+  color: #ffffff;
   font-size: 13px;
   font-weight: var(--font-weight-heading);
   cursor: pointer;
@@ -277,8 +277,8 @@
 
 .approvalDialogContent {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  background: var(--bg-color);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
   padding: 24px !important;
   gap: 16px;
 }
@@ -291,7 +291,7 @@
 }
 
 .approvalDialogDescription {
-  color: var(--text-secondary);
+  color: #000000;
   font-size: 14px;
   line-height: 1.6;
   letter-spacing: -0.14px;
@@ -312,13 +312,13 @@
 }
 
 .approvalDialogCancel {
-  background: var(--hover-bg) !important;
-  color: var(--text-secondary) !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: #000000 !important;
 }
 
 .approvalDialogConfirm {
-  background: var(--text-primary) !important;
-  color: var(--bg-color) !important;
+  background: #000000 !important;
+  color: #ffffff !important;
 }
 
 @media (max-width: 640px) {

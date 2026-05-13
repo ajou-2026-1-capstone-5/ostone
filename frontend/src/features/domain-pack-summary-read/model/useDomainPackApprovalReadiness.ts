@@ -30,14 +30,14 @@ export function useDomainPackApprovalReadiness({
     versionId != null &&
     isSelectedVersionLatest(version, versions);
 
-  const intentQuery = useListIntents<IntentDefinitionSummary[]>(
+  const intentQuery = useListIntents<IntentDefinitionSummary[] | undefined>(
     workspaceId,
     packId,
     versionId ?? -1,
     {
       query: {
         enabled: shouldLoadIntents,
-        select: (res) => unwrapApiResponse<IntentDefinitionSummary[]>(res) ?? [],
+        select: (res) => unwrapApiResponse<IntentDefinitionSummary[]>(res),
       },
     },
   );
