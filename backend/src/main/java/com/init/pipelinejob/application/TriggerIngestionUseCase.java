@@ -40,10 +40,10 @@ public class TriggerIngestionUseCase {
   }
 
   public void execute(Long workspaceId, Long datasetId, String objectKey) {
+    String dagId = airflowTriggerPort.dagId();
     CreatedJob createdJob =
         requiresNewTx.execute(
             status -> {
-              String dagId = airflowTriggerPort.dagId();
               PipelineJob job =
                   PipelineJob.createIngestion(workspaceId, datasetId, OffsetDateTime.now(clock));
               PipelineJob saved = pipelineJobRepository.saveAndFlush(job);
@@ -51,7 +51,8 @@ public class TriggerIngestionUseCase {
               saved.assignAirflowRun(
                   dagId,
                   dagRunId,
-                  buildPayloadJson(workspaceId, datasetId, objectKey, dagId, dagRunId));
+                  buildPayloadJson(
+                      workspaceId, datasetId, objectKey, dagId, dagRunId, saved.getId()));
               pipelineJobRepository.saveAndFlush(saved);
               return new CreatedJob(saved.getId(), dagRunId);
             });
@@ -103,10 +104,16 @@ public class TriggerIngestionUseCase {
   }
 
   private String buildPayloadJson(
-      Long workspaceId, Long datasetId, String objectKey, String dagId, String dagRunId) {
+      Long workspaceId,
+      Long datasetId,
+      String objectKey,
+      String dagId,
+      String dagRunId,
+      Long pipelineJobId) {
     ObjectNode payload = objectMapper.createObjectNode();
     payload.put("workspaceId", workspaceId);
     payload.put("datasetId", datasetId);
+    payload.put("pipelineJobId", pipelineJobId);
     payload.put("jobType", PipelineJob.JOB_TYPE_INGESTION);
     payload.put("airflowDagId", dagId);
     payload.put("airflowRunId", dagRunId);

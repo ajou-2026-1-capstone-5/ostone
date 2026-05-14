@@ -11,7 +11,8 @@ public record AirflowApiProperties(Api api, Dags dags) {
       String username,
       String password,
       Duration connectTimeout,
-      Duration readTimeout) {}
+      Duration readTimeout,
+      boolean allowInsecureHttp) {}
 
   public record Dags(DomainPackGeneration domainPackGeneration, Ingestion ingestion) {}
 

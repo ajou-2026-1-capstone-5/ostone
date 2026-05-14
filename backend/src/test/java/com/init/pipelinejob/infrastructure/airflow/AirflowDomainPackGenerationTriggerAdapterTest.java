@@ -301,7 +301,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", connectTimeout, readTimeout),
+                baseUrl, "admin", "admin-password", connectTimeout, readTimeout, true),
             new AirflowApiProperties.Dags(
                 new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null));
     return new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);

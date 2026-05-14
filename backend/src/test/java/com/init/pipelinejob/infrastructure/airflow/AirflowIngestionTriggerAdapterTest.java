@@ -69,7 +69,7 @@ class AirflowIngestionTriggerAdapterTest {
           exchange.close();
         });
     server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns",
+        "/api/v2/dags/test-ingestion-dag/dagRuns",
         exchange -> {
           triggerAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
           triggerRequestBody.set(readBody(exchange));
@@ -99,7 +99,7 @@ class AirflowIngestionTriggerAdapterTest {
     stubTokenSuccess();
     stubDagRunCreation(409);
     server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_99",
+        "/api/v2/dags/test-ingestion-dag/dagRuns/pipeline_job_99",
         exchange -> {
           exchange.sendResponseHeaders(200, -1);
           exchange.close();
@@ -114,7 +114,7 @@ class AirflowIngestionTriggerAdapterTest {
     stubTokenSuccess();
     stubDagRunCreation(409);
     server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns/pipeline_job_99",
+        "/api/v2/dags/test-ingestion-dag/dagRuns/pipeline_job_99",
         exchange -> {
           exchange.sendResponseHeaders(404, -1);
           exchange.close();
@@ -142,7 +142,12 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl,
+                "admin",
+                "admin-password",
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(null, new AirflowApiProperties.Ingestion("")));
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
@@ -156,7 +161,12 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl,
+                "admin",
+                "admin-password",
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(null, null));
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
@@ -189,7 +199,7 @@ class AirflowIngestionTriggerAdapterTest {
 
   private void stubDagRunCreation(int statusCode) {
     server.createContext(
-        "/api/v2/dags/domain_pack_generation/dagRuns",
+        "/api/v2/dags/test-ingestion-dag/dagRuns",
         exchange -> {
           exchange.sendResponseHeaders(statusCode, -1);
           exchange.close();
@@ -200,9 +210,14 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl,
+                "admin",
+                "admin-password",
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(
-                null, new AirflowApiProperties.Ingestion("domain_pack_generation")));
+                null, new AirflowApiProperties.Ingestion("test-ingestion-dag")));
     return new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
   }
 
