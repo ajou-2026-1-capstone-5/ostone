@@ -142,7 +142,8 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(null, new AirflowApiProperties.Ingestion("")));
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
@@ -156,12 +157,30 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(null, null));
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
 
     assertThatThrownBy(adapter::dagId).isInstanceOf(AirflowConfigurationInvalidException.class);
+  }
+
+  @Test
+  @DisplayName("allow-insecure-http_미설정_시_http_baseUrl이면_AirflowConfigurationInvalidException_던짐")
+  void trigger_httpBaseUrlWithoutAllowFlag_throws() {
+    AirflowApiProperties properties =
+        new AirflowApiProperties(
+            new AirflowApiProperties.Api(
+                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1),
+                false),
+            new AirflowApiProperties.Dags(
+                null, new AirflowApiProperties.Ingestion("domain_pack_generation")));
+    AirflowIngestionTriggerAdapter adapter =
+        new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
+
+    assertThatThrownBy(() -> adapter.trigger(command()))
+        .isInstanceOf(AirflowConfigurationInvalidException.class);
   }
 
   @Test
@@ -200,11 +219,12 @@ class AirflowIngestionTriggerAdapterTest {
     AirflowApiProperties properties =
         new AirflowApiProperties(
             new AirflowApiProperties.Api(
-                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                baseUrl, "admin", "admin-password", Duration.ofSeconds(1), Duration.ofSeconds(1),
+                true),
             new AirflowApiProperties.Dags(
                 null, new AirflowApiProperties.Ingestion("domain_pack_generation")));
     return new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
-  }
+
 
   private IngestionTriggerCommand command() {
     return new IngestionTriggerCommand(1L, 42L, 99L, "pipeline_job_99", "workspaces/1/key.json");

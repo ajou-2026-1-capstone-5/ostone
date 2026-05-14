@@ -55,7 +55,7 @@ abstract class AirflowHttpSupport {
         || isBlank(api.baseUrl())
         || isBlank(api.username())
         || isBlank(api.password())
-        || !isOriginOnlyBaseUrl(api.baseUrl())) {
+        || !isOriginOnlyBaseUrl(api.baseUrl(), Boolean.TRUE.equals(api.allowInsecureHttp()))) {
       throw new AirflowConfigurationInvalidException();
     }
     return api;
@@ -119,11 +119,13 @@ abstract class AirflowHttpSupport {
     return trimTrailingSlashes(origin);
   }
 
-  private boolean isOriginOnlyBaseUrl(String baseUrl) {
+  private boolean isOriginOnlyBaseUrl(String baseUrl, boolean allowHttp) {
     URI uri = parseBaseUrl(baseUrl);
     String scheme = uri.getScheme();
     String path = uri.getPath();
-    return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+    boolean schemeAllowed =
+        "https".equalsIgnoreCase(scheme) || (allowHttp && "http".equalsIgnoreCase(scheme));
+    return schemeAllowed
         && !isBlank(uri.getHost())
         && uri.getUserInfo() == null
         && (path == null || path.isBlank() || "/".equals(path))
