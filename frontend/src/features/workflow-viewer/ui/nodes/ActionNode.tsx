@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import theme from "../../../shared/styles/workflow-node-theme.module.css";
+import theme from "@/shared/styles/workflow-node-theme.module.css";
 import { DEFAULT_NODE_STATUS, type GraphNodeStatus } from "@/entities/workflow";
 
 const STATUS_MAP: Record<GraphNodeStatus, string> = {
@@ -17,7 +17,7 @@ export function ActionNode({ data }: NodeProps) {
     typeof data?.policyRef === "string" ? data.policyRef : undefined;
 
   return (
-    <div className={`${theme.action} ${STATUS_MAP[status]}`}>
+    <div className={`${theme.action} ${STATUS_MAP[status] ?? theme.statusIdle}`}>
       <Handle type="target" position={Position.Left} />
       <div>{label}</div>
       {policyRef && <div>{policyRef}</div>}

@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import theme from "../../../shared/styles/workflow-node-theme.module.css";
+import theme from "@/shared/styles/workflow-node-theme.module.css";
 import { DEFAULT_NODE_STATUS, type GraphNodeStatus } from "@/entities/workflow";
 
 const STATUS_MAP: Record<GraphNodeStatus, string> = {

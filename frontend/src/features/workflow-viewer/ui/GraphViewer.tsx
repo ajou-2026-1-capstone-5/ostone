@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ReactFlow, Background, Controls, type NodeTypes } from "@xyflow/react";
+import { ReactFlow, Background, Controls, MarkerType, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow/lib/graphConverter";
@@ -38,7 +38,7 @@ export default function GraphViewer({
 }: GraphViewerProps) {
   const { nodes, edges: rawEdges } = useMemo(() => toFlow(graph), [graph]);
   const edges = useMemo(
-    () => rawEdges.map((e) => ({ ...e, type: "plain" as const })),
+    () => rawEdges.map((e) => ({ ...e, type: "plain" as const, markerEnd: { type: MarkerType.ArrowClosed } })),
     [rawEdges],
   );
 
