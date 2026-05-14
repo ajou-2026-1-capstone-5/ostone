@@ -29,8 +29,9 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 const mockGraph: WorkflowGraph = {
-  nodes: [{ id: "n1", type: "start", label: "Start", x: 0, y: 0 }],
+  nodes: [{ id: "n1", type: "START", label: "Start", position: { x: 0, y: 0 } }],
   edges: [{ id: "e1", from: "n1", to: "n2" }],
+  direction: "LR",
 };
 
 describe("GraphViewer", () => {
@@ -49,6 +50,7 @@ describe("GraphViewer", () => {
     const minimalGraph: WorkflowGraph = {
       nodes: [],
       edges: [],
+      direction: "LR",
     };
     render(<GraphViewer graph={minimalGraph} />);
     const flow = screen.getByTestId("reactflow");
