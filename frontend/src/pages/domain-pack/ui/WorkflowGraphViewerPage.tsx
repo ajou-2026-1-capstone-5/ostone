@@ -7,10 +7,10 @@ import type { WorkflowGraph } from "@/entities/workflow";
 import GraphViewer from "@/features/workflow-viewer/ui/GraphViewer";
 
 export function WorkflowGraphViewerPage() {
-  const { workspaceId, domainPackId, versionId, workflowId } = useParams();
+  const { workspaceId, packId, versionId, workflowId } = useParams();
 
   const wsId = parseRouteId(workspaceId);
-  const pkId = parseRouteId(domainPackId);
+  const pkId = parseRouteId(packId);
   const vsId = parseRouteId(versionId);
   const wfId = parseRouteId(workflowId);
 
