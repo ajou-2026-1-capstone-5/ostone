@@ -31,7 +31,7 @@ interface GraphViewerProps {
   onPaneClick?: () => void;
 }
 
-export default function GraphViewer({
+export function GraphViewer({
   graph,
   onEdgeClick,
   onPaneClick,

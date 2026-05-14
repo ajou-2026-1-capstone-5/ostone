@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
-import { useGetWorkflowDefinition } from "@/entities/workflow/api/useGetWorkflowDefinition";
+import { useGetWorkflowDefinition } from "@/entities/workflow";
 import type { WorkflowGraph } from "@/entities/workflow";
-import GraphViewer from "@/features/workflow-viewer/ui/GraphViewer";
+import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
 import styles from "./WorkflowGraphViewerPage.module.css";
 
 export function WorkflowGraphViewerPage() {
@@ -32,63 +33,83 @@ export function WorkflowGraphViewerPage() {
       try {
         return JSON.parse(rawGraph) as WorkflowGraph;
       } catch {
+        console.error("워크플로우 그래프 JSON 파싱 실패:", rawGraph);
         return null;
       }
     }
     return rawGraph as WorkflowGraph;
   }, [rawGraph]);
 
-  const pageProps = {
-    active: "domain" as const,
-    crumbs: [
-      `WS \u00b7 ${wsId ?? "-"}`,
-      "Domain Packs",
-      `VER \u00b7 ${vsId ?? "-"}`,
-      "Workflow Graph",
-    ],
-  };
-
   if (isLoading) {
-    return OstoneShell({
-      ...pageProps,
-      children: (
+    return (
+      <OstoneShell
+        active="domain"
+        crumbs={[
+          `WS \u00b7 ${wsId ?? "-"}`,
+          "Domain Packs",
+          `VER \u00b7 ${vsId ?? "-"}`,
+          "Workflow Graph",
+        ]}
+      >
         <div data-testid="loading-state" className={styles.loadingState}>
           워크플로우 데이터를 불러오는 중...
         </div>
-      ),
-    });
+      </OstoneShell>
+    );
   }
 
   if (error) {
-    return OstoneShell({
-      ...pageProps,
-      children: (
+    toast.error("워크플로우 데이터를 불러오지 못했습니다.");
+    return (
+      <OstoneShell
+        active="domain"
+        crumbs={[
+          `WS \u00b7 ${wsId ?? "-"}`,
+          "Domain Packs",
+          `VER \u00b7 ${vsId ?? "-"}`,
+          "Workflow Graph",
+        ]}
+      >
         <div data-testid="error-state" className={styles.errorState}>
           에러: {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
         </div>
-      ),
-    });
+      </OstoneShell>
+    );
   }
 
   if (!graph) {
-    return OstoneShell({
-      ...pageProps,
-      children: (
+    return (
+      <OstoneShell
+        active="domain"
+        crumbs={[
+          `WS \u00b7 ${wsId ?? "-"}`,
+          "Domain Packs",
+          `VER \u00b7 ${vsId ?? "-"}`,
+          "Workflow Graph",
+        ]}
+      >
         <div data-testid="empty-state" className={styles.emptyState}>
           표시할 워크플로우 그래프가 없습니다.
         </div>
-      ),
-    });
+      </OstoneShell>
+    );
   }
 
-  return OstoneShell({
-    ...pageProps,
-    children: (
+  return (
+    <OstoneShell
+      active="domain"
+      crumbs={[
+        `WS \u00b7 ${wsId ?? "-"}`,
+        "Domain Packs",
+        `VER \u00b7 ${vsId ?? "-"}`,
+        "Workflow Graph",
+      ]}
+    >
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <div className={styles.graphContainer}>
           <GraphViewer graph={graph} />
         </div>
       </div>
-    ),
-  });
+    </OstoneShell>
+  );
 }

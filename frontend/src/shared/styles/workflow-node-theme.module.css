@@ -119,6 +119,9 @@
   color: var(--bg-color);
 }
 
+.statusIdle {
+}
+
 .statusActive {
   border-width: 2px;
 }

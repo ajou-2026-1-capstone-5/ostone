@@ -12,7 +12,7 @@ export function HandoffNode({ data }: NodeProps) {
   return (
     <div className={`${theme.handoff} ${statusClass}`}>
       <Handle type="target" position={Position.Left} />
-      <span>{label}</span>
+      <span className={theme.label}>{label}</span>
       <Handle type="source" position={Position.Right} />
     </div>
   );
