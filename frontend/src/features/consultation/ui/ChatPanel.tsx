@@ -122,6 +122,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   onSelectMessage(msg.id);
                 }
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (isSelected) {
+                    onSelectMessage(null);
+                  } else {
+                    onSelectMessage(msg.id);
+                  }
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-pressed={isSelected}
             >
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
