@@ -114,7 +114,7 @@ public class RawFileUploadService {
               checksum);
       rawFileRepository.save(rawFile);
 
-      triggerPort.trigger(uploadResult.datasetId(), objectKey);
+      triggerPort.trigger(command.workspaceId(), uploadResult.datasetId(), objectKey);
 
       return new RawFileUploadResult(
           uploadResult.datasetId(),

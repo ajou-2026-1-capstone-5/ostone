@@ -1,4 +1,4 @@
-package com.init.pipelinejob.infrastructure.airflow;
+package com.init.shared.infrastructure.airflow;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,9 +11,12 @@ public record AirflowApiProperties(Api api, Dags dags) {
       String username,
       String password,
       Duration connectTimeout,
-      Duration readTimeout) {}
+      Duration readTimeout,
+      boolean allowInsecureHttp) {}
 
-  public record Dags(DomainPackGeneration domainPackGeneration) {}
+  public record Dags(DomainPackGeneration domainPackGeneration, Ingestion ingestion) {}
 
   public record DomainPackGeneration(String dagId) {}
+
+  public record Ingestion(String dagId) {}
 }

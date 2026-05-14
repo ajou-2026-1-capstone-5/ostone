@@ -17,6 +17,7 @@ import org.hibernate.type.SqlTypes;
 public class PipelineJob {
 
   public static final String JOB_TYPE_DOMAIN_PACK_GENERATION = "DOMAIN_PACK_GENERATION";
+  public static final String JOB_TYPE_INGESTION = "INGESTION";
 
   public static final String STATUS_QUEUED = "QUEUED";
   public static final String STATUS_RUNNING = "RUNNING";
@@ -125,6 +126,15 @@ public class PipelineJob {
     pipelineJob.datasetId = datasetId;
     pipelineJob.triggeredBy = triggeredBy;
     return pipelineJob;
+  }
+
+  public static PipelineJob createIngestion(
+      Long workspaceId, Long datasetId, OffsetDateTime requestedAt) {
+    Objects.requireNonNull(datasetId, "datasetId must not be null");
+    PipelineJob job =
+        create(workspaceId, JOB_TYPE_INGESTION, STATUS_QUEUED, "AUTO", "{}", requestedAt);
+    job.datasetId = datasetId;
+    return job;
   }
 
   public boolean canAcceptDomainPackDraftCallback() {
