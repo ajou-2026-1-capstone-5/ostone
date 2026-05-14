@@ -1,0 +1,22 @@
+.loadingState {
+  padding: var(--s-8);
+  text-align: center;
+  color: var(--text-3);
+}
+
+.errorState {
+  padding: var(--s-8);
+  text-align: center;
+  color: var(--danger);
+}
+
+.emptyState {
+  padding: var(--s-8);
+  text-align: center;
+  color: var(--text-3);
+}
+
+.graphContainer {
+  flex: 1;
+  min-height: 0;
+}

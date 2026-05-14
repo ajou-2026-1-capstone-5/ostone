@@ -1,0 +1,185 @@
+.base {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--font-size-sm);
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  padding: 8px 16px;
+  min-width: 120px;
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  transition: border-width var(--transition-fast), border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.start {
+  composes: base;
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.action {
+  composes: base;
+  border-radius: var(--radius-md);
+}
+
+.decision {
+  composes: base;
+  position: relative;
+  width: 96px;
+  height: 96px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.decision::before {
+  content: "";
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.decisionLabel {
+  display: block;
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.answer {
+  composes: base;
+  position: relative;
+  border: none;
+  background: transparent;
+  padding-left: 20px;
+}
+
+.answer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
+  border-radius: var(--radius-md);
+  background: var(--glass-dark);
+  border: 1px solid var(--text-primary);
+  z-index: -1;
+}
+
+.handoff {
+  composes: base;
+  position: relative;
+  border: none;
+  background: transparent;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.handoff::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+  border-radius: var(--radius-sm);
+  background: var(--bg-color);
+  border: 1px solid var(--text-primary);
+  z-index: -1;
+}
+
+.terminal {
+  composes: base;
+  border-radius: var(--radius-full);
+  width: 80px;
+  height: 80px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.statusIdle {
+  /* Intentionally empty — default state */
+}
+
+.statusActive {
+  border-width: 2px;
+}
+
+.start.statusActive,
+.terminal.statusActive {
+  border-color: var(--bg-color);
+}
+
+.decision.statusActive::before,
+.answer.statusActive::before,
+.handoff.statusActive::before {
+  border-width: 2px;
+}
+
+.statusCompleted {
+  background-color: var(--signal-bg);
+  border-color: var(--signal);
+}
+
+.start.statusCompleted,
+.terminal.statusCompleted {
+  background-color: var(--text-primary);
+  border-color: var(--signal);
+  color: var(--bg-color);
+}
+
+.decision.statusCompleted::before,
+.answer.statusCompleted::before,
+.handoff.statusCompleted::before {
+  background-color: var(--signal-bg);
+  border-color: var(--signal);
+}
+
+.statusFailed {
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.start.statusFailed,
+.terminal.statusFailed {
+  background-color: var(--text-primary);
+  border-color: var(--danger);
+  color: var(--bg-color);
+}
+
+.decision.statusFailed::before,
+.answer.statusFailed::before,
+.handoff.statusFailed::before {
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
