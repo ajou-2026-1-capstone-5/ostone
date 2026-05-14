@@ -9,6 +9,7 @@ import com.init.pipelinejob.application.DomainPackGenerationTriggerCommand;
 import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
+import com.init.shared.infrastructure.airflow.AirflowApiProperties;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -131,7 +132,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
         new AirflowApiProperties(
             null,
             new AirflowApiProperties.Dags(
-                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation")));
+                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null));
     AirflowDomainPackGenerationTriggerAdapter adapter =
         new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
 
@@ -302,7 +303,7 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
             new AirflowApiProperties.Api(
                 baseUrl, "admin", "admin-password", connectTimeout, readTimeout),
             new AirflowApiProperties.Dags(
-                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation")));
+                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null));
     return new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
   }
 

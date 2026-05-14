@@ -104,7 +104,7 @@ class RawFileUploadServiceTest {
     verify(storagePort).put(anyString(), any(), anyString());
     verify(rawDatasetUploadService).upload(any());
     verify(rawFileRepository).save(any());
-    verify(triggerPort).trigger(anyLong(), anyString());
+    verify(triggerPort).trigger(anyLong(), anyLong(), anyString());
   }
 
   @Test

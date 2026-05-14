@@ -3,9 +3,8 @@ package com.init.pipelinejob.infrastructure.airflow;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.init.pipelinejob.application.DomainPackGenerationTriggerCommand;
-import com.init.pipelinejob.application.DomainPackGenerationTriggerPort;
-import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
+import com.init.pipelinejob.application.IngestionAirflowTriggerPort;
+import com.init.pipelinejob.application.IngestionTriggerCommand;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.shared.infrastructure.airflow.AirflowApiProperties;
@@ -28,10 +27,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
-public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGenerationTriggerPort {
+public class AirflowIngestionTriggerAdapter implements IngestionAirflowTriggerPort {
 
-  private static final Logger log =
-      LoggerFactory.getLogger(AirflowDomainPackGenerationTriggerAdapter.class);
+  private static final Logger log = LoggerFactory.getLogger(AirflowIngestionTriggerAdapter.class);
   private static final String LOG_FMT_DAG_RUN_ID = ", dagRunId={}";
 
   private final AirflowApiProperties properties;
@@ -39,7 +37,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   private final Clock clock;
   private RestClient restClient;
 
-  public AirflowDomainPackGenerationTriggerAdapter(
+  public AirflowIngestionTriggerAdapter(
       AirflowApiProperties properties, ObjectMapper objectMapper, Clock clock) {
     this.properties = properties;
     this.objectMapper = objectMapper;
@@ -49,10 +47,10 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   @Override
   public String dagId() {
     api();
-    if (properties.dags() == null || properties.dags().domainPackGeneration() == null) {
+    if (properties.dags() == null || properties.dags().ingestion() == null) {
       throw new AirflowConfigurationInvalidException();
     }
-    String dagId = properties.dags().domainPackGeneration().dagId();
+    String dagId = properties.dags().ingestion().dagId();
     if (isBlank(dagId)) {
       throw new AirflowConfigurationInvalidException();
     }
@@ -60,15 +58,15 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
   }
 
   @Override
-  public DomainPackGenerationTriggerResult trigger(DomainPackGenerationTriggerCommand command) {
+  public void trigger(IngestionTriggerCommand command) {
     String dagId = dagId();
     String dagRunId = command.dagRunId();
     Long pipelineJobId = command.pipelineJobId();
-    RestClient restClient = restClient();
-    String token = requestToken(restClient, pipelineJobId);
+    RestClient client = restClient();
+    String token = requestToken(client, pipelineJobId);
 
     try {
-      restClient
+      client
           .post()
           .uri(apiPath("/api/v2/dags/{dagId}/dagRuns"), dagId)
           .headers(headers -> headers.setBearerAuth(token))
@@ -76,81 +74,80 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
           .body(buildDagRunRequest(command))
           .retrieve()
           .toBodilessEntity();
-      return triggerResult(dagId, dagRunId);
     } catch (ResourceAccessException ex) {
       log.warn(
-          "Airflow DAG run creation access failed, reconciling: pipelineJobId={}, dagId={}"
+          "Airflow Ingestion DAG run creation access failed, reconciling: pipelineJobId={}, dagId={}"
               + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
           ex);
-      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
+      reconcileDagRunOrThrow(client, token, dagId, dagRunId, pipelineJobId, ex);
     } catch (RestClientResponseException ex) {
       if (ex.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
         log.warn(
-            "Airflow DAG run already exists, reconciling: pipelineJobId={}, dagId={}"
+            "Airflow Ingestion DAG run already exists, reconciling: pipelineJobId={}, dagId={}"
                 + LOG_FMT_DAG_RUN_ID,
             pipelineJobId,
             dagId,
             dagRunId,
             ex);
-        return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
+        reconcileDagRunOrThrow(client, token, dagId, dagRunId, pipelineJobId, ex);
+        return;
       }
       log.error(
-          "Airflow DAG run creation failed: pipelineJobId={}, dagId={}, dagRunId={}, status={}",
+          "Airflow Ingestion DAG run creation failed: pipelineJobId={}, dagId={}, dagRunId={},"
+              + " status={}",
           pipelineJobId,
           dagId,
           dagRunId,
           ex.getStatusCode(),
           ex);
-      throw new AirflowTriggerFailedException(pipelineJobId, ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.", ex);
     } catch (RestClientException ex) {
       log.warn(
-          "Airflow DAG run creation client failed, reconciling: pipelineJobId={}, dagId={}"
+          "Airflow Ingestion DAG run creation client failed, reconciling: pipelineJobId={},"
+              + " dagId={}"
               + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
           ex);
-      return reconcileDagRunOrThrow(restClient, token, dagId, dagRunId, pipelineJobId, ex);
+      reconcileDagRunOrThrow(client, token, dagId, dagRunId, pipelineJobId, ex);
     } catch (HttpMessageConversionException ex) {
       log.error(
-          "Airflow DAG run creation response conversion failed: pipelineJobId={}, dagId={}"
+          "Airflow Ingestion DAG run creation response conversion failed: pipelineJobId={}, dagId={}"
               + LOG_FMT_DAG_RUN_ID,
           pipelineJobId,
           dagId,
           dagRunId,
           ex);
-      throw new AirflowTriggerFailedException(pipelineJobId, ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.", ex);
     }
   }
 
-  private DomainPackGenerationTriggerResult reconcileDagRunOrThrow(
-      RestClient restClient,
+  private void reconcileDagRunOrThrow(
+      RestClient client,
       String token,
       String dagId,
       String dagRunId,
       Long pipelineJobId,
       RuntimeException triggerCause) {
     try {
-      if (dagRunExists(restClient, token, dagId, dagRunId)) {
-        return triggerResult(dagId, dagRunId);
+      if (dagRunExists(client, token, dagId, dagRunId)) {
+        return;
       }
     } catch (RestClientException | HttpMessageConversionException ex) {
-      throw new AirflowTriggerFailedException(pipelineJobId, ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.", ex);
     }
-    throw new AirflowTriggerFailedException(pipelineJobId, triggerCause);
+    throw new AirflowTriggerFailedException(
+        pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.", triggerCause);
   }
 
-  private DomainPackGenerationTriggerResult triggerResult(String dagId, String dagRunId) {
-    return new DomainPackGenerationTriggerResult(dagId, dagRunId);
-  }
-
-  private String requestToken(RestClient restClient, Long pipelineJobId) {
+  private String requestToken(RestClient client, Long pipelineJobId) {
     try {
       TokenResponse response =
-          restClient
+          client
               .post()
               .uri(apiPath("/auth/token"))
               .contentType(MediaType.APPLICATION_JSON)
@@ -160,18 +157,18 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
       if (response == null || isBlank(response.accessToken())) {
         log.error(
             "Airflow token response did not include access_token: pipelineJobId={}", pipelineJobId);
-        throw new AirflowTriggerFailedException(pipelineJobId);
+        throw new AirflowTriggerFailedException(pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.");
       }
       return response.accessToken();
     } catch (RestClientException | HttpMessageConversionException ex) {
       log.error("Airflow token request failed: pipelineJobId={}", pipelineJobId, ex);
-      throw new AirflowTriggerFailedException(pipelineJobId, ex);
+      throw new AirflowTriggerFailedException(pipelineJobId, "Ingestion DAG 실행 요청에 실패했습니다.", ex);
     }
   }
 
-  private boolean dagRunExists(RestClient restClient, String token, String dagId, String dagRunId) {
+  private boolean dagRunExists(RestClient client, String token, String dagId, String dagRunId) {
     try {
-      restClient
+      client
           .get()
           .uri(apiPath("/api/v2/dags/{dagId}/dagRuns/{dagRunId}"), dagId, dagRunId)
           .headers(headers -> headers.setBearerAuth(token))
@@ -183,12 +180,10 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
         return false;
       }
       throw ex;
-    } catch (RestClientException | HttpMessageConversionException ex) {
-      throw ex;
     }
   }
 
-  private ObjectNode buildDagRunRequest(DomainPackGenerationTriggerCommand command) {
+  private ObjectNode buildDagRunRequest(IngestionTriggerCommand command) {
     ObjectNode request = objectMapper.createObjectNode();
     request.put("dag_run_id", command.dagRunId());
     request.put(
@@ -197,6 +192,7 @@ public class AirflowDomainPackGenerationTriggerAdapter implements DomainPackGene
     conf.put("workspace_id", command.workspaceId());
     conf.put("dataset_id", command.datasetId());
     conf.put("pipeline_job_id", command.pipelineJobId());
+    conf.put("object_key", command.objectKey());
     return request;
   }
 

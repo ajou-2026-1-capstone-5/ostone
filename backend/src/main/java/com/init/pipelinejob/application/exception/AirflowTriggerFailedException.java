@@ -20,6 +20,11 @@ public class AirflowTriggerFailedException extends BadGatewayException {
     this.pipelineJobId = pipelineJobId;
   }
 
+  public AirflowTriggerFailedException(Long pipelineJobId, String message, Throwable cause) {
+    super("AIRFLOW_TRIGGER_FAILED", message, cause);
+    this.pipelineJobId = pipelineJobId;
+  }
+
   public Long getPipelineJobId() {
     return pipelineJobId;
   }

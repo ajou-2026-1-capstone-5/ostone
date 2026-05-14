@@ -62,6 +62,8 @@ airflow:
   dags:
     domain-pack-generation:
       dag-id: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:domain_pack_generation}
+    ingestion:
+      dag-id: ${AIRFLOW_INGESTION_DAG_ID:domain_pack_generation}
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET}
 

@@ -1,4 +1,4 @@
-package com.init.pipelinejob.infrastructure.airflow;
+package com.init.shared.infrastructure.airflow;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
