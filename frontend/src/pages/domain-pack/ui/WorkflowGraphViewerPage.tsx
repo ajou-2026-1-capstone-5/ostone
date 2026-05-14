@@ -5,6 +5,7 @@ import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { useGetWorkflowDefinition } from "@/entities/workflow/api/useGetWorkflowDefinition";
 import type { WorkflowGraph } from "@/entities/workflow";
 import GraphViewer from "@/features/workflow-viewer/ui/GraphViewer";
+import styles from "./WorkflowGraphViewerPage.module.css";
 
 export function WorkflowGraphViewerPage() {
   const { workspaceId, packId, versionId, workflowId } = useParams();
@@ -51,14 +52,7 @@ export function WorkflowGraphViewerPage() {
     return OstoneShell({
       ...pageProps,
       children: (
-        <div
-          data-testid="loading-state"
-          style={{
-            padding: "var(--s-8)",
-            textAlign: "center",
-            color: "var(--text-3)",
-          }}
-        >
+        <div data-testid="loading-state" className={styles.loadingState}>
           워크플로우 데이터를 불러오는 중...
         </div>
       ),
@@ -69,14 +63,7 @@ export function WorkflowGraphViewerPage() {
     return OstoneShell({
       ...pageProps,
       children: (
-        <div
-          data-testid="error-state"
-          style={{
-            padding: "var(--s-8)",
-            textAlign: "center",
-            color: "var(--danger)",
-          }}
-        >
+        <div data-testid="error-state" className={styles.errorState}>
           에러: {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
         </div>
       ),
@@ -87,14 +74,7 @@ export function WorkflowGraphViewerPage() {
     return OstoneShell({
       ...pageProps,
       children: (
-        <div
-          data-testid="empty-state"
-          style={{
-            padding: "var(--s-8)",
-            textAlign: "center",
-            color: "var(--text-3)",
-          }}
-        >
+        <div data-testid="empty-state" className={styles.emptyState}>
           표시할 워크플로우 그래프가 없습니다.
         </div>
       ),
@@ -105,7 +85,7 @@ export function WorkflowGraphViewerPage() {
     ...pageProps,
     children: (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div className={styles.graphContainer}>
           <GraphViewer graph={graph} />
         </div>
       </div>

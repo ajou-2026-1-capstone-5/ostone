@@ -35,7 +35,7 @@ export function PlainEdge({
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              fontSize: 11,
+              fontSize: "var(--font-size-xs)",
               pointerEvents: "none",
             }}
           >
