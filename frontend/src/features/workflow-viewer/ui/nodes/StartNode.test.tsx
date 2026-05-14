@@ -53,7 +53,8 @@ describe('StartNode', () => {
 
   it('shows empty label when data.label is undefined', () => {
     render(<StartNode {...defaultProps} data={{}} />);
-    const spans = screen.getAllByText('');
-    expect(spans.length).toBeGreaterThanOrEqual(1);
+    const label = screen.getByTestId('start-node-label');
+    expect(label).toBeInTheDocument();
+    expect(label.textContent).toBe('');
   });
 });

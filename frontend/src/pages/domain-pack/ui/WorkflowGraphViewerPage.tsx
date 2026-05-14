@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { OstoneShell } from "@/widgets/ostone-shell";
@@ -40,6 +40,12 @@ export function WorkflowGraphViewerPage() {
     return rawGraph as WorkflowGraph;
   }, [rawGraph]);
 
+  useEffect(() => {
+    if (error) {
+      toast.error("워크플로우 데이터를 불러오지 못했습니다.");
+    }
+  }, [error]);
+
   if (isLoading) {
     return (
       <OstoneShell
@@ -59,7 +65,6 @@ export function WorkflowGraphViewerPage() {
   }
 
   if (error) {
-    toast.error("워크플로우 데이터를 불러오지 못했습니다.");
     return (
       <OstoneShell
         active="domain"

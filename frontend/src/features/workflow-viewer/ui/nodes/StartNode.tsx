@@ -10,7 +10,7 @@ export function StartNode({ data }: NodeProps) {
 
   return (
     <div className={`${theme.start} ${STATUS_MAP[status] ?? theme.statusIdle}`}>
-      <span>{label}</span>
+      <span data-testid="start-node-label">{label}</span>
       <Handle type="source" position={Position.Right} />
     </div>
   );

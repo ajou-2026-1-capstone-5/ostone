@@ -120,6 +120,7 @@
 }
 
 .statusIdle {
+  /* Intentionally empty — default state */
 }
 
 .statusActive {
