@@ -87,6 +87,25 @@
   display: flex;
   gap: 10px;
   max-width: 75%;
+  cursor: pointer;
+  border-radius: var(--r-3);
+  transition: background 0.15s;
+  position: relative;
+}
+
+.messageSelected {
+  background: var(--signal-bg);
+}
+
+.messageSelected::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--signal-ink);
+  border-radius: 2px;
 }
 
 .messageGroupCustomer {
