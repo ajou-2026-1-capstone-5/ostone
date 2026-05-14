@@ -207,4 +207,54 @@ describe('ConsultationPage', () => {
       expect(screen.getByText('고객 정보')).toBeInTheDocument();
     });
   });
+
+  it('opens detail panel with Enter key and closes on re-Enter', async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('김민지')).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText('김민지').closest('div');
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
+    });
+
+    const messageEl = screen.getByText('환불 문의 드립니다.');
+    fireEvent.keyDown(messageEl, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(screen.getByText('가격 문의')).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(messageEl, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(screen.getByText('고객 정보')).toBeInTheDocument();
+    });
+  });
+
+  it('opens detail panel with Space key', async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('김민지')).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText('김민지').closest('div');
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
+    });
+
+    const messageEl = screen.getByText('환불 문의 드립니다.');
+    fireEvent.keyDown(messageEl, { key: ' ' });
+
+    await waitFor(() => {
+      expect(screen.getByText('가격 문의')).toBeInTheDocument();
+    });
+  });
 });
