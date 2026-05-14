@@ -293,9 +293,9 @@ export const ConsultationPage: React.FC = () => {
         </div>
 
         {selectedMessageId ? (
+          // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
           <MessageDetailPanel
             message={selectedMessage}
-            domainPackElements={{ slots: [], policies: [], risks: [] }}
             onClose={() => setSelectedMessageId(null)}
           />
         ) : (

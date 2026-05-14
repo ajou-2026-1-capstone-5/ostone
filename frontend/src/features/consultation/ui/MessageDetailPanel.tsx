@@ -28,7 +28,7 @@ export interface MessageDetailPanelProps {
     content: string;
     timestamp: string;
   } | null;
-  domainPackElements: {
+  domainPackElements?: {
     slots: SlotTag[];
     policies: PolicyTag[];
     risks: RiskTag[];
@@ -105,8 +105,8 @@ function RiskTagItem({ risk }: { risk: RiskTag }) {
 }
 
 /* ─── Component ─── */
-export function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
-  const { slots, policies, risks } = MOCK_DATA;
+export function MessageDetailPanel({ message, domainPackElements, onClose }: MessageDetailPanelProps) {
+  const { slots, policies, risks } = domainPackElements ?? MOCK_DATA;
 
   if (!message) {
     return (

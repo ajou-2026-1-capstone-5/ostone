@@ -53,7 +53,6 @@ describe('MessageDetailPanel', () => {
           content: 'test',
           timestamp: '12:00',
         }}
-        domainPackElements={{ slots: [], policies: [], risks: [] }}
         onClose={() => {}}
       />,
     );
@@ -73,7 +72,6 @@ describe('MessageDetailPanel', () => {
           content: 'test',
           timestamp: '12:00',
         }}
-        domainPackElements={{ slots: [], policies: [], risks: [] }}
         onClose={() => {}}
       />,
     );
@@ -93,7 +91,6 @@ describe('MessageDetailPanel', () => {
           content: 'test',
           timestamp: '12:00',
         }}
-        domainPackElements={{ slots: [], policies: [], risks: [] }}
         onClose={() => {}}
       />,
     );
