@@ -31,7 +31,18 @@ vi.mock('../../../features/consultation/api/consultationApi', () => ({
         },
       ]),
     ),
-    getMessages: vi.fn(() => Promise.resolve([])),
+    getMessages: vi.fn(() =>
+      Promise.resolve([
+        {
+          id: 100,
+          seqNo: 1,
+          senderRole: 'CUSTOMER',
+          messageType: 'TEXT',
+          content: '환불 문의 드립니다.',
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    ),
     sendMessage: vi.fn(() =>
       Promise.resolve({
         id: 99,
@@ -139,5 +150,61 @@ describe('ConsultationPage', () => {
     unmount();
     expect(shellContext.setTopbarRight).toHaveBeenCalledWith(undefined);
     expect(shellContext.setCrumbs).toHaveBeenCalledWith([]);
+  });
+
+  it('shows MessageDetailPanel when a message is clicked and hides it on close', async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('김민지')).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText('김민지').closest('div');
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
+    });
+
+    const messageEl = screen.getByText('환불 문의 드립니다.');
+    fireEvent.click(messageEl);
+
+    await waitFor(() => {
+      expect(screen.getByText('가격 문의')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('닫기'));
+
+    await waitFor(() => {
+      expect(screen.getByText('고객 정보')).toBeInTheDocument();
+    });
+  });
+
+  it('deselects message when the same message is clicked again', async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('김민지')).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText('김민지').closest('div');
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
+    });
+
+    const messageEl = screen.getByText('환불 문의 드립니다.');
+    fireEvent.click(messageEl);
+
+    await waitFor(() => {
+      expect(screen.getByText('가격 문의')).toBeInTheDocument();
+    });
+
+    fireEvent.click(messageEl);
+
+    await waitFor(() => {
+      expect(screen.getByText('고객 정보')).toBeInTheDocument();
+    });
   });
 });
