@@ -156,6 +156,7 @@ export const ConsultationPage: React.FC = () => {
     const targetId = activeCustomerId;
     try {
       const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
+      // UX: 메시지 전송 후 선택 해제되어 고객 정보 패널 복원 (의도된 동작)
       setSelectedMessageId(null);
       setActiveCustomerId(current => {
         if (current === targetId) {

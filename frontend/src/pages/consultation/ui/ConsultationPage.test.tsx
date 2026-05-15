@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ConsultationPage } from './ConsultationPage';
 import { consultationApi } from '../../../features/consultation/api/consultationApi';
@@ -209,6 +210,7 @@ describe('ConsultationPage', () => {
   });
 
   it('opens detail panel with Enter key and closes on re-Enter', async () => {
+    const user = userEvent.setup();
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
@@ -222,14 +224,16 @@ describe('ConsultationPage', () => {
       expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
     });
 
-    const messageEl = screen.getByText('환불 문의 드립니다.');
-    fireEvent.keyDown(messageEl, { key: 'Enter' });
+    const messageButton = screen.getByRole('button', { name: /환불 문의 드립니다/ });
+    messageButton.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.getByText('가격 문의')).toBeInTheDocument();
     });
 
-    fireEvent.keyDown(messageEl, { key: 'Enter' });
+    messageButton.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.getByText('고객 정보')).toBeInTheDocument();
@@ -237,6 +241,7 @@ describe('ConsultationPage', () => {
   });
 
   it('opens detail panel with Space key', async () => {
+    const user = userEvent.setup();
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
@@ -250,8 +255,9 @@ describe('ConsultationPage', () => {
       expect(screen.getByText('환불 문의 드립니다.')).toBeInTheDocument();
     });
 
-    const messageEl = screen.getByText('환불 문의 드립니다.');
-    fireEvent.keyDown(messageEl, { key: ' ' });
+    const messageButton = screen.getByRole('button', { name: /환불 문의 드립니다/ });
+    messageButton.focus();
+    await user.keyboard(' ');
 
     await waitFor(() => {
       expect(screen.getByText('가격 문의')).toBeInTheDocument();

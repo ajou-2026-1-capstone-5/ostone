@@ -148,7 +148,7 @@ export function MessageDetailPanel({ message, domainPackElements, onClose }: Mes
       </Section>
 
       <div className={styles.closeArea}>
-        <button className={styles.closeButton} onClick={onClose}>
+        <button type="button" className={styles.closeButton} onClick={onClose}>
           닫기
         </button>
       </div>
