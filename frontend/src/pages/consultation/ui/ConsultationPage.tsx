@@ -80,6 +80,13 @@ export const ConsultationPage: React.FC = () => {
     };
   }, [setTopbarRight, setCrumbs]);
 
+  // Sync selectedMessageId with messages list (e.g., after polling refresh)
+  useEffect(() => {
+    if (selectedMessageId && !messages.some((m) => m.id === selectedMessageId)) {
+      setSelectedMessageId(null);
+    }
+  }, [messages, selectedMessageId]);
+
   const loadQueue = useCallback(async () => {
     try {
       const sessions = await consultationApi.getQueue();
