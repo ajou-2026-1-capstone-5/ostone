@@ -11,6 +11,7 @@ import { CustomerInfoPanel } from '../../../features/consultation/ui/CustomerInf
 import { StatusBar } from '../../../features/consultation/ui/StatusBar';
 import { consultationApi } from '../../../features/consultation/api/consultationApi';
 import { CustomerPanel } from './sections/CustomerPanel';
+import { MessageDetailPanel } from '../../../features/consultation/ui/MessageDetailPanel';
 
 void CustomerInfoPanel;
 void StatusBar;
@@ -62,11 +63,13 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, string>>({});
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   void categories;
   void setCategories;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
+  const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
 
   useEffect(() => {
     setTopbarRight(<StatusRight />);
@@ -76,6 +79,13 @@ export const ConsultationPage: React.FC = () => {
       setCrumbs([]);
     };
   }, [setTopbarRight, setCrumbs]);
+
+  // Sync selectedMessageId with messages list (e.g., after polling refresh)
+  useEffect(() => {
+    if (selectedMessageId && !messages.some((m) => m.id === selectedMessageId)) {
+      setSelectedMessageId(null);
+    }
+  }, [messages, selectedMessageId]);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -142,6 +152,7 @@ export const ConsultationPage: React.FC = () => {
 
   const handleSelectCustomer = (id: string) => {
     setActiveCustomerId(id);
+    setSelectedMessageId(null);
     if (!statuses[id]) {
       setStatuses((prev) => ({ ...prev, [id]: 'IN_PROGRESS' }));
     }
@@ -152,6 +163,8 @@ export const ConsultationPage: React.FC = () => {
     const targetId = activeCustomerId;
     try {
       const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
+      // UX: 메시지 전송 후 선택 해제되어 고객 정보 패널 복원 (의도된 동작)
+      setSelectedMessageId(null);
       setActiveCustomerId(current => {
         if (current === targetId) {
           setMessages(prev => [...prev, {
@@ -176,6 +189,7 @@ export const ConsultationPage: React.FC = () => {
       toast.success('상담이 종료되었습니다.');
       loadQueue();
       setActiveCustomerId(null);
+      setSelectedMessageId(null);
     } catch(err) {
       toast.error('세션 종료 실패');
     }
@@ -247,6 +261,8 @@ export const ConsultationPage: React.FC = () => {
               channel={activeCustomer?.channel || null}
               messages={messages}
               onSendMessage={handleSendMessage}
+              selectedMessageId={selectedMessageId}
+              onSelectMessage={setSelectedMessageId}
             />
           </div>
 
@@ -284,18 +300,26 @@ export const ConsultationPage: React.FC = () => {
           )}
         </div>
 
-        <CustomerPanel
-          customer={activeCustomer ? {
-            name: activeCustomer.name,
-            channel: activeCustomer.channel,
-          } : null}
-          memo={activeCustomerId ? (memos[activeCustomerId] || '') : ''}
-          onMemoChange={(val) => {
-            if (activeCustomerId) {
-              setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
-            }
-          }}
-        />
+        {selectedMessage ? (
+          // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
+          <MessageDetailPanel
+            message={selectedMessage}
+            onClose={() => setSelectedMessageId(null)}
+          />
+        ) : (
+          <CustomerPanel
+            customer={activeCustomer ? {
+              name: activeCustomer.name,
+              channel: activeCustomer.channel,
+            } : null}
+            memo={activeCustomerId ? (memos[activeCustomerId] || '') : ''}
+            onMemoChange={(val) => {
+              if (activeCustomerId) {
+                setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+              }
+            }}
+          />
+        )}
     </div>
   );
 };

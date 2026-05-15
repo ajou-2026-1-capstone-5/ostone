@@ -14,6 +14,8 @@ interface ChatPanelProps {
   channel: string | null;
   messages: ChatMessage[];
   onSendMessage: (content: string, isNote: boolean) => void;
+  selectedMessageId: string | null;
+  onSelectMessage: (messageId: string | null) => void;
 }
 
 /**
@@ -28,6 +30,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   channel,
   messages,
   onSendMessage,
+  selectedMessageId,
+  onSelectMessage,
 }) => {
   const [input, setInput] = useState('');
   const [isNoteMode, setIsNoteMode] = useState(false);
@@ -106,10 +110,31 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             );
           }
           const isAgent = msg.senderRole === 'AGENT';
+          const isSelected = selectedMessageId === msg.id;
           return (
             <div
               key={msg.id}
-              className={`${styles.messageGroup} ${isAgent ? styles.messageGroupAgent : styles.messageGroupCustomer}`}
+              className={`${styles.messageGroup} ${isAgent ? styles.messageGroupAgent : styles.messageGroupCustomer} ${isSelected ? styles.messageSelected : ''}`}
+              onClick={() => {
+                if (isSelected) {
+                  onSelectMessage(null);
+                } else {
+                  onSelectMessage(msg.id);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (isSelected) {
+                    onSelectMessage(null);
+                  } else {
+                    onSelectMessage(msg.id);
+                  }
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-pressed={isSelected}
             >
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}

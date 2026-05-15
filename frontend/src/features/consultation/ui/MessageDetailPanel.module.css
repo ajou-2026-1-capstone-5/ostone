@@ -1,0 +1,201 @@
+.wrapper {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--paper-2);
+  border-left: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* ─── Empty State ─── */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+}
+
+.emptyStateIcon {
+  color: var(--ink-4);
+}
+
+.emptyStateText {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  line-height: 1.5;
+  font-family: var(--mono);
+}
+
+/* ─── Message Header ─── */
+.messageHeader {
+  padding: 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.messageMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.senderRole {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--signal-ink);
+  background: var(--signal-bg);
+  padding: 2px 8px;
+  border-radius: var(--r-2);
+  font-weight: 500;
+}
+
+.timestamp {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.messagePreview {
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Sections ─── */
+.section {
+  padding: 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.section:last-of-type {
+  border-bottom: none;
+}
+
+.sectionTitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+
+/* ─── Tag List ─── */
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ─── Tag Pill ─── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tag:hover {
+  filter: brightness(0.95);
+}
+
+.tagExtracted {
+  background: var(--signal-bg);
+  color: var(--signal-ink);
+}
+
+.tagNotExtracted {
+  background: var(--paper-3);
+  color: var(--ink-3);
+}
+
+.tagValue {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.tagValue::before {
+  content: ': ';
+}
+
+/* ─── Risk Level Indicators ─── */
+.tagRiskHigh {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.tagRiskMedium {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.tagRiskLow {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.tagRiskHigh.tagNotExtracted,
+.tagRiskMedium.tagNotExtracted,
+.tagRiskLow.tagNotExtracted {
+  background: var(--paper-3);
+  color: var(--ink-3);
+}
+
+/* ─── Close Button ─── */
+.closeArea {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line-2);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.closeButton:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.closeButton:focus-visible {
+  outline: 2px dashed var(--ink);
+  outline-offset: 2px;
+}
+
+.closeButton:active {
+  background: var(--line-2);
+}
