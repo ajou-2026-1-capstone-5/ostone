@@ -60,3 +60,6 @@ agent-local-status.sh
 # Playwright MCP 파일
 .playwright-mcp
 .playwright-cli/
+
+# Aws MCP 설정 디렉토리
+.aws/
