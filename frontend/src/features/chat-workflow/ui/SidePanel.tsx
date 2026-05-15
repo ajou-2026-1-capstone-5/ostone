@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ChatWorkflowHeader } from './ChatWorkflowHeader';
-import GraphRenderer from '@/features/workflow-draft-read/ui/GraphRenderer';
+import { GraphRenderer } from '@/entities/workflow';
 import { ExecutionDetailPanel } from './ExecutionDetailPanel';
 import { DecisionLogDrawer } from './DecisionLogDrawer';
 import { adaptDemoWorkflow } from '../lib/workflowAdapter';
@@ -57,6 +57,7 @@ export function SidePanel({
         <GraphRenderer
           graph={workflowGraph}
           selectedNodeIds={selectedNodeIds}
+          currentNodeId={execution?.currentState}
           onNodeSelect={onNodeSelect}
         />
       </div>

@@ -16,7 +16,7 @@ vi.mock("@xyflow/react", () => ({
   Controls: () => null,
 }));
 
-vi.mock("./graphMapper", () => ({
+vi.mock("@/entities/workflow", () => ({
   toFlow: mockToFlow,
 }));
 
@@ -115,5 +115,21 @@ describe("GraphRenderer new props", () => {
   it("handles null selectedNodeIds gracefully", () => {
     render(<GraphRenderer graph={stubGraph} selectedNodeIds={null as unknown as string[]} />);
     expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  it("sets data.current=true for the node matching currentNodeId", () => {
+    mockToFlow.mockReturnValueOnce({
+      nodes: [
+        { id: "NODE_1", type: "action", data: { label: "1" }, position: { x: 0, y: 0 } },
+        { id: "NODE_2", type: "action", data: { label: "2" }, position: { x: 200, y: 0 } },
+      ],
+      edges: [],
+    });
+    render(<GraphRenderer graph={stubGraph} currentNodeId="NODE_1" />);
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
+    const node1 = receivedProps.nodes.find((n: { id: string }) => n.id === "NODE_1");
+    const node2 = receivedProps.nodes.find((n: { id: string }) => n.id === "NODE_2");
+    expect(node1.data.current).toBe(true);
+    expect(node2.data.current).toBeUndefined();
   });
 });

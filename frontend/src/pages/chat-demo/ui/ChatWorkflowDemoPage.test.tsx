@@ -4,13 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { ChatWorkflowDemoPage } from './ChatWorkflowDemoPage';
 import type { ChatWorkflowDemoState } from '@/features/chat-workflow';
 
-// @xyflow/react requires ResizeObserver in test environment
-vi.stubGlobal('ResizeObserver', class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-});
-
 const mockDomainPack = {
   id: 'dp-1',
   name: 'Test Domain Pack',

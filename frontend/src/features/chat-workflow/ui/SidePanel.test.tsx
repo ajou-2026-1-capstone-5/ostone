@@ -18,10 +18,11 @@ vi.mock('../lib/messageNodeMapping', () => ({
   getMessageIdByNodeId: vi.fn(() => null),
 }));
 
-vi.mock('@/features/workflow-draft-read/ui/GraphRenderer', () => ({
-  default: vi.fn(({ selectedNodeIds, onNodeSelect }) => (
+vi.mock('@/entities/workflow', () => ({
+  GraphRenderer: vi.fn(({ selectedNodeIds, onNodeSelect, currentNodeId }) => (
     <div data-testid="graph-renderer">
       <span data-testid="selected-node-count">{selectedNodeIds?.length ?? 0}</span>
+      <span data-testid="current-node-id">{currentNodeId}</span>
       <button data-testid="node-select-btn" onClick={() => onNodeSelect?.('test-node')}>
         Select Node
       </button>
@@ -155,9 +156,12 @@ describe('SidePanel with GraphRenderer', () => {
       { wrapper: Wrapper },
     );
     expect(screen.getByTestId('graph-container')).toBeInTheDocument();
+    expect(screen.getByTestId('current-node-id')).toHaveTextContent(demoExecution.currentState || '');
   });
 
-  it('passes onNodeSelect when provided', () => {
+  it('passes onNodeSelect when provided', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
     const onNodeSelect = vi.fn();
     render(
       <SidePanel
@@ -170,6 +174,8 @@ describe('SidePanel with GraphRenderer', () => {
       />,
       { wrapper: Wrapper },
     );
-    expect(screen.getByTestId('graph-container')).toBeInTheDocument();
+    
+    await user.click(screen.getByTestId('node-select-btn'));
+    expect(onNodeSelect).toHaveBeenCalledWith('test-node');
   });
 });

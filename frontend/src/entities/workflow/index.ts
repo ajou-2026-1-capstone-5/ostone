@@ -24,3 +24,4 @@ export {
   DEFAULT_NODE_STATUS,
 } from "./model/nodeStatus";
 export { useGetWorkflowDefinition } from "./api/useGetWorkflowDefinition";
+export { GraphRenderer } from "./ui";
