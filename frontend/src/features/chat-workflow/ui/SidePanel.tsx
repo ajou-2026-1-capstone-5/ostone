@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import { ChatWorkflowHeader } from './ChatWorkflowHeader';
-import { StateMachineGraph } from './StateMachineGraph';
+import GraphRenderer from '@/features/workflow-draft-read/ui/GraphRenderer';
 import { ExecutionDetailPanel } from './ExecutionDetailPanel';
 import { DecisionLogDrawer } from './DecisionLogDrawer';
+import { adaptDemoWorkflow } from '../lib/workflowAdapter';
+import { getNodeIdsByMessageId } from '../lib/messageNodeMapping';
 import type {
   DemoWorkflow,
   DemoExecution,
@@ -15,6 +18,7 @@ export interface SidePanelProps {
   decisionLogs: DemoDecisionLogEntry[];
   selectedMessageId: string | null;
   domainPack: DemoDomainPack | null;
+  onNodeSelect?: (nodeId: string) => void;
 }
 
 export function SidePanel({
@@ -23,7 +27,17 @@ export function SidePanel({
   decisionLogs,
   selectedMessageId,
   domainPack,
+  onNodeSelect,
 }: SidePanelProps) {
+  const workflowGraph = useMemo(() => adaptDemoWorkflow(workflow), [workflow]);
+  const selectedNodeIds = useMemo(
+    () =>
+      selectedMessageId
+        ? getNodeIdsByMessageId(selectedMessageId, decisionLogs, workflowGraph)
+        : [],
+    [selectedMessageId, decisionLogs, workflowGraph],
+  );
+
   return (
     <div
       data-testid="side-panel"
@@ -39,13 +53,11 @@ export function SidePanel({
         <p className="mt-0.5 text-xs text-gray-500">{workflow.description}</p>
       </div>
 
-      <div className="border-b border-gray-200">
-        <StateMachineGraph
-          states={workflow.states}
-          transitions={workflow.transitions}
-          decisionLogs={decisionLogs}
-          selectedMessageId={selectedMessageId}
-          currentState={execution?.currentState ?? ''}
+      <div className="border-b border-gray-200" data-testid="graph-container">
+        <GraphRenderer
+          graph={workflowGraph}
+          selectedNodeIds={selectedNodeIds}
+          onNodeSelect={onNodeSelect}
         />
       </div>
 

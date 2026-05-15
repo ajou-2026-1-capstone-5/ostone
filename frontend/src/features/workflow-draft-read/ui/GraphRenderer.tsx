@@ -24,10 +24,25 @@ interface GraphRendererProps {
   graph: WorkflowGraph;
   onEdgeClick?: (edgeId: string) => void;
   onPaneClick?: () => void;
+  selectedNodeIds?: readonly string[];
+  onNodeSelect?: (nodeId: string) => void;
 }
 
-export default function GraphRenderer({ graph, onEdgeClick, onPaneClick }: GraphRendererProps) {
-  const { nodes, edges } = useMemo(() => toFlow(graph), [graph]);
+export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect }: GraphRendererProps) {
+  const { nodes, edges } = useMemo(() => {
+    const flow = toFlow(graph);
+    if (selectedNodeIds && selectedNodeIds.length > 0) {
+      const selectedSet = new Set(selectedNodeIds);
+      return {
+        nodes: flow.nodes.map((node) => ({
+          ...node,
+          data: { ...node.data, selected: selectedSet.has(node.id) ? true : undefined },
+        })),
+        edges: flow.edges,
+      };
+    }
+    return flow;
+  }, [graph, selectedNodeIds]);
 
   return (
     <div className={styles.container}>
@@ -43,6 +58,7 @@ export default function GraphRenderer({ graph, onEdgeClick, onPaneClick }: Graph
         elementsSelectable={false}
         onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
         onPaneClick={onPaneClick}
+        onNodeClick={(_, node) => onNodeSelect?.(node.id)}
       >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} />

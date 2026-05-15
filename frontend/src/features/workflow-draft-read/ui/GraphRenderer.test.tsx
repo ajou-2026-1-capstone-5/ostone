@@ -8,6 +8,8 @@ const mockReactFlow = vi.hoisted(() =>
   )),
 );
 
+const mockToFlow = vi.hoisted(() => vi.fn(() => ({ nodes: [], edges: [] })));
+
 vi.mock("@xyflow/react", () => ({
   ReactFlow: mockReactFlow,
   Background: () => null,
@@ -15,7 +17,7 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 vi.mock("./graphMapper", () => ({
-  toFlow: () => ({ nodes: [], edges: [] }),
+  toFlow: mockToFlow,
 }));
 
 vi.mock("./nodes/StartNode", () => ({ StartNode: () => null }));
@@ -34,6 +36,7 @@ const stubGraph = {
 describe("GraphRenderer", () => {
   beforeEach(() => {
     mockReactFlow.mockClear();
+    mockToFlow.mockClear();
   });
 
   it("ReactFlow 컨테이너를 렌더링한다", () => {
@@ -57,5 +60,60 @@ describe("GraphRenderer", () => {
       nodesConnectable: false,
       elementsSelectable: false,
     });
+  });
+});
+
+describe("GraphRenderer new props", () => {
+  beforeEach(() => {
+    mockReactFlow.mockClear();
+    mockToFlow.mockClear();
+  });
+
+  it("calls onNodeSelect when ReactFlow node is clicked", () => {
+    const onNodeSelect = vi.fn();
+    render(<GraphRenderer graph={stubGraph} onNodeSelect={onNodeSelect} />);
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
+    expect(typeof receivedProps.onNodeClick).toBe("function");
+    // @ts-expect-error - mock event object
+    receivedProps.onNodeClick?.(undefined, { id: "test-node" });
+    expect(onNodeSelect).toHaveBeenCalledWith("test-node");
+  });
+
+  it("sets data.selected=true for nodes in selectedNodeIds", () => {
+    mockToFlow.mockReturnValueOnce({
+      nodes: [
+        { id: "INITIAL", type: "action", data: { label: "Initial" }, position: { x: 0, y: 0 } },
+        { id: "COMPLETED", type: "action", data: { label: "Completed" }, position: { x: 200, y: 0 } },
+        { id: "OTHER", type: "action", data: { label: "Other" }, position: { x: 400, y: 0 } },
+      ],
+      edges: [],
+    });
+    render(<GraphRenderer graph={stubGraph} selectedNodeIds={["INITIAL", "COMPLETED"]} />);
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
+    const initialNode = receivedProps.nodes.find((n: { id: string }) => n.id === "INITIAL");
+    const otherNode = receivedProps.nodes.find((n: { id: string }) => n.id === "OTHER");
+    expect(initialNode.data.selected).toBe(true);
+    expect(otherNode.data.selected).toBeUndefined();
+  });
+
+  it("works without optional props (backward compatibility)", () => {
+    render(<GraphRenderer graph={stubGraph} />);
+    expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  it("returns default undefined selected when selectedNodeIds is empty", () => {
+    render(<GraphRenderer graph={stubGraph} />);
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
+    expect(receivedProps.nodes).toEqual([]);
+  });
+
+  it("handles empty selectedNodeIds gracefully", () => {
+    render(<GraphRenderer graph={stubGraph} selectedNodeIds={[]} />);
+    expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  it("handles null selectedNodeIds gracefully", () => {
+    render(<GraphRenderer graph={stubGraph} selectedNodeIds={null as unknown as string[]} />);
+    expect(screen.getByTestId("react-flow")).toBeInTheDocument();
   });
 });

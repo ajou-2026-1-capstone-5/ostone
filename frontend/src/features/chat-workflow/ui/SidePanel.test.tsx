@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { SidePanel } from './SidePanel';
@@ -8,6 +8,26 @@ import {
   demoDecisionLogs,
   demoDomainPack,
 } from '../model/chatWorkflowDemo.mock';
+
+vi.mock('../lib/workflowAdapter', () => ({
+  adaptDemoWorkflow: vi.fn(() => ({ direction: 'LR' as const, nodes: [], edges: [] })),
+}));
+
+vi.mock('../lib/messageNodeMapping', () => ({
+  getNodeIdsByMessageId: vi.fn(() => []),
+  getMessageIdByNodeId: vi.fn(() => null),
+}));
+
+vi.mock('@/features/workflow-draft-read/ui/GraphRenderer', () => ({
+  default: vi.fn(({ selectedNodeIds, onNodeSelect }) => (
+    <div data-testid="graph-renderer">
+      <span data-testid="selected-node-count">{selectedNodeIds?.length ?? 0}</span>
+      <button data-testid="node-select-btn" onClick={() => onNodeSelect?.('test-node')}>
+        Select Node
+      </button>
+    </div>
+  )),
+}));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
@@ -119,5 +139,37 @@ describe('SidePanel', () => {
 
     const scrollable = container.querySelector('[class*="overflow"]') || container.querySelector('[style*="overflow"]');
     expect(scrollable).toBeInTheDocument();
+  });
+});
+
+describe('SidePanel with GraphRenderer', () => {
+  it('renders graph-container when workflow is provided', () => {
+    render(
+      <SidePanel
+        workflow={demoWorkflow}
+        execution={demoExecution}
+        decisionLogs={demoDecisionLogs}
+        selectedMessageId={null}
+        domainPack={demoDomainPack}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(screen.getByTestId('graph-container')).toBeInTheDocument();
+  });
+
+  it('passes onNodeSelect when provided', () => {
+    const onNodeSelect = vi.fn();
+    render(
+      <SidePanel
+        workflow={demoWorkflow}
+        execution={demoExecution}
+        decisionLogs={demoDecisionLogs}
+        selectedMessageId={null}
+        domainPack={demoDomainPack}
+        onNodeSelect={onNodeSelect}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(screen.getByTestId('graph-container')).toBeInTheDocument();
   });
 });

@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ChatWorkflowDemoPage } from './ChatWorkflowDemoPage';
 import type { ChatWorkflowDemoState } from '@/features/chat-workflow';
+
+// @xyflow/react requires ResizeObserver in test environment
+vi.stubGlobal('ResizeObserver', class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+});
 
 const mockDomainPack = {
   id: 'dp-1',
