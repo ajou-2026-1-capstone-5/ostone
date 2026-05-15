@@ -7,14 +7,32 @@ vi.mock("@xyflow/react", () => ({
   Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
 }));
 
+const baseProps: Record<string, unknown> = {
+  id: "test",
+  type: "handoff",
+  selected: false,
+  dragging: false,
+  zIndex: 0,
+  selectable: true,
+  deletable: false,
+  draggable: true,
+  isConnectable: false,
+  positionAbsoluteX: 0,
+  positionAbsoluteY: 0,
+  height: 0,
+  width: 0,
+  sourcePosition: "left",
+  targetPosition: "right",
+};
+
 describe("HandoffNode", () => {
   it("renders label from data", () => {
-    render(<HandoffNode id="test" data={{ label: "Handoff" }} />);
+    render(<HandoffNode {...(baseProps as any)} data={{ label: "Handoff" }} />);
     expect(screen.getByText("Handoff")).toBeInTheDocument();
   });
 
   it("renders empty when label is not a string", () => {
-    const { container } = render(<HandoffNode id="test" data={{}} />);
+    const { container } = render(<HandoffNode {...(baseProps as any)} data={{}} />);
     expect(container.firstElementChild).toBeTruthy();
   });
 });

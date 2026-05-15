@@ -12,12 +12,12 @@ import { TerminalNode } from "./nodes/TerminalNode";
 import styles from "./GraphRenderer.module.css";
 
 const nodeTypes: NodeTypes = {
-  start: StartNode,
-  action: ActionNode,
-  decision: DecisionNode,
-  answer: AnswerNode,
-  handoff: HandoffNode,
-  terminal: TerminalNode,
+  start: StartNode as React.ComponentType<any>,
+  action: ActionNode as React.ComponentType<any>,
+  decision: DecisionNode as React.ComponentType<any>,
+  answer: AnswerNode as React.ComponentType<any>,
+  handoff: HandoffNode as React.ComponentType<any>,
+  terminal: TerminalNode as React.ComponentType<any>,
 };
 
 interface GraphRendererProps {

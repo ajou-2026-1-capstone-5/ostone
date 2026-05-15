@@ -7,14 +7,32 @@ vi.mock("@xyflow/react", () => ({
   Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
 }));
 
+const baseProps: Record<string, unknown> = {
+  id: "test",
+  type: "answer",
+  selected: false,
+  dragging: false,
+  zIndex: 0,
+  selectable: true,
+  deletable: false,
+  draggable: true,
+  isConnectable: false,
+  positionAbsoluteX: 0,
+  positionAbsoluteY: 0,
+  height: 0,
+  width: 0,
+  sourcePosition: "left",
+  targetPosition: "right",
+};
+
 describe("AnswerNode", () => {
   it("renders label from data", () => {
-    render(<AnswerNode id="test" data={{ label: "Test" }} />);
+    render(<AnswerNode {...(baseProps as any)} data={{ label: "Test" }} />);
     expect(screen.getByText("Test")).toBeInTheDocument();
   });
 
   it("renders empty when label is not a string", () => {
-    const { container } = render(<AnswerNode id="test" data={{}} />);
+    const { container } = render(<AnswerNode {...(baseProps as any)} data={{}} />);
     expect(container.firstElementChild).toBeTruthy();
   });
 });

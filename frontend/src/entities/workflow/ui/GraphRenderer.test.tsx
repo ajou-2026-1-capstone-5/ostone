@@ -3,12 +3,12 @@ import { beforeEach, describe, it, vi, expect } from "vitest";
 import GraphRenderer from "./GraphRenderer";
 
 const mockReactFlow = vi.hoisted(() =>
-  vi.fn(({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="react-flow">{children}</div>
+  vi.fn((props: Record<string, unknown>) => (
+    <div data-testid="react-flow">{props.children as React.ReactNode}</div>
   )),
 );
 
-const mockToFlow = vi.hoisted(() => vi.fn(() => ({ nodes: [], edges: [] })));
+const mockToFlow = vi.hoisted(() => vi.fn((): any => ({ nodes: [], edges: [] })));
 
 vi.mock("@xyflow/react", () => ({
   ReactFlow: mockReactFlow,
@@ -89,9 +89,9 @@ describe("GraphRenderer new props", () => {
       edges: [],
     });
     render(<GraphRenderer graph={stubGraph} selectedNodeIds={["INITIAL", "COMPLETED"]} />);
-    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
-    const initialNode = receivedProps.nodes.find((n: { id: string }) => n.id === "INITIAL");
-    const otherNode = receivedProps.nodes.find((n: { id: string }) => n.id === "OTHER");
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)! as [{ nodes: Array<{ id: string; data: { selected?: boolean } }> }];
+    const initialNode = receivedProps.nodes.find((n) => n.id === "INITIAL");
+    const otherNode = receivedProps.nodes.find((n) => n.id === "OTHER");
     expect(initialNode.data.selected).toBe(true);
     expect(otherNode.data.selected).toBeUndefined();
   });
@@ -126,10 +126,11 @@ describe("GraphRenderer new props", () => {
       edges: [],
     });
     render(<GraphRenderer graph={stubGraph} currentNodeId="NODE_1" />);
-    const [receivedProps] = mockReactFlow.mock.calls.at(-1)!;
-    const node1 = receivedProps.nodes.find((n: { id: string }) => n.id === "NODE_1");
-    const node2 = receivedProps.nodes.find((n: { id: string }) => n.id === "NODE_2");
-    expect(node1.data.current).toBe(true);
-    expect(node2.data.current).toBeUndefined();
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1) as unknown as [Record<string, unknown>];
+    const richProps = receivedProps as { nodes?: Array<{ id: string; data: Record<string, unknown> }> };
+    const node1 = richProps.nodes?.find((n) => n.id === "NODE_1");
+    const node2 = richProps.nodes?.find((n) => n.id === "NODE_2");
+    expect(node1?.data.current).toBe(true);
+    expect(node2?.data.current).toBeUndefined();
   });
 });
