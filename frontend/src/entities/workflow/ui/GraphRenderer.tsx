@@ -9,6 +9,7 @@ import { DecisionNode } from "./nodes/DecisionNode";
 import { AnswerNode } from "./nodes/AnswerNode";
 import { HandoffNode } from "./nodes/HandoffNode";
 import { TerminalNode } from "./nodes/TerminalNode";
+import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import styles from "./GraphRenderer.module.css";
 
 const nodeTypes: NodeTypes = {
@@ -27,9 +28,12 @@ interface GraphRendererProps {
   selectedNodeIds?: readonly string[];
   onNodeSelect?: (nodeId: string) => void;
   currentNodeId?: string;
+  isLoading?: boolean;
+  error?: Error | string | null;
+  emptyMessage?: string;
 }
 
-export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId }: GraphRendererProps) {
+export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId, isLoading, error, emptyMessage }: GraphRendererProps) {
   const { nodes, edges } = useMemo(() => {
     const flow = toFlow(graph);
     const selectedSet = selectedNodeIds?.length ? new Set(selectedNodeIds) : null;
@@ -48,23 +52,33 @@ export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selecte
 
   return (
     <div className={styles.container}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        panOnDrag={true}
-        zoomOnScroll={true}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
-        onPaneClick={onPaneClick}
-        onNodeClick={(_, node) => onNodeSelect?.(node.id)}
-      >
-        <Background gap={20} size={1} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+      {isLoading ? (
+        <div className={styles.loading}>Loading workflow...</div>
+      ) : error ? (
+        <div className={styles.error}>Error: {typeof error === "string" ? error : error.message}</div>
+      ) : !nodes || nodes.length === 0 ? (
+        <div className={styles.empty}>{emptyMessage ?? "No workflow data"}</div>
+      ) : (
+        <ErrorBoundary fallback={<div className={styles.error}>Something went wrong</div>}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            panOnDrag={true}
+            zoomOnScroll={true}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
+            onPaneClick={onPaneClick}
+            onNodeClick={(_, node) => onNodeSelect?.(node.id)}
+          >
+            <Background gap={20} size={1} />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </ErrorBoundary>
+      )}
     </div>
   );
 }
