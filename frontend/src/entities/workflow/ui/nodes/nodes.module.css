@@ -33,6 +33,23 @@
   border-radius: var(--radius-md);
 }
 
+.selected {
+  border-color: var(--text-primary);
+  border-width: 1px;
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 2px var(--text-primary);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.current {
+  border-style: dashed;
+  border-width: 1px;
+  border-color: var(--text-primary);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 3px var(--text-primary);
+  transition: all 0.2s ease;
+}
+
 .decision {
   composes: base;
   position: relative;

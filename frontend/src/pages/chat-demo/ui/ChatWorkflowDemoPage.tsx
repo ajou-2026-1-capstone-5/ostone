@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { OstoneShell } from '@/widgets/ostone-shell';
 import type {
   ChatWorkflowDemoState,
@@ -7,6 +7,8 @@ import type {
 } from '@/features/chat-workflow';
 import { ChatTimelinePanel } from '@/features/chat-workflow/ui/ChatTimelinePanel';
 import { SidePanel } from '@/features/chat-workflow/ui/SidePanel';
+import { getMessageIdByNodeId } from '@/features/chat-workflow/lib/messageNodeMapping';
+import { adaptDemoWorkflow } from '@/features/chat-workflow/lib/workflowAdapter';
 
 export interface ChatWorkflowDemoPageProps {
   state: ChatWorkflowDemoState;
@@ -19,9 +21,26 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
   const response = state.response;
   const messages: DemoChatMessage[] = response?.messages ?? [];
   const execution = response?.execution ?? null;
-  const decisionLogs: DemoDecisionLogEntry[] = response?.decisionLogs ?? [];
+  const decisionLogs: DemoDecisionLogEntry[] = useMemo(() => response?.decisionLogs ?? [], [response?.decisionLogs]);
   const domainPack = response?.domainPack ?? null;
   const workflow = response?.workflow ?? null;
+
+  const workflowGraph = useMemo(
+    () => (workflow ? adaptDemoWorkflow(workflow) : null),
+    [workflow],
+  );
+
+  const handleNodeSelect = useCallback(
+    (nodeId: string) => {
+      if (workflowGraph) {
+        const messageId = getMessageIdByNodeId(nodeId, decisionLogs, workflowGraph);
+        if (messageId) {
+          setSelectedMessageId(messageId);
+        }
+      }
+    },
+    [workflowGraph, decisionLogs],
+  );
 
   if (loading) {
     return (
@@ -95,6 +114,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
                 decisionLogs={decisionLogs}
                 selectedMessageId={selectedMessageId}
                 domainPack={domainPack}
+                onNodeSelect={handleNodeSelect}
               />
             ) : (
               <div

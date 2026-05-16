@@ -34,6 +34,13 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
 });
 
+// @xyflow/react uses ResizeObserver, which is not available in jsdom.
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 if (typeof window !== "undefined") {
   Object.defineProperty(window, "matchMedia", {
     writable: true,

@@ -42,3 +42,18 @@
   color: var(--text-primary);
   border-bottom: 1px solid var(--glass-border);
 }
+
+.loading,
+.error,
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.error {
+  color: #dc2626;
+}

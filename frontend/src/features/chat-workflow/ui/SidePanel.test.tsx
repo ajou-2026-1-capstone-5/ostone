@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { SidePanel } from './SidePanel';
 import {
@@ -8,6 +9,27 @@ import {
   demoDecisionLogs,
   demoDomainPack,
 } from '../model/chatWorkflowDemo.mock';
+
+vi.mock('../lib/workflowAdapter', () => ({
+  adaptDemoWorkflow: vi.fn(() => ({ direction: 'LR' as const, nodes: [], edges: [] })),
+}));
+
+vi.mock('../lib/messageNodeMapping', () => ({
+  getNodeIdsByMessageId: vi.fn(() => []),
+  getMessageIdByNodeId: vi.fn(() => null),
+}));
+
+vi.mock('@/entities/workflow', () => ({
+  GraphRenderer: vi.fn(({ selectedNodeIds, onNodeSelect, currentNodeId }) => (
+    <div data-testid="graph-renderer">
+      <span data-testid="selected-node-count">{selectedNodeIds?.length ?? 0}</span>
+      <span data-testid="current-node-id">{currentNodeId}</span>
+      <button data-testid="node-select-btn" onClick={() => onNodeSelect?.('test-node')}>
+        Select Node
+      </button>
+    </div>
+  )),
+}));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
@@ -119,5 +141,41 @@ describe('SidePanel', () => {
 
     const scrollable = container.querySelector('[class*="overflow"]') || container.querySelector('[style*="overflow"]');
     expect(scrollable).toBeInTheDocument();
+  });
+});
+
+describe('SidePanel with GraphRenderer', () => {
+  it('renders graph-container when workflow is provided', () => {
+    render(
+      <SidePanel
+        workflow={demoWorkflow}
+        execution={demoExecution}
+        decisionLogs={demoDecisionLogs}
+        selectedMessageId={null}
+        domainPack={demoDomainPack}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(screen.getByTestId('graph-container')).toBeInTheDocument();
+    expect(screen.getByTestId('current-node-id')).toHaveTextContent(demoExecution.currentState || '');
+  });
+
+  it('passes onNodeSelect when provided', async () => {
+    const user = userEvent.setup();
+    const onNodeSelect = vi.fn();
+    render(
+      <SidePanel
+        workflow={demoWorkflow}
+        execution={demoExecution}
+        decisionLogs={demoDecisionLogs}
+        selectedMessageId={null}
+        domainPack={demoDomainPack}
+        onNodeSelect={onNodeSelect}
+      />,
+      { wrapper: Wrapper },
+    );
+    
+    await user.click(screen.getByTestId('node-select-btn'));
+    expect(onNodeSelect).toHaveBeenCalledWith('test-node');
   });
 });
