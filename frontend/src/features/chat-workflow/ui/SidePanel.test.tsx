@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { SidePanel } from './SidePanel';
 import {
@@ -160,7 +161,6 @@ describe('SidePanel with GraphRenderer', () => {
   });
 
   it('passes onNodeSelect when provided', async () => {
-    const { userEvent } = await import('@testing-library/user-event');
     const user = userEvent.setup();
     const onNodeSelect = vi.fn();
     render(
