@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { Node } from "@xyflow/react";
-import type { WorkflowGraph } from "../../model/types";
+import type { WorkflowGraph } from "../model/types";
 import { toFlow, convertFlowToWorkflowGraph } from "./graphConverter";
 
 describe("graphConverter", () => {
@@ -15,27 +15,27 @@ describe("graphConverter", () => {
   describe("toNodeType via convertFlowToWorkflowGraph", () => {
     it("maps undefined type to ACTION", () => {
       const nodes: Node[] = [
-        { id: "n1", type: undefined as unknown as string, data: { label: "Test" } },
+        { id: "n1", type: undefined as unknown as string, data: { label: "Test" }, position: { x: 0, y: 0 } },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
 
     it("maps empty string type to ACTION", () => {
-      const nodes: Node[] = [{ id: "n1", type: "", data: { label: "Test" } }];
+      const nodes: Node[] = [{ id: "n1", type: "", data: { label: "Test" }, position: { x: 0, y: 0 } }];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
 
     it("maps whitespace string type to ACTION", () => {
-      const nodes: Node[] = [{ id: "n1", type: "   ", data: { label: "Test" } }];
+      const nodes: Node[] = [{ id: "n1", type: "   ", data: { label: "Test" }, position: { x: 0, y: 0 } }];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
 
     it("maps uppercase DECISION", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "DECISION", data: { label: "Test" } },
+        { id: "n1", type: "DECISION", data: { label: "Test" }, position: { x: 0, y: 0 } },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("DECISION");
@@ -43,7 +43,7 @@ describe("graphConverter", () => {
 
     it("maps lowercase decision to DECISION", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "decision", data: { label: "Test" } },
+        { id: "n1", type: "decision", data: { label: "Test" }, position: { x: 0, y: 0 } },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("DECISION");
@@ -51,7 +51,7 @@ describe("graphConverter", () => {
 
     it("logs warning for invalid type", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "INVALID", data: { label: "Test" } },
+        { id: "n1", type: "INVALID", data: { label: "Test" }, position: { x: 0, y: 0 } },
       ];
       convertFlowToWorkflowGraph(nodes, []);
       expect(console.warn).toHaveBeenCalledWith(
@@ -281,6 +281,7 @@ describe("graphConverter", () => {
           id: "n1",
           type: "ACTION",
           data: { label: "Check", policyRef: "policy-1" },
+          position: { x: 0, y: 0 },
         },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
@@ -298,6 +299,7 @@ describe("graphConverter", () => {
           id: "n1",
           type: "ACTION",
           data: { label: "Notify" },
+          position: { x: 0, y: 0 },
         },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
@@ -315,6 +317,7 @@ describe("graphConverter", () => {
           id: "n1",
           type: "START",
           data: { label: "Start" },
+          position: { x: 0, y: 0 },
         },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
@@ -332,6 +335,7 @@ describe("graphConverter", () => {
           id: "n1",
           type: "ACTION",
           data: {},
+          position: { x: 0, y: 0 },
         },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
@@ -344,6 +348,7 @@ describe("graphConverter", () => {
           id: "n1",
           type: "ACTION",
           data: { label: "Check", policyRef: "" },
+          position: { x: 0, y: 0 },
         },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
@@ -352,8 +357,8 @@ describe("graphConverter", () => {
 
     it("maps edge with empty string label to undefined", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "ACTION", data: { label: "A" } },
-        { id: "n2", type: "ACTION", data: { label: "B" } },
+        { id: "n1", type: "ACTION", data: { label: "A" }, position: { x: 0, y: 0 } },
+        { id: "n2", type: "ACTION", data: { label: "B" }, position: { x: 0, y: 0 } },
       ];
       const edges = [
         { id: "e1", source: "n1", target: "n2", label: "" },
@@ -364,8 +369,8 @@ describe("graphConverter", () => {
 
     it("maps edge with non-string label to undefined", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "ACTION", data: { label: "A" } },
-        { id: "n2", type: "ACTION", data: { label: "B" } },
+        { id: "n1", type: "ACTION", data: { label: "A" }, position: { x: 0, y: 0 } },
+        { id: "n2", type: "ACTION", data: { label: "B" }, position: { x: 0, y: 0 } },
       ];
       const edges = [
         { id: "e1", source: "n1", target: "n2", label: null as unknown as string },
@@ -376,10 +381,10 @@ describe("graphConverter", () => {
 
     it("converts multiple nodes and edges together", () => {
       const nodes: Node[] = [
-        { id: "n1", type: "START", data: { label: "Start" } },
-        { id: "n2", type: "ACTION", data: { label: "Process", policyRef: "pol-1" } },
-        { id: "n3", type: "DECISION", data: { label: "Check" } },
-        { id: "n4", type: "TERMINAL", data: { label: "End" } },
+        { id: "n1", type: "START", data: { label: "Start" }, position: { x: 0, y: 0 } },
+        { id: "n2", type: "ACTION", data: { label: "Process", policyRef: "pol-1" }, position: { x: 0, y: 0 } },
+        { id: "n3", type: "DECISION", data: { label: "Check" }, position: { x: 0, y: 0 } },
+        { id: "n4", type: "TERMINAL", data: { label: "End" }, position: { x: 0, y: 0 } },
       ];
       const edges = [
         { id: "e1", source: "n1", target: "n2", label: "next" },
