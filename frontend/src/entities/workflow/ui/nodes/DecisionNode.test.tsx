@@ -35,4 +35,14 @@ describe("DecisionNode", () => {
     const { container } = render(<DecisionNode {...(baseProps as any)} data={{}} />);
     expect(container.firstElementChild).toBeTruthy();
   });
+
+  it("renders without crash when label is empty string", () => {
+    const { container } = render(<DecisionNode {...(baseProps as any)} data={{ label: "" }} />);
+    expect(container.firstElementChild).toBeTruthy();
+  });
+
+  it("renders without crash when data is undefined", () => {
+    const { container } = render(<DecisionNode {...(baseProps as any)} data={undefined} />);
+    expect(container.firstElementChild).toBeTruthy();
+  });
 });

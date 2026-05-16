@@ -56,4 +56,12 @@ describe("ActionNode", () => {
     const nodeDiv = container.firstElementChild;
     expect(nodeDiv?.className).toContain("current");
   });
+
+  it("does not apply current style when data.current is false", () => {
+    const { container } = render(
+      <ActionNode {...(baseProps as any)} data={{ label: "Test", current: false }} />,
+    );
+    const nodeDiv = container.firstElementChild;
+    expect(nodeDiv?.className).not.toContain("current");
+  });
 });
