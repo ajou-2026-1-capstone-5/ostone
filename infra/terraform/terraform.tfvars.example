@@ -1,0 +1,18 @@
+aws_region  = "ap-northeast-2"
+domain_name = "example.com"
+admin_cidr  = "203.0.113.10/32"
+
+db_name             = "ostone"
+db_master_username  = "ostone_admin"
+db_master_password  = "replace-with-secure-master-password"
+app_db_password     = "replace-with-secure-app-password"
+airflow_db_password = "replace-with-secure-airflow-password"
+
+cors_allowed_origins = [
+  "https://airflow.example.com",
+  "https://app.example.com"
+]
+
+secret_arns = [
+  "arn:aws:secretsmanager:ap-northeast-2:000000000000:secret:ostone/prod/database-example"
+]

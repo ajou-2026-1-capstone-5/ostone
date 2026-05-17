@@ -1,0 +1,167 @@
+variable "aws_region" {
+  description = "Primary AWS region for production resources."
+  type        = string
+  default     = "ap-northeast-2"
+}
+
+variable "project_name" {
+  description = "Project tag and resource name prefix."
+  type        = string
+  default     = "ostone"
+}
+
+variable "environment" {
+  description = "Deployment environment name."
+  type        = string
+  default     = "prod"
+}
+
+variable "domain_name" {
+  description = "Route53 hosted zone domain name."
+  type        = string
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the production VPC."
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidrs" {
+  description = "CIDR blocks for public subnets."
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+
+  validation {
+    condition     = length(var.public_subnet_cidrs) == 2
+    error_message = "Exactly two public subnet CIDR blocks are required."
+  }
+}
+
+variable "private_subnet_cidrs" {
+  description = "CIDR blocks for private subnets."
+  type        = list(string)
+  default     = ["10.0.3.0/24", "10.0.4.0/24"]
+
+  validation {
+    condition     = length(var.private_subnet_cidrs) == 2
+    error_message = "Exactly two private subnet CIDR blocks are required."
+  }
+}
+
+variable "admin_cidr" {
+  description = "Administrator CIDR block allowed to access Airflow EC2 over SSH."
+  type        = string
+}
+
+variable "db_name" {
+  description = "RDS PostgreSQL database name."
+  type        = string
+  default     = "ostone"
+}
+
+variable "db_master_username" {
+  description = "RDS PostgreSQL master username."
+  type        = string
+  default     = "ostone_admin"
+}
+
+variable "db_master_password" {
+  description = "RDS PostgreSQL master password."
+  type        = string
+  sensitive   = true
+}
+
+variable "app_db_password" {
+  description = "Application database user password for scripts/init.sql."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_db_password" {
+  description = "Airflow database user password for scripts/init.sql."
+  type        = string
+  sensitive   = true
+}
+
+variable "rds_engine_version" {
+  description = "PostgreSQL engine version for RDS."
+  type        = string
+  default     = "16.4"
+}
+
+variable "rds_instance_class" {
+  description = "RDS instance class."
+  type        = string
+  default     = "db.t4g.medium"
+}
+
+variable "rds_allocated_storage" {
+  description = "Initial RDS storage in GiB."
+  type        = number
+  default     = 20
+}
+
+variable "rds_max_allocated_storage" {
+  description = "Maximum RDS autoscaled storage in GiB."
+  type        = number
+  default     = 100
+}
+
+variable "rds_backup_retention_period" {
+  description = "RDS automated backup retention period in days."
+  type        = number
+  default     = 7
+}
+
+variable "s3_bucket_names" {
+  description = "Production S3 bucket names."
+  type = object({
+    ml_artifacts = string
+    airflow_logs = string
+    ml_input     = string
+    ml_output    = string
+  })
+  default = {
+    ml_artifacts = "ostone-prod-ml-artifacts"
+    airflow_logs = "ostone-prod-airflow-logs"
+    ml_input     = "ostone-prod-ml-input"
+    ml_output    = "ostone-prod-ml-output"
+  }
+}
+
+variable "cors_allowed_origins" {
+  description = "Origins allowed to access S3 buckets from Airflow or operator tools."
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "permissions_boundary_arn" {
+  description = "Optional IAM permissions boundary ARN for created roles."
+  type        = string
+  default     = null
+}
+
+variable "secret_arns" {
+  description = "Secrets Manager ARNs readable by ECS, Airflow, and GPU tasks."
+  type        = list(string)
+  default     = []
+}
+
+variable "admin_key_name" {
+  description = "EC2 key pair name for GPU worker SSH access."
+  type        = string
+  default     = null
+}
+
+variable "jwt_secret" {
+  description = "Secret key for JWT token signing."
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_IN_PROD"
+}
+
+variable "sns_email" {
+  description = "Email address for SNS alarm notifications. Confirm subscription via AWS console after terraform apply."
+  type        = string
+}
