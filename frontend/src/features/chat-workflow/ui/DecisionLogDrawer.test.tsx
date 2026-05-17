@@ -67,63 +67,52 @@ describe('DecisionLogDrawer', () => {
     expect(within(entry).getByText('환불 요청 패턴 감지')).toBeInTheDocument();
   });
 
-  it('shows confidence bar with width matching value and color based on threshold', () => {
+  it('sets confidence bar width through the CSS custom property', () => {
     render(<DecisionLogDrawer entries={allDecisions} selectedMessageId={null} />, { wrapper: Wrapper });
     fireEvent.click(screen.getByRole('button', { name: /decision log/i }));
 
-    // log-1: confidence 95 (>80) → green, width 95%
     const bar1 = within(screen.getByTestId('decision-entry-log-1')).getByTestId('decision-confidence');
     const fill1 = bar1.firstChild as HTMLElement;
-    expect(fill1.style.width).toBe('95%');
-    expect(fill1.style.background).toBe('rgb(34, 197, 94)');
+    expect(fill1.style.getPropertyValue('--confidence')).toBe('95%');
 
-    // log-2: confidence 30 (<50) → red, width 30%
     const bar2 = within(screen.getByTestId('decision-entry-log-2')).getByTestId('decision-confidence');
     const fill2 = bar2.firstChild as HTMLElement;
-    expect(fill2.style.width).toBe('30%');
-    expect(fill2.style.background).toBe('rgb(239, 68, 68)');
+    expect(fill2.style.getPropertyValue('--confidence')).toBe('30%');
 
-    // log-3: confidence 60 (50-80) → yellow, width 60%
     const bar3 = within(screen.getByTestId('decision-entry-log-3')).getByTestId('decision-confidence');
     const fill3 = bar3.firstChild as HTMLElement;
-    expect(fill3.style.width).toBe('60%');
-    expect(fill3.style.background).toBe('rgb(234, 179, 8)');
+    expect(fill3.style.getPropertyValue('--confidence')).toBe('60%');
   });
 
-  it('shows decision badge with correct color (ALLOW=green, DENY=red, ESCALATE=yellow)', () => {
+  it('marks decision badges with data attributes for CSS module styling', () => {
     render(<DecisionLogDrawer entries={allDecisions} selectedMessageId={null} />, { wrapper: Wrapper });
     fireEvent.click(screen.getByRole('button', { name: /decision log/i }));
 
     const badge1 = within(screen.getByTestId('decision-entry-log-1')).getByTestId('decision-decision');
     expect(badge1).toHaveTextContent('ALLOW');
-    expect(badge1.style.background).toBe('rgb(34, 197, 94)');
+    expect(badge1).toHaveAttribute('data-decision', 'allow');
 
     const badge2 = within(screen.getByTestId('decision-entry-log-2')).getByTestId('decision-decision');
     expect(badge2).toHaveTextContent('DENY');
-    expect(badge2.style.background).toBe('rgb(239, 68, 68)');
+    expect(badge2).toHaveAttribute('data-decision', 'deny');
 
     const badge3 = within(screen.getByTestId('decision-entry-log-3')).getByTestId('decision-decision');
     expect(badge3).toHaveTextContent('ESCALATE');
-    expect(badge3.style.background).toBe('rgb(234, 179, 8)');
+    expect(badge3).toHaveAttribute('data-decision', 'escalate');
   });
 
-  it('highlights entries matching selectedMessageId with blue border and light background', () => {
+  it('highlights entries matching selectedMessageId with CSS module class', () => {
     render(<DecisionLogDrawer entries={allDecisions} selectedMessageId="msg-3" />, { wrapper: Wrapper });
     fireEvent.click(screen.getByRole('button', { name: /decision log/i }));
 
-    // log-1: messageId 'msg-1' ≠ 'msg-3' → no highlight
     const entry1 = screen.getByTestId('decision-entry-log-1');
-    expect(entry1.style.borderLeft).not.toBe('3px solid rgb(59, 130, 246)');
+    expect(entry1.className).not.toContain('decisionHighlighted');
 
-    // log-2: messageId 'msg-3' → highlighted
     const entry2 = screen.getByTestId('decision-entry-log-2');
-    expect(entry2.style.borderLeft).toBe('3px solid rgb(59, 130, 246)');
-    expect(entry2.style.background).toBe('rgb(239, 246, 255)');
+    expect(entry2.className).toContain('decisionHighlighted');
 
-    // log-3: messageId 'msg-3' → highlighted
     const entry3 = screen.getByTestId('decision-entry-log-3');
-    expect(entry3.style.borderLeft).toBe('3px solid rgb(59, 130, 246)');
-    expect(entry3.style.background).toBe('rgb(239, 246, 255)');
+    expect(entry3.className).toContain('decisionHighlighted');
   });
 
   it('shows empty state placeholder when no entries', () => {

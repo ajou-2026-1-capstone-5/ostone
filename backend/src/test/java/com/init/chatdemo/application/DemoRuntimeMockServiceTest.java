@@ -183,6 +183,67 @@ class DemoRuntimeMockServiceTest {
   }
 
   @Test
+  @DisplayName("workspace 2는 카드 이용내역 조회 및 증빙 확인 데모 시나리오를 반환한다")
+  void should_returnCardUsageInquiryScenario_when_workspaceTwo() {
+    DemoChatWorkflowResponse response =
+        invoke(newService(), "getChatWorkflow", Long.class, 2L, DemoChatWorkflowResponse.class);
+
+    assertThat(response.domainPack().id()).isEqualTo("card-usage-inquiry-demo-pack");
+    assertThat(response.workflow().id()).isEqualTo("CARD_USAGE_HISTORY_INQUIRY_WORKFLOW");
+    assertThat(response.workflow().states())
+        .contains("IDENTITY_VERIFICATION", "MISMATCH_ANALYSIS", "EVIDENCE_REQUESTING");
+    assertThat(response.messages())
+        .hasSize(23)
+        .extracting(DemoMessageResponse::content)
+        .contains(
+            "네, 안녕하세요. 그 이용내역 좀 조회하려고 그러는데요.",
+            "신용카드로 결제를 했는데 ▲▲ 은행 계좌 결제라고 뜨거든요?",
+            "일단 저희가 담당부서에 확인 요청하면 바로 답변이 달리지는 않아서요. 6시 전까지 전화를 드리겠습니다.");
+    assertThat(response.execution().slotValues())
+        .containsEntry("customer_identity_verified", true)
+        .containsEntry("merchant_name", "산업 안전 교육")
+        .containsEntry("callback_deadline", "오늘 6시 전까지");
+    assertThat(response.execution().missingSlots()).contains("customer_app_evidence");
+    assertThat(response.decisionLogs())
+        .allSatisfy(
+            decisionLog ->
+                assertThat(response.messages())
+                    .extracting(DemoMessageResponse::id)
+                    .contains(decisionLog.messageId()));
+  }
+
+  @Test
+  @DisplayName("workspace 3은 인디고발리 숙소 예약 데모 시나리오를 반환한다")
+  void should_returnTravelReservationScenario_when_workspaceThree() {
+    DemoChatWorkflowResponse response =
+        invoke(newService(), "getChatWorkflow", Long.class, 3L, DemoChatWorkflowResponse.class);
+
+    assertThat(response.domainPack().id()).isEqualTo("travel-reservation-demo-pack");
+    assertThat(response.workflow().id()).isEqualTo("RESORT_RESERVATION_WORKFLOW");
+    assertThat(response.workflow().states())
+        .contains("AVAILABILITY_CHECKING", "ALTERNATIVE_OFFERING", "PICKUP_GUIDE");
+    assertThat(response.messages())
+        .hasSize(14)
+        .extracting(DemoMessageResponse::content)
+        .contains(
+            "안녕하세요. 인디고발리 ▲▲일부터 1+1으로 2박 가능한지 문의드렸던 사람인데요. 씨브리즈룸 2박 가능한 거 확인했는데, 그거랑 상관없는 건가요?",
+            "네, 클래식 룸은 예약 가능합니다. 인디고 클래식룸 1+1 적용 시 2박에 360달러입니다. 성인 2인 기준으로 조식과 세금 포함된 가격이에요.",
+            "공항 픽업은 무료로 제공되며, 우붓 지역은 특가로 15달러에 제공됩니다. 이용하시는 항공편명 정보도 함께 적어주시면 됩니다.");
+    assertThat(response.execution().slotValues())
+        .containsEntry("hotel_name", "인디고발리")
+        .containsEntry("room_type", "클래식룸")
+        .containsEntry("promotion_type", "1+1");
+    assertThat(response.execution().missingSlots())
+        .contains("guest_names_ko_en", "representative_email", "flight_number");
+    assertThat(response.decisionLogs())
+        .allSatisfy(
+            decisionLog ->
+                assertThat(response.messages())
+                    .extracting(DemoMessageResponse::id)
+                    .contains(decisionLog.messageId()));
+  }
+
+  @Test
   @DisplayName("blank executionId로 decisionLogs 조회 시 오류가 발생한다")
   void should_throw_when_lookingUpBlankDecisionLogsExecutionId() {
     Object service = newService();

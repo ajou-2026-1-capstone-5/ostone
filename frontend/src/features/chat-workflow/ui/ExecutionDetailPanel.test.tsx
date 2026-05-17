@@ -35,14 +35,14 @@ describe('ExecutionDetailPanel', () => {
     expect(screen.getByText(/waiting for execution/i)).toBeInTheDocument();
   });
 
-  it('shows status badge with correct color class for completed', () => {
+  it('shows status badge with normalized status data for completed', () => {
     render(<ExecutionDetailPanel execution={completedExecution} />, { wrapper: Wrapper });
     const badge = screen.getByTestId('execution-status');
     expect(badge).toHaveTextContent('COMPLETED');
-    expect(badge.className).toContain('text-green');
+    expect(badge).toHaveAttribute('data-status', 'completed');
   });
 
-  it('shows status badge with correct color class for error', () => {
+  it('shows status badge with normalized status data for error', () => {
     const errorExecution: DemoExecution = {
       ...completedExecution,
       status: 'ERROR',
@@ -50,7 +50,7 @@ describe('ExecutionDetailPanel', () => {
     render(<ExecutionDetailPanel execution={errorExecution} />, { wrapper: Wrapper });
     const badge = screen.getByTestId('execution-status');
     expect(badge).toHaveTextContent('ERROR');
-    expect(badge.className).toContain('text-red');
+    expect(badge).toHaveAttribute('data-status', 'error');
   });
 
   it('renders intent name', () => {

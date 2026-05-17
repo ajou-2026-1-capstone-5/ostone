@@ -9,6 +9,7 @@ import { ChatTimelinePanel } from '@/features/chat-workflow/ui/ChatTimelinePanel
 import { SidePanel } from '@/features/chat-workflow/ui/SidePanel';
 import { getMessageIdByNodeId } from '@/features/chat-workflow/lib/messageNodeMapping';
 import { adaptDemoWorkflow } from '@/features/chat-workflow/lib/workflowAdapter';
+import styles from '@/features/chat-workflow/ui/chat-workflow-demo.module.css';
 
 export interface ChatWorkflowDemoPageProps {
   state: ChatWorkflowDemoState;
@@ -19,11 +20,15 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
 
   const { loading, error } = state;
   const response = state.response;
-  const messages: DemoChatMessage[] = response?.messages ?? [];
+  const messages: DemoChatMessage[] = useMemo(() => response?.messages ?? [], [response?.messages]);
   const execution = response?.execution ?? null;
   const decisionLogs: DemoDecisionLogEntry[] = useMemo(() => response?.decisionLogs ?? [], [response?.decisionLogs]);
   const domainPack = response?.domainPack ?? null;
   const workflow = response?.workflow ?? null;
+  const activeMessageId = useMemo(() => {
+    const lastLogWithMessage = [...decisionLogs].reverse().find((log) => log.messageId);
+    return lastLogWithMessage?.messageId ?? messages.at(-1)?.id ?? null;
+  }, [decisionLogs, messages]);
 
   const workflowGraph = useMemo(
     () => (workflow ? adaptDemoWorkflow(workflow) : null),
@@ -66,33 +71,16 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
     <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
       <div
         data-testid="page-container"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          padding: 'var(--s-4)',
-          gap: 'var(--s-4)',
-        }}
+        className={styles.page}
       >
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--s-3)',
-            flex: 1,
-            minHeight: 0,
-          }}
-        >
+        <div className={styles.workspace}>
           <div
             data-testid="chat-timeline"
-            style={{
-              flex: '0.35 0 0',
-              background: 'var(--paper-2)',
-              borderRadius: 'var(--r-2)',
-              overflow: 'hidden',
-            }}
+            className={styles.panel}
           >
             <ChatTimelinePanel
               messages={messages}
+              activeMessageId={activeMessageId}
               selectedMessageId={selectedMessageId}
               onMessageSelect={(id) => setSelectedMessageId(id)}
             />
@@ -100,12 +88,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
 
           <div
             data-testid="side-panel-container"
-            style={{
-              flex: '0.65 0 0',
-              background: 'var(--paper-2)',
-              borderRadius: 'var(--r-2)',
-              overflow: 'hidden',
-            }}
+            className={styles.panel}
           >
             {workflow ? (
               <SidePanel
@@ -113,6 +96,8 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
                 execution={execution}
                 decisionLogs={decisionLogs}
                 selectedMessageId={selectedMessageId}
+                activeMessageId={activeMessageId}
+                messages={messages}
                 domainPack={domainPack}
                 onNodeSelect={handleNodeSelect}
               />

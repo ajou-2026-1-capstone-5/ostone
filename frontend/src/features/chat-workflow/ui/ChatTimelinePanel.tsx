@@ -1,7 +1,9 @@
 import type { DemoChatMessage } from "../model/chatWorkflow.types";
+import styles from "./chat-workflow-demo.module.css";
 
 interface ChatTimelinePanelProps {
   messages: DemoChatMessage[];
+  activeMessageId?: string | null;
   selectedMessageId?: string | null;
   onMessageSelect?: (messageId: string) => void;
 }
@@ -10,53 +12,71 @@ function formatTime(isoString: string): string {
   return new Date(isoString).toISOString().substring(11, 19);
 }
 
+function roleLabel(role: DemoChatMessage["role"]): string {
+  return role === "user" ? "customer" : "agent";
+}
+
 export function ChatTimelinePanel({
   messages,
+  activeMessageId,
   selectedMessageId,
   onMessageSelect,
 }: ChatTimelinePanelProps) {
   return (
-    <div className="flex h-full flex-col">
-      <h3 className="px-4 py-2 text-sm font-semibold">Chat Timeline</h3>
+    <div className={styles.timeline}>
+      <div className={styles.timelineHeader}>
+        <div>
+          <span className={styles.eyebrow}>Runtime Script</span>
+          <h3 className={styles.sectionTitle}>Chat Timeline</h3>
+        </div>
+        <span className={styles.count}>{messages.length} turns</span>
+      </div>
       <div
         data-scrollable
-        className="flex-1 overflow-y-auto px-4"
-        style={{ maxHeight: "100%" }}
+        className={styles.messageList}
       >
         {messages.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className={styles.empty}>
             대화 내역이 없습니다.
           </p>
         ) : (
-          messages.map((msg) => (
-            <button
-              type="button"
-              key={msg.id}
-              data-testid={`chat-message-${msg.id}`}
-              onClick={() => onMessageSelect?.(msg.id)}
-              className={`mb-2 w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                msg.id === selectedMessageId
-                  ? "border-l-2 border-l-blue-500 bg-blue-50"
-                  : "bg-muted"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                    msg.role === "user"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {msg.role}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {formatTime(msg.timestamp)}
-                </span>
-              </div>
-              <p className="mt-1">{msg.content}</p>
-            </button>
-          ))
+          messages.map((msg) => {
+            const isSelected = msg.id === selectedMessageId;
+            const isActive = msg.id === activeMessageId;
+            const isAgent = msg.role === "assistant";
+            return (
+              <button
+                type="button"
+                key={msg.id}
+                data-testid={`chat-message-${msg.id}`}
+                onClick={() => onMessageSelect?.(msg.id)}
+                className={`${styles.messageButton} ${
+                  isAgent ? styles.messageAgent : styles.messageCustomer
+                } ${
+                  isActive ? styles.messageActive : ""
+                } ${
+                  isSelected ? styles.messageSelected : ""
+                }`}
+              >
+                <div className={styles.messageMeta}>
+                  <span
+                    className={`${styles.role} ${
+                      isAgent ? styles.roleAssistant : styles.roleCustomer
+                    }`}
+                  >
+                    {roleLabel(msg.role)}
+                  </span>
+                  <span className={styles.messageMetaRight}>
+                    {isActive && <span className={styles.activeBadge}>Processing</span>}
+                    <span className={styles.time}>
+                      {formatTime(msg.timestamp)}
+                    </span>
+                  </span>
+                </div>
+                <p className={styles.messageContent}>{msg.content}</p>
+              </button>
+            );
+          })
         )}
       </div>
     </div>
