@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { ApiRequestError } from '@/shared/api';
 
 const useListWorkspaces = vi.fn();
 const mockNavigate = vi.fn();
@@ -51,10 +52,39 @@ describe('WorkspaceRootRedirect', () => {
     expect(screen.getByTestId('spinner')).toBeInTheDocument();
   });
 
-  it('에러 시 /login으로 리다이렉트한다', () => {
-    useListWorkspaces.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+  it('401 에러 시 /login으로 리다이렉트한다', () => {
+    useListWorkspaces.mockReturnValue({
+      data: undefined,
+      error: new ApiRequestError(401, 'UNAUTHORIZED', '인증이 필요합니다.'),
+      isLoading: false,
+      isError: true,
+    });
     renderPage();
     expect(screen.getByTestId('navigate-to')).toHaveTextContent('/login');
+  });
+
+  it('403 에러 시 /login으로 리다이렉트하지 않는다', () => {
+    useListWorkspaces.mockReturnValue({
+      data: undefined,
+      error: new ApiRequestError(403, 'FORBIDDEN', '권한이 없습니다.'),
+      isLoading: false,
+      isError: true,
+    });
+    renderPage();
+    expect(screen.queryByTestId('navigate-to')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('워크스페이스 정보를 불러오지 못했습니다.');
+  });
+
+  it('network error 시 /login으로 리다이렉트하지 않는다', () => {
+    useListWorkspaces.mockReturnValue({
+      data: undefined,
+      error: new Error('network error'),
+      isLoading: false,
+      isError: true,
+    });
+    renderPage();
+    expect(screen.queryByTestId('navigate-to')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('워크스페이스 정보를 불러오지 못했습니다.');
   });
 
   it('워크스페이스가 없으면 CreateWorkspaceDialog를 표시한다', () => {

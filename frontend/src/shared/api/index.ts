@@ -1,3 +1,5 @@
+import { clearAuthSession } from "@/shared/lib/auth";
+
 export function resolveApiBase(apiBaseUrl: string | undefined): string {
   return apiBaseUrl || "/api/v1";
 }
@@ -37,6 +39,10 @@ class ApiClient {
         code: "UNKNOWN_ERROR",
         message: "요청 처리 중 오류가 발생했습니다.",
       }))) as ApiError;
+
+      if (response.status === 401) {
+        clearAuthSession();
+      }
 
       throw new ApiRequestError(
         response.status,

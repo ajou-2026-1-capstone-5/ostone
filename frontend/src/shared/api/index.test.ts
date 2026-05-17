@@ -278,5 +278,47 @@ describe("apiClient", () => {
         "요청 처리 중 오류가 발생했습니다.",
       );
     });
+
+    it("401 응답 시 auth session을 정리한다", async () => {
+      const removeItemSpy = vi.spyOn(localStorage, "removeItem");
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          code: "UNAUTHORIZED",
+          message: "인증이 필요합니다.",
+        }),
+      });
+
+      await expect(apiClient.get<{ id: number }>("/test")).rejects.toMatchObject({
+        status: 401,
+        code: "UNAUTHORIZED",
+      });
+
+      expect(removeItemSpy).toHaveBeenCalledWith("accessToken");
+      expect(removeItemSpy).toHaveBeenCalledWith("refreshToken");
+      expect(removeItemSpy).toHaveBeenCalledWith("user");
+      removeItemSpy.mockRestore();
+    });
+
+    it("401 외 non-ok 응답 시 auth session을 유지한다", async () => {
+      const removeItemSpy = vi.spyOn(localStorage, "removeItem");
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          code: "FORBIDDEN",
+          message: "권한이 없습니다.",
+        }),
+      });
+
+      await expect(apiClient.get<{ id: number }>("/test")).rejects.toMatchObject({
+        status: 403,
+        code: "FORBIDDEN",
+      });
+
+      expect(removeItemSpy).not.toHaveBeenCalled();
+      removeItemSpy.mockRestore();
+    });
   });
 });
