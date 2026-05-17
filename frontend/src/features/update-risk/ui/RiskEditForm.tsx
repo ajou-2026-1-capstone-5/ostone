@@ -51,7 +51,7 @@ export function RiskEditForm({
   const onSubmit = (values: RiskEditFormValues) => {
     const body: UpdateRiskRequest = {
       name: values.name,
-      description: normalizeOptionalText(values.description),
+      description: normalizeOptionalText(values.description) ?? undefined,
       riskLevel: values.riskLevel ?? undefined,
       triggerConditionJson: values.triggerConditionJson ?? undefined,
       handlingActionJson: values.handlingActionJson ?? undefined,
