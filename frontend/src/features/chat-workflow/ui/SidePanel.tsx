@@ -14,14 +14,14 @@ import type {
 } from '../model/chatWorkflow.types';
 
 export interface SidePanelProps {
-  workflow: DemoWorkflow;
-  execution: DemoExecution | null;
-  decisionLogs: DemoDecisionLogEntry[];
-  selectedMessageId: string | null;
-  activeMessageId?: string | null;
-  messages: DemoChatMessage[];
-  domainPack: DemoDomainPack | null;
-  onNodeSelect?: (nodeId: string) => void;
+  readonly workflow: DemoWorkflow;
+  readonly execution: DemoExecution | null;
+  readonly decisionLogs: DemoDecisionLogEntry[];
+  readonly selectedMessageId: string | null;
+  readonly activeMessageId?: string | null;
+  readonly messages: DemoChatMessage[];
+  readonly domainPack: DemoDomainPack | null;
+  readonly onNodeSelect?: (nodeId: string) => void;
 }
 
 const STATE_LABELS: Record<string, string> = {
@@ -89,8 +89,8 @@ function getMainPosition(state: string, index: number): DiagramPosition {
 
   return {
     state,
-    x: COLUMN_X[column] ?? COLUMN_X[COLUMN_X.length - 1],
-    y: ROW_Y[row] ?? ROW_Y[ROW_Y.length - 1],
+    x: COLUMN_X[column] ?? COLUMN_X.at(-1)!,
+    y: ROW_Y[row] ?? ROW_Y.at(-1)!,
   };
 }
 
@@ -115,17 +115,17 @@ function WorkflowOverview({
   messages,
   decisionLogs,
   onNodeSelect,
-}: {
+}: Readonly<{
   workflow: DemoWorkflow;
   currentState?: string;
   selectedNodeIds: readonly string[];
   messages: DemoChatMessage[];
   decisionLogs: DemoDecisionLogEntry[];
   onNodeSelect?: (nodeId: string) => void;
-}) {
+}>) {
   const exceptionStates = workflow.states.filter((state) => state === 'HANDED_OFF');
   const mainStates = workflow.states.filter((state) => state !== 'HANDED_OFF');
-  const mainPositions = mainStates.map(getMainPosition);
+  const mainPositions = mainStates.map((state, index) => getMainPosition(state, index));
   const positionByState = new Map(mainPositions.map((position) => [position.state, position]));
   const exceptionPositions: DiagramPosition[] = exceptionStates.map((state, index) => ({
     state,
@@ -257,11 +257,11 @@ function CurrentTurnInsight({
   message,
   turnNumber,
   logs,
-}: {
+}: Readonly<{
   message: DemoChatMessage | null;
   turnNumber: number | null;
   logs: DemoDecisionLogEntry[];
-}) {
+}>) {
   const latestLog = logs.at(-1) ?? null;
 
   return (

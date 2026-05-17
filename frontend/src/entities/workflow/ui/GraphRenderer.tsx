@@ -22,16 +22,16 @@ const nodeTypes: NodeTypes = {
 };
 
 interface GraphRendererProps {
-  graph: WorkflowGraph;
-  onEdgeClick?: (edgeId: string) => void;
-  onPaneClick?: () => void;
-  selectedNodeIds?: readonly string[];
-  onNodeSelect?: (nodeId: string) => void;
-  currentNodeId?: string;
-  showEdgeLabels?: boolean;
-  isLoading?: boolean;
-  error?: Error | string | null;
-  emptyMessage?: string;
+  readonly graph: WorkflowGraph;
+  readonly onEdgeClick?: (edgeId: string) => void;
+  readonly onPaneClick?: () => void;
+  readonly selectedNodeIds?: readonly string[];
+  readonly onNodeSelect?: (nodeId: string) => void;
+  readonly currentNodeId?: string;
+  readonly showEdgeLabels?: boolean;
+  readonly isLoading?: boolean;
+  readonly error?: Error | string | null;
+  readonly emptyMessage?: string;
 }
 
 export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId, showEdgeLabels = true, isLoading, error, emptyMessage }: GraphRendererProps) {
