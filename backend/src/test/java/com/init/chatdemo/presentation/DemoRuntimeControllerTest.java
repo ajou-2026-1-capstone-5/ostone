@@ -47,6 +47,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("DemoRuntimeController")
 class DemoRuntimeControllerTest {
 
+  private static final String DEMO_URL_PREFIX = "/api/v1/workspaces/10/demo";
+
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private DemoRuntimeMockService service;
@@ -55,10 +57,10 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/chat-workflow → 200, 6개 섹션 JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getChatWorkflow() throws Exception {
-    given(service.getChatWorkflow()).willReturn(chatWorkflowResponse());
+    given(service.getChatWorkflow(10L)).willReturn(chatWorkflowResponse());
 
     mockMvc
-        .perform(get("/api/v1/demo/chat-workflow").accept(MediaType.APPLICATION_JSON))
+        .perform(get(DEMO_URL_PREFIX + "/chat-workflow").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.domainPack").exists())
@@ -70,13 +72,14 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/v1/demo/domain-pack → 200, domainPack와 workflow JSON 검증")
+  @DisplayName(
+      "GET /api/v1/workspaces/{workspaceId}/demo/domain-pack → 200, domainPack와 workflow JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getDomainPack() throws Exception {
-    given(service.getDomainPack()).willReturn(domainPackEndpointResponse());
+    given(service.getDomainPack(10L)).willReturn(domainPackEndpointResponse());
 
     mockMvc
-        .perform(get("/api/v1/demo/domain-pack").accept(MediaType.APPLICATION_JSON))
+        .perform(get(DEMO_URL_PREFIX + "/domain-pack").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.domainPack.id").value("demo-pack-1"))
@@ -97,10 +100,11 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/chat-sessions/{sessionId} → 200, chatSession과 messages JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getChatSession() throws Exception {
-    given(service.getChatSession("session-1")).willReturn(chatSessionEndpointResponse());
+    given(service.getChatSession(10L, "session-1")).willReturn(chatSessionEndpointResponse());
 
     mockMvc
-        .perform(get("/api/v1/demo/chat-sessions/session-1").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/chat-sessions/session-1").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.chatSession.id").value("session-1"))
@@ -120,11 +124,12 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/chat-sessions/unknown-id → 404")
   @WithLongPrincipal(10L)
   void should_404_when_getUnknownChatSession() throws Exception {
-    given(service.getChatSession("unknown-id"))
+    given(service.getChatSession(10L, "unknown-id"))
         .willThrow(new NotFoundException("DEMO_CHAT_SESSION_NOT_FOUND", "Chat session not found"));
 
     mockMvc
-        .perform(get("/api/v1/demo/chat-sessions/unknown-id").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/chat-sessions/unknown-id").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.code").value("DEMO_CHAT_SESSION_NOT_FOUND"));
@@ -134,10 +139,11 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/workflow-executions/{executionId} → 200, execution 상세 JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getWorkflowExecution() throws Exception {
-    given(service.getWorkflowExecution("exec-1")).willReturn(executionResponse());
+    given(service.getWorkflowExecution(10L, "exec-1")).willReturn(executionResponse());
 
     mockMvc
-        .perform(get("/api/v1/demo/workflow-executions/exec-1").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/workflow-executions/exec-1").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("exec-1"))
@@ -165,13 +171,14 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/workflow-executions/unknown-id → 404")
   @WithLongPrincipal(10L)
   void should_404_when_getUnknownWorkflowExecution() throws Exception {
-    given(service.getWorkflowExecution("unknown-id"))
+    given(service.getWorkflowExecution(10L, "unknown-id"))
         .willThrow(
             new NotFoundException("DEMO_WORKFLOW_EXECUTION_NOT_FOUND", "Execution not found"));
 
     mockMvc
         .perform(
-            get("/api/v1/demo/workflow-executions/unknown-id").accept(MediaType.APPLICATION_JSON))
+            get(DEMO_URL_PREFIX + "/workflow-executions/unknown-id")
+                .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.code").value("DEMO_WORKFLOW_EXECUTION_NOT_FOUND"));
@@ -181,10 +188,10 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/decision-logs?executionId=exec-1 → 200, decisionLogs JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getDecisionLogs() throws Exception {
-    given(service.getDecisionLogs("exec-1")).willReturn(decisionLogEndpointResponse());
+    given(service.getDecisionLogs(10L, "exec-1")).willReturn(decisionLogEndpointResponse());
 
     mockMvc
-        .perform(get("/api/v1/demo/decision-logs").queryParam("executionId", "exec-1"))
+        .perform(get(DEMO_URL_PREFIX + "/decision-logs").queryParam("executionId", "exec-1"))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.decisionLogs").isArray())
@@ -205,7 +212,7 @@ class DemoRuntimeControllerTest {
   @WithLongPrincipal(10L)
   void should_400_when_missingExecutionId() throws Exception {
     mockMvc
-        .perform(get("/api/v1/demo/decision-logs").accept(MediaType.APPLICATION_JSON))
+        .perform(get(DEMO_URL_PREFIX + "/decision-logs").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
   }
 
@@ -213,12 +220,12 @@ class DemoRuntimeControllerTest {
   @DisplayName("GET /api/v1/demo/decision-logs?executionId=unknown → 404")
   @WithLongPrincipal(10L)
   void should_404_when_getUnknownDecisionLogs() throws Exception {
-    given(service.getDecisionLogs("unknown"))
+    given(service.getDecisionLogs(10L, "unknown"))
         .willThrow(
             new NotFoundException("DEMO_DECISION_LOGS_NOT_FOUND", "Decision logs not found"));
 
     mockMvc
-        .perform(get("/api/v1/demo/decision-logs").queryParam("executionId", "unknown"))
+        .perform(get(DEMO_URL_PREFIX + "/decision-logs").queryParam("executionId", "unknown"))
         .andExpect(status().isNotFound())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.code").value("DEMO_DECISION_LOGS_NOT_FOUND"));
@@ -228,7 +235,7 @@ class DemoRuntimeControllerTest {
   @DisplayName("인증 없이 요청 시 401 반환")
   void should_401_when_unauthenticated() throws Exception {
     mockMvc
-        .perform(get("/api/v1/demo/chat-workflow").accept(MediaType.APPLICATION_JSON))
+        .perform(get(DEMO_URL_PREFIX + "/chat-workflow").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isUnauthorized());
   }
 

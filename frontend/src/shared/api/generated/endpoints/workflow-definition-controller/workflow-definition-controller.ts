@@ -24,6 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  JsonNode,
   UpdateWorkflowRequest,
   WorkflowDefinitionDetail,
   WorkflowDefinitionSummary,
@@ -249,6 +250,229 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateWorkflowMutationOptions(options), queryClient);
+    }
+    export type getTransitionResponse200 = {
+  data: WorkflowTransitionDetail
+  status: 200
+}
+
+export type getTransitionResponseSuccess = (getTransitionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getTransitionResponse = (getTransitionResponseSuccess)
+
+export const getGetTransitionUrl = (workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}/transitions/${transitionId}`
+}
+
+export const getTransition = async (workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options?: RequestInit): Promise<getTransitionResponse> => {
+
+  return customFetch<getTransitionResponse>(getGetTransitionUrl(workspaceId,packId,versionId,workflowId,transitionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTransitionQueryKey = (workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}/transitions/${transitionId}`
+    ] as const;
+    }
+
+
+export const getGetTransitionQueryOptions = <TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTransitionQueryKey(workspaceId,packId,versionId,workflowId,transitionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTransition>>> = ({ signal }) => getTransition(workspaceId,packId,versionId,workflowId,transitionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId && workflowId && transitionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTransitionQueryResult = NonNullable<Awaited<ReturnType<typeof getTransition>>>
+export type GetTransitionQueryError = unknown
+
+
+export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTransition>>,
+          TError,
+          Awaited<ReturnType<typeof getTransition>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTransition>>,
+          TError,
+          Awaited<ReturnType<typeof getTransition>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetTransitionQueryOptions(workspaceId,packId,versionId,workflowId,transitionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type updateTransitionResponse200 = {
+  data: WorkflowTransitionDetail
+  status: 200
+}
+
+export type updateTransitionResponseSuccess = (updateTransitionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateTransitionResponse = (updateTransitionResponseSuccess)
+
+export const getUpdateTransitionUrl = (workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}/transitions/${transitionId}`
+}
+
+export const updateTransition = async (workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    transitionId: string,
+    jsonNode: JsonNode, options?: RequestInit): Promise<updateTransitionResponse> => {
+
+  return customFetch<updateTransitionResponse>(getUpdateTransitionUrl(workspaceId,packId,versionId,workflowId,transitionId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      jsonNode,)
+  }
+);}
+
+
+
+
+export const getUpdateTransitionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTransition>>, TError,{workspaceId: number;packId: number;versionId: number;workflowId: number;transitionId: string;data: JsonNode}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTransition>>, TError,{workspaceId: number;packId: number;versionId: number;workflowId: number;transitionId: string;data: JsonNode}, TContext> => {
+
+const mutationKey = ['updateTransition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTransition>>, {workspaceId: number;packId: number;versionId: number;workflowId: number;transitionId: string;data: JsonNode}> = (props) => {
+          const {workspaceId,packId,versionId,workflowId,transitionId,data} = props ?? {};
+
+          return  updateTransition(workspaceId,packId,versionId,workflowId,transitionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTransitionMutationResult = NonNullable<Awaited<ReturnType<typeof updateTransition>>>
+    export type UpdateTransitionMutationBody = JsonNode
+    export type UpdateTransitionMutationError = unknown
+
+    export const useUpdateTransition = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTransition>>, TError,{workspaceId: number;packId: number;versionId: number;workflowId: number;transitionId: string;data: JsonNode}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateTransition>>,
+        TError,
+        {workspaceId: number;packId: number;versionId: number;workflowId: number;transitionId: string;data: JsonNode},
+        TContext
+      > => {
+      return useMutation(getUpdateTransitionMutationOptions(options), queryClient);
     }
     export type listWorkflowsResponse200 = {
   data: WorkflowDefinitionSummary[]
@@ -491,144 +715,6 @@ export function useListTransitions<TData = Awaited<ReturnType<typeof listTransit
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListTransitionsQueryOptions(workspaceId,packId,versionId,workflowId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getTransitionResponse200 = {
-  data: WorkflowTransitionDetail
-  status: 200
-}
-
-export type getTransitionResponseSuccess = (getTransitionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getTransitionResponse = (getTransitionResponseSuccess)
-
-export const getGetTransitionUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string,) => {
-
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}/transitions/${transitionId}`
-}
-
-export const getTransition = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options?: RequestInit): Promise<getTransitionResponse> => {
-
-  return customFetch<getTransitionResponse>(getGetTransitionUrl(workspaceId,packId,versionId,workflowId,transitionId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetTransitionQueryKey = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}/transitions/${transitionId}`
-    ] as const;
-    }
-
-
-export const getGetTransitionQueryOptions = <TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetTransitionQueryKey(workspaceId,packId,versionId,workflowId,transitionId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTransition>>> = ({ signal }) => getTransition(workspaceId,packId,versionId,workflowId,transitionId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId && workflowId && transitionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetTransitionQueryResult = NonNullable<Awaited<ReturnType<typeof getTransition>>>
-export type GetTransitionQueryError = unknown
-
-
-export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getTransition>>,
-          TError,
-          Awaited<ReturnType<typeof getTransition>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getTransition>>,
-          TError,
-          Awaited<ReturnType<typeof getTransition>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetTransition<TData = Awaited<ReturnType<typeof getTransition>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    workflowId: number,
-    transitionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTransition>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetTransitionQueryOptions(workspaceId,packId,versionId,workflowId,transitionId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

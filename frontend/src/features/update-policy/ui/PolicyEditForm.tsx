@@ -56,7 +56,7 @@ export function PolicyEditForm({
   const onSubmit = (values: PolicyEditFormValues) => {
     const body: UpdatePolicyRequest = {
       name: values.name,
-      description: normalizeOptionalText(values.description),
+      description: normalizeOptionalText(values.description) ?? undefined,
       severity: values.severity ?? undefined,
       conditionJson: values.conditionJson ?? undefined,
       actionJson: values.actionJson ?? undefined,

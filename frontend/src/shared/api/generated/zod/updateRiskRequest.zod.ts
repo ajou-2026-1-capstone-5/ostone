@@ -10,7 +10,7 @@ import { z as zod } from 'zod';
 
 export const UpdateRiskRequest = zod.object({
   "name": zod.string().min(1).optional(),
-  "description": zod.string().nullable().optional(),
+  "description": zod.string().optional(),
   "riskLevel": zod.string().optional(),
   "triggerConditionJson": zod.string().optional(),
   "handlingActionJson": zod.string().optional(),
