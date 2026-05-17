@@ -1,0 +1,24 @@
+# GPU worker — one-shot batch task for ECS RunTask
+FROM nvidia/cuda:12.2-runtime-ubuntu22.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+# Copy dependency files first for layer caching
+COPY ml/pyproject.toml ml/uv.lock ./
+
+# Install dependencies (no dev group)
+RUN uv sync --frozen --no-dev
+
+# Copy application code
+COPY ml/src/ ./src/
+
+# AWS credentials via ECS task role
+# Expected env vars: S3_INPUT_BUCKET, S3_INPUT_KEY, S3_OUTPUT_BUCKET, S3_OUTPUT_KEY
+ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_gpu_worker"]
