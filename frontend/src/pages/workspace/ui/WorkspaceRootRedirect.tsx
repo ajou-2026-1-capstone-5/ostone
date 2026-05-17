@@ -5,6 +5,7 @@ import { useListWorkspaces } from "@/shared/api/generated/endpoints/workspace-co
 import { CreateWorkspaceDialog } from "@/features/workspace";
 import { Spinner } from "@/shared/ui/spinner";
 import { ApiRequestError } from "@/shared/api";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 
 export function WorkspaceRootRedirect() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export function WorkspaceRootRedirect() {
     error,
     isLoading,
     isError,
+    refetch,
   } = useListWorkspaces();
 
   if (isLoading) {
@@ -29,8 +31,13 @@ export function WorkspaceRootRedirect() {
 
   if (isError) {
     return (
-      <div role="alert" style={{ padding: "24px", color: "var(--danger)" }}>
-        워크스페이스 정보를 불러오지 못했습니다.
+      <div role="alert" style={{ padding: "24px" }}>
+        <ErrorState
+          message="워크스페이스 정보를 불러오지 못했습니다."
+          onRetry={() => {
+            void refetch();
+          }}
+        />
       </div>
     );
   }
@@ -47,7 +54,7 @@ export function WorkspaceRootRedirect() {
       <CreateWorkspaceDialog
         open={true}
         onOpenChange={() => {
-          window.location.reload();
+          navigate("/workspaces", { replace: true });
         }}
         onSuccess={async (created) => {
           navigate(`/workspaces/${created.id}/workflows`, { replace: true });

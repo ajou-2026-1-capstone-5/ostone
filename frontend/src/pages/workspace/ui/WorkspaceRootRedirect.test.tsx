@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiRequestError } from '@/shared/api';
@@ -10,7 +10,11 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => <div data-testid="navigate-to">{to}</div>,
+    Navigate: ({ to, replace }: { to: string; replace?: boolean }) => (
+      <div data-testid="navigate-to" data-replace={String(replace)}>
+        {to}
+      </div>
+    ),
     useNavigate: () => mockNavigate,
   };
 });
@@ -24,8 +28,17 @@ vi.mock('@/shared/ui/spinner', () => ({
 }));
 
 vi.mock('@/features/workspace', () => ({
-  CreateWorkspaceDialog: ({ open, onSuccess }: { open: boolean; onSuccess: (created: { id: number }) => void }) => (
+  CreateWorkspaceDialog: ({
+    open,
+    onOpenChange,
+    onSuccess,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSuccess: (created: { id: number }) => void;
+  }) => (
     open ? <div data-testid="create-dialog">
+      <button type="button" onClick={() => onOpenChange(false)}>닫기</button>
       <button type="button" onClick={() => onSuccess({ id: 999 })}>생성 완료</button>
     </div> : null
   ),
@@ -61,18 +74,23 @@ describe('WorkspaceRootRedirect', () => {
     });
     renderPage();
     expect(screen.getByTestId('navigate-to')).toHaveTextContent('/login');
+    expect(screen.getByTestId('navigate-to')).toHaveAttribute('data-replace', 'true');
   });
 
   it('403 에러 시 /login으로 리다이렉트하지 않는다', () => {
+    const refetch = vi.fn();
     useListWorkspaces.mockReturnValue({
       data: undefined,
       error: new ApiRequestError(403, 'FORBIDDEN', '권한이 없습니다.'),
       isLoading: false,
       isError: true,
+      refetch,
     });
     renderPage();
     expect(screen.queryByTestId('navigate-to')).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('워크스페이스 정보를 불러오지 못했습니다.');
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('network error 시 /login으로 리다이렉트하지 않는다', () => {
@@ -124,5 +142,12 @@ describe('WorkspaceRootRedirect', () => {
     const createBtn = screen.getByText('생성 완료');
     createBtn.click();
     expect(mockNavigate).toHaveBeenCalledWith('/workspaces/999/workflows', { replace: true });
+  });
+
+  it('CreateWorkspaceDialog 닫기 시 페이지를 새로고침하지 않고 현재 route를 유지한다', () => {
+    useListWorkspaces.mockReturnValue({ data: [], isLoading: false, isError: false });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/workspaces', { replace: true });
   });
 });
