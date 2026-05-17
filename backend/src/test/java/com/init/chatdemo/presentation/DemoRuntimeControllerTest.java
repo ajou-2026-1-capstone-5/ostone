@@ -72,7 +72,8 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/v1/workspaces/{workspaceId}/demo/domain-pack → 200, domainPack와 workflow JSON 검증")
+  @DisplayName(
+      "GET /api/v1/workspaces/{workspaceId}/demo/domain-pack → 200, domainPack와 workflow JSON 검증")
   @WithLongPrincipal(10L)
   void should_200_when_getDomainPack() throws Exception {
     given(service.getDomainPack(10L)).willReturn(domainPackEndpointResponse());
@@ -102,7 +103,8 @@ class DemoRuntimeControllerTest {
     given(service.getChatSession(10L, "session-1")).willReturn(chatSessionEndpointResponse());
 
     mockMvc
-        .perform(get(DEMO_URL_PREFIX + "/chat-sessions/session-1").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/chat-sessions/session-1").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.chatSession.id").value("session-1"))
@@ -126,7 +128,8 @@ class DemoRuntimeControllerTest {
         .willThrow(new NotFoundException("DEMO_CHAT_SESSION_NOT_FOUND", "Chat session not found"));
 
     mockMvc
-        .perform(get(DEMO_URL_PREFIX + "/chat-sessions/unknown-id").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/chat-sessions/unknown-id").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.code").value("DEMO_CHAT_SESSION_NOT_FOUND"));
@@ -139,7 +142,8 @@ class DemoRuntimeControllerTest {
     given(service.getWorkflowExecution(10L, "exec-1")).willReturn(executionResponse());
 
     mockMvc
-        .perform(get(DEMO_URL_PREFIX + "/workflow-executions/exec-1").accept(MediaType.APPLICATION_JSON))
+        .perform(
+            get(DEMO_URL_PREFIX + "/workflow-executions/exec-1").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("exec-1"))
@@ -173,7 +177,8 @@ class DemoRuntimeControllerTest {
 
     mockMvc
         .perform(
-            get(DEMO_URL_PREFIX + "/workflow-executions/unknown-id").accept(MediaType.APPLICATION_JSON))
+            get(DEMO_URL_PREFIX + "/workflow-executions/unknown-id")
+                .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.code").value("DEMO_WORKFLOW_EXECUTION_NOT_FOUND"));

@@ -178,11 +178,7 @@ class DemoRuntimeMockServiceTest {
     assertThatThrownBy(
             () ->
                 invoke(
-                    service,
-                    "getChatWorkflow",
-                    Long.class,
-                    999L,
-                    DemoChatWorkflowResponse.class))
+                    service, "getChatWorkflow", Long.class, 999L, DemoChatWorkflowResponse.class))
         .isInstanceOf(NotFoundException.class);
   }
 

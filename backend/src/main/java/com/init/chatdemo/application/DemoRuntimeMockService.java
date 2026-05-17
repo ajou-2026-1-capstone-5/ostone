@@ -43,7 +43,8 @@ public class DemoRuntimeMockService {
       throw new NotFoundException(
           "DEMO_CHAT_SESSION_NOT_FOUND", "Chat session not found: " + sessionId);
     }
-    return new DemoChatSessionEndpointResponse(session, fixture.findSessionMessages(workspaceId, sessionId));
+    return new DemoChatSessionEndpointResponse(
+        session, fixture.findSessionMessages(workspaceId, sessionId));
   }
 
   public DemoExecutionResponse getWorkflowExecution(Long workspaceId, String executionId) {

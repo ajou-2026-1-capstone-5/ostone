@@ -24,8 +24,7 @@ public class DemoRuntimeController {
   }
 
   @GetMapping("/chat-workflow")
-  public ResponseEntity<DemoChatWorkflowResponse> getChatWorkflow(
-      @PathVariable Long workspaceId) {
+  public ResponseEntity<DemoChatWorkflowResponse> getChatWorkflow(@PathVariable Long workspaceId) {
     return ResponseEntity.ok(service.getChatWorkflow(workspaceId));
   }
 
@@ -49,8 +48,7 @@ public class DemoRuntimeController {
 
   @GetMapping("/decision-logs")
   public ResponseEntity<DemoDecisionLogEndpointResponse> getDecisionLogs(
-      @PathVariable Long workspaceId,
-      @RequestParam(required = true) String executionId) {
+      @PathVariable Long workspaceId, @RequestParam(required = true) String executionId) {
     return ResponseEntity.ok(service.getDecisionLogs(workspaceId, executionId));
   }
 }

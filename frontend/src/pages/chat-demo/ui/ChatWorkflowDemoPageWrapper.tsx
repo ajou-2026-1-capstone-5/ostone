@@ -9,8 +9,18 @@ export function ChatWorkflowDemoPageWrapper() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const workspaceIdNum = parseRouteId(workspaceId);
 
-  const query = useGetChatWorkflow(workspaceIdNum!, {
-    query: { enabled: workspaceIdNum !== null },
+  if (workspaceIdNum === null) {
+    const state: ChatWorkflowDemoState = {
+      loading: false,
+      error: '유효하지 않은 workspaceId입니다.',
+      response: null,
+      selectedMessageId: null,
+    };
+    return <ChatWorkflowDemoPage state={state} />;
+  }
+
+  const query = useGetChatWorkflow(workspaceIdNum, {
+    query: { enabled: true },
   });
 
   const state: ChatWorkflowDemoState = {
