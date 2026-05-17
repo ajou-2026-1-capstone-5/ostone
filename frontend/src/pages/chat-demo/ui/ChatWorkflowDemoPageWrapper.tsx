@@ -9,6 +9,10 @@ export function ChatWorkflowDemoPageWrapper() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const workspaceIdNum = parseRouteId(workspaceId);
 
+  const query = useGetChatWorkflow(workspaceIdNum ?? 0, {
+    query: { enabled: workspaceIdNum !== null },
+  });
+
   if (workspaceIdNum === null) {
     const state: ChatWorkflowDemoState = {
       loading: false,
@@ -18,10 +22,6 @@ export function ChatWorkflowDemoPageWrapper() {
     };
     return <ChatWorkflowDemoPage state={state} />;
   }
-
-  const query = useGetChatWorkflow(workspaceIdNum, {
-    query: { enabled: true },
-  });
 
   const state: ChatWorkflowDemoState = {
     loading: query.isLoading,
