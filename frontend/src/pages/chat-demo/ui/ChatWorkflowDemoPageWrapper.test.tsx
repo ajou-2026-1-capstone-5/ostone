@@ -23,7 +23,7 @@ vi.mock('./ChatWorkflowDemoPage', () => ({
       <div data-testid="chat-workflow-demo-page">
         {state.loading && <div data-testid="loading-state">Loading...</div>}
         {state.error && <div data-testid="error-state">{state.error}</div>}
-        {!state.loading && !state.error && state.response && (
+        {!state.loading && !state.error && !!state.response && (
           <div data-testid="page-container" />
         )}
       </div>
