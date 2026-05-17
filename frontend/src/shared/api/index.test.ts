@@ -30,6 +30,7 @@ describe("resolveApiBase", () => {
 
 describe("apiClient", () => {
   let originalGetItem: typeof Storage.prototype.getItem;
+  const getStoredItem = (key: string) => originalGetItem.call(localStorage, key);
 
   beforeEach(() => {
     mockFetch.mockClear();
@@ -297,9 +298,9 @@ describe("apiClient", () => {
         code: "UNAUTHORIZED",
       });
 
-      expect(localStorage.getItem("accessToken")).toBeNull();
-      expect(localStorage.getItem("refreshToken")).toBeNull();
-      expect(localStorage.getItem("user")).toBeNull();
+      expect(getStoredItem("accessToken")).toBeNull();
+      expect(getStoredItem("refreshToken")).toBeNull();
+      expect(getStoredItem("user")).toBeNull();
     });
 
     it("401 외 non-ok 응답 시 auth session을 유지한다", async () => {
@@ -320,9 +321,9 @@ describe("apiClient", () => {
         code: "FORBIDDEN",
       });
 
-      expect(localStorage.getItem("accessToken")).toBe("mock-token");
-      expect(localStorage.getItem("refreshToken")).toBe("mock-refresh-token");
-      expect(localStorage.getItem("user")).toBe(JSON.stringify({ id: 1 }));
+      expect(getStoredItem("accessToken")).toBe("mock-token");
+      expect(getStoredItem("refreshToken")).toBe("mock-refresh-token");
+      expect(getStoredItem("user")).toBe(JSON.stringify({ id: 1 }));
     });
   });
 });
