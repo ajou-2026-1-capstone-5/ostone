@@ -47,12 +47,14 @@ class DemoRuntimeMockServiceTest {
   void should_match_when_comparingIntegratedAndIndividualDecisionLogs() {
     Object service = newService();
     DemoChatWorkflowResponse integratedResponse =
-        invoke(service, "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(service, "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
 
     DemoDecisionLogEndpointResponse individualDecisionLogsResponse =
         invoke(
             service,
             "getDecisionLogs",
+            Long.class,
+            1L,
             String.class,
             integratedResponse.execution().id(),
             DemoDecisionLogEndpointResponse.class);
@@ -65,7 +67,7 @@ class DemoRuntimeMockServiceTest {
   @DisplayName("모든 decisionLog의 messageId가 messages ID 중 하나와 연결된다")
   void should_link_when_decisionLogMessageIdMatchesMessageId() {
     DemoChatWorkflowResponse response =
-        invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(newService(), "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
     Set<String> messageIds =
         response.messages().stream().map(DemoMessageResponse::id).collect(Collectors.toSet());
 
@@ -77,7 +79,7 @@ class DemoRuntimeMockServiceTest {
   @DisplayName("모든 decisionLog의 confidence가 0.0 ~ 1.0 범위이다")
   void should_beInRange_when_checkingConfidenceBound() {
     DemoChatWorkflowResponse response =
-        invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(newService(), "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
         .isNotEmpty()
@@ -88,7 +90,7 @@ class DemoRuntimeMockServiceTest {
   @DisplayName("모든 decisionLog의 eventType이 허용된 9개 타입 중 하나이다")
   void should_beValid_when_checkingEventType() {
     DemoChatWorkflowResponse response =
-        invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(newService(), "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
         .isNotEmpty()
@@ -101,11 +103,13 @@ class DemoRuntimeMockServiceTest {
   void should_containAllFields_when_checkingExecutionResponse() {
     Object service = newService();
     DemoChatWorkflowResponse response =
-        invoke(service, "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(service, "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
     DemoExecutionResponse execution =
         invoke(
             service,
             "getWorkflowExecution",
+            Long.class,
+            1L,
             String.class,
             response.execution().id(),
             DemoExecutionResponse.class);
@@ -128,6 +132,8 @@ class DemoRuntimeMockServiceTest {
                 invoke(
                     service,
                     "getChatSession",
+                    Long.class,
+                    1L,
                     String.class,
                     "unknown-session-id",
                     DemoChatSessionEndpointResponse.class))
@@ -144,6 +150,8 @@ class DemoRuntimeMockServiceTest {
                 invoke(
                     service,
                     "getWorkflowExecution",
+                    Long.class,
+                    1L,
                     String.class,
                     "unknown-execution-id",
                     DemoExecutionResponse.class))
@@ -154,9 +162,27 @@ class DemoRuntimeMockServiceTest {
                 invoke(
                     service,
                     "getDecisionLogs",
+                    Long.class,
+                    1L,
                     String.class,
                     "unknown-execution-id",
                     DemoDecisionLogEndpointResponse.class))
+        .isInstanceOf(NotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 workspaceId 조회 시 오류가 발생한다")
+  void should_throw_when_lookingUpUnknownWorkspace() {
+    Object service = newService();
+
+    assertThatThrownBy(
+            () ->
+                invoke(
+                    service,
+                    "getChatWorkflow",
+                    Long.class,
+                    999L,
+                    DemoChatWorkflowResponse.class))
         .isInstanceOf(NotFoundException.class);
   }
 
@@ -170,6 +196,8 @@ class DemoRuntimeMockServiceTest {
                 invoke(
                     service,
                     "getDecisionLogs",
+                    Long.class,
+                    1L,
                     String.class,
                     " ",
                     DemoDecisionLogEndpointResponse.class))
@@ -180,7 +208,7 @@ class DemoRuntimeMockServiceTest {
   @DisplayName("모든 decisionLog의 stateFrom과 stateTo가 null 또는 blank가 아니다")
   void should_notBeBlank_when_checkingDecisionLogStates() {
     DemoChatWorkflowResponse response =
-        invoke(newService(), "getChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(newService(), "getChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
 
     assertThat(response.decisionLogs())
         .isNotEmpty()
@@ -196,19 +224,45 @@ class DemoRuntimeMockServiceTest {
   void should_beConsistent_when_lookingUpSameSessionMultipleTimes() {
     Object fixture = newFixture();
     DemoChatWorkflowResponse response =
-        invoke(fixture, "provideChatWorkflow", DemoChatWorkflowResponse.class);
+        invoke(fixture, "provideChatWorkflow", Long.class, 1L, DemoChatWorkflowResponse.class);
     String sessionId = response.chatSession().id();
 
     DemoChatSessionResponse firstSession =
-        invoke(fixture, "findSession", String.class, sessionId, DemoChatSessionResponse.class);
+        invoke(
+            fixture,
+            "findSession",
+            Long.class,
+            1L,
+            String.class,
+            sessionId,
+            DemoChatSessionResponse.class);
     DemoChatSessionResponse secondSession =
-        invoke(fixture, "findSession", String.class, sessionId, DemoChatSessionResponse.class);
+        invoke(
+            fixture,
+            "findSession",
+            Long.class,
+            1L,
+            String.class,
+            sessionId,
+            DemoChatSessionResponse.class);
     List<DemoMessageResponse> firstMessages =
         invokeList(
-            fixture, "findSessionMessages", String.class, sessionId, DemoMessageResponse.class);
+            fixture,
+            "findSessionMessages",
+            Long.class,
+            1L,
+            String.class,
+            sessionId,
+            DemoMessageResponse.class);
     List<DemoMessageResponse> secondMessages =
         invokeList(
-            fixture, "findSessionMessages", String.class, sessionId, DemoMessageResponse.class);
+            fixture,
+            "findSessionMessages",
+            Long.class,
+            1L,
+            String.class,
+            sessionId,
+            DemoMessageResponse.class);
 
     assertThat(secondSession).isEqualTo(firstSession);
     assertThat(secondMessages).isEqualTo(firstMessages);
@@ -266,6 +320,17 @@ class DemoRuntimeMockServiceTest {
     return returnType.cast(invokeRaw(target, methodName, parameterType, argument));
   }
 
+  private <T> T invoke(
+      Object target,
+      String methodName,
+      Class<?> paramType1,
+      Object arg1,
+      Class<?> paramType2,
+      Object arg2,
+      Class<T> returnType) {
+    return returnType.cast(invokeRaw(target, methodName, paramType1, paramType2, arg1, arg2));
+  }
+
   private <T> List<T> invokeList(
       Object target,
       String methodName,
@@ -273,6 +338,19 @@ class DemoRuntimeMockServiceTest {
       Object argument,
       Class<T> elementType) {
     Object result = invokeRaw(target, methodName, parameterType, argument);
+    assertThat(result).isInstanceOf(List.class);
+    return ((List<?>) result).stream().map(elementType::cast).toList();
+  }
+
+  private <T> List<T> invokeList(
+      Object target,
+      String methodName,
+      Class<?> paramType1,
+      Object arg1,
+      Class<?> paramType2,
+      Object arg2,
+      Class<T> elementType) {
+    Object result = invokeRaw(target, methodName, paramType1, paramType2, arg1, arg2);
     assertThat(result).isInstanceOf(List.class);
     return ((List<?>) result).stream().map(elementType::cast).toList();
   }
@@ -285,6 +363,23 @@ class DemoRuntimeMockServiceTest {
               ? target.getClass().getDeclaredMethod(methodName)
               : target.getClass().getDeclaredMethod(methodName, parameterType);
       return parameterType == null ? method.invoke(target) : method.invoke(target, argument);
+    } catch (NoSuchMethodException | IllegalAccessException exception) {
+      throw new IllegalStateException("Required method is missing: " + methodName, exception);
+    } catch (InvocationTargetException exception) {
+      throw rethrowRuntime(exception.getCause());
+    }
+  }
+
+  private Object invokeRaw(
+      Object target,
+      String methodName,
+      Class<?> paramType1,
+      Class<?> paramType2,
+      Object arg1,
+      Object arg2) {
+    try {
+      Method method = target.getClass().getDeclaredMethod(methodName, paramType1, paramType2);
+      return method.invoke(target, arg1, arg2);
     } catch (NoSuchMethodException | IllegalAccessException exception) {
       throw new IllegalStateException("Required method is missing: " + methodName, exception);
     } catch (InvocationTargetException exception) {

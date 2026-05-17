@@ -12,8 +12,23 @@ export const WorkflowTransitionDetail = zod.object({
   "domainPackVersionId": zod.number().optional(),
   "from": zod.string().optional(),
   "to": zod.string().optional(),
+  "fromType": zod.string().optional(),
+  "toType": zod.string().optional(),
   "label": zod.string().optional(),
-  "toPolicyRef": zod.string().optional()
+  "toPolicyRef": zod.string().optional(),
+  "condition": zod.object({
+  "editable": zod.boolean().optional(),
+  "label": zod.string().optional()
+}).optional(),
+  "action": zod.object({
+  "editable": zod.boolean().optional(),
+  "policyRef": zod.string().optional()
+}).optional(),
+  "outcome": zod.object({
+  "editable": zod.boolean().optional(),
+  "state": zod.string().optional(),
+  "label": zod.string().optional()
+}).optional()
 })
 
 export type WorkflowTransitionDetail = zod.input<typeof WorkflowTransitionDetail>;

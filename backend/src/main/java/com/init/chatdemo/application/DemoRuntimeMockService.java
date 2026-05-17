@@ -23,26 +23,31 @@ public class DemoRuntimeMockService {
     this.fixture = fixture;
   }
 
-  public DemoChatWorkflowResponse getChatWorkflow() {
-    return fixture.provideChatWorkflow();
+  public DemoChatWorkflowResponse getChatWorkflow(Long workspaceId) {
+    DemoChatWorkflowResponse result = fixture.provideChatWorkflow(workspaceId);
+    if (result == null) {
+      throw new NotFoundException(
+          "DEMO_WORKSPACE_NOT_FOUND", "Chat workflow not found for workspace: " + workspaceId);
+    }
+    return result;
   }
 
-  public DemoDomainPackEndpointResponse getDomainPack() {
-    DemoChatWorkflowResponse chatWorkflow = getChatWorkflow();
+  public DemoDomainPackEndpointResponse getDomainPack(Long workspaceId) {
+    DemoChatWorkflowResponse chatWorkflow = getChatWorkflow(workspaceId);
     return new DemoDomainPackEndpointResponse(chatWorkflow.domainPack(), chatWorkflow.workflow());
   }
 
-  public DemoChatSessionEndpointResponse getChatSession(String sessionId) {
-    DemoChatSessionResponse session = fixture.findSession(sessionId);
+  public DemoChatSessionEndpointResponse getChatSession(Long workspaceId, String sessionId) {
+    DemoChatSessionResponse session = fixture.findSession(workspaceId, sessionId);
     if (session == null) {
       throw new NotFoundException(
           "DEMO_CHAT_SESSION_NOT_FOUND", "Chat session not found: " + sessionId);
     }
-    return new DemoChatSessionEndpointResponse(session, fixture.findSessionMessages(sessionId));
+    return new DemoChatSessionEndpointResponse(session, fixture.findSessionMessages(workspaceId, sessionId));
   }
 
-  public DemoExecutionResponse getWorkflowExecution(String executionId) {
-    DemoExecutionResponse execution = fixture.findExecution(executionId);
+  public DemoExecutionResponse getWorkflowExecution(Long workspaceId, String executionId) {
+    DemoExecutionResponse execution = fixture.findExecution(workspaceId, executionId);
     if (execution == null) {
       throw new NotFoundException(
           "DEMO_EXECUTION_NOT_FOUND", "Execution not found: " + executionId);
@@ -50,11 +55,11 @@ public class DemoRuntimeMockService {
     return execution;
   }
 
-  public DemoDecisionLogEndpointResponse getDecisionLogs(String executionId) {
+  public DemoDecisionLogEndpointResponse getDecisionLogs(Long workspaceId, String executionId) {
     if (executionId == null || executionId.isBlank()) {
       throw new BadRequestException("DEMO_EXECUTION_ID_REQUIRED", "executionId is required");
     }
-    List<DemoDecisionLogResponse> decisionLogs = fixture.findDecisionLogs(executionId);
+    List<DemoDecisionLogResponse> decisionLogs = fixture.findDecisionLogs(workspaceId, executionId);
     if (decisionLogs.isEmpty()) {
       throw new NotFoundException(
           "DEMO_EXECUTION_NOT_FOUND", "Execution not found: " + executionId);

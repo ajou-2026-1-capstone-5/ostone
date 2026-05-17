@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/demo")
+@RequestMapping("/api/v1/workspaces/{workspaceId}/demo")
 public class DemoRuntimeController {
 
   private final DemoRuntimeMockService service;
@@ -24,30 +24,33 @@ public class DemoRuntimeController {
   }
 
   @GetMapping("/chat-workflow")
-  public ResponseEntity<DemoChatWorkflowResponse> getChatWorkflow() {
-    return ResponseEntity.ok(service.getChatWorkflow());
+  public ResponseEntity<DemoChatWorkflowResponse> getChatWorkflow(
+      @PathVariable Long workspaceId) {
+    return ResponseEntity.ok(service.getChatWorkflow(workspaceId));
   }
 
   @GetMapping("/domain-pack")
-  public ResponseEntity<DemoDomainPackEndpointResponse> getDomainPack() {
-    return ResponseEntity.ok(service.getDomainPack());
+  public ResponseEntity<DemoDomainPackEndpointResponse> getDomainPack(
+      @PathVariable Long workspaceId) {
+    return ResponseEntity.ok(service.getDomainPack(workspaceId));
   }
 
   @GetMapping("/chat-sessions/{sessionId}")
   public ResponseEntity<DemoChatSessionEndpointResponse> getChatSession(
-      @PathVariable String sessionId) {
-    return ResponseEntity.ok(service.getChatSession(sessionId));
+      @PathVariable Long workspaceId, @PathVariable String sessionId) {
+    return ResponseEntity.ok(service.getChatSession(workspaceId, sessionId));
   }
 
   @GetMapping("/workflow-executions/{executionId}")
   public ResponseEntity<DemoExecutionResponse> getWorkflowExecution(
-      @PathVariable String executionId) {
-    return ResponseEntity.ok(service.getWorkflowExecution(executionId));
+      @PathVariable Long workspaceId, @PathVariable String executionId) {
+    return ResponseEntity.ok(service.getWorkflowExecution(workspaceId, executionId));
   }
 
   @GetMapping("/decision-logs")
   public ResponseEntity<DemoDecisionLogEndpointResponse> getDecisionLogs(
+      @PathVariable Long workspaceId,
       @RequestParam(required = true) String executionId) {
-    return ResponseEntity.ok(service.getDecisionLogs(executionId));
+    return ResponseEntity.ok(service.getDecisionLogs(workspaceId, executionId));
   }
 }

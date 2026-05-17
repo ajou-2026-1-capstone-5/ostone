@@ -10,7 +10,7 @@ import { z as zod } from 'zod';
 
 export const UpdatePolicyRequest = zod.object({
   "name": zod.string().min(1).optional(),
-  "description": zod.string().nullable().optional(),
+  "description": zod.string().optional(),
   "severity": zod.string().optional(),
   "conditionJson": zod.string().optional(),
   "actionJson": zod.string().optional(),
