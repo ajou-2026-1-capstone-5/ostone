@@ -1,3 +1,5 @@
+import { clearAuthSession } from "@/shared/lib/auth";
+
 export function resolveApiBase(apiBaseUrl: string | undefined): string {
   return apiBaseUrl || "/api/v1";
 }
@@ -9,6 +11,15 @@ interface ApiError {
   message: string;
 }
 
+interface RequestHeaders {
+  headers: Record<string, string>;
+  hasSessionAuthHeader: boolean;
+}
+
+interface ResponseHandlingOptions {
+  clearSessionOnUnauthorized: boolean;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -16,27 +27,45 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private getHeaders(): Record<string, string> {
+  private shouldAttachAuthHeader(path: string): boolean {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    const pathWithoutApiPrefix = normalizedPath.startsWith("/api/v1/")
+      ? normalizedPath.slice("/api/v1".length)
+      : normalizedPath;
+
+    return pathWithoutApiPrefix !== "/auth" && !pathWithoutApiPrefix.startsWith("/auth/");
+  }
+
+  private getHeaders(path: string): RequestHeaders {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
+    let hasSessionAuthHeader = false;
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && this.shouldAttachAuthHeader(path)) {
       const token = localStorage.getItem("accessToken");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
+        hasSessionAuthHeader = true;
       }
     }
 
-    return headers;
+    return { headers, hasSessionAuthHeader };
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
+  private async handleResponse<T>(
+    response: Response,
+    options: ResponseHandlingOptions,
+  ): Promise<T> {
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({
         code: "UNKNOWN_ERROR",
         message: "요청 처리 중 오류가 발생했습니다.",
       }))) as ApiError;
+
+      if (response.status === 401 && options.clearSessionOnUnauthorized) {
+        clearAuthSession();
+      }
 
       throw new ApiRequestError(
         response.status,
@@ -53,13 +82,16 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
+    const { headers, hasSessionAuthHeader } = this.getHeaders(path);
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "POST",
-      headers: this.getHeaders(),
+      headers,
       body: JSON.stringify(body),
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, {
+      clearSessionOnUnauthorized: hasSessionAuthHeader,
+    });
   }
 
   async request<T>(path: string, options: RequestInit): Promise<T> {
@@ -68,7 +100,8 @@ class ApiClient {
       body = JSON.stringify(body);
     }
 
-    const headers = new Headers(this.getHeaders());
+    const { headers: baseHeaders, hasSessionAuthHeader } = this.getHeaders(path);
+    const headers = new Headers(baseHeaders);
     if (body instanceof FormData || body instanceof Blob || body instanceof URLSearchParams) {
       headers.delete('Content-Type');
     }
@@ -84,36 +117,47 @@ class ApiClient {
       body,
       headers,
     });
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, {
+      clearSessionOnUnauthorized: hasSessionAuthHeader,
+    });
   }
 
   async get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
+    const { headers, hasSessionAuthHeader } = this.getHeaders(path);
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "GET",
-      headers: this.getHeaders(),
+      headers,
       signal: options?.signal,
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, {
+      clearSessionOnUnauthorized: hasSessionAuthHeader,
+    });
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
+    const { headers, hasSessionAuthHeader } = this.getHeaders(path);
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "PATCH",
-      headers: this.getHeaders(),
+      headers,
       body: JSON.stringify(body),
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, {
+      clearSessionOnUnauthorized: hasSessionAuthHeader,
+    });
   }
 
   async delete<T>(path: string): Promise<T> {
+    const { headers, hasSessionAuthHeader } = this.getHeaders(path);
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'DELETE',
-      headers: this.getHeaders(),
+      headers,
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, {
+      clearSessionOnUnauthorized: hasSessionAuthHeader,
+    });
   }
 }
 
