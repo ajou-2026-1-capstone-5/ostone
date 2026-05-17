@@ -1,0 +1,104 @@
+name: Production Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main') &&
+      (contains(github.event.head_commit.modified, 'backend/') ||
+       contains(github.event.head_commit.added, 'backend/') ||
+       contains(github.event.head_commit.modified, 'backend/**') ||
+       contains(github.event.head_commit.added, 'backend/**') ||
+       contains(github.event.head_commit.modified, '.github/workflows/prod-deploy.yml'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Gradle
+        run: |
+          cd backend
+          ./gradlew bootJar --no-daemon -x checkstyleMain -x checkstyleTest
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        env:
+          ECR_REPOSITORY: ostone/backend
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile.prod backend/
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+          docker push --all-tags ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY
+
+      - name: Deploy to Amazon ECS
+        run: |
+          aws ecs update-service \
+            --cluster ostone-prod-cluster \
+            --service ostone-backend \
+            --force-new-deployment \
+            --region ap-northeast-2
+
+  frontend:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main') &&
+      (contains(github.event.head_commit.modified, 'frontend/') ||
+       contains(github.event.head_commit.added, 'frontend/') ||
+       contains(github.event.head_commit.modified, 'frontend/**') ||
+       contains(github.event.head_commit.added, 'frontend/**') ||
+       contains(github.event.head_commit.modified, '.github/workflows/prod-deploy.yml'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install & Build
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Sync to S3
+        env:
+          FRONTEND_BUCKET: ${{ secrets.FRONTEND_S3_BUCKET }}
+        run: |
+          aws s3 sync frontend/dist/ s3://$FRONTEND_BUCKET/ --delete
+
+      - name: Invalidate CloudFront
+        env:
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
