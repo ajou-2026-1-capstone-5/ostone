@@ -250,15 +250,21 @@ public class DemoRuntimeFixture {
               new DemoTransitionResponse(
                   STATE_INTENT_DETECTED, STATE_PAYMENT_INFO_COLLECTING, "PAYMENT_QUERY_STARTED"),
               new DemoTransitionResponse(
-                  STATE_PAYMENT_INFO_COLLECTING, STATE_USAGE_HISTORY_SEARCHING, "PAYMENT_INFO_FILLED"),
+                  STATE_PAYMENT_INFO_COLLECTING,
+                  STATE_USAGE_HISTORY_SEARCHING,
+                  "PAYMENT_INFO_FILLED"),
               new DemoTransitionResponse(
-                  STATE_USAGE_HISTORY_SEARCHING, STATE_MISMATCH_ANALYSIS, "USAGE_HISTORY_NOT_FOUND"),
+                  STATE_USAGE_HISTORY_SEARCHING,
+                  STATE_MISMATCH_ANALYSIS,
+                  "USAGE_HISTORY_NOT_FOUND"),
               new DemoTransitionResponse(
                   STATE_MISMATCH_ANALYSIS,
                   STATE_PAYMENT_INFO_COLLECTING,
                   "ADDITIONAL_PAYMENT_INFO_REQUESTED"),
               new DemoTransitionResponse(
-                  STATE_MISMATCH_ANALYSIS, STATE_EVIDENCE_REQUESTING, "CUSTOMER_APP_SCREEN_VISIBLE"),
+                  STATE_MISMATCH_ANALYSIS,
+                  STATE_EVIDENCE_REQUESTING,
+                  "CUSTOMER_APP_SCREEN_VISIBLE"),
               new DemoTransitionResponse(
                   STATE_EVIDENCE_REQUESTING, STATE_DEPARTMENT_ESCALATION, "SCREENSHOT_REQUESTED"),
               new DemoTransitionResponse(
@@ -665,7 +671,9 @@ public class DemoRuntimeFixture {
               new DemoTransitionResponse(
                   STATE_AVAILABILITY_CHECKING, STATE_SLOT_COLLECTING, "ALTERNATIVE_DATE_REQUESTED"),
               new DemoTransitionResponse(
-                  STATE_AVAILABILITY_CHECKING, STATE_ALTERNATIVE_OFFERING, "REQUESTED_ROOM_UNAVAILABLE"),
+                  STATE_AVAILABILITY_CHECKING,
+                  STATE_ALTERNATIVE_OFFERING,
+                  "REQUESTED_ROOM_UNAVAILABLE"),
               new DemoTransitionResponse(
                   STATE_ALTERNATIVE_OFFERING, STATE_RESERVATION_GUIDE, "AVAILABLE_ROOM_CONFIRMED"),
               new DemoTransitionResponse(
