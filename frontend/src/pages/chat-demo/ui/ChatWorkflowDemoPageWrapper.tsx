@@ -26,7 +26,7 @@ export function ChatWorkflowDemoPageWrapper() {
   const state: ChatWorkflowDemoState = {
     loading: query.isLoading,
     error: query.error ? String(query.error) : null,
-    response: query.data ? unwrapApiResponse(query.data) as DemoChatWorkflowResponse : null,
+    response: query.data ? unwrapApiResponse(query.data) as unknown as DemoChatWorkflowResponse : null,
     selectedMessageId: null,
   };
 
