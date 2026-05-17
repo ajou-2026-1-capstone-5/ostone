@@ -63,3 +63,6 @@ agent-local-status.sh
 
 # Aws MCP 설정 디렉토리
 .aws/
+
+# Terraform
+infra/terraform/.terraform/
