@@ -39,9 +39,19 @@ describe('ChatTimelinePanel', () => {
     render(<ChatTimelinePanel messages={messages} selectedMessageId="msg-1" />);
     const selectedMsg = screen.getByTestId('chat-message-msg-1');
     const unselectedMsg = screen.getByTestId('chat-message-msg-2');
-    expect(selectedMsg).toHaveClass('border-l-blue-500');
-    expect(selectedMsg).toHaveClass('bg-blue-50');
-    expect(unselectedMsg).not.toHaveClass('border-l-blue-500');
+    expect(selectedMsg.className).toContain('messageSelected');
+    expect(unselectedMsg.className).not.toContain('messageSelected');
+  });
+
+  it('highlights active processing message', () => {
+    const messages: DemoChatMessage[] = [
+      { id: 'msg-1', role: 'user', content: 'Waiting', timestamp: '2026-01-01T00:00:00Z' },
+      { id: 'msg-2', role: 'assistant', content: 'Agent reply', timestamp: '2026-01-01T00:00:01Z' },
+    ];
+    render(<ChatTimelinePanel messages={messages} activeMessageId="msg-2" />);
+    const activeMsg = screen.getByTestId('chat-message-msg-2');
+    expect(activeMsg.className).toContain('messageActive');
+    expect(screen.getByText('Processing')).toBeInTheDocument();
   });
 
   it('shows empty state when no messages', () => {

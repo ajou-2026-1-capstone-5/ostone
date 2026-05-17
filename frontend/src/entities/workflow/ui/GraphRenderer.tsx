@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ReactFlow, Background, Controls, type NodeTypes } from "@xyflow/react";
+import { ReactFlow, Background, Controls, type NodeProps, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow";
@@ -13,12 +13,12 @@ import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import styles from "./GraphRenderer.module.css";
 
 const nodeTypes: NodeTypes = {
-  start: StartNode as React.ComponentType<any>,
-  action: ActionNode as React.ComponentType<any>,
-  decision: DecisionNode as React.ComponentType<any>,
-  answer: AnswerNode as React.ComponentType<any>,
-  handoff: HandoffNode as React.ComponentType<any>,
-  terminal: TerminalNode as React.ComponentType<any>,
+  start: StartNode as React.ComponentType<NodeProps>,
+  action: ActionNode as React.ComponentType<NodeProps>,
+  decision: DecisionNode as React.ComponentType<NodeProps>,
+  answer: AnswerNode as React.ComponentType<NodeProps>,
+  handoff: HandoffNode as React.ComponentType<NodeProps>,
+  terminal: TerminalNode as React.ComponentType<NodeProps>,
 };
 
 interface GraphRendererProps {
@@ -28,12 +28,13 @@ interface GraphRendererProps {
   selectedNodeIds?: readonly string[];
   onNodeSelect?: (nodeId: string) => void;
   currentNodeId?: string;
+  showEdgeLabels?: boolean;
   isLoading?: boolean;
   error?: Error | string | null;
   emptyMessage?: string;
 }
 
-export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId, isLoading, error, emptyMessage }: GraphRendererProps) {
+export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId, showEdgeLabels = true, isLoading, error, emptyMessage }: GraphRendererProps) {
   const { nodes, edges } = useMemo(() => {
     const flow = toFlow(graph);
     const selectedSet = selectedNodeIds?.length ? new Set(selectedNodeIds) : null;
@@ -46,9 +47,14 @@ export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selecte
           current: node.id === currentNodeId ? true : undefined,
         },
       })),
-      edges: flow.edges,
+      edges: showEdgeLabels
+        ? flow.edges
+        : flow.edges.map((edge) => ({
+            ...edge,
+            label: undefined,
+          })),
     };
-  }, [graph, selectedNodeIds, currentNodeId]);
+  }, [graph, selectedNodeIds, currentNodeId, showEdgeLabels]);
 
   return (
     <div className={styles.container}>
@@ -65,6 +71,7 @@ export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selecte
             edges={edges}
             nodeTypes={nodeTypes}
             fitView
+            fitViewOptions={{ padding: 0.18 }}
             panOnDrag={true}
             zoomOnScroll={true}
             nodesDraggable={false}

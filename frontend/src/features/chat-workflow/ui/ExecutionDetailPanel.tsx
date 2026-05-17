@@ -1,4 +1,5 @@
 import type { DemoExecution, DemoPolicyHit, DemoRiskHit } from '../model/chatWorkflow.types';
+import styles from './chat-workflow-demo.module.css';
 
 interface ExecutionDetailPanelProps {
   execution: DemoExecution | null;
@@ -22,14 +23,14 @@ function statusColorClass(status: string): string {
 function PolicyHitRow({ hit }: { hit: DemoPolicyHit }) {
   const isPass = hit.result === 'PASS';
   return (
-    <div className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
-      <span className={isPass ? 'text-green-600' : 'text-red-600'}>{isPass ? '✓' : '✗'}</span>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{hit.policyName}</span>
-          <span className={isPass ? 'text-green-600' : 'text-red-600'}>({hit.result})</span>
+    <div className={styles.hitRow}>
+      <span className={styles.hitMark}>{isPass ? 'OK' : 'NO'}</span>
+      <div>
+        <div className={styles.hitTitle}>
+          <span>{hit.policyName}</span>
+          <span className={styles.hitResult}>({hit.result})</span>
         </div>
-        <p className="text-xs text-muted-foreground">{hit.detail}</p>
+        <p className={styles.hitDetail}>{hit.detail}</p>
       </div>
     </div>
   );
@@ -38,14 +39,14 @@ function PolicyHitRow({ hit }: { hit: DemoPolicyHit }) {
 function RiskHitRow({ hit }: { hit: DemoRiskHit }) {
   const isLow = hit.result === 'LOW';
   return (
-    <div className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
-      <span className={isLow ? 'text-yellow-600' : 'text-red-600'}>{isLow ? '⚠' : '🔴'}</span>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{hit.riskName}</span>
-          <span className={isLow ? 'text-yellow-600' : 'text-red-600'}>({hit.result})</span>
+    <div className={styles.hitRow}>
+      <span className={styles.hitMark}>{isLow ? 'LOW' : '!'}</span>
+      <div>
+        <div className={styles.hitTitle}>
+          <span>{hit.riskName}</span>
+          <span className={styles.hitResult}>({hit.result})</span>
         </div>
-        <p className="text-xs text-muted-foreground">{hit.detail}</p>
+        <p className={styles.hitDetail}>{hit.detail}</p>
       </div>
     </div>
   );
@@ -54,56 +55,60 @@ function RiskHitRow({ hit }: { hit: DemoRiskHit }) {
 export function ExecutionDetailPanel({ execution }: ExecutionDetailPanelProps) {
   if (!execution) {
     return (
-      <div className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Execution Detail</h3>
-        <p className="text-sm text-muted-foreground">Waiting for execution...</p>
+      <div className={styles.detailPanel}>
+        <h3>Execution Detail</h3>
+        <p className={styles.empty}>Waiting for execution...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
-      <h3 className="mb-3 text-sm font-semibold">Execution Detail</h3>
-      <div className="space-y-3">
-        <div className="rounded-md bg-muted px-3 py-2 text-sm">
-          <span className="text-xs text-muted-foreground">Status:</span>{' '}
-          <span className={`font-medium ${statusColorClass(execution.status)}`} data-testid="execution-status">
-            {execution.status}
-          </span>
+    <div className={styles.detailPanel}>
+      <h3>Execution Detail</h3>
+      <div className={styles.detailStack}>
+        <div className={styles.summaryGrid}>
+          <div className={styles.summaryItem}>
+            <span className={styles.labelText}>Status</span>
+            <span className={`${styles.statusValue} ${statusColorClass(execution.status)}`} data-testid="execution-status">
+              {execution.status}
+            </span>
+          </div>
+
+          <div className={styles.summaryItem} data-testid="execution-intent">
+            <span className={styles.labelText}>Intent</span>
+            <p className={styles.intentValue}>{execution.intent}</p>
+          </div>
         </div>
 
-        <div className="rounded-md bg-muted px-3 py-2 text-sm" data-testid="execution-intent">
-          <span className="text-xs text-muted-foreground">Intent:</span>{' '}
-          <span className="font-medium">{execution.intent}</span>
-        </div>
-
-        <div className="rounded-md border px-3 py-2 text-sm" data-testid="execution-slots">
-          <span className="text-xs text-muted-foreground">Slot Values:</span>
-          <table className="mt-1 w-full text-xs">
-            <tbody>
-              {Object.entries(execution.slotValues).map(([key, value]) => (
-                <tr key={key}>
-                  <td className="py-0.5 pr-3 font-medium text-muted-foreground">{key}</td>
-                  <td className="py-0.5">{String(value)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={styles.slots} data-testid="execution-slots">
+          <span className={styles.labelText}>Slot Values:</span>
+          <div className={styles.slotGrid}>
+            {Object.entries(execution.slotValues).map(([key, value]) => (
+              <div key={key} className={styles.slotItem}>
+                <span className={styles.slotKey}>{key}</span>
+                <span className={styles.slotValue}>{String(value)}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {execution.missingSlots.length > 0 && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm">
-            <span className="text-xs font-medium text-red-600">Missing Slots:</span>
-            <p className="mt-0.5 text-red-600">
-              {execution.missingSlots.join(', ')}
-            </p>
+          <div className={styles.missing}>
+            <span className={styles.labelText}>Missing Slots:</span>
+            <div className={styles.chipList}>
+              {execution.missingSlots.map((slot) => (
+                <span key={slot} className={styles.chip}>
+                  {slot}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
         {execution.policyHits.length > 0 && (
           <div data-testid="execution-policies">
-            <span className="mb-1 block text-xs text-muted-foreground">Policy Hits:</span>
-            <div className="space-y-1.5">
+            <span className={styles.hitGroupLabel}>Policy Hits:</span>
+            <div className={styles.hitList}>
               {execution.policyHits.map((hit) => (
                 <PolicyHitRow key={hit.policyId} hit={hit} />
               ))}
@@ -113,8 +118,8 @@ export function ExecutionDetailPanel({ execution }: ExecutionDetailPanelProps) {
 
         {execution.riskHits.length > 0 && (
           <div data-testid="execution-risks">
-            <span className="mb-1 block text-xs text-muted-foreground">Risk Hits:</span>
-            <div className="space-y-1.5">
+            <span className={styles.hitGroupLabel}>Risk Hits:</span>
+            <div className={styles.hitList}>
               {execution.riskHits.map((hit) => (
                 <RiskHitRow key={hit.riskId} hit={hit} />
               ))}

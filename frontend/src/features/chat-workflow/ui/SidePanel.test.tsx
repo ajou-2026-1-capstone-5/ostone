@@ -8,6 +8,7 @@ import {
   demoExecution,
   demoDecisionLogs,
   demoDomainPack,
+  demoMessages,
 } from '../model/chatWorkflowDemo.mock';
 
 vi.mock('../lib/workflowAdapter', () => ({
@@ -17,18 +18,6 @@ vi.mock('../lib/workflowAdapter', () => ({
 vi.mock('../lib/messageNodeMapping', () => ({
   getNodeIdsByMessageId: vi.fn(() => []),
   getMessageIdByNodeId: vi.fn(() => null),
-}));
-
-vi.mock('@/entities/workflow', () => ({
-  GraphRenderer: vi.fn(({ selectedNodeIds, onNodeSelect, currentNodeId }) => (
-    <div data-testid="graph-renderer">
-      <span data-testid="selected-node-count">{selectedNodeIds?.length ?? 0}</span>
-      <span data-testid="current-node-id">{currentNodeId}</span>
-      <button data-testid="node-select-btn" onClick={() => onNodeSelect?.('test-node')}>
-        Select Node
-      </button>
-    </div>
-  )),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -43,6 +32,8 @@ describe('SidePanel', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
@@ -52,6 +43,7 @@ describe('SidePanel', () => {
     expect(screen.getByTestId('side-panel-workflow-header')).toBeInTheDocument();
     expect(screen.getByTestId('header-domain-name')).toBeInTheDocument();
     expect(screen.getByTestId('graph-container')).toBeInTheDocument();
+    expect(screen.getByTestId('current-turn-insight')).toBeInTheDocument();
     expect(screen.getByTestId('execution-status')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /decision log/i })).toBeInTheDocument();
   });
@@ -63,6 +55,8 @@ describe('SidePanel', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
@@ -80,6 +74,8 @@ describe('SidePanel', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId="msg-1"
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
@@ -101,6 +97,8 @@ describe('SidePanel', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={null}
       />,
       { wrapper: Wrapper },
@@ -118,6 +116,8 @@ describe('SidePanel', () => {
         execution={null}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
@@ -134,6 +134,8 @@ describe('SidePanel', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
@@ -144,20 +146,22 @@ describe('SidePanel', () => {
   });
 });
 
-describe('SidePanel with GraphRenderer', () => {
-  it('renders graph-container when workflow is provided', () => {
+describe('SidePanel workflow overview', () => {
+  it('renders workflow stages when workflow is provided', () => {
     render(
       <SidePanel
         workflow={demoWorkflow}
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
       />,
       { wrapper: Wrapper },
     );
     expect(screen.getByTestId('graph-container')).toBeInTheDocument();
-    expect(screen.getByTestId('current-node-id')).toHaveTextContent(demoExecution.currentState || '');
+    expect(screen.getByTestId(`workflow-stage-${demoExecution.currentState}`)).toBeInTheDocument();
   });
 
   it('passes onNodeSelect when provided', async () => {
@@ -169,13 +173,15 @@ describe('SidePanel with GraphRenderer', () => {
         execution={demoExecution}
         decisionLogs={demoDecisionLogs}
         selectedMessageId={null}
+        activeMessageId="msg-4"
+        messages={demoMessages}
         domainPack={demoDomainPack}
         onNodeSelect={onNodeSelect}
       />,
       { wrapper: Wrapper },
     );
-    
-    await user.click(screen.getByTestId('node-select-btn'));
-    expect(onNodeSelect).toHaveBeenCalledWith('test-node');
+
+    await user.click(screen.getByTestId('workflow-stage-INITIAL'));
+    expect(onNodeSelect).toHaveBeenCalledWith('INITIAL');
   });
 });

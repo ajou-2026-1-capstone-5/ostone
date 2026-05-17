@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { DemoDecisionLogEntry } from '../model/chatWorkflow.types';
+import styles from './chat-workflow-demo.module.css';
 
 interface DecisionLogDrawerProps {
   entries: DemoDecisionLogEntry[];
@@ -30,17 +31,19 @@ export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDra
   const sorted = [...entries].sort((a, b) => a.step - b.step);
 
   return (
-    <div>
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
-        Decision Log {open ? '\u25B2' : '\u25BC'}
+    <div className={styles.decisionPanel}>
+      <h3>Trace</h3>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={styles.decisionToggle}>
+        <span>Decision Log</span>
+        <span>{open ? 'Close' : `${sorted.length} entries`}</span>
       </button>
       {open && (
-        <div style={{ maxHeight: '260px', overflow: 'auto' }}>
+        <div className={styles.decisionDrawer}>
           <h3>Decision Log</h3>
           {sorted.length === 0 ? (
-            <p>기록된 결정이 없습니다.</p>
+            <p className={styles.empty}>기록된 결정이 없습니다.</p>
           ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <ul className={styles.decisionList}>
               {sorted.map((entry) => {
                 const highlighted =
                   selectedMessageId != null && entry.messageId === selectedMessageId;
@@ -48,72 +51,41 @@ export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDra
                   <li
                     key={entry.id}
                     data-testid={`decision-entry-${entry.id}`}
+                    className={`${styles.decisionEntry} ${highlighted ? styles.decisionHighlighted : ''}`}
                     style={{
-                      padding: '8px',
-                      marginBottom: '4px',
                       borderLeft: highlighted ? '3px solid #3b82f6' : '3px solid transparent',
                       background: highlighted ? '#eff6ff' : undefined,
-                      borderRadius: '4px',
                     }}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      <span>{entry.step}.</span>
-                      <span data-testid="decision-transition">
+                    <div className={styles.decisionMeta}>
+                      <span className={styles.decisionStep}>{entry.step}.</span>
+                      <span data-testid="decision-transition" className={styles.decisionTransition}>
                         {entry.stateFrom} → {entry.stateTo}
                       </span>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          padding: '1px 6px',
-                          borderRadius: '8px',
-                          background: '#e5e7eb',
-                          color: '#374151',
-                        }}
-                      >
+                      <span className={styles.decisionBadge}>
                         {entry.eventType}
                       </span>
                       <span
                         data-testid="decision-decision"
+                        className={styles.decisionBadge}
                         style={{
-                          fontSize: '11px',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
                           color: '#fff',
-                          fontWeight: 600,
                           background: decisionBadgeColor(entry.decision),
                         }}
                       >
                         {entry.decision}
                       </span>
                     </div>
-                    <div
-                      data-testid="decision-confidence"
-                      style={{
-                        width: '100%',
-                        height: '8px',
-                        background: '#e5e7eb',
-                        borderRadius: '4px',
-                        marginBottom: '4px',
-                      }}
-                    >
+                    <div data-testid="decision-confidence" className={styles.confidenceTrack}>
                       <div
+                        className={styles.confidenceFill}
                         style={{
                           width: `${Math.min(100, Math.max(0, entry.confidence))}%`,
-                          height: '100%',
                           background: confidenceBarColor(entry.confidence),
-                          borderRadius: '4px',
-                          transition: 'width 0.3s',
                         }}
                       />
                     </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                    <p className={styles.decisionReason}>
                       {entry.reason}
                     </p>
                   </li>
