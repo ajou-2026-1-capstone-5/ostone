@@ -39,6 +39,7 @@ describe("apiClient", () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     Storage.prototype.getItem = originalGetItem;
   });
 
@@ -171,6 +172,23 @@ describe("apiClient", () => {
       expect(result).toEqual(mockResponse);
     });
 
+    it("auth endpoint 요청에는 저장된 access token을 Authorization header로 붙이지 않는다", async () => {
+      const mockResponse = { success: true };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      await apiClient.request<{ success: boolean }>("/auth/login", {
+        method: "POST",
+        body: { email: "admin@ostone.com", password: "wrong-password" } as unknown as BodyInit,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1].headers as Headers;
+      expect(headers.get("Authorization")).toBeNull();
+    });
+
     it("body가 object인 경우 JSON.stringify한다", async () => {
       const mockResponse = { id: 1 };
       mockFetch.mockResolvedValueOnce({
@@ -301,6 +319,34 @@ describe("apiClient", () => {
       expect(getStoredItem("accessToken")).toBeNull();
       expect(getStoredItem("refreshToken")).toBeNull();
       expect(getStoredItem("user")).toBeNull();
+    });
+
+    it("auth endpoint의 401 응답 시 기존 auth session을 유지한다", async () => {
+      localStorage.setItem("accessToken", "mock-token");
+      localStorage.setItem("refreshToken", "mock-refresh-token");
+      localStorage.setItem("user", JSON.stringify({ id: 1 }));
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          code: "UNAUTHORIZED",
+          message: "이메일 또는 비밀번호가 올바르지 않습니다.",
+        }),
+      });
+
+      await expect(
+        apiClient.request<{ id: number }>("/auth/login", {
+          method: "POST",
+          body: { email: "admin@ostone.com", password: "wrong-password" } as unknown as BodyInit,
+        }),
+      ).rejects.toMatchObject({
+        status: 401,
+        code: "UNAUTHORIZED",
+      });
+
+      expect(getStoredItem("accessToken")).toBe("mock-token");
+      expect(getStoredItem("refreshToken")).toBe("mock-refresh-token");
+      expect(getStoredItem("user")).toBe(JSON.stringify({ id: 1 }));
     });
 
     it("401 외 non-ok 응답 시 auth session을 유지한다", async () => {
