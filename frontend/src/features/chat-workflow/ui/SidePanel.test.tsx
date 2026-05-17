@@ -141,7 +141,7 @@ describe('SidePanel', () => {
       { wrapper: Wrapper },
     );
 
-    const scrollable = container.querySelector('[class*="overflow"]') || container.querySelector('[style*="overflow"]');
+    const scrollable = container.querySelector('[data-scrollable]');
     expect(scrollable).toBeInTheDocument();
   });
 });

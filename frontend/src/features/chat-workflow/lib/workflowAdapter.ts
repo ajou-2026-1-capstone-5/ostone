@@ -5,15 +5,19 @@ const NODE_GAP_X = 210;
 const NODE_GAP_Y = 148;
 const COLUMNS = 5;
 
+function isHandoffState(state: string): boolean {
+  return state === 'HANDED_OFF' || state === 'HANDOFF';
+}
+
 function nodeTypeForState(state: string, index: number): GraphNode['type'] {
   if (index === 0 || state === 'INITIAL') return 'START';
   if (state === 'COMPLETED') return 'TERMINAL';
-  if (state === 'HANDED_OFF') return 'HANDOFF';
+  if (isHandoffState(state)) return 'HANDOFF';
   return 'ACTION';
 }
 
 function positionForState(index: number, state: string): GraphNode['position'] {
-  if (state === 'HANDED_OFF') {
+  if (isHandoffState(state)) {
     return { x: (COLUMNS - 1) * NODE_GAP_X, y: NODE_GAP_Y * 2 };
   }
 

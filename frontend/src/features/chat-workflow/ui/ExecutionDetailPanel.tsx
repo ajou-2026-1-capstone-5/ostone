@@ -5,21 +5,6 @@ interface ExecutionDetailPanelProps {
   execution: DemoExecution | null;
 }
 
-function statusColorClass(status: string): string {
-  switch (status.toLowerCase()) {
-    case 'idle':
-      return 'text-gray-500';
-    case 'running':
-      return 'text-blue-600';
-    case 'completed':
-      return 'text-green-600';
-    case 'error':
-      return 'text-red-600';
-    default:
-      return 'text-gray-500';
-  }
-}
-
 function PolicyHitRow({ hit }: { hit: DemoPolicyHit }) {
   const isPass = hit.result === 'PASS';
   return (
@@ -62,6 +47,8 @@ export function ExecutionDetailPanel({ execution }: ExecutionDetailPanelProps) {
     );
   }
 
+  const normalizedStatus = execution.status.toLowerCase();
+
   return (
     <div className={styles.detailPanel}>
       <h3>Execution Detail</h3>
@@ -69,7 +56,7 @@ export function ExecutionDetailPanel({ execution }: ExecutionDetailPanelProps) {
         <div className={styles.summaryGrid}>
           <div className={styles.summaryItem}>
             <span className={styles.labelText}>Status</span>
-            <span className={`${styles.statusValue} ${statusColorClass(execution.status)}`} data-testid="execution-status">
+            <span className={styles.statusValue} data-status={normalizedStatus} data-testid="execution-status">
               {execution.status}
             </span>
           </div>

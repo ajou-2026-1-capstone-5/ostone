@@ -628,6 +628,16 @@
   font-weight: 540;
 }
 
+.statusValue[data-status="running"],
+.statusValue[data-status="completed"] {
+  color: var(--ink-1);
+}
+
+.statusValue[data-status="idle"],
+.statusValue[data-status="error"] {
+  color: var(--ink-3);
+}
+
 .intentValue {
   margin: 0;
   font-size: var(--fs-body-2);
@@ -793,10 +803,13 @@
 
 .decisionEntry {
   padding: var(--s-3);
+  border-left: 3px solid transparent;
+  border-radius: var(--r-2);
 }
 
 .decisionHighlighted {
-  border-color: var(--ink-1);
+  background: var(--paper-1);
+  border-left-color: var(--ink-1);
   box-shadow: inset 0 0 0 1px var(--ink-1);
 }
 
@@ -833,6 +846,19 @@
   font-weight: 450;
 }
 
+.decisionBadge[data-decision="allow"] {
+  background: var(--ink-1);
+  border-color: var(--ink-1);
+  color: var(--paper-1);
+}
+
+.decisionBadge[data-decision="deny"],
+.decisionBadge[data-decision="escalate"] {
+  background: var(--paper-1);
+  border-color: var(--ink-1);
+  color: var(--ink-1);
+}
+
 .confidenceTrack {
   width: 100%;
   height: 6px;
@@ -844,6 +870,7 @@
 
 .confidenceFill {
   height: 100%;
+  width: var(--confidence, 0%);
   background: var(--ink-1);
   border-radius: var(--r-full);
   transition: width 0.24s ease;

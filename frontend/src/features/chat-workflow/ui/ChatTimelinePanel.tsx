@@ -53,7 +53,7 @@ export function ChatTimelinePanel({
                 className={`${styles.messageButton} ${
                   isAgent ? styles.messageAgent : styles.messageCustomer
                 } ${
-                  isActive ? `${styles.messageActive} border-l-blue-500 bg-blue-50` : ""
+                  isActive ? styles.messageActive : ""
                 } ${
                   isSelected ? styles.messageSelected : ""
                 }`}

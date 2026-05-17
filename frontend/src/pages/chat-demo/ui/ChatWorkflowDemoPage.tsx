@@ -26,10 +26,9 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
   const domainPack = response?.domainPack ?? null;
   const workflow = response?.workflow ?? null;
   const activeMessageId = useMemo(() => {
-    if (selectedMessageId) return selectedMessageId;
     const lastLogWithMessage = [...decisionLogs].reverse().find((log) => log.messageId);
     return lastLogWithMessage?.messageId ?? messages.at(-1)?.id ?? null;
-  }, [decisionLogs, messages, selectedMessageId]);
+  }, [decisionLogs, messages]);
 
   const workflowGraph = useMemo(
     () => (workflow ? adaptDemoWorkflow(workflow) : null),

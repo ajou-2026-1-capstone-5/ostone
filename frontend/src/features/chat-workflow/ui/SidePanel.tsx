@@ -41,6 +41,7 @@ const STATE_LABELS: Record<string, string> = {
   PICKUP_GUIDE: '픽업 안내',
   BENEFIT_GUIDE: '혜택 안내',
   COMPLETED: '상담 완료',
+  HANDOFF: '사람 이관',
   HANDED_OFF: '사람 이관',
 };
 
@@ -75,6 +76,10 @@ const DIAGRAM_COLUMNS = 5;
 const COLUMN_X = [90, 295, 500, 705, 910];
 const ROW_Y = [92, 232];
 const EXCEPTION_Y = 322;
+
+function isExceptionState(state: string): boolean {
+  return state === 'HANDED_OFF' || state === 'HANDOFF';
+}
 
 interface DiagramPosition {
   state: string;
@@ -123,8 +128,8 @@ function WorkflowOverview({
   decisionLogs: DemoDecisionLogEntry[];
   onNodeSelect?: (nodeId: string) => void;
 }>) {
-  const exceptionStates = workflow.states.filter((state) => state === 'HANDED_OFF');
-  const mainStates = workflow.states.filter((state) => state !== 'HANDED_OFF');
+  const exceptionStates = workflow.states.filter(isExceptionState);
+  const mainStates = workflow.states.filter((state) => !isExceptionState(state));
   const mainPositions = mainStates.map((state, index) => getMainPosition(state, index));
   const positionByState = new Map(mainPositions.map((position) => [position.state, position]));
   const exceptionPositions: DiagramPosition[] = exceptionStates.map((state, index) => ({
@@ -133,23 +138,23 @@ function WorkflowOverview({
     y: EXCEPTION_Y,
   }));
   const exceptionPositionByState = new Map(exceptionPositions.map((position) => [position.state, position]));
-  const mainConnectors = mainPositions.slice(0, -1).map((position, index) => ({
-    id: `${position.state}-${mainPositions[index + 1].state}`,
-    path: connectorPath(position, mainPositions[index + 1]),
-  }));
-  const exceptionConnectors = workflow.transitions
-    .filter((transition) => exceptionPositionByState.has(transition.to))
+  const allPositionsByState = new Map([...positionByState, ...exceptionPositionByState]);
+  const transitionConnectors = workflow.transitions
     .map((transition, index) => {
-      const from = positionByState.get(transition.from);
-      const to = exceptionPositionByState.get(transition.to);
+      const from = allPositionsByState.get(transition.from);
+      const to = allPositionsByState.get(transition.to);
       if (!from || !to) return null;
 
+      const isException = isExceptionState(transition.from) || isExceptionState(transition.to);
       return {
         id: `${transition.from}-${transition.to}-${index}`,
-        path: `M ${from.x} ${from.y + NODE_HEIGHT / 2 + CONNECTOR_GAP} C ${from.x} ${from.y + 86}, ${to.x} ${to.y - 86}, ${to.x} ${to.y - NODE_HEIGHT / 2 - CONNECTOR_GAP}`,
+        isException,
+        path: isException
+          ? `M ${from.x} ${from.y + NODE_HEIGHT / 2 + CONNECTOR_GAP} C ${from.x} ${from.y + 86}, ${to.x} ${to.y - 86}, ${to.x} ${to.y - NODE_HEIGHT / 2 - CONNECTOR_GAP}`
+          : connectorPath(from, to),
       };
     })
-    .filter((connector): connector is { id: string; path: string } => connector !== null);
+    .filter((connector): connector is { id: string; path: string; isException: boolean } => connector !== null);
   const selectedSet = new Set(selectedNodeIds);
   const turnNumbersByState = new Map<string, number[]>();
   for (const log of decisionLogs) {
@@ -189,19 +194,11 @@ function WorkflowOverview({
               <path d="M 0 0 L 10 5 L 0 10 z" />
             </marker>
           </defs>
-          {mainConnectors.map((connector) => (
+          {transitionConnectors.map((connector) => (
             <path
               key={connector.id}
               d={connector.path}
-              className={styles.diagramConnector}
-              markerEnd="url(#workflow-arrow)"
-            />
-          ))}
-          {exceptionConnectors.map((connector) => (
-            <path
-              key={connector.id}
-              d={connector.path}
-              className={styles.diagramExceptionConnector}
+              className={connector.isException ? styles.diagramExceptionConnector : styles.diagramConnector}
               markerEnd="url(#workflow-arrow)"
             />
           ))}
@@ -340,7 +337,8 @@ export function SidePanel({
   return (
     <div
       data-testid="side-panel"
-      className={`${styles.sidePanel} overflow-y-auto`}
+      data-scrollable
+      className={styles.sidePanel}
     >
       <div data-testid="side-panel-workflow-header">
         <ChatWorkflowHeader domainPack={domainPack} />
@@ -371,7 +369,7 @@ export function SidePanel({
 
       <div className={styles.inspectorGrid}>
         <ExecutionDetailPanel execution={execution} />
-        <DecisionLogDrawer entries={decisionLogs} selectedMessageId={selectedMessageId} />
+        <DecisionLogDrawer entries={decisionLogs} selectedMessageId={focusedMessageId} />
       </div>
     </div>
   );

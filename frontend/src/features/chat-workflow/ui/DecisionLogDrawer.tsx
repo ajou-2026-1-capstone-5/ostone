@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { DemoDecisionLogEntry } from '../model/chatWorkflow.types';
 import styles from './chat-workflow-demo.module.css';
 
@@ -7,23 +8,10 @@ interface DecisionLogDrawerProps {
   selectedMessageId: string | null;
 }
 
-const confidenceBarColor = (value: number): string => {
-  if (value > 80) return '#22c55e';
-  if (value >= 50) return '#eab308';
-  return '#ef4444';
-};
-
-const decisionBadgeColor = (decision: string): string => {
-  switch (decision) {
-    case 'ALLOW':
-      return '#22c55e';
-    case 'DENY':
-      return '#ef4444';
-    case 'ESCALATE':
-      return '#eab308';
-    default:
-      return '#6b7280';
-  }
+const confidenceStyle = (value: number): CSSProperties => {
+  const normalized = value <= 1 ? value * 100 : value;
+  const confidence = `${Math.min(100, Math.max(0, normalized))}%`;
+  return { '--confidence': confidence } as CSSProperties;
 };
 
 export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDrawerProps) {
@@ -52,10 +40,6 @@ export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDra
                     key={entry.id}
                     data-testid={`decision-entry-${entry.id}`}
                     className={`${styles.decisionEntry} ${highlighted ? styles.decisionHighlighted : ''}`}
-                    style={{
-                      borderLeft: highlighted ? '3px solid #3b82f6' : '3px solid transparent',
-                      background: highlighted ? '#eff6ff' : undefined,
-                    }}
                   >
                     <div className={styles.decisionMeta}>
                       <span className={styles.decisionStep}>{entry.step}.</span>
@@ -68,10 +52,7 @@ export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDra
                       <span
                         data-testid="decision-decision"
                         className={styles.decisionBadge}
-                        style={{
-                          color: '#fff',
-                          background: decisionBadgeColor(entry.decision),
-                        }}
+                        data-decision={entry.decision.toLowerCase()}
                       >
                         {entry.decision}
                       </span>
@@ -79,10 +60,7 @@ export function DecisionLogDrawer({ entries, selectedMessageId }: DecisionLogDra
                     <div data-testid="decision-confidence" className={styles.confidenceTrack}>
                       <div
                         className={styles.confidenceFill}
-                        style={{
-                          width: `${Math.min(100, Math.max(0, entry.confidence))}%`,
-                          background: confidenceBarColor(entry.confidence),
-                        }}
+                        style={confidenceStyle(entry.confidence)}
                       />
                     </div>
                     <p className={styles.decisionReason}>

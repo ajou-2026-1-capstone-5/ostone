@@ -28,6 +28,20 @@ public class DemoRuntimeFixture {
   private static final String STATE_RISK_CHECKING = "RISK_CHECKING";
   private static final String STATE_DECIDING = "DECIDING";
   private static final String STATE_COMPLETED = "COMPLETED";
+  private static final String STATE_HANDOFF = "HANDOFF";
+  private static final String STATE_IDENTITY_VERIFICATION = "IDENTITY_VERIFICATION";
+  private static final String STATE_PAYMENT_INFO_COLLECTING = "PAYMENT_INFO_COLLECTING";
+  private static final String STATE_USAGE_HISTORY_SEARCHING = "USAGE_HISTORY_SEARCHING";
+  private static final String STATE_MISMATCH_ANALYSIS = "MISMATCH_ANALYSIS";
+  private static final String STATE_EVIDENCE_REQUESTING = "EVIDENCE_REQUESTING";
+  private static final String STATE_DEPARTMENT_ESCALATION = "DEPARTMENT_ESCALATION";
+  private static final String STATE_CALLBACK_GUIDE = "CALLBACK_GUIDE";
+  private static final String STATE_HANDED_OFF = "HANDED_OFF";
+  private static final String STATE_AVAILABILITY_CHECKING = "AVAILABILITY_CHECKING";
+  private static final String STATE_ALTERNATIVE_OFFERING = "ALTERNATIVE_OFFERING";
+  private static final String STATE_RESERVATION_GUIDE = "RESERVATION_GUIDE";
+  private static final String STATE_PICKUP_GUIDE = "PICKUP_GUIDE";
+  private static final String STATE_BENEFIT_GUIDE = "BENEFIT_GUIDE";
   private static final String DECISION_ALLOW = "ALLOW";
   private static final String MESSAGE_WITH_ORDER_NUMBER = "msg-3";
 
@@ -55,7 +69,7 @@ public class DemoRuntimeFixture {
               STATE_RISK_CHECKING,
               STATE_DECIDING,
               STATE_COMPLETED,
-              "HANDOFF"),
+              STATE_HANDOFF),
           List.of(
               new DemoTransitionResponse(
                   STATE_INITIAL, STATE_INTENT_DETECTED, STATE_INTENT_DETECTED),
@@ -67,7 +81,7 @@ public class DemoRuntimeFixture {
                   STATE_POLICY_CHECKING, STATE_RISK_CHECKING, "RISK_CHECKED"),
               new DemoTransitionResponse(STATE_RISK_CHECKING, STATE_DECIDING, "STATE_TRANSITIONED"),
               new DemoTransitionResponse(STATE_DECIDING, STATE_COMPLETED, "ANSWER_GENERATED"),
-              new DemoTransitionResponse(STATE_DECIDING, "HANDOFF", "HANDOFF_TRIGGERED")));
+              new DemoTransitionResponse(STATE_DECIDING, STATE_HANDOFF, "HANDOFF_TRIGGERED")));
   private static final DemoChatSessionResponse CHAT_SESSION =
       new DemoChatSessionResponse(
           "session-1", "completed", "2026-05-10T09:00:00Z", "2026-05-10T09:05:30Z");
@@ -217,42 +231,42 @@ public class DemoRuntimeFixture {
           "카드 이용내역 조회 및 증빙 확인 워크플로우",
           "고객의 특정 결제 내역 조회 요청을 처리하고, 조회 결과가 고객 화면과 불일치할 경우 증빙 제출과 담당부서 확인 요청으로 이어지는 워크플로우",
           List.of(
-              "INITIAL",
-              "IDENTITY_VERIFICATION",
-              "INTENT_DETECTED",
-              "PAYMENT_INFO_COLLECTING",
-              "USAGE_HISTORY_SEARCHING",
-              "MISMATCH_ANALYSIS",
-              "EVIDENCE_REQUESTING",
-              "DEPARTMENT_ESCALATION",
-              "CALLBACK_GUIDE",
-              "COMPLETED",
-              "HANDED_OFF"),
+              STATE_INITIAL,
+              STATE_IDENTITY_VERIFICATION,
+              STATE_INTENT_DETECTED,
+              STATE_PAYMENT_INFO_COLLECTING,
+              STATE_USAGE_HISTORY_SEARCHING,
+              STATE_MISMATCH_ANALYSIS,
+              STATE_EVIDENCE_REQUESTING,
+              STATE_DEPARTMENT_ESCALATION,
+              STATE_CALLBACK_GUIDE,
+              STATE_COMPLETED,
+              STATE_HANDED_OFF),
           List.of(
               new DemoTransitionResponse(
-                  "INITIAL", "IDENTITY_VERIFICATION", "CUSTOMER_REQUESTED_USAGE_HISTORY"),
+                  STATE_INITIAL, STATE_IDENTITY_VERIFICATION, "CUSTOMER_REQUESTED_USAGE_HISTORY"),
               new DemoTransitionResponse(
-                  "IDENTITY_VERIFICATION", "INTENT_DETECTED", "CUSTOMER_IDENTITY_VERIFIED"),
+                  STATE_IDENTITY_VERIFICATION, STATE_INTENT_DETECTED, "CUSTOMER_IDENTITY_VERIFIED"),
               new DemoTransitionResponse(
-                  "INTENT_DETECTED", "PAYMENT_INFO_COLLECTING", "PAYMENT_QUERY_STARTED"),
+                  STATE_INTENT_DETECTED, STATE_PAYMENT_INFO_COLLECTING, "PAYMENT_QUERY_STARTED"),
               new DemoTransitionResponse(
-                  "PAYMENT_INFO_COLLECTING", "USAGE_HISTORY_SEARCHING", "PAYMENT_INFO_FILLED"),
+                  STATE_PAYMENT_INFO_COLLECTING, STATE_USAGE_HISTORY_SEARCHING, "PAYMENT_INFO_FILLED"),
               new DemoTransitionResponse(
-                  "USAGE_HISTORY_SEARCHING", "MISMATCH_ANALYSIS", "USAGE_HISTORY_NOT_FOUND"),
+                  STATE_USAGE_HISTORY_SEARCHING, STATE_MISMATCH_ANALYSIS, "USAGE_HISTORY_NOT_FOUND"),
               new DemoTransitionResponse(
-                  "MISMATCH_ANALYSIS",
-                  "PAYMENT_INFO_COLLECTING",
+                  STATE_MISMATCH_ANALYSIS,
+                  STATE_PAYMENT_INFO_COLLECTING,
                   "ADDITIONAL_PAYMENT_INFO_REQUESTED"),
               new DemoTransitionResponse(
-                  "MISMATCH_ANALYSIS", "EVIDENCE_REQUESTING", "CUSTOMER_APP_SCREEN_VISIBLE"),
+                  STATE_MISMATCH_ANALYSIS, STATE_EVIDENCE_REQUESTING, "CUSTOMER_APP_SCREEN_VISIBLE"),
               new DemoTransitionResponse(
-                  "EVIDENCE_REQUESTING", "DEPARTMENT_ESCALATION", "SCREENSHOT_REQUESTED"),
+                  STATE_EVIDENCE_REQUESTING, STATE_DEPARTMENT_ESCALATION, "SCREENSHOT_REQUESTED"),
               new DemoTransitionResponse(
-                  "DEPARTMENT_ESCALATION", "CALLBACK_GUIDE", "DEPARTMENT_CHECK_REQUESTED"),
+                  STATE_DEPARTMENT_ESCALATION, STATE_CALLBACK_GUIDE, "DEPARTMENT_CHECK_REQUESTED"),
               new DemoTransitionResponse(
-                  "CALLBACK_GUIDE", "COMPLETED", "CALLBACK_DEADLINE_INFORMED"),
+                  STATE_CALLBACK_GUIDE, STATE_COMPLETED, "CALLBACK_DEADLINE_INFORMED"),
               new DemoTransitionResponse(
-                  "MISMATCH_ANALYSIS", "HANDED_OFF", "COMPLEX_PAYMENT_MISMATCH")));
+                  STATE_MISMATCH_ANALYSIS, STATE_HANDED_OFF, "COMPLEX_PAYMENT_MISMATCH")));
 
   private static final DemoChatSessionResponse CARD_CHAT_SESSION =
       new DemoChatSessionResponse(
@@ -330,9 +344,9 @@ public class DemoRuntimeFixture {
   private static final DemoExecutionResponse CARD_EXECUTION =
       new DemoExecutionResponse(
           "exec-2",
-          "COMPLETED",
-          "COMPLETED",
-          "COMPLETED",
+          STATE_COMPLETED,
+          STATE_COMPLETED,
+          STATE_COMPLETED,
           "카드 이용내역 조회 및 결제 내역 확인 문의",
           Map.of(
               "customer_identity_verified",
@@ -400,8 +414,8 @@ public class DemoRuntimeFixture {
               1,
               "card-msg-2",
               "ACTION_SELECTED",
-              "INITIAL",
-              "IDENTITY_VERIFICATION",
+              STATE_INITIAL,
+              STATE_IDENTITY_VERIFICATION,
               DECISION_ALLOW,
               0.92,
               "고객이 이용내역 조회를 요청해 본인 확인 단계로 진입"),
@@ -410,8 +424,8 @@ public class DemoRuntimeFixture {
               2,
               "card-msg-4",
               "POLICY_CHECKED",
-              "IDENTITY_VERIFICATION",
-              "INTENT_DETECTED",
+              STATE_IDENTITY_VERIFICATION,
+              STATE_INTENT_DETECTED,
               DECISION_ALLOW,
               0.98,
               "본인 확인 완료"),
@@ -420,8 +434,8 @@ public class DemoRuntimeFixture {
               3,
               "card-msg-5",
               STATE_INTENT_DETECTED,
-              "INTENT_DETECTED",
-              "PAYMENT_INFO_COLLECTING",
+              STATE_INTENT_DETECTED,
+              STATE_PAYMENT_INFO_COLLECTING,
               DECISION_ALLOW,
               0.94,
               "특정 결제 이용내역 조회 intent 감지"),
@@ -430,8 +444,8 @@ public class DemoRuntimeFixture {
               4,
               "card-msg-6",
               "POLICY_CHECKED",
-              "PAYMENT_INFO_COLLECTING",
-              "USAGE_HISTORY_SEARCHING",
+              STATE_PAYMENT_INFO_COLLECTING,
+              STATE_USAGE_HISTORY_SEARCHING,
               DECISION_ALLOW,
               0.9,
               "결제일 기준 이용내역 조회 시작"),
@@ -440,8 +454,8 @@ public class DemoRuntimeFixture {
               5,
               "card-msg-7",
               "SLOT_FILLED",
-              "USAGE_HISTORY_SEARCHING",
-              "PAYMENT_INFO_COLLECTING",
+              STATE_USAGE_HISTORY_SEARCHING,
+              STATE_PAYMENT_INFO_COLLECTING,
               DECISION_ALLOW,
               0.82,
               "가맹점명과 결제 금액 추가 수집 필요"),
@@ -450,8 +464,8 @@ public class DemoRuntimeFixture {
               6,
               "card-msg-8",
               "SLOT_FILLED",
-              "PAYMENT_INFO_COLLECTING",
-              "USAGE_HISTORY_SEARCHING",
+              STATE_PAYMENT_INFO_COLLECTING,
+              STATE_USAGE_HISTORY_SEARCHING,
               DECISION_ALLOW,
               0.88,
               "결제 금액 slot 보강 후 재조회"),
@@ -460,8 +474,8 @@ public class DemoRuntimeFixture {
               7,
               "card-msg-9",
               "POLICY_CHECKED",
-              "USAGE_HISTORY_SEARCHING",
-              "MISMATCH_ANALYSIS",
+              STATE_USAGE_HISTORY_SEARCHING,
+              STATE_MISMATCH_ANALYSIS,
               DECISION_ALLOW,
               0.86,
               "상담사 시스템에서 해당 이용내역 미조회"),
@@ -470,8 +484,8 @@ public class DemoRuntimeFixture {
               8,
               "card-msg-10",
               "RISK_CHECKED",
-              "MISMATCH_ANALYSIS",
-              "MISMATCH_ANALYSIS",
+              STATE_MISMATCH_ANALYSIS,
+              STATE_MISMATCH_ANALYSIS,
               DECISION_ALLOW,
               0.84,
               "고객 앱에는 표시된다는 불일치 상황 확인"),
@@ -480,8 +494,8 @@ public class DemoRuntimeFixture {
               9,
               "card-msg-11",
               "SLOT_FILLED",
-              "MISMATCH_ANALYSIS",
-              "PAYMENT_INFO_COLLECTING",
+              STATE_MISMATCH_ANALYSIS,
+              STATE_PAYMENT_INFO_COLLECTING,
               DECISION_ALLOW,
               0.87,
               "승인번호 대신 결제 시간, 금액, 가맹점명 요청"),
@@ -490,8 +504,8 @@ public class DemoRuntimeFixture {
               10,
               "card-msg-12",
               "POLICY_CHECKED",
-              "PAYMENT_INFO_COLLECTING",
-              "USAGE_HISTORY_SEARCHING",
+              STATE_PAYMENT_INFO_COLLECTING,
+              STATE_USAGE_HISTORY_SEARCHING,
               DECISION_ALLOW,
               0.93,
               "결제 시간, 금액, 가맹점명 기반 재조회"),
@@ -500,8 +514,8 @@ public class DemoRuntimeFixture {
               11,
               "card-msg-13",
               "RISK_CHECKED",
-              "USAGE_HISTORY_SEARCHING",
-              "MISMATCH_ANALYSIS",
+              STATE_USAGE_HISTORY_SEARCHING,
+              STATE_MISMATCH_ANALYSIS,
               DECISION_ALLOW,
               0.81,
               "카드결제와 계좌결제 표시 혼선 위험 감지"),
@@ -510,8 +524,8 @@ public class DemoRuntimeFixture {
               12,
               "card-msg-14",
               "SLOT_FILLED",
-              "MISMATCH_ANALYSIS",
-              "PAYMENT_INFO_COLLECTING",
+              STATE_MISMATCH_ANALYSIS,
+              STATE_PAYMENT_INFO_COLLECTING,
               DECISION_ALLOW,
               0.87,
               "카드번호 끝자리 추가 요청"),
@@ -520,8 +534,8 @@ public class DemoRuntimeFixture {
               13,
               "card-msg-15",
               "POLICY_CHECKED",
-              "PAYMENT_INFO_COLLECTING",
-              "USAGE_HISTORY_SEARCHING",
+              STATE_PAYMENT_INFO_COLLECTING,
+              STATE_USAGE_HISTORY_SEARCHING,
               DECISION_ALLOW,
               0.9,
               "카드번호 끝자리 기준 재조회"),
@@ -530,8 +544,8 @@ public class DemoRuntimeFixture {
               14,
               "card-msg-16",
               "STATE_TRANSITIONED",
-              "MISMATCH_ANALYSIS",
-              "EVIDENCE_REQUESTING",
+              STATE_MISMATCH_ANALYSIS,
+              STATE_EVIDENCE_REQUESTING,
               DECISION_ALLOW,
               0.89,
               "조회 결과 불일치로 고객 앱 화면 캡처 요청"),
@@ -540,8 +554,8 @@ public class DemoRuntimeFixture {
               15,
               "card-msg-19",
               "HANDOFF_TRIGGERED",
-              "EVIDENCE_REQUESTING",
-              "DEPARTMENT_ESCALATION",
+              STATE_EVIDENCE_REQUESTING,
+              STATE_DEPARTMENT_ESCALATION,
               DECISION_ALLOW,
               0.92,
               "증빙 수신 후 담당부서 확인 요청 안내"),
@@ -550,8 +564,8 @@ public class DemoRuntimeFixture {
               16,
               "card-msg-21",
               "POLICY_CHECKED",
-              "DEPARTMENT_ESCALATION",
-              "CALLBACK_GUIDE",
+              STATE_DEPARTMENT_ESCALATION,
+              STATE_CALLBACK_GUIDE,
               DECISION_ALLOW,
               0.95,
               "담당부서 확인 후 오늘 6시 전까지 콜백 예정 안내"),
@@ -560,7 +574,7 @@ public class DemoRuntimeFixture {
               17,
               "card-msg-23",
               "ANSWER_GENERATED",
-              "CALLBACK_GUIDE",
+              STATE_CALLBACK_GUIDE,
               STATE_COMPLETED,
               DECISION_ALLOW,
               0.94,
@@ -631,38 +645,38 @@ public class DemoRuntimeFixture {
           "리조트 객실 예약 상담 워크플로우",
           "고객의 숙소 예약 가능 여부 문의를 처리하고, 가능한 대안 객실과 예약 진행 정보를 안내하는 워크플로우",
           List.of(
-              "INITIAL",
-              "INTENT_DETECTED",
-              "SLOT_COLLECTING",
-              "AVAILABILITY_CHECKING",
-              "ALTERNATIVE_OFFERING",
-              "RESERVATION_GUIDE",
-              "PICKUP_GUIDE",
-              "BENEFIT_GUIDE",
-              "COMPLETED",
-              "HANDED_OFF"),
+              STATE_INITIAL,
+              STATE_INTENT_DETECTED,
+              STATE_SLOT_COLLECTING,
+              STATE_AVAILABILITY_CHECKING,
+              STATE_ALTERNATIVE_OFFERING,
+              STATE_RESERVATION_GUIDE,
+              STATE_PICKUP_GUIDE,
+              STATE_BENEFIT_GUIDE,
+              STATE_COMPLETED,
+              STATE_HANDED_OFF),
           List.of(
               new DemoTransitionResponse(
-                  "INITIAL", "INTENT_DETECTED", "RESERVATION_INTENT_DETECTED"),
+                  STATE_INITIAL, STATE_INTENT_DETECTED, "RESERVATION_INTENT_DETECTED"),
               new DemoTransitionResponse(
-                  "INTENT_DETECTED", "SLOT_COLLECTING", "REQUIRED_SLOT_CHECK_STARTED"),
+                  STATE_INTENT_DETECTED, STATE_SLOT_COLLECTING, "REQUIRED_SLOT_CHECK_STARTED"),
               new DemoTransitionResponse(
-                  "SLOT_COLLECTING", "AVAILABILITY_CHECKING", "REQUIRED_SLOTS_FILLED"),
+                  STATE_SLOT_COLLECTING, STATE_AVAILABILITY_CHECKING, "REQUIRED_SLOTS_FILLED"),
               new DemoTransitionResponse(
-                  "AVAILABILITY_CHECKING", "SLOT_COLLECTING", "ALTERNATIVE_DATE_REQUESTED"),
+                  STATE_AVAILABILITY_CHECKING, STATE_SLOT_COLLECTING, "ALTERNATIVE_DATE_REQUESTED"),
               new DemoTransitionResponse(
-                  "AVAILABILITY_CHECKING", "ALTERNATIVE_OFFERING", "REQUESTED_ROOM_UNAVAILABLE"),
+                  STATE_AVAILABILITY_CHECKING, STATE_ALTERNATIVE_OFFERING, "REQUESTED_ROOM_UNAVAILABLE"),
               new DemoTransitionResponse(
-                  "ALTERNATIVE_OFFERING", "RESERVATION_GUIDE", "AVAILABLE_ROOM_CONFIRMED"),
+                  STATE_ALTERNATIVE_OFFERING, STATE_RESERVATION_GUIDE, "AVAILABLE_ROOM_CONFIRMED"),
               new DemoTransitionResponse(
-                  "RESERVATION_GUIDE", "PICKUP_GUIDE", "PICKUP_QUESTION_ASKED"),
+                  STATE_RESERVATION_GUIDE, STATE_PICKUP_GUIDE, "PICKUP_QUESTION_ASKED"),
               new DemoTransitionResponse(
-                  "PICKUP_GUIDE", "BENEFIT_GUIDE", "POST_BOOKING_BENEFIT_QUESTION_ASKED"),
-              new DemoTransitionResponse("BENEFIT_GUIDE", "COMPLETED", "CUSTOMER_THANKED"),
+                  STATE_PICKUP_GUIDE, STATE_BENEFIT_GUIDE, "POST_BOOKING_BENEFIT_QUESTION_ASKED"),
+              new DemoTransitionResponse(STATE_BENEFIT_GUIDE, STATE_COMPLETED, "CUSTOMER_THANKED"),
               new DemoTransitionResponse(
-                  "AVAILABILITY_CHECKING", "HANDED_OFF", "AVAILABILITY_UNKNOWN"),
+                  STATE_AVAILABILITY_CHECKING, STATE_HANDED_OFF, "AVAILABILITY_UNKNOWN"),
               new DemoTransitionResponse(
-                  "RESERVATION_GUIDE", "HANDED_OFF", "SENSITIVE_OR_COMPLEX_REQUEST")));
+                  STATE_RESERVATION_GUIDE, STATE_HANDED_OFF, "SENSITIVE_OR_COMPLEX_REQUEST")));
 
   private static final DemoChatSessionResponse HOTEL_CHAT_SESSION =
       new DemoChatSessionResponse(
@@ -722,9 +736,9 @@ public class DemoRuntimeFixture {
   private static final DemoExecutionResponse HOTEL_EXECUTION =
       new DemoExecutionResponse(
           "exec-3",
-          "COMPLETED",
-          "COMPLETED",
-          "COMPLETED",
+          STATE_COMPLETED,
+          STATE_COMPLETED,
+          STATE_COMPLETED,
           "리조트 객실 예약 가능 여부 및 예약 진행 문의",
           Map.of(
               "hotel_name",
@@ -799,7 +813,7 @@ public class DemoRuntimeFixture {
               "msg-9",
               "POLICY_CHECKED",
               STATE_SLOT_COLLECTING,
-              "AVAILABILITY_CHECKING",
+              STATE_AVAILABILITY_CHECKING,
               DECISION_ALLOW,
               1.0,
               "씨브리즈룸 예약 불가 안내"),
@@ -808,7 +822,7 @@ public class DemoRuntimeFixture {
               4,
               "msg-10",
               "STATE_TRANSITIONED",
-              "AVAILABILITY_CHECKING",
+              STATE_AVAILABILITY_CHECKING,
               STATE_SLOT_COLLECTING,
               DECISION_ALLOW,
               0.87,
@@ -819,7 +833,7 @@ public class DemoRuntimeFixture {
               "msg-11",
               "POLICY_CHECKED",
               STATE_SLOT_COLLECTING,
-              "AVAILABILITY_CHECKING",
+              STATE_AVAILABILITY_CHECKING,
               DECISION_ALLOW,
               1.0,
               "대체 일정도 예약 불가 안내"),
@@ -828,7 +842,7 @@ public class DemoRuntimeFixture {
               6,
               "msg-12",
               "SLOT_FILLED",
-              "AVAILABILITY_CHECKING",
+              STATE_AVAILABILITY_CHECKING,
               STATE_SLOT_COLLECTING,
               DECISION_ALLOW,
               0.9,
@@ -839,7 +853,7 @@ public class DemoRuntimeFixture {
               "msg-13",
               "POLICY_CHECKED",
               STATE_SLOT_COLLECTING,
-              "ALTERNATIVE_OFFERING",
+              STATE_ALTERNATIVE_OFFERING,
               DECISION_ALLOW,
               0.98,
               "클래식룸 1+1 특가와 예약 가능 여부 안내"),
@@ -848,8 +862,8 @@ public class DemoRuntimeFixture {
               8,
               "msg-14",
               "STATE_TRANSITIONED",
-              "ALTERNATIVE_OFFERING",
-              "RESERVATION_GUIDE",
+              STATE_ALTERNATIVE_OFFERING,
+              STATE_RESERVATION_GUIDE,
               DECISION_ALLOW,
               0.93,
               "고객이 예약 진행 방법 문의"),
@@ -858,8 +872,8 @@ public class DemoRuntimeFixture {
               9,
               "msg-15",
               "RISK_CHECKED",
-              "RESERVATION_GUIDE",
-              "RESERVATION_GUIDE",
+              STATE_RESERVATION_GUIDE,
+              STATE_RESERVATION_GUIDE,
               DECISION_ALLOW,
               0.86,
               "예약 진행을 위한 개인정보 수집 필요 안내"),
@@ -868,8 +882,8 @@ public class DemoRuntimeFixture {
               10,
               "msg-16",
               "POLICY_CHECKED",
-              "RESERVATION_GUIDE",
-              "PICKUP_GUIDE",
+              STATE_RESERVATION_GUIDE,
+              STATE_PICKUP_GUIDE,
               DECISION_ALLOW,
               0.89,
               "고객이 공항 픽업 조건 문의"),
@@ -878,8 +892,8 @@ public class DemoRuntimeFixture {
               11,
               "msg-17",
               "POLICY_CHECKED",
-              "PICKUP_GUIDE",
-              "PICKUP_GUIDE",
+              STATE_PICKUP_GUIDE,
+              STATE_PICKUP_GUIDE,
               DECISION_ALLOW,
               0.97,
               "공항 무료 픽업 및 우붓 지역 픽업 비용 안내"),
@@ -888,8 +902,8 @@ public class DemoRuntimeFixture {
               12,
               "msg-18",
               "POLICY_CHECKED",
-              "PICKUP_GUIDE",
-              "BENEFIT_GUIDE",
+              STATE_PICKUP_GUIDE,
+              STATE_BENEFIT_GUIDE,
               DECISION_ALLOW,
               0.9,
               "고객이 예약 후 혜택 문의"),
@@ -898,8 +912,8 @@ public class DemoRuntimeFixture {
               13,
               "msg-19",
               "ANSWER_GENERATED",
-              "BENEFIT_GUIDE",
-              "BENEFIT_GUIDE",
+              STATE_BENEFIT_GUIDE,
+              STATE_BENEFIT_GUIDE,
               DECISION_ALLOW,
               0.95,
               "발리 한국어 지도와 맛집 리스트 혜택 안내"),
@@ -908,7 +922,7 @@ public class DemoRuntimeFixture {
               14,
               "msg-20",
               "SESSION_COMPLETED",
-              "BENEFIT_GUIDE",
+              STATE_BENEFIT_GUIDE,
               STATE_COMPLETED,
               DECISION_ALLOW,
               0.94,
