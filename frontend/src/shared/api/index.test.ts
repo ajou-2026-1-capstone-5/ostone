@@ -280,7 +280,9 @@ describe("apiClient", () => {
     });
 
     it("401 응답 시 auth session을 정리한다", async () => {
-      const removeItemSpy = vi.spyOn(localStorage, "removeItem");
+      localStorage.setItem("accessToken", "mock-token");
+      localStorage.setItem("refreshToken", "mock-refresh-token");
+      localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -295,14 +297,15 @@ describe("apiClient", () => {
         code: "UNAUTHORIZED",
       });
 
-      expect(removeItemSpy).toHaveBeenCalledWith("accessToken");
-      expect(removeItemSpy).toHaveBeenCalledWith("refreshToken");
-      expect(removeItemSpy).toHaveBeenCalledWith("user");
-      removeItemSpy.mockRestore();
+      expect(localStorage.getItem("accessToken")).toBeNull();
+      expect(localStorage.getItem("refreshToken")).toBeNull();
+      expect(localStorage.getItem("user")).toBeNull();
     });
 
     it("401 외 non-ok 응답 시 auth session을 유지한다", async () => {
-      const removeItemSpy = vi.spyOn(localStorage, "removeItem");
+      localStorage.setItem("accessToken", "mock-token");
+      localStorage.setItem("refreshToken", "mock-refresh-token");
+      localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
@@ -317,8 +320,9 @@ describe("apiClient", () => {
         code: "FORBIDDEN",
       });
 
-      expect(removeItemSpy).not.toHaveBeenCalled();
-      removeItemSpy.mockRestore();
+      expect(localStorage.getItem("accessToken")).toBe("mock-token");
+      expect(localStorage.getItem("refreshToken")).toBe("mock-refresh-token");
+      expect(localStorage.getItem("user")).toBe(JSON.stringify({ id: 1 }));
     });
   });
 });
