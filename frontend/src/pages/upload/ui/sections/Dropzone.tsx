@@ -48,7 +48,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
 
   const handleClick = () => {
     if (isUploading) return;
-    if (!workspaceId) {
+    if (workspaceId == null) {
       toast.warning("워크스페이스를 먼저 선택하세요.");
       return;
     }
@@ -58,11 +58,17 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !workspaceId) return;
+    if (!file || workspaceId == null) return;
 
     const name = file.name.toLowerCase();
     if (!name.endsWith(".json")) {
       toast.error("JSON 파일만 업로드할 수 있습니다.");
+      return;
+    }
+
+    const MAX_SIZE = 50 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error("파일 크기는 50MB 이하여야 합니다.");
       return;
     }
 
@@ -78,7 +84,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
     });
   };
 
-  const cursor = isUploading ? "progress" : workspaceId ? "pointer" : "not-allowed";
+  const cursor = isUploading ? "progress" : workspaceId == null ? "not-allowed" : "pointer";
 
   return (
     <div

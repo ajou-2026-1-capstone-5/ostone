@@ -99,7 +99,6 @@ docker compose restart backend
 ```
 
 > 주의: `.env` 의 `STORAGE_S3_ACCESS_KEY` / `STORAGE_S3_SECRET_KEY` / `STORAGE_S3_ENDPOINT` / `STORAGE_S3_PATH_STYLE` 가 모두 빈 값이어야 한다. 한 개라도 값이 있으면 `StaticCredentialsProvider` 가 먼저 잡혀 SSO 자격증명이 무시된다. `.env.example` 의 [모드 B] 블록을 그대로 따르면 안전하다.
-
 > 일반 개발은 그대로 MinIO 사용 ([모드 A]). 본 모드는 운영 데이터 확인 등 특수 목적에만 쓴다.
 
 ## 5. 자주 묶이는 문제
