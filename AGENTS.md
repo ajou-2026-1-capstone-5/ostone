@@ -156,17 +156,18 @@ ml/
 
 ### Docker Compose
 
+**로컬 개발 진입점**: `docker compose up -d` 한 번으로 FE(`http://localhost:5173`) / BE(`http://localhost:8080`) / MinIO 콘솔(`http://localhost:9001`) / Airflow(`http://localhost:8081`) 가 전부 구동된다. **호스트에서 별도로 `pnpm dev` 를 띄울 필요 없다** — frontend 는 Vite dev server 가 컨테이너 안에서 5173 으로 실행되며 `./frontend` 디렉터리는 volume mount 되어 HMR 이 즉시 반영된다.
+
+**포트 컨벤션**: `5173` = 로컬 개발 (Vite dev server, `frontend/Dockerfile.dev`). `3000` = production 배포 (nginx, `frontend/Dockerfile`, Render 전용). 로컬에서 3000 으로 접근할 일은 없다.
+
 ```bash
 # 최초 1회 env 파일 준비
 cp .env.example .env
 
-# backend 컨테이너 사용 시 선행 빌드
+# backend 컨테이너 사용 시 선행 빌드 (jar 패키징 필요)
 (cd backend && ./gradlew bootJar)
 
-# frontend 컨테이너 사용 시 선행 빌드
-(cd frontend && pnpm build)
-
-# 전체 서비스 실행
+# 전체 서비스 실행 (frontend 는 컨테이너 안에서 pnpm install + dev server 구동)
 docker compose up -d
 
 # 개별 서비스
@@ -184,8 +185,9 @@ docker compose logs -f airflow-apiserver
 기본 원칙:
 
 - Airflow 로컬 런타임은 루트 `docker compose` 기준으로 함께 관리한다.
-- `backend`와 `frontend` 이미지는 기존 방식대로 선행 `jar`/`dist` 빌드를 전제한다.
+- `backend` 이미지는 선행 `bootJar` 빌드를 전제한다. `frontend` 는 dev mode 라 선행 빌드 불필요.
 - Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
+- Render production 빌드를 로컬에서 검증할 때만 `docker build -f frontend/Dockerfile -t init-frontend-prod ./frontend` 로 별도 빌드한다 (compose 와 무관).
 
 ### Backend (Gradle)
 

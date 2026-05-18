@@ -27,12 +27,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 // NOTE: 선언적 @Transactional 대신 TransactionTemplate을 사용한다.
 // Dataset 저장 → conversation 배치 flush → 실패 시 보상 트랜잭션(compensation)을
 // 독립된 트랜잭션 경계로 interleave해야 하므로 클래스 레벨 @Transactional(readOnly = true)
 // 컨벤션의 의도적 예외.
+//
+// 또한 호출 측(RawFileUploadService.upload)이 자체 @Transactional 로 corpus TX 를 시작하면
+// 이 서비스의 TransactionTemplate(default REQUIRED)도 그 TX 에 참여하게 되어 dataset INSERT 가
+// commit 되지 않은 채 후속 단계(TriggerIngestionUseCase 의 REQUIRES_NEW)에서 dataset_id 를
+// 참조할 때 pipeline_job_dataset_id_fkey FK 위반이 발생한다. 따라서 dataset/conversation 저장은
+// 항상 독립된 새 트랜잭션(REQUIRES_NEW)에서 commit 되도록 강제한다.
 @Service
 public class RawDatasetUploadService {
 
@@ -61,7 +68,9 @@ public class RawDatasetUploadService {
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
     this.objectMapper = objectMapper;
-    this.transactionTemplate = new TransactionTemplate(transactionManager);
+    TransactionTemplate t = new TransactionTemplate(transactionManager);
+    t.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    this.transactionTemplate = t;
   }
 
   public DatasetUploadResult upload(RawDatasetUploadCommand command) {
