@@ -38,7 +38,7 @@ describe('UploadPage', () => {
 
   it('renders dropzone with upload prompt', () => {
     renderUploadPage();
-    expect(screen.getByText('파일을 드래그하거나 클릭하세요')).toBeInTheDocument();
+    expect(screen.getByText('파일을 클릭하여 선택하세요')).toBeInTheDocument();
   });
 
   it('renders datasets table with 5 or more rows', () => {

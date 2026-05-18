@@ -169,7 +169,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
           {status.kind === "success" &&
             `업로드 완료 — ${status.fileName} (dataset ${status.datasetId})`}
           {status.kind === "error" && `업로드 실패: ${status.message}`}
-          {status.kind === "idle" && "파일을 드래그하거나 클릭하세요"}
+          {status.kind === "idle" && "파일을 클릭하여 선택하세요"}
         </span>
         <Mono style={{ color: "var(--ink-3)" }}>
           .json (consulting conversation array) &middot; max 50MB
