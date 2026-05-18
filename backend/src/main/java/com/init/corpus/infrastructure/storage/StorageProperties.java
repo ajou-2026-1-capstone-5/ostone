@@ -12,4 +12,5 @@ public record StorageProperties(
     String endpoint,
     String accessKey,
     String secretKey,
-    boolean pathStyleAccess) {}
+    boolean pathStyleAccess,
+    boolean serverSideEncryptionEnabled) {}

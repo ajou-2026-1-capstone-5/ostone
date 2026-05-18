@@ -21,14 +21,16 @@ public class S3RawFileStorageAdapter implements RawFileStoragePort {
 
   @Override
   public String put(String objectKey, byte[] content, String contentType) {
-    PutObjectRequest request =
+    PutObjectRequest.Builder builder =
         PutObjectRequest.builder()
             .bucket(properties.bucketName())
             .key(objectKey)
             .contentType(contentType)
-            .contentLength((long) content.length)
-            .serverSideEncryption(ServerSideEncryption.AES256)
-            .build();
+            .contentLength((long) content.length);
+    if (properties.serverSideEncryptionEnabled()) {
+      builder.serverSideEncryption(ServerSideEncryption.AES256);
+    }
+    PutObjectRequest request = builder.build();
 
     s3Client.putObject(request, RequestBody.fromBytes(content));
     return objectKey;
