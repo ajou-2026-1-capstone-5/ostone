@@ -24,10 +24,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true)
 public class RawFileUploadService {
 
   private static final Logger log = LoggerFactory.getLogger(RawFileUploadService.class);
@@ -60,7 +58,6 @@ public class RawFileUploadService {
     this.objectMapper = objectMapper;
   }
 
-  @Transactional
   public RawFileUploadResult upload(RawFileUploadCommand command) {
     // 1. Fail-fast validation before S3 IO
     if (!workspaceExistenceRepository.existsById(command.workspaceId())) {
@@ -90,6 +87,7 @@ public class RawFileUploadService {
     // that must intercept any throwable — parse errors, DB errors, runtime errors — to delete
     // the already-uploaded S3 object before re-throwing. Restricting to specific types would
     // silently skip orphan cleanup for uncaught subtypes. (spec/114 U-05, error-handling.md 예외)
+    RawFileUploadResult result;
     try {
       List<RawConversationInput> conversations = parseConversations(command.fileBytes());
 
@@ -114,18 +112,17 @@ public class RawFileUploadService {
               checksum);
       rawFileRepository.save(rawFile);
 
-      triggerPort.trigger(command.workspaceId(), uploadResult.datasetId(), objectKey);
-
-      return new RawFileUploadResult(
-          uploadResult.datasetId(),
-          uploadResult.datasetKey(),
-          command.workspaceId(),
-          objectKey,
-          command.originalFilename(),
-          command.sizeBytes(),
-          uploadResult.status(),
-          uploadResult.piiRedactionStatus(),
-          uploadResult.conversationCount());
+      result =
+          new RawFileUploadResult(
+              uploadResult.datasetId(),
+              uploadResult.datasetKey(),
+              command.workspaceId(),
+              objectKey,
+              command.originalFilename(),
+              command.sizeBytes(),
+              uploadResult.status(),
+              uploadResult.piiRedactionStatus(),
+              uploadResult.conversationCount());
     } catch (Exception ex) {
       try {
         storagePort.delete(objectKey);
@@ -134,6 +131,9 @@ public class RawFileUploadService {
       }
       throw ex;
     }
+
+    triggerPort.trigger(command.workspaceId(), result.datasetId(), objectKey);
+    return result;
   }
 
   private String buildObjectKey(Long workspaceId, String datasetKey, String originalFilename) {
