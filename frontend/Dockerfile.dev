@@ -7,9 +7,12 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
-RUN chown -R node:node /app
-USER node
-
 EXPOSE 5173
 
+# 로컬 dev 컨테이너는 root 로 실행한다. bind mount(./frontend:/app) 와 익명
+# 볼륨(/app/node_modules) 양쪽 모두에 자유롭게 쓸 수 있어야 vite 가
+# .vite-temp 같은 런타임 파일을 생성할 수 있고, 이전 빌드의 익명 볼륨이
+# 다른 ownership 으로 남아 있어도 EACCES 로 죽지 않는다.
+# 외부 노출 없는 로컬 전용 이미지라 비-root 강제의 보안 이득은 없다.
+# production 이미지는 별도(frontend/Dockerfile, nginx) 라 영향 없음.
 CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5173"]
