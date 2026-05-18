@@ -31,6 +31,7 @@ storage:
     access-key: ${STORAGE_S3_ACCESS_KEY:}
     secret-key: ${STORAGE_S3_SECRET_KEY:}
     path-style-access: ${STORAGE_S3_PATH_STYLE:false}
+    server-side-encryption-enabled: ${STORAGE_S3_SSE_ENABLED:false}
 
 management:
   endpoints:
