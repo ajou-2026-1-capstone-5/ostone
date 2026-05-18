@@ -6,6 +6,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 @Component
 public class S3RawFileStorageAdapter implements RawFileStoragePort {
@@ -26,6 +27,7 @@ public class S3RawFileStorageAdapter implements RawFileStoragePort {
             .key(objectKey)
             .contentType(contentType)
             .contentLength((long) content.length)
+            .serverSideEncryption(ServerSideEncryption.AES256)
             .build();
 
     s3Client.putObject(request, RequestBody.fromBytes(content));
