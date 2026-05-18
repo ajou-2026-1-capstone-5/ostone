@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { LogUploadForm } from "../../../features/log-upload/ui/LogUploadForm";
 import { Eyebrow, Mono, Dot, Pill } from "@/shared/ui/ostone/atoms";
 import { Dropzone } from "./sections/Dropzone";
 import { DatasetsTable } from "./sections/DatasetsTable";
@@ -10,10 +9,10 @@ import { ActiveRunTimeline } from "./sections/ActiveRunTimeline";
 import { EvalChart } from "./sections/EvalChart";
 import { StagePips } from "./sections/StagePips";
 
-void LogUploadForm;
-
 export const UploadPage: React.FC = () => {
   const { setCrumbs } = useOutletContext<ShellContext>();
+  const { workspaceId: workspaceIdParam } = useParams<{ workspaceId: string }>();
+  const workspaceId = workspaceIdParam ? Number(workspaceIdParam) : undefined;
 
   useEffect(() => {
     setCrumbs(["CARD-CS", "Pipeline · Datasets"]);
@@ -74,7 +73,7 @@ export const UploadPage: React.FC = () => {
             marginTop: 24,
           }}
         >
-          <Dropzone />
+          <Dropzone workspaceId={workspaceId} />
 
           <div
             style={{

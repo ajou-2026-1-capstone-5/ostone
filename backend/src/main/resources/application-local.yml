@@ -26,18 +26,9 @@ airflow:
     password: ${AIRFLOW_API_PASSWORD:admin}
     connect-timeout: ${AIRFLOW_API_CONNECT_TIMEOUT:3s}
     read-timeout: ${AIRFLOW_API_READ_TIMEOUT:10s}
+    allow-insecure-http: ${AIRFLOW_API_ALLOW_INSECURE_HTTP:true}
   dags:
     domain-pack-generation:
       dag-id: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:domain_pack_generation}
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET:local-airflow-webhook-secret}
-
-storage:
-  s3:
-    bucket-name: init-raw-files-local
-    region: us-east-1
-    endpoint: http://localhost:9000
-    access-key: ${MINIO_ROOT_USER:minioadmin}
-    secret-key: ${MINIO_ROOT_PASSWORD:minioadmin}
-    path-style-access: true
-    server-side-encryption-enabled: false
