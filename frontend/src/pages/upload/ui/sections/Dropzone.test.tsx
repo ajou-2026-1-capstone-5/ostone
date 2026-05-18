@@ -146,6 +146,17 @@ describe('Dropzone', () => {
     expect(screen.getByText(/dataset -1/)).toBeInTheDocument();
   });
 
+  it('onSuccess: null/primitive 응답에서도 TypeError 없이 -1 로 폴백한다', () => {
+    render(<Dropzone workspaceId={1} />);
+    act(() => {
+      lastConfig?.mutation?.onSuccess?.(
+        null,
+        { data: { file: new File(['x'], 'd.json') } },
+      );
+    });
+    expect(screen.getByText(/업로드 완료 — d\.json \(dataset -1\)/)).toBeInTheDocument();
+  });
+
   it('onError(Error): 메시지와 토스트를 노출한다', () => {
     render(<Dropzone workspaceId={1} />);
     act(() => {

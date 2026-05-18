@@ -23,13 +23,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
       onSuccess: (response, variables) => {
         // customFetch 는 backend ResponseEntity body 를 그대로 반환하므로
         // generated wrapper 의 { data, status } 와 실제 응답 (RawFileUploadResponse) 둘 다 대응.
-        const r = response as unknown as
-          | { data?: { datasetId?: number } }
-          | { datasetId?: number };
-        const datasetId =
-          ("data" in r && r.data?.datasetId) ||
-          ("datasetId" in r && r.datasetId) ||
-          undefined;
+        // datasetId 는 corpus.dataset.id (bigserial, 1부터 시작) → 0 보존 불필요,
+        // 단 null/primitive 응답에서 `in` 연산자 TypeError 만 차단.
+        const r =
+          typeof response === "object" && response !== null
+            ? (response as { data?: { datasetId?: number }; datasetId?: number })
+            : null;
+        const datasetId = r?.data?.datasetId ?? r?.datasetId;
         setStatus({
           kind: "success",
           fileName: variables.data?.file?.name ?? "",
