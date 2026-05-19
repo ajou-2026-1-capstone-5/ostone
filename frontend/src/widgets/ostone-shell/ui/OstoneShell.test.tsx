@@ -63,17 +63,20 @@ describe('OstoneShell', () => {
     expect(screen.getByLabelText('주요 내비게이션')).toHaveAttribute('data-collapsed', 'true');
   });
 
-  it('토글 버튼 클릭 시 collapsed 상태가 토글되고 localStorage에 저장된다', () => {
+  it('collapsed 시 nav 배경 클릭으로 펼쳐지고 localStorage에 저장되며, expanded 후엔 접기 버튼이 동작한다', () => {
     render(
       <OstoneShell active="workflows" crumbs={[]}>
         <div>content</div>
       </OstoneShell>,
       { wrapper: Wrapper },
     );
-    expect(screen.getByLabelText('주요 내비게이션')).toHaveAttribute('data-collapsed', 'true');
-    fireEvent.click(screen.getByLabelText('사이드바 펼치기'));
+    const nav = screen.getByLabelText('주요 내비게이션');
+    expect(nav).toHaveAttribute('data-collapsed', 'true');
+    fireEvent.click(nav);
     expect(screen.getByLabelText('주요 내비게이션')).toHaveAttribute('data-collapsed', 'false');
     expect(window.localStorage.getItem('ostone:sidebar:collapsed')).toBe('false');
+    fireEvent.click(screen.getByLabelText('사이드바 접기'));
+    expect(screen.getByLabelText('주요 내비게이션')).toHaveAttribute('data-collapsed', 'true');
   });
 
   it('localStorage에 false가 저장돼 있으면 expanded로 시작한다', () => {
@@ -112,7 +115,7 @@ describe('OstoneShell', () => {
       </OstoneShell>,
       { wrapper: Wrapper },
     );
-    fireEvent.click(screen.getByLabelText('사이드바 펼치기'));
+    fireEvent.click(screen.getByLabelText('주요 내비게이션'));
     expect(screen.getByText('Injected')).toBeInTheDocument();
   });
 });

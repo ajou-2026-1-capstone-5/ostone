@@ -41,11 +41,11 @@ const TREE_FIXTURE: SidebarTreeData = {
 };
 
 describe('Sidebar', () => {
-  it('collapsed 모드에서는 width 56px과 아이콘 항목을 표시한다 (Workflows 최상위 항목 없음)', () => {
+  it('collapsed 모드에서는 width 64px과 아이콘 항목을 표시한다 (Workflows 최상위 항목 없음)', () => {
     renderSidebar({ collapsed: true });
     const nav = screen.getByLabelText('주요 내비게이션');
     expect(nav).toHaveAttribute('data-collapsed', 'true');
-    expect(nav).toHaveStyle({ width: '56px' });
+    expect(nav).toHaveStyle({ width: '64px' });
     expect(screen.getByTitle('Operator')).toBeInTheDocument();
     expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
@@ -68,10 +68,23 @@ describe('Sidebar', () => {
     expect(screen.queryByTitle('Workflows')).not.toBeInTheDocument();
   });
 
-  it('토글 버튼 클릭 시 onToggleCollapsed가 호출된다', () => {
+  it('collapsed 시 nav 배경 클릭으로 onToggleCollapsed가 호출된다', () => {
     const onToggleCollapsed = vi.fn();
     renderSidebar({ collapsed: true, onToggleCollapsed });
-    fireEvent.click(screen.getByLabelText('사이드바 펼치기'));
+    const nav = screen.getByLabelText('주요 내비게이션');
+    fireEvent.click(nav);
+    expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
+
+  it('collapsed 시에는 별도 토글 버튼이 렌더되지 않는다', () => {
+    renderSidebar({ collapsed: true });
+    expect(screen.queryByLabelText('사이드바 펼치기')).not.toBeInTheDocument();
+  });
+
+  it('expanded 시 토글 버튼 클릭으로 onToggleCollapsed가 호출된다', () => {
+    const onToggleCollapsed = vi.fn();
+    renderSidebar({ collapsed: false, onToggleCollapsed });
+    fireEvent.click(screen.getByLabelText('사이드바 접기'));
     expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
   });
 

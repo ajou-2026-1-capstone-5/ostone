@@ -51,8 +51,8 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
       data-testid="account-menu-trigger"
       data-state={open ? 'open' : 'closed'}
       style={{
-        width: '32px',
-        height: '32px',
+        width: '40px',
+        height: '40px',
         borderRadius: 'var(--r-2)',
         border: '1px solid var(--line)',
         background: open ? 'var(--paper-3)' : 'var(--paper)',
@@ -61,9 +61,10 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 0,
+        transition: 'background 160ms ease',
       }}
     >
-      <Avatar tone="signal" initial={initial} size={24} />
+      <Avatar tone="signal" initial={initial} size={28} />
     </button>
   );
 
@@ -88,15 +89,16 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
         textAlign: 'left',
         color: 'var(--ink)',
         fontFamily: 'var(--sans)',
-        fontSize: '12px',
+        fontSize: '13px',
+        transition: 'background 160ms ease',
       }}
     >
-      <Avatar tone="signal" initial={initial} size={24} />
+      <Avatar tone="signal" initial={initial} size={28} />
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {displayName}
       </span>
-      <span style={{ display: 'inline-flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 120ms ease' }}>
-        <Icon name="chevron" size={10} />
+      <span style={{ display: 'inline-flex', transform: open ? 'rotate(270deg)' : 'rotate(90deg)', transition: 'transform 160ms ease' }}>
+        <Icon name="chevron" size={12} />
       </span>
     </button>
   );

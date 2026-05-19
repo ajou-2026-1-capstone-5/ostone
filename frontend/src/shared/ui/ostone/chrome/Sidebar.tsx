@@ -152,10 +152,17 @@ export function Sidebar({
     setSettingsPanelPackId((prev) => (prev === packId ? null : packId));
   };
 
+  const handleNavClick: React.MouseEventHandler<HTMLElement> = (e) => {
+    if (collapsed && e.target === e.currentTarget) {
+      onToggleCollapsed();
+    }
+  };
+
   return (
     <nav
+      onClick={handleNavClick}
       style={{
-        width: collapsed ? '56px' : '240px',
+        width: collapsed ? '64px' : '240px',
         background: containerBg,
         borderRight: `1px solid ${borderColor}`,
         display: 'flex',
@@ -167,55 +174,69 @@ export function Sidebar({
         flexShrink: 0,
         overflowY: 'auto',
         overflowX: 'hidden',
-        transition: 'width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: collapsed ? 'pointer' : 'default',
+        transition: 'width 280ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease',
       }}
       aria-label="주요 내비게이션"
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       <div
+        onClick={handleNavClick}
         style={{
           display: 'flex',
-          flexDirection: collapsed ? 'column' : 'row',
+          flexDirection: 'row',
           alignItems: 'center',
           gap: 'var(--s-2)',
           marginBottom: 'var(--s-2)',
           padding: collapsed ? '0' : '0 var(--s-3)',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          width: collapsed ? 'auto' : '100%',
         }}
       >
         {switcher !== undefined && (
-          <div style={{ flex: collapsed ? '0 0 auto' : '1 1 0', minWidth: 0, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+          <div
+            style={{
+              flex: collapsed ? '0 0 auto' : '1 1 0',
+              minWidth: 0,
+              display: 'flex',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+            }}
+          >
             {switcher}
           </div>
         )}
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-          title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-          style={{
-            flexShrink: 0,
-            width: '28px',
-            height: '28px',
-            borderRadius: 'var(--r-2)',
-            border: `1px solid ${borderColor}`,
-            background: 'transparent',
-            color: defaultColor,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <span
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label="사이드바 접기"
+            title="사이드바 접기"
             style={{
+              flexShrink: 0,
+              width: '32px',
+              height: '40px',
+              borderRadius: 'var(--r-2)',
+              border: '1px solid var(--line)',
+              background: 'var(--paper)',
+              color: 'var(--ink)',
               display: 'inline-flex',
-              transform: collapsed ? 'none' : 'rotate(180deg)',
-              transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background 160ms ease, border-color 160ms ease',
             }}
           >
-            <Icon name="chevron" size={12} />
-          </span>
-        </button>
+            <span
+              style={{
+                display: 'inline-flex',
+                transform: 'rotate(180deg)',
+                transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              <Icon name="chevron" size={12} />
+            </span>
+          </button>
+        )}
       </div>
 
       <div

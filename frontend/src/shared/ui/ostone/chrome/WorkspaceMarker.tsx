@@ -51,19 +51,20 @@ export function WorkspaceMarker({ workspaceId, collapsed }: WorkspaceMarkerProps
         onClick={() => setOpen((v) => !v)}
         data-testid="workspace-marker"
         style={{
-          width: '32px',
-          height: '32px',
+          width: '40px',
+          height: '40px',
           borderRadius: 'var(--r-2)',
           border: '1px solid var(--line)',
           background: 'var(--paper)',
           color: 'var(--ink)',
           fontFamily: 'var(--mono)',
-          fontSize: '13px',
+          fontSize: '14px',
           fontWeight: 600,
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
+          transition: 'background 160ms ease, color 160ms ease',
         }}
       >
         {initial}
@@ -80,8 +81,8 @@ export function WorkspaceMarker({ workspaceId, collapsed }: WorkspaceMarkerProps
         data-testid="workspace-marker"
         style={{
           width: '100%',
-          height: '36px',
-          padding: '0 var(--s-2)',
+          height: '40px',
+          padding: '0 var(--s-3)',
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--s-2)',
@@ -90,36 +91,25 @@ export function WorkspaceMarker({ workspaceId, collapsed }: WorkspaceMarkerProps
           borderRadius: 'var(--r-2)',
           color: 'var(--ink)',
           fontFamily: 'var(--sans)',
-          fontSize: '12px',
+          fontSize: '13px',
           fontWeight: 500,
           letterSpacing: '-0.1px',
           textAlign: 'left',
           cursor: 'pointer',
+          transition: 'background 160ms ease',
         }}
       >
-        <span
-          style={{
-            width: '22px',
-            height: '22px',
-            borderRadius: 'var(--r-1)',
-            background: 'var(--paper-3)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'var(--mono)',
-            fontWeight: 600,
-            fontSize: '11px',
-            color: 'var(--ink)',
-            flexShrink: 0,
-          }}
-        >
-          {initial}
-        </span>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {name ?? '워크스페이스 선택'}
         </span>
-        <span style={{ display: 'inline-flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 120ms ease' }}>
-          <Icon name="chevron" size={10} />
+        <span
+          style={{
+            display: 'inline-flex',
+            transform: open ? 'rotate(270deg)' : 'rotate(90deg)',
+            transition: 'transform 160ms ease',
+          }}
+        >
+          <Icon name="chevron" size={12} />
         </span>
       </button>
 
