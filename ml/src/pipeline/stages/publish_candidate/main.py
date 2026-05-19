@@ -198,10 +198,24 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
     if candidate.get("schemaVersion") != SCHEMA_VERSION:
         raise PipelineStageError("Candidate schemaVersion must be '1.0'.")
 
+    _validate_domain_pack_draft(candidate)
+    intent_codes = _validate_intent_draft(candidate)
+    workflow_lists = _validate_workflow_draft(candidate)
+    slot_codes = _validate_slot_drafts(workflow_lists)
+    _validate_policy_drafts(workflow_lists)
+    _validate_risk_drafts(workflow_lists)
+    workflow_codes = _validate_workflow_drafts(workflow_lists)
+    _validate_intent_slot_bindings(workflow_lists, intent_codes, slot_codes)
+    _validate_intent_workflow_bindings(workflow_lists, intent_codes, workflow_codes)
+
+
+def _validate_domain_pack_draft(candidate: dict[str, Any]) -> None:
     domain_pack_draft = _required_object(candidate, "domainPackDraft")
     _required_non_blank(domain_pack_draft, "packKey", 100)
     _required_non_blank(domain_pack_draft, "packName", 255)
 
+
+def _validate_intent_draft(candidate: dict[str, Any]) -> set[str]:
     intent_draft = _required_object(candidate, "intentDraft")
     intents = _required_list(intent_draft, "intents")
     if not intents:
@@ -210,26 +224,39 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
     for intent in intents:
         _required_non_blank(intent, "name", 255)
         _validate_representative_cases(intent)
+    return intent_codes
 
+
+def _validate_workflow_draft(candidate: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     workflow_draft = _required_object(candidate, "workflowDraft")
     workflow_lists = {key: _optional_list(workflow_draft, key) for key in WORKFLOW_LIST_KEYS}
     if not any(workflow_lists[key] for key in WORKFLOW_LIST_KEYS):
         raise PipelineStageError("workflowDraft must contain at least one draft component.")
+    return workflow_lists
 
+
+def _validate_slot_drafts(workflow_lists: dict[str, list[dict[str, Any]]]) -> set[str]:
     slot_codes = _validate_code_list(workflow_lists["slots"], "slotCode", "workflowDraft.slots")
     for slot in workflow_lists["slots"]:
         _required_non_blank(slot, "name", 255)
         _required_non_blank(slot, "dataType", 50)
+    return slot_codes
 
+
+def _validate_policy_drafts(workflow_lists: dict[str, list[dict[str, Any]]]) -> None:
     _validate_code_list(workflow_lists["policies"], "policyCode", "workflowDraft.policies")
     for policy in workflow_lists["policies"]:
         _required_non_blank(policy, "name", 255)
 
+
+def _validate_risk_drafts(workflow_lists: dict[str, list[dict[str, Any]]]) -> None:
     _validate_code_list(workflow_lists["risks"], "riskCode", "workflowDraft.risks")
     for risk in workflow_lists["risks"]:
         _required_non_blank(risk, "name", 255)
         _required_non_blank(risk, "riskLevel", 50)
 
+
+def _validate_workflow_drafts(workflow_lists: dict[str, list[dict[str, Any]]]) -> set[str]:
     workflow_codes = _validate_code_list(workflow_lists["workflows"], "workflowCode", "workflowDraft.workflows")
     for workflow in workflow_lists["workflows"]:
         _required_non_blank(workflow, "name", 255)
@@ -238,7 +265,14 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
             workflow.get("evidenceJson"),
             context="workflowDraft.workflows[*].evidenceJson",
         )
+    return workflow_codes
 
+
+def _validate_intent_slot_bindings(
+    workflow_lists: dict[str, list[dict[str, Any]]],
+    intent_codes: set[str],
+    slot_codes: set[str],
+) -> None:
     for binding in workflow_lists["intentSlotBindings"]:
         intent_code = _required_non_blank(binding, "intentCode", 100)
         slot_code = _required_non_blank(binding, "slotCode", 100)
@@ -247,6 +281,12 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
         if slot_code not in slot_codes:
             raise PipelineStageError(f"intentSlotBindings references unknown slotCode: {slot_code}")
 
+
+def _validate_intent_workflow_bindings(
+    workflow_lists: dict[str, list[dict[str, Any]]],
+    intent_codes: set[str],
+    workflow_codes: set[str],
+) -> None:
     for binding in workflow_lists["intentWorkflowBindings"]:
         intent_code = _required_non_blank(binding, "intentCode", 100)
         workflow_code = _required_non_blank(binding, "workflowCode", 100)
@@ -744,9 +784,7 @@ def _validate_evidence_json(value: object, *, context: str) -> None:
         if not isinstance(item, dict):
             raise PipelineStageError(f"{context} items must be objects.")
         if item.get("type") not in _ALLOWED_EVIDENCE_TYPES:
-            raise PipelineStageError(
-                f"{context} item has unsupported type {item.get('type')!r}."
-            )
+            raise PipelineStageError(f"{context} item has unsupported type {item.get('type')!r}.")
         value_field = item.get("value")
         if not isinstance(value_field, str) or not value_field.strip():
             raise PipelineStageError(f"{context} item 'value' must be a non-blank string.")

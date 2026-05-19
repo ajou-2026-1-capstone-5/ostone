@@ -21,19 +21,34 @@ SENTENCE_ARTIFACT = "intent_sentence_mapping_v3.jsonl"
 BALANCED_CLUSTER_ARTIFACT = "intent_clusters_v3_balanced.jsonl"
 SOURCE_NAME = "balanced_defragmentation_v1"
 
+ACTION_PAYMENT = "결제/입금 문의"
+ACTION_DISCOUNT = "할인/혜택 문의"
+ACTION_CONTACT = "상담 연락 문의"
+ACTION_INFO = "정보/서류 문의"
+ACTION_PROBLEM = "문제 해결/보상 문의"
+ACTION_REFUND = "취소/환불 문의"
+ACTION_CHANGE = "변경 문의"
+ACTION_QUOTE = "가격/견적 문의"
+ACTION_RECOMMEND = "추천/비교 문의"
+ACTION_AVAILABILITY = "가능 여부/확인 문의"
+ACTION_RESERVATION = "예약/신청 문의"
+ACTION_SCHEDULE = "일정/기간 문의"
+ACTION_GENERAL = "일반 문의"
+INTENT_MISC = "기타 문의"
+
 _COMMON_ACTION_INTENTS = {
-    "결제/입금 문의",
-    "할인/혜택 문의",
-    "상담 연락 문의",
-    "정보/서류 문의",
-    "문제 해결/보상 문의",
+    ACTION_PAYMENT,
+    ACTION_DISCOUNT,
+    ACTION_CONTACT,
+    ACTION_INFO,
+    ACTION_PROBLEM,
 }
 _STRONG_BOUNDARY_ACTIONS = {
-    "취소/환불 문의",
-    "변경 문의",
-    "결제/입금 문의",
-    "정보/서류 문의",
-    "문제 해결/보상 문의",
+    ACTION_REFUND,
+    ACTION_CHANGE,
+    ACTION_PAYMENT,
+    ACTION_INFO,
+    ACTION_PROBLEM,
 }
 
 
@@ -250,20 +265,16 @@ def _should_start_new_segment(label: IntentLabel, current: IntentLabel, text: st
     if label.action in _STRONG_BOUNDARY_ACTIONS and label.action != current.action:
         return True
     if current.action in _STRONG_BOUNDARY_ACTIONS and label.action != current.action:
-        return label.action not in {"일반 문의", "가능 여부/확인 문의", "정보/서류 문의"}
+        return label.action not in {ACTION_GENERAL, ACTION_AVAILABILITY, ACTION_INFO}
     return False
 
 
 def _merge_label(current: IntentLabel, incoming: IntentLabel) -> IntentLabel:
     if current.domain == "공통" and incoming.domain != "공통":
         return incoming
-    if current.action == "일반 문의" and incoming.action != "일반 문의":
+    if current.action == ACTION_GENERAL and incoming.action != ACTION_GENERAL:
         return incoming
-    if (
-        current.domain == incoming.domain
-        and current.action == "가능 여부/확인 문의"
-        and incoming.action == "가격/견적 문의"
-    ):
+    if current.domain == incoming.domain and current.action == ACTION_AVAILABILITY and incoming.action == ACTION_QUOTE:
         return current
     return current
 
@@ -276,7 +287,7 @@ def _classify_label(text: str) -> IntentLabel:
     confidence = 0.92
     if domain == "공통":
         confidence -= 0.1
-    if action == "일반 문의":
+    if action == ACTION_GENERAL:
         confidence -= 0.12
     if _is_detail_continuation(normalized):
         confidence -= 0.08
@@ -299,30 +310,30 @@ def _balanced_domain(text: str) -> str:
 
 def _balanced_action(text: str) -> str:
     if re.search(r"취소|해지|환불|환급|캔슬", text):
-        return "취소/환불 문의"
+        return ACTION_REFUND
     if re.search(r"변경|수정|연장|단축|바꾸|추가|인원.*변경|날짜.*변경", text):
-        return "변경 문의"
+        return ACTION_CHANGE
     if re.search(r"결제|입금|카드|현금영수증|계좌|송금|납부|잔금|환전|결제방법", text):
-        return "결제/입금 문의"
+        return ACTION_PAYMENT
     if re.search(r"견적|가격|금액|요금|비용|총액|얼마|예산|가견적|숙박비", text):
-        return "가격/견적 문의"
+        return ACTION_QUOTE
     if re.search(r"혜택|할인|프로모션|특전|이벤트|쿠폰|조기", text):
-        return "할인/혜택 문의"
+        return ACTION_DISCOUNT
     if re.search(r"추천|소개|골라|비교|선택|좋은|어디", text):
-        return "추천/비교 문의"
+        return ACTION_RECOMMEND
     if re.search(r"준비물|서류|여권|비자|정보|필요|제출|작성", text):
-        return "정보/서류 문의"
+        return ACTION_INFO
     if re.search(r"가능|가능성|마감|대기|예약 가능|예약확인|확인|조회", text):
-        return "가능 여부/확인 문의"
+        return ACTION_AVAILABILITY
     if re.search(r"예약|신청|접수|진행|확정|예약금|출발|발권", text):
-        return "예약/신청 문의"
+        return ACTION_RESERVATION
     if re.search(r"일정|기간|날짜|몇박|며칠|시간|소요|출발|도착", text):
-        return "일정/기간 문의"
+        return ACTION_SCHEDULE
     if re.search(r"연락|전화|메일|이메일|카카오|담당자|직통", text):
-        return "상담 연락 문의"
+        return ACTION_CONTACT
     if re.search(r"불만|문제|보상|도움|해결|컴플레인", text):
-        return "문제 해결/보상 문의"
-    return "일반 문의"
+        return ACTION_PROBLEM
+    return ACTION_GENERAL
 
 
 def _balanced_key(domain: str, action: str) -> str:
@@ -330,14 +341,14 @@ def _balanced_key(domain: str, action: str) -> str:
         return action
     if domain == "공통":
         return {
-            "취소/환불 문의": "예약 취소/환불 문의",
-            "변경 문의": "예약 변경 문의",
-            "가격/견적 문의": "가격/견적 문의",
-            "가능 여부/확인 문의": "예약 진행/가능 여부 문의",
-            "예약/신청 문의": "예약/신청 문의",
-            "추천/비교 문의": "상품 추천/비교 문의",
-            "일정/기간 문의": "일정/기간 문의",
-            "일반 문의": "기타 문의",
+            ACTION_REFUND: "예약 취소/환불 문의",
+            ACTION_CHANGE: "예약 변경 문의",
+            ACTION_QUOTE: ACTION_QUOTE,
+            ACTION_AVAILABILITY: "예약 진행/가능 여부 문의",
+            ACTION_RESERVATION: ACTION_RESERVATION,
+            ACTION_RECOMMEND: "상품 추천/비교 문의",
+            ACTION_SCHEDULE: ACTION_SCHEDULE,
+            ACTION_GENERAL: INTENT_MISC,
         }.get(action, action)
     return f"{domain} {action}"
 
@@ -366,7 +377,7 @@ def _balanced_cluster_row(
     return {
         "canonical_intent": canonical,
         "description": _description(canonical),
-        "fallback_name": canonical == "기타 문의",
+        "fallback_name": canonical == INTENT_MISC,
         "cluster_id": cluster_id,
         "cluster_size": len(segments),
         "sample_intent_phrases": phrases,
@@ -381,7 +392,7 @@ def _cluster_result(
     segment_rows: Sequence[Mapping[str, object]],
 ) -> ClusterResult:
     segment_ids = tuple(segment.segment_id for segment in segments)
-    member_conv_ids = tuple(dict.fromkeys(segment.consultation_id for segment in segments))
+    member_conv_ids = _unique_tuple(segment.consultation_id for segment in segments)
     exemplar_conv_ids = member_conv_ids[:3]
     keywords = tuple(_positive_keywords(canonical))
     quality = ClusterQuality(
@@ -408,7 +419,7 @@ def _cluster_result(
         metadata={
             "canonical_intent": canonical,
             "description": _description(canonical),
-            "fallback_name": canonical == "기타 문의",
+            "fallback_name": canonical == INTENT_MISC,
             "cluster_size": len(segments),
             "sample_intent_phrases": [segment.intent_phrase_refined for segment in segments[:8]],
             "sample_segment_texts": samples,
@@ -530,9 +541,13 @@ def _is_ack_or_closing(text: str) -> bool:
 
 
 def _is_detail_continuation(text: str) -> bool:
-    has_detail = bool(re.search(r"\d+\s*(명|박|일|월|시|분)|성인|아동|아이|인원|여권|이름|연락처", text))
-    has_action = _balanced_action(text) not in {"일반 문의", "일정/기간 문의", "정보/서류 문의"}
+    has_detail = bool(re.search(r"\d+\s*[명박일월시분]|성인|아동|아이|인원|여권|이름|연락처", text))
+    has_action = _balanced_action(text) not in {ACTION_GENERAL, ACTION_SCHEDULE, ACTION_INFO}
     return has_detail and not has_action
+
+
+def _unique_tuple(values: Iterable[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(values).keys())
 
 
 def _split_sentences(text: str) -> list[str]:

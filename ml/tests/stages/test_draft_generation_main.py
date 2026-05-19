@@ -11,6 +11,7 @@ from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.draft_generation.main import (
     _build_candidate,
+    _build_consultation_cluster_groups,
     _build_intents,
     _build_slot_draft,
     _build_workflow_draft,
@@ -271,6 +272,65 @@ def test_build_intents_avg_per_intent() -> None:
     assert metrics["representative_case_total"] == 2
     assert abs(metrics["representative_case_avg_per_intent"] - 1.0) < 1e-9
     assert metrics["intents_with_zero_cases"] == 1
+
+
+def test_build_consultation_cluster_groups_splits_by_consultation_and_canonical() -> None:
+    clusters: list[Any] = [
+        "invalid",
+        {
+            "cluster_id": 10,
+            "canonical_intent": "항공권 변경 문의",
+            "description": "항공권 변경",
+            "suggested_description": "항공권 변경 설명",
+            "source": "global",
+            "workflow_signal": {"requires_user_identification": True},
+        },
+        {
+            "cluster_id": 20,
+            "description": "fallback cluster",
+            "fallback_name": True,
+            "workflow_signal": {"requires_payment_check": True},
+        },
+    ]
+    segment_rows: list[dict[str, Any]] = [
+        {
+            "consultation_id": "consultation-a",
+            "canonical_intent": "항공권 변경 문의",
+            "cluster_id": 10,
+            "segment_id": "seg-a-1",
+            "segment_customer_text": "항공권 날짜를 변경하고 싶어요",
+            "intent_phrase_refined": "항공권 변경 문의",
+        },
+        {
+            "consultation_id": "consultation-a",
+            "canonical_intent": "항공권 변경 문의",
+            "cluster_id": 10,
+            "segment_id": "seg-a-2",
+            "segment_customer_text": "인원을 추가할 수 있나요?",
+            "intent_phrase_refined": "항공권 변경 문의",
+        },
+        {
+            "consultation_id": "consultation-b",
+            "canonical_intent": "기타 문의",
+            "cluster_id": 20,
+            "segment_id": "seg-b-1",
+            "segment_customer_text": "안녕하세요",
+            "intent_phrase_refined": "",
+        },
+        {"consultation_id": "", "canonical_intent": "무시"},
+    ]
+
+    grouped = _build_consultation_cluster_groups(clusters, segment_rows)
+
+    assert set(grouped) == {"consultation-a", "consultation-b"}
+    assert grouped["consultation-a"][0]["cluster_id"] == 0
+    assert grouped["consultation-a"][0]["source"] == "global"
+    assert grouped["consultation-a"][0]["segment_ids"] == ["seg-a-1", "seg-a-2"]
+    assert grouped["consultation-a"][0]["sample_intent_phrases"] == ["항공권 변경 문의"]
+    assert grouped["consultation-a"][0]["workflow_signal"] == {"requires_user_identification": True}
+    assert grouped["consultation-b"][0]["description"] == "fallback cluster"
+    assert grouped["consultation-b"][0]["fallback_name"] is True
+    assert grouped["consultation-b"][0]["member_conv_ids"] == ["consultation-b"]
 
 
 def _write_upstream_manifest(tmp_path: Path) -> Path:

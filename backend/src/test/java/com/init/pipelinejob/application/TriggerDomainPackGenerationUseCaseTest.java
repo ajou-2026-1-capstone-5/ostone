@@ -15,6 +15,7 @@ import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningExcep
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.shared.application.exception.NotFoundException;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -169,6 +170,25 @@ class TriggerDomainPackGenerationUseCaseTest {
         .isInstanceOf(AirflowConfigurationInvalidException.class);
 
     verify(concurrencyGuard).lockTriggerCreation(1L, 7L);
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(triggerPort, never()).trigger(any());
+  }
+
+  @Test
+  @DisplayName("dataset raw file이 없으면 RAW_FILE_NOT_FOUND 예외를 던지고 job을 만들지 않는다")
+  void execute_missingRawFile_throwsNotFound() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
+    given(datasetRawFileLookupPort.findLatestObjectKeyByDatasetId(7L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> useCase.execute(command()))
+        .isInstanceOf(NotFoundException.class)
+        .satisfies(
+            throwable ->
+                assertThat(((NotFoundException) throwable).getCode())
+                    .isEqualTo("RAW_FILE_NOT_FOUND"));
+
     verify(pipelineJobRepository, never()).saveAndFlush(any());
     verify(triggerPort, never()).trigger(any());
   }

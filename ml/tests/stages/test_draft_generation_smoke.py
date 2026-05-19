@@ -82,7 +82,9 @@ def test_draft_generation_produces_representative_cases(monkeypatch: pytest.Monk
 
     result = run(upstream_manifest_path=str(manifest_path))
 
-    candidate_path = Path(result["candidateArtifactPath"])
+    candidate_path_value = result["candidateArtifactPath"]
+    assert isinstance(candidate_path_value, str)
+    candidate_path = Path(candidate_path_value)
     assert candidate_path.exists()
 
     candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
@@ -145,7 +147,9 @@ def test_draft_generation_partial_hydration_smoke(monkeypatch: pytest.MonkeyPatc
 
     result = run(upstream_manifest_path=str(manifest_path))
 
-    candidate = json.loads(Path(result["candidateArtifactPath"]).read_text(encoding="utf-8"))
+    candidate_path_value = result["candidateArtifactPath"]
+    assert isinstance(candidate_path_value, str)
+    candidate = json.loads(Path(candidate_path_value).read_text(encoding="utf-8"))
     cases = candidate["intentDraft"]["intents"][0]["representativeCases"]
     assert len(cases) == 1, f"hydration 성공한 1개만 포함, 실제: {len(cases)}"
     assert cases[0]["conversationId"] == "c1"

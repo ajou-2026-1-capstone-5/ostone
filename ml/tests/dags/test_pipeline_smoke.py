@@ -105,19 +105,11 @@ def test_reproducibility_evidence_json(
     monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
 
     result1 = run(upstream_manifest_path=str(dev_bootstrap_artifacts))
-    evidence1 = [
-        w["evidenceJson"]
-        for w in json.loads(
-            Path(cast(str, result1["candidateArtifactPath"])).read_text(encoding="utf-8")
-        )["workflowDraft"]["workflows"]
-    ]
+    candidate1 = json.loads(Path(cast(str, result1["candidateArtifactPath"])).read_text(encoding="utf-8"))
+    evidence1 = [w["evidenceJson"] for w in candidate1["workflowDraft"]["workflows"]]
 
     result2 = run(upstream_manifest_path=str(dev_bootstrap_artifacts))
-    evidence2 = [
-        w["evidenceJson"]
-        for w in json.loads(
-            Path(cast(str, result2["candidateArtifactPath"])).read_text(encoding="utf-8")
-        )["workflowDraft"]["workflows"]
-    ]
+    candidate2 = json.loads(Path(cast(str, result2["candidateArtifactPath"])).read_text(encoding="utf-8"))
+    evidence2 = [w["evidenceJson"] for w in candidate2["workflowDraft"]["workflows"]]
 
     assert evidence1 == evidence2

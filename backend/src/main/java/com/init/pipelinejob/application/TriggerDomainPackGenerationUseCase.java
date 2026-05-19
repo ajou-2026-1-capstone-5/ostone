@@ -5,12 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.DatasetNotFoundException;
-import com.init.pipelinejob.application.exception.DatasetRawFileNotFoundException;
 import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.shared.application.exception.NotFoundException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -142,7 +142,10 @@ public class TriggerDomainPackGenerationUseCase {
   private String resolveRawFileObjectKey(Long datasetId) {
     return datasetRawFileLookupPort
         .findLatestObjectKeyByDatasetId(datasetId)
-        .orElseThrow(() -> new DatasetRawFileNotFoundException(datasetId));
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    "RAW_FILE_NOT_FOUND", "Dataset raw file을 찾을 수 없습니다. datasetId=" + datasetId));
   }
 
   private void markFailed(Long pipelineJobId, String errorMessage) {

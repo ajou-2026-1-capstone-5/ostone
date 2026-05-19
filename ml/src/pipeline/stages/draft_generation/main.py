@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -31,6 +32,7 @@ DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
 DEFAULT_PREPROCESSED_ARTIFACT = "preprocessed_data.json"
 DEFAULT_SEGMENT_ARTIFACT = "intent_segments_v3.jsonl"
+INTENT_MISC = "기타 문의"
 
 
 class SlotTemplate(NamedTuple):
@@ -206,6 +208,27 @@ def _build_consultation_cluster_groups(
     if not segment_rows:
         return {}
 
+    global_by_canonical, global_by_cluster_id = _build_global_cluster_index(clusters)
+    grouped = _group_segment_rows_by_consultation(segment_rows)
+    consultation_clusters: dict[str, list[dict[str, Any]]] = {}
+    for consultation_id, canonical_groups in grouped.items():
+        consultation_clusters[consultation_id] = [
+            _build_local_consultation_cluster(
+                local_cluster_id,
+                consultation_id,
+                canonical,
+                rows,
+                global_by_canonical,
+                global_by_cluster_id,
+            )
+            for local_cluster_id, (canonical, rows) in enumerate(canonical_groups.items())
+        ]
+    return consultation_clusters
+
+
+def _build_global_cluster_index(
+    clusters: list[Any],
+) -> tuple[dict[str, dict[str, Any]], dict[int, dict[str, Any]]]:
     global_by_canonical: dict[str, dict[str, Any]] = {}
     global_by_cluster_id: dict[int, dict[str, Any]] = {}
     for cluster in clusters:
@@ -217,51 +240,74 @@ def _build_consultation_cluster_groups(
         cluster_id = _int_value(cluster.get("cluster_id"))
         if cluster_id is not None:
             global_by_cluster_id[cluster_id] = cluster
+    return global_by_canonical, global_by_cluster_id
 
+
+def _group_segment_rows_by_consultation(
+    segment_rows: list[dict[str, Any]],
+) -> dict[str, dict[str, list[dict[str, Any]]]]:
     grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
     for row in segment_rows:
         consultation_id = _string_value(row.get("consultation_id"))
         canonical = _string_value(row.get("canonical_intent"))
-        if not consultation_id or not canonical:
-            continue
-        grouped.setdefault(consultation_id, {}).setdefault(canonical, []).append(row)
+        if consultation_id and canonical:
+            grouped.setdefault(consultation_id, {}).setdefault(canonical, []).append(row)
+    return grouped
 
-    consultation_clusters: dict[str, list[dict[str, Any]]] = {}
-    for consultation_id, canonical_groups in grouped.items():
-        local_clusters: list[dict[str, Any]] = []
-        for local_cluster_id, (canonical, rows) in enumerate(canonical_groups.items()):
-            first_row = rows[0]
-            base = global_by_canonical.get(canonical) or global_by_cluster_id.get(
-                _int_value(first_row.get("cluster_id")) or -1,
-                {},
-            )
-            segment_ids = [_string_value(row.get("segment_id")) for row in rows]
-            segment_texts = [_string_value(row.get("segment_customer_text")) for row in rows]
-            phrases = [_string_value(row.get("intent_phrase_refined")) or canonical for row in rows]
-            workflow_signal = base.get("workflow_signal") if isinstance(base, dict) else None
-            local_clusters.append(
-                {
-                    "cluster_id": local_cluster_id,
-                    "canonical_intent": canonical,
-                    "suggested_name": canonical,
-                    "description": _string_value(base.get("description")) or _description_from_canonical(canonical),
-                    "suggested_description": _string_value(base.get("suggested_description"))
-                    or _description_from_canonical(canonical),
-                    "cluster_size": len(rows),
-                    "source": base.get("source") or "consultation_split_v1",
-                    "segment_ids": [value for value in segment_ids if value],
-                    "sample_intent_phrases": list(dict.fromkeys(value for value in phrases if value))[:8],
-                    "sample_segment_texts": [value for value in segment_texts if value][:5],
-                    "member_conv_ids": [consultation_id],
-                    "exemplar_conv_ids": [consultation_id],
-                    "workflow_signal": workflow_signal
-                    if isinstance(workflow_signal, dict)
-                    else _workflow_signal_from_canonical(canonical),
-                    "fallback_name": bool(base.get("fallback_name", canonical == "기타 문의")),
-                }
-            )
-        consultation_clusters[consultation_id] = local_clusters
-    return consultation_clusters
+
+def _build_local_consultation_cluster(
+    local_cluster_id: int,
+    consultation_id: str,
+    canonical: str,
+    rows: list[dict[str, Any]],
+    global_by_canonical: dict[str, dict[str, Any]],
+    global_by_cluster_id: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    base = _base_cluster(canonical, rows[0], global_by_canonical, global_by_cluster_id)
+    workflow_signal = base.get("workflow_signal")
+    return {
+        "cluster_id": local_cluster_id,
+        "canonical_intent": canonical,
+        "suggested_name": canonical,
+        "description": _string_value(base.get("description")) or _description_from_canonical(canonical),
+        "suggested_description": _string_value(base.get("suggested_description"))
+        or _description_from_canonical(canonical),
+        "cluster_size": len(rows),
+        "source": base.get("source") or "consultation_split_v1",
+        "segment_ids": _non_empty_values(_string_value(row.get("segment_id")) for row in rows),
+        "sample_intent_phrases": _unique_non_empty(
+            (_string_value(row.get("intent_phrase_refined")) or canonical for row in rows),
+        )[:8],
+        "sample_segment_texts": _non_empty_values(_string_value(row.get("segment_customer_text")) for row in rows)[:5],
+        "member_conv_ids": [consultation_id],
+        "exemplar_conv_ids": [consultation_id],
+        "workflow_signal": workflow_signal
+        if isinstance(workflow_signal, dict)
+        else _workflow_signal_from_canonical(canonical),
+        "fallback_name": bool(base.get("fallback_name", canonical == INTENT_MISC)),
+    }
+
+
+def _base_cluster(
+    canonical: str,
+    first_row: dict[str, Any],
+    global_by_canonical: dict[str, dict[str, Any]],
+    global_by_cluster_id: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    cluster_id = _int_value(first_row.get("cluster_id"))
+    if canonical in global_by_canonical:
+        return global_by_canonical[canonical]
+    if cluster_id is not None and cluster_id in global_by_cluster_id:
+        return global_by_cluster_id[cluster_id]
+    return {}
+
+
+def _non_empty_values(values: Iterable[str | None]) -> list[str]:
+    return [value for value in values if value]
+
+
+def _unique_non_empty(values: Iterable[str | None]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value).keys())
 
 
 def _upstream_stage_dir(

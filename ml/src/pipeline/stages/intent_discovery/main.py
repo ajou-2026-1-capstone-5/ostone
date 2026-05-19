@@ -14,6 +14,8 @@ from pipeline.stages.intent_discovery.boundary_segments import (
 from pipeline.stages.intent_discovery.io import read_preprocessed_artifact, write_clusters_artifact
 from pipeline.stages.preprocessing.io import read_stage_context
 
+MANIFEST_FILENAME = "manifest.json"
+
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     runtime_config = PipelineRuntimeConfig.from_env()
@@ -35,9 +37,7 @@ def _run_boundary_segment(
     preprocessed, _flow_signatures = read_preprocessed_artifact(runtime_config, context)
     conversation_index = load_ingestion_conversation_index(runtime_config, context, preprocessed)
     ordered_conversations = [
-        conversation_index[conversation.id]
-        for conversation in preprocessed
-        if conversation.id in conversation_index
+        conversation_index[conversation.id] for conversation in preprocessed if conversation.id in conversation_index
     ]
 
     result = discover_boundary_segments(ordered_conversations)
@@ -60,7 +60,7 @@ def _run_boundary_segment(
         len(result.segments),
         len(result.clusters),
     )
-    return {"artifact_manifest_path": str((clusters_path.parent / "manifest.json").resolve())}
+    return {"artifact_manifest_path": str((clusters_path.parent / MANIFEST_FILENAME).resolve())}
 
 
 def _run_legacy_embedding(
@@ -108,7 +108,7 @@ def _run_legacy_embedding(
         )
         clusters_path = write_clusters_artifact(runtime_config, context, [], [], stats, embedding_vectors)
         logger.warning("No successful embeddings; wrote empty intent-discovery artifacts")
-        return {"artifact_manifest_path": str((clusters_path.parent / "manifest.json").resolve())}
+        return {"artifact_manifest_path": str((clusters_path.parent / MANIFEST_FILENAME).resolve())}
 
     vectors = combine_with_flow(embedding_vectors, flow_vectors)
     logger.info("Built hybrid vectors shape=%s", list(vectors.shape))
@@ -161,4 +161,4 @@ def _run_legacy_embedding(
         embeddings,
     )
     logger.info("Intent discovery legacy embedding stage completed: %s", stats)
-    return {"artifact_manifest_path": str((clusters_path.parent / "manifest.json").resolve())}
+    return {"artifact_manifest_path": str((clusters_path.parent / MANIFEST_FILENAME).resolve())}
