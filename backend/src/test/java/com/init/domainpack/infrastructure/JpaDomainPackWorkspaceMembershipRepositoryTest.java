@@ -45,7 +45,32 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
     // when
     boolean result =
         repository.hasAnyRole(
-            1L, 10L, Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN));
+            1L,
+            10L,
+            Set.of(
+                WorkspaceMemberRole.OWNER,
+                WorkspaceMemberRole.OPERATOR,
+                WorkspaceMemberRole.ADMIN));
+
+    // then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  @DisplayName("hasAnyRole: 멤버가 OWNER 역할 보유 → true 반환")
+  void should_true반환_when_OWNER역할보유() {
+    // given
+    createAndPersistMember(1L, 15L, WorkspaceMemberRole.OWNER.name());
+
+    // when
+    boolean result =
+        repository.hasAnyRole(
+            1L,
+            15L,
+            Set.of(
+                WorkspaceMemberRole.OWNER,
+                WorkspaceMemberRole.OPERATOR,
+                WorkspaceMemberRole.ADMIN));
 
     // then
     assertThat(result).isTrue();
@@ -60,7 +85,12 @@ class JpaDomainPackWorkspaceMembershipRepositoryTest {
     // when
     boolean result =
         repository.hasAnyRole(
-            1L, 20L, Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN));
+            1L,
+            20L,
+            Set.of(
+                WorkspaceMemberRole.OWNER,
+                WorkspaceMemberRole.OPERATOR,
+                WorkspaceMemberRole.ADMIN));
 
     // then
     assertThat(result).isFalse();

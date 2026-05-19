@@ -10,6 +10,7 @@ import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeni
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.shared.application.exception.NotFoundException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -29,6 +30,7 @@ public class TriggerDomainPackGenerationUseCase {
   private final PipelineJobRepository pipelineJobRepository;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final DatasetOwnershipPort datasetOwnershipPort;
+  private final DatasetRawFileLookupPort datasetRawFileLookupPort;
   private final DomainPackGenerationConcurrencyGuard concurrencyGuard;
   private final DomainPackGenerationTriggerPort triggerPort;
   private final ObjectMapper objectMapper;
@@ -39,6 +41,7 @@ public class TriggerDomainPackGenerationUseCase {
       PipelineJobRepository pipelineJobRepository,
       WorkspaceMembershipPort workspaceMembershipPort,
       DatasetOwnershipPort datasetOwnershipPort,
+      DatasetRawFileLookupPort datasetRawFileLookupPort,
       DomainPackGenerationConcurrencyGuard concurrencyGuard,
       DomainPackGenerationTriggerPort triggerPort,
       ObjectMapper objectMapper,
@@ -47,6 +50,7 @@ public class TriggerDomainPackGenerationUseCase {
     this.pipelineJobRepository = pipelineJobRepository;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.datasetOwnershipPort = datasetOwnershipPort;
+    this.datasetRawFileLookupPort = datasetRawFileLookupPort;
     this.concurrencyGuard = concurrencyGuard;
     this.triggerPort = triggerPort;
     this.objectMapper = objectMapper;
@@ -63,7 +67,8 @@ public class TriggerDomainPackGenerationUseCase {
               command.workspaceId(),
               command.datasetId(),
               createdJob.pipelineJobId(),
-              createdJob.airflowRunId()));
+              createdJob.airflowRunId(),
+              createdJob.objectKey()));
     } catch (AirflowTriggerFailedException ex) {
       markFailed(createdJob.pipelineJobId(), ex.getMessage());
       throw ex;
@@ -102,6 +107,7 @@ public class TriggerDomainPackGenerationUseCase {
                   });
 
           String dagId = triggerPort.dagId();
+          String objectKey = resolveRawFileObjectKey(command.datasetId());
           PipelineJob job =
               PipelineJob.createDomainPackGeneration(
                   command.workspaceId(),
@@ -112,9 +118,9 @@ public class TriggerDomainPackGenerationUseCase {
           PipelineJob savedJob = pipelineJobRepository.saveAndFlush(job);
           String dagRunId = "pipeline_job_" + savedJob.getId();
           savedJob.assignAirflowRun(
-              dagId, dagRunId, buildRequestPayloadJson(command, dagId, dagRunId));
+              dagId, dagRunId, buildRequestPayloadJson(command, dagId, dagRunId, objectKey));
           PipelineJob queuedJob = pipelineJobRepository.saveAndFlush(savedJob);
-          return new CreatedPipelineJob(queuedJob.getId(), queuedJob.getAirflowRunId());
+          return new CreatedPipelineJob(queuedJob.getId(), queuedJob.getAirflowRunId(), objectKey);
         });
   }
 
@@ -131,6 +137,15 @@ public class TriggerDomainPackGenerationUseCase {
         command.datasetId(), command.workspaceId())) {
       throw new DatasetNotFoundException(command.datasetId(), command.workspaceId());
     }
+  }
+
+  private String resolveRawFileObjectKey(Long datasetId) {
+    return datasetRawFileLookupPort
+        .findLatestObjectKeyByDatasetId(datasetId)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    "RAW_FILE_NOT_FOUND", "Dataset raw file을 찾을 수 없습니다. datasetId=" + datasetId));
   }
 
   private void markFailed(Long pipelineJobId, String errorMessage) {
@@ -151,7 +166,7 @@ public class TriggerDomainPackGenerationUseCase {
   }
 
   private String buildRequestPayloadJson(
-      TriggerDomainPackGenerationCommand command, String dagId, String dagRunId) {
+      TriggerDomainPackGenerationCommand command, String dagId, String dagRunId, String objectKey) {
     ObjectNode payload = objectMapper.createObjectNode();
     payload.put("workspaceId", command.workspaceId());
     payload.put("datasetId", command.datasetId());
@@ -159,6 +174,7 @@ public class TriggerDomainPackGenerationUseCase {
     payload.put("airflowDagId", dagId);
     payload.put("airflowRunId", dagRunId);
     payload.put("requestedBy", command.userId());
+    payload.put("objectKey", objectKey);
     try {
       return objectMapper.writeValueAsString(payload);
     } catch (JsonProcessingException ex) {
@@ -183,5 +199,5 @@ public class TriggerDomainPackGenerationUseCase {
     return transactionTemplate.execute(status -> callback.get());
   }
 
-  private record CreatedPipelineJob(Long pipelineJobId, String airflowRunId) {}
+  private record CreatedPipelineJob(Long pipelineJobId, String airflowRunId, String objectKey) {}
 }

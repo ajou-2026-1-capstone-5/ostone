@@ -79,7 +79,10 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
         });
 
     DomainPackGenerationTriggerResult result =
-        adapter().trigger(new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123"));
+        adapter()
+            .trigger(
+                new DomainPackGenerationTriggerCommand(
+                    1L, 7L, 123L, "pipeline_job_123", "workspaces/1/key.json"));
 
     JsonNode tokenJson = objectMapper.readTree(tokenRequestBody.get());
     JsonNode triggerJson = objectMapper.readTree(triggerRequestBody.get());
@@ -91,6 +94,8 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
     assertThat(triggerJson.get("conf").get("workspace_id").asLong()).isEqualTo(1L);
     assertThat(triggerJson.get("conf").get("dataset_id").asLong()).isEqualTo(7L);
     assertThat(triggerJson.get("conf").get("pipeline_job_id").asLong()).isEqualTo(123L);
+    assertThat(triggerJson.get("conf").get("object_key").asText())
+        .isEqualTo("workspaces/1/key.json");
     assertThat(result.dagId()).isEqualTo("domain_pack_generation");
     assertThat(result.dagRunId()).isEqualTo("pipeline_job_123");
   }
@@ -174,7 +179,8 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
             () ->
                 adapter()
                     .trigger(
-                        new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123")))
+                        new DomainPackGenerationTriggerCommand(
+                            1L, 7L, 123L, "pipeline_job_123", "workspaces/1/key.json")))
         .isInstanceOf(AirflowTriggerFailedException.class);
   }
 
@@ -195,7 +201,8 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
             () ->
                 adapter()
                     .trigger(
-                        new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123")))
+                        new DomainPackGenerationTriggerCommand(
+                            1L, 7L, 123L, "pipeline_job_123", "workspaces/1/key.json")))
         .isInstanceOf(AirflowTriggerFailedException.class);
   }
 
@@ -259,7 +266,8 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
   }
 
   private DomainPackGenerationTriggerCommand command() {
-    return new DomainPackGenerationTriggerCommand(1L, 7L, 123L, "pipeline_job_123");
+    return new DomainPackGenerationTriggerCommand(
+        1L, 7L, 123L, "pipeline_job_123", "workspaces/1/key.json");
   }
 
   private void stubTokenSuccess() {

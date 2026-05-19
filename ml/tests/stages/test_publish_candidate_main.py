@@ -200,6 +200,38 @@ def test_validate_candidate_rejects_missing_spring_required_fields() -> None:
             publish.validate_candidate(copy.deepcopy(candidate))
 
 
+def test_validate_candidate_rejects_unknown_intent_slot_binding_intent() -> None:
+    candidate = _candidate()
+    candidate["workflowDraft"]["intentSlotBindings"][0]["intentCode"] = "unknown_intent"
+
+    with pytest.raises(PipelineStageError, match="unknown intentCode"):
+        publish.validate_candidate(candidate)
+
+
+def test_validate_candidate_rejects_unknown_intent_slot_binding_slot() -> None:
+    candidate = _candidate()
+    candidate["workflowDraft"]["intentSlotBindings"][0]["slotCode"] = "unknown_slot"
+
+    with pytest.raises(PipelineStageError, match="unknown slotCode"):
+        publish.validate_candidate(candidate)
+
+
+def test_validate_candidate_rejects_unknown_intent_workflow_binding_intent() -> None:
+    candidate = _candidate()
+    candidate["workflowDraft"]["intentWorkflowBindings"][0]["intentCode"] = "unknown_intent"
+
+    with pytest.raises(PipelineStageError, match="unknown intentCode"):
+        publish.validate_candidate(candidate)
+
+
+def test_validate_candidate_rejects_unknown_intent_workflow_binding_workflow() -> None:
+    candidate = _candidate()
+    candidate["workflowDraft"]["intentWorkflowBindings"][0]["workflowCode"] = "unknown_workflow"
+
+    with pytest.raises(PipelineStageError, match="unknown workflowCode"):
+        publish.validate_candidate(candidate)
+
+
 def test_domain_pack_response_updates_context() -> None:
     result: dict[str, Any] = {}
 

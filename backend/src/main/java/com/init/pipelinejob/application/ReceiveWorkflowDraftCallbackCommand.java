@@ -19,5 +19,6 @@ public record ReceiveWorkflowDraftCallbackCommand(
     List<WorkflowDraft> workflows,
     List<IntentSlotBindingDraft> intentSlotBindings,
     List<IntentWorkflowBindingDraft> intentWorkflowBindings,
+    boolean finalCallback,
     String requestHeadersJson,
     String requestBodyJson) {}

@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateSlotStatusUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_ROLES =
-      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
+      Set.of(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final SlotDefinitionRepository slotRepository;
   private final DomainPackVersionRepository versionRepository;

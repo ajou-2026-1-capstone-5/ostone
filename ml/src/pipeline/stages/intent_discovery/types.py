@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from ..preprocessing.types import FLOW_SIGNATURE_DIM, ProcessedConversation
@@ -24,6 +25,7 @@ class ClusterResult:
     workflow_signal: dict[str, bool]
     quality: ClusterQuality
     review_hint: str | None = None
+    metadata: Mapping[str, object] | None = None
 
 
 @dataclass(frozen=True)

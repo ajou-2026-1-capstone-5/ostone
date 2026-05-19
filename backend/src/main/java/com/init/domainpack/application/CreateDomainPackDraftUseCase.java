@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CreateDomainPackDraftUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
-      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
+      Set.of(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final DomainPackRepository domainPackRepository;
   private final WorkspaceExistencePort workspaceExistencePort;

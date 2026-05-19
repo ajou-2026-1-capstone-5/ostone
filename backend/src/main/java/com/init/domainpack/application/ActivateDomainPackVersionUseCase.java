@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActivateDomainPackVersionUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
-      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
+      Set.of(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final DomainPackVersionRepository versionRepository;
   private final DomainPackRepository domainPackRepository;
@@ -54,7 +54,7 @@ public class ActivateDomainPackVersionUseCase {
           "워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
     }
 
-    // workspace 멤버십 + 역할 확인: OPERATOR 또는 ADMIN만 허용 (U-005 Confirmed)
+    // workspace 멤버십 + 역할 확인: OWNER, OPERATOR 또는 ADMIN만 허용 (U-005 Confirmed)
     if (!workspaceMembershipPort.hasAnyRole(
         command.workspaceId(), command.userId(), ALLOWED_WORKSPACE_ROLES)) {
       throw new DomainPackUnauthorizedWorkspaceAccessException(

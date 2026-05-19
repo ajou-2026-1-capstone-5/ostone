@@ -58,6 +58,7 @@ public class PipelineWorkflowDraftCallbackController {
                 toWorkflowDrafts(request.workflows()),
                 toIntentSlotBindingDrafts(request.intentSlotBindings()),
                 toIntentWorkflowBindingDrafts(request.intentWorkflowBindings()),
+                request.finalCallback() == null || Boolean.TRUE.equals(request.finalCallback()),
                 objectMapper
                     .valueToTree(WebhookRequestHeaders.extractMasked(httpServletRequest))
                     .toString(),

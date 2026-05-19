@@ -146,7 +146,7 @@ public class PipelineJob {
   }
 
   public boolean canAcceptWorkflowDraftCallback() {
-    return STATUS_WAITING_WORKFLOW_CALLBACK.equals(status);
+    return STATUS_WAITING_WORKFLOW_CALLBACK.equals(status) || STATUS_RUNNING.equals(status);
   }
 
   public boolean isFinalized() {
@@ -200,6 +200,16 @@ public class PipelineJob {
     this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
     this.status = STATUS_SUCCEEDED;
     this.finishedAt = finishedAt;
+    this.lastErrorMessage = null;
+  }
+
+  public void markRunning(String resultSummaryJson) {
+    if (isFinalized()) {
+      throw new IllegalStateException("종료된 job은 RUNNING 상태로 전환할 수 없습니다.");
+    }
+    this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
+    this.status = STATUS_RUNNING;
+    this.finishedAt = null;
     this.lastErrorMessage = null;
   }
 

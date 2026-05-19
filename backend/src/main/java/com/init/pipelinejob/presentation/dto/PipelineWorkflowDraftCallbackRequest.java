@@ -22,7 +22,8 @@ public record PipelineWorkflowDraftCallbackRequest(
     @Size(max = 1000, message = "intentSlotBindings는 1000개 이하여야 합니다.")
         List<@Valid IntentSlotBindingDraftRequest> intentSlotBindings,
     @Size(max = 1000, message = "intentWorkflowBindings는 1000개 이하여야 합니다.")
-        List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings) {
+        List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings,
+    Boolean finalCallback) {
 
   public record SlotDraftRequest(
       @NotBlank(message = "slotCode는 필수입니다.") @Size(max = 100, message = "slotCode는 100자 이하여야 합니다.")

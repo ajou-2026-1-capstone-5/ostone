@@ -149,6 +149,7 @@ public class AirflowDomainPackGenerationTriggerAdapter extends AirflowHttpSuppor
     conf.put("workspace_id", command.workspaceId());
     conf.put("dataset_id", command.datasetId());
     conf.put("pipeline_job_id", command.pipelineJobId());
+    conf.put("object_key", command.objectKey());
     return request;
   }
 }

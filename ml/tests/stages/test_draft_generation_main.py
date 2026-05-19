@@ -11,6 +11,7 @@ from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.draft_generation.main import (
     _build_candidate,
+    _build_consultation_cluster_groups,
     _build_intents,
     _build_slot_draft,
     _build_workflow_draft,
@@ -273,6 +274,65 @@ def test_build_intents_avg_per_intent() -> None:
     assert metrics["intents_with_zero_cases"] == 1
 
 
+def test_build_consultation_cluster_groups_splits_by_consultation_and_canonical() -> None:
+    clusters: list[Any] = [
+        "invalid",
+        {
+            "cluster_id": 10,
+            "canonical_intent": "항공권 변경 문의",
+            "description": "항공권 변경",
+            "suggested_description": "항공권 변경 설명",
+            "source": "global",
+            "workflow_signal": {"requires_user_identification": True},
+        },
+        {
+            "cluster_id": 20,
+            "description": "fallback cluster",
+            "fallback_name": True,
+            "workflow_signal": {"requires_payment_check": True},
+        },
+    ]
+    segment_rows: list[dict[str, Any]] = [
+        {
+            "consultation_id": "consultation-a",
+            "canonical_intent": "항공권 변경 문의",
+            "cluster_id": 10,
+            "segment_id": "seg-a-1",
+            "segment_customer_text": "항공권 날짜를 변경하고 싶어요",
+            "intent_phrase_refined": "항공권 변경 문의",
+        },
+        {
+            "consultation_id": "consultation-a",
+            "canonical_intent": "항공권 변경 문의",
+            "cluster_id": 10,
+            "segment_id": "seg-a-2",
+            "segment_customer_text": "인원을 추가할 수 있나요?",
+            "intent_phrase_refined": "항공권 변경 문의",
+        },
+        {
+            "consultation_id": "consultation-b",
+            "canonical_intent": "기타 문의",
+            "cluster_id": 20,
+            "segment_id": "seg-b-1",
+            "segment_customer_text": "안녕하세요",
+            "intent_phrase_refined": "",
+        },
+        {"consultation_id": "", "canonical_intent": "무시"},
+    ]
+
+    grouped = _build_consultation_cluster_groups(clusters, segment_rows)
+
+    assert set(grouped) == {"consultation-a", "consultation-b"}
+    assert grouped["consultation-a"][0]["cluster_id"] == 0
+    assert grouped["consultation-a"][0]["source"] == "global"
+    assert grouped["consultation-a"][0]["segment_ids"] == ["seg-a-1", "seg-a-2"]
+    assert grouped["consultation-a"][0]["sample_intent_phrases"] == ["항공권 변경 문의"]
+    assert grouped["consultation-a"][0]["workflow_signal"] == {"requires_user_identification": True}
+    assert grouped["consultation-b"][0]["description"] == "fallback cluster"
+    assert grouped["consultation-b"][0]["fallback_name"] is True
+    assert grouped["consultation-b"][0]["member_conv_ids"] == ["consultation-b"]
+
+
 def _write_upstream_manifest(tmp_path: Path) -> Path:
     manifest_path = tmp_path / "upstream_manifest.json"
     manifest_payload = {
@@ -361,6 +421,33 @@ def test_derive_pack_identity_formats_correctly() -> None:
     pack_key, pack_name = _derive_pack_identity(context)
     assert pack_key == "pack_wsws42_dsds7"
     assert pack_name == "Pack wsws42/dsds7"
+
+
+def test_derive_pack_identity_adds_hash_suffix_for_consultation_scope() -> None:
+    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
+    pack_key, pack_name = _derive_pack_identity(context, "consultation-001")
+    suffix = pack_key.rsplit("_", 1)[-1]
+
+    assert pack_key.startswith("pack_wsws42_dsds7_conv_consultation-001_")
+    assert len(pack_key) <= 100
+    assert len(suffix) == 8
+    int(suffix, 16)
+    assert pack_name == "Pack wsws42/dsds7/consultation-001"
+
+
+def test_derive_pack_identity_keeps_long_similar_consultation_ids_distinct() -> None:
+    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
+    long_id_a = f"consultation-{'a' * 120}"
+    long_id_b = f"consultation-{'a' * 119}b"
+
+    pack_key_a, _ = _derive_pack_identity(context, long_id_a)
+    pack_key_b, _ = _derive_pack_identity(context, long_id_b)
+
+    assert len(pack_key_a) <= 100
+    assert len(pack_key_b) <= 100
+    assert pack_key_a != pack_key_b
+    assert len(pack_key_a.rsplit("_", 1)[-1]) == 8
+    assert len(pack_key_b.rsplit("_", 1)[-1]) == 8
 
 
 def test_derive_pack_identity_raises_on_none_workspace() -> None:

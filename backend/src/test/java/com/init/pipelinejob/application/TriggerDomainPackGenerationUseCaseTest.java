@@ -15,6 +15,7 @@ import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningExcep
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.shared.application.exception.NotFoundException;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -40,6 +41,7 @@ class TriggerDomainPackGenerationUseCaseTest {
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DatasetOwnershipPort datasetOwnershipPort;
+  @Mock private DatasetRawFileLookupPort datasetRawFileLookupPort;
   @Mock private DomainPackGenerationConcurrencyGuard concurrencyGuard;
   @Mock private DomainPackGenerationTriggerPort triggerPort;
   @Mock private PlatformTransactionManager transactionManager;
@@ -77,6 +79,7 @@ class TriggerDomainPackGenerationUseCaseTest {
             pipelineJobRepository,
             workspaceMembershipPort,
             datasetOwnershipPort,
+            datasetRawFileLookupPort,
             concurrencyGuard,
             triggerPort,
             new ObjectMapper(),
@@ -103,6 +106,8 @@ class TriggerDomainPackGenerationUseCaseTest {
     assertThat(result.requestedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(result.startedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(savedJob.get().getRequestPayloadJson()).contains("\"requestedBy\":55");
+    assertThat(savedJob.get().getRequestPayloadJson())
+        .contains("\"objectKey\":\"workspaces/1/datasets/travel/raw.json\"");
     verify(concurrencyGuard).lockTriggerCreation(1L, 7L);
   }
 
@@ -170,6 +175,26 @@ class TriggerDomainPackGenerationUseCaseTest {
   }
 
   @Test
+  @DisplayName("dataset raw file이 없으면 RAW_FILE_NOT_FOUND 예외를 던지고 job을 만들지 않는다")
+  void execute_missingRawFile_throwsNotFound() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
+    given(datasetRawFileLookupPort.findLatestObjectKeyByDatasetId(7L)).willReturn(Optional.empty());
+    TriggerDomainPackGenerationCommand command = command();
+
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(NotFoundException.class)
+        .satisfies(
+            throwable ->
+                assertThat(((NotFoundException) throwable).getCode())
+                    .isEqualTo("RAW_FILE_NOT_FOUND"));
+
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(triggerPort, never()).trigger(any());
+  }
+
+  @Test
   @DisplayName("Airflow trigger 성공 후 callback이 먼저 job을 종료했으면 현재 상태를 반환한다")
   void execute_triggerSuccessButJobAlreadyFinalized_returnsCurrentJob() {
     allowAccess();
@@ -209,6 +234,9 @@ class TriggerDomainPackGenerationUseCaseTest {
     given(workspaceMembershipPort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(datasetOwnershipPort.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
+    lenient()
+        .when(datasetRawFileLookupPort.findLatestObjectKeyByDatasetId(7L))
+        .thenReturn(Optional.of("workspaces/1/datasets/travel/raw.json"));
   }
 
   private TriggerDomainPackGenerationCommand command() {

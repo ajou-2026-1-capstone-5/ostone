@@ -102,6 +102,71 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   }
 
   @Test
+  @DisplayName("중간 workflow callback이면 job을 종료하지 않고 RUNNING으로 유지한다")
+  void execute_nonFinalCallback_keepsJobRunning() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK);
+    WebhookReceipt receipt = workflowReceipt(11L, "evt-workflow-1");
+    given(webhookReceiptRepository.findByExternalEventId("evt-workflow-1"))
+        .willReturn(Optional.empty(), Optional.of(receipt));
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    givenValidTargetVersion();
+    given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(addWorkflowDraftPort.execute(any()))
+        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1));
+
+    ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand(false));
+
+    assertThat(result.status()).isEqualTo("CREATED");
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(job.getFinishedAt()).isNull();
+    assertThat(job.getResultSummaryJson()).contains("\"addedWorkflowCount\":1");
+    assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+  }
+
+  @Test
+  @DisplayName("중간 callback 이후 최종 callback이면 job을 SUCCEEDED로 종료한다")
+  void execute_nonFinalThenFinal_marksSucceeded() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK);
+    WebhookReceipt partialReceipt = workflowReceipt(11L, "evt-workflow-1");
+    WebhookReceipt finalReceipt = workflowReceipt(11L, "evt-workflow-2");
+    given(webhookReceiptRepository.findByExternalEventId("evt-workflow-1"))
+        .willReturn(Optional.empty(), Optional.of(partialReceipt));
+    given(webhookReceiptRepository.findByExternalEventId("evt-workflow-2"))
+        .willReturn(Optional.empty(), Optional.of(finalReceipt));
+    given(pipelineJobRepository.findById(11L))
+        .willReturn(Optional.of(job), Optional.of(job), Optional.of(job), Optional.of(job));
+    given(webhookReceiptRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    givenValidTargetVersion();
+    given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(addWorkflowDraftPort.execute(any()))
+        .willReturn(
+            new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1),
+            new AddWorkflowDraftPortResult(2, 1, 1, 2, 1, 1));
+
+    ReceiveWorkflowDraftCallbackResult partialResult = useCase.execute(validCommand(false));
+
+    assertThat(partialResult.status()).isEqualTo("CREATED");
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(job.getFinishedAt()).isNull();
+    assertThat(partialReceipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+
+    ReceiveWorkflowDraftCallbackResult finalResult =
+        useCase.execute(validCommand("evt-workflow-2", true));
+
+    assertThat(finalResult.status()).isEqualTo("CREATED");
+    assertThat(finalResult.addedWorkflowCount()).isEqualTo(2);
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_SUCCEEDED);
+    assertThat(job.getFinishedAt()).isEqualTo(OffsetDateTime.now(fixedClock));
+    assertThat(job.getResultSummaryJson()).contains("\"addedWorkflowCount\":2");
+    assertThat(finalReceipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+  }
+
+  @Test
   @DisplayName("domainPackVersionId가 job의 domain pack과 다르면 workflow draft를 저장하지 않는다")
   void execute_targetVersionMismatch_throws() {
     PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK);
@@ -186,10 +251,19 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   }
 
   private ReceiveWorkflowDraftCallbackCommand validCommand() {
+    return validCommand(true);
+  }
+
+  private ReceiveWorkflowDraftCallbackCommand validCommand(boolean finalCallback) {
+    return validCommand("evt-workflow-1", finalCallback);
+  }
+
+  private ReceiveWorkflowDraftCallbackCommand validCommand(
+      String externalEventId, boolean finalCallback) {
     return new ReceiveWorkflowDraftCallbackCommand(
         11L,
         "secret-123",
-        "evt-workflow-1",
+        externalEventId,
         101L,
         List.of(),
         List.of(),
@@ -197,6 +271,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         List.of(new WorkflowDraft("refund_flow", "환불 플로우", null, "{}", null, null)),
         List.of(),
         List.of(),
+        finalCallback,
         "{\"content-type\":\"application/json\"}",
         "{\"domainPackVersionId\":101}");
   }

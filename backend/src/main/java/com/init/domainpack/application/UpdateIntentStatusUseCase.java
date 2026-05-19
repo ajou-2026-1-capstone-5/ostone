@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateIntentStatusUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_ROLES =
-      Set.of(WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
+      Set.of(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
 
   private final IntentDefinitionRepository intentRepository;
   private final DomainPackVersionRepository versionRepository;
