@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -11,16 +11,26 @@ import { useGetWorkflowDefinition } from "@/entities/workflow";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
 
+function isWorkflowGraph(v: unknown): v is WorkflowGraph {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    Array.isArray((v as { nodes?: unknown }).nodes) &&
+    Array.isArray((v as { edges?: unknown }).edges)
+  );
+}
+
 function parseGraphJson(raw: unknown): WorkflowGraph | null {
   if (!raw) return null;
   if (typeof raw === "string") {
     try {
-      return JSON.parse(raw) as WorkflowGraph;
+      const parsed: unknown = JSON.parse(raw);
+      return isWorkflowGraph(parsed) ? parsed : null;
     } catch {
       return null;
     }
   }
-  return raw as WorkflowGraph;
+  return isWorkflowGraph(raw) ? raw : null;
 }
 
 export function WorkflowDraftReadPage() {
@@ -69,6 +79,31 @@ export function WorkflowDraftReadPage() {
     `VER · ${vId}`,
     "Workflows",
   ];
+
+  let graphContent: ReactNode;
+  if (isEditing) {
+    graphContent = (
+      <InlineWorkflowEditor
+        workflow={workflow!}
+        wsId={wsId!}
+        packId={pId!}
+        versionId={vId!}
+        onClose={() => setIsEditing(false)}
+      />
+    );
+  } else if (graph) {
+    graphContent = (
+      <div data-testid="workflow-graph-viewer" style={{ width: "100%", height: "100%" }}>
+        <GraphViewer graph={graph} />
+      </div>
+    );
+  } else {
+    graphContent = (
+      <div data-testid="workflow-empty-graph" style={{ padding: "32px" }}>
+        <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
+      </div>
+    );
+  }
 
   return (
     <OstoneShell
@@ -241,27 +276,7 @@ export function WorkflowDraftReadPage() {
             </div>
           )}
 
-          {enabled && !query.isLoading && !query.isError && workflow && (
-            <>
-              {isEditing ? (
-                <InlineWorkflowEditor
-                  workflow={workflow}
-                  wsId={wsId}
-                  packId={pId}
-                  versionId={vId}
-                  onClose={() => setIsEditing(false)}
-                />
-              ) : graph ? (
-                <div data-testid="workflow-graph-viewer" style={{ width: "100%", height: "100%" }}>
-                  <GraphViewer graph={graph} />
-                </div>
-              ) : (
-                <div data-testid="workflow-empty-graph" style={{ padding: "32px" }}>
-                  <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
-                </div>
-              )}
-            </>
-          )}
+          {enabled && !query.isLoading && !query.isError && workflow && graphContent}
         </div>
       </div>
     </OstoneShell>

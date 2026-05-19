@@ -13,12 +13,16 @@ interface WorkflowSearchBarProps {
 
 const MAX_DEFAULT = 8;
 
-function highlightMatch(name: string, q: string): { match: string; rest: string } {
-  if (!q) return { match: "", rest: name };
+function highlightMatch(name: string, q: string): { before: string; match: string; after: string } {
+  if (!q) return { before: "", match: "", after: name };
   const lower = name.toLowerCase();
   const idx = lower.indexOf(q.toLowerCase());
-  if (idx === -1) return { match: "", rest: name };
-  return { match: name.slice(0, idx + q.length), rest: name.slice(idx + q.length) };
+  if (idx === -1) return { before: "", match: "", after: name };
+  return {
+    before: name.slice(0, idx),
+    match: name.slice(idx, idx + q.length),
+    after: name.slice(idx + q.length),
+  };
 }
 
 export function WorkflowSearchBar({
@@ -107,7 +111,7 @@ export function WorkflowSearchBar({
           }}
         >
           {matches.map((entry) => {
-            const { match, rest } = highlightMatch(entry.name, query);
+            const { before, match, after } = highlightMatch(entry.name, query);
             return (
               <button
                 key={`${entry.packId}-${entry.workflowId}`}
@@ -137,8 +141,9 @@ export function WorkflowSearchBar({
                   <Icon name="search" size={12} />
                 </span>
                 <span>
+                  <span>{before}</span>
                   <span style={{ fontWeight: 500 }}>{match}</span>
-                  <span style={{ color: "var(--ink-2)" }}>{rest}</span>
+                  <span style={{ color: "var(--ink-2)" }}>{after}</span>
                 </span>
               </button>
             );

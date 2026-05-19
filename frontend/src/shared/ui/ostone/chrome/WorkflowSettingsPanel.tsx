@@ -83,7 +83,7 @@ export function WorkflowSettingsPanel({
   onClickOutside,
   anchorRef,
 }: WorkflowSettingsPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (!onClickOutside) return;
@@ -107,11 +107,11 @@ export function WorkflowSettingsPanel({
   const finalStyle: CSSProperties = { ...popoverStyle, ...style };
 
   return (
-    <div
+    <dialog
       ref={panelRef}
+      open
       data-testid={testId ?? 'workflow-settings-panel'}
-      role="dialog"
-      style={finalStyle}
+      style={{ ...finalStyle, margin: 0 }}
     >
       {entries.map((entry) => (
         <div key={entry.key} style={rowStyle} data-testid={`${testId ?? 'workflow-settings-panel'}-${entry.key}`}>
@@ -135,6 +135,6 @@ export function WorkflowSettingsPanel({
           </div>
         </div>
       ))}
-    </div>
+    </dialog>
   );
 }

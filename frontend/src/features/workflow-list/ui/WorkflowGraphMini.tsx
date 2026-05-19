@@ -243,13 +243,13 @@ export function WorkflowGraphMini({
       height="100%"
       style={{ display: "block" }}
     >
-      {edges.map((edge, idx) => {
+      {edges.map((edge) => {
         const s = nodeById.get(edge.from);
         const t = nodeById.get(edge.to);
         if (!s || !t) return null;
         return (
           <line
-            key={`e${idx}`}
+            key={`${edge.from}→${edge.to}`}
             x1={s.x}
             y1={s.y}
             x2={t.x}

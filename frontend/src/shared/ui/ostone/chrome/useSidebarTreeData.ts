@@ -73,13 +73,14 @@ export function useSidebarTreeData({ workspaceId, enabled }: UseSidebarTreeDataP
     packDetailQueries.some((q) => q.isLoading) ||
     workflowQueries.some((q) => q.isLoading);
 
-  const error = packsQuery.isError
-    ? '도메인팩 목록 조회 실패'
-    : packDetailQueries.find((q) => q.isError)
-      ? '도메인팩 상세 조회 실패'
-      : workflowQueries.find((q) => q.isError)
-        ? '워크플로우 목록 조회 실패'
-        : null;
+  let error: string | null = null;
+  if (packsQuery.isError) {
+    error = '도메인팩 목록 조회 실패';
+  } else if (packDetailQueries.find((q) => q.isError)) {
+    error = '도메인팩 상세 조회 실패';
+  } else if (workflowQueries.find((q) => q.isError)) {
+    error = '워크플로우 목록 조회 실패';
+  }
 
   const treePacks: SidebarTreePack[] = packVersionPairs.map((pair, idx) => {
     const wfList = unwrapApiResponse<WorkflowDefinitionSummary[]>(workflowQueries[idx]?.data) ?? [];

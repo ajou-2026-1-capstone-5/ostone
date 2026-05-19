@@ -54,7 +54,7 @@ function isSidebarSettings(v: unknown): v is SidebarWorkflowSettings {
   const obj = v as Record<string, unknown>;
   return (
     typeof obj.topN === 'number' &&
-    obj.topN > 0 &&
+    (TOP_N_OPTIONS as ReadonlyArray<number>).includes(obj.topN) &&
     (obj.sortField === 'name' || obj.sortField === 'workflowCode') &&
     (obj.sortDir === 'asc' || obj.sortDir === 'desc')
   );
@@ -65,7 +65,7 @@ function isPageSettings(v: unknown): v is PageWorkflowSettings {
   const obj = v as Record<string, unknown>;
   return (
     typeof obj.pageSize === 'number' &&
-    obj.pageSize > 0 &&
+    (PAGE_SIZE_OPTIONS as ReadonlyArray<number>).includes(obj.pageSize) &&
     (obj.sortField === 'name' || obj.sortField === 'workflowCode') &&
     (obj.sortDir === 'asc' || obj.sortDir === 'desc')
   );

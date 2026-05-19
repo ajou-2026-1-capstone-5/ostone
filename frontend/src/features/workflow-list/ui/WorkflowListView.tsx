@@ -11,6 +11,7 @@ import {
   writePageWorkflowSettings,
   type PageWorkflowSettings,
 } from "@/shared/lib/workflowSettings";
+import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import {
   WorkflowSettingsPanel,
   type WorkflowSettingEntry,
@@ -117,6 +118,15 @@ export function WorkflowListView({
       ? entries.find((e) => e.workflowId === filterWorkflowId)?.name ?? null
       : null;
 
+  const [prevEntries, setPrevEntries] = useState(entries);
+  if (entries !== prevEntries) {
+    setPrevEntries(entries);
+    if (filterWorkflowId !== null && !entries.some((e) => e.workflowId === filterWorkflowId)) {
+      setFilterWorkflowId(null);
+      setPage(1);
+    }
+  }
+
   return (
     <div className={styles.root} data-testid={testIdPrefix}>
       <div className={styles.header}>
@@ -167,6 +177,10 @@ export function WorkflowListView({
         </button>
       )}
 
+      {pageEntries.length === 0 && (
+        <EmptyState message={filterWorkflowId !== null ? "필터 결과 없음" : "워크플로우 없음"} />
+      )}
+
       <div className={styles.masonry} data-testid={`${testIdPrefix}-masonry`}>
         {pageEntries.map((entry) => (
           <WorkflowCard
@@ -181,10 +195,9 @@ export function WorkflowListView({
       </div>
 
       {totalPages > 1 && (
-        <div
+        <nav
           className={styles.pagination}
           data-testid={`${testIdPrefix}-pagination`}
-          role="navigation"
           aria-label="pagination"
         >
           <button
@@ -208,7 +221,7 @@ export function WorkflowListView({
           >
             Next
           </button>
-        </div>
+        </nav>
       )}
     </div>
   );

@@ -131,7 +131,31 @@ export function WorkspaceMarker({ workspaceId, collapsed }: WorkspaceMarkerProps
             overflowY: 'auto',
           }}
         >
-          {workspaces.length === 0 && (
+          {query.isLoading && (
+            <div
+              style={{
+                padding: 'var(--s-2) var(--s-3)',
+                fontFamily: 'var(--mono)',
+                fontSize: '10px',
+                color: 'var(--ink-3)',
+              }}
+            >
+              로딩 중…
+            </div>
+          )}
+          {query.isError && (
+            <div
+              style={{
+                padding: 'var(--s-2) var(--s-3)',
+                fontFamily: 'var(--mono)',
+                fontSize: '10px',
+                color: 'var(--ink-3)',
+              }}
+            >
+              목록 조회 실패
+            </div>
+          )}
+          {!query.isLoading && !query.isError && workspaces.length === 0 && (
             <div
               style={{
                 padding: 'var(--s-2) var(--s-3)',

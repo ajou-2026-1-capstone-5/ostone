@@ -118,6 +118,16 @@ const PACK_HOVER_HANDLERS = {
   },
 };
 
+function deriveSidebarColors(dark: boolean) {
+  return {
+    containerBg: dark ? 'var(--dark-bg)' : 'var(--paper-2)',
+    borderColor: dark ? 'var(--dark-line)' : 'var(--line)',
+    defaultColor: dark ? 'var(--dark-ink-3)' : 'var(--ink-3)',
+    hoverBg: dark ? 'var(--dark-bg-2)' : 'var(--paper-3)',
+    activeColor: dark ? 'var(--dark-ink)' : 'var(--ink)',
+  };
+}
+
 export function Sidebar({
   active,
   dark = false,
@@ -129,11 +139,7 @@ export function Sidebar({
   activePackId = null,
   activeWorkflowId = null,
 }: SidebarProps) {
-  const containerBg = dark ? 'var(--dark-bg)' : 'var(--paper-2)';
-  const borderColor = dark ? 'var(--dark-line)' : 'var(--line)';
-  const defaultColor = dark ? 'var(--dark-ink-3)' : 'var(--ink-3)';
-  const hoverBg = dark ? 'var(--dark-bg-2)' : 'var(--paper-3)';
-  const activeColor = dark ? 'var(--dark-ink)' : 'var(--ink)';
+  const { containerBg, borderColor, defaultColor, hoverBg, activeColor } = deriveSidebarColors(dark);
 
   const [workflowSettings, setWorkflowSettings] = useState<SidebarWorkflowSettings>(() =>
     readSidebarWorkflowSettings(),
@@ -404,6 +410,11 @@ function DomainPacksNode({
   const isDomainActive =
     active === 'domain' || active === 'intent' || active === 'slot' || active === 'policy' || active === 'risk' || active === 'workflows';
   const [open, setOpen] = useState<boolean>(isDomainActive);
+  const [prevIsDomainActive, setPrevIsDomainActive] = useState(isDomainActive);
+  if (isDomainActive !== prevIsDomainActive) {
+    setPrevIsDomainActive(isDomainActive);
+    if (isDomainActive) setOpen(true);
+  }
 
   if (collapsed) {
     return (
@@ -623,6 +634,11 @@ function PackNode({
 }: PackNodeProps) {
   const isCurrentPack = activePackId === pack.packId;
   const [open, setOpen] = useState(isCurrentPack);
+  const [prevIsCurrentPack, setPrevIsCurrentPack] = useState(isCurrentPack);
+  if (isCurrentPack !== prevIsCurrentPack) {
+    setPrevIsCurrentPack(isCurrentPack);
+    if (isCurrentPack) setOpen(true);
+  }
 
   const sortedWorkflows = useMemo(() => {
     return [...pack.workflows].sort((a, b) =>

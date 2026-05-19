@@ -22,7 +22,8 @@ export function useSlotList(
         | { data?: SlotDefinitionSummary[] }
         | SlotDefinitionSummary[];
       if (Array.isArray(res)) return res;
-      return res?.data ?? [];
+      if (Array.isArray(res?.data)) return res.data;
+      throw new Error("Unexpected slot list response shape");
     },
   });
 

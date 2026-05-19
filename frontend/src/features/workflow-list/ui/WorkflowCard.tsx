@@ -61,6 +61,7 @@ export function WorkflowCard({
             className={styles.graphSlot}
             data-testid={`${cardTestId}-graph`}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <WorkflowGraphMini
               workspaceId={null /* derived from packId via context — see WorkflowListView */}

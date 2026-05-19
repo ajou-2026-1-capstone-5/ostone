@@ -11,7 +11,7 @@ interface AccountMenuProps {
 }
 
 function deriveInitial(name: string | undefined | null, email: string | undefined | null): string {
-  const source = (name && name.trim()) || (email && email.trim()) || '?';
+  const source = name?.trim() || email?.trim() || '?';
   return source.slice(0, 1).toUpperCase();
 }
 

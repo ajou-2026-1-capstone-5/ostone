@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { PackWorkflowListPage } from "./PackWorkflowListPage";
 
@@ -46,13 +46,18 @@ vi.mock("@/widgets/ostone-shell", () => ({
 
 const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows";
 
+function NavigatedRoute() {
+  const loc = useLocation();
+  return <div data-testid="navigated">{loc.pathname}</div>;
+}
+
 function renderPage(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path={ROUTE} element={<PackWorkflowListPage />} />
         <Route path="/workspaces" element={<div data-testid="workspaces-root">root</div>} />
-        <Route path="*" element={<div data-testid="navigated">{(location as { pathname: string }).pathname ?? "navigated"}</div>} />
+        <Route path="*" element={<NavigatedRoute />} />
       </Routes>
     </MemoryRouter>,
   );
