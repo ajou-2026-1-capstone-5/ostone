@@ -391,7 +391,7 @@ def _cluster_result(
     segments: Sequence[BoundarySegment],
     segment_rows: Sequence[Mapping[str, object]],
 ) -> ClusterResult:
-    segment_ids = tuple(segment.segment_id for segment in segments)
+    segment_ids = [segment.segment_id for segment in segments]
     member_conv_ids = _unique_tuple(segment.consultation_id for segment in segments)
     exemplar_conv_ids = member_conv_ids[:3]
     keywords = tuple(_positive_keywords(canonical))
@@ -530,10 +530,14 @@ def _is_customer_turn(turn: ConversationTurn) -> bool:
 
 
 def _turn_index(turn: ConversationTurn, fallback: int) -> int:
-    match = re.search(r"(\d+)$", turn.turn_id)
-    if match:
-        return int(match.group(1))
-    return fallback
+    reversed_digits = []
+    for char in reversed(turn.turn_id):
+        if not char.isdecimal():
+            break
+        reversed_digits.append(char)
+    if not reversed_digits:
+        return fallback
+    return int("".join(reversed(reversed_digits)))
 
 
 def _is_ack_or_closing(text: str) -> bool:
@@ -541,13 +545,27 @@ def _is_ack_or_closing(text: str) -> bool:
 
 
 def _is_detail_continuation(text: str) -> bool:
-    has_detail = bool(re.search(r"\d+\s*[명박일월시분]|성인|아동|아이|인원|여권|이름|연락처", text))
+    detail_keywords = ("성인", "아동", "아이", "인원", "여권", "이름", "연락처")
+    has_detail = _has_numbered_detail_unit(text) or any(keyword in text for keyword in detail_keywords)
     has_action = _balanced_action(text) not in {ACTION_GENERAL, ACTION_SCHEDULE, ACTION_INFO}
     return has_detail and not has_action
 
 
 def _unique_tuple(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values).keys())
+
+
+def _has_numbered_detail_unit(text: str) -> bool:
+    units = "명박일월시분"
+    for index, char in enumerate(text):
+        if not char.isdecimal():
+            continue
+        cursor = index + 1
+        while cursor < len(text) and text[cursor].isspace():
+            cursor += 1
+        if cursor < len(text) and text[cursor] in units:
+            return True
+    return False
 
 
 def _split_sentences(text: str) -> list[str]:

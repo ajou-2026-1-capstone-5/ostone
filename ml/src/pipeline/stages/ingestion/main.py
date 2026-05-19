@@ -20,9 +20,10 @@ DEFAULT_INGESTION_ARTIFACT_NAME = "conversations.jsonl"
 CUSTOMER_ROLE = "CUSTOMER"
 AGENT_ROLE = "AGENT"
 
-_CUSTOMER_PREFIX_RE = re.compile(r"^\s*(?:고객|고객님|손님|문의자|Customer|CLIENT|C)\s*[:：\-\)]\s*(.*)$", re.I)
-_AGENT_PREFIX_RE = re.compile(r"^\s*(?:상담사|상담원|상담직원|직원|Agent|A)\s*[:：\-\)]\s*(.*)$", re.I)
-_SPEAKER_RE = re.compile(r"^\s*([가-힣A-Za-z0-9_ ]{1,20})\s*[:：]\s*(.*)$")
+_CUSTOMER_PREFIXES = ("고객님", "Customer", "CLIENT", "문의자", "고객", "손님", "C")
+_AGENT_PREFIXES = ("상담직원", "상담사", "상담원", "Agent", "직원", "A")
+_ROLE_PREFIX_SEPARATORS = (":", "：", "-", ")")
+_SPEAKER_SEPARATORS = (":", "：")
 
 
 @dataclass(frozen=True)
@@ -270,21 +271,21 @@ def _parse_consulting_content(content: str) -> list[dict[str, object]]:
         current_parts = []
 
     for line in lines:
-        customer_match = _CUSTOMER_PREFIX_RE.match(line)
-        agent_match = _AGENT_PREFIX_RE.match(line)
-        speaker_match = _SPEAKER_RE.match(line)
-        if customer_match:
+        customer_text = _split_role_prefix(line, _CUSTOMER_PREFIXES)
+        agent_text = _split_role_prefix(line, _AGENT_PREFIXES)
+        speaker_parts = _split_named_speaker(line)
+        if customer_text is not None:
             flush()
             current_role = CUSTOMER_ROLE
-            current_parts = [customer_match.group(1).strip()]
-        elif agent_match:
+            current_parts = [customer_text]
+        elif agent_text is not None:
             flush()
             current_role = AGENT_ROLE
-            current_parts = [agent_match.group(1).strip()]
-        elif speaker_match and _looks_like_speaker(speaker_match.group(1)):
+            current_parts = [agent_text]
+        elif speaker_parts is not None and _looks_like_speaker(speaker_parts[0]):
             flush()
-            current_role = _normalize_speaker_role(speaker_match.group(1))
-            current_parts = [speaker_match.group(2).strip()]
+            current_role = _normalize_speaker_role(speaker_parts[0])
+            current_parts = [speaker_parts[1]]
         else:
             current_parts.append(line)
 
@@ -292,6 +293,36 @@ def _parse_consulting_content(content: str) -> list[dict[str, object]]:
     if turns:
         return turns
     return [{"turn_index": 0, "speaker_role": CUSTOMER_ROLE, "message_text": _normalize_text(content)}]
+
+
+def _split_role_prefix(line: str, prefixes: tuple[str, ...]) -> str | None:
+    stripped = line.strip()
+    lower = stripped.lower()
+    for prefix in prefixes:
+        if not lower.startswith(prefix.lower()):
+            continue
+        remainder = stripped[len(prefix) :].lstrip()
+        if remainder and remainder[0] in _ROLE_PREFIX_SEPARATORS:
+            return remainder[1:].strip()
+    return None
+
+
+def _split_named_speaker(line: str) -> tuple[str, str] | None:
+    stripped = line.strip()
+    for separator in _SPEAKER_SEPARATORS:
+        if separator not in stripped:
+            continue
+        speaker, message = stripped.split(separator, 1)
+        speaker = speaker.strip()
+        if _is_speaker_token(speaker):
+            return speaker, message.strip()
+    return None
+
+
+def _is_speaker_token(value: str) -> bool:
+    if not 1 <= len(value) <= 20:
+        return False
+    return all(char.isalnum() or char.isspace() or char == "_" for char in value)
 
 
 def _first_text(row: Mapping[str, object], keys: tuple[str, ...]) -> str | None:
