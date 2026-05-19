@@ -23,8 +23,11 @@ export function useSlotDetail(
       if (slotId === null) {
         throw new Error("slotId is required");
       }
-      const res = await getSlot(wsId, packId, versionId, slotId);
-      return res.data;
+      const res = (await getSlot(wsId, packId, versionId, slotId)) as
+        | { data?: SlotDefinitionResponse }
+        | SlotDefinitionResponse;
+      const candidate = (res as { data?: SlotDefinitionResponse }).data;
+      return candidate ?? (res as SlotDefinitionResponse);
     },
     enabled: slotId !== null,
   });

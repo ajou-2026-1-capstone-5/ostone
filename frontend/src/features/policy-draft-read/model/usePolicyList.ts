@@ -32,5 +32,9 @@ export function usePolicyList(
     return mapApiError(query.error);
   }
 
-  return { status: "ready", data: (query.data?.data ?? []) as unknown as PolicySummary[] };
+  const payload = (query.data as { data?: PolicySummary[] } | PolicySummary[] | undefined);
+  const list: PolicySummary[] = Array.isArray(payload)
+    ? payload
+    : ((payload?.data ?? []) as PolicySummary[]);
+  return { status: "ready", data: list };
 }
