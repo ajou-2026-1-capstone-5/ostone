@@ -1,8 +1,18 @@
-import { useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '../atoms/Icon';
 import type { IconName } from '../atoms/Icon';
 import { AccountMenu } from './AccountMenu';
+import { WorkflowSettingsPanel, type WorkflowSettingEntry } from './WorkflowSettingsPanel';
+import {
+  SORT_DIR_OPTIONS,
+  SORT_FIELD_OPTIONS,
+  TOP_N_OPTIONS,
+  compareWorkflows,
+  readSidebarWorkflowSettings,
+  writeSidebarWorkflowSettings,
+  type SidebarWorkflowSettings,
+} from '@/shared/lib/workflowSettings';
 
 export type SidebarActive =
   | 'operator'
@@ -114,6 +124,23 @@ export function Sidebar({
   const hoverBg = dark ? 'var(--dark-bg-2)' : 'var(--paper-3)';
   const activeColor = dark ? 'var(--dark-ink)' : 'var(--ink)';
 
+  const [workflowSettings, setWorkflowSettings] = useState<SidebarWorkflowSettings>(() =>
+    readSidebarWorkflowSettings(),
+  );
+  const [settingsPanelPackId, setSettingsPanelPackId] = useState<number | null>(null);
+
+  useEffect(() => {
+    writeSidebarWorkflowSettings(workflowSettings);
+  }, [workflowSettings]);
+
+  const updateWorkflowSettings = (patch: Partial<SidebarWorkflowSettings>) => {
+    setWorkflowSettings((prev) => ({ ...prev, ...patch }));
+  };
+
+  const toggleSettingsPanel = (packId: number) => {
+    setSettingsPanelPackId((prev) => (prev === packId ? null : packId));
+  };
+
   return (
     <nav
       style={{
@@ -216,6 +243,10 @@ export function Sidebar({
           activeColor={activeColor}
           defaultColor={defaultColor}
           hoverBg={hoverBg}
+          workflowSettings={workflowSettings}
+          settingsPanelPackId={settingsPanelPackId}
+          onToggleSettingsPanel={toggleSettingsPanel}
+          onUpdateWorkflowSettings={updateWorkflowSettings}
         />
       </div>
 
@@ -314,6 +345,10 @@ interface DomainPacksNodeProps {
   activeColor: string;
   defaultColor: string;
   hoverBg: string;
+  workflowSettings: SidebarWorkflowSettings;
+  settingsPanelPackId: number | null;
+  onToggleSettingsPanel: (packId: number) => void;
+  onUpdateWorkflowSettings: (patch: Partial<SidebarWorkflowSettings>) => void;
 }
 
 function DomainPacksNode({
@@ -326,6 +361,10 @@ function DomainPacksNode({
   activeColor,
   defaultColor,
   hoverBg,
+  workflowSettings,
+  settingsPanelPackId,
+  onToggleSettingsPanel,
+  onUpdateWorkflowSettings,
 }: DomainPacksNodeProps) {
   const isDomainActive =
     active === 'domain' || active === 'intent' || active === 'slot' || active === 'policy' || active === 'risk' || active === 'workflows';
@@ -406,6 +445,10 @@ function DomainPacksNode({
           activeColor={activeColor}
           defaultColor={defaultColor}
           hoverBg={hoverBg}
+          workflowSettings={workflowSettings}
+          settingsPanelPackId={settingsPanelPackId}
+          onToggleSettingsPanel={onToggleSettingsPanel}
+          onUpdateWorkflowSettings={onUpdateWorkflowSettings}
         />
       )}
     </div>
@@ -421,6 +464,10 @@ interface SidebarPackTreeProps {
   activeColor: string;
   defaultColor: string;
   hoverBg: string;
+  workflowSettings: SidebarWorkflowSettings;
+  settingsPanelPackId: number | null;
+  onToggleSettingsPanel: (packId: number) => void;
+  onUpdateWorkflowSettings: (patch: Partial<SidebarWorkflowSettings>) => void;
 }
 
 function SidebarPackTree({
@@ -432,6 +479,10 @@ function SidebarPackTree({
   activeColor,
   defaultColor,
   hoverBg,
+  workflowSettings,
+  settingsPanelPackId,
+  onToggleSettingsPanel,
+  onUpdateWorkflowSettings,
 }: SidebarPackTreeProps) {
   if (tree.loading) {
     return (
@@ -495,6 +546,10 @@ function SidebarPackTree({
           activeColor={activeColor}
           defaultColor={defaultColor}
           hoverBg={hoverBg}
+          workflowSettings={workflowSettings}
+          settingsPanelOpen={settingsPanelPackId === pack.packId}
+          onToggleSettingsPanel={() => onToggleSettingsPanel(pack.packId)}
+          onUpdateWorkflowSettings={onUpdateWorkflowSettings}
         />
       ))}
     </div>
@@ -510,6 +565,10 @@ interface PackNodeProps {
   activeColor: string;
   defaultColor: string;
   hoverBg: string;
+  workflowSettings: SidebarWorkflowSettings;
+  settingsPanelOpen: boolean;
+  onToggleSettingsPanel: () => void;
+  onUpdateWorkflowSettings: (patch: Partial<SidebarWorkflowSettings>) => void;
 }
 
 function PackNode({
@@ -521,9 +580,50 @@ function PackNode({
   activeColor,
   defaultColor,
   hoverBg,
+  workflowSettings,
+  settingsPanelOpen,
+  onToggleSettingsPanel,
+  onUpdateWorkflowSettings,
 }: PackNodeProps) {
   const isCurrentPack = activePackId === pack.packId;
   const [open, setOpen] = useState(isCurrentPack);
+
+  const sortedWorkflows = useMemo(() => {
+    return [...pack.workflows].sort((a, b) =>
+      compareWorkflows(a, b, workflowSettings.sortField, workflowSettings.sortDir),
+    );
+  }, [pack.workflows, workflowSettings.sortField, workflowSettings.sortDir]);
+
+  const visibleWorkflows = sortedWorkflows.slice(0, workflowSettings.topN);
+  const hiddenCount = Math.max(0, sortedWorkflows.length - visibleWorkflows.length);
+
+  const settingsEntries: WorkflowSettingEntry[] = [
+    {
+      key: 'topN',
+      label: 'Top N',
+      value: workflowSettings.topN,
+      options: TOP_N_OPTIONS.map((n) => ({ value: n, label: String(n) })),
+      onChange: (next) => onUpdateWorkflowSettings({ topN: Number(next) }),
+    },
+    {
+      key: 'sortField',
+      label: 'Sort by',
+      value: workflowSettings.sortField,
+      options: SORT_FIELD_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      onChange: (next) =>
+        onUpdateWorkflowSettings({
+          sortField: next === 'name' ? 'name' : 'workflowCode',
+        }),
+    },
+    {
+      key: 'sortDir',
+      label: 'Order',
+      value: workflowSettings.sortDir,
+      options: SORT_DIR_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      onChange: (next) =>
+        onUpdateWorkflowSettings({ sortDir: next === 'desc' ? 'desc' : 'asc' }),
+    },
+  ];
 
   return (
     <div data-testid={`sidebar-pack-${pack.packId}`}>
@@ -567,30 +667,81 @@ function PackNode({
           {PACK_CATEGORIES.map((cat) => {
             const isActiveCat = isCurrentPack && active === cat.activeKey;
             const isWorkflowsCat = cat.key === 'workflows';
-            return (
-              <div key={cat.key}>
+            const navLinkStyle: CSSProperties = {
+              padding: '4px var(--s-3) 4px 48px',
+              borderLeft: `3px solid ${isActiveCat ? 'var(--signal)' : 'transparent'}`,
+              background: isActiveCat ? hoverBg : 'transparent',
+              fontFamily: 'var(--sans)',
+              fontSize: '12px',
+              fontWeight: isActiveCat ? 500 : 400,
+              color: isActiveCat ? activeColor : defaultColor,
+              textDecoration: 'none',
+              letterSpacing: '-0.1px',
+              display: 'block',
+              flex: 1,
+            };
+
+            if (!isWorkflowsCat) {
+              return (
                 <NavLink
+                  key={cat.key}
                   to={categoryPath(basePath, pack.packId, pack.versionId, cat.key)}
                   end
                   data-testid={`sidebar-cat-${pack.packId}-${cat.key}`}
-                  style={{
-                    padding: '4px var(--s-3) 4px 48px',
-                    borderLeft: `3px solid ${isActiveCat ? 'var(--signal)' : 'transparent'}`,
-                    background: isActiveCat ? hoverBg : 'transparent',
-                    fontFamily: 'var(--sans)',
-                    fontSize: '12px',
-                    fontWeight: isActiveCat ? 500 : 400,
-                    color: isActiveCat ? activeColor : defaultColor,
-                    textDecoration: 'none',
-                    letterSpacing: '-0.1px',
-                    display: 'block',
-                  }}
+                  style={navLinkStyle}
                 >
                   {cat.label}
                 </NavLink>
-                {isWorkflowsCat && isActiveCat && (
-                  <div data-testid={`sidebar-workflows-list-${pack.packId}`} style={{ display: 'flex', flexDirection: 'column' }}>
-                    {pack.workflows.length === 0 ? (
+              );
+            }
+
+            return (
+              <div key={cat.key}>
+                <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                  <NavLink
+                    to={categoryPath(basePath, pack.packId, pack.versionId, cat.key)}
+                    end
+                    data-testid={`sidebar-cat-${pack.packId}-${cat.key}`}
+                    style={navLinkStyle}
+                  >
+                    {cat.label}
+                  </NavLink>
+                  <button
+                    type="button"
+                    onClick={onToggleSettingsPanel}
+                    aria-label="워크플로우 표시 설정"
+                    aria-expanded={settingsPanelOpen}
+                    data-testid={`sidebar-workflows-settings-toggle-${pack.packId}`}
+                    style={{
+                      width: '28px',
+                      flexShrink: 0,
+                      background: settingsPanelOpen ? hoverBg : 'transparent',
+                      border: 'none',
+                      color: settingsPanelOpen ? activeColor : defaultColor,
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon name="settings" size={12} />
+                  </button>
+                </div>
+
+                {settingsPanelOpen && (
+                  <WorkflowSettingsPanel
+                    entries={settingsEntries}
+                    testId={`sidebar-workflows-settings-${pack.packId}`}
+                  />
+                )}
+
+                {isActiveCat && (
+                  <div
+                    data-testid={`sidebar-workflows-list-${pack.packId}`}
+                    style={{ display: 'flex', flexDirection: 'column' }}
+                  >
+                    {visibleWorkflows.length === 0 ? (
                       <span
                         data-testid={`sidebar-workflows-empty-${pack.packId}`}
                         style={{
@@ -603,7 +754,7 @@ function PackNode({
                         no workflows
                       </span>
                     ) : (
-                      pack.workflows.map((wf) => {
+                      visibleWorkflows.map((wf) => {
                         const isActiveWf = activeWorkflowId === wf.id;
                         return (
                           <NavLink
@@ -636,6 +787,23 @@ function PackNode({
                         );
                       })
                     )}
+                    {hiddenCount > 0 && (
+                      <NavLink
+                        to={categoryPath(basePath, pack.packId, pack.versionId, 'workflows')}
+                        end
+                        data-testid={`sidebar-workflows-overflow-${pack.packId}`}
+                        style={{
+                          padding: '4px var(--s-3) 4px 64px',
+                          fontFamily: 'var(--mono)',
+                          fontSize: '10px',
+                          color: defaultColor,
+                          textDecoration: 'none',
+                          letterSpacing: '0.4px',
+                        }}
+                      >
+                        +{hiddenCount} more
+                      </NavLink>
+                    )}
                   </div>
                 )}
               </div>
@@ -646,3 +814,4 @@ function PackNode({
     </div>
   );
 }
+

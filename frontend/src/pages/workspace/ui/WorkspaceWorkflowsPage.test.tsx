@@ -19,6 +19,23 @@ vi.mock('@/entities/workflow', () => ({
 
 vi.mock('sonner', () => ({ toast: vi.fn() }));
 
+vi.mock('@/features/workflow-list', () => ({
+  WorkflowListView: vi.fn(({ entries, onOpen }) => (
+    <div data-testid="workflow-list-view">
+      {entries.map((entry: { workflowId: number; name: string; packId: number; versionId: number }) => (
+        <button
+          key={entry.workflowId}
+          type="button"
+          data-testid={`workspace-workflows-card-${entry.workflowId}`}
+          onClick={() => onOpen(entry)}
+        >
+          {entry.name}
+        </button>
+      ))}
+    </div>
+  )),
+}));
+
 function renderPage(path = '/workspaces/1/workflows') {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -61,7 +78,7 @@ describe('WorkspaceWorkflowsPage', () => {
     expect(screen.getByTestId('workspace-workflows-empty')).toBeInTheDocument();
   });
 
-  it('entries가 있으면 카드별로 렌더링한다', () => {
+  it('entries가 있으면 WorkflowListView로 전달한다', () => {
     mockHook.mockReturnValue({
       loading: false,
       error: null,
@@ -75,26 +92,14 @@ describe('WorkspaceWorkflowsPage', () => {
           name: '환불 처리',
           description: 'desc',
         },
-        {
-          packId: 12,
-          packName: 'Billing',
-          versionId: 30,
-          workflowId: 200,
-          workflowCode: null,
-          name: '카드 변경',
-          description: null,
-        },
       ],
     });
     renderPage();
-    expect(screen.getByTestId('workflow-card-100')).toBeInTheDocument();
-    expect(screen.getByText('환불 처리')).toBeInTheDocument();
-    expect(screen.getByText('refund.standard')).toBeInTheDocument();
-    expect(screen.getByTestId('workflow-card-200')).toBeInTheDocument();
-    expect(screen.getByText('카드 변경')).toBeInTheDocument();
+    expect(screen.getByTestId('workflow-list-view')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-workflows-card-100')).toHaveTextContent('환불 처리');
   });
 
-  it('카드 클릭 시 실제 packId/versionId/workflowId 경로로 navigate한다', () => {
+  it('카드에서 열기(onOpen) 시 실제 packId/versionId/workflowId 경로로 navigate한다', () => {
     mockHook.mockReturnValue({
       loading: false,
       error: null,
@@ -111,30 +116,7 @@ describe('WorkspaceWorkflowsPage', () => {
       ],
     });
     renderPage();
-    fireEvent.click(screen.getByTestId('workflow-card-100'));
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/workspaces/1/domain-packs/11/versions/22/workflows/100',
-    );
-  });
-
-  it('카드에서 Enter 키 입력 시에도 navigate한다', () => {
-    mockHook.mockReturnValue({
-      loading: false,
-      error: null,
-      entries: [
-        {
-          packId: 11,
-          packName: 'CS Support',
-          versionId: 22,
-          workflowId: 100,
-          workflowCode: null,
-          name: '환불 처리',
-          description: null,
-        },
-      ],
-    });
-    renderPage();
-    fireEvent.keyDown(screen.getByTestId('workflow-card-100'), { key: 'Enter' });
+    fireEvent.click(screen.getByTestId('workspace-workflows-card-100'));
     expect(mockNavigate).toHaveBeenCalledWith(
       '/workspaces/1/domain-packs/11/versions/22/workflows/100',
     );

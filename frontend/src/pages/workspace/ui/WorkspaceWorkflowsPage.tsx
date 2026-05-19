@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
-import { Pill, Mono } from "@/shared/ui/ostone/atoms";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
+import { WorkflowListView } from "@/features/workflow-list";
 
 import styles from "./workspace-workflows-page.module.css";
 
@@ -25,9 +25,9 @@ export function WorkspaceWorkflowsPage() {
     return <Navigate to="/workspaces" replace />;
   }
 
-  const handleCardClick = (packId: number, versionId: number, workflowId: number) => {
+  const handleOpen = (entry: { packId: number; versionId: number; workflowId: number }) => {
     navigate(
-      `/workspaces/${parsedWorkspaceId}/domain-packs/${packId}/versions/${versionId}/workflows/${workflowId}`,
+      `/workspaces/${parsedWorkspaceId}/domain-packs/${entry.packId}/versions/${entry.versionId}/workflows/${entry.workflowId}`,
     );
   };
 
@@ -65,44 +65,11 @@ export function WorkspaceWorkflowsPage() {
       )}
 
       {!loading && !error && entries.length > 0 && (
-        <div className={styles.workflowGrid}>
-          {entries.map((wf) => (
-            <article
-              key={`${wf.packId}-${wf.workflowId}`}
-              className={styles.workflowCard}
-              onClick={() => handleCardClick(wf.packId, wf.versionId, wf.workflowId)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleCardClick(wf.packId, wf.versionId, wf.workflowId);
-                }
-              }}
-              data-testid={`workflow-card-${wf.workflowId}`}
-            >
-              <div className={styles.workflowCardInner}>
-                <div className={styles.workflowCardHeader}>
-                  <div className={styles.workflowMeta}>
-                    <Pill tone="mute">{wf.packName}</Pill>
-                    {wf.workflowCode && <Mono className={styles.workflowCode}>{wf.workflowCode}</Mono>}
-                  </div>
-                </div>
-
-                <div className={styles.workflowCardContent}>
-                  <h2 className={styles.workflowTitle}>{wf.name}</h2>
-                  {wf.description && <p className={styles.workflowDescription}>{wf.description}</p>}
-                </div>
-
-                <div className={styles.workflowCardFooter}>
-                  <Mono className={styles.workflowMetaCount}>
-                    pack #{wf.packId} · version #{wf.versionId}
-                  </Mono>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <WorkflowListView
+          entries={entries}
+          onOpen={handleOpen}
+          testIdPrefix="workspace-workflows"
+        />
       )}
     </div>
   );

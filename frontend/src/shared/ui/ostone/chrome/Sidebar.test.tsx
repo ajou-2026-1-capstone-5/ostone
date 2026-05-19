@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar, type SidebarTreeData } from './Sidebar';
@@ -240,5 +240,138 @@ describe('Sidebar', () => {
     expect(intentsCat.getAttribute('style') ?? '').toContain('var(--signal)');
     const slotsCat = screen.getByTestId('sidebar-cat-11-slots');
     expect(slotsCat.getAttribute('style') ?? '').not.toContain('var(--signal)');
+  });
+});
+
+describe('Sidebar — workflow settings', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  const overflowTree: SidebarTreeData = {
+    loading: false,
+    error: null,
+    packs: [
+      {
+        packId: 50,
+        name: 'Big Pack',
+        versionId: 99,
+        workflows: Array.from({ length: 8 }, (_, i) => ({
+          id: 500 + i,
+          name: `wf-${String(i).padStart(2, '0')}`,
+        })),
+      },
+    ],
+  };
+
+  it('All Workflows 행 옆에 settings 톱니 버튼이 렌더된다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    expect(screen.getByTestId('sidebar-workflows-settings-toggle-50')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('sidebar-workflows-settings-toggle-50').getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
+
+  it('settings 톱니 클릭 시 panel이 펼쳐지고 다시 누르면 닫힌다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    const toggle = screen.getByTestId('sidebar-workflows-settings-toggle-50');
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('sidebar-workflows-settings-50')).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('sidebar-workflows-settings-50')).not.toBeInTheDocument();
+  });
+
+  it('기본 Top N=5 적용 시 8개 중 5개만 표시되고 +3 more 가 노출된다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    expect(screen.getByTestId('sidebar-workflow-500')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-workflow-504')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-workflow-505')).not.toBeInTheDocument();
+    const overflow = screen.getByTestId('sidebar-workflows-overflow-50');
+    expect(overflow).toHaveTextContent('+3 more');
+  });
+
+  it('Top N=3 으로 변경 시 즉시 3개만 + 5 more 가 표시된다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-toggle-50'));
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-50-topN-3'));
+    expect(screen.getByTestId('sidebar-workflow-500')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-workflow-502')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-workflow-503')).not.toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-workflows-overflow-50')).toHaveTextContent('+5 more');
+  });
+
+  it('이름 기준 desc 정렬 시 워크플로우 순서가 역전된다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-toggle-50'));
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-50-sortField-name'));
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-50-sortDir-desc'));
+    const list = screen.getByTestId('sidebar-workflows-list-50');
+    const first = list.querySelector<HTMLAnchorElement>('a[data-testid^="sidebar-workflow-"]');
+    expect(first?.dataset.testid).toBe('sidebar-workflow-507');
+  });
+
+  it('settings 변경이 localStorage 에 영속화된다', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-toggle-50'));
+    fireEvent.click(screen.getByTestId('sidebar-workflows-settings-50-topN-10'));
+    const raw = window.localStorage.getItem('ostone:sidebar:workflow-settings');
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw!)).toMatchObject({ topN: 10 });
+  });
+
+  it('영속화된 settings 가 mount 시 hydrate 된다 (topN=3)', () => {
+    window.localStorage.setItem(
+      'ostone:sidebar:workflow-settings',
+      JSON.stringify({ topN: 3, sortField: 'workflowCode', sortDir: 'asc' }),
+    );
+    renderSidebar({
+      collapsed: false,
+      tree: overflowTree,
+      activePackId: 50,
+      active: 'workflows',
+    });
+    expect(screen.getByTestId('sidebar-workflows-overflow-50')).toHaveTextContent('+5 more');
+  });
+
+  it('워크플로우 수 ≤ Top N 인 경우 +M more 미노출', () => {
+    renderSidebar({
+      collapsed: false,
+      tree: TREE_FIXTURE,
+      activePackId: 11,
+      active: 'workflows',
+    });
+    expect(screen.queryByTestId('sidebar-workflows-overflow-11')).not.toBeInTheDocument();
   });
 });
