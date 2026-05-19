@@ -54,6 +54,7 @@ def write_clusters_artifact(
     novel_candidates: list[NovelIntentCandidate],
     stats: IntentDiscoveryStats,
     embeddings: np.ndarray,
+    extra_manifest_payload: Mapping[str, object] | None = None,
 ) -> Path:
     output_dir = ensure_stage_directory(context, runtime_config)
     clusters_path = output_dir / DEFAULT_CLUSTER_ARTIFACT
@@ -70,14 +71,14 @@ def write_clusters_artifact(
 
     _ = clusters_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
     np.save(embeddings_path, embeddings.astype(np.float32, copy=False))
-    _ = write_stage_manifest(
-        context,
-        runtime_config,
-        {
-            "artifact_path": clusters_path.name,
-            "embeddings_path": embeddings_path.name,
-        },
-    )
+    manifest_payload: dict[str, object] = {
+        "artifact_path": clusters_path.name,
+        "embeddings_path": embeddings_path.name,
+    }
+    if extra_manifest_payload is not None:
+        manifest_payload.update(extra_manifest_payload)
+
+    _ = write_stage_manifest(context, runtime_config, manifest_payload)
     return clusters_path
 
 
@@ -178,7 +179,7 @@ def _optional_str(value: object) -> str | None:
 
 
 def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:
-    return {
+    output: dict[str, object] = {
         "cluster_id": cluster.cluster_id,
         "member_indices": list(cluster.member_indices),
         "member_conv_ids": list(cluster.member_conv_ids),
@@ -190,6 +191,9 @@ def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:
         "quality": _serialize_quality(cluster.quality),
         "review_hint": cluster.review_hint,
     }
+    if cluster.metadata is not None:
+        output.update(cluster.metadata)
+    return output
 
 
 def _serialize_quality(quality: ClusterQuality) -> dict[str, float | None]:

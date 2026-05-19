@@ -7,7 +7,6 @@ from pathlib import Path
 from traceback import format_exc
 
 from airflow.sdk import dag, get_current_context, task
-
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
@@ -29,10 +28,23 @@ def _build_stage_context(stage_name: str) -> StageContext:
         dag_id=context["dag"].dag_id,
         run_id=context["run_id"],
         stage_name=stage_name,
-        workspace_id=context["params"].get("workspace_id"),
-        dataset_id=context["params"].get("dataset_id"),
-        pipeline_job_id=context["params"].get("pipeline_job_id"),
+        workspace_id=_context_value(context, "workspace_id"),
+        dataset_id=_context_value(context, "dataset_id"),
+        pipeline_job_id=_context_value(context, "pipeline_job_id"),
     )
+
+
+def _context_value(context: Mapping[str, object], key: str) -> str | None:
+    dag_run = context.get("dag_run")
+    conf = getattr(dag_run, "conf", None)
+    if isinstance(conf, Mapping) and conf.get(key) not in (None, ""):
+        return str(conf[key])
+
+    params = context.get("params")
+    if isinstance(params, Mapping) and params.get(key) not in (None, ""):
+        return str(params[key])
+
+    return None
 
 
 def _run_stage(
@@ -104,6 +116,7 @@ def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, ob
         "workspace_id": "local-workspace",
         "dataset_id": "local-dataset",
         "pipeline_job_id": "local-pipeline-job",
+        "object_key": "",
     },
     tags=["pipeline", "domain-pack"],
 )

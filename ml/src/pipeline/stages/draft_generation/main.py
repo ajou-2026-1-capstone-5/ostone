@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -29,6 +30,7 @@ _logger = logging.getLogger("pipeline.draft_generation")
 DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
 DEFAULT_PREPROCESSED_ARTIFACT = "preprocessed_data.json"
+DEFAULT_SEGMENT_ARTIFACT = "intent_segments_v3.jsonl"
 
 
 class SlotTemplate(NamedTuple):
@@ -69,17 +71,31 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     preprocessed_index = _read_preprocessed_index(runtime_config, stage_context)
     logger.info("draft_generation.preprocessed_loaded conversation_count=%d", len(preprocessed_index))
 
-    cases_per_intent = _resolve_cases_per_intent()
-    intents, metrics = _build_intents(clusters, preprocessed_index, cases_per_intent)
-    logger.info(
-        "draft_generation.intent_built intent_count=%d representative_case_total=%d intents_with_zero_cases=%d",
-        metrics["intent_count"],
-        metrics["representative_case_total"],
-        metrics["intents_with_zero_cases"],
-    )
+    segment_rows = _read_segment_rows(runtime_config, stage_context)
+    consultation_cluster_groups = _build_consultation_cluster_groups(clusters, segment_rows)
+    if consultation_cluster_groups:
+        logger.info(
+            "draft_generation.consultation_split consultation_count=%d",
+            len(consultation_cluster_groups),
+        )
 
-    workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
-    metrics.update(workflow_metrics)
+    cases_per_intent = _resolve_cases_per_intent()
+    candidate, metrics = _build_candidate_artifact(
+        consultation_cluster_groups or {"": clusters},
+        preprocessed_index,
+        cases_per_intent,
+        stage_context,
+    )
+    intent_metrics = metrics["intent_metrics"]
+    logger.info(
+        "draft_generation.intent_built candidate_count=%d intent_count=%d representative_case_total=%d "
+        "intents_with_zero_cases=%d",
+        metrics["candidate_count"],
+        intent_metrics["intent_count"],
+        intent_metrics["representative_case_total"],
+        intent_metrics["intents_with_zero_cases"],
+    )
+    workflow_metrics = metrics["workflow_metrics"]
     logger.info(
         "draft_generation.workflow_summary workflow_count=%d identify_count=%d payment_count=%d escalation_count=%d"
         " evidence_keyword_total=%d evidence_exemplar_total=%d evidence_member_total=%d empty_evidence_count=%d",
@@ -93,10 +109,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         workflow_metrics["workflow_with_empty_evidence_count"],
     )
 
-    slots, intent_slot_bindings, slot_metrics = _build_slot_draft(clusters)
-    workflow_draft["slots"] = slots
-    workflow_draft["intentSlotBindings"] = intent_slot_bindings
-    metrics.update(slot_metrics)
+    slot_metrics = metrics["slot_metrics"]
     logger.info(
         "draft_generation.slot_summary slot_count=%d cluster_with_slot_count=%d "
         "signal_slot_hit_payment_check=%d signal_slot_hit_user_identification=%d "
@@ -107,22 +120,20 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
         slot_metrics["signal_slot_hit_user_identification"],
         slot_metrics["signal_slot_hit_escalation"],
     )
-
-    candidate = _build_candidate(intents, workflow_draft, stage_context)
     logger.info(
-        "draft_generation.pack_identity pack_key=%s pack_name=%s",
-        candidate["domainPackDraft"]["packKey"],
-        candidate["domainPackDraft"]["packName"],
+        "draft_generation.pack_identity candidate_count=%d",
+        metrics["candidate_count"],
     )
 
     candidate_path = _write_candidate(stage_context, runtime_config, candidate)
 
-    metrics["processing_duration_seconds"] = time.monotonic() - start
+    manifest_metrics = _flatten_metrics(metrics)
+    manifest_metrics["processing_duration_seconds"] = time.monotonic() - start
 
     manifest = write_stage_manifest(
         stage_context,
         runtime_config,
-        {"candidateArtifactPath": candidate_path.name, "metrics": metrics},
+        {"candidateArtifactPath": candidate_path.name, "metrics": manifest_metrics},
     )
 
     logger.info("draft_generation.completed candidate_artifact_path=%s", candidate_path)
@@ -163,6 +174,96 @@ def _read_preprocessed_index(
     return {conv["id"]: conv for conv in conversations if isinstance(conv, dict) and "id" in conv}
 
 
+def _read_segment_rows(
+    runtime_config: PipelineRuntimeConfig,
+    stage_context: StageContext,
+) -> list[dict[str, Any]]:
+    segment_path = _upstream_stage_dir("intent_discovery", runtime_config, stage_context) / DEFAULT_SEGMENT_ARTIFACT
+    if not segment_path.exists():
+        return []
+
+    rows: list[dict[str, Any]] = []
+    try:
+        for line_number, line in enumerate(segment_path.read_text(encoding="utf-8").splitlines(), start=1):
+            line = line.strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            if not isinstance(payload, dict):
+                raise PipelineStageError(f"{DEFAULT_SEGMENT_ARTIFACT} line {line_number} must be a JSON object.")
+            rows.append(payload)
+    except OSError as exc:
+        raise PipelineStageError(f"Failed to read {DEFAULT_SEGMENT_ARTIFACT}: {segment_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise PipelineStageError(f"Invalid JSONL in {DEFAULT_SEGMENT_ARTIFACT}: {segment_path}") from exc
+    return rows
+
+
+def _build_consultation_cluster_groups(
+    clusters: list[Any],
+    segment_rows: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    if not segment_rows:
+        return {}
+
+    global_by_canonical: dict[str, dict[str, Any]] = {}
+    global_by_cluster_id: dict[int, dict[str, Any]] = {}
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        canonical = _string_value(cluster.get("canonical_intent")) or _string_value(cluster.get("suggested_name"))
+        if canonical:
+            global_by_canonical[canonical] = cluster
+        cluster_id = _int_value(cluster.get("cluster_id"))
+        if cluster_id is not None:
+            global_by_cluster_id[cluster_id] = cluster
+
+    grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    for row in segment_rows:
+        consultation_id = _string_value(row.get("consultation_id"))
+        canonical = _string_value(row.get("canonical_intent"))
+        if not consultation_id or not canonical:
+            continue
+        grouped.setdefault(consultation_id, {}).setdefault(canonical, []).append(row)
+
+    consultation_clusters: dict[str, list[dict[str, Any]]] = {}
+    for consultation_id, canonical_groups in grouped.items():
+        local_clusters: list[dict[str, Any]] = []
+        for local_cluster_id, (canonical, rows) in enumerate(canonical_groups.items()):
+            first_row = rows[0]
+            base = global_by_canonical.get(canonical) or global_by_cluster_id.get(
+                _int_value(first_row.get("cluster_id")) or -1,
+                {},
+            )
+            segment_ids = [_string_value(row.get("segment_id")) for row in rows]
+            segment_texts = [_string_value(row.get("segment_customer_text")) for row in rows]
+            phrases = [_string_value(row.get("intent_phrase_refined")) or canonical for row in rows]
+            workflow_signal = base.get("workflow_signal") if isinstance(base, dict) else None
+            local_clusters.append(
+                {
+                    "cluster_id": local_cluster_id,
+                    "canonical_intent": canonical,
+                    "suggested_name": canonical,
+                    "description": _string_value(base.get("description")) or _description_from_canonical(canonical),
+                    "suggested_description": _string_value(base.get("suggested_description"))
+                    or _description_from_canonical(canonical),
+                    "cluster_size": len(rows),
+                    "source": base.get("source") or "consultation_split_v1",
+                    "segment_ids": [value for value in segment_ids if value],
+                    "sample_intent_phrases": list(dict.fromkeys(value for value in phrases if value))[:8],
+                    "sample_segment_texts": [value for value in segment_texts if value][:5],
+                    "member_conv_ids": [consultation_id],
+                    "exemplar_conv_ids": [consultation_id],
+                    "workflow_signal": workflow_signal
+                    if isinstance(workflow_signal, dict)
+                    else _workflow_signal_from_canonical(canonical),
+                    "fallback_name": bool(base.get("fallback_name", canonical == "기타 문의")),
+                }
+            )
+        consultation_clusters[consultation_id] = local_clusters
+    return consultation_clusters
+
+
 def _upstream_stage_dir(
     stage_name: str,
     runtime_config: PipelineRuntimeConfig,
@@ -177,6 +278,97 @@ def _upstream_stage_dir(
         pipeline_job_id=stage_context.pipeline_job_id,
     )
     return upstream.artifact_dir(runtime_config)
+
+
+def _build_candidate_artifact(
+    cluster_groups: dict[str, list[dict[str, Any]]],
+    preprocessed_index: dict[str, dict[str, Any]],
+    cases_per_intent: int,
+    stage_context: StageContext,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    intent_metrics = _empty_intent_metrics()
+    workflow_metrics = _empty_workflow_metrics()
+    slot_metrics = _empty_slot_metrics()
+
+    for consultation_id, clusters in cluster_groups.items():
+        scoped_consultation_id = consultation_id or None
+        intents, current_intent_metrics = _build_intents(clusters, preprocessed_index, cases_per_intent)
+        workflow_draft, current_workflow_metrics = _build_workflow_draft(clusters)
+        slots, intent_slot_bindings, current_slot_metrics = _build_slot_draft(clusters)
+        workflow_draft["slots"] = slots
+        workflow_draft["intentSlotBindings"] = intent_slot_bindings
+        candidates.append(_build_candidate(intents, workflow_draft, stage_context, scoped_consultation_id))
+        _merge_numeric_metrics(intent_metrics, current_intent_metrics)
+        _merge_numeric_metrics(workflow_metrics, current_workflow_metrics)
+        _merge_numeric_metrics(slot_metrics, current_slot_metrics)
+
+    if intent_metrics["intent_count"] > 0:
+        intent_metrics["representative_case_avg_per_intent"] = (
+            intent_metrics["representative_case_total"] / intent_metrics["intent_count"]
+        )
+
+    candidate: dict[str, Any]
+    if len(candidates) == 1:
+        candidate = candidates[0]
+    else:
+        candidate = {
+            "schemaVersion": "1.0",
+            "candidateMode": "consultation_split_v1",
+            "candidates": candidates,
+        }
+
+    return candidate, {
+        "candidate_count": len(candidates),
+        "intent_metrics": intent_metrics,
+        "workflow_metrics": workflow_metrics,
+        "slot_metrics": slot_metrics,
+    }
+
+
+def _empty_intent_metrics() -> dict[str, Any]:
+    return {
+        "intent_count": 0,
+        "representative_case_total": 0,
+        "representative_case_avg_per_intent": 0.0,
+        "intents_with_zero_cases": 0,
+    }
+
+
+def _empty_workflow_metrics() -> dict[str, Any]:
+    return {
+        "workflow_count": 0,
+        "workflow_with_identify_count": 0,
+        "workflow_with_payment_check_count": 0,
+        "workflow_with_escalation_count": 0,
+        "workflow_evidence_keyword_total": 0,
+        "workflow_evidence_exemplar_total": 0,
+        "workflow_evidence_member_total": 0,
+        "workflow_with_empty_evidence_count": 0,
+    }
+
+
+def _empty_slot_metrics() -> dict[str, Any]:
+    return {
+        "slot_count": 0,
+        "cluster_with_slot_count": 0,
+        "signal_slot_hit_payment_check": 0,
+        "signal_slot_hit_user_identification": 0,
+        "signal_slot_hit_escalation": 0,
+    }
+
+
+def _merge_numeric_metrics(target: dict[str, Any], source: dict[str, Any]) -> None:
+    for key, value in source.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        if key.endswith("_avg_per_intent"):
+            continue
+        target[key] = target.get(key, 0) + value
+
+
+def _flatten_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    return metrics
 
 
 def _resolve_cases_per_intent() -> int:
@@ -215,8 +407,33 @@ def _build_intents(
         intents.append(
             {
                 "intentCode": f"INTENT_{cluster_id}",
-                "name": cluster.get("suggested_name", f"INTENT_{cluster_id}"),
-                "description": cluster.get("suggested_description"),
+                "name": cluster.get("canonical_intent") or cluster.get("suggested_name", f"INTENT_{cluster_id}"),
+                "description": cluster.get("description") or cluster.get("suggested_description"),
+                "taxonomyLevel": 1,
+                "parentIntentCode": None,
+                "sourceClusterRef": _compact_json(
+                    {
+                        "clusterId": cluster_id,
+                        "clusterSize": cluster.get("cluster_size"),
+                        "source": cluster.get("source"),
+                        "canonicalIntent": cluster.get("canonical_intent") or cluster.get("suggested_name"),
+                        "segmentIds": _string_list(cluster.get("segment_ids"), limit=100),
+                    }
+                ),
+                "entryConditionJson": "{}",
+                "evidenceJson": _compact_json(
+                    {
+                        "sampleIntentPhrases": _string_list(cluster.get("sample_intent_phrases"), limit=8),
+                        "sampleSegmentTexts": _string_list(cluster.get("sample_segment_texts"), limit=5, max_chars=300),
+                        "exemplarConversationIds": _string_list(cluster.get("exemplar_conv_ids"), limit=10),
+                    }
+                ),
+                "metaJson": _compact_json(
+                    {
+                        "fallbackName": bool(cluster.get("fallback_name", False)),
+                        "pipelineVersion": "boundary_segment_v1",
+                    }
+                ),
                 "representativeCases": representative_cases,
             }
         )
@@ -231,6 +448,23 @@ def _build_intents(
     return intents, metrics
 
 
+def _compact_json(value: dict[str, Any]) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _string_list(value: Any, limit: int, max_chars: int | None = None) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    output: list[str] = []
+    for item in value:
+        if len(output) >= limit:
+            break
+        if not isinstance(item, str) or not item:
+            continue
+        output.append(item[:max_chars] if max_chars is not None else item)
+    return output
+
+
 def _hydrate_case(conv: dict[str, Any]) -> dict[str, Any]:
     return {
         "conversationId": conv.get("id", ""),
@@ -240,12 +474,24 @@ def _hydrate_case(conv: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
+def _derive_pack_identity(stage_context: StageContext, consultation_id: str | None = None) -> tuple[str, str]:
     if stage_context.workspace_id is None or stage_context.dataset_id is None:
         raise PipelineStageError("packKey requires both workspace_id and dataset_id in StageContext.")
-    pack_key = f"pack_ws{stage_context.workspace_id}_ds{stage_context.dataset_id}"
-    pack_name = f"Pack ws{stage_context.workspace_id}/ds{stage_context.dataset_id}"
+    base_key = f"pack_ws{stage_context.workspace_id}_ds{stage_context.dataset_id}"
+    base_name = f"Pack ws{stage_context.workspace_id}/ds{stage_context.dataset_id}"
+    if consultation_id:
+        slug = _slugify(consultation_id, max_length=max(16, 100 - len(base_key) - 6))
+        pack_key = f"{base_key}_conv_{slug}"
+        pack_name = f"{base_name}/{consultation_id}"[:255]
+        return pack_key[:100], pack_name
+    pack_key = base_key
+    pack_name = base_name
     return pack_key, pack_name
+
+
+def _slugify(value: str, max_length: int) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", value).strip("-_").lower()
+    return (slug or "conversation")[:max_length]
 
 
 def _aggregate_evidence_metrics(
@@ -293,11 +539,15 @@ def _process_cluster_entry(
     if not isinstance(cluster, dict):
         return None
     cluster_id = cluster.get("cluster_id")
-    suggested_name = cluster.get("suggested_name") or f"INTENT_{cluster_id}"
+    if not isinstance(cluster_id, int):
+        return None
+    suggested_name = str(cluster.get("suggested_name") or f"INTENT_{cluster_id}")
+    workflow_signal = cluster.get("workflow_signal")
+    signal_payload = workflow_signal if isinstance(workflow_signal, dict) else {}
     context = ClusterContext(
         cluster_id=cluster_id,
         suggested_name=suggested_name,
-        workflow_signal=cluster.get("workflow_signal") or {},
+        workflow_signal=signal_payload,
     )
     graph_spec = signal_based_generator(context)
     signal = context.workflow_signal or {}
@@ -450,18 +700,59 @@ def _build_candidate(
     intents: list[dict[str, Any]],
     workflow_draft: dict[str, Any],
     stage_context: StageContext,
+    consultation_id: str | None = None,
 ) -> dict[str, Any]:
-    pack_key, pack_name = _derive_pack_identity(stage_context)
+    pack_key, pack_name = _derive_pack_identity(stage_context, consultation_id)
+    domain_pack_draft: dict[str, Any] = {
+        "packKey": pack_key,
+        "packName": pack_name,
+    }
+    if consultation_id:
+        domain_pack_draft["summaryJson"] = _compact_json(
+            {
+                "generationScope": "consultation",
+                "consultationId": consultation_id,
+                "workspaceId": stage_context.workspace_id,
+                "datasetId": stage_context.dataset_id,
+                "pipelineVersion": "consultation_split_v1",
+            }
+        )
     return {
         "schemaVersion": "1.0",
-        "domainPackDraft": {
-            "packKey": pack_key,
-            "packName": pack_name,
-        },
+        "consultationId": consultation_id,
+        "domainPackDraft": domain_pack_draft,
         "intentDraft": {
             "intents": intents,
         },
         "workflowDraft": workflow_draft,
+    }
+
+
+def _string_value(value: object) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _int_value(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdecimal():
+        return int(value)
+    return None
+
+
+def _description_from_canonical(canonical: str) -> str:
+    return f"고객이 {canonical.replace(' 문의', '')}와 관련해 확인, 요청 또는 상담을 원하는 의도"
+
+
+def _workflow_signal_from_canonical(canonical: str) -> dict[str, bool]:
+    return {
+        "requires_payment_check": bool(re.search(r"결제|입금|환불|가격|견적|요금|비용", canonical)),
+        "requires_user_identification": bool(re.search(r"예약|변경|취소|환불|신청", canonical)),
+        "has_escalation_cases": bool(re.search(r"문제|보상|불만|컴플레인", canonical)),
     }
 
 

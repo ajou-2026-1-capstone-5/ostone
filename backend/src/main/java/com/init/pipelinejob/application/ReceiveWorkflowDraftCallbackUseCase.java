@@ -118,10 +118,13 @@ public class ReceiveWorkflowDraftCallbackUseCase {
                 command.intentSlotBindings(),
                 command.intentWorkflowBindings()));
 
-    job.markSucceeded(
-        domainPackId,
-        buildSuccessSummaryJson(workflowResult, domainPackId, command.domainPackVersionId()),
-        now);
+    String summaryJson =
+        buildSuccessSummaryJson(workflowResult, domainPackId, command.domainPackVersionId());
+    if (command.finalCallback()) {
+      job.markSucceeded(domainPackId, summaryJson, now);
+    } else {
+      job.markRunning(summaryJson);
+    }
     callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
     callbackSupportService.markReceiptProcessed(command.externalEventId(), now);
 

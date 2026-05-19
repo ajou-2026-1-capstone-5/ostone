@@ -203,6 +203,13 @@ public class PipelineJob {
     this.lastErrorMessage = null;
   }
 
+  public void markRunning(String resultSummaryJson) {
+    this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
+    this.status = STATUS_RUNNING;
+    this.finishedAt = null;
+    this.lastErrorMessage = null;
+  }
+
   public void markAwaitingIntentCallback(Long domainPackId, String resultSummaryJson) {
     this.domainPackId = domainPackId;
     this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";

@@ -197,6 +197,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         List.of(new WorkflowDraft("refund_flow", "환불 플로우", null, "{}", null, null)),
         List.of(),
         List.of(),
+        true,
         "{\"content-type\":\"application/json\"}",
         "{\"domainPackVersionId\":101}");
   }

@@ -40,6 +40,7 @@ class TriggerDomainPackGenerationUseCaseTest {
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DatasetOwnershipPort datasetOwnershipPort;
+  @Mock private DatasetRawFileLookupPort datasetRawFileLookupPort;
   @Mock private DomainPackGenerationConcurrencyGuard concurrencyGuard;
   @Mock private DomainPackGenerationTriggerPort triggerPort;
   @Mock private PlatformTransactionManager transactionManager;
@@ -77,6 +78,7 @@ class TriggerDomainPackGenerationUseCaseTest {
             pipelineJobRepository,
             workspaceMembershipPort,
             datasetOwnershipPort,
+            datasetRawFileLookupPort,
             concurrencyGuard,
             triggerPort,
             new ObjectMapper(),
@@ -103,6 +105,8 @@ class TriggerDomainPackGenerationUseCaseTest {
     assertThat(result.requestedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(result.startedAt().toInstant()).isEqualTo(fixedClock.instant());
     assertThat(savedJob.get().getRequestPayloadJson()).contains("\"requestedBy\":55");
+    assertThat(savedJob.get().getRequestPayloadJson())
+        .contains("\"objectKey\":\"workspaces/1/datasets/travel/raw.json\"");
     verify(concurrencyGuard).lockTriggerCreation(1L, 7L);
   }
 
@@ -209,6 +213,9 @@ class TriggerDomainPackGenerationUseCaseTest {
     given(workspaceMembershipPort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(datasetOwnershipPort.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
+    lenient()
+        .when(datasetRawFileLookupPort.findLatestObjectKeyByDatasetId(7L))
+        .thenReturn(Optional.of("workspaces/1/datasets/travel/raw.json"));
   }
 
   private TriggerDomainPackGenerationCommand command() {
