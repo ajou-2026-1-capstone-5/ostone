@@ -28,10 +28,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
   const displayName = user?.name ?? user?.email ?? '게스트';
 
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) {
-      setPopoverPos(null);
-      return;
-    }
+    if (!open || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     setPopoverPos({
       top: rect.top - 8,
