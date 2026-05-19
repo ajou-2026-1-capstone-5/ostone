@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 describe('OstoneShell', () => {
-  it('renders Sidebar with the new top nav items', () => {
+  it('renders Sidebar with the new top nav items (workflows lives under Domain Packs, not top-level)', () => {
     render(
       <OstoneShell active="consult" crumbs={[]}>
         <div>content</div>
@@ -24,11 +24,11 @@ describe('OstoneShell', () => {
       { wrapper: Wrapper },
     );
     expect(screen.getByTitle('Operator')).toBeInTheDocument();
-    expect(screen.getByTitle('Workflows')).toBeInTheDocument();
     expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
     expect(screen.getByTitle('Uploads')).toBeInTheDocument();
     expect(screen.getByTitle('Domain Packs')).toBeInTheDocument();
+    expect(screen.queryByTitle('Workflows')).not.toBeInTheDocument();
   });
 
   it('renders Topbar with OSTONE eyebrow', () => {
