@@ -73,6 +73,25 @@ def test_parse_raw_payload_reads_jsonl_and_consulting_content() -> None:
     assert case_2_turns[0]["speaker_role"] == ingestion.AGENT_ROLE
 
 
+def test_parse_raw_payload_falls_back_when_turns_payload_is_empty() -> None:
+    raw_bytes = json.dumps(
+        {
+            "id": "case-with-empty-turns",
+            "turns": [],
+            "content": "고객: 출발 시간 알려주세요\n상담사: 오전 9시 출발입니다",
+        },
+        ensure_ascii=False,
+    ).encode()
+
+    conversations = list(ingestion._parse_raw_payload(raw_bytes, "dataset-1"))
+
+    assert len(conversations) == 1
+    assert conversations[0]["turns"] == [
+        {"turn_index": 0, "speaker_role": ingestion.CUSTOMER_ROLE, "message_text": "출발 시간 알려주세요"},
+        {"turn_index": 1, "speaker_role": ingestion.AGENT_ROLE, "message_text": "오전 9시 출발입니다"},
+    ]
+
+
 def test_parse_raw_payload_skips_rows_without_turns() -> None:
     raw_bytes = json.dumps([{"id": "empty", "content": "   "}]).encode()
 
@@ -106,6 +125,18 @@ def test_resolve_runtime_context_uses_environment(monkeypatch: pytest.MonkeyPatc
     assert runtime_context.stage_context.workspace_id == "workspace-1"
     assert runtime_context.stage_context.dataset_id == "dataset-1"
     assert runtime_context.stage_context.pipeline_job_id == "job-1"
+
+
+def test_resolve_runtime_context_accepts_airflow_camel_case_object_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DagRun:
+        conf = {"objectKey": " raw/camel-case.json "}
+
+    monkeypatch.delenv("PIPELINE_RAW_OBJECT_KEY", raising=False)
+    monkeypatch.setattr(ingestion, "_load_airflow_context", lambda: {"dag_run": DagRun()})
+
+    runtime_context = ingestion._resolve_runtime_context()
+
+    assert runtime_context.object_key == "raw/camel-case.json"
 
 
 def test_resolve_runtime_context_requires_object_key(monkeypatch: pytest.MonkeyPatch) -> None:

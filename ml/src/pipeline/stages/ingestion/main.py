@@ -65,9 +65,13 @@ def _resolve_runtime_context() -> IngestionRuntimeContext:
     dataset_id = _context_value(airflow_context, "dataset_id", "PIPELINE_DATASET_ID", None)
     pipeline_job_id = _context_value(airflow_context, "pipeline_job_id", "PIPELINE_JOB_ID", None)
     object_key = _context_value(airflow_context, "object_key", "PIPELINE_RAW_OBJECT_KEY", None)
+    if object_key is None or not str(object_key).strip():
+        object_key = _context_value(airflow_context, "objectKey", "PIPELINE_RAW_OBJECT_KEY", None)
 
     if object_key is None or not str(object_key).strip():
-        raise PipelineConfigurationError("object_key must be provided by Airflow conf or PIPELINE_RAW_OBJECT_KEY.")
+        raise PipelineConfigurationError(
+            "object_key/objectKey must be provided by Airflow conf or PIPELINE_RAW_OBJECT_KEY."
+        )
 
     return IngestionRuntimeContext(
         stage_context=StageContext(
@@ -218,7 +222,9 @@ def _build_conversation(
 def _extract_turns(row: Mapping[str, object]) -> list[dict[str, object]]:
     turns_payload = row.get("turns")
     if isinstance(turns_payload, list):
-        return _turns_from_payload(turns_payload)
+        turns = _turns_from_payload(turns_payload)
+        if turns:
+            return turns
 
     content = _first_text(row, ("consulting_content", "content", "text", "full_text", "conversation"))
     if not content:

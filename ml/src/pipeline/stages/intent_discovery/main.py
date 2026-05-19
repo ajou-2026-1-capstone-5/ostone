@@ -5,6 +5,7 @@ import os
 from pipeline.common.artifacts import ensure_stage_directory
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
+from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.common.logging import get_stage_logger
 from pipeline.stages.intent_discovery.boundary_segments import (
     discover_boundary_segments,
@@ -15,18 +16,26 @@ from pipeline.stages.intent_discovery.io import read_preprocessed_artifact, writ
 from pipeline.stages.preprocessing.io import read_stage_context
 
 MANIFEST_FILENAME = "manifest.json"
+SUPPORTED_DISCOVERY_MODES = {"boundary_segment", "legacy_embedding"}
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     runtime_config = PipelineRuntimeConfig.from_env()
     context = read_stage_context(upstream_manifest_path, stage_name="intent_discovery")
     logger = get_stage_logger(context)
-    mode = os.getenv("PIPELINE_INTENT_DISCOVERY_MODE", "boundary_segment").strip().lower()
+    mode = _resolve_discovery_mode()
 
     logger.info("Starting intent discovery stage mode=%s", mode)
     if mode == "legacy_embedding":
         return _run_legacy_embedding(runtime_config, context)
     return _run_boundary_segment(runtime_config, context)
+
+
+def _resolve_discovery_mode() -> str:
+    mode = os.getenv("PIPELINE_INTENT_DISCOVERY_MODE", "boundary_segment").strip().lower()
+    if mode not in SUPPORTED_DISCOVERY_MODES:
+        raise PipelineConfigurationError(f"Unsupported PIPELINE_INTENT_DISCOVERY_MODE: {mode}")
+    return mode
 
 
 def _run_boundary_segment(

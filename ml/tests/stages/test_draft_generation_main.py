@@ -423,6 +423,33 @@ def test_derive_pack_identity_formats_correctly() -> None:
     assert pack_name == "Pack wsws42/dsds7"
 
 
+def test_derive_pack_identity_adds_hash_suffix_for_consultation_scope() -> None:
+    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
+    pack_key, pack_name = _derive_pack_identity(context, "consultation-001")
+    suffix = pack_key.rsplit("_", 1)[-1]
+
+    assert pack_key.startswith("pack_wsws42_dsds7_conv_consultation-001_")
+    assert len(pack_key) <= 100
+    assert len(suffix) == 8
+    int(suffix, 16)
+    assert pack_name == "Pack wsws42/dsds7/consultation-001"
+
+
+def test_derive_pack_identity_keeps_long_similar_consultation_ids_distinct() -> None:
+    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
+    long_id_a = f"consultation-{'a' * 120}"
+    long_id_b = f"consultation-{'a' * 119}b"
+
+    pack_key_a, _ = _derive_pack_identity(context, long_id_a)
+    pack_key_b, _ = _derive_pack_identity(context, long_id_b)
+
+    assert len(pack_key_a) <= 100
+    assert len(pack_key_b) <= 100
+    assert pack_key_a != pack_key_b
+    assert len(pack_key_a.rsplit("_", 1)[-1]) == 8
+    assert len(pack_key_b.rsplit("_", 1)[-1]) == 8
+
+
 def test_derive_pack_identity_raises_on_none_workspace() -> None:
     context = _stage_context(workspace_id=None, dataset_id="ds1")
     with pytest.raises(PipelineStageError, match="packKey requires both workspace_id and dataset_id"):

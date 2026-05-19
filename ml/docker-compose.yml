@@ -30,6 +30,8 @@ x-airflow-common: &airflow-common
     STORAGE_S3_ACCESS_KEY: ${STORAGE_S3_ACCESS_KEY:-minioadmin}
     STORAGE_S3_SECRET_KEY: ${STORAGE_S3_SECRET_KEY:-minioadmin}
     STORAGE_S3_PATH_STYLE: ${STORAGE_S3_PATH_STYLE:-true}
+    # Set PIPELINE_LLM_BASE_URL, PIPELINE_LLM_API_KEY, and PIPELINE_LLM_MODEL for LLM-based
+    # pipeline features such as boundary detection and intent naming. See .agent/specs/001.md.
     PIPELINE_LLM_BASE_URL: ${PIPELINE_LLM_BASE_URL:-}
     PIPELINE_LLM_API_KEY: ${PIPELINE_LLM_API_KEY:-}
     PIPELINE_LLM_MODEL: ${PIPELINE_LLM_MODEL:-}

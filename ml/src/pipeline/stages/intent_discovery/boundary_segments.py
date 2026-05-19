@@ -325,7 +325,7 @@ def _balanced_action(text: str) -> str:
         return ACTION_INFO
     if re.search(r"가능|가능성|마감|대기|예약 가능|예약확인|확인|조회", text):
         return ACTION_AVAILABILITY
-    if re.search(r"예약|신청|접수|진행|확정|예약금|출발|발권", text):
+    if re.search(r"예약|신청|접수|진행|확정|예약금|발권", text):
         return ACTION_RESERVATION
     if re.search(r"일정|기간|날짜|몇박|며칠|시간|소요|출발|도착", text):
         return ACTION_SCHEDULE

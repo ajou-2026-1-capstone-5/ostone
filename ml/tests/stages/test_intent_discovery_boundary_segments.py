@@ -8,6 +8,7 @@ import pytest
 
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
+from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.stages.intent_discovery.boundary_segments import (
     ACTION_AVAILABILITY,
     ACTION_CHANGE,
@@ -30,7 +31,7 @@ from pipeline.stages.intent_discovery.boundary_segments import (
     _merge_label,
     _should_start_new_segment,
 )
-from pipeline.stages.intent_discovery.main import _run_boundary_segment, _run_legacy_embedding
+from pipeline.stages.intent_discovery.main import _resolve_discovery_mode, _run_boundary_segment, _run_legacy_embedding
 from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM
 
 
@@ -46,7 +47,7 @@ from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM
         ("여권 서류 정보가 필요합니다", ACTION_INFO),
         ("예약 가능 여부 확인 부탁드립니다", ACTION_AVAILABILITY),
         ("예약 신청 진행하고 싶어요", ACTION_RESERVATION),
-        ("체크인 시간은 몇 시인가요?", ACTION_SCHEDULE),
+        ("출발 시간은 몇 시인가요?", ACTION_SCHEDULE),
         ("담당자 연락처와 이메일 알려주세요", "상담 연락 문의"),
         ("불만 보상 컴플레인 처리 원합니다", "문제 해결/보상 문의"),
         ("안녕하세요", ACTION_GENERAL),
@@ -149,6 +150,19 @@ def test_run_legacy_embedding_returns_manifest_for_empty_input(tmp_path: Path) -
     manifest_path = Path(cast(str, result["artifact_manifest_path"]))
     assert manifest_path.name == "manifest.json"
     assert manifest_path.exists()
+
+
+def test_resolve_discovery_mode_accepts_supported_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPELINE_INTENT_DISCOVERY_MODE", " legacy_embedding ")
+
+    assert _resolve_discovery_mode() == "legacy_embedding"
+
+
+def test_resolve_discovery_mode_rejects_unknown_value(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPELINE_INTENT_DISCOVERY_MODE", "legacy-embedding")
+
+    with pytest.raises(PipelineConfigurationError, match="Unsupported PIPELINE_INTENT_DISCOVERY_MODE"):
+        _resolve_discovery_mode()
 
 
 def _segment(consultation_id: str, segment_id: str, segment_index: int, text: str) -> BoundarySegment:

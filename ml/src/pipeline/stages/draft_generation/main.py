@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -526,10 +527,15 @@ def _derive_pack_identity(stage_context: StageContext, consultation_id: str | No
     base_key = f"pack_ws{stage_context.workspace_id}_ds{stage_context.dataset_id}"
     base_name = f"Pack ws{stage_context.workspace_id}/ds{stage_context.dataset_id}"
     if consultation_id:
-        slug = _slugify(consultation_id, max_length=max(16, 100 - len(base_key) - 6))
-        pack_key = f"{base_key}_conv_{slug}"
+        digest = hashlib.sha256(consultation_id.encode("utf-8")).hexdigest()[:8]
+        suffix = f"_{digest}"
+        prefix = f"{base_key}_conv_"
+        if len(prefix) + len(suffix) >= 100:
+            prefix = f"{base_key[: 100 - len('_conv_') - len(suffix) - 1]}_conv_"
+        slug = _slugify(consultation_id, max_length=100 - len(prefix) - len(suffix))
+        pack_key = f"{prefix}{slug}{suffix}"
         pack_name = f"{base_name}/{consultation_id}"[:255]
-        return pack_key[:100], pack_name
+        return pack_key, pack_name
     pack_key = base_key
     pack_name = base_name
     return pack_key, pack_name
