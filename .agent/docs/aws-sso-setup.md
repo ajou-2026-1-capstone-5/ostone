@@ -62,16 +62,44 @@ aws --profile ostone sts get-caller-identity
 
 ## 4. 백엔드를 로컬에서 실제 AWS S3 에 붙여 띄우기
 
-`.env` 또는 셸 환경변수에서 `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY`, `STORAGE_S3_ENDPOINT` 를 **모두 비운다**. 그러면 [`StorageConfig`](../../backend/src/main/java/com/init/corpus/infrastructure/storage/StorageConfig.java) 의 `DefaultCredentialsProvider` 가 자격증명 체인 → AWS 프로필 → SSO 세션 순으로 탐색한다.
+`.env` 또는 셸 환경변수에서 `STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY`, `STORAGE_S3_ENDPOINT`, `STORAGE_S3_PATH_STYLE` 를 **모두 비운다**. 그러면 [`StorageConfig`](../../backend/src/main/java/com/init/corpus/infrastructure/storage/StorageConfig.java) 의 `DefaultCredentialsProvider` 가 자격증명 체인 → 환경변수 → AWS 프로필 → SSO 세션 순으로 탐색한다.
+
+### 4-a. 호스트에서 직접 `./gradlew bootRun` 으로 띄울 때
+
+호스트 프로세스이므로 `~/.aws/sso/cache/` 에 직접 접근할 수 있다. `AWS_PROFILE` 만 주면 된다.
 
 ```bash
 AWS_PROFILE=ostone \
   STORAGE_S3_BUCKET=<S3_PROD_BUCKET> \
   STORAGE_S3_REGION=ap-northeast-2 \
-  ./gradlew :backend:bootRun -Dspring.profiles.active=default
+  ./gradlew :backend:bootRun -Dspring.profiles.active=local
 ```
 
-> 일반 개발은 그대로 MinIO 사용. 본 모드는 운영 데이터 확인 등 특수 목적에만 쓴다.
+### 4-bis. Docker Compose 로 띄울 때 (권장)
+
+`~/.aws/` 디렉터리를 컨테이너에 마운트하지 않고 SSO 세션을 일회성 환경변수로
+주입하는 방식. SSO 토큰이 만료될 때마다 재실행한다.
+
+```bash
+aws sso login --profile ostone
+eval "$(aws configure export-credentials --profile ostone --format env)"
+
+# 같은 셸에서 (그래야 export 된 AWS_* 가 docker compose 로 전달됨)
+docker compose up -d backend
+```
+
+`docker-compose.yml` 의 backend 서비스가 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_REGION` 4 변수를 `${VAR:-}` 형태로 호스트 셸에서 passthrough 받아 컨테이너에 주입한다. 컨테이너 안의 AWS SDK 는 `EnvironmentVariableCredentialsProvider` 로 이 임시 자격증명을 잡아낸다.
+
+토큰 만료(보통 8시간) 시:
+
+```bash
+aws sso login --profile ostone
+eval "$(aws configure export-credentials --profile ostone --format env)"
+docker compose restart backend
+```
+
+> 주의: `.env` 의 `STORAGE_S3_ACCESS_KEY` / `STORAGE_S3_SECRET_KEY` / `STORAGE_S3_ENDPOINT` / `STORAGE_S3_PATH_STYLE` 가 모두 빈 값이어야 한다. 한 개라도 값이 있으면 `StaticCredentialsProvider` 가 먼저 잡혀 SSO 자격증명이 무시된다. `.env.example` 의 [모드 B] 블록을 그대로 따르면 안전하다.
+> 일반 개발은 그대로 MinIO 사용 ([모드 A]). 본 모드는 운영 데이터 확인 등 특수 목적에만 쓴다.
 
 ## 5. 자주 묶이는 문제
 
