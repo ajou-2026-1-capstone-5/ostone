@@ -155,7 +155,7 @@ export function Sidebar({
   return (
     <nav
       style={{
-        width: collapsed ? '56px' : '220px',
+        width: collapsed ? '56px' : '240px',
         background: containerBg,
         borderRight: `1px solid ${borderColor}`,
         display: 'flex',
@@ -172,55 +172,51 @@ export function Sidebar({
       aria-label="주요 내비게이션"
       data-collapsed={collapsed ? 'true' : 'false'}
     >
-      {switcher !== undefined && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--s-2)',
-            marginBottom: 'var(--s-2)',
-            padding: collapsed ? '0' : '0 var(--s-3)',
-            alignItems: collapsed ? 'center' : 'stretch',
-          }}
-        >
-          <div style={{ width: '100%', display: 'flex', justifyContent: collapsed ? 'center' : 'stretch' }}>
-            {switcher}
-          </div>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={onToggleCollapsed}
-        aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-        title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+      <div
         style={{
-          alignSelf: collapsed ? 'center' : 'flex-end',
-          marginRight: collapsed ? 0 : 'var(--s-3)',
-          marginBottom: 'var(--s-2)',
-          width: '32px',
-          height: '32px',
-          borderRadius: 'var(--r-2)',
-          border: `1px solid var(--ink)`,
-          background: 'var(--paper)',
-          color: 'var(--ink)',
-          display: 'inline-flex',
+          display: 'flex',
+          flexDirection: collapsed ? 'column' : 'row',
           alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          gap: 'var(--s-2)',
+          marginBottom: 'var(--s-2)',
+          padding: collapsed ? '0' : '0 var(--s-3)',
         }}
       >
-        <span
+        {switcher !== undefined && (
+          <div style={{ flex: collapsed ? '0 0 auto' : '1 1 0', minWidth: 0, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+            {switcher}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
           style={{
+            flexShrink: 0,
+            width: '28px',
+            height: '28px',
+            borderRadius: 'var(--r-2)',
+            border: `1px solid ${borderColor}`,
+            background: 'transparent',
+            color: defaultColor,
             display: 'inline-flex',
-            transform: collapsed ? 'none' : 'rotate(180deg)',
-            transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
           }}
         >
-          <Icon name="chevron" size={14} />
-        </span>
-      </button>
+          <span
+            style={{
+              display: 'inline-flex',
+              transform: collapsed ? 'none' : 'rotate(180deg)',
+              transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <Icon name="chevron" size={12} />
+          </span>
+        </button>
+      </div>
 
       <div
         style={{
@@ -653,7 +649,7 @@ function PackNode({
           width: '100%',
           background: 'transparent',
           border: 'none',
-          padding: '6px var(--s-3) 6px 24px',
+          padding: '6px var(--s-3) 6px 32px',
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--s-2)',
@@ -686,7 +682,7 @@ function PackNode({
             const isActiveCat = isCurrentPack && active === cat.activeKey;
             const isWorkflowsCat = cat.key === 'workflows';
             const navLinkStyle: CSSProperties = {
-              padding: '4px var(--s-3) 4px 36px',
+              padding: '4px var(--s-3) 4px 48px',
               borderLeft: `3px solid ${isActiveCat ? 'var(--signal)' : 'transparent'}`,
               background: isActiveCat ? hoverBg : 'transparent',
               fontFamily: 'var(--sans)',
@@ -767,7 +763,7 @@ function PackNode({
                       <span
                         data-testid={`sidebar-workflows-empty-${pack.packId}`}
                         style={{
-                          padding: '4px var(--s-3) 4px 44px',
+                          padding: '4px var(--s-3) 4px 64px',
                           fontFamily: 'var(--mono)',
                           fontSize: '10px',
                           color: defaultColor,
@@ -789,7 +785,7 @@ function PackNode({
                             end
                             data-testid={`sidebar-workflow-${wf.id}`}
                             style={{
-                              padding: '4px var(--s-3) 4px 44px',
+                              padding: '4px var(--s-3) 4px 64px',
                               borderLeft: `3px solid ${isActiveWf ? 'var(--signal)' : 'transparent'}`,
                               background: isActiveWf ? hoverBg : 'transparent',
                               fontFamily: 'var(--sans)',
@@ -815,7 +811,7 @@ function PackNode({
                         end
                         data-testid={`sidebar-workflows-overflow-${pack.packId}`}
                         style={{
-                          padding: '4px var(--s-3) 4px 44px',
+                          padding: '4px var(--s-3) 4px 64px',
                           fontFamily: 'var(--mono)',
                           fontSize: '10px',
                           color: defaultColor,
