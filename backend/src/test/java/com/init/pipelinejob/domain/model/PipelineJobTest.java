@@ -38,9 +38,8 @@ class PipelineJobTest {
 
   @Test
   @DisplayName("부분 callback 처리 후 RUNNING 상태와 결과 요약을 갱신한다")
-  void markRunning_withSummary_marksRunningAndClearsFinalState() {
+  void markRunning_withNullSummary_marksRunningWithDefaultSummary() {
     PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
-    job.markFailed("이전 오류", NOW);
 
     job.markRunning(null);
 
@@ -48,5 +47,18 @@ class PipelineJobTest {
     assertThat(job.getResultSummaryJson()).isEqualTo("{}");
     assertThat(job.getFinishedAt()).isNull();
     assertThat(job.getLastErrorMessage()).isNull();
+  }
+
+  @Test
+  @DisplayName("종료된 job은 RUNNING 상태로 되돌릴 수 없다")
+  void markRunning_finalizedJob_throws() {
+    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
+    job.markSucceeded(3L, "{}", NOW);
+
+    assertThatThrownBy(() -> job.markRunning("{}"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("RUNNING");
+
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_SUCCEEDED);
   }
 }
