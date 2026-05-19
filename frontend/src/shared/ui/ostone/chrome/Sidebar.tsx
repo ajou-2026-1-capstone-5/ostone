@@ -2,7 +2,7 @@ import { useState, type ReactNode, type CSSProperties } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '../atoms/Icon';
 import type { IconName } from '../atoms/Icon';
-import { Avatar } from '../atoms/Avatar';
+import { AccountMenu } from './AccountMenu';
 
 export type SidebarActive =
   | 'operator'
@@ -128,6 +128,8 @@ export function Sidebar({
         height: '100%',
         flexShrink: 0,
         overflowY: 'auto',
+        overflowX: 'hidden',
+        transition: 'width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}
       aria-label="주요 내비게이션"
       data-collapsed={collapsed ? 'true' : 'false'}
@@ -135,14 +137,17 @@ export function Sidebar({
       {switcher !== undefined && (
         <div
           style={{
-            marginBottom: 'var(--s-2)',
             display: 'flex',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            paddingLeft: collapsed ? 0 : 'var(--s-3)',
-            paddingRight: collapsed ? 0 : 'var(--s-3)',
+            flexDirection: 'column',
+            gap: 'var(--s-2)',
+            marginBottom: 'var(--s-2)',
+            padding: collapsed ? '0' : '0 var(--s-3)',
+            alignItems: collapsed ? 'center' : 'stretch',
           }}
         >
-          {switcher}
+          <div style={{ width: '100%', display: 'flex', justifyContent: collapsed ? 'center' : 'stretch' }}>
+            {switcher}
+          </div>
         </div>
       )}
 
@@ -167,7 +172,15 @@ export function Sidebar({
           cursor: 'pointer',
         }}
       >
-        <Icon name={collapsed ? 'chevron' : 'close'} size={12} />
+        <span
+          style={{
+            display: 'inline-flex',
+            transform: collapsed ? 'none' : 'rotate(180deg)',
+            transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          <Icon name="chevron" size={12} />
+        </span>
       </button>
 
       <div
@@ -210,13 +223,13 @@ export function Sidebar({
         style={{
           marginTop: 'auto',
           display: 'flex',
-          justifyContent: collapsed ? 'center' : 'flex-start',
+          justifyContent: collapsed ? 'center' : 'stretch',
           paddingLeft: collapsed ? 0 : 'var(--s-3)',
           paddingRight: collapsed ? 0 : 'var(--s-3)',
           paddingTop: 'var(--s-3)',
         }}
       >
-        <Avatar tone="signal" initial="BS" size={28} />
+        <AccountMenu collapsed={collapsed} />
       </div>
     </nav>
   );

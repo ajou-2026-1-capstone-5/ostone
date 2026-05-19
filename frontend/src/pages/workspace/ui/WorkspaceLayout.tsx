@@ -11,7 +11,6 @@ import {
   ArchiveConfirmDialog,
   CreateWorkspaceDialog,
   EditWorkspaceDialog,
-  WorkspaceSwitcher,
 } from "@/features/workspace";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -88,21 +87,16 @@ export function WorkspaceLayout() {
     refetchWorkspaces();
   };
 
-  const sidebarSwitcher = (
-    <WorkspaceSwitcher
-      workspaces={workspaces}
-      currentWorkspaceId={parsedWorkspaceId}
-      onSwitch={handleSwitch}
-      onCreate={() => setIsCreateOpen(true)}
-      onEdit={(w) => setEditTarget(w)}
-      onArchive={(w) => setArchiveTarget(w)}
-    />
-  );
+  // workspace switch UI now lives in OstoneShell's default WorkspaceMarker.
+  // Create/Edit/Archive dialogs are retained but currently not triggered from
+  // the sidebar — re-wire from elsewhere when needed.
+  void handleSwitch;
+  void workspaces;
   const outletContext: ShellContext = { setTopbarRight, setCrumbs, workspace };
 
   if (isLoading) {
     return (
-      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath}>
         <div
           style={{
             display: "flex",
@@ -123,7 +117,7 @@ export function WorkspaceLayout() {
 
   if (error || !workspace) {
     return (
-      <OstoneShell active={active} crumbs={[]} basePath={basePath} sidebarSwitcher={sidebarSwitcher}>
+      <OstoneShell active={active} crumbs={[]} basePath={basePath}>
         <ErrorState
           message={error || "워크스페이스를 찾을 수 없습니다."}
           onRetry={refetchWorkspace}
@@ -138,7 +132,6 @@ export function WorkspaceLayout() {
       crumbs={crumbs.length > 0 ? crumbs : defaultCrumbs}
       topbarRight={topbarRight}
       basePath={basePath}
-      sidebarSwitcher={sidebarSwitcher}
     >
       <Outlet context={outletContext} />
       <CreateWorkspaceDialog

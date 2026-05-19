@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { Sidebar, Topbar, type SidebarActive, type SidebarTreeData } from '@/shared/ui/ostone/chrome';
 import { useSidebarTreeData } from '@/shared/ui/ostone/chrome/useSidebarTreeData';
+import { WorkspaceMarker } from '@/shared/ui/ostone/chrome/WorkspaceMarker';
 
 const COLLAPSED_STORAGE_KEY = 'ostone:sidebar:collapsed';
 
@@ -87,11 +88,15 @@ export function OstoneShell({
     setCollapsed((v) => !v);
   }, []);
 
+  const fallbackSwitcher = sidebarSwitcher ?? (
+    <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={collapsed} />
+  );
+
   const sidebarBaseProps: SidebarBaseProps = {
     active,
     dark,
     basePath: resolvedBasePath,
-    switcher: sidebarSwitcher,
+    switcher: fallbackSwitcher,
     collapsed,
     onToggleCollapsed: handleToggle,
     activePackId,
