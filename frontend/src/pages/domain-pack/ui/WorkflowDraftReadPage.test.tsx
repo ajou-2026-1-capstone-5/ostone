@@ -1,16 +1,37 @@
-import type { ReactElement } from "react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, it, expect, vi } from "vitest";
-import { WorkflowEditSheet } from "../../../features/update-workflow";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { WorkflowDraftReadPage } from "./WorkflowDraftReadPage";
 
-vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+const mockUseGetWorkflowDefinition = vi.fn();
+vi.mock("@/entities/workflow", () => ({
+  useGetWorkflowDefinition: (...args: unknown[]) => mockUseGetWorkflowDefinition(...args),
 }));
 
-vi.mock("../../../features/update-workflow", () => ({
-  WorkflowEditSheet: vi.fn(() => null),
+vi.mock("@/features/update-workflow", () => ({
+  InlineWorkflowEditor: vi.fn(({ workflow, onClose }) => (
+    <div data-testid="inline-editor">
+      editing {workflow.workflowCode}
+      <button type="button" data-testid="editor-close" onClick={onClose}>
+        close
+      </button>
+    </div>
+  )),
+}));
+
+vi.mock("@/features/workflow-viewer/ui/GraphViewer", () => ({
+  GraphViewer: vi.fn(({ graph }) => (
+    <div data-testid="graph-viewer">graph nodes: {graph.nodes.length}</div>
+  )),
+}));
+
+vi.mock("@/widgets/ostone-shell", () => ({
+  OstoneShell: ({ children, crumbs }: { children: React.ReactNode; crumbs: string[] }) => (
+    <div>
+      <div data-testid="crumbs">{crumbs.join(" / ")}</div>
+      {children}
+    </div>
+  ),
 }));
 
 const ROUTE =
@@ -26,64 +47,163 @@ function renderPage(path: string) {
   );
 }
 
+beforeEach(() => {
+  mockUseGetWorkflowDefinition.mockReset();
+});
+
 describe("WorkflowDraftReadPage", () => {
-  beforeEach(() => {
-    vi.mocked(WorkflowEditSheet).mockReturnValue(null as unknown as ReactElement);
-  });
-
   it("유효하지 않은 URL 파라미터는 에러 메시지를 보여준다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: false });
     renderPage("/workspaces/abc/domain-packs/2/versions/3/workflows");
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText("잘못된 URL 파라미터입니다.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
   });
 
-  it("Pack header에 검토 중 · v0.4 pill을 렌더링한다", () => {
+  it("workflowId가 없으면 좌측 사이드바에서 선택하라는 안내를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: false });
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    expect(screen.getByText("검토 중 · v0.4")).toBeInTheDocument();
-    expect(screen.getByText("Card payment refund flow")).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-select-empty")).toBeInTheDocument();
   });
 
-  it("7개 탭이 모두 렌더링되고 5번째 탭이 aria-selected=true이다", () => {
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(7);
-    expect(tabs[4]).toHaveAttribute("aria-selected", "true");
-    expect(tabs[4]).toHaveTextContent(/응대 흐름/);
-  });
-
-  it("3-pane 구조가 존재한다", () => {
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
-    expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
-    expect(screen.getByText("Selected node")).toBeInTheDocument();
-  });
-
-  it("workflowId가 있는 경로에서 WorkflowEditSheet가 정상 렌더링된다", () => {
+  it("loading 상태에서는 spinner를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: true });
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    expect(screen.getByRole("heading", { name: /refund\.standard/ })).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-loading")).toBeInTheDocument();
   });
 
-  it("Edit graph 버튼 클릭 시 WorkflowEditSheet의 isOpen이 true가 된다", () => {
-    vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen }) =>
-      (isOpen ? <div data-testid="edit-sheet-open" /> : null) as ReactElement,
-    );
+  it("error 상태에서는 ErrorState를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      refetch: vi.fn(),
+    });
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    expect(screen.queryByTestId("edit-sheet-open")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Edit graph/ }));
-    expect(screen.getByTestId("edit-sheet-open")).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-error")).toBeInTheDocument();
   });
 
-  it("WorkflowEditSheet onClose 호출 시 sheet가 닫힌다", () => {
-    vi.mocked(WorkflowEditSheet).mockImplementation(({ isOpen, onClose }) =>
-      (isOpen ? (
-        <button type="button" data-testid="close-btn" onClick={onClose}>
-          Close
-        </button>
-      ) : null) as ReactElement,
-    );
+  it("워크플로우 데이터가 로드되면 헤더에 이름/코드/노드수를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({
+          direction: "LR",
+          nodes: [
+            { id: "n1", label: "start", type: "START" },
+            { id: "n2", label: "end", type: "TERMINAL" },
+          ],
+          edges: [{ id: "e1", from: "n1", to: "n2" }],
+        }),
+      },
+    });
     renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
-    fireEvent.click(screen.getByRole("button", { name: /Edit graph/ }));
-    expect(screen.getByTestId("close-btn")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("close-btn"));
-    expect(screen.queryByTestId("close-btn")).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent("환불 처리");
+    expect(screen.getByText("refund.standard")).toBeInTheDocument();
+    expect(screen.getByText("2 nodes")).toBeInTheDocument();
+    expect(screen.getByTestId("graph-viewer")).toHaveTextContent("graph nodes: 2");
+  });
+
+  it("graphJson이 없으면 빈 그래프 안내를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { id: 10, name: "환불 처리", workflowCode: "refund.standard" },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    expect(screen.getByTestId("workflow-empty-graph")).toBeInTheDocument();
+  });
+
+  it("graphJson이 잘못된 문자열이면 빈 그래프 안내를 표시한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { id: 10, name: "환불 처리", workflowCode: "refund.standard", graphJson: "not-json" },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    expect(screen.getByTestId("workflow-empty-graph")).toBeInTheDocument();
+  });
+
+  it("편집 버튼 클릭 시 InlineWorkflowEditor가 마운트된다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+    expect(screen.getByTestId("inline-editor")).toHaveTextContent("editing refund.standard");
+  });
+
+  it("편집 모드에서 보기 버튼 클릭 시 viewer로 복귀한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({
+          direction: "LR",
+          nodes: [{ id: "n1", label: "s", type: "START" }],
+          edges: [],
+        }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+    expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("view-toggle"));
+    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
+    expect(screen.getByTestId("graph-viewer")).toBeInTheDocument();
+  });
+
+  it("InlineWorkflowEditor의 onClose가 호출되면 보기 모드로 복귀한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({
+          direction: "LR",
+          nodes: [{ id: "n1", label: "s", type: "START" }],
+          edges: [],
+        }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+    fireEvent.click(screen.getByTestId("editor-close"));
+    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
+  });
+
+  it("'채팅 / Inspector / 24h replay / refund.standard 가짜 헤더' 등은 더 이상 렌더링되지 않는다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    // legacy panels gone
+    expect(screen.queryByText(/검토 중 · v0\.4/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Card payment refund flow")).not.toBeInTheDocument();
+    expect(screen.queryByText("Selected node")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Edit graph/)).not.toBeInTheDocument();
+    // tab list gone
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
   });
 });

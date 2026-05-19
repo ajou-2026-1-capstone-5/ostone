@@ -42,13 +42,13 @@ describe("App", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders chat-demo page title", () => {
+  it("renders operator page title at /chat-demo route", () => {
     seedAuthenticatedSession();
     window.history.pushState({}, "", "/workspaces/1/chat-demo");
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
     vi.stubGlobal("fetch", fetchMock);
     render(<AppProviders><App /></AppProviders>);
-    expect(screen.getByText("Chat Workflow Demo")).toBeInTheDocument();
+    expect(screen.getByText("운영자 화면")).toBeInTheDocument();
   });
 
   it("renders login page title on initial load", () => {
@@ -62,42 +62,39 @@ describe("App", () => {
     expect(screen.getByText(/CS Workflow Generator/i)).toBeInTheDocument();
   });
 
-  it("redirects workspace home alias to workflows and renders the representative-version empty state", async () => {
+  it("redirects workspace home alias to workflows and renders the empty workflow state when there are no domain packs", async () => {
     seedAuthenticatedSession();
+
+    const workspaceBody = {
+      id: 1,
+      workspaceKey: "cs-team-alpha",
+      name: "CS Team Alpha",
+      description: null,
+      status: "ACTIVE",
+      myRole: "OWNER",
+      createdAt: "2026-04-01T00:00:00Z",
+      updatedAt: "2026-04-01T00:00:00Z",
+    };
 
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url === "/api/v1/workspaces") {
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: async () => [
-            {
-              id: 1,
-              workspaceKey: "cs-team-alpha",
-              name: "CS Team Alpha",
-              description: null,
-              status: "ACTIVE",
-              myRole: "OWNER",
-              createdAt: "2026-04-01T00:00:00Z",
-              updatedAt: "2026-04-01T00:00:00Z",
-            },
-          ],
+          json: async () => [workspaceBody],
         });
       }
-
+      if (url === "/api/v1/workspaces/1/domain-packs") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        });
+      }
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: async () => ({
-          id: 1,
-          workspaceKey: "cs-team-alpha",
-          name: "CS Team Alpha",
-          description: null,
-          status: "ACTIVE",
-          myRole: "OWNER",
-          createdAt: "2026-04-01T00:00:00Z",
-          updatedAt: "2026-04-01T00:00:00Z",
-        }),
+        json: async () => workspaceBody,
       });
     });
 
@@ -115,7 +112,9 @@ describe("App", () => {
     });
 
     expect(await screen.findByText("Workflows")).toBeInTheDocument();
-    expect(screen.getByText("반품 접수 처리")).toBeInTheDocument();
+    expect(
+      await screen.findByText("아직 등록된 워크플로우가 없습니다. 도메인팩에서 워크플로우를 생성해 주세요."),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
       expect.objectContaining({ method: "GET" }),
