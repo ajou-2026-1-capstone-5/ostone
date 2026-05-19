@@ -35,7 +35,7 @@ const popoverStyle: CSSProperties = {
   borderRadius: 'var(--r-2)',
   boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
   zIndex: 40,
-  minWidth: '220px',
+  minWidth: '260px',
 };
 
 const rowStyle: CSSProperties = {
@@ -43,14 +43,15 @@ const rowStyle: CSSProperties = {
   alignItems: 'center',
   gap: 'var(--s-2)',
   fontFamily: 'var(--sans)',
-  fontSize: '11px',
-  color: 'var(--ink-3)',
+  fontSize: '13px',
+  fontWeight: 500,
+  color: 'var(--ink)',
   whiteSpace: 'nowrap',
 };
 
 const labelStyle: CSSProperties = {
   flex: '0 0 auto',
-  minWidth: '64px',
+  minWidth: '76px',
   letterSpacing: '-0.1px',
 };
 
@@ -62,12 +63,13 @@ const chipsStyle: CSSProperties = {
 
 function chipStyle(active: boolean): CSSProperties {
   return {
-    padding: '2px 8px',
+    padding: '4px 10px',
     borderRadius: '999px',
     border: `1px solid ${active ? 'var(--ink)' : 'var(--line)'}`,
     background: active ? 'var(--ink)' : 'var(--paper)',
-    color: active ? 'var(--paper)' : 'var(--ink-3)',
-    fontSize: '11px',
+    color: active ? 'var(--paper)' : 'var(--ink)',
+    fontSize: '12px',
+    fontWeight: 500,
     fontFamily: 'var(--sans)',
     cursor: 'pointer',
     lineHeight: 1.2,

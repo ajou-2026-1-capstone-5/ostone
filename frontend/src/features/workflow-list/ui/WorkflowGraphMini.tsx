@@ -10,11 +10,107 @@ interface WorkflowGraphMiniProps {
   workflowId: number;
 }
 
+type NodeType = "START" | "ACTION" | "DECISION" | "ANSWER" | "HANDOFF" | "TERMINAL" | "UNKNOWN";
+
 interface ParsedNode {
   id: string;
   label: string;
+  type: NodeType;
   x: number;
   y: number;
+}
+
+function pickType(v: unknown): NodeType {
+  if (typeof v !== "string") return "UNKNOWN";
+  const upper = v.toUpperCase();
+  switch (upper) {
+    case "START":
+    case "ACTION":
+    case "DECISION":
+    case "ANSWER":
+    case "HANDOFF":
+    case "TERMINAL":
+      return upper;
+    default:
+      return "UNKNOWN";
+  }
+}
+
+function NodeShape({ node }: { node: ParsedNode }) {
+  const { x, y, type } = node;
+  const w = 18;
+  const h = 11;
+  const stroke = "var(--ink)";
+  const paper = "var(--paper)";
+  const ink = "var(--ink)";
+  const sw = 1.4;
+  switch (type) {
+    case "START":
+      return (
+        <rect
+          x={x - w / 2}
+          y={y - h / 2}
+          width={w}
+          height={h}
+          rx={h / 2}
+          ry={h / 2}
+          fill={ink}
+          stroke={stroke}
+          strokeWidth={sw}
+        />
+      );
+    case "ACTION":
+      return (
+        <rect
+          x={x - w / 2}
+          y={y - h / 2}
+          width={w}
+          height={h}
+          rx={2}
+          ry={2}
+          fill={paper}
+          stroke={stroke}
+          strokeWidth={sw}
+        />
+      );
+    case "DECISION": {
+      const r = 8;
+      return (
+        <polygon
+          points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+          fill={paper}
+          stroke={stroke}
+          strokeWidth={sw}
+        />
+      );
+    }
+    case "ANSWER": {
+      const cut = 3;
+      return (
+        <polygon
+          points={`${x - w / 2 + cut},${y - h / 2} ${x + w / 2},${y - h / 2} ${x + w / 2},${y + h / 2} ${x - w / 2},${y + h / 2}`}
+          fill={paper}
+          stroke={stroke}
+          strokeWidth={sw}
+        />
+      );
+    }
+    case "HANDOFF": {
+      const cut = 3;
+      return (
+        <polygon
+          points={`${x - w / 2 + cut},${y - h / 2} ${x + w / 2 - cut},${y - h / 2} ${x + w / 2},${y + h / 2} ${x - w / 2},${y + h / 2}`}
+          fill={paper}
+          stroke={stroke}
+          strokeWidth={sw}
+        />
+      );
+    }
+    case "TERMINAL":
+      return <circle cx={x} cy={y} r={7} fill={ink} stroke={stroke} strokeWidth={sw} />;
+    default:
+      return <circle cx={x} cy={y} r={6} fill={paper} stroke={stroke} strokeWidth={sw} />;
+  }
 }
 
 interface ParsedEdge {
@@ -44,12 +140,13 @@ function safeParseGraph(graphJson: unknown): {
     const root = parsed as { nodes?: unknown; edges?: unknown };
     const nodes = Array.isArray(root.nodes)
       ? root.nodes
-          .filter((n): n is { id: string; label?: string; position?: { x?: number; y?: number } } => {
+          .filter((n): n is { id: string; type?: unknown; label?: string; position?: { x?: number; y?: number } } => {
             return typeof n === "object" && n !== null && typeof (n as { id?: unknown }).id === "string";
           })
           .map<ParsedNode>((n, idx) => ({
             id: n.id,
             label: typeof n.label === "string" && n.label.length > 0 ? n.label : n.id,
+            type: pickType(n.type),
             x: typeof n.position?.x === "number" ? n.position.x : idx * 60,
             y: typeof n.position?.y === "number" ? n.position.y : 0,
           }))
@@ -163,11 +260,11 @@ export function WorkflowGraphMini({
         );
       })}
       {nodes.map((n) => (
-        <g key={n.id}>
-          <circle cx={n.x} cy={n.y} r={7} fill="var(--paper)" stroke="var(--ink)" strokeWidth={1.5} />
+        <g key={n.id} data-node-type={n.type}>
+          <NodeShape node={n} />
           <text
             x={n.x}
-            y={n.y - 12}
+            y={n.y - 14}
             textAnchor="middle"
             fontSize={10}
             fontFamily="var(--mono)"

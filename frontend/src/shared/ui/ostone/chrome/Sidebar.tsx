@@ -155,7 +155,7 @@ export function Sidebar({
   return (
     <nav
       style={{
-        width: collapsed ? '56px' : '240px',
+        width: collapsed ? '56px' : '220px',
         background: containerBg,
         borderRight: `1px solid ${borderColor}`,
         display: 'flex',
@@ -198,16 +198,17 @@ export function Sidebar({
           alignSelf: collapsed ? 'center' : 'flex-end',
           marginRight: collapsed ? 0 : 'var(--s-3)',
           marginBottom: 'var(--s-2)',
-          width: '28px',
-          height: '28px',
+          width: '32px',
+          height: '32px',
           borderRadius: 'var(--r-2)',
-          border: `1px solid ${borderColor}`,
-          background: 'transparent',
-          color: defaultColor,
+          border: `1px solid var(--ink)`,
+          background: 'var(--paper)',
+          color: 'var(--ink)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         }}
       >
         <span
@@ -217,7 +218,7 @@ export function Sidebar({
             transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <Icon name="chevron" size={12} />
+          <Icon name="chevron" size={14} />
         </span>
       </button>
 
@@ -262,6 +263,7 @@ export function Sidebar({
       </div>
 
       <div
+        data-testid="sidebar-account-slot"
         style={{
           marginTop: 'auto',
           display: 'flex',
@@ -269,6 +271,10 @@ export function Sidebar({
           paddingLeft: collapsed ? 0 : 'var(--s-3)',
           paddingRight: collapsed ? 0 : 'var(--s-3)',
           paddingTop: 'var(--s-3)',
+          position: 'sticky',
+          bottom: 0,
+          background: containerBg,
+          zIndex: 50,
         }}
       >
         <AccountMenu collapsed={collapsed} />
@@ -647,7 +653,7 @@ function PackNode({
           width: '100%',
           background: 'transparent',
           border: 'none',
-          padding: '6px var(--s-3) 6px 32px',
+          padding: '6px var(--s-3) 6px 24px',
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--s-2)',
@@ -680,7 +686,7 @@ function PackNode({
             const isActiveCat = isCurrentPack && active === cat.activeKey;
             const isWorkflowsCat = cat.key === 'workflows';
             const navLinkStyle: CSSProperties = {
-              padding: '4px var(--s-3) 4px 48px',
+              padding: '4px var(--s-3) 4px 36px',
               borderLeft: `3px solid ${isActiveCat ? 'var(--signal)' : 'transparent'}`,
               background: isActiveCat ? hoverBg : 'transparent',
               fontFamily: 'var(--sans)',
@@ -761,7 +767,7 @@ function PackNode({
                       <span
                         data-testid={`sidebar-workflows-empty-${pack.packId}`}
                         style={{
-                          padding: '4px var(--s-3) 4px 64px',
+                          padding: '4px var(--s-3) 4px 44px',
                           fontFamily: 'var(--mono)',
                           fontSize: '10px',
                           color: defaultColor,
@@ -783,7 +789,7 @@ function PackNode({
                             end
                             data-testid={`sidebar-workflow-${wf.id}`}
                             style={{
-                              padding: '4px var(--s-3) 4px 64px',
+                              padding: '4px var(--s-3) 4px 44px',
                               borderLeft: `3px solid ${isActiveWf ? 'var(--signal)' : 'transparent'}`,
                               background: isActiveWf ? hoverBg : 'transparent',
                               fontFamily: 'var(--sans)',
@@ -809,7 +815,7 @@ function PackNode({
                         end
                         data-testid={`sidebar-workflows-overflow-${pack.packId}`}
                         style={{
-                          padding: '4px var(--s-3) 4px 64px',
+                          padding: '4px var(--s-3) 4px 44px',
                           fontFamily: 'var(--mono)',
                           fontSize: '10px',
                           color: defaultColor,

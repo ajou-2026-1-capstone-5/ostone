@@ -54,11 +54,11 @@ describe('Sidebar', () => {
     expect(screen.queryByTitle('Workflows')).not.toBeInTheDocument();
   });
 
-  it('expanded 모드에서는 width 240px이고 Domain Packs는 토글 버튼이다 (별도 section label 없음)', () => {
+  it('expanded 모드에서는 width 220px이고 Domain Packs는 토글 버튼이다 (별도 section label 없음)', () => {
     renderSidebar({ collapsed: false });
     const nav = screen.getByLabelText('주요 내비게이션');
     expect(nav).toHaveAttribute('data-collapsed', 'false');
-    expect(nav).toHaveStyle({ width: '240px' });
+    expect(nav).toHaveStyle({ width: '220px' });
     expect(screen.getByTestId('sidebar-domain-toggle')).toBeInTheDocument();
     expect(screen.queryByTestId('sidebar-section-label')).not.toBeInTheDocument();
   });

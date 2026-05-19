@@ -22,8 +22,8 @@
 
 .searchSlot {
   flex: 1;
-  min-width: 220px;
-  max-width: 480px;
+  min-width: 280px;
+  max-width: 680px;
   position: relative;
 }
 
