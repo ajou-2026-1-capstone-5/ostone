@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Icon } from '../atoms/Icon';
@@ -18,15 +19,34 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const user = getAuthUser();
   const initial = deriveInitial(user?.name, user?.email);
   const displayName = user?.name ?? user?.email ?? '게스트';
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setPopoverPos(null);
+      return;
+    }
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPopoverPos({
+      top: rect.top - 8,
+      left: collapsed ? rect.right + 8 : rect.left,
+      width: collapsed ? 220 : rect.width,
+    });
+  }, [open, collapsed]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -45,6 +65,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
 
   const triggerCollapsed = (
     <button
+      ref={triggerRef}
       type="button"
       aria-label="계정 메뉴"
       onClick={() => setOpen((v) => !v)}
@@ -70,6 +91,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
 
   const triggerExpanded = (
     <button
+      ref={triggerRef}
       type="button"
       aria-label="계정 메뉴"
       onClick={() => setOpen((v) => !v)}
@@ -103,28 +125,34 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
     </button>
   );
 
+  const popoverStyle: CSSProperties = popoverPos
+    ? {
+        position: 'fixed',
+        top: popoverPos.top,
+        left: popoverPos.left,
+        transform: 'translateY(-100%)',
+        width: popoverPos.width,
+        background: 'var(--paper)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--r-2)',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        padding: 'var(--s-2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--s-1)',
+        zIndex: 60,
+      }
+    : { display: 'none' };
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: collapsed ? 'auto' : '100%' }}>
       {collapsed ? triggerCollapsed : triggerExpanded}
 
-      {open && (
+      {open && createPortal(
         <div
+          ref={popoverRef}
           data-testid="account-menu-popover"
-          style={{
-            position: 'absolute',
-            bottom: 'calc(100% + 6px)',
-            left: collapsed ? 0 : 0,
-            minWidth: collapsed ? '200px' : '100%',
-            background: 'var(--paper)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--r-2)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-            padding: 'var(--s-2)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--s-1)',
-            zIndex: 40,
-          }}
+          style={popoverStyle}
         >
           <div
             style={{
@@ -196,7 +224,8 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
             <Icon name="arrow" size={12} />
             로그아웃
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

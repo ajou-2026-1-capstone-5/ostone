@@ -152,17 +152,19 @@ export function Sidebar({
     setSettingsPanelPackId((prev) => (prev === packId ? null : packId));
   };
 
-  const handleNavClick: React.MouseEventHandler<HTMLElement> = (e) => {
-    if (collapsed && e.target === e.currentTarget) {
+  const handleNavCapture: React.MouseEventHandler<HTMLElement> = (e) => {
+    if (collapsed) {
+      e.stopPropagation();
+      e.preventDefault();
       onToggleCollapsed();
     }
   };
 
   return (
     <nav
-      onClick={handleNavClick}
+      onClickCapture={handleNavCapture}
       style={{
-        width: collapsed ? '64px' : '240px',
+        width: collapsed ? '72px' : '256px',
         background: containerBg,
         borderRight: `1px solid ${borderColor}`,
         display: 'flex',
@@ -175,13 +177,12 @@ export function Sidebar({
         overflowY: 'auto',
         overflowX: 'hidden',
         cursor: collapsed ? 'pointer' : 'default',
-        transition: 'width 280ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease',
+        transition: 'width 400ms cubic-bezier(0.32, 0.72, 0.16, 1), background 200ms ease',
       }}
       aria-label="주요 내비게이션"
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       <div
-        onClick={handleNavClick}
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -213,7 +214,7 @@ export function Sidebar({
             title="사이드바 접기"
             style={{
               flexShrink: 0,
-              width: '32px',
+              width: '40px',
               height: '40px',
               borderRadius: 'var(--r-2)',
               border: '1px solid var(--line)',
@@ -233,7 +234,7 @@ export function Sidebar({
                 transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              <Icon name="chevron" size={12} />
+              <Icon name="chevron" size={14} />
             </span>
           </button>
         )}
@@ -313,8 +314,8 @@ interface SidebarLinkProps {
 
 function SidebarLink({ to, icon, label, collapsed, isActive, activeColor, defaultColor, hoverBg }: SidebarLinkProps) {
   const collapsedStyle: CSSProperties = {
-    width: '36px',
-    height: '36px',
+    width: '40px',
+    height: '40px',
     borderRadius: 'var(--r-2)',
     display: 'flex',
     alignItems: 'center',
@@ -322,12 +323,12 @@ function SidebarLink({ to, icon, label, collapsed, isActive, activeColor, defaul
     color: isActive ? activeColor : defaultColor,
     background: isActive ? hoverBg : 'transparent',
     textDecoration: 'none',
-    transition: 'background 120ms ease, color 120ms ease',
+    transition: 'background 160ms ease, color 160ms ease',
     margin: '0 auto',
   };
 
   const expandedStyle: CSSProperties = {
-    height: '32px',
+    height: '40px',
     padding: '0 var(--s-3)',
     display: 'flex',
     alignItems: 'center',
@@ -336,9 +337,9 @@ function SidebarLink({ to, icon, label, collapsed, isActive, activeColor, defaul
     background: isActive ? hoverBg : 'transparent',
     borderLeft: `3px solid ${isActive ? 'var(--signal)' : 'transparent'}`,
     textDecoration: 'none',
-    transition: 'background 120ms ease, color 120ms ease',
+    transition: 'background 160ms ease, color 160ms ease',
     fontFamily: 'var(--sans)',
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: isActive ? 500 : 400,
     letterSpacing: '-0.1px',
   };
@@ -363,7 +364,7 @@ function SidebarLink({ to, icon, label, collapsed, isActive, activeColor, defaul
         }
       }}
     >
-      <Icon name={icon} size={collapsed ? 16 : 14} />
+      <Icon name={icon} size={16} />
       {!collapsed && <span>{label}</span>}
     </NavLink>
   );
@@ -430,7 +431,7 @@ function DomainPacksNode({
         data-testid="sidebar-domain-toggle"
         style={{
           width: '100%',
-          height: '32px',
+          height: '40px',
           padding: '0 var(--s-3)',
           display: 'flex',
           alignItems: 'center',
@@ -445,9 +446,10 @@ function DomainPacksNode({
           textAlign: 'left',
           cursor: 'pointer',
           fontFamily: 'var(--sans)',
-          fontSize: '13px',
+          fontSize: '14px',
           fontWeight: isDomainActive ? 500 : 400,
           letterSpacing: '-0.1px',
+          transition: 'background 160ms ease, color 160ms ease',
         }}
         onMouseEnter={PACK_HOVER_HANDLERS.onMouseEnter(hoverBg, activeColor)}
         onMouseLeave={(e) => {
@@ -456,16 +458,16 @@ function DomainPacksNode({
           }
         }}
       >
-        <Icon name={DOMAIN_PACKS_ICON} size={14} />
+        <Icon name={DOMAIN_PACKS_ICON} size={16} />
         <span style={{ flex: 1 }}>{DOMAIN_PACKS_LABEL}</span>
         <span
           style={{
             display: 'inline-flex',
             transform: open ? 'rotate(90deg)' : 'none',
-            transition: 'transform 120ms ease',
+            transition: 'transform 160ms ease',
           }}
         >
-          <Icon name="chevron" size={10} />
+          <Icon name="chevron" size={12} />
         </span>
       </button>
 
@@ -670,13 +672,13 @@ function PackNode({
           width: '100%',
           background: 'transparent',
           border: 'none',
-          padding: '6px var(--s-3) 6px 32px',
+          padding: '8px var(--s-3) 8px 32px',
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--s-2)',
           cursor: 'pointer',
           fontFamily: 'var(--sans)',
-          fontSize: '12px',
+          fontSize: '13px',
           fontWeight: isCurrentPack ? 500 : 400,
           color: isCurrentPack ? activeColor : defaultColor,
           letterSpacing: '-0.1px',

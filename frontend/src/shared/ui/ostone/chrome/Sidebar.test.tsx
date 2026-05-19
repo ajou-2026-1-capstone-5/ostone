@@ -41,11 +41,11 @@ const TREE_FIXTURE: SidebarTreeData = {
 };
 
 describe('Sidebar', () => {
-  it('collapsed 모드에서는 width 64px과 아이콘 항목을 표시한다 (Workflows 최상위 항목 없음)', () => {
+  it('collapsed 모드에서는 width 72px과 아이콘 항목을 표시한다 (Workflows 최상위 항목 없음)', () => {
     renderSidebar({ collapsed: true });
     const nav = screen.getByLabelText('주요 내비게이션');
     expect(nav).toHaveAttribute('data-collapsed', 'true');
-    expect(nav).toHaveStyle({ width: '64px' });
+    expect(nav).toHaveStyle({ width: '72px' });
     expect(screen.getByTitle('Operator')).toBeInTheDocument();
     expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
@@ -54,11 +54,11 @@ describe('Sidebar', () => {
     expect(screen.queryByTitle('Workflows')).not.toBeInTheDocument();
   });
 
-  it('expanded 모드에서는 width 240px이고 Domain Packs는 토글 버튼이다 (별도 section label 없음)', () => {
+  it('expanded 모드에서는 width 256px이고 Domain Packs는 토글 버튼이다 (별도 section label 없음)', () => {
     renderSidebar({ collapsed: false });
     const nav = screen.getByLabelText('주요 내비게이션');
     expect(nav).toHaveAttribute('data-collapsed', 'false');
-    expect(nav).toHaveStyle({ width: '240px' });
+    expect(nav).toHaveStyle({ width: '256px' });
     expect(screen.getByTestId('sidebar-domain-toggle')).toBeInTheDocument();
     expect(screen.queryByTestId('sidebar-section-label')).not.toBeInTheDocument();
   });
