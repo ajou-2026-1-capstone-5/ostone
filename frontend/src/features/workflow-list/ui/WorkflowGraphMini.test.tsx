@@ -56,17 +56,17 @@ describe("WorkflowGraphMini", () => {
     expect(screen.getByTestId("workflow-graph-mini-empty-10")).toBeInTheDocument();
   });
 
-  it("graphJson 이 string 으로 전달되면 파싱하여 노드 도식 렌더", () => {
+  it("graphJson 이 string 으로 전달되면 파싱하여 노드+엣지+라벨 렌더", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
       isError: false,
       data: {
         graphJson: JSON.stringify({
           nodes: [
-            { id: "a", position: { x: 0, y: 0 } },
-            { id: "b", position: { x: 100, y: 50 } },
+            { id: "a", label: "start", position: { x: 0, y: 0 } },
+            { id: "b", label: "check_status", position: { x: 100, y: 50 } },
           ],
-          edges: [{ source: "a", target: "b" }],
+          edges: [{ id: "e1", from: "a", to: "b" }],
         }),
       },
     });
@@ -75,6 +75,41 @@ describe("WorkflowGraphMini", () => {
     expect(svg).toBeInTheDocument();
     expect(svg.querySelectorAll("circle").length).toBe(2);
     expect(svg.querySelectorAll("line").length).toBe(1);
+    expect(svg.querySelectorAll("text").length).toBe(2);
+    expect(svg.textContent).toContain("start");
+  });
+
+  it("legacy source/target 형식도 fallback 지원한다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        graphJson: {
+          nodes: [
+            { id: "a", position: { x: 0, y: 0 } },
+            { id: "b", position: { x: 50, y: 0 } },
+          ],
+          edges: [{ source: "a", target: "b" }],
+        },
+      },
+    });
+    renderMini(null);
+    expect(screen.getByTestId("workflow-graph-mini-10").querySelectorAll("line").length).toBe(1);
+  });
+
+  it("라벨이 14자 초과면 말줄임표로 잘린다", () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        graphJson: {
+          nodes: [{ id: "a", label: "abcdefghijklmnopqrstuvwxyz", position: { x: 0, y: 0 } }],
+          edges: [],
+        },
+      },
+    });
+    renderMini(null);
+    expect(screen.getByTestId("workflow-graph-mini-10").textContent).toContain("…");
   });
 
   it("graphJson 이 손상되면 empty 처리", () => {

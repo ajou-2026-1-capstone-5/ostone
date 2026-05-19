@@ -1,8 +1,13 @@
+import { useEffect, useRef, useState } from "react";
+
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
 import { Mono, Pill } from "@/shared/ui/ostone/atoms";
 
 import { WorkflowGraphMini } from "./WorkflowGraphMini";
 import styles from "./workflow-card.module.css";
+
+const ROW_UNIT_PX = 10;
+const ROW_GAP_PX = 8;
 
 interface WorkflowCardProps {
   entry: WorkspaceWorkflowEntry;
@@ -20,12 +25,30 @@ export function WorkflowCard({
   testIdPrefix = "workflow-list",
 }: WorkflowCardProps) {
   const cardTestId = `${testIdPrefix}-card-${entry.workflowId}`;
+  const cardRef = useRef<HTMLElement>(null);
+  const [rowSpan, setRowSpan] = useState(20);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const recompute = () => {
+      const h = el.getBoundingClientRect().height;
+      const span = Math.max(1, Math.ceil((h + ROW_GAP_PX) / (ROW_UNIT_PX + ROW_GAP_PX)));
+      setRowSpan(span);
+    };
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded]);
 
   return (
     <article
+      ref={cardRef}
       className={styles.card}
       data-testid={cardTestId}
       data-expanded={expanded ? "true" : "false"}
+      style={{ gridRow: `span ${rowSpan}` }}
     >
       <button
         type="button"

@@ -12,13 +12,18 @@ interface WorkflowGraphMiniProps {
 
 interface ParsedNode {
   id: string;
+  label: string;
   x: number;
   y: number;
 }
 
 interface ParsedEdge {
-  source: string;
-  target: string;
+  from: string;
+  to: string;
+}
+
+function pickEndpoint(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
 }
 
 function safeParseGraph(graphJson: unknown): {
@@ -39,25 +44,27 @@ function safeParseGraph(graphJson: unknown): {
     const root = parsed as { nodes?: unknown; edges?: unknown };
     const nodes = Array.isArray(root.nodes)
       ? root.nodes
-          .filter((n): n is { id: string; position?: { x?: number; y?: number } } => {
+          .filter((n): n is { id: string; label?: string; position?: { x?: number; y?: number } } => {
             return typeof n === "object" && n !== null && typeof (n as { id?: unknown }).id === "string";
           })
           .map<ParsedNode>((n, idx) => ({
             id: n.id,
+            label: typeof n.label === "string" && n.label.length > 0 ? n.label : n.id,
             x: typeof n.position?.x === "number" ? n.position.x : idx * 60,
             y: typeof n.position?.y === "number" ? n.position.y : 0,
           }))
       : [];
     const edges = Array.isArray(root.edges)
       ? root.edges
-          .filter(
-            (e): e is { source: string; target: string } =>
-              typeof e === "object" &&
-              e !== null &&
-              typeof (e as { source?: unknown }).source === "string" &&
-              typeof (e as { target?: unknown }).target === "string",
-          )
-          .map<ParsedEdge>((e) => ({ source: e.source, target: e.target }))
+          .map<ParsedEdge | null>((e) => {
+            if (typeof e !== "object" || e === null) return null;
+            const raw = e as { from?: unknown; to?: unknown; source?: unknown; target?: unknown };
+            const from = pickEndpoint(raw.from) ?? pickEndpoint(raw.source);
+            const to = pickEndpoint(raw.to) ?? pickEndpoint(raw.target);
+            if (!from || !to) return null;
+            return { from, to };
+          })
+          .filter((e): e is ParsedEdge => e !== null)
       : [];
     return { nodes, edges };
   } catch {
@@ -124,23 +131,24 @@ export function WorkflowGraphMini({
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
-  const pad = 30;
-  const width = Math.max(1, maxX - minX) + pad * 2;
-  const height = Math.max(1, maxY - minY) + pad * 2;
+  const padX = 40;
+  const padY = 36;
+  const width = Math.max(1, maxX - minX) + padX * 2;
+  const height = Math.max(1, maxY - minY) + padY * 2;
   const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
 
   return (
     <svg
       data-testid={`workflow-graph-mini-${workflowId}`}
-      viewBox={`${minX - pad} ${minY - pad} ${width} ${height}`}
+      viewBox={`${minX - padX} ${minY - padY} ${width} ${height}`}
       preserveAspectRatio="xMidYMid meet"
       width="100%"
       height="100%"
       style={{ display: "block" }}
     >
       {edges.map((edge, idx) => {
-        const s = nodeById.get(edge.source);
-        const t = nodeById.get(edge.target);
+        const s = nodeById.get(edge.from);
+        const t = nodeById.get(edge.to);
         if (!s || !t) return null;
         return (
           <line
@@ -149,13 +157,26 @@ export function WorkflowGraphMini({
             y1={s.y}
             x2={t.x}
             y2={t.y}
-            stroke="var(--line)"
-            strokeWidth={1.5}
+            stroke="var(--ink-3)"
+            strokeWidth={1.2}
           />
         );
       })}
       {nodes.map((n) => (
-        <circle key={n.id} cx={n.x} cy={n.y} r={8} fill="var(--paper)" stroke="var(--ink)" strokeWidth={1.5} />
+        <g key={n.id}>
+          <circle cx={n.x} cy={n.y} r={7} fill="var(--paper)" stroke="var(--ink)" strokeWidth={1.5} />
+          <text
+            x={n.x}
+            y={n.y - 12}
+            textAnchor="middle"
+            fontSize={10}
+            fontFamily="var(--mono)"
+            fill="var(--ink-2)"
+            style={{ pointerEvents: "none" }}
+          >
+            {n.label.length > 14 ? `${n.label.slice(0, 13)}…` : n.label}
+          </text>
+        </g>
       ))}
     </svg>
   );

@@ -5,8 +5,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
-  margin: 0 0 var(--s-3) 0;
-  break-inside: avoid;
+  margin-bottom: 8px;
   transition: box-shadow 120ms ease, transform 120ms ease;
 }
 

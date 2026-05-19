@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Settings as SettingsIcon, X as XIcon } from "lucide-react";
 
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
 import {
@@ -10,7 +11,6 @@ import {
   writePageWorkflowSettings,
   type PageWorkflowSettings,
 } from "@/shared/lib/workflowSettings";
-import { Icon } from "@/shared/ui/ostone/atoms/Icon";
 import {
   WorkflowSettingsPanel,
   type WorkflowSettingEntry,
@@ -19,6 +19,16 @@ import {
 import { WorkflowCard } from "./WorkflowCard";
 import { WorkflowSearchBar } from "./WorkflowSearchBar";
 import styles from "./workflow-list-view.module.css";
+
+const SORT_FIELD_KO_LABELS: Record<(typeof SORT_FIELD_OPTIONS)[number]["value"], string> = {
+  workflowCode: "코드",
+  name: "이름",
+};
+
+const SORT_DIR_KO_LABELS: Record<(typeof SORT_DIR_OPTIONS)[number]["value"], string> = {
+  asc: "오름차순",
+  desc: "내림차순",
+};
 
 interface WorkflowListViewProps {
   entries: WorkspaceWorkflowEntry[];
@@ -36,6 +46,7 @@ export function WorkflowListView({
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
   const [page, setPage] = useState(1);
   const [filterWorkflowId, setFilterWorkflowId] = useState<number | null>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const updateSettings = (patch: Partial<PageWorkflowSettings>) => {
     setSettings((prev) => {
@@ -73,24 +84,30 @@ export function WorkflowListView({
   const settingsEntries: WorkflowSettingEntry[] = [
     {
       key: "pageSize",
-      label: "Per page",
+      label: "페이지 크기",
       value: settings.pageSize,
       options: PAGE_SIZE_OPTIONS.map((n) => ({ value: n, label: String(n) })),
       onChange: (next) => updateSettings({ pageSize: Number(next) }),
     },
     {
       key: "sortField",
-      label: "Sort by",
+      label: "정렬 기준",
       value: settings.sortField,
-      options: SORT_FIELD_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      options: SORT_FIELD_OPTIONS.map((o) => ({
+        value: o.value,
+        label: SORT_FIELD_KO_LABELS[o.value],
+      })),
       onChange: (next) =>
         updateSettings({ sortField: next === "name" ? "name" : "workflowCode" }),
     },
     {
       key: "sortDir",
-      label: "Order",
+      label: "정렬 방식",
       value: settings.sortDir,
-      options: SORT_DIR_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      options: SORT_DIR_OPTIONS.map((o) => ({
+        value: o.value,
+        label: SORT_DIR_KO_LABELS[o.value],
+      })),
       onChange: (next) => updateSettings({ sortDir: next === "desc" ? "desc" : "asc" }),
     },
   ];
@@ -113,25 +130,30 @@ export function WorkflowListView({
             testIdPrefix={`${testIdPrefix}-search`}
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setSettingsOpen((v) => !v)}
-          aria-label="페이지 표시 설정"
-          aria-expanded={settingsOpen}
-          data-testid={`${testIdPrefix}-settings-toggle`}
-          className={styles.settingsBtn}
-          data-active={settingsOpen ? "true" : "false"}
-        >
-          <Icon name="settings" size={14} />
-        </button>
+        <div className={styles.settingsAnchor}>
+          <button
+            ref={settingsButtonRef}
+            type="button"
+            onClick={() => setSettingsOpen((v) => !v)}
+            aria-label="페이지 표시 설정"
+            aria-expanded={settingsOpen}
+            data-testid={`${testIdPrefix}-settings-toggle`}
+            className={styles.settingsBtn}
+            data-active={settingsOpen ? "true" : "false"}
+          >
+            <SettingsIcon size={14} />
+          </button>
+          {settingsOpen && (
+            <WorkflowSettingsPanel
+              entries={settingsEntries}
+              testId={`${testIdPrefix}-settings`}
+              style={{ top: "calc(100% + 6px)", right: 0 }}
+              onClickOutside={() => setSettingsOpen(false)}
+              anchorRef={settingsButtonRef}
+            />
+          )}
+        </div>
       </div>
-
-      {settingsOpen && (
-        <WorkflowSettingsPanel
-          entries={settingsEntries}
-          testId={`${testIdPrefix}-settings`}
-        />
-      )}
 
       {filterWorkflowId !== null && filteredEntryName && (
         <button
@@ -141,7 +163,7 @@ export function WorkflowListView({
           className={styles.filterChip}
         >
           <span>{filteredEntryName}</span>
-          <Icon name="close" size={10} />
+          <XIcon size={10} />
         </button>
       )}
 

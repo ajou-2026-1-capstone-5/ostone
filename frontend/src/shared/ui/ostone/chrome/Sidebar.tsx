@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { Icon } from '../atoms/Icon';
 import type { IconName } from '../atoms/Icon';
 import { AccountMenu } from './AccountMenu';
@@ -13,6 +14,16 @@ import {
   writeSidebarWorkflowSettings,
   type SidebarWorkflowSettings,
 } from '@/shared/lib/workflowSettings';
+
+const SORT_FIELD_KO_LABELS: Record<(typeof SORT_FIELD_OPTIONS)[number]['value'], string> = {
+  workflowCode: '코드',
+  name: '이름',
+};
+
+const SORT_DIR_KO_LABELS: Record<(typeof SORT_DIR_OPTIONS)[number]['value'], string> = {
+  asc: '오름차순',
+  desc: '내림차순',
+};
 
 export type SidebarActive =
   | 'operator'
@@ -596,20 +607,21 @@ function PackNode({
 
   const visibleWorkflows = sortedWorkflows.slice(0, workflowSettings.topN);
   const hiddenCount = Math.max(0, sortedWorkflows.length - visibleWorkflows.length);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const settingsEntries: WorkflowSettingEntry[] = [
     {
       key: 'topN',
-      label: 'Top N',
+      label: '표시 개수',
       value: workflowSettings.topN,
       options: TOP_N_OPTIONS.map((n) => ({ value: n, label: String(n) })),
       onChange: (next) => onUpdateWorkflowSettings({ topN: Number(next) }),
     },
     {
       key: 'sortField',
-      label: 'Sort by',
+      label: '정렬 기준',
       value: workflowSettings.sortField,
-      options: SORT_FIELD_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      options: SORT_FIELD_OPTIONS.map((o) => ({ value: o.value, label: SORT_FIELD_KO_LABELS[o.value] })),
       onChange: (next) =>
         onUpdateWorkflowSettings({
           sortField: next === 'name' ? 'name' : 'workflowCode',
@@ -617,9 +629,9 @@ function PackNode({
     },
     {
       key: 'sortDir',
-      label: 'Order',
+      label: '정렬 방식',
       value: workflowSettings.sortDir,
-      options: SORT_DIR_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+      options: SORT_DIR_OPTIONS.map((o) => ({ value: o.value, label: SORT_DIR_KO_LABELS[o.value] })),
       onChange: (next) =>
         onUpdateWorkflowSettings({ sortDir: next === 'desc' ? 'desc' : 'asc' }),
     },
@@ -696,7 +708,7 @@ function PackNode({
             }
 
             return (
-              <div key={cat.key}>
+              <div key={cat.key} style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'stretch' }}>
                   <NavLink
                     to={categoryPath(basePath, pack.packId, pack.versionId, cat.key)}
@@ -707,6 +719,7 @@ function PackNode({
                     {cat.label}
                   </NavLink>
                   <button
+                    ref={settingsButtonRef}
                     type="button"
                     onClick={onToggleSettingsPanel}
                     aria-label="워크플로우 표시 설정"
@@ -725,7 +738,7 @@ function PackNode({
                       justifyContent: 'center',
                     }}
                   >
-                    <Icon name="settings" size={12} />
+                    <SettingsIcon size={14} />
                   </button>
                 </div>
 
@@ -733,6 +746,9 @@ function PackNode({
                   <WorkflowSettingsPanel
                     entries={settingsEntries}
                     testId={`sidebar-workflows-settings-${pack.packId}`}
+                    style={{ left: 'var(--s-3)', top: 'calc(100% + 4px)' }}
+                    onClickOutside={onToggleSettingsPanel}
+                    anchorRef={settingsButtonRef}
                   />
                 )}
 

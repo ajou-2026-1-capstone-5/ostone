@@ -27,8 +27,12 @@
   position: relative;
 }
 
-.settingsBtn {
+.settingsAnchor {
+  position: relative;
   flex-shrink: 0;
+}
+
+.settingsBtn {
   width: 32px;
   height: 32px;
   border: 1px solid var(--line);
@@ -64,19 +68,23 @@
 }
 
 .masonry {
-  column-count: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 10px;
+  grid-auto-flow: row dense;
   column-gap: var(--s-3);
+  align-items: start;
 }
 
 @media (max-width: 1080px) {
   .masonry {
-    column-count: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
   .masonry {
-    column-count: 1;
+    grid-template-columns: 1fr;
   }
 }
 

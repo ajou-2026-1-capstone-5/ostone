@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 
 export type WorkflowSettingValue = string | number;
 
@@ -18,15 +18,24 @@ export interface WorkflowSettingEntry {
 interface WorkflowSettingsPanelProps {
   entries: ReadonlyArray<WorkflowSettingEntry>;
   testId?: string;
+  /** When provided the panel positions itself absolutely and listens for outside clicks. */
+  style?: CSSProperties;
+  onClickOutside?: () => void;
+  anchorRef?: RefObject<HTMLElement | null>;
 }
 
-const containerStyle: CSSProperties = {
+const popoverStyle: CSSProperties = {
+  position: 'absolute',
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--s-2)',
-  padding: 'var(--s-2) var(--s-3) var(--s-2) 48px',
-  background: 'var(--paper-3)',
-  borderLeft: '3px solid transparent',
+  padding: 'var(--s-3)',
+  background: 'var(--paper)',
+  border: '1px solid var(--line)',
+  borderRadius: 'var(--r-2)',
+  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  zIndex: 40,
+  minWidth: '220px',
 };
 
 const rowStyle: CSSProperties = {
@@ -36,11 +45,12 @@ const rowStyle: CSSProperties = {
   fontFamily: 'var(--sans)',
   fontSize: '11px',
   color: 'var(--ink-3)',
+  whiteSpace: 'nowrap',
 };
 
 const labelStyle: CSSProperties = {
   flex: '0 0 auto',
-  minWidth: '48px',
+  minWidth: '64px',
   letterSpacing: '-0.1px',
 };
 
@@ -58,15 +68,49 @@ function chipStyle(active: boolean): CSSProperties {
     background: active ? 'var(--ink)' : 'var(--paper)',
     color: active ? 'var(--paper)' : 'var(--ink-3)',
     fontSize: '11px',
-    fontFamily: 'var(--mono)',
+    fontFamily: 'var(--sans)',
     cursor: 'pointer',
     lineHeight: 1.2,
   };
 }
 
-export function WorkflowSettingsPanel({ entries, testId }: WorkflowSettingsPanelProps) {
+export function WorkflowSettingsPanel({
+  entries,
+  testId,
+  style,
+  onClickOutside,
+  anchorRef,
+}: WorkflowSettingsPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!onClickOutside) return;
+    const handlePointer = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (anchorRef?.current?.contains(target)) return;
+      onClickOutside();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClickOutside();
+    };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onClickOutside, anchorRef]);
+
+  const finalStyle: CSSProperties = { ...popoverStyle, ...style };
+
   return (
-    <div data-testid={testId ?? 'workflow-settings-panel'} style={containerStyle}>
+    <div
+      ref={panelRef}
+      data-testid={testId ?? 'workflow-settings-panel'}
+      role="dialog"
+      style={finalStyle}
+    >
       {entries.map((entry) => (
         <div key={entry.key} style={rowStyle} data-testid={`${testId ?? 'workflow-settings-panel'}-${entry.key}`}>
           <span style={labelStyle}>{entry.label}</span>
