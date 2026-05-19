@@ -181,8 +181,9 @@ class TriggerDomainPackGenerationUseCaseTest {
     given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
         .willReturn(Optional.empty());
     given(datasetRawFileLookupPort.findLatestObjectKeyByDatasetId(7L)).willReturn(Optional.empty());
+    TriggerDomainPackGenerationCommand command = command();
 
-    assertThatThrownBy(() -> useCase.execute(command()))
+    assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(NotFoundException.class)
         .satisfies(
             throwable ->

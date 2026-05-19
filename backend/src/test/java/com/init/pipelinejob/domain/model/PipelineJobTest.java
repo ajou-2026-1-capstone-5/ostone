@@ -35,4 +35,18 @@ class PipelineJobTest {
     assertThat(job.getFinishedAt()).isNull();
     assertThat(job.getLastErrorMessage()).isNull();
   }
+
+  @Test
+  @DisplayName("부분 callback 처리 후 RUNNING 상태와 결과 요약을 갱신한다")
+  void markRunning_withSummary_marksRunningAndClearsFinalState() {
+    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
+    job.markFailed("이전 오류", NOW);
+
+    job.markRunning(null);
+
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(job.getResultSummaryJson()).isEqualTo("{}");
+    assertThat(job.getFinishedAt()).isNull();
+    assertThat(job.getLastErrorMessage()).isNull();
+  }
 }
