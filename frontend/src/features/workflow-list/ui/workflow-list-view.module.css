@@ -1,0 +1,121 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.26px;
+  margin: 0;
+}
+
+.searchSlot {
+  flex: 1;
+  min-width: 280px;
+  max-width: 680px;
+  position: relative;
+}
+
+.settingsAnchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.settingsBtn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-3);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.settingsBtn[data-active="true"] {
+  background: var(--paper-3);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.filterChip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--paper-3);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.masonry {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 10px;
+  grid-auto-flow: row dense;
+  column-gap: var(--s-3);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .masonry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .masonry {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+}
+
+.pageBtn {
+  padding: 6px 14px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  color: var(--ink-3);
+  background: var(--paper-2);
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: 0.4px;
+}

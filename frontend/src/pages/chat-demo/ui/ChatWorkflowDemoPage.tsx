@@ -49,7 +49,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
 
   if (loading) {
     return (
-      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+      <OstoneShell active="operator" crumbs={['운영자 화면']}>
         <div data-testid="loading-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--text-3)' }}>
           Loading workflow data...
         </div>
@@ -59,7 +59,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
 
   if (error) {
     return (
-      <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+      <OstoneShell active="operator" crumbs={['운영자 화면']}>
         <div data-testid="error-state" style={{ padding: 'var(--s-8)', textAlign: 'center', color: 'var(--danger)' }}>
           Error: {error}
         </div>
@@ -68,7 +68,7 @@ export function ChatWorkflowDemoPage({ state }: ChatWorkflowDemoPageProps) {
   }
 
   return (
-    <OstoneShell active="chat-demo" crumbs={['Chat Workflow Demo']}>
+    <OstoneShell active="operator" crumbs={['운영자 화면']}>
       <div
         data-testid="page-container"
         className={styles.page}

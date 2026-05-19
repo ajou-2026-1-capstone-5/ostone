@@ -1,6 +1,14 @@
 import { vi } from "vite-plus/test";
 import "@testing-library/jest-dom";
 
+// WorkspaceMarker hits React Query (useListWorkspaces) which throws without
+// a QueryClientProvider. Tests render OstoneShell with no provider, so stub
+// the marker globally. Tests that exercise the marker directly mount it
+// themselves with their own provider.
+vi.mock("@/shared/ui/ostone/chrome/WorkspaceMarker", () => ({
+  WorkspaceMarker: () => null,
+}));
+
 // Node.js v25 exposes localStorage as an empty object without methods.
 // vite-plus-test's populateGlobal skips keys already present in globalThis,
 // so jsdom's real implementation is never injected. window === globalThis in

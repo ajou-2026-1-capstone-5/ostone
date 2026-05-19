@@ -1,18 +1,23 @@
 .pageWrapper {
   padding: var(--s-6) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
 }
 
 .pageHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--s-6);
+  gap: var(--s-3);
 }
 
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 540;
-  letter-spacing: -0.02em;
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.26px;
   margin: 0;
 }
 
@@ -36,150 +41,7 @@
   background: var(--paper-2);
 }
 
-.stateSpinner {
-  width: 28px;
-  height: 28px;
-}
-
-.stateTitle {
-  font-size: 1.1rem;
-  font-weight: 540;
-}
-
 .stateText {
   color: var(--ink-2);
   line-height: 1.6;
-}
-
-.workflowGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--s-5);
-}
-
-.workflowCard {
-  border-radius: var(--r-3);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  background: var(--paper);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.workflowCard:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
-}
-
-.workflowCardInner {
-  padding: var(--s-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-}
-
-.workflowCardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s-3);
-}
-
-.workflowMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-}
-
-.workflowPack,
-.workflowVersion,
-.workflowCode {
-  font-family: var(--mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.workflowPack,
-.workflowVersion {
-  width: fit-content;
-  padding: var(--s-1) var(--s-2);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line);
-}
-
-.workflowTitle {
-  font-size: 1.18rem;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.workflowCardContent {
-  display: grid;
-  gap: var(--s-3);
-}
-
-.workflowCode {
-  color: var(--ink);
-}
-
-.workflowDescription {
-  color: var(--ink-2);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.workflowCardFooter {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--line);
-}
-
-.workflowMetaCount {
-  font-size: 11px;
-  color: var(--ink-3);
-}
-
-.emptyContent {
-  gap: var(--s-2);
-}
-
-.emptyHint {
-  margin: 0;
-  color: var(--ink-2);
-  font-size: 0.86rem;
-  line-height: 1.5;
-}
-
-.emptyAction {
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--paper-2);
-  color: var(--ink);
-  font-size: 0.92rem;
-  font-weight: var(--font-weight-base);
-  padding: 0 var(--s-3);
-}
-
-.emptyActionIcon {
-  width: 14px;
-  height: 14px;
-  opacity: 0.72;
-}
-
-.invalidState {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--s-10);
-}
-
-@media (max-width: 768px) {
-  .workflowGrid {
-    grid-template-columns: 1fr;
-  }
 }

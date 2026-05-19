@@ -12,6 +12,7 @@ import { PolicyDraftReadPage } from '../pages/domain-pack/ui/PolicyDraftReadPage
 import { RiskDraftReadPage } from '../pages/domain-pack/ui/RiskDraftReadPage';
 import { SlotDraftReadPage } from '../pages/domain-pack/ui/SlotDraftReadPage';
 import { WorkflowDraftReadPage } from '../pages/domain-pack/ui/WorkflowDraftReadPage';
+import { PackWorkflowListPage } from '../pages/domain-pack/ui/PackWorkflowListPage';
 import { DomainPackSummaryPage } from '../pages/domain-pack/ui/DomainPackSummaryPage';
 import { WorkspaceLayout } from '../pages/workspace/ui/WorkspaceLayout';
 import { WorkspaceWorkflowsPage } from '../pages/workspace/ui/WorkspaceWorkflowsPage';
@@ -50,7 +51,7 @@ export function App() {
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?" element={<PrivateRoute><PolicyDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/risks/:riskId?" element={<PrivateRoute><RiskDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/slots/:slotId?" element={<PrivateRoute><SlotDraftReadPage /></PrivateRoute>} />
-        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
+        <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows" element={<PrivateRoute><PackWorkflowListPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId" element={<PrivateRoute><WorkflowDraftReadPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId/graph" element={<PrivateRoute><WorkflowGraphViewerPage /></PrivateRoute>} />
         <Route path="/workspaces/:workspaceId/chat-demo" element={<PrivateRoute><ChatWorkflowDemoPageWrapper /></PrivateRoute>} />

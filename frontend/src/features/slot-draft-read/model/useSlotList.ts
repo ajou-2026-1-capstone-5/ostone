@@ -18,8 +18,12 @@ export function useSlotList(
   const query = useQuery({
     queryKey: ["slots", "list", wsId, packId, versionId],
     queryFn: async () => {
-      const res = await listSlots(wsId, packId, versionId);
-      return res.data;
+      const res = (await listSlots(wsId, packId, versionId)) as
+        | { data?: SlotDefinitionSummary[] }
+        | SlotDefinitionSummary[];
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.data)) return res.data;
+      throw new Error("Unexpected slot list response shape");
     },
   });
 

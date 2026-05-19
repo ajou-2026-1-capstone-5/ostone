@@ -1,5 +1,6 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { getWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type { WorkflowDefinitionDetail } from "@/shared/api/generated/zod";
 
 export interface UseGetWorkflowDefinitionParams {
@@ -21,7 +22,7 @@ export function useGetWorkflowDefinition({
     queryKey: ["workflows", "detail", workspaceId, packId, versionId, workflowId] as const,
     queryFn: async () => {
       const res = await getWorkflow(workspaceId, packId, versionId, workflowId);
-      return res.data;
+      return (unwrapApiResponse(res) ?? res) as WorkflowDefinitionDetail;
     },
     enabled,
   });

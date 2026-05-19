@@ -51,7 +51,10 @@ export function GraphViewer({
         edgeTypes={edgeTypes}
         fitView
         panOnDrag={true}
-        zoomOnScroll={true}
+        zoomOnScroll={false}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
+        preventScrolling={false}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}

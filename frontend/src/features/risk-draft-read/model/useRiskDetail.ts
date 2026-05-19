@@ -23,8 +23,11 @@ export function useRiskDetail(
       if (riskId === null) {
         throw new Error("riskId is required");
       }
-      const res = await getRisk(workspaceId, packId, versionId, riskId);
-      return res.data;
+      const res = (await getRisk(workspaceId, packId, versionId, riskId)) as
+        | { data?: RiskDefinitionResponse }
+        | RiskDefinitionResponse;
+      const candidate = (res as { data?: RiskDefinitionResponse }).data;
+      return candidate ?? (res as RiskDefinitionResponse);
     },
     enabled: riskId !== null,
   });

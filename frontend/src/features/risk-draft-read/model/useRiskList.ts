@@ -19,8 +19,11 @@ export function useRiskList(
   const query = useQuery({
     queryKey: ["risk", "list", workspaceId, packId, versionId],
     queryFn: async () => {
-      const res = await listRisks(workspaceId, packId, versionId);
-      return res.data;
+      const res = (await listRisks(workspaceId, packId, versionId)) as
+        | { data?: RiskDefinitionSummary[] }
+        | RiskDefinitionSummary[];
+      if (Array.isArray(res)) return res;
+      return res?.data ?? [];
     },
   });
 

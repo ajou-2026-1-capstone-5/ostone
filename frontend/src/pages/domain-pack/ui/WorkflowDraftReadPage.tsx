@@ -1,125 +1,61 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { WorkflowEditSheet } from "../../../features/update-workflow";
-import { parseRouteId } from "../../../shared/lib/parseRouteId";
+import { type ReactNode, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { InlineWorkflowEditor } from "@/features/update-workflow";
+import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
-import { Pill, Mono, Icon, Bar } from "@/shared/ui/ostone/atoms";
-import { PackHeader } from "./sections/PackHeader";
-import { PackTabs } from "./sections/PackTabs";
-import { WorkflowList } from "./sections/WorkflowList";
-import { VersionsTimeline } from "./sections/VersionsTimeline";
-import { MetricsFooter } from "./sections/MetricsFooter";
-import { Inspector } from "./sections/Inspector";
-import { WorkflowCanvas, DEFAULT_NODES, DEFAULT_EDGES } from "./sections/WorkflowCanvas";
+import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
+import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
+import { useGetWorkflowDefinition } from "@/entities/workflow";
+import type { WorkflowGraph } from "@/entities/workflow";
+import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
 
-function HeaderActions() {
+function isWorkflowGraph(v: unknown): v is WorkflowGraph {
   return (
-    <div style={{ display: "flex", gap: "8px" }}>
-      <button
-        type="button"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 12px",
-          borderRadius: "var(--r-2)",
-          border: "1px solid var(--line)",
-          background: "var(--paper-2)",
-          color: "var(--ink-2)",
-          fontFamily: "var(--mono)",
-          fontSize: "11px",
-          cursor: "pointer",
-        }}
-      >
-        <Icon name="download" size={14} />
-        내보내기
-      </button>
-      <button
-        type="button"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 12px",
-          borderRadius: "var(--r-2)",
-          border: "1px solid var(--line)",
-          background: "var(--paper-2)",
-          color: "var(--ink-2)",
-          fontFamily: "var(--mono)",
-          fontSize: "11px",
-          cursor: "pointer",
-        }}
-      >
-        <Icon name="play" size={14} />
-        채팅에서 테스트
-      </button>
-      <button
-        type="button"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 14px",
-          borderRadius: "var(--r-2)",
-          border: "none",
-          background: "var(--ink)",
-          color: "var(--paper)",
-          fontFamily: "var(--mono)",
-          fontSize: "11px",
-          cursor: "pointer",
-        }}
-      >
-        v0.4 배포하기
-      </button>
-    </div>
+    typeof v === "object" &&
+    v !== null &&
+    Array.isArray((v as { nodes?: unknown }).nodes) &&
+    Array.isArray((v as { edges?: unknown }).edges)
   );
 }
 
-interface LegendChipProps {
-  shape: "diamond" | "circle";
-  bg: string;
-  color: string;
-  label: string;
-}
-
-function LegendChip({ shape, bg, color, label }: LegendChipProps) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-      {shape === "diamond" ? (
-        <span
-          style={{
-            display: "inline-block",
-            width: "8px",
-            height: "8px",
-            background: bg,
-            transform: "rotate(45deg)",
-          }}
-        />
-      ) : (
-        <span
-          style={{
-            display: "inline-block",
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: bg,
-          }}
-        />
-      )}
-      <Mono style={{ fontSize: "10px", color }}>{label}</Mono>
-    </div>
-  );
+function parseGraphJson(raw: unknown): WorkflowGraph | null {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return isWorkflowGraph(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isWorkflowGraph(raw) ? raw : null;
 }
 
 export function WorkflowDraftReadPage() {
   const { workspaceId, packId, versionId, workflowId } = useParams();
   const navigate = useNavigate();
-  const [editOpen, setEditOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
   const vId = parseRouteId(versionId);
   const wfId = workflowId ? parseRouteId(workflowId) : null;
+
+  const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
+
+  const query = useGetWorkflowDefinition({
+    workspaceId: wsId ?? 0,
+    packId: pId ?? 0,
+    versionId: vId ?? 0,
+    workflowId: wfId ?? 0,
+    enabled,
+  });
+
+  const workflow = query.data;
+  const graph = useMemo<WorkflowGraph | null>(() => parseGraphJson(workflow?.graphJson), [workflow?.graphJson]);
+  const nodeCount = graph?.nodes?.length ?? 0;
 
   if (wsId === null || pId === null || vId === null || (workflowId !== undefined && wfId === null)) {
     return (
@@ -131,180 +67,218 @@ export function WorkflowDraftReadPage() {
     );
   }
 
-  const handleSelect = (id: number) => {
-    setEditOpen(false);
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows/${id}`);
-  };
-
-  const handleBack = () => {
-    setEditOpen(false);
+  const handleBackToList = () => {
+    setIsEditing(false);
     navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows`);
   };
 
-  const hasSelection = wfId !== null;
+  const crumbs = [
+    `WS · ${wsId}`,
+    "Domain Packs",
+    `PACK · ${pId}`,
+    `VER · ${vId}`,
+    "Workflows",
+  ];
 
-  void handleSelect;
-  void handleBack;
-  void hasSelection;
+  let graphContent: ReactNode;
+  if (isEditing) {
+    graphContent = (
+      <InlineWorkflowEditor
+        workflow={workflow!}
+        wsId={wsId!}
+        packId={pId!}
+        versionId={vId!}
+        onClose={() => setIsEditing(false)}
+      />
+    );
+  } else if (graph) {
+    graphContent = (
+      <div data-testid="workflow-graph-viewer" style={{ width: "100%", height: "100%" }}>
+        <GraphViewer graph={graph} />
+      </div>
+    );
+  } else {
+    graphContent = (
+      <div data-testid="workflow-empty-graph" style={{ padding: "32px" }}>
+        <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
+      </div>
+    );
+  }
 
   return (
     <OstoneShell
-      active="domain"
-      crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}
-      topbarRight={<HeaderActions />}
+      active="workflows"
+      crumbs={crumbs}
+      activePackId={pId}
+      activeWorkflowId={wfId}
     >
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-        <PackHeader />
-        <PackTabs />
-
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* Left rail */}
-          <div
-            style={{
-              width: "224px",
-              background: "var(--paper-2)",
-              flexShrink: 0,
-              overflow: "auto",
-              borderRight: "1px solid var(--line-2)",
-            }}
-          >
-            <WorkflowList />
-            <VersionsTimeline />
-          </div>
-
-          {/* Center */}
-          <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
-            {/* Workflow header */}
-            <div
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "14px 20px",
+            borderBottom: "1px solid var(--line-2)",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+            <button
+              type="button"
+              onClick={handleBackToList}
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 20px",
-                borderBottom: "1px solid var(--line-2)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <h2
-                  style={{
-                    fontFamily: "var(--sans)",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                    margin: 0,
-                    color: "var(--ink)",
-                  }}
-                >
-                  refund.standard
-                </h2>
-                <Pill tone="signal">DRAFT</Pill>
-                <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>wf-218</Mono>
-                <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>
-                  7 nodes · 2 risk gates · trained on 1,389 conversations
-                </Mono>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>Zoom: 100%</Mono>
-                <button
-                  type="button"
-                  onClick={() => setEditOpen(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "6px 12px",
-                    borderRadius: "var(--r-2)",
-                    border: "1px solid var(--line)",
-                    background: "var(--paper-2)",
-                    color: "var(--ink-2)",
-                    fontFamily: "var(--mono)",
-                    fontSize: "11px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Icon name="edit" size={14} />
-                  Edit graph
-                </button>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div style={{ display: "flex", gap: "12px", padding: "8px 20px" }}>
-              <LegendChip shape="diamond" bg="var(--paper-3)" color="var(--ink)" label="decision" />
-              <LegendChip shape="circle" bg="var(--danger-bg)" color="var(--danger)" label="risk" />
-              <LegendChip shape="circle" bg="var(--warn-bg)" color="var(--warn)" label="human" />
-              <LegendChip shape="circle" bg="var(--signal-bg)" color="var(--signal)" label="task" />
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                minHeight: "300px",
-                position: "relative",
-                margin: "0 20px 12px",
+                gap: "4px",
+                padding: "4px 8px",
                 borderRadius: "var(--r-2)",
-                border: "1px solid var(--line-2)",
-                background: "var(--paper)",
-                overflow: "hidden",
+                border: "1px solid var(--line)",
+                background: "var(--paper-2)",
+                color: "var(--ink-2)",
+                fontFamily: "var(--mono)",
+                fontSize: "11px",
+                cursor: "pointer",
               }}
             >
-              <WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />
-            </div>
-
-            {/* Metrics footer */}
-            <MetricsFooter />
-
-            {/* 24h replay strip */}
-            <div
+              <Icon name="chevron" size={12} />
+              목록
+            </button>
+            <h2
+              data-testid="workflow-detail-title"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 16px",
-                overflowX: "auto",
-                borderTop: "1px solid var(--line-2)",
+                fontFamily: "var(--sans)",
+                fontSize: "16px",
+                fontWeight: 500,
+                margin: 0,
+                color: "var(--ink)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
-              {Array.from({ length: 24 }).map((_, i) => (
-                <div key={i} style={{ flexShrink: 0, textAlign: "center" }}>
-                  <Bar
-                    value={0.2 + ((i * 7 + 11) % 7) * 0.1}
-                    tone={i % 5 === 0 ? "signal" : "ink"}
-                    w={24}
-                    h={3}
-                  />
-                  <Mono style={{ fontSize: "9px", color: "var(--ink-4)", marginTop: "2px" }}>
-                    {i}h
-                  </Mono>
-                </div>
-              ))}
-            </div>
+              {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
+            </h2>
+            {workflow?.workflowCode && (
+              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>{workflow.workflowCode}</Mono>
+            )}
+            {workflow && (
+              <Pill tone="signal">DRAFT</Pill>
+            )}
+            {workflow && (
+              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>
+                {nodeCount} nodes
+              </Mono>
+            )}
           </div>
 
-          {/* Right inspector */}
-          <div
-            style={{
-              width: "320px",
-              background: "var(--paper-2)",
-              flexShrink: 0,
-              overflow: "auto",
-              borderLeft: "1px solid var(--line-2)",
-            }}
-          >
-            <Inspector />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            {workflow && !isEditing && (
+              <button
+                type="button"
+                data-testid="edit-toggle"
+                onClick={() => setIsEditing(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "var(--r-2)",
+                  border: "1px solid var(--line)",
+                  background: "var(--paper-2)",
+                  color: "var(--ink-2)",
+                  fontFamily: "var(--mono)",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="edit" size={14} />
+                편집
+              </button>
+            )}
+            {workflow && isEditing && (
+              <button
+                type="button"
+                data-testid="view-toggle"
+                onClick={() => setIsEditing(false)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "var(--r-2)",
+                  border: "1px solid var(--line)",
+                  background: "var(--paper-2)",
+                  color: "var(--ink-2)",
+                  fontFamily: "var(--mono)",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="eye" size={14} />
+                보기
+              </button>
+            )}
           </div>
         </div>
-      </div>
 
-      {wfId !== null && (
-        <WorkflowEditSheet
-          wsId={wsId}
-          packId={pId}
-          versionId={vId}
-          workflowId={wfId}
-          isOpen={editOpen}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
+        <div
+          style={{
+            flex: 1,
+            position: "relative",
+            margin: "12px 20px 20px",
+            borderRadius: "var(--r-2)",
+            border: "1px solid var(--line-2)",
+            background: "var(--paper)",
+            overflow: "hidden",
+            minHeight: "400px",
+          }}
+        >
+          {!enabled && (
+            <div
+              data-testid="workflow-select-empty"
+              style={{ padding: "32px", textAlign: "center", color: "var(--ink-3)" }}
+            >
+              좌측 사이드바에서 워크플로우를 선택하세요.
+            </div>
+          )}
+
+          {enabled && query.isLoading && (
+            <div
+              data-testid="workflow-loading"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <LoadingSpinner />
+              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>워크플로우 로드 중...</Mono>
+            </div>
+          )}
+
+          {enabled && query.isError && (
+            <div data-testid="workflow-error" style={{ padding: "32px" }}>
+              <ErrorState
+                message="워크플로우를 불러오지 못했습니다."
+                onRetry={() => query.refetch()}
+              />
+            </div>
+          )}
+
+          {enabled && !query.isLoading && !query.isError && workflow && graphContent}
+        </div>
+      </div>
     </OstoneShell>
   );
 }

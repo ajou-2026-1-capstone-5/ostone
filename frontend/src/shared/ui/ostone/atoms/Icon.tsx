@@ -26,7 +26,8 @@ export type IconName =
   | 'download'
   | 'book'
   | 'shield'
-  | 'info';
+  | 'info'
+  | 'settings';
 
 interface IconProps {
   name: IconName;
@@ -209,6 +210,12 @@ const ICONS: Record<IconName, React.ReactNode> = {
       <circle cx="8" cy="8" r="6" />
       <line x1="8" y1="8" x2="8" y2="11" />
       <line x1="8" y1="5" x2="8" y2="5.01" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="8" cy="8" r="2" />
+      <path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4M12.6 12.6l-1.4-1.4M4.8 4.8L3.4 3.4" />
     </>
   ),
 };
