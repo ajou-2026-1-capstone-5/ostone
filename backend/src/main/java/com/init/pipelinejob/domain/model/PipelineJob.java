@@ -146,7 +146,7 @@ public class PipelineJob {
   }
 
   public boolean canAcceptWorkflowDraftCallback() {
-    return STATUS_WAITING_WORKFLOW_CALLBACK.equals(status);
+    return STATUS_WAITING_WORKFLOW_CALLBACK.equals(status) || STATUS_RUNNING.equals(status);
   }
 
   public boolean isFinalized() {
