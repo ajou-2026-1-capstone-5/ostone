@@ -42,15 +42,6 @@ describe("App", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders operator page title at /chat-demo route", () => {
-    seedAuthenticatedSession();
-    window.history.pushState({}, "", "/workspaces/1/chat-demo");
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] });
-    vi.stubGlobal("fetch", fetchMock);
-    render(<AppProviders><App /></AppProviders>);
-    expect(screen.getByText("운영자 화면")).toBeInTheDocument();
-  });
-
   it("renders login page title on initial load", () => {
     window.history.pushState({}, "", "/login");
 
