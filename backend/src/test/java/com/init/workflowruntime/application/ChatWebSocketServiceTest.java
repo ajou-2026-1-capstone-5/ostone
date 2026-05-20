@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -92,14 +93,14 @@ class ChatWebSocketServiceTest {
   }
 
   @Test
-  @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → IllegalStateException")
-  void should_throwIllegalStateException_when_sessionCompleted() {
+  @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → BadRequestException")
+  void should_throwBadRequestException_when_sessionCompleted() {
     ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> service.saveAndBroadcast(1L, "Hello", 1L, "USER"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("not open or active");
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("is not open or active");
   }
 
   @Test

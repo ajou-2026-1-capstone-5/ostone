@@ -105,6 +105,25 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
+  @DisplayName("CONNECT with refresh token → InvalidTokenException")
+  void should_throwInvalidTokenException_when_refreshToken() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setNativeHeader("Authorization", "Bearer refresh-token");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Claims claims =
+        Jwts.claims().subject("1").add("type", "refresh").add("role", "OPERATOR").build();
+    given(jwtService.parseClaims("refresh-token")).willReturn(claims);
+    given(jwtService.isTokenValid(claims)).willReturn(true);
+    given(jwtService.isAccessToken(claims)).willReturn(false);
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(InvalidTokenException.class)
+        .hasMessageContaining("Invalid or expired token");
+  }
+
+  @Test
   @DisplayName("Non-CONNECT command → passes through without validation")
   void should_passThrough_when_notConnectCommand() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);

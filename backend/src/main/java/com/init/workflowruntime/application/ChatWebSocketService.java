@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -40,7 +41,8 @@ public class ChatWebSocketService {
 
     ChatSessionStatus status = session.getStatus();
     if (status != ChatSessionStatus.OPEN && status != ChatSessionStatus.ACTIVE) {
-      throw new IllegalStateException(
+      throw new BadRequestException(
+          "SESSION_NOT_OPEN_OR_ACTIVE",
           "Session " + sessionId + " is not open or active; current status: " + status);
     }
 
