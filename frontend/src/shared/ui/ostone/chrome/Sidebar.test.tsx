@@ -47,7 +47,7 @@ describe('Sidebar', () => {
     expect(nav).toHaveAttribute('data-collapsed', 'true');
     expect(nav).toHaveStyle({ width: '72px' });
     expect(screen.getByTitle('Operator')).toBeInTheDocument();
-    expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
+    expect(screen.queryByTitle('Pipeline')).not.toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
     expect(screen.getByTitle('Uploads')).toBeInTheDocument();
     expect(screen.getByTitle('Domain Packs')).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe('Sidebar', () => {
 
   it('inactive 항목에 mouseEnter/Leave 시 배경이 토글된다', () => {
     renderSidebar({ active: 'operator', collapsed: true });
-    const link = screen.getByTitle('Pipeline') as HTMLElement;
+    const link = screen.getByTitle('Consultation') as HTMLElement;
     fireEvent.mouseEnter(link);
     expect(link.style.background).toBe('var(--paper-3)');
     fireEvent.mouseLeave(link);

@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '../pages/login/ui/LoginPage';
 import { SignupPage } from '../pages/signup/ui/SignupPage';
-import { UploadPage } from '../pages/upload/ui/UploadPage';
 import { WorkspaceRootRedirect } from '../pages/workspace/ui/WorkspaceRootRedirect';
 import { PasswordResetInitPage } from '../pages/password-reset/ui/PasswordResetInitPage';
 import { PasswordResetCompletePage } from '../pages/password-reset/ui/PasswordResetCompletePage';
@@ -37,7 +36,7 @@ export function App() {
         <Route path="/workspaces/:workspaceId" element={<PrivateRoute><WorkspaceLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
-          <Route path="pipeline" element={<UploadPage />} />
+          <Route path="pipeline" element={<Navigate to="upload" replace />} />
           <Route path="consultation" element={<ConsultationPage />} />
           <Route path="consultation/:sessionId" element={<ConsultationPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
