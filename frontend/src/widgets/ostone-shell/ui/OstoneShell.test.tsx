@@ -24,7 +24,7 @@ describe('OstoneShell', () => {
       { wrapper: Wrapper },
     );
     expect(screen.getByTitle('Operator')).toBeInTheDocument();
-    expect(screen.getByTitle('Pipeline')).toBeInTheDocument();
+    expect(screen.queryByTitle('Pipeline')).not.toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
     expect(screen.getByTitle('Uploads')).toBeInTheDocument();
     expect(screen.getByTitle('Domain Packs')).toBeInTheDocument();
