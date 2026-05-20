@@ -26,7 +26,6 @@ const SORT_DIR_KO_LABELS: Record<(typeof SORT_DIR_OPTIONS)[number]['value'], str
 };
 
 export type SidebarActive =
-  | 'operator'
   | 'workflows'
   | 'consult'
   | 'upload'
@@ -74,7 +73,6 @@ interface TopNavItem {
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
-  { key: 'operator', icon: 'msg', label: 'Operator', getPath: (base) => `${base}/chat-demo` },
   { key: 'consult', icon: 'book', label: 'Consultation', getPath: (base) => `${base}/consultation` },
   { key: 'upload', icon: 'upload', label: 'Uploads', getPath: (base) => `${base}/upload` },
 ];

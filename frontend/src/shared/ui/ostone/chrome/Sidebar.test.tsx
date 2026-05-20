@@ -7,7 +7,7 @@ type SidebarProps = Parameters<typeof Sidebar>[0];
 
 function renderSidebar(props: Partial<SidebarProps> = {}) {
   const defaults: SidebarProps = {
-    active: 'operator',
+    active: 'consult',
     collapsed: true,
     onToggleCollapsed: vi.fn(),
   };
@@ -46,7 +46,7 @@ describe('Sidebar', () => {
     const nav = screen.getByLabelText('주요 내비게이션');
     expect(nav).toHaveAttribute('data-collapsed', 'true');
     expect(nav).toHaveStyle({ width: '72px' });
-    expect(screen.getByTitle('Operator')).toBeInTheDocument();
+    expect(screen.queryByTitle('Operator')).not.toBeInTheDocument();
     expect(screen.queryByTitle('Pipeline')).not.toBeInTheDocument();
     expect(screen.getByTitle('Consultation')).toBeInTheDocument();
     expect(screen.getByTitle('Uploads')).toBeInTheDocument();
@@ -88,9 +88,9 @@ describe('Sidebar', () => {
     expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
   });
 
-  it('active=operator일 때 Operator 항목이 강조된다', () => {
-    renderSidebar({ active: 'operator', collapsed: true });
-    expect(screen.getByTitle('Operator')).toHaveAttribute('data-active', 'true');
+  it('active=consult일 때 Consultation 항목이 강조된다', () => {
+    renderSidebar({ active: 'consult', collapsed: true });
+    expect(screen.getByTitle('Consultation')).toHaveAttribute('data-active', 'true');
   });
 
   it('Domain Packs 토글이 기본은 active 상태에 따라 펼쳐진다 (active=domain → open)', () => {
@@ -101,8 +101,8 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-tree')).toBeInTheDocument();
   });
 
-  it('Domain Packs 토글이 기본은 active=operator이면 닫혀 있다가 클릭 시 열린다', () => {
-    renderSidebar({ collapsed: false, active: 'operator', tree: TREE_FIXTURE });
+  it('Domain Packs 토글이 기본은 active=consult이면 닫혀 있다가 클릭 시 열린다', () => {
+    renderSidebar({ collapsed: false, active: 'consult', tree: TREE_FIXTURE });
     const toggle = screen.getByTestId('sidebar-domain-toggle');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('sidebar-tree')).not.toBeInTheDocument();
@@ -221,8 +221,8 @@ describe('Sidebar', () => {
 
   it('basePath prop을 지정하면 링크에 반영된다', () => {
     renderSidebar({ collapsed: true, basePath: '/workspaces/7' });
-    const opLink = screen.getByTitle('Operator');
-    expect(opLink).toHaveAttribute('href', '/workspaces/7/chat-demo');
+    const consultLink = screen.getByTitle('Consultation');
+    expect(consultLink).toHaveAttribute('href', '/workspaces/7/consultation');
     const domainLink = screen.getByTitle('Domain Packs');
     expect(domainLink).toHaveAttribute('href', '/workspaces/7/domain-packs');
   });
@@ -234,8 +234,8 @@ describe('Sidebar', () => {
   });
 
   it('inactive 항목에 mouseEnter/Leave 시 배경이 토글된다', () => {
-    renderSidebar({ active: 'operator', collapsed: true });
-    const link = screen.getByTitle('Consultation') as HTMLElement;
+    renderSidebar({ active: 'consult', collapsed: true });
+    const link = screen.getByTitle('Uploads') as HTMLElement;
     fireEvent.mouseEnter(link);
     expect(link.style.background).toBe('var(--paper-3)');
     fireEvent.mouseLeave(link);
