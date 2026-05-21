@@ -750,3 +750,7 @@ ALTER TABLE pack.intent_definition
 ALTER TABLE pack.intent_definition
     ADD CONSTRAINT chk_intent_definition_status
     CHECK (status IN ('DRAFT', 'PUBLISHED', 'REJECTED'));
+
+--changeset init:20260522-add-assigned-counselor-id-to-chat-session
+--comment: Add assigned_counselor_id column to runtime.chat_session for counselor intervention
+ALTER TABLE runtime.chat_session ADD COLUMN assigned_counselor_id BIGINT;

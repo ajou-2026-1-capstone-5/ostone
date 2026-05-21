@@ -35,6 +35,9 @@ public class ChatSession {
   @Column(nullable = false)
   private String channel;
 
+  @Column(name = "assigned_counselor_id")
+  private Long assignedCounselorId;
+
   @Column(name = "started_by")
   private Long startedBy;
 
@@ -96,6 +99,10 @@ public class ChatSession {
     return startedBy;
   }
 
+  public Long getAssignedCounselorId() {
+    return assignedCounselorId;
+  }
+
   public String getMetaJson() {
     return metaJson;
   }
@@ -131,6 +138,26 @@ public class ChatSession {
     }
     this.status = ChatSessionStatus.OPEN;
     this.endedAt = null;
+  }
+
+  public void assignTo(Long counselorId) {
+    if (this.status != ChatSessionStatus.OPEN) {
+      throw new InvalidSessionStateException(
+          "assignTo() requires status OPEN but was " + this.status);
+    }
+    if (this.assignedCounselorId != null) {
+      throw new IllegalStateException("Session already assigned to counselor: " + this.assignedCounselorId);
+    }
+    this.assignedCounselorId = counselorId;
+    this.status = ChatSessionStatus.ACTIVE;
+  }
+
+  public void releaseFrom() {
+    if (this.assignedCounselorId == null) {
+      throw new IllegalStateException("Session is not assigned to any counselor");
+    }
+    this.assignedCounselorId = null;
+    this.status = ChatSessionStatus.OPEN;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */
