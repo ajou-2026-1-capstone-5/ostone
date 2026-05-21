@@ -181,6 +181,8 @@ function CountCard({
           {previewItems.map((item) => (
             <li
               key={item.id}
+              role={!disabled && onPreviewItemClick ? "button" : undefined}
+              tabIndex={!disabled && onPreviewItemClick ? 0 : undefined}
               className={`${styles.previewItem} ${!disabled && onPreviewItemClick ? styles.clickable : ""}`}
               onClick={
                 !disabled && onPreviewItemClick
@@ -193,6 +195,7 @@ function CountCard({
               onKeyDown={
                 !disabled && onPreviewItemClick
                   ? (e) => {
+                      e.stopPropagation();
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         onPreviewItemClick(item.id);

@@ -43,12 +43,14 @@ export function ArchiveConfirmDialog({
     archiveWorkspace.mutate(
       { id: workspace.id! },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           toast.success("워크스페이스를 삭제했습니다.");
           onOpenChange(false);
-          void Promise.resolve(onSuccess()).catch(() => {
+          try {
+            await onSuccess();
+          } catch {
             toast.warning("목록 갱신에 실패했습니다. 화면을 새로고침해 주세요.");
-          });
+          }
         },
         onError: (error) => {
           toast.error(mapWorkspaceActionError(error));

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
 import type { CreateDomainPackDraftRequest } from "@/entities/domain-pack";
 import { useCreateDraft } from "../model/useCreateDraft";
@@ -63,7 +64,11 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
               setInlineError("동일 Pack 묶기 충돌. 잠시 후 재시도하세요.");
             } else if (error.status === 400) {
               setInlineError(error.message || "요청 검증 실패. 입력을 확인해 주세요.");
+            } else {
+              toast.error("초안 생성에 실패했습니다.");
             }
+          } else {
+            toast.error("초안 생성에 실패했습니다.");
           }
         },
       },

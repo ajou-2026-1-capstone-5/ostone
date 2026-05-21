@@ -1,34 +1,16 @@
-import { type NodeProps, useStore } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 import { renderNodeIcon } from "@/entities/workflow/lib/nodeUtils";
-import type { HandleSide } from "@/entities/workflow";
+import { useConnectedSides } from "@/entities/workflow/lib/useConnectedSides";
 import styles from "./editableNodes.module.css";
 import { useEditableNode } from "./useEditableNode";
 import { useEditableField } from "./useEditableField";
 import { NodeDeleteToolbar } from "./NodeDeleteToolbar";
 import { EditableHandles } from "./_EditableHandles";
 
-const VALID_SIDES = new Set<HandleSide>(["left", "right", "top", "bottom"]);
-
 export function EditableTerminalNode({ id, data, selected }: NodeProps) {
   const { deleteNode } = useEditableNode(id);
   const label = useEditableField(id, "label", typeof data?.label === "string" ? data.label : "");
-
-  const connectedTargets = useStore(
-    (s) => {
-      const sides = new Set<HandleSide>();
-      for (const edge of s.edges) {
-        if (
-          edge.target === id &&
-          edge.targetHandle &&
-          VALID_SIDES.has(edge.targetHandle as HandleSide)
-        ) {
-          sides.add(edge.targetHandle as HandleSide);
-        }
-      }
-      return Array.from(sides);
-    },
-    (a, b) => a.length === b.length && a.every((s) => b.includes(s)),
-  );
+  const { targets: connectedTargets } = useConnectedSides(id);
 
   return (
     <>

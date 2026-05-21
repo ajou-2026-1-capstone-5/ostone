@@ -80,6 +80,16 @@ describe("useIntentPreview", () => {
     const preview = useIntentPreview(1, 2, 3);
     expect(preview.data).toEqual(result.data);
   });
+
+  it("select 콜백이 5개까지 슬라이스한다", () => {
+    useIntentPreview(1, 2, 3);
+    const opts = mockedUseListIntents.mock.calls[0]?.[3]?.query as {
+      select?: (data: unknown) => unknown;
+    };
+    const items = Array.from({ length: 8 }, (_, i) => ({ id: i + 1 }));
+    const result = opts?.select?.({ data: items });
+    expect(result).toHaveLength(5);
+  });
 });
 
 describe("useSlotPreview", () => {
@@ -102,6 +112,15 @@ describe("useSlotPreview", () => {
     mockedUseListSlots.mockReturnValueOnce(result as ReturnType<typeof useListSlots>);
     const preview = useSlotPreview(1, 2, 3);
     expect(preview.data).toEqual(result.data);
+  });
+
+  it("select 콜백이 5개까지 슬라이스한다", () => {
+    useSlotPreview(1, 2, 3);
+    const opts = mockedUseListSlots.mock.calls[0]?.[3]?.query as {
+      select?: (data: unknown) => unknown;
+    };
+    const items = Array.from({ length: 7 }, (_, i) => ({ id: i + 1 }));
+    expect(opts?.select?.({ data: items })).toHaveLength(5);
   });
 });
 
@@ -126,6 +145,15 @@ describe("usePolicyPreview", () => {
     const preview = usePolicyPreview(1, 2, 3);
     expect(preview.data).toEqual(result.data);
   });
+
+  it("select 콜백이 5개까지 슬라이스한다", () => {
+    usePolicyPreview(1, 2, 3);
+    const opts = mockedUseListPolicies.mock.calls[0]?.[3]?.query as {
+      select?: (data: unknown) => unknown;
+    };
+    const items = Array.from({ length: 6 }, (_, i) => ({ id: i + 1 }));
+    expect(opts?.select?.({ data: items })).toHaveLength(5);
+  });
 });
 
 describe("useRiskPreview", () => {
@@ -149,6 +177,15 @@ describe("useRiskPreview", () => {
     const preview = useRiskPreview(1, 2, 3);
     expect(preview.data).toEqual(result.data);
   });
+
+  it("select 콜백이 5개까지 슬라이스한다", () => {
+    useRiskPreview(1, 2, 3);
+    const opts = mockedUseListRisks.mock.calls[0]?.[3]?.query as {
+      select?: (data: unknown) => unknown;
+    };
+    const items = Array.from({ length: 9 }, (_, i) => ({ id: i + 1 }));
+    expect(opts?.select?.({ data: items })).toHaveLength(5);
+  });
 });
 
 describe("useWorkflowPreview", () => {
@@ -171,5 +208,14 @@ describe("useWorkflowPreview", () => {
     mockedUseListWorkflows.mockReturnValueOnce(result as ReturnType<typeof useListWorkflows>);
     const preview = useWorkflowPreview(1, 2, 3);
     expect(preview.data).toEqual(result.data);
+  });
+
+  it("select 콜백이 5개까지 슬라이스한다", () => {
+    useWorkflowPreview(1, 2, 3);
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as {
+      select?: (data: unknown) => unknown;
+    };
+    const items = Array.from({ length: 10 }, (_, i) => ({ id: i + 1 }));
+    expect(opts?.select?.({ data: items })).toHaveLength(5);
   });
 });

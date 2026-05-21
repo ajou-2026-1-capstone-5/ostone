@@ -166,9 +166,7 @@ export function SummaryDetailPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString("ko-KR");
-  } catch {
-    return iso;
-  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("ko-KR");
 }

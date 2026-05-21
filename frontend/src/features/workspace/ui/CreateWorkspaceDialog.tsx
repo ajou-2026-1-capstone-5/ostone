@@ -69,14 +69,16 @@ export function CreateWorkspaceDialog({
     createWorkspace.mutate(
       { data: { workspaceKey, name: trimmedName } },
       {
-        onSuccess: (result) => {
+        onSuccess: async (result) => {
           const created = result.data;
-          void Promise.resolve(onSuccess(created)).catch(() => {
-            toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
-            setIsSubmitting(false);
-          });
           toast.success("워크스페이스를 생성했습니다.");
           onOpenChange(false);
+          try {
+            await onSuccess(created);
+          } catch {
+            toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            setIsSubmitting(false);
+          }
         },
         onError: (error) => {
           if (error instanceof ApiRequestError) {

@@ -105,6 +105,7 @@ export const ConsultationPage: React.FC = () => {
       setQueue(formattedQueue);
     } catch (error) {
       console.error("Failed to load queue:", error);
+      toast.error("대기열을 불러오지 못했습니다.");
     }
   }, []);
 
@@ -135,7 +136,10 @@ export const ConsultationPage: React.FC = () => {
           })),
         );
       } catch (error) {
-        if (!cancelled) console.error("Failed to load messages:", error);
+        if (!cancelled) {
+          console.error("Failed to load messages:", error);
+          toast.error("메시지를 불러오지 못했습니다.");
+        }
       }
     };
 
@@ -163,20 +167,17 @@ export const ConsultationPage: React.FC = () => {
       const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
       // UX: 메시지 전송 후 선택 해제되어 고객 정보 패널 복원 (의도된 동작)
       setSelectedMessageId(null);
-      setActiveCustomerId((current) => {
-        if (current === targetId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: String(newMsg.id),
-              senderRole: newMsg.senderRole as UiChatMessage["senderRole"],
-              content: newMsg.content ?? "",
-              timestamp: formatTime(newMsg.createdAt ?? ""),
-            },
-          ]);
-        }
-        return current;
-      });
+      if (activeCustomerId === targetId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: String(newMsg.id),
+            senderRole: newMsg.senderRole as UiChatMessage["senderRole"],
+            content: newMsg.content ?? "",
+            timestamp: formatTime(newMsg.createdAt ?? ""),
+          },
+        ]);
+      }
     } catch (err) {
       toast.error("메시지 전송 실패");
     }

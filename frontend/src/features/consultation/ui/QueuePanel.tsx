@@ -39,8 +39,16 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           customers.map((c) => (
             <div
               key={c.id}
+              role="button"
+              tabIndex={0}
               className={`${styles.queueItem} ${activeCustomerId === c.id ? styles.queueItemActive : ""}`}
               onClick={() => onSelectCustomer(c.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectCustomer(c.id);
+                }
+              }}
             >
               <div
                 className={`${styles.customerAvatar} ${activeCustomerId === c.id ? styles.customerAvatarActive : ""}`}

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { logoutApi } from "../api/authApi";
 import { getRefreshToken, clearAuthSession } from "../../../shared/lib/auth";
 
@@ -14,6 +15,7 @@ export const useLogout = () => {
         try {
           await logoutApi(refreshToken);
         } catch (err) {
+          toast.error("로그아웃 처리에 실패했습니다.");
           console.error("logout failed");
         }
       }

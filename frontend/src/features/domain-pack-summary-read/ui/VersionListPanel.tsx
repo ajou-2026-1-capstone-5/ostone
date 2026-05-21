@@ -3,15 +3,13 @@ import type { DomainPackDetail, DomainPackVersionSummary } from "@/entities/doma
 import styles from "./VersionListPanel.module.css";
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 }
 
 interface VersionListPanelProps {

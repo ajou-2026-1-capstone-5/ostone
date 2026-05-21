@@ -29,7 +29,7 @@ const ICON_BY_HINT: Record<string, LucideIcon> = {
 };
 
 export function resolveNodeIcon(kind: GraphNodeType, hint?: string): LucideIcon {
-  if (hint && ICON_BY_HINT[hint]) return ICON_BY_HINT[hint];
+  if (hint && Object.prototype.hasOwnProperty.call(ICON_BY_HINT, hint)) return ICON_BY_HINT[hint];
   return ICON_BY_KIND[kind];
 }
 

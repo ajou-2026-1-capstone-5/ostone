@@ -72,6 +72,8 @@ export function WorkflowEditForm({
     const graph = parseGraphJson(workflow.graphJson);
     const flow = toFlow(graph);
     reset({ name: workflow.name ?? "", description: workflow.description ?? undefined });
+    parsedGraph.current = graph;
+    initialFlow.current = flow;
     graphStateRef.current = flow;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflow.id]);
