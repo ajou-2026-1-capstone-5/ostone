@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "canonical": "enrich-workflow-ui",
+  "branch": "chore/enrich-workflow-ui",
+  "currentHeadSha": "003f6378060117475df8fb05ed31f06a57b1f69d",
+  "lastUpdated": "2026-05-21T15:00:00Z",
+  "consistent": true,
+  "artifacts": [
+    {
+      "scope": "handoff",
+      "file": "audit-report-enrich-workflow-ui-2026-05-21-1300.md",
+      "path": ".handoff/enrich-workflow-ui/audit-report-enrich-workflow-ui-2026-05-21-1300.md",
+      "producer": "5stone-any-codeAuditor",
+      "producedAt": "2026-05-21T13:00:00Z",
+      "fixRuns": [
+        {
+          "iteration": 1,
+          "fixedAt": "2026-05-21T11:50:00Z",
+          "headShaBefore": "740e776cfd29a5f84d3860b141cffca6dbdfd923",
+          "headShaAfter": "bd548a98b5167907f9749684b43a69a40408d3bf",
+          "fixedViolationIds": ["V-001", "V-002", "V-003", "V-004", "V-005", "V-006", "V-007"],
+          "blockedViolationIds": [],
+          "skippedViolationIds": [],
+          "deferredViolationIds": [],
+          "totalCommits": 1
+        }
+      ]
+    },
+    {
+      "scope": "handoff",
+      "file": "audit-report-enrich-workflow-ui-2026-05-21-1500.md",
+      "path": ".handoff/enrich-workflow-ui/audit-report-enrich-workflow-ui-2026-05-21-1500.md",
+      "producer": "5stone-any-codeAuditor",
+      "producedAt": "2026-05-21T15:00:00Z",
+      "fixRuns": [
+        {
+          "iteration": 1,
+          "fixedAt": "2026-05-21T13:40:00Z",
+          "headShaBefore": "003f6378060117475df8fb05ed31f06a57b1f69d",
+          "headShaAfter": "caa1c37",
+          "fixedViolationIds": ["PR-V-001", "PR-V-002", "PR-V-003", "PR-V-004", "PR-V-005", "PR-V-006", "PR-V-007", "PR-V-008", "PR-V-009", "PR-V-010", "PR-V-011", "PR-V-012", "PR-V-013", "PR-V-014", "PR-V-015", "PR-V-016", "PR-V-017", "PR-V-018"],
+          "blockedViolationIds": [],
+          "skippedViolationIds": [],
+          "deferredViolationIds": [],
+          "totalCommits": 1
+        }
+      ]
+    },
+    {
+      "scope": "handoff",
+      "file": "external-review-enrich-workflow-ui.md",
+      "path": ".handoff/enrich-workflow-ui/external-review-enrich-workflow-ui.md",
+      "producer": "5stone-any-codeAuditor (pr-review-ingest.sh)",
+      "producedAt": "2026-05-21T15:00:00Z"
+    },
+    {
+      "scope": "handoff",
+      "file": "sonar-pseudo-check-report-reference.md",
+      "path": ".handoff/enrich-workflow-ui/sonar-pseudo-check-report-reference.md",
+      "note": "sonar report는 canonical workflow-enrich-ui 디렉토리에 있음 (.handoff/workflow-enrich-ui/sonar-pseudo-check-report-workflow-enrich-ui.json). headSha 740e776 기준 fallback-hardcode. CI 실측(EC-002)은 78.7% coverage FAIL.",
+      "producer": "reference-note",
+      "producedAt": "2026-05-21T15:00:00Z"
+    }
+  ],
+  "registryIntegrity": {
+    "registryFound": true,
+    "registryStaleEntries": [],
+    "registryMissingEntries": [],
+    "externalReferenceMissing": [],
+    "schemaViolations": []
+  }
+}
