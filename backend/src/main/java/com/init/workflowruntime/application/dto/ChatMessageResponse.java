@@ -35,4 +35,9 @@ public record ChatMessageResponse(
         message.getContent(),
         message.getCreatedAt());
   }
+
+  public static ChatMessageResponse error(String code, String message) {
+    return new ChatMessageResponse(
+        null, null, "SYSTEM", "ERROR", "[" + code + "] " + message, null);
+  }
 }
