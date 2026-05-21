@@ -2,12 +2,14 @@ package com.init.workflowruntime.presentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.ChatWebSocketService;
 import com.init.workflowruntime.application.dto.ChatMessageRequest;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.application.dto.SendChatMessageCommand;
 import java.security.Principal;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +45,8 @@ class ChatWebSocketControllerTest {
     ChatMessageResponse expected =
         new ChatMessageResponse(10L, 1, "USER", "TEXT", "Hello", OffsetDateTime.now());
 
-    given(chatWebSocketService.saveAndBroadcast(1L, "Hello", 42L, "USER")).willReturn(expected);
+    given(chatWebSocketService.saveAndBroadcast(any(SendChatMessageCommand.class)))
+        .willReturn(expected);
 
     ChatMessageResponse result = controller.sendMessage(request, "simp-123", principal);
 
@@ -60,7 +63,7 @@ class ChatWebSocketControllerTest {
 
     Principal principal = () -> "42";
 
-    given(chatWebSocketService.saveAndBroadcast(999L, "Hello", 42L, "USER"))
+    given(chatWebSocketService.saveAndBroadcast(any(SendChatMessageCommand.class)))
         .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
 
     assertThatThrownBy(() -> controller.sendMessage(request, "simp-999", principal))

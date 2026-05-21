@@ -8,6 +8,8 @@ public interface ChatSessionRepository {
 
   Optional<ChatSession> findById(Long id);
 
+  Optional<ChatSession> findByIdForUpdate(Long id);
+
   ChatSession save(ChatSession session);
 
   List<ChatSession> findByStatusOrderByStartedAtDesc(ChatSessionStatus status);

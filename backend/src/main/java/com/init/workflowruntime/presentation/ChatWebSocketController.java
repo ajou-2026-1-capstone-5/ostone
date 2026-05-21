@@ -4,6 +4,7 @@ import com.init.shared.application.exception.BusinessException;
 import com.init.workflowruntime.application.ChatWebSocketService;
 import com.init.workflowruntime.application.dto.ChatMessageRequest;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.application.dto.SendChatMessageCommand;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import org.slf4j.Logger;
@@ -32,8 +33,9 @@ public class ChatWebSocketController {
       @Header("simpSessionId") String sessionId,
       Principal principal) {
     Long userId = Long.parseLong(principal.getName());
-    return chatWebSocketService.saveAndBroadcast(
-        request.getSessionId(), request.getContent(), userId, "USER");
+    SendChatMessageCommand command =
+        new SendChatMessageCommand(request.getSessionId(), request.getContent(), userId, "USER");
+    return chatWebSocketService.saveAndBroadcast(command);
   }
 
   @MessageExceptionHandler
