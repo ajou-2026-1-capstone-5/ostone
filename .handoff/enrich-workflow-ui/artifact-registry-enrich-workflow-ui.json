@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "canonical": "enrich-workflow-ui",
   "branch": "chore/enrich-workflow-ui",
-  "currentHeadSha": "003f6378060117475df8fb05ed31f06a57b1f69d",
-  "lastUpdated": "2026-05-21T15:00:00Z",
+  "currentHeadSha": "423120b14464a95b059dbf8b65e3c60d7245251e",
+  "lastUpdated": "2026-05-21T16:00:00Z",
   "consistent": true,
   "artifacts": [
     {
@@ -52,6 +52,21 @@
       "path": ".handoff/enrich-workflow-ui/external-review-enrich-workflow-ui.md",
       "producer": "5stone-any-codeAuditor (pr-review-ingest.sh)",
       "producedAt": "2026-05-21T15:00:00Z"
+    },
+    {
+      "scope": "handoff",
+      "file": "audit-input-enrich-workflow-ui.json",
+      "path": ".handoff/enrich-workflow-ui/audit-input-enrich-workflow-ui.json",
+      "producer": "5stone-any-codeAuditor (preprocess.py)",
+      "producedAt": "2026-05-21T14:48:08Z"
+    },
+    {
+      "scope": "handoff",
+      "file": "audit-report-enrich-workflow-ui-2026-05-21-1600.md",
+      "path": ".handoff/enrich-workflow-ui/audit-report-enrich-workflow-ui-2026-05-21-1600.md",
+      "producer": "5stone-any-codeAuditor",
+      "producedAt": "2026-05-21T16:00:00Z",
+      "fixRuns": []
     },
     {
       "scope": "handoff",
