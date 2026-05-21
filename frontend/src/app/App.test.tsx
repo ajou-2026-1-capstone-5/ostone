@@ -1,5 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import { App } from "./App";
 import { AppProviders } from "./providers";
 
@@ -13,12 +20,15 @@ function createAccessToken(expSecondsFromNow = 3600) {
 
 function seedAuthenticatedSession() {
   localStorage.setItem("accessToken", createAccessToken());
-  localStorage.setItem("user", JSON.stringify({
-    id: 1,
-    email: "admin@ostone.com",
-    name: "Admin",
-    role: "OWNER",
-  }));
+  localStorage.setItem(
+    "user",
+    JSON.stringify({
+      id: 1,
+      email: "admin@ostone.com",
+      name: "Admin",
+      role: "OWNER",
+    }),
+  );
 }
 
 describe("App", () => {
@@ -104,7 +114,9 @@ describe("App", () => {
 
     expect(await screen.findByText("Workflows")).toBeInTheDocument();
     expect(
-      await screen.findByText("아직 등록된 워크플로우가 없습니다. 도메인팩에서 워크플로우를 생성해 주세요."),
+      await screen.findByText(
+        "아직 등록된 워크플로우가 없습니다. 도메인팩에서 워크플로우를 생성해 주세요.",
+      ),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
