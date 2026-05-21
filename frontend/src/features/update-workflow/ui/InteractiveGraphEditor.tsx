@@ -17,7 +17,8 @@ import {
   type NodeTypes,
   type EdgeTypes,
 } from "@xyflow/react";
-import { FitOnInit, FIT_OPTIONS } from "@/shared/ui/react-flow/FitOnInit";
+import { FitOnInit } from "@/shared/ui/react-flow/FitOnInit";
+import { FIT_OPTIONS } from "@/shared/ui/react-flow/fitOptions";
 import "@xyflow/react/dist/style.css";
 import type { GraphNodeType } from "@/entities/workflow";
 import { EditableStartNode } from "./nodes/EditableStartNode";

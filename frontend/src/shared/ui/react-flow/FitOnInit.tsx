@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNodesInitialized, useReactFlow } from "@xyflow/react";
-
-export const FIT_OPTIONS = { padding: 0.08, maxZoom: 1.4, duration: 0 } as const;
+import { FIT_OPTIONS } from "./fitOptions";
 
 export function FitOnInit() {
   const initialized = useNodesInitialized();

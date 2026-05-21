@@ -11,7 +11,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow/lib/graphConverter";
-import { FitOnInit, FIT_OPTIONS } from "@/shared/ui/react-flow/FitOnInit";
+import { FitOnInit } from "@/shared/ui/react-flow/FitOnInit";
+import { FIT_OPTIONS } from "@/shared/ui/react-flow/fitOptions";
 import { StartNode } from "./nodes/StartNode";
 import { ActionNode } from "./nodes/ActionNode";
 import { DecisionNode } from "./nodes/DecisionNode";
