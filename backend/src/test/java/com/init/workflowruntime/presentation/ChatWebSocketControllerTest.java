@@ -75,9 +75,9 @@ class ChatWebSocketControllerTest {
     SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create();
     Exception ex = new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999");
 
-    String result = controller.handleException(ex, headerAccessor);
+    ChatMessageResponse result = controller.handleException(ex, headerAccessor);
 
-    assertThat(result).isEqualTo("SESSION_NOT_FOUND: Session not found: 999");
+    assertThat(result.content()).contains("[SESSION_NOT_FOUND] Session not found: 999");
   }
 
   @Test
@@ -86,8 +86,9 @@ class ChatWebSocketControllerTest {
     SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create();
     Exception ex = new RuntimeException("Unexpected error");
 
-    String result = controller.handleException(ex, headerAccessor);
+    ChatMessageResponse result = controller.handleException(ex, headerAccessor);
 
-    assertThat(result).isEqualTo("INTERNAL_ERROR: Unexpected error");
+    assertThat(result.content()).contains("INTERNAL_ERROR");
+    assertThat(result.content()).contains("서버 오류가 발생했습니다.");
   }
 }

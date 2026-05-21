@@ -6,6 +6,8 @@ import com.init.workflowruntime.application.dto.ChatMessageRequest;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 public class ChatWebSocketController {
+
+  private static final Logger log = LoggerFactory.getLogger(ChatWebSocketController.class);
 
   private final ChatWebSocketService chatWebSocketService;
 
@@ -34,13 +38,12 @@ public class ChatWebSocketController {
 
   @MessageExceptionHandler
   @SendToUser("/queue/errors")
-  public String handleException(Exception exception, SimpMessageHeaderAccessor headerAccessor) {
-    String message;
+  public ChatMessageResponse handleException(
+      Exception exception, SimpMessageHeaderAccessor headerAccessor) {
     if (exception instanceof BusinessException be) {
-      message = be.getCode() + ": " + be.getMessage();
-    } else {
-      message = "INTERNAL_ERROR: " + exception.getMessage();
+      return ChatMessageResponse.error(be.getCode(), be.getMessage());
     }
-    return message;
+    log.error("WebSocket message processing error", exception);
+    return ChatMessageResponse.error("INTERNAL_ERROR", "서버 오류가 발생했습니다.");
   }
 }

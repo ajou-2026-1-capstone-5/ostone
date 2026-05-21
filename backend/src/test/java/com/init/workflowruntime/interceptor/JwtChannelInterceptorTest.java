@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import com.init.auth.application.JwtService;
 import com.init.shared.application.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,11 +56,25 @@ class JwtChannelInterceptorTest {
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
-    given(jwtService.parseClaims("invalid-token")).willThrow(new RuntimeException("Invalid token"));
+    given(jwtService.parseClaims("invalid-token")).willThrow(new JwtException("Invalid token"));
 
     assertThatThrownBy(() -> interceptor.preSend(message, channel))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Invalid token");
+        .isInstanceOf(InvalidTokenException.class);
+  }
+
+  @Test
+  @DisplayName("CONNECT with non-JWT token → InvalidTokenException")
+  void should_throwInvalidTokenException_when_invalidTokenFormat() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setNativeHeader("Authorization", "Bearer not-a-jwt-token");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    given(jwtService.parseClaims("not-a-jwt-token"))
+        .willThrow(new IllegalArgumentException("Not a valid JWT"));
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(InvalidTokenException.class);
   }
 
   @Test

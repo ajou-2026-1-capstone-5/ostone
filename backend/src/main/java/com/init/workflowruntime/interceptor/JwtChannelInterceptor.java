@@ -32,7 +32,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         throw new MissingAuthHeaderException("Missing or invalid Authorization header");
       }
       String token = authHeader.substring(7);
-      Claims claims = jwtService.parseClaims(token);
+      Claims claims;
+      try {
+        claims = jwtService.parseClaims(token);
+      } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
+        throw new InvalidTokenException("WebSocket 인증 토큰이 유효하지 않습니다.", e);
+      }
       if (!jwtService.isTokenValid(claims) || !jwtService.isAccessToken(claims)) {
         throw new InvalidTokenException("INVALID_TOKEN", "Invalid or expired token");
       }
@@ -42,7 +47,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         sessionAttrs = new HashMap<>();
         accessor.setSessionAttributes(sessionAttrs);
       }
-      sessionAttrs.put("userId", Long.parseLong(claims.getSubject()));
+      try {
+        sessionAttrs.put("userId", Long.parseLong(claims.getSubject()));
+      } catch (NumberFormatException e) {
+        throw new InvalidTokenException("토큰 subject가 유효한 사용자 ID가 아닙니다.", e);
+      }
       sessionAttrs.put("role", claims.get("role", String.class));
       return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     }
