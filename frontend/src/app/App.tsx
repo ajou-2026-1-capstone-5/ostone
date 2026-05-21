@@ -5,6 +5,7 @@ import { WorkspaceRootRedirect } from "../pages/workspace/ui/WorkspaceRootRedire
 import { PasswordResetInitPage } from "../pages/password-reset/ui/PasswordResetInitPage";
 import { PasswordResetCompletePage } from "../pages/password-reset/ui/PasswordResetCompletePage";
 import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
+import { UserChatPage } from "../pages/user-chat";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
 import { IntentDraftReadPage } from "../pages/domain-pack/ui/IntentDraftReadPage";
 import { PolicyDraftReadPage } from "../pages/domain-pack/ui/PolicyDraftReadPage";
@@ -58,6 +59,7 @@ export function App() {
             path="consultation/:sessionId"
             element={<ConsultationPage />}
           />
+          <Route path="chat" element={<UserChatPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
