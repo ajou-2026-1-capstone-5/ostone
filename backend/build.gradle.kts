@@ -39,6 +39,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.security:spring-security-messaging")
+    implementation(platform("org.springframework.ai:spring-ai-bom:1.0.4"))
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.liquibase:liquibase-core")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")

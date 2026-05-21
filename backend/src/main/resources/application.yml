@@ -1,6 +1,13 @@
 spring:
   application:
     name: init-backend
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
   datasource:
     url: jdbc:postgresql://localhost:5432/init
     username: ${DB_USERNAME:init}
