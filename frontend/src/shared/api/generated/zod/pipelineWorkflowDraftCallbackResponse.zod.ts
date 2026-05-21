@@ -4,21 +4,25 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const PipelineWorkflowDraftCallbackResponse = zod.object({
-  "status": zod.string().optional(),
-  "externalEventId": zod.string().optional(),
-  "domainPackId": zod.number().optional(),
-  "domainPackVersionId": zod.number().optional(),
-  "addedSlotCount": zod.number().optional(),
-  "addedPolicyCount": zod.number().optional(),
-  "addedRiskCount": zod.number().optional(),
-  "addedWorkflowCount": zod.number().optional(),
-  "addedIntentSlotBindingCount": zod.number().optional(),
-  "addedIntentWorkflowBindingCount": zod.number().optional(),
-  "sourcePipelineJobId": zod.number().optional()
-})
+  status: zod.string().optional(),
+  externalEventId: zod.string().optional(),
+  domainPackId: zod.number().optional(),
+  domainPackVersionId: zod.number().optional(),
+  addedSlotCount: zod.number().optional(),
+  addedPolicyCount: zod.number().optional(),
+  addedRiskCount: zod.number().optional(),
+  addedWorkflowCount: zod.number().optional(),
+  addedIntentSlotBindingCount: zod.number().optional(),
+  addedIntentWorkflowBindingCount: zod.number().optional(),
+  sourcePipelineJobId: zod.number().optional(),
+});
 
-export type PipelineWorkflowDraftCallbackResponse = zod.input<typeof PipelineWorkflowDraftCallbackResponse>;
-export type PipelineWorkflowDraftCallbackResponseOutput = zod.output<typeof PipelineWorkflowDraftCallbackResponse>;
+export type PipelineWorkflowDraftCallbackResponse = zod.input<
+  typeof PipelineWorkflowDraftCallbackResponse
+>;
+export type PipelineWorkflowDraftCallbackResponseOutput = zod.output<
+  typeof PipelineWorkflowDraftCallbackResponse
+>;

@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Mail, Lock, User, KeyRound } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Input } from '../../../../shared/ui/input/Input';
-import { Button } from '../../../../shared/ui/button/Button';
-import { signupApi } from '../../api/authApi';
-import { ApiRequestError } from '../../../../shared/api';
-import styles from './signup-form.module.css';
+import { Mail, Lock, User, KeyRound } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Input } from "../../../../shared/ui/input/Input";
+import { Button } from "../../../../shared/ui/button/Button";
+import { signupApi } from "../../api/authApi";
+import { ApiRequestError } from "../../../../shared/api";
+import styles from "./signup-form.module.css";
 
 /**
  * 새로운 운영자 계정 생성을 위한 회원가입 폼 컴포넌트입니다.
@@ -15,50 +15,50 @@ import styles from './signup-form.module.css';
  */
 export const SignupForm: React.FC = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isLoading) return;
 
-    setError('');
+    setError("");
 
     if (!name || !email || !password || !confirmPassword) {
-      setError('모든 필드를 입력해주세요.');
+      setError("모든 필드를 입력해주세요.");
       return;
     }
 
     if (password.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다.');
+      setError("비밀번호는 8자 이상이어야 합니다.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+      setError("비밀번호가 일치하지 않습니다.");
       return;
     }
 
     setIsLoading(true);
     try {
       await signupApi({ name, email, password });
-      navigate('/login', { replace: true, state: { fromSignup: true } });
+      navigate("/login", { replace: true, state: { fromSignup: true } });
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        if (err.code === 'EMAIL_ALREADY_EXISTS') {
-          setError('이미 사용 중인 이메일입니다.');
-        } else if (err.code === 'VALIDATION_ERROR') {
+        if (err.code === "EMAIL_ALREADY_EXISTS") {
+          setError("이미 사용 중인 이메일입니다.");
+        } else if (err.code === "VALIDATION_ERROR") {
           setError(err.message);
         } else {
-          setError(err.message || '회원가입에 실패했습니다.');
+          setError(err.message || "회원가입에 실패했습니다.");
         }
       } else {
-        setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
       }
     } finally {
       setIsLoading(false);
@@ -114,7 +114,10 @@ export const SignupForm: React.FC = () => {
       </Button>
 
       <div className={styles.footer}>
-        이미 계정이 있으신가요? <Link to="/login" className={styles.loginLink}>로그인하기</Link>
+        이미 계정이 있으신가요?{" "}
+        <Link to="/login" className={styles.loginLink}>
+          로그인하기
+        </Link>
       </div>
     </form>
   );

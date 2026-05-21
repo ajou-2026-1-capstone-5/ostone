@@ -5,5 +5,5 @@ export {
   getRefreshToken,
   getAuthUser,
   isAuthenticated,
-} from './auth';
-export type { AuthUser, AuthTokens } from './auth';
+} from "./auth";
+export type { AuthUser, AuthTokens } from "./auth";

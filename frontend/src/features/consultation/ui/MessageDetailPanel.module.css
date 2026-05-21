@@ -113,7 +113,9 @@
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1.4;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .tag:hover {
@@ -136,7 +138,7 @@
 }
 
 .tagValue::before {
-  content: ': ';
+  content: ": ";
 }
 
 /* ─── Risk Level Indicators ─── */
@@ -183,7 +185,9 @@
   font-family: var(--mono);
   font-size: 11px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .closeButton:hover {

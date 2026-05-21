@@ -1,6 +1,6 @@
-import { MessageSquare } from 'lucide-react';
-import type { ReactNode } from 'react';
-import styles from './MessageDetailPanel.module.css';
+import { MessageSquare } from "lucide-react";
+import type { ReactNode } from "react";
+import styles from "./MessageDetailPanel.module.css";
 
 /* ─── Types ─── */
 export interface SlotTag {
@@ -18,7 +18,7 @@ export interface PolicyTag {
 export interface RiskTag {
   name: string;
   extracted: boolean;
-  level: 'low' | 'medium' | 'high';
+  level: "low" | "medium" | "high";
 }
 
 export interface MessageDetailPanelProps {
@@ -43,19 +43,19 @@ const MOCK_DATA: {
   risks: RiskTag[];
 } = {
   slots: [
-    { name: '가격 문의', extracted: true, value: '89,000원' },
-    { name: '주문 번호', extracted: true, value: '#ORD-2024-08921' },
-    { name: '배송지 주소', extracted: false },
+    { name: "가격 문의", extracted: true, value: "89,000원" },
+    { name: "주문 번호", extracted: true, value: "#ORD-2024-08921" },
+    { name: "배송지 주소", extracted: false },
   ],
   policies: [
-    { name: '반품 정책', extracted: true, matched: true },
-    { name: '환불 정책', extracted: true, matched: false },
-    { name: '교환 정책', extracted: false, matched: false },
+    { name: "반품 정책", extracted: true, matched: true },
+    { name: "환불 정책", extracted: true, matched: false },
+    { name: "교환 정책", extracted: false, matched: false },
   ],
   risks: [
-    { name: '고객 불만 고조', extracted: true, level: 'high' as const },
-    { name: '환불 요청', extracted: true, level: 'medium' as const },
-    { name: '법적 대응', extracted: false, level: 'low' as const },
+    { name: "고객 불만 고조", extracted: true, level: "high" as const },
+    { name: "환불 요청", extracted: true, level: "medium" as const },
+    { name: "법적 대응", extracted: false, level: "low" as const },
   ],
 } as const;
 
@@ -63,9 +63,9 @@ const MOCK_DATA: {
 function riskTagClass(risk: RiskTag): string {
   if (!risk.extracted) return `${styles.tag} ${styles.tagNotExtracted}`;
   const levelClass =
-    risk.level === 'high'
+    risk.level === "high"
       ? styles.tagRiskHigh
-      : risk.level === 'medium'
+      : risk.level === "medium"
         ? styles.tagRiskMedium
         : styles.tagRiskLow;
   return `${styles.tag} ${levelClass}`;
@@ -82,7 +82,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function SlotTagItem({ slot }: { slot: SlotTag }) {
-  const cls = slot.extracted ? `${styles.tag} ${styles.tagExtracted}` : `${styles.tag} ${styles.tagNotExtracted}`;
+  const cls = slot.extracted
+    ? `${styles.tag} ${styles.tagExtracted}`
+    : `${styles.tag} ${styles.tagNotExtracted}`;
   return (
     <span className={cls}>
       {slot.name}
@@ -105,7 +107,11 @@ function RiskTagItem({ risk }: { risk: RiskTag }) {
 }
 
 /* ─── Component ─── */
-export function MessageDetailPanel({ message, domainPackElements, onClose }: MessageDetailPanelProps) {
+export function MessageDetailPanel({
+  message,
+  domainPackElements,
+  onClose,
+}: MessageDetailPanelProps) {
   const { slots, policies, risks } = domainPackElements ?? MOCK_DATA;
 
   if (!message) {

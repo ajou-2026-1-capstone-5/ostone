@@ -1,0 +1,129 @@
+/* =========================================================================
+   Modernised workflow editor form. Replaces the heavy FormItem stack with
+   a compact metadata strip (name + workflow code on one row, description
+   below) and a generous, wide Cancel/Save footer.
+   ========================================================================= */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+  padding: 0 20px 20px;
+}
+
+.metaStrip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  column-gap: 16px;
+  row-gap: 12px;
+}
+
+.metaStrip > .field--description {
+  grid-column: 1 / -1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field--description {
+  /* see .metaStrip > rule */
+}
+
+.fieldLabel {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* Required-field signal: highlight the label name itself (not just the
+   asterisk) so the field's mandatory nature reads at a glance. */
+.fieldLabel--required {
+  color: var(--danger);
+}
+
+.fieldLabel--required .fieldLabelAsterisk {
+  margin-left: 2px;
+  color: var(--danger);
+}
+
+.fieldHint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.fieldInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.fieldInput::placeholder {
+  color: var(--text-muted);
+}
+
+.fieldInput:focus {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 3px oklch(0.62 0.22 285 / 0.16);
+}
+
+.fieldInput:disabled,
+.fieldInput[readonly] {
+  background: oklch(0.97 0.005 270);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.fieldError {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  /* Slightly heavier than body (400) but lighter than bold (600) — readable
+     yet still subordinate to the field label / input. */
+  font-weight: 500;
+  color: var(--danger);
+}
+
+.editorSlot {
+  flex: 1 1 auto;
+  min-height: 360px;
+  display: flex;
+}
+
+.editorSlot > * {
+  flex: 1;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-2);
+}
+
+.footerBtn {
+  min-width: 132px;
+  font-size: 14px;
+  font-weight: 600;
+}

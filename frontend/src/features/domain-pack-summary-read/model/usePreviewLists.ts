@@ -1,13 +1,13 @@
-import { useListIntents } from '@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller';
-import { useListSlots } from '@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller';
-import { useListPolicies } from '@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller';
-import { useListRisks } from '@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller';
-import { useListWorkflows } from '@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller';
-import type { IntentSummary } from '@/entities/intent';
-import type { SlotSummary as SlotSummary2 } from '@/entities/slot';
-import type { PolicySummary as PolicySummary2 } from '@/entities/policy';
-import type { RiskSummary as RiskSummary2 } from '@/entities/risk';
-import type { WorkflowSummary as WorkflowSummary2 } from '@/entities/workflow';
+import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
+import { useListSlots } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
+import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+import { useListRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { useListWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import type { IntentSummary } from "@/entities/intent";
+import type { SlotSummary as SlotSummary2 } from "@/entities/slot";
+import type { PolicySummary as PolicySummary2 } from "@/entities/policy";
+import type { RiskSummary as RiskSummary2 } from "@/entities/risk";
+import type { WorkflowSummary as WorkflowSummary2 } from "@/entities/workflow";
 import { unwrapApiResponse } from "@/shared/api";
 
 function preview<T>(data: T[] | { data?: T[] }): T[] {

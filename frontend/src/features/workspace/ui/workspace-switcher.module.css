@@ -82,7 +82,9 @@
   cursor: pointer;
   background: transparent;
   border: none;
-  transition: opacity 0.12s ease, background 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease;
 }
 
 .workspaceItem:hover .actionButton {

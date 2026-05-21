@@ -1,6 +1,6 @@
-import React from 'react';
-import { PhoneOff } from 'lucide-react';
-import styles from './status-bar.module.css';
+import React from "react";
+import { PhoneOff } from "lucide-react";
+import styles from "./status-bar.module.css";
 
 interface StatusBarProps {
   status: string;
@@ -12,20 +12,20 @@ interface StatusBarProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'WAITING', label: '대기중' },
-  { value: 'IN_PROGRESS', label: '진행중' },
-  { value: 'ON_HOLD', label: '보류' },
-  { value: 'COMPLETED', label: '완료' },
+  { value: "WAITING", label: "대기중" },
+  { value: "IN_PROGRESS", label: "진행중" },
+  { value: "ON_HOLD", label: "보류" },
+  { value: "COMPLETED", label: "완료" },
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: '', label: '카테고리 선택' },
-  { value: 'REFUND', label: '환불' },
-  { value: 'DELIVERY', label: '배송' },
-  { value: 'PAYMENT', label: '결제' },
-  { value: 'PRODUCT', label: '상품 문의' },
-  { value: 'ACCOUNT', label: '계정' },
-  { value: 'OTHER', label: '기타' },
+  { value: "", label: "카테고리 선택" },
+  { value: "REFUND", label: "환불" },
+  { value: "DELIVERY", label: "배송" },
+  { value: "PAYMENT", label: "결제" },
+  { value: "PRODUCT", label: "상품 문의" },
+  { value: "ACCOUNT", label: "계정" },
+  { value: "OTHER", label: "기타" },
 ];
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -74,11 +74,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </div>
       </div>
 
-      <button
-        className={styles.endBtn}
-        onClick={onEndSession}
-        disabled={disabled}
-      >
+      <button className={styles.endBtn} onClick={onEndSession} disabled={disabled}>
         <PhoneOff size={16} />
         상담 종료
       </button>

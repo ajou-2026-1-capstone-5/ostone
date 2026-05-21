@@ -4,13 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
-
-
+import { z as zod } from "zod";
 
 export const TokenRefreshRequest = zod.object({
-  "refreshToken": zod.string().min(1).optional()
-})
+  refreshToken: zod.string().min(1).optional(),
+});
 
 export type TokenRefreshRequest = zod.input<typeof TokenRefreshRequest>;
 export type TokenRefreshRequestOutput = zod.output<typeof TokenRefreshRequest>;

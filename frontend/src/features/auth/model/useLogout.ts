@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { logoutApi } from '../api/authApi';
-import { getRefreshToken, clearAuthSession } from '../../../shared/lib/auth';
+import { useNavigate } from "react-router-dom";
+import { logoutApi } from "../api/authApi";
+import { getRefreshToken, clearAuthSession } from "../../../shared/lib/auth";
 
 export const useLogout = () => {
   const navigate = useNavigate();
@@ -14,13 +14,13 @@ export const useLogout = () => {
         try {
           await logoutApi(refreshToken);
         } catch (err) {
-          console.error('logout failed');
+          console.error("logout failed");
         }
       }
     } finally {
       // 무조건 로컬 데이터부터 비워줘서 보안 유지 및 UI 상태 초기화
       clearAuthSession();
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     }
   };
 

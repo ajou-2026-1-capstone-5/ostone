@@ -8,7 +8,9 @@ import { RunHistoryStrip } from "./RunHistoryStrip";
 describe("ActiveRunTimeline", () => {
   it("renders 6 stage rows", () => {
     render(<ActiveRunTimeline />);
-    const rows = screen.getAllByText(/ingestion|preprocessing|intent-discovery|draft-generation|evaluation|publish-candidate/);
+    const rows = screen.getAllByText(
+      /ingestion|preprocessing|intent-discovery|draft-generation|evaluation|publish-candidate/,
+    );
     expect(rows.length).toBe(6);
   });
 

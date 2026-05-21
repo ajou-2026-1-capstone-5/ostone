@@ -1,10 +1,4 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/shared/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/shared/ui/sheet";
 import { Spinner } from "@/shared/ui/spinner";
 import { Button } from "@/shared/ui/button";
 import { useGetSlot } from "../api/useGetSlot";
@@ -27,7 +21,12 @@ export function SlotEditSheet({
   isOpen,
   onClose,
 }: SlotEditSheetProps) {
-  const { data: slot, isLoading, isError, refetch } = useGetSlot({
+  const {
+    data: slot,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetSlot({
     workspaceId,
     packId,
     versionId,
@@ -36,12 +35,15 @@ export function SlotEditSheet({
   });
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="px-4 pt-4">
-          <SheetTitle>
-            {slot ? `${slot.slotCode} · ${slot.name}` : "슬롯 수정"}
-          </SheetTitle>
+          <SheetTitle>{slot ? `${slot.slotCode} · ${slot.name}` : "슬롯 수정"}</SheetTitle>
           <SheetDescription>슬롯 필드와 상태를 수정합니다.</SheetDescription>
         </SheetHeader>
 

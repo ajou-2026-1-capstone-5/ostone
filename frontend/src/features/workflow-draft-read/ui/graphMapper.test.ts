@@ -78,6 +78,7 @@ describe("toFlow", () => {
     const tbGraph: WorkflowGraph = { direction: "TB", nodes, edges: [] };
     const { nodes: result } = toFlow(tbGraph);
     // index 4: col = 4 % 4 = 0, row = Math.floor(4/4) = 1
-    expect(result[4].position).toEqual({ x: 0, y: 120 });
+    // NODE_GAP_Y = 200
+    expect(result[4].position).toEqual({ x: 0, y: 200 });
   });
 });

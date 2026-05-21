@@ -24,7 +24,13 @@ export function useUpdatePolicyStatus() {
 
   return useMutation({
     mutationKey: UPDATE_POLICY_STATUS_MUTATION_KEY,
-    mutationFn: async ({ workspaceId, packId, versionId, policyId, status }: UpdatePolicyStatusParams) => {
+    mutationFn: async ({
+      workspaceId,
+      packId,
+      versionId,
+      policyId,
+      status,
+    }: UpdatePolicyStatusParams) => {
       const res = await updatePolicyStatus(workspaceId, packId, versionId, policyId, { status });
       return res.data;
     },

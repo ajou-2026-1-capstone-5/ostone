@@ -9,23 +9,11 @@ import type { GraphNodeStatus } from "./nodeStatus";
 
 describe("nodeStatus", () => {
   it("NODE_TYPES는 6개 타입을 모두 포함한다", () => {
-    expect(NODE_TYPES).toEqual([
-      "START",
-      "ACTION",
-      "DECISION",
-      "ANSWER",
-      "HANDOFF",
-      "TERMINAL",
-    ]);
+    expect(NODE_TYPES).toEqual(["START", "ACTION", "DECISION", "ANSWER", "HANDOFF", "TERMINAL"]);
   });
 
   it("NODE_STATUSES는 4개 상태를 모두 포함한다", () => {
-    expect(NODE_STATUSES).toEqual([
-      "IDLE",
-      "ACTIVE",
-      "COMPLETED",
-      "FAILED",
-    ]);
+    expect(NODE_STATUSES).toEqual(["IDLE", "ACTIVE", "COMPLETED", "FAILED"]);
   });
 
   it("DEFAULT_NODE_STATUS는 IDLE이다", () => {

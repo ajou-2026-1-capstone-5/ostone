@@ -38,7 +38,9 @@
   font-weight: var(--font-weight-heading);
   color: var(--text-muted);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .toggleBtn.active {

@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const policyDraftRequestPolicyCodeMin = 0;
 export const policyDraftRequestPolicyCodeMax = 100;
@@ -27,17 +27,40 @@ export const policyDraftRequestEvidenceJsonMax = 5000;
 export const policyDraftRequestMetaJsonMin = 0;
 export const policyDraftRequestMetaJsonMax = 5000;
 
-
 export const PolicyDraftRequest = zod.object({
-  "policyCode": zod.string().min(policyDraftRequestPolicyCodeMin).max(policyDraftRequestPolicyCodeMax).optional(),
-  "name": zod.string().min(policyDraftRequestNameMin).max(policyDraftRequestNameMax).optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().min(policyDraftRequestSeverityMin).max(policyDraftRequestSeverityMax).optional(),
-  "conditionJson": zod.string().min(policyDraftRequestConditionJsonMin).max(policyDraftRequestConditionJsonMax).optional(),
-  "actionJson": zod.string().min(policyDraftRequestActionJsonMin).max(policyDraftRequestActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(policyDraftRequestEvidenceJsonMin).max(policyDraftRequestEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(policyDraftRequestMetaJsonMin).max(policyDraftRequestMetaJsonMax).optional()
-})
+  policyCode: zod
+    .string()
+    .min(policyDraftRequestPolicyCodeMin)
+    .max(policyDraftRequestPolicyCodeMax)
+    .optional(),
+  name: zod.string().min(policyDraftRequestNameMin).max(policyDraftRequestNameMax).optional(),
+  description: zod.string().optional(),
+  severity: zod
+    .string()
+    .min(policyDraftRequestSeverityMin)
+    .max(policyDraftRequestSeverityMax)
+    .optional(),
+  conditionJson: zod
+    .string()
+    .min(policyDraftRequestConditionJsonMin)
+    .max(policyDraftRequestConditionJsonMax)
+    .optional(),
+  actionJson: zod
+    .string()
+    .min(policyDraftRequestActionJsonMin)
+    .max(policyDraftRequestActionJsonMax)
+    .optional(),
+  evidenceJson: zod
+    .string()
+    .min(policyDraftRequestEvidenceJsonMin)
+    .max(policyDraftRequestEvidenceJsonMax)
+    .optional(),
+  metaJson: zod
+    .string()
+    .min(policyDraftRequestMetaJsonMin)
+    .max(policyDraftRequestMetaJsonMax)
+    .optional(),
+});
 
 export type PolicyDraftRequest = zod.input<typeof PolicyDraftRequest>;
 export type PolicyDraftRequestOutput = zod.output<typeof PolicyDraftRequest>;

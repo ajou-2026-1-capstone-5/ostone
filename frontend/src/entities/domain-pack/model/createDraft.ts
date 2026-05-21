@@ -1,4 +1,4 @@
-import type { DomainPackLifecycleStatus } from './types';
+import type { DomainPackLifecycleStatus } from "./types";
 
 export interface IntentSlotBindingRequest {
   intentCode: string;

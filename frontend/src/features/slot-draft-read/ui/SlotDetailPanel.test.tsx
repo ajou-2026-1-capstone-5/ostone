@@ -33,9 +33,7 @@ const stubDetail = {
 };
 
 function renderPanel() {
-  return render(
-    <SlotDetailPanel wsId={1} packId={2} versionId={3} slotId={10} />,
-  );
+  return render(<SlotDetailPanel wsId={1} packId={2} versionId={3} slotId={10} />);
 }
 
 describe("SlotDetailPanel", () => {

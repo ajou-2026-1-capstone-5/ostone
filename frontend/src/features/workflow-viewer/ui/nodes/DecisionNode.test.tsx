@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { DecisionNode } from './DecisionNode';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { DecisionNode } from "./DecisionNode";
 
-vi.mock('@xyflow/react', () => ({
-  Handle: () => <div data-testid="handle" />,
-  Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
+vi.mock("@xyflow/react", () => ({
+  Handle: ({ type, id }: { type: string; id: string }) => (
+    <div data-testid={`handle-${type}-${id}`} />
+  ),
+  Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
+  // Run the selector against an empty edges store so the hook produces an
+  // empty {sources, targets} object — "no edges yet" is the right baseline
+  // for unit tests of a single node.
+  useStore: (selector: (s: { edges: never[] }) => unknown) => selector({ edges: [] }),
 }));
 
 const defaultProps = {
@@ -21,21 +27,15 @@ const defaultProps = {
   positionAbsoluteY: 0,
 };
 
-describe('DecisionNode', () => {
-  it('renders with label', () => {
+describe("DecisionNode", () => {
+  it("renders with label", () => {
     render(<DecisionNode {...defaultProps} data={{ label: "분기점" }} />);
-    expect(screen.getByText('분기점')).toBeInTheDocument();
+    expect(screen.getByText("분기점")).toBeInTheDocument();
   });
 
-  it('renders with FAILED status', () => {
+  it("never applies runtime status class on the definition view", () => {
     render(<DecisionNode {...defaultProps} data={{ label: "분기점", status: "FAILED" }} />);
-    const container = screen.getByText('분기점').parentElement;
-    expect(container?.className).toContain('statusFailed');
-  });
-
-  it('renders with IDLE status by default', () => {
-    render(<DecisionNode {...defaultProps} data={{ label: "분기점" }} />);
-    const container = screen.getByText('분기점').parentElement;
-    expect(container?.className).toContain('statusIdle');
+    const container = screen.getByTestId("decision-node");
+    expect(container.className).not.toMatch(/status/);
   });
 });

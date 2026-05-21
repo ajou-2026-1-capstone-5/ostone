@@ -87,9 +87,7 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
           />
           <InfoCard
             label="Is Sensitive"
-            value={
-              <span className={styles.value}>{state.data.isSensitive ? "YES" : "NO"}</span>
-            }
+            value={<span className={styles.value}>{state.data.isSensitive ? "YES" : "NO"}</span>}
           />
           <InfoCard
             label="Created At"
@@ -113,9 +111,7 @@ function DetailHeader({ detail }: { detail: SlotDefinition }) {
     <header className={styles.header}>
       <span className={styles.code}>{detail.slotCode}</span>
       <span className={styles.name}>{detail.name}</span>
-      {detail.description && (
-        <span className={styles.description}>{detail.description}</span>
-      )}
+      {detail.description && <span className={styles.description}>{detail.description}</span>}
       <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
     </header>
   );

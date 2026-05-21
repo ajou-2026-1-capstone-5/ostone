@@ -44,10 +44,7 @@ export function PolicyDraftReadPage() {
   const hasSelection = selectedPolicyId !== null;
 
   return (
-    <OstoneShell
-      active="domain"
-      crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}
-    >
+    <OstoneShell active="domain" crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <div className={styles.versionMeta}>

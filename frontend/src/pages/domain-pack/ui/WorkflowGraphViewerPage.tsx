@@ -76,7 +76,8 @@ export function WorkflowGraphViewerPage() {
         ]}
       >
         <div data-testid="error-state" className={styles.errorState}>
-          에러: {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
+          에러:{" "}
+          {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
         </div>
       </OstoneShell>
     );

@@ -18,16 +18,14 @@ describe("resolveDomainPackApprovalErrorMessage", () => {
     ["NOT_FOUND", "Domain Pack 또는 버전을 찾을 수 없습니다."],
     ["UNAUTHORIZED", "로그인이 필요합니다."],
   ])("error code %s에 맞는 메시지를 반환한다", (code, message) => {
-    expect(
-      resolveDomainPackApprovalErrorMessage(new ApiRequestError(400, code, "fail")),
-    ).toBe(message);
+    expect(resolveDomainPackApprovalErrorMessage(new ApiRequestError(400, code, "fail"))).toBe(
+      message,
+    );
   });
 
   it("error code가 없어도 HTTP 404면 not found fallback을 반환한다", () => {
     expect(
-      resolveDomainPackApprovalErrorMessage(
-        new ApiRequestError(404, "UNKNOWN_ERROR", "fail"),
-      ),
+      resolveDomainPackApprovalErrorMessage(new ApiRequestError(404, "UNKNOWN_ERROR", "fail")),
     ).toBe("Domain Pack 또는 버전을 찾을 수 없습니다.");
   });
 

@@ -4,108 +4,139 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
+  UseMutationResult,
+} from "@tanstack/react-query";
 
-import type {
-  IntentDefinitionDetail,
-  UpdateDraftIntentRequest
-} from '../../zod';
+import type { IntentDefinitionDetail, UpdateDraftIntentRequest } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type updateResponse200 = {
-  data: IntentDefinitionDetail
-  status: 200
-}
+  data: IntentDefinitionDetail;
+  status: 200;
+};
 
-export type updateResponseSuccess = (updateResponse200) & {
+export type updateResponseSuccess = updateResponse200 & {
   headers: Headers;
 };
-;
 
-export type updateResponse = (updateResponseSuccess)
+export type updateResponse = updateResponseSuccess;
 
-export const getUpdateUrl = (workspaceId: number,
-    packId: number,
-    draftVersionId: number,
-    intentId: number,) => {
+export const getUpdateUrl = (
+  workspaceId: number,
+  packId: number,
+  draftVersionId: number,
+  intentId: number,
+) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/intents/${intentId}`;
+};
 
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/intents/${intentId}`
-}
-
-export const update = async (workspaceId: number,
-    packId: number,
-    draftVersionId: number,
-    intentId: number,
-    updateDraftIntentRequest: UpdateDraftIntentRequest, options?: RequestInit): Promise<updateResponse> => {
-
-  return customFetch<updateResponse>(getUpdateUrl(workspaceId,packId,draftVersionId,intentId),
-  {
+export const update = async (
+  workspaceId: number,
+  packId: number,
+  draftVersionId: number,
+  intentId: number,
+  updateDraftIntentRequest: UpdateDraftIntentRequest,
+  options?: RequestInit,
+): Promise<updateResponse> => {
+  return customFetch<updateResponse>(getUpdateUrl(workspaceId, packId, draftVersionId, intentId), {
     ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateDraftIntentRequest,)
-  }
-);}
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDraftIntentRequest),
+  });
+};
 
+export const getUpdateMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof update>>,
+    TError,
+    {
+      workspaceId: number;
+      packId: number;
+      draftVersionId: number;
+      intentId: number;
+      data: UpdateDraftIntentRequest;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof update>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    draftVersionId: number;
+    intentId: number;
+    data: UpdateDraftIntentRequest;
+  },
+  TContext
+> => {
+  const mutationKey = ["update"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-
-
-export const getUpdateMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,{workspaceId: number;packId: number;draftVersionId: number;intentId: number;data: UpdateDraftIntentRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,{workspaceId: number;packId: number;draftVersionId: number;intentId: number;data: UpdateDraftIntentRequest}, TContext> => {
-
-const mutationKey = ['update'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update>>, {workspaceId: number;packId: number;draftVersionId: number;intentId: number;data: UpdateDraftIntentRequest}> = (props) => {
-          const {workspaceId,packId,draftVersionId,intentId,data} = props ?? {};
-
-          return  update(workspaceId,packId,draftVersionId,intentId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateMutationResult = NonNullable<Awaited<ReturnType<typeof update>>>
-    export type UpdateMutationBody = UpdateDraftIntentRequest
-    export type UpdateMutationError = unknown
-
-    export const useUpdate = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,{workspaceId: number;packId: number;draftVersionId: number;intentId: number;data: UpdateDraftIntentRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof update>>,
-        TError,
-        {workspaceId: number;packId: number;draftVersionId: number;intentId: number;data: UpdateDraftIntentRequest},
-        TContext
-      > => {
-      return useMutation(getUpdateMutationOptions(options), queryClient);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof update>>,
+    {
+      workspaceId: number;
+      packId: number;
+      draftVersionId: number;
+      intentId: number;
+      data: UpdateDraftIntentRequest;
     }
+  > = (props) => {
+    const { workspaceId, packId, draftVersionId, intentId, data } = props ?? {};
+
+    return update(workspaceId, packId, draftVersionId, intentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMutationResult = NonNullable<Awaited<ReturnType<typeof update>>>;
+export type UpdateMutationBody = UpdateDraftIntentRequest;
+export type UpdateMutationError = unknown;
+
+export const useUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof update>>,
+      TError,
+      {
+        workspaceId: number;
+        packId: number;
+        draftVersionId: number;
+        intentId: number;
+        data: UpdateDraftIntentRequest;
+      },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof update>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    draftVersionId: number;
+    intentId: number;
+    data: UpdateDraftIntentRequest;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateMutationOptions(options), queryClient);
+};

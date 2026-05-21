@@ -4,15 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const DomainPackDraftEntryResponse = zod.object({
-  "workspaceId": zod.number().optional(),
-  "packId": zod.number().optional(),
-  "versionId": zod.number().optional(),
-  "packName": zod.string().optional(),
-  "versionNo": zod.number().optional()
-})
+  workspaceId: zod.number().optional(),
+  packId: zod.number().optional(),
+  versionId: zod.number().optional(),
+  packName: zod.string().optional(),
+  versionNo: zod.number().optional(),
+});
 
 export type DomainPackDraftEntryResponse = zod.input<typeof DomainPackDraftEntryResponse>;
 export type DomainPackDraftEntryResponseOutput = zod.output<typeof DomainPackDraftEntryResponse>;

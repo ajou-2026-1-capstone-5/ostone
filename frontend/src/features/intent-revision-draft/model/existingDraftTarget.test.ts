@@ -2,10 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import type { DomainPackVersionSummary } from "@/entities/domain-pack";
-import {
-  classifyExistingDraftSource,
-  resolveSingleExistingDraft,
-} from "./existingDraftTarget";
+import { classifyExistingDraftSource, resolveSingleExistingDraft } from "./existingDraftTarget";
 
 function version(overrides: Partial<DomainPackVersionSummary>): DomainPackVersionSummary {
   return {

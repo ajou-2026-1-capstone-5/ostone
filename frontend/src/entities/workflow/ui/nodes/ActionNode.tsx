@@ -6,7 +6,9 @@ export function ActionNode({ data }: NodeProps) {
   const isSelected = d?.selected === true;
   const isCurrent = d?.current === true;
   return (
-    <div className={`${styles.action} ${isSelected ? styles.selected : ""} ${isCurrent ? styles.current : ""}`}>
+    <div
+      className={`${styles.action} ${isSelected ? styles.selected : ""} ${isCurrent ? styles.current : ""}`}
+    >
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <span className={styles.label}>{d.label || "Action"}</span>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />

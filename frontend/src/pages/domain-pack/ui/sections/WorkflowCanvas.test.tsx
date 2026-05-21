@@ -1,24 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import {
-  WorkflowCanvas,
-  DEFAULT_NODES,
-  DEFAULT_EDGES,
-} from "./WorkflowCanvas";
+import { WorkflowCanvas, DEFAULT_NODES, DEFAULT_EDGES } from "./WorkflowCanvas";
 
 describe("WorkflowCanvas", () => {
   it("renders 8 data-node-kind elements given DEFAULT_NODES", () => {
-    const { container } = render(
-      <WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />,
-    );
+    const { container } = render(<WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />);
     const nodeElements = container.querySelectorAll("[data-node-kind]");
     expect(nodeElements).toHaveLength(8);
   });
 
   it("renders at least 9 edge paths", () => {
-    const { container } = render(
-      <WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />,
-    );
+    const { container } = render(<WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />);
     const paths = container.querySelectorAll("path");
     expect(paths.length).toBeGreaterThanOrEqual(9);
   });
@@ -31,9 +23,7 @@ describe("WorkflowCanvas", () => {
   });
 
   it("selected node has data-selected-halo attribute", () => {
-    const { container } = render(
-      <WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />,
-    );
+    const { container } = render(<WorkflowCanvas nodes={DEFAULT_NODES} edges={DEFAULT_EDGES} />);
     const selectedNode = container.querySelector("[data-selected-halo]");
     expect(selectedNode).toBeInTheDocument();
     expect(selectedNode?.getAttribute("data-node-kind")).toBe("decision");

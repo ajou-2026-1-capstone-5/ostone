@@ -32,8 +32,7 @@ interface BuildDomainPackApprovalReadinessParams {
   intentActionPath?: string;
 }
 
-const REQUIRED_INFO_MISSING_MESSAGE =
-  "승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.";
+const REQUIRED_INFO_MISSING_MESSAGE = "승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.";
 
 export function buildDomainPackApprovalReadiness({
   version,
@@ -44,11 +43,7 @@ export function buildDomainPackApprovalReadiness({
   DomainPackApprovalReadiness,
   "ready" | "blockers"
 > {
-  if (
-    version?.versionId == null ||
-    version.versionNo == null ||
-    version.lifecycleStatus == null
-  ) {
+  if (version?.versionId == null || version.versionNo == null || version.lifecycleStatus == null) {
     return blockedByRequiredInfo();
   }
 
@@ -110,10 +105,7 @@ export function buildDomainPackApprovalReadiness({
   };
 }
 
-function blockedByRequiredInfo(): Pick<
-  DomainPackApprovalReadiness,
-  "ready" | "blockers"
-> {
+function blockedByRequiredInfo(): Pick<DomainPackApprovalReadiness, "ready" | "blockers"> {
   return {
     ready: false,
     blockers: [

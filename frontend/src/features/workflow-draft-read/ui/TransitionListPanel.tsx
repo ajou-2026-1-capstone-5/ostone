@@ -19,8 +19,7 @@ export function TransitionListPanel({
   error,
   refetch,
 }: TransitionListPanelProps) {
-  const errorMessage =
-    isError && error instanceof ApiRequestError ? error.message : undefined;
+  const errorMessage = isError && error instanceof ApiRequestError ? error.message : undefined;
 
   const toastFiredRef = useRef(false);
   useEffect(() => {
@@ -76,9 +75,7 @@ function TransitionItem({ transition }: { transition: WorkflowTransitionDetail }
       <span className={styles.route}>
         {transition.from} → {transition.to}
       </span>
-      {transition.label != null && (
-        <span className={styles.badge}>{transition.label}</span>
-      )}
+      {transition.label != null && <span className={styles.badge}>{transition.label}</span>}
       {transition.toPolicyRef != null && (
         <span className={styles.policyCode}>{transition.toPolicyRef}</span>
       )}

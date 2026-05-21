@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { HandoffNode } from './HandoffNode';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { HandoffNode } from "./HandoffNode";
 
-vi.mock('@xyflow/react', () => ({
-  Handle: () => <div data-testid="handle" />,
-  Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
+vi.mock("@xyflow/react", () => ({
+  Handle: ({ type, id }: { type: string; id: string }) => (
+    <div data-testid={`handle-${type}-${id}`} />
+  ),
+  Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
+  // Run the selector against an empty edges store so the hook produces an
+  // empty {sources, targets} object — "no edges yet" is the right baseline
+  // for unit tests of a single node.
+  useStore: (selector: (s: { edges: never[] }) => unknown) => selector({ edges: [] }),
 }));
 
 const defaultProps = {
@@ -21,21 +27,15 @@ const defaultProps = {
   positionAbsoluteY: 0,
 };
 
-describe('HandoffNode', () => {
-  it('renders with label', () => {
+describe("HandoffNode", () => {
+  it("renders with label", () => {
     render(<HandoffNode {...defaultProps} data={{ label: "전달" }} />);
-    expect(screen.getByText('전달')).toBeInTheDocument();
+    expect(screen.getByText("전달")).toBeInTheDocument();
   });
 
-  it('renders with IDLE status by default', () => {
-    render(<HandoffNode {...defaultProps} data={{ label: "전달" }} />);
-    const container = screen.getByText('전달').parentElement;
-    expect(container?.className).toContain('statusIdle');
-  });
-
-  it('renders with ACTIVE status when specified', () => {
+  it("never applies runtime status class on the definition view", () => {
     render(<HandoffNode {...defaultProps} data={{ label: "전달", status: "ACTIVE" }} />);
-    const container = screen.getByText('전달').parentElement;
-    expect(container?.className).toContain('statusActive');
+    const container = screen.getByTestId("handoff-node");
+    expect(container.className).not.toMatch(/status/);
   });
 });

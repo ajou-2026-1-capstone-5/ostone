@@ -5,9 +5,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import { useUpdateWorkflow } from "./useUpdateWorkflow";
 
-vi.mock("@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller", () => ({
-  updateWorkflow: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
+  () => ({
+    updateWorkflow: vi.fn(),
+  }),
+);
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -59,7 +62,11 @@ describe("useUpdateWorkflow", () => {
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdateWorkflow.mockResolvedValue({ data: { ...stubDetail, description: undefined, graphJson: "{}", initialState: undefined }, status: 200, headers: new Headers() });
+    mockedUpdateWorkflow.mockResolvedValue({
+      data: { ...stubDetail, description: undefined, graphJson: "{}", initialState: undefined },
+      status: 200,
+      headers: new Headers(),
+    });
     const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
 
     await act(async () => {
@@ -80,9 +87,7 @@ describe("useUpdateWorkflow", () => {
     });
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "DRAFT 상태의 버전에서만 수정할 수 있습니다.",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("DRAFT 상태의 버전에서만 수정할 수 있습니다."),
     );
   });
 

@@ -71,11 +71,10 @@ export function CreateWorkspaceDialog({
       {
         onSuccess: (result) => {
           const created = result.data;
-          void Promise.resolve(onSuccess(created))
-            .catch(() => {
-              toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
-              setIsSubmitting(false);
-            });
+          void Promise.resolve(onSuccess(created)).catch(() => {
+            toast.error("워크스페이스 목록을 새로고침하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            setIsSubmitting(false);
+          });
           toast.success("워크스페이스를 생성했습니다.");
           onOpenChange(false);
         },
@@ -127,9 +126,7 @@ export function CreateWorkspaceDialog({
               </p>
             )}
           </div>
-          <p className={styles.helperText}>
-            워크스페이스 키는 이름을 바탕으로 자동 생성됩니다.
-          </p>
+          <p className={styles.helperText}>워크스페이스 키는 이름을 바탕으로 자동 생성됩니다.</p>
           <DialogFooter className={styles.buttonRow}>
             <Button
               type="button"

@@ -26,7 +26,11 @@ export function WorkflowListPanel({
   selectedId,
   onSelect,
 }: WorkflowListPanelProps) {
-  const { data, isLoading, isError, isSuccess, error, refetch } = useWorkflowList(wsId, packId, versionId);
+  const { data, isLoading, isError, isSuccess, error, refetch } = useWorkflowList(
+    wsId,
+    packId,
+    versionId,
+  );
   const errorMessage = isError && error instanceof ApiRequestError ? error.message : undefined;
 
   useEffect(() => {

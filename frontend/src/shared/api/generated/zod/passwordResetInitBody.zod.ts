@@ -4,15 +4,18 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const passwordResetInitBodyEmailMin = 0;
 export const passwordResetInitBodyEmailMax = 255;
 
-
 export const PasswordResetInitBody = zod.object({
-  "email": zod.string().min(passwordResetInitBodyEmailMin).max(passwordResetInitBodyEmailMax).optional()
-})
+  email: zod
+    .string()
+    .min(passwordResetInitBodyEmailMin)
+    .max(passwordResetInitBodyEmailMax)
+    .optional(),
+});
 
 export type PasswordResetInitBody = zod.input<typeof PasswordResetInitBody>;
 export type PasswordResetInitBodyOutput = zod.output<typeof PasswordResetInitBody>;

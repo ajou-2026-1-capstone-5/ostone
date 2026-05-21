@@ -1,185 +1,350 @@
-.base {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: var(--font-size-sm);
-  letter-spacing: -0.14px;
-  color: var(--text-primary);
+/* =========================================================================
+   Workflow node theme — card-style nodes for ReactFlow viewer.
+
+   Consumed by:
+     - frontend/src/features/workflow-viewer/ui/nodes/*.tsx (6 kinds)
+     - frontend/src/features/workflow-viewer/ui/edges/PlainEdge.tsx
+     - frontend/src/features/workflow-viewer/ui/nodeStyles.ts (STATUS_MAP)
+
+   Design tokens live in frontend/src/app/index.css under --node-* prefix.
+   ========================================================================= */
+
+/* ---- Card base (START / ACTION / DECISION / ANSWER / HANDOFF) ---------- */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: 280px;
   background: var(--bg-color);
-  border: 1px solid var(--text-primary);
-  padding: 8px 16px;
-  min-width: 120px;
-  max-width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  transition: border-width var(--transition-fast), border-color var(--transition-fast),
-    background-color var(--transition-fast);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--node-shadow);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  overflow: hidden;
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
+.card:hover {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-weight: var(--font-weight-heading);
+  font-size: var(--font-size-sm);
+  letter-spacing: -0.01em;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  flex: 0 0 auto;
+  color: #fff;
+}
+
+.headerTitle {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.body {
+  padding: 10px 12px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.description {
+  color: var(--text-secondary);
+  /* The variable Pretendard base weight (340) renders too thin for body
+     copy inside the small node card; 450 stays comfortably below the
+     heading weight (540) so the visual hierarchy is preserved while
+     readability improves. */
+  font-weight: 450;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  /* Without an explicit cross-axis alignment, flex defaults to stretch and
+     chips with slightly different intrinsic heights (e.g. policyRef chip
+     vs. plain badge) end up visually misaligned. Center them. */
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: oklch(0.96 0.005 270);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMono {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  /* policyRef is a foreign-key reference into the pack's policy_definition
+     set — give it a soft indigo wash (matches the ACTION node accent) so it
+     reads as "this is a typed link", not just another arbitrary tag. */
+  background: var(--node-indigo-50);
+  color: var(--node-indigo-600);
+  border-color: var(--node-indigo-100);
+}
+
+/* ---- Kind variants (header gradient + body tint + border tone) --------- */
+/* ---- Kind variants ----------------------------------------------------
+   Header gradient + border tone carry the kind's accent color; the body
+   stays on the card's white background (matching ACTION) so the
+   description block reads the same across every node type. */
+
 .start {
-  composes: base;
-  border-radius: var(--radius-xl);
-  background: var(--text-primary);
-  color: var(--bg-color);
+  composes: card;
+  border-color: var(--node-violet-100);
+}
+.start .header {
+  background: linear-gradient(180deg, var(--node-violet-500), var(--node-violet-600));
 }
 
 .action {
-  composes: base;
-  border-radius: var(--radius-md);
+  composes: card;
+  border-color: var(--node-indigo-100);
+}
+.action .header {
+  background: linear-gradient(180deg, var(--node-indigo-500), var(--node-indigo-600));
 }
 
 .decision {
-  composes: base;
-  position: relative;
-  width: 96px;
-  height: 96px;
-  min-width: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  border-radius: 0;
+  composes: card;
+  border-color: var(--node-amber-100);
 }
-
-.decision::before {
-  content: "";
-  position: absolute;
-  width: 68px;
-  height: 68px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--bg-color);
-  border: 1px solid var(--text-primary);
-  border-radius: var(--radius-sm);
-}
-
-.decisionLabel {
-  display: block;
-  position: relative;
-  z-index: 1;
-  font-size: 12px;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.decision .header {
+  background: linear-gradient(180deg, var(--node-amber-500), var(--node-amber-600));
 }
 
 .answer {
-  composes: base;
-  position: relative;
-  border: none;
-  background: transparent;
-  padding-left: 20px;
+  composes: card;
+  border-color: var(--node-sky-100);
 }
-
-.answer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
-  border-radius: var(--radius-md);
-  background: var(--glass-dark);
-  border: 1px solid var(--text-primary);
-  z-index: -1;
+.answer .header {
+  background: linear-gradient(180deg, var(--node-sky-500), var(--node-sky-600));
 }
 
 .handoff {
-  composes: base;
-  position: relative;
-  border: none;
-  background: transparent;
-  padding-left: 18px;
-  padding-right: 18px;
+  composes: card;
+  border-color: var(--node-rose-100);
+}
+.handoff .header {
+  background: linear-gradient(180deg, var(--node-rose-500), var(--node-rose-600));
 }
 
-.handoff::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
-  border-radius: var(--radius-sm);
-  background: var(--bg-color);
-  border: 1px solid var(--text-primary);
-  z-index: -1;
-}
-
+/* ---- Terminal (circle preserved, no clip-path) ------------------------- */
 .terminal {
-  composes: base;
-  border-radius: var(--radius-full);
-  width: 80px;
-  height: 80px;
-  min-width: 0;
-  padding: 0;
+  position: relative;
+  width: 112px;
+  height: 112px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--text-primary);
-  color: var(--bg-color);
+  gap: 4px;
+  background: var(--node-zinc-50);
+  color: var(--node-zinc-700);
+  border: 1.5px solid var(--node-zinc-100);
+  border-radius: 50%;
+  box-shadow: var(--node-shadow);
+  text-align: center;
+  padding: 8px;
+  font-family: var(--font-sans);
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
+.terminalIcon {
+  color: var(--node-zinc-700);
+}
+
+.terminalTitle {
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminalSub {
+  font-size: 10.5px;
+  color: var(--node-zinc-500);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Status overlays --------------------------------------------------- */
 .statusIdle {
-  /* Intentionally empty — default state */
+  /* default */
 }
 
 .statusActive {
-  border-width: 2px;
+  border-color: var(--node-status-active);
+  box-shadow: var(--node-shadow-active);
 }
-
-.start.statusActive,
-.terminal.statusActive {
-  border-color: var(--bg-color);
-}
-
-.decision.statusActive::before,
-.answer.statusActive::before,
-.handoff.statusActive::before {
-  border-width: 2px;
+.statusActive .statusDot {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  animation: nodePulse 1.4s ease-in-out infinite;
 }
 
 .statusCompleted {
-  background-color: var(--signal-bg);
   border-color: var(--signal);
 }
-
-.start.statusCompleted,
-.terminal.statusCompleted {
-  background-color: var(--text-primary);
-  border-color: var(--signal);
-  color: var(--bg-color);
-}
-
-.decision.statusCompleted::before,
-.answer.statusCompleted::before,
-.handoff.statusCompleted::before {
-  background-color: var(--signal-bg);
-  border-color: var(--signal);
+.statusCompleted::after {
+  content: "✓ 완료";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--signal-bg);
+  color: var(--signal);
+  pointer-events: none;
 }
 
 .statusFailed {
-  background-color: var(--danger-bg);
   border-color: var(--danger);
 }
+.statusFailed::after {
+  content: "! 실패";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--danger-bg);
+  color: var(--danger);
+  pointer-events: none;
+}
 
-.start.statusFailed,
+/* Terminal status states (no header — apply directly) */
+.terminal.statusCompleted {
+  border-color: var(--signal);
+}
+.terminal.statusCompleted .terminalIcon {
+  color: var(--signal);
+}
 .terminal.statusFailed {
-  background-color: var(--text-primary);
-  border-color: var(--danger);
-  color: var(--bg-color);
-}
-
-.decision.statusFailed::before,
-.answer.statusFailed::before,
-.handoff.statusFailed::before {
-  background-color: var(--danger-bg);
   border-color: var(--danger);
 }
+.terminal.statusFailed .terminalIcon {
+  color: var(--danger);
+}
+.terminal.statusActive {
+  border-color: var(--node-status-active);
+  box-shadow: var(--node-shadow-active);
+}
 
-.label {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
+@keyframes nodePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---- Handle styling (overrides @xyflow/react defaults) -----------------
+   In the viewer only the actually-connected sides receive Handle elements,
+   so visibility just signals "this anchor carries an edge" — no claim that
+   the node has a fixed connection limit. The dot is small and muted to keep
+   the focus on the card content.
+*/
+.handle {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg-color);
+  border: 1.5px solid var(--text-muted);
+  opacity: 0.55;
+  transition:
+    border-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+.card:hover .handle,
+.terminal:hover .handle {
+  opacity: 0.85;
+}
+
+/* ---- Edge label badge (replaces bare text label in PlainEdge) ---------- */
+.edgeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: var(--bg-color);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   white-space: nowrap;
-  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.edgeLabel::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.edgeLabelYes::before {
+  background: var(--signal);
+}
+.edgeLabelNo::before {
+  background: var(--danger);
 }

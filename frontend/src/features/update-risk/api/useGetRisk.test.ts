@@ -4,9 +4,12 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGetRisk } from "./useGetRisk";
 
-vi.mock("@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller", () => ({
-  getRisk: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller",
+  () => ({
+    getRisk: vi.fn(),
+  }),
+);
 
 import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 

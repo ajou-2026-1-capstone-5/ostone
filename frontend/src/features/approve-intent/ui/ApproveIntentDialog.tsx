@@ -39,9 +39,7 @@ export function ApproveIntentDialog({
       }}
     >
       <AlertDialogContent size="sm" className={styles.dialogContent}>
-        <AlertDialogTitle className={styles.title}>
-          intent {action}하기
-        </AlertDialogTitle>
+        <AlertDialogTitle className={styles.title}>intent {action}하기</AlertDialogTitle>
         <AlertDialogDescription className={styles.description}>
           <strong>{intentName}</strong> intent를 {action} 처리합니다.
         </AlertDialogDescription>

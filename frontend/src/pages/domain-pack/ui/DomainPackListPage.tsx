@@ -40,10 +40,7 @@ export function DomainPackListPage() {
 
   if (query.isError) {
     return (
-      <ErrorState
-        message="도메인 팩 목록을 불러오지 못했습니다."
-        onRetry={() => query.refetch()}
-      />
+      <ErrorState message="도메인 팩 목록을 불러오지 못했습니다." onRetry={() => query.refetch()} />
     );
   }
 
@@ -134,9 +131,7 @@ export function DomainPackListPage() {
               {pack.name || `Pack ${pack.packId}`}
             </div>
             {pack.description && (
-              <div style={{ fontSize: "13px", color: "var(--ink-3)" }}>
-                {pack.description}
-              </div>
+              <div style={{ fontSize: "13px", color: "var(--ink-3)" }}>{pack.description}</div>
             )}
           </Link>
         ))}

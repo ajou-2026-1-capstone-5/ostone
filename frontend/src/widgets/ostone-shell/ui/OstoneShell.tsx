@@ -1,26 +1,31 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
-import { Sidebar, Topbar, type SidebarActive, type SidebarTreeData } from '@/shared/ui/ostone/chrome';
-import { useSidebarTreeData } from '@/shared/ui/ostone/chrome/useSidebarTreeData';
-import { WorkspaceMarker } from '@/shared/ui/ostone/chrome/WorkspaceMarker';
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useParams } from "react-router-dom";
+import {
+  Sidebar,
+  Topbar,
+  type SidebarActive,
+  type SidebarTreeData,
+} from "@/shared/ui/ostone/chrome";
+import { useSidebarTreeData } from "@/shared/ui/ostone/chrome/useSidebarTreeData";
+import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
 
-const COLLAPSED_STORAGE_KEY = 'ostone:sidebar:collapsed';
+const COLLAPSED_STORAGE_KEY = "ostone:sidebar:collapsed";
 
 function readPersistedCollapsed(): boolean {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === "undefined") return true;
   try {
     const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
     if (raw === null) return true;
-    return raw !== 'false';
+    return raw !== "false";
   } catch {
     return true;
   }
 }
 
 function persistCollapsed(value: boolean): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? 'true' : 'false');
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? "true" : "false");
   } catch {
     /* noop */
   }
@@ -73,7 +78,7 @@ export function OstoneShell({
   treeOverride,
 }: OstoneShellProps) {
   const { workspaceId } = useParams();
-  const resolvedBasePath = basePath ?? (workspaceId ? `/workspaces/${workspaceId}` : '/workspaces');
+  const resolvedBasePath = basePath ?? (workspaceId ? `/workspaces/${workspaceId}` : "/workspaces");
   const numericWorkspaceId = workspaceId ? Number(workspaceId) : null;
   const safeWorkspaceId =
     numericWorkspaceId !== null && Number.isFinite(numericWorkspaceId) ? numericWorkspaceId : null;
@@ -108,9 +113,9 @@ export function OstoneShell({
   return (
     <div
       style={{
-        display: 'flex',
-        height: '100vh',
-        background: dark ? 'var(--dark-bg)' : 'var(--paper)',
+        display: "flex",
+        height: "100vh",
+        background: dark ? "var(--dark-bg)" : "var(--paper)",
       }}
     >
       <div style={{ flexShrink: 0 }}>
@@ -123,15 +128,15 @@ export function OstoneShell({
       <div
         style={{
           flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
+          display: "flex",
+          flexDirection: "column",
           minWidth: 0,
         }}
       >
         <div style={{ flexShrink: 0 }}>
           <Topbar crumbs={crumbs} right={topbarRight} dark={dark} />
         </div>
-        <main style={{ flex: 1, overflow: 'auto' }}>{children}</main>
+        <main style={{ flex: 1, overflow: "auto" }}>{children}</main>
       </div>
     </div>
   );

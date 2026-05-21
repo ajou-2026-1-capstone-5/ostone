@@ -4,20 +4,22 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const LoginResponse = zod.object({
-  "accessToken": zod.string().optional(),
-  "refreshToken": zod.string().optional(),
-  "tokenType": zod.string().optional(),
-  "expiresIn": zod.number().optional(),
-  "user": zod.object({
-  "id": zod.number().optional(),
-  "email": zod.string().optional(),
-  "name": zod.string().optional(),
-  "role": zod.string().optional()
-}).optional()
-})
+  accessToken: zod.string().optional(),
+  refreshToken: zod.string().optional(),
+  tokenType: zod.string().optional(),
+  expiresIn: zod.number().optional(),
+  user: zod
+    .object({
+      id: zod.number().optional(),
+      email: zod.string().optional(),
+      name: zod.string().optional(),
+      role: zod.string().optional(),
+    })
+    .optional(),
+});
 
 export type LoginResponse = zod.input<typeof LoginResponse>;
 export type LoginResponseOutput = zod.output<typeof LoginResponse>;

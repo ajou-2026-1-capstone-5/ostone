@@ -11,18 +11,9 @@ export const NODE_TYPES: GraphNodeType[] = [
   "TERMINAL",
 ];
 
-export type GraphNodeStatus =
-  | "IDLE"
-  | "ACTIVE"
-  | "COMPLETED"
-  | "FAILED";
+export type GraphNodeStatus = "IDLE" | "ACTIVE" | "COMPLETED" | "FAILED";
 
-export const NODE_STATUSES: GraphNodeStatus[] = [
-  "IDLE",
-  "ACTIVE",
-  "COMPLETED",
-  "FAILED",
-];
+export const NODE_STATUSES: GraphNodeStatus[] = ["IDLE", "ACTIVE", "COMPLETED", "FAILED"];
 
 export interface GraphNodeStyleConfig {
   className: string;

@@ -69,8 +69,13 @@
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Message List */
@@ -103,7 +108,7 @@
 }
 
 .messageSelected::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -10px;
   top: 0;
@@ -134,7 +139,6 @@
   font-weight: 600;
   flex-shrink: 0;
 }
-
 
 .msgAvatarAgent {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -190,11 +194,10 @@
 }
 
 .internalNote {
-
-/* Internal Note */
-  background: rgba(0,0,0,0.04);
+  /* Internal Note */
+  background: rgba(0, 0, 0, 0.04);
   border: 1px dashed #000000;
-  color: rgba(0,0,0,0.7);
+  color: rgba(0, 0, 0, 0.7);
   align-self: flex-end;
   max-width: 75%;
 }
@@ -244,7 +247,6 @@
   margin-bottom: 6px;
 }
 
-
 .messageInput {
   flex: 1;
   min-height: 40px;
@@ -265,7 +267,6 @@
 .messageInput:focus {
   border-color: var(--primary-color);
 }
-
 
 .sendBtn {
   display: flex;
@@ -307,7 +308,6 @@
 .emptyChatIcon {
   color: rgba(0, 0, 0, 0.2);
 }
-
 
 .emptyChatText {
   font-size: 0.95rem;

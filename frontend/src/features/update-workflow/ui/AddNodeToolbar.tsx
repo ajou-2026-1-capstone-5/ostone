@@ -1,4 +1,5 @@
 import type { GraphNodeType } from "@/entities/workflow";
+import { renderNodeIcon } from "@/entities/workflow/lib/nodeUtils";
 import styles from "./addNodeToolbar.module.css";
 
 const NODE_TYPES: GraphNodeType[] = [
@@ -27,8 +28,12 @@ export function AddNodeToolbar({ onAddNode, disabledTypes = [] }: AddNodeToolbar
             className={styles.addNodeBtn}
             onClick={() => onAddNode(type)}
             disabled={isDisabled}
+            aria-label={`${type} 노드 추가`}
           >
-            + {type}
+            <span className={styles.addNodeBtnIcon} aria-hidden="true">
+              {renderNodeIcon(type, undefined, { size: 12 })}
+            </span>
+            {type}
           </button>
         );
       })}

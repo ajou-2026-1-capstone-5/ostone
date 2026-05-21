@@ -4,16 +4,16 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const DatasetUploadResponse = zod.object({
-  "datasetId": zod.number().optional(),
-  "datasetKey": zod.string().optional(),
-  "workspaceId": zod.number().optional(),
-  "status": zod.enum(['READY', 'PROCESSING', 'DONE', 'ERROR']).optional(),
-  "piiRedactionStatus": zod.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'ERROR']).optional(),
-  "conversationCount": zod.number().optional()
-})
+  datasetId: zod.number().optional(),
+  datasetKey: zod.string().optional(),
+  workspaceId: zod.number().optional(),
+  status: zod.enum(["READY", "PROCESSING", "DONE", "ERROR"]).optional(),
+  piiRedactionStatus: zod.enum(["PENDING", "IN_PROGRESS", "DONE", "ERROR"]).optional(),
+  conversationCount: zod.number().optional(),
+});
 
 export type DatasetUploadResponse = zod.input<typeof DatasetUploadResponse>;
 export type DatasetUploadResponseOutput = zod.output<typeof DatasetUploadResponse>;

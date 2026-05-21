@@ -24,7 +24,13 @@ export function useUpdateRiskStatus() {
 
   return useMutation({
     mutationKey: UPDATE_RISK_STATUS_MUTATION_KEY,
-    mutationFn: async ({ workspaceId, packId, versionId, riskId, status }: UpdateRiskStatusParams) => {
+    mutationFn: async ({
+      workspaceId,
+      packId,
+      versionId,
+      riskId,
+      status,
+    }: UpdateRiskStatusParams) => {
       const res = await updateRiskStatus(workspaceId, packId, versionId, riskId, { status });
       return res.data;
     },
@@ -61,7 +67,10 @@ export function useUpdateRiskStatus() {
       toast.error(RISK_ERROR_MESSAGES.STATUS_FAILED);
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      queryClient.setQueryData(["risk", "detail", workspaceId, packId, versionId, riskId] as const, updatedRisk);
+      queryClient.setQueryData(
+        ["risk", "detail", workspaceId, packId, versionId, riskId] as const,
+        updatedRisk,
+      );
       queryClient.setQueryData<RiskDefinitionSummary[]>(
         ["risk", "list", workspaceId, packId, versionId] as const,
         (old) =>

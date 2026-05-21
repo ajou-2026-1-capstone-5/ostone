@@ -1,15 +1,15 @@
-import type { UseQueryResult } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import type { DomainPackVersionDetail, DomainPackVersionSummary } from '@/entities/domain-pack';
-import { ApiRequestError } from '@/shared/api';
-import { useActivate } from '@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller';
-import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
-import { useDomainPackApprovalReadiness } from '../model/useDomainPackApprovalReadiness';
-import { resolveDomainPackApprovalErrorMessage } from '../model/resolveDomainPackApprovalErrorMessage';
-import { SummaryJsonCard } from './SummaryJsonCard';
-import { ComponentCountGrid } from './ComponentCountGrid';
-import { DomainPackApprovalCard } from './DomainPackApprovalCard';
-import styles from './SummaryDetailPanel.module.css';
+import type { UseQueryResult } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { DomainPackVersionDetail, DomainPackVersionSummary } from "@/entities/domain-pack";
+import { ApiRequestError } from "@/shared/api";
+import { useActivate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { useDomainPackApprovalReadiness } from "../model/useDomainPackApprovalReadiness";
+import { resolveDomainPackApprovalErrorMessage } from "../model/resolveDomainPackApprovalErrorMessage";
+import { SummaryJsonCard } from "./SummaryJsonCard";
+import { ComponentCountGrid } from "./ComponentCountGrid";
+import { DomainPackApprovalCard } from "./DomainPackApprovalCard";
+import styles from "./SummaryDetailPanel.module.css";
 
 interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
@@ -40,17 +40,17 @@ export function SummaryDetailPanel({
 
   const handleApprove = async () => {
     if (versionId == null) {
-      toast.error('승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.');
+      toast.error("승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.");
       return;
     }
 
     if (readiness.isLoading) {
-      toast.error('승인 준비 상태를 확인하는 중입니다.');
+      toast.error("승인 준비 상태를 확인하는 중입니다.");
       return;
     }
 
     if (!readiness.ready) {
-      toast.error(readiness.blockers[0]?.message ?? '승인 조건을 먼저 처리해 주세요.');
+      toast.error(readiness.blockers[0]?.message ?? "승인 조건을 먼저 처리해 주세요.");
       return;
     }
 
@@ -61,15 +61,15 @@ export function SummaryDetailPanel({
       return;
     }
 
-    toast.success('Domain Pack 버전이 승인되었습니다.');
+    toast.success("Domain Pack 버전이 승인되었습니다.");
 
     try {
       await query.refetch();
       await onActivated();
       readiness.retry();
     } catch (error) {
-      console.error('Failed to sync domain pack approval state', error);
-      toast.error('승인 후 화면 정보를 갱신하지 못했습니다.');
+      console.error("Failed to sync domain pack approval state", error);
+      toast.error("승인 후 화면 정보를 갱신하지 못했습니다.");
     }
   };
 
@@ -98,7 +98,7 @@ export function SummaryDetailPanel({
     return (
       <div className={styles.panel}>
         <ErrorState
-          message={is404 ? '버전을 찾을 수 없습니다.' : '버전 정보를 불러오지 못했습니다.'}
+          message={is404 ? "버전을 찾을 수 없습니다." : "버전 정보를 불러오지 못했습니다."}
           onRetry={!is404 ? () => query.refetch() : undefined}
         />
       </div>
@@ -114,7 +114,7 @@ export function SummaryDetailPanel({
           <span className={styles.versionNoLabel}>v{v.versionNo}</span>
           <span
             className={`${styles.badge} ${
-              v.lifecycleStatus === 'PUBLISHED' ? styles.badgePublished : ''
+              v.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : ""
             }`}
           >
             {v.lifecycleStatus}
@@ -135,7 +135,7 @@ export function SummaryDetailPanel({
       <DomainPackApprovalCard
         readiness={readiness}
         isActivating={activateMutation.isPending}
-        isPublished={v.lifecycleStatus === 'PUBLISHED'}
+        isPublished={v.lifecycleStatus === "PUBLISHED"}
         onApprove={handleApprove}
         onRetryReadiness={readiness.retry}
       />
@@ -167,7 +167,7 @@ export function SummaryDetailPanel({
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('ko-KR');
+    return new Date(iso).toLocaleString("ko-KR");
   } catch {
     return iso;
   }

@@ -4,106 +4,128 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
+  UseMutationResult,
+} from "@tanstack/react-query";
 
-import type {
-  CreateIntentRevisionDraftRequest,
-  IntentRevisionDraftResponse
-} from '../../zod';
+import type { CreateIntentRevisionDraftRequest, IntentRevisionDraftResponse } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type createResponse200 = {
-  data: IntentRevisionDraftResponse
-  status: 200
-}
+  data: IntentRevisionDraftResponse;
+  status: 200;
+};
 
-export type createResponseSuccess = (createResponse200) & {
+export type createResponseSuccess = createResponse200 & {
   headers: Headers;
 };
-;
 
-export type createResponse = (createResponseSuccess)
+export type createResponse = createResponseSuccess;
 
-export const getCreateUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,) => {
+export const getCreateUrl = (workspaceId: number, packId: number, versionId: number) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/revision-drafts`;
+};
 
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/revision-drafts`
-}
-
-export const create = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    createIntentRevisionDraftRequest?: CreateIntentRevisionDraftRequest, options?: RequestInit): Promise<createResponse> => {
-
-  return customFetch<createResponse>(getCreateUrl(workspaceId,packId,versionId),
-  {
+export const create = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  createIntentRevisionDraftRequest?: CreateIntentRevisionDraftRequest,
+  options?: RequestInit,
+): Promise<createResponse> => {
+  return customFetch<createResponse>(getCreateUrl(workspaceId, packId, versionId), {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createIntentRevisionDraftRequest,)
-  }
-);}
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createIntentRevisionDraftRequest),
+  });
+};
 
+export const getCreateMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof create>>,
+    TError,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      data?: CreateIntentRevisionDraftRequest;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof create>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    data?: CreateIntentRevisionDraftRequest;
+  },
+  TContext
+> => {
+  const mutationKey = ["create"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-
-
-export const getCreateMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateIntentRevisionDraftRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateIntentRevisionDraftRequest}, TContext> => {
-
-const mutationKey = ['create'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create>>, {workspaceId: number;packId: number;versionId: number;data?: CreateIntentRevisionDraftRequest}> = (props) => {
-          const {workspaceId,packId,versionId,data} = props ?? {};
-
-          return  create(workspaceId,packId,versionId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateMutationResult = NonNullable<Awaited<ReturnType<typeof create>>>
-    export type CreateMutationBody = CreateIntentRevisionDraftRequest | undefined
-    export type CreateMutationError = unknown
-
-    export const useCreate = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateIntentRevisionDraftRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create>>,
-        TError,
-        {workspaceId: number;packId: number;versionId: number;data?: CreateIntentRevisionDraftRequest},
-        TContext
-      > => {
-      return useMutation(getCreateMutationOptions(options), queryClient);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof create>>,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      data?: CreateIntentRevisionDraftRequest;
     }
+  > = (props) => {
+    const { workspaceId, packId, versionId, data } = props ?? {};
+
+    return create(workspaceId, packId, versionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMutationResult = NonNullable<Awaited<ReturnType<typeof create>>>;
+export type CreateMutationBody = CreateIntentRevisionDraftRequest | undefined;
+export type CreateMutationError = unknown;
+
+export const useCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof create>>,
+      TError,
+      {
+        workspaceId: number;
+        packId: number;
+        versionId: number;
+        data?: CreateIntentRevisionDraftRequest;
+      },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof create>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    data?: CreateIntentRevisionDraftRequest;
+  },
+  TContext
+> => {
+  return useMutation(getCreateMutationOptions(options), queryClient);
+};

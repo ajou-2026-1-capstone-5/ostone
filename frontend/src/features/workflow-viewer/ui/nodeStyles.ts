@@ -7,3 +7,10 @@ export const STATUS_MAP: Record<GraphNodeStatus, string> = {
   COMPLETED: theme.statusCompleted,
   FAILED: theme.statusFailed,
 };
+
+export {
+  resolveNodeIcon,
+  renderNodeIcon,
+  readBadges,
+  readString,
+} from "@/entities/workflow/lib/nodeUtils";

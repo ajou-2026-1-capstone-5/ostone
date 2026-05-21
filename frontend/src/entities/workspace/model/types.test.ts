@@ -42,9 +42,7 @@ describe("workspace model helpers", () => {
 
   it("maps workspace api errors to user-facing messages", () => {
     expect(
-      mapWorkspaceActionError(
-        new ApiRequestError(409, "WORKSPACE_KEY_CONFLICT", "duplicated"),
-      ),
+      mapWorkspaceActionError(new ApiRequestError(409, "WORKSPACE_KEY_CONFLICT", "duplicated")),
     ).toBe("이미 사용 중인 워크스페이스 키입니다.");
     expect(mapWorkspaceActionError(new Error("network"))).toBe("서버에 연결할 수 없습니다.");
   });

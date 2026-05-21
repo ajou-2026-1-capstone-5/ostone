@@ -5,6 +5,7 @@ export type {
   GraphNode,
   GraphEdge,
   GraphNodeType,
+  HandleSide,
   UpdateWorkflowRequest,
 } from "./model/types";
 
@@ -12,10 +13,7 @@ export type { WorkflowTransitionDetail } from "@/shared/api/generated/zod";
 
 export { toFlow, convertFlowToWorkflowGraph } from "./lib/graphConverter";
 
-export type {
-  GraphNodeStatus,
-  GraphNodeStyleConfig,
-} from "./model/nodeStatus";
+export type { GraphNodeStatus, GraphNodeStyleConfig } from "./model/nodeStatus";
 
 export {
   NODE_TYPES,

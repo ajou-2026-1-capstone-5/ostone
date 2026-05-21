@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const createDraftBodySummaryJsonMin = 0;
 export const createDraftBodySummaryJsonMax = 10000;
@@ -144,76 +144,273 @@ export const createDraftBodyIntentWorkflowBindingsItemRouteConditionJsonMax = 50
 export const createDraftBodyIntentWorkflowBindingsMin = 0;
 export const createDraftBodyIntentWorkflowBindingsMax = 500;
 
-
 export const CreateDraftBody = zod.object({
-  "sourcePipelineJobId": zod.number().optional(),
-  "summaryJson": zod.string().min(createDraftBodySummaryJsonMin).max(createDraftBodySummaryJsonMax).optional(),
-  "intents": zod.array(zod.object({
-  "intentCode": zod.string().min(createDraftBodyIntentsItemIntentCodeMin).max(createDraftBodyIntentsItemIntentCodeMax).optional(),
-  "name": zod.string().min(createDraftBodyIntentsItemNameMin).max(createDraftBodyIntentsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "taxonomyLevel": zod.number().optional(),
-  "parentIntentCode": zod.string().min(createDraftBodyIntentsItemParentIntentCodeMin).max(createDraftBodyIntentsItemParentIntentCodeMax).optional(),
-  "sourceClusterRef": zod.string().min(createDraftBodyIntentsItemSourceClusterRefMin).max(createDraftBodyIntentsItemSourceClusterRefMax).optional(),
-  "entryConditionJson": zod.string().min(createDraftBodyIntentsItemEntryConditionJsonMin).max(createDraftBodyIntentsItemEntryConditionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDraftBodyIntentsItemEvidenceJsonMin).max(createDraftBodyIntentsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDraftBodyIntentsItemMetaJsonMin).max(createDraftBodyIntentsItemMetaJsonMax).optional()
-})).min(createDraftBodyIntentsMin).max(createDraftBodyIntentsMax).optional(),
-  "slots": zod.array(zod.object({
-  "slotCode": zod.string().min(createDraftBodySlotsItemSlotCodeMin).max(createDraftBodySlotsItemSlotCodeMax).optional(),
-  "name": zod.string().min(createDraftBodySlotsItemNameMin).max(createDraftBodySlotsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "dataType": zod.string().min(createDraftBodySlotsItemDataTypeMin).max(createDraftBodySlotsItemDataTypeMax).optional(),
-  "isSensitive": zod.boolean().optional(),
-  "validationRuleJson": zod.string().min(createDraftBodySlotsItemValidationRuleJsonMin).max(createDraftBodySlotsItemValidationRuleJsonMax).optional(),
-  "defaultValueJson": zod.string().min(createDraftBodySlotsItemDefaultValueJsonMin).max(createDraftBodySlotsItemDefaultValueJsonMax).optional(),
-  "metaJson": zod.string().min(createDraftBodySlotsItemMetaJsonMin).max(createDraftBodySlotsItemMetaJsonMax).optional()
-})).min(createDraftBodySlotsMin).max(createDraftBodySlotsMax).optional(),
-  "intentSlotBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(createDraftBodyIntentSlotBindingsItemIntentCodeMin).max(createDraftBodyIntentSlotBindingsItemIntentCodeMax).optional(),
-  "slotCode": zod.string().min(createDraftBodyIntentSlotBindingsItemSlotCodeMin).max(createDraftBodyIntentSlotBindingsItemSlotCodeMax).optional(),
-  "isRequired": zod.boolean().optional(),
-  "collectionOrder": zod.number().optional(),
-  "promptHint": zod.string().optional(),
-  "conditionJson": zod.string().min(createDraftBodyIntentSlotBindingsItemConditionJsonMin).max(createDraftBodyIntentSlotBindingsItemConditionJsonMax).optional()
-})).min(createDraftBodyIntentSlotBindingsMin).max(createDraftBodyIntentSlotBindingsMax).optional(),
-  "policies": zod.array(zod.object({
-  "policyCode": zod.string().min(createDraftBodyPoliciesItemPolicyCodeMin).max(createDraftBodyPoliciesItemPolicyCodeMax).optional(),
-  "name": zod.string().min(createDraftBodyPoliciesItemNameMin).max(createDraftBodyPoliciesItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().min(createDraftBodyPoliciesItemSeverityMin).max(createDraftBodyPoliciesItemSeverityMax).optional(),
-  "conditionJson": zod.string().min(createDraftBodyPoliciesItemConditionJsonMin).max(createDraftBodyPoliciesItemConditionJsonMax).optional(),
-  "actionJson": zod.string().min(createDraftBodyPoliciesItemActionJsonMin).max(createDraftBodyPoliciesItemActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDraftBodyPoliciesItemEvidenceJsonMin).max(createDraftBodyPoliciesItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDraftBodyPoliciesItemMetaJsonMin).max(createDraftBodyPoliciesItemMetaJsonMax).optional()
-})).min(createDraftBodyPoliciesMin).max(createDraftBodyPoliciesMax).optional(),
-  "risks": zod.array(zod.object({
-  "riskCode": zod.string().min(createDraftBodyRisksItemRiskCodeMin).max(createDraftBodyRisksItemRiskCodeMax).optional(),
-  "name": zod.string().min(createDraftBodyRisksItemNameMin).max(createDraftBodyRisksItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "riskLevel": zod.string().min(createDraftBodyRisksItemRiskLevelMin).max(createDraftBodyRisksItemRiskLevelMax).optional(),
-  "triggerConditionJson": zod.string().min(createDraftBodyRisksItemTriggerConditionJsonMin).max(createDraftBodyRisksItemTriggerConditionJsonMax).optional(),
-  "handlingActionJson": zod.string().min(createDraftBodyRisksItemHandlingActionJsonMin).max(createDraftBodyRisksItemHandlingActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDraftBodyRisksItemEvidenceJsonMin).max(createDraftBodyRisksItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDraftBodyRisksItemMetaJsonMin).max(createDraftBodyRisksItemMetaJsonMax).optional()
-})).min(createDraftBodyRisksMin).max(createDraftBodyRisksMax).optional(),
-  "workflows": zod.array(zod.object({
-  "workflowCode": zod.string().min(createDraftBodyWorkflowsItemWorkflowCodeMin).max(createDraftBodyWorkflowsItemWorkflowCodeMax).optional(),
-  "name": zod.string().min(createDraftBodyWorkflowsItemNameMin).max(createDraftBodyWorkflowsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "graphJson": zod.string().min(createDraftBodyWorkflowsItemGraphJsonMin).max(createDraftBodyWorkflowsItemGraphJsonMax).optional(),
-  "initialState": zod.string().optional(),
-  "terminalStatesJson": zod.string().optional(),
-  "evidenceJson": zod.string().min(createDraftBodyWorkflowsItemEvidenceJsonMin).max(createDraftBodyWorkflowsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDraftBodyWorkflowsItemMetaJsonMin).max(createDraftBodyWorkflowsItemMetaJsonMax).optional()
-})).min(createDraftBodyWorkflowsMin).max(createDraftBodyWorkflowsMax).optional(),
-  "intentWorkflowBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(createDraftBodyIntentWorkflowBindingsItemIntentCodeMin).max(createDraftBodyIntentWorkflowBindingsItemIntentCodeMax).optional(),
-  "workflowCode": zod.string().min(createDraftBodyIntentWorkflowBindingsItemWorkflowCodeMin).max(createDraftBodyIntentWorkflowBindingsItemWorkflowCodeMax).optional(),
-  "isPrimary": zod.boolean().optional(),
-  "routeConditionJson": zod.string().min(createDraftBodyIntentWorkflowBindingsItemRouteConditionJsonMin).max(createDraftBodyIntentWorkflowBindingsItemRouteConditionJsonMax).optional()
-})).min(createDraftBodyIntentWorkflowBindingsMin).max(createDraftBodyIntentWorkflowBindingsMax).optional()
-})
+  sourcePipelineJobId: zod.number().optional(),
+  summaryJson: zod
+    .string()
+    .min(createDraftBodySummaryJsonMin)
+    .max(createDraftBodySummaryJsonMax)
+    .optional(),
+  intents: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDraftBodyIntentsItemIntentCodeMin)
+          .max(createDraftBodyIntentsItemIntentCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDraftBodyIntentsItemNameMin)
+          .max(createDraftBodyIntentsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        taxonomyLevel: zod.number().optional(),
+        parentIntentCode: zod
+          .string()
+          .min(createDraftBodyIntentsItemParentIntentCodeMin)
+          .max(createDraftBodyIntentsItemParentIntentCodeMax)
+          .optional(),
+        sourceClusterRef: zod
+          .string()
+          .min(createDraftBodyIntentsItemSourceClusterRefMin)
+          .max(createDraftBodyIntentsItemSourceClusterRefMax)
+          .optional(),
+        entryConditionJson: zod
+          .string()
+          .min(createDraftBodyIntentsItemEntryConditionJsonMin)
+          .max(createDraftBodyIntentsItemEntryConditionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDraftBodyIntentsItemEvidenceJsonMin)
+          .max(createDraftBodyIntentsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDraftBodyIntentsItemMetaJsonMin)
+          .max(createDraftBodyIntentsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyIntentsMin)
+    .max(createDraftBodyIntentsMax)
+    .optional(),
+  slots: zod
+    .array(
+      zod.object({
+        slotCode: zod
+          .string()
+          .min(createDraftBodySlotsItemSlotCodeMin)
+          .max(createDraftBodySlotsItemSlotCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDraftBodySlotsItemNameMin)
+          .max(createDraftBodySlotsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        dataType: zod
+          .string()
+          .min(createDraftBodySlotsItemDataTypeMin)
+          .max(createDraftBodySlotsItemDataTypeMax)
+          .optional(),
+        isSensitive: zod.boolean().optional(),
+        validationRuleJson: zod
+          .string()
+          .min(createDraftBodySlotsItemValidationRuleJsonMin)
+          .max(createDraftBodySlotsItemValidationRuleJsonMax)
+          .optional(),
+        defaultValueJson: zod
+          .string()
+          .min(createDraftBodySlotsItemDefaultValueJsonMin)
+          .max(createDraftBodySlotsItemDefaultValueJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDraftBodySlotsItemMetaJsonMin)
+          .max(createDraftBodySlotsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodySlotsMin)
+    .max(createDraftBodySlotsMax)
+    .optional(),
+  intentSlotBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDraftBodyIntentSlotBindingsItemIntentCodeMin)
+          .max(createDraftBodyIntentSlotBindingsItemIntentCodeMax)
+          .optional(),
+        slotCode: zod
+          .string()
+          .min(createDraftBodyIntentSlotBindingsItemSlotCodeMin)
+          .max(createDraftBodyIntentSlotBindingsItemSlotCodeMax)
+          .optional(),
+        isRequired: zod.boolean().optional(),
+        collectionOrder: zod.number().optional(),
+        promptHint: zod.string().optional(),
+        conditionJson: zod
+          .string()
+          .min(createDraftBodyIntentSlotBindingsItemConditionJsonMin)
+          .max(createDraftBodyIntentSlotBindingsItemConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyIntentSlotBindingsMin)
+    .max(createDraftBodyIntentSlotBindingsMax)
+    .optional(),
+  policies: zod
+    .array(
+      zod.object({
+        policyCode: zod
+          .string()
+          .min(createDraftBodyPoliciesItemPolicyCodeMin)
+          .max(createDraftBodyPoliciesItemPolicyCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDraftBodyPoliciesItemNameMin)
+          .max(createDraftBodyPoliciesItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        severity: zod
+          .string()
+          .min(createDraftBodyPoliciesItemSeverityMin)
+          .max(createDraftBodyPoliciesItemSeverityMax)
+          .optional(),
+        conditionJson: zod
+          .string()
+          .min(createDraftBodyPoliciesItemConditionJsonMin)
+          .max(createDraftBodyPoliciesItemConditionJsonMax)
+          .optional(),
+        actionJson: zod
+          .string()
+          .min(createDraftBodyPoliciesItemActionJsonMin)
+          .max(createDraftBodyPoliciesItemActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDraftBodyPoliciesItemEvidenceJsonMin)
+          .max(createDraftBodyPoliciesItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDraftBodyPoliciesItemMetaJsonMin)
+          .max(createDraftBodyPoliciesItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyPoliciesMin)
+    .max(createDraftBodyPoliciesMax)
+    .optional(),
+  risks: zod
+    .array(
+      zod.object({
+        riskCode: zod
+          .string()
+          .min(createDraftBodyRisksItemRiskCodeMin)
+          .max(createDraftBodyRisksItemRiskCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDraftBodyRisksItemNameMin)
+          .max(createDraftBodyRisksItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        riskLevel: zod
+          .string()
+          .min(createDraftBodyRisksItemRiskLevelMin)
+          .max(createDraftBodyRisksItemRiskLevelMax)
+          .optional(),
+        triggerConditionJson: zod
+          .string()
+          .min(createDraftBodyRisksItemTriggerConditionJsonMin)
+          .max(createDraftBodyRisksItemTriggerConditionJsonMax)
+          .optional(),
+        handlingActionJson: zod
+          .string()
+          .min(createDraftBodyRisksItemHandlingActionJsonMin)
+          .max(createDraftBodyRisksItemHandlingActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDraftBodyRisksItemEvidenceJsonMin)
+          .max(createDraftBodyRisksItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDraftBodyRisksItemMetaJsonMin)
+          .max(createDraftBodyRisksItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyRisksMin)
+    .max(createDraftBodyRisksMax)
+    .optional(),
+  workflows: zod
+    .array(
+      zod.object({
+        workflowCode: zod
+          .string()
+          .min(createDraftBodyWorkflowsItemWorkflowCodeMin)
+          .max(createDraftBodyWorkflowsItemWorkflowCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDraftBodyWorkflowsItemNameMin)
+          .max(createDraftBodyWorkflowsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        graphJson: zod
+          .string()
+          .min(createDraftBodyWorkflowsItemGraphJsonMin)
+          .max(createDraftBodyWorkflowsItemGraphJsonMax)
+          .optional(),
+        initialState: zod.string().optional(),
+        terminalStatesJson: zod.string().optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDraftBodyWorkflowsItemEvidenceJsonMin)
+          .max(createDraftBodyWorkflowsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDraftBodyWorkflowsItemMetaJsonMin)
+          .max(createDraftBodyWorkflowsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyWorkflowsMin)
+    .max(createDraftBodyWorkflowsMax)
+    .optional(),
+  intentWorkflowBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDraftBodyIntentWorkflowBindingsItemIntentCodeMin)
+          .max(createDraftBodyIntentWorkflowBindingsItemIntentCodeMax)
+          .optional(),
+        workflowCode: zod
+          .string()
+          .min(createDraftBodyIntentWorkflowBindingsItemWorkflowCodeMin)
+          .max(createDraftBodyIntentWorkflowBindingsItemWorkflowCodeMax)
+          .optional(),
+        isPrimary: zod.boolean().optional(),
+        routeConditionJson: zod
+          .string()
+          .min(createDraftBodyIntentWorkflowBindingsItemRouteConditionJsonMin)
+          .max(createDraftBodyIntentWorkflowBindingsItemRouteConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDraftBodyIntentWorkflowBindingsMin)
+    .max(createDraftBodyIntentWorkflowBindingsMax)
+    .optional(),
+});
 
 export type CreateDraftBody = zod.input<typeof CreateDraftBody>;
 export type CreateDraftBodyOutput = zod.output<typeof CreateDraftBody>;

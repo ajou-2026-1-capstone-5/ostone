@@ -4,17 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
-
-
+import { z as zod } from "zod";
 
 export const UpdateWorkflowBody = zod.object({
-  "name": zod.string().min(1).optional(),
-  "description": zod.string().optional(),
-  "graphJson": zod.looseObject({
-
-})
-})
+  name: zod.string().min(1).optional(),
+  description: zod.string().optional(),
+  graphJson: zod.looseObject({}),
+});
 
 export type UpdateWorkflowBody = zod.input<typeof UpdateWorkflowBody>;
 export type UpdateWorkflowBodyOutput = zod.output<typeof UpdateWorkflowBody>;

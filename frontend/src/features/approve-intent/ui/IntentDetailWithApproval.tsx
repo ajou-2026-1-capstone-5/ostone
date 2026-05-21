@@ -10,7 +10,7 @@ import {
 
 function normalizeIntentStatus(
   raw: string,
-  override: IntentApprovalStatus | null
+  override: IntentApprovalStatus | null,
 ): "DRAFT" | IntentApprovalStatus {
   const effective = override ?? raw;
   if (effective === "DRAFT" || effective === "PUBLISHED" || effective === "REJECTED") {
@@ -58,8 +58,7 @@ export function IntentDetailWithApproval({
 
   const handleConfirm = () => {
     if (dialogAction === null) return;
-    const status: IntentApprovalStatus =
-      dialogAction === "publish" ? "PUBLISHED" : "REJECTED";
+    const status: IntentApprovalStatus = dialogAction === "publish" ? "PUBLISHED" : "REJECTED";
     mutation.mutate(status);
   };
 

@@ -1,10 +1,14 @@
 import { ApiRequestError } from "@/shared/api";
 
-export type { CreateWorkspaceRequest, UpdateWorkspaceRequest, WorkspaceResponse } from "@/shared/api/generated/zod";
+export type {
+  CreateWorkspaceRequest,
+  UpdateWorkspaceRequest,
+  WorkspaceResponse,
+} from "@/shared/api/generated/zod";
 
 export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
 export const WORKSPACE_MEMBER_ROLES = ["OWNER", "ADMIN", "REVIEWER", "OPERATOR"] as const;
-export type WorkspaceMemberRole = typeof WORKSPACE_MEMBER_ROLES[number];
+export type WorkspaceMemberRole = (typeof WORKSPACE_MEMBER_ROLES)[number];
 
 export interface WorkspaceFieldErrors {
   name?: string;
@@ -13,10 +17,7 @@ export interface WorkspaceFieldErrors {
 
 export const WORKSPACE_KEY_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
-function validateWorkspaceForm(
-  name: string,
-  description: string,
-): WorkspaceFieldErrors {
+function validateWorkspaceForm(name: string, description: string): WorkspaceFieldErrors {
   const errors: WorkspaceFieldErrors = {};
   const trimmedName = name.trim();
   const trimmedDescription = description.trim();
@@ -63,12 +64,17 @@ export function generateWorkspaceKey(name: string): string {
   return candidate;
 }
 
-export function normalizeWorkspaceMemberRole(role: string | null | undefined): WorkspaceMemberRole | null {
+export function normalizeWorkspaceMemberRole(
+  role: string | null | undefined,
+): WorkspaceMemberRole | null {
   if (!role) {
     return null;
   }
 
-  const normalized = role.trim().toUpperCase().replace(/^ROLE_/, "");
+  const normalized = role
+    .trim()
+    .toUpperCase()
+    .replace(/^ROLE_/, "");
   return WORKSPACE_MEMBER_ROLES.find((candidate) => candidate === normalized) ?? null;
 }
 

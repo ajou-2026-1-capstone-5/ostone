@@ -27,9 +27,7 @@ describe("parseIntentRevisionDraftSource", () => {
   it("파싱 실패나 baseVersionId 누락은 null로 처리한다", () => {
     expect(parseIntentRevisionDraftSource("{bad json}")).toBeNull();
     expect(
-      parseIntentRevisionDraftSource(
-        JSON.stringify({ draftSource: { type: "INTENT_REVISION" } }),
-      ),
+      parseIntentRevisionDraftSource(JSON.stringify({ draftSource: { type: "INTENT_REVISION" } })),
     ).toBeNull();
   });
 

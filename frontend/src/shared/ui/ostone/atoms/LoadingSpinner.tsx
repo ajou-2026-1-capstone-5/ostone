@@ -1,5 +1,5 @@
-import styles from './LoadingSpinner.module.css';
-import { cn } from '@/shared/lib/utils';
+import styles from "./LoadingSpinner.module.css";
+import { cn } from "@/shared/lib/utils";
 
 interface LoadingSpinnerProps {
   className?: string;

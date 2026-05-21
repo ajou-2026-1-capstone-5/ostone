@@ -22,7 +22,13 @@ export function useUpdateSlotStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: UPDATE_SLOT_STATUS_MUTATION_KEY,
-    mutationFn: async ({ workspaceId, packId, versionId, slotId, status }: UpdateSlotStatusParams) => {
+    mutationFn: async ({
+      workspaceId,
+      packId,
+      versionId,
+      slotId,
+      status,
+    }: UpdateSlotStatusParams) => {
       const res = await updateSlotStatus(workspaceId, packId, versionId, slotId, { status });
       return res.data;
     },

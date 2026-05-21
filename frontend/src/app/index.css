@@ -1,23 +1,25 @@
-@import url('../shared/ui/ostone/tokens.css');
+@import url("../shared/ui/ostone/tokens.css");
 
 @font-face {
-  font-family: 'Pretendard Variable';
+  font-family: "Pretendard Variable";
   font-weight: 45 920;
   font-style: normal;
   font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+  src: url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2")
+    format("woff2-variations");
 }
 @font-face {
-  font-family: 'Geist Mono';
+  font-family: "Geist Mono";
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
-  src: url('https://cdn.jsdelivr.net/npm/geist@1/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2-variations');
+  src: url("https://cdn.jsdelivr.net/npm/geist@1/dist/fonts/geist-mono/GeistMono-Variable.woff2")
+    format("woff2-variations");
 }
 
 :root {
-  --font-sans: 'pretendard variable', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', monospace;
+  --font-sans: "pretendard variable", -apple-system, blinkmacsystemfont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", monospace;
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 15px;
@@ -63,6 +65,52 @@
   --divider-subtle: rgba(0, 0, 0, 0.04);
   --app-header-height: 72px;
   --overlay-bg: rgba(0, 0, 0, 0.45);
+
+  /* ---- Workflow node category palette (oklch) ---------------------------
+     Used by frontend/src/shared/styles/workflow-node-theme.module.css
+     and frontend/src/features/workflow-viewer/ui/nodes/*.tsx
+     Naming convention: --node-{kind}-{50|100|500|600}
+  */
+  --node-violet-50: oklch(0.975 0.015 285);
+  --node-violet-100: oklch(0.94 0.05 285);
+  --node-violet-500: oklch(0.62 0.22 285);
+  --node-violet-600: oklch(0.55 0.22 285);
+
+  --node-indigo-50: oklch(0.975 0.015 265);
+  --node-indigo-100: oklch(0.94 0.05 265);
+  --node-indigo-500: oklch(0.58 0.2 265);
+  --node-indigo-600: oklch(0.5 0.2 265);
+
+  --node-amber-50: oklch(0.98 0.025 80);
+  --node-amber-100: oklch(0.95 0.07 80);
+  --node-amber-500: oklch(0.78 0.16 75);
+  --node-amber-600: oklch(0.7 0.18 70);
+
+  --node-sky-50: oklch(0.975 0.015 230);
+  --node-sky-100: oklch(0.94 0.06 230);
+  --node-sky-500: oklch(0.7 0.13 230);
+  --node-sky-600: oklch(0.6 0.15 230);
+
+  --node-rose-50: oklch(0.975 0.015 15);
+  --node-rose-100: oklch(0.94 0.06 15);
+  --node-rose-500: oklch(0.68 0.18 15);
+  --node-rose-600: oklch(0.6 0.2 15);
+
+  --node-zinc-50: oklch(0.975 0 0);
+  --node-zinc-100: oklch(0.93 0.003 270);
+  --node-zinc-500: oklch(0.55 0.005 270);
+  --node-zinc-700: oklch(0.35 0.01 270);
+
+  --node-canvas-bg: oklch(0.985 0.005 250);
+  --node-canvas-dot: oklch(0.92 0.005 250);
+
+  --node-status-active: oklch(0.62 0.18 285);
+
+  --node-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06);
+  --node-shadow-active: 0 0 0 3px oklch(0.62 0.22 285 / 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+
+  --radius-card: 12px;
+  --radius-pill: 999px;
 }
 
 * {

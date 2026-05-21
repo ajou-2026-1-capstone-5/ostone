@@ -67,11 +67,7 @@ class ApiClient {
         clearAuthSession();
       }
 
-      throw new ApiRequestError(
-        response.status,
-        errorData.code,
-        errorData.message,
-      );
+      throw new ApiRequestError(response.status, errorData.code, errorData.message);
     }
 
     if (response.status === 204) {
@@ -96,19 +92,25 @@ class ApiClient {
 
   async request<T>(path: string, options: RequestInit): Promise<T> {
     let body = options.body;
-    if (body && typeof body === "object" && !ArrayBuffer.isView(body as ArrayBufferView | null) && !(body instanceof Blob) && !(body instanceof FormData) && !(body instanceof URLSearchParams)) {
+    if (
+      body &&
+      typeof body === "object" &&
+      !ArrayBuffer.isView(body as ArrayBufferView | null) &&
+      !(body instanceof Blob) &&
+      !(body instanceof FormData) &&
+      !(body instanceof URLSearchParams)
+    ) {
       body = JSON.stringify(body);
     }
 
     const { headers: baseHeaders, hasSessionAuthHeader } = this.getHeaders(path);
     const headers = new Headers(baseHeaders);
     if (body instanceof FormData || body instanceof Blob || body instanceof URLSearchParams) {
-      headers.delete('Content-Type');
+      headers.delete("Content-Type");
     }
     if (options.headers) {
-      const extra = options.headers instanceof Headers
-        ? Object.fromEntries(options.headers)
-        : options.headers;
+      const extra =
+        options.headers instanceof Headers ? Object.fromEntries(options.headers) : options.headers;
       new Headers(extra).forEach((v, k) => headers.set(k, v));
     }
 
@@ -151,7 +153,7 @@ class ApiClient {
   async delete<T>(path: string): Promise<T> {
     const { headers, hasSessionAuthHeader } = this.getHeaders(path);
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers,
     });
 

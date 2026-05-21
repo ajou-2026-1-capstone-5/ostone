@@ -5,8 +5,11 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
-  margin-bottom: 8px;
-  transition: box-shadow 120ms ease, transform 120ms ease;
+  /* margin-bottom is meaningless inside a CSS grid — spacing comes from the
+     parent's row-gap (workflow-list-view.module.css .masonry). */
+  transition:
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .card:hover {

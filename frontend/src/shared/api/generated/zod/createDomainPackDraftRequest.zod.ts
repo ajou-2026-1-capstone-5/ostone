@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const createDomainPackDraftRequestSummaryJsonMin = 0;
 export const createDomainPackDraftRequestSummaryJsonMax = 10000;
@@ -144,76 +144,273 @@ export const createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditio
 export const createDomainPackDraftRequestIntentWorkflowBindingsMin = 0;
 export const createDomainPackDraftRequestIntentWorkflowBindingsMax = 500;
 
-
 export const CreateDomainPackDraftRequest = zod.object({
-  "sourcePipelineJobId": zod.number().optional(),
-  "summaryJson": zod.string().min(createDomainPackDraftRequestSummaryJsonMin).max(createDomainPackDraftRequestSummaryJsonMax).optional(),
-  "intents": zod.array(zod.object({
-  "intentCode": zod.string().min(createDomainPackDraftRequestIntentsItemIntentCodeMin).max(createDomainPackDraftRequestIntentsItemIntentCodeMax).optional(),
-  "name": zod.string().min(createDomainPackDraftRequestIntentsItemNameMin).max(createDomainPackDraftRequestIntentsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "taxonomyLevel": zod.number().optional(),
-  "parentIntentCode": zod.string().min(createDomainPackDraftRequestIntentsItemParentIntentCodeMin).max(createDomainPackDraftRequestIntentsItemParentIntentCodeMax).optional(),
-  "sourceClusterRef": zod.string().min(createDomainPackDraftRequestIntentsItemSourceClusterRefMin).max(createDomainPackDraftRequestIntentsItemSourceClusterRefMax).optional(),
-  "entryConditionJson": zod.string().min(createDomainPackDraftRequestIntentsItemEntryConditionJsonMin).max(createDomainPackDraftRequestIntentsItemEntryConditionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDomainPackDraftRequestIntentsItemEvidenceJsonMin).max(createDomainPackDraftRequestIntentsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDomainPackDraftRequestIntentsItemMetaJsonMin).max(createDomainPackDraftRequestIntentsItemMetaJsonMax).optional()
-})).min(createDomainPackDraftRequestIntentsMin).max(createDomainPackDraftRequestIntentsMax).optional(),
-  "slots": zod.array(zod.object({
-  "slotCode": zod.string().min(createDomainPackDraftRequestSlotsItemSlotCodeMin).max(createDomainPackDraftRequestSlotsItemSlotCodeMax).optional(),
-  "name": zod.string().min(createDomainPackDraftRequestSlotsItemNameMin).max(createDomainPackDraftRequestSlotsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "dataType": zod.string().min(createDomainPackDraftRequestSlotsItemDataTypeMin).max(createDomainPackDraftRequestSlotsItemDataTypeMax).optional(),
-  "isSensitive": zod.boolean().optional(),
-  "validationRuleJson": zod.string().min(createDomainPackDraftRequestSlotsItemValidationRuleJsonMin).max(createDomainPackDraftRequestSlotsItemValidationRuleJsonMax).optional(),
-  "defaultValueJson": zod.string().min(createDomainPackDraftRequestSlotsItemDefaultValueJsonMin).max(createDomainPackDraftRequestSlotsItemDefaultValueJsonMax).optional(),
-  "metaJson": zod.string().min(createDomainPackDraftRequestSlotsItemMetaJsonMin).max(createDomainPackDraftRequestSlotsItemMetaJsonMax).optional()
-})).min(createDomainPackDraftRequestSlotsMin).max(createDomainPackDraftRequestSlotsMax).optional(),
-  "intentSlotBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(createDomainPackDraftRequestIntentSlotBindingsItemIntentCodeMin).max(createDomainPackDraftRequestIntentSlotBindingsItemIntentCodeMax).optional(),
-  "slotCode": zod.string().min(createDomainPackDraftRequestIntentSlotBindingsItemSlotCodeMin).max(createDomainPackDraftRequestIntentSlotBindingsItemSlotCodeMax).optional(),
-  "isRequired": zod.boolean().optional(),
-  "collectionOrder": zod.number().optional(),
-  "promptHint": zod.string().optional(),
-  "conditionJson": zod.string().min(createDomainPackDraftRequestIntentSlotBindingsItemConditionJsonMin).max(createDomainPackDraftRequestIntentSlotBindingsItemConditionJsonMax).optional()
-})).min(createDomainPackDraftRequestIntentSlotBindingsMin).max(createDomainPackDraftRequestIntentSlotBindingsMax).optional(),
-  "policies": zod.array(zod.object({
-  "policyCode": zod.string().min(createDomainPackDraftRequestPoliciesItemPolicyCodeMin).max(createDomainPackDraftRequestPoliciesItemPolicyCodeMax).optional(),
-  "name": zod.string().min(createDomainPackDraftRequestPoliciesItemNameMin).max(createDomainPackDraftRequestPoliciesItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().min(createDomainPackDraftRequestPoliciesItemSeverityMin).max(createDomainPackDraftRequestPoliciesItemSeverityMax).optional(),
-  "conditionJson": zod.string().min(createDomainPackDraftRequestPoliciesItemConditionJsonMin).max(createDomainPackDraftRequestPoliciesItemConditionJsonMax).optional(),
-  "actionJson": zod.string().min(createDomainPackDraftRequestPoliciesItemActionJsonMin).max(createDomainPackDraftRequestPoliciesItemActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDomainPackDraftRequestPoliciesItemEvidenceJsonMin).max(createDomainPackDraftRequestPoliciesItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDomainPackDraftRequestPoliciesItemMetaJsonMin).max(createDomainPackDraftRequestPoliciesItemMetaJsonMax).optional()
-})).min(createDomainPackDraftRequestPoliciesMin).max(createDomainPackDraftRequestPoliciesMax).optional(),
-  "risks": zod.array(zod.object({
-  "riskCode": zod.string().min(createDomainPackDraftRequestRisksItemRiskCodeMin).max(createDomainPackDraftRequestRisksItemRiskCodeMax).optional(),
-  "name": zod.string().min(createDomainPackDraftRequestRisksItemNameMin).max(createDomainPackDraftRequestRisksItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "riskLevel": zod.string().min(createDomainPackDraftRequestRisksItemRiskLevelMin).max(createDomainPackDraftRequestRisksItemRiskLevelMax).optional(),
-  "triggerConditionJson": zod.string().min(createDomainPackDraftRequestRisksItemTriggerConditionJsonMin).max(createDomainPackDraftRequestRisksItemTriggerConditionJsonMax).optional(),
-  "handlingActionJson": zod.string().min(createDomainPackDraftRequestRisksItemHandlingActionJsonMin).max(createDomainPackDraftRequestRisksItemHandlingActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(createDomainPackDraftRequestRisksItemEvidenceJsonMin).max(createDomainPackDraftRequestRisksItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDomainPackDraftRequestRisksItemMetaJsonMin).max(createDomainPackDraftRequestRisksItemMetaJsonMax).optional()
-})).min(createDomainPackDraftRequestRisksMin).max(createDomainPackDraftRequestRisksMax).optional(),
-  "workflows": zod.array(zod.object({
-  "workflowCode": zod.string().min(createDomainPackDraftRequestWorkflowsItemWorkflowCodeMin).max(createDomainPackDraftRequestWorkflowsItemWorkflowCodeMax).optional(),
-  "name": zod.string().min(createDomainPackDraftRequestWorkflowsItemNameMin).max(createDomainPackDraftRequestWorkflowsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "graphJson": zod.string().min(createDomainPackDraftRequestWorkflowsItemGraphJsonMin).max(createDomainPackDraftRequestWorkflowsItemGraphJsonMax).optional(),
-  "initialState": zod.string().optional(),
-  "terminalStatesJson": zod.string().optional(),
-  "evidenceJson": zod.string().min(createDomainPackDraftRequestWorkflowsItemEvidenceJsonMin).max(createDomainPackDraftRequestWorkflowsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(createDomainPackDraftRequestWorkflowsItemMetaJsonMin).max(createDomainPackDraftRequestWorkflowsItemMetaJsonMax).optional()
-})).min(createDomainPackDraftRequestWorkflowsMin).max(createDomainPackDraftRequestWorkflowsMax).optional(),
-  "intentWorkflowBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMin).max(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMax).optional(),
-  "workflowCode": zod.string().min(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMin).max(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMax).optional(),
-  "isPrimary": zod.boolean().optional(),
-  "routeConditionJson": zod.string().min(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMin).max(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMax).optional()
-})).min(createDomainPackDraftRequestIntentWorkflowBindingsMin).max(createDomainPackDraftRequestIntentWorkflowBindingsMax).optional()
-})
+  sourcePipelineJobId: zod.number().optional(),
+  summaryJson: zod
+    .string()
+    .min(createDomainPackDraftRequestSummaryJsonMin)
+    .max(createDomainPackDraftRequestSummaryJsonMax)
+    .optional(),
+  intents: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemIntentCodeMin)
+          .max(createDomainPackDraftRequestIntentsItemIntentCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemNameMin)
+          .max(createDomainPackDraftRequestIntentsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        taxonomyLevel: zod.number().optional(),
+        parentIntentCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemParentIntentCodeMin)
+          .max(createDomainPackDraftRequestIntentsItemParentIntentCodeMax)
+          .optional(),
+        sourceClusterRef: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemSourceClusterRefMin)
+          .max(createDomainPackDraftRequestIntentsItemSourceClusterRefMax)
+          .optional(),
+        entryConditionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemEntryConditionJsonMin)
+          .max(createDomainPackDraftRequestIntentsItemEntryConditionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemEvidenceJsonMin)
+          .max(createDomainPackDraftRequestIntentsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentsItemMetaJsonMin)
+          .max(createDomainPackDraftRequestIntentsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestIntentsMin)
+    .max(createDomainPackDraftRequestIntentsMax)
+    .optional(),
+  slots: zod
+    .array(
+      zod.object({
+        slotCode: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemSlotCodeMin)
+          .max(createDomainPackDraftRequestSlotsItemSlotCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemNameMin)
+          .max(createDomainPackDraftRequestSlotsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        dataType: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemDataTypeMin)
+          .max(createDomainPackDraftRequestSlotsItemDataTypeMax)
+          .optional(),
+        isSensitive: zod.boolean().optional(),
+        validationRuleJson: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemValidationRuleJsonMin)
+          .max(createDomainPackDraftRequestSlotsItemValidationRuleJsonMax)
+          .optional(),
+        defaultValueJson: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemDefaultValueJsonMin)
+          .max(createDomainPackDraftRequestSlotsItemDefaultValueJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDomainPackDraftRequestSlotsItemMetaJsonMin)
+          .max(createDomainPackDraftRequestSlotsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestSlotsMin)
+    .max(createDomainPackDraftRequestSlotsMax)
+    .optional(),
+  intentSlotBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentSlotBindingsItemIntentCodeMin)
+          .max(createDomainPackDraftRequestIntentSlotBindingsItemIntentCodeMax)
+          .optional(),
+        slotCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentSlotBindingsItemSlotCodeMin)
+          .max(createDomainPackDraftRequestIntentSlotBindingsItemSlotCodeMax)
+          .optional(),
+        isRequired: zod.boolean().optional(),
+        collectionOrder: zod.number().optional(),
+        promptHint: zod.string().optional(),
+        conditionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentSlotBindingsItemConditionJsonMin)
+          .max(createDomainPackDraftRequestIntentSlotBindingsItemConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestIntentSlotBindingsMin)
+    .max(createDomainPackDraftRequestIntentSlotBindingsMax)
+    .optional(),
+  policies: zod
+    .array(
+      zod.object({
+        policyCode: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemPolicyCodeMin)
+          .max(createDomainPackDraftRequestPoliciesItemPolicyCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemNameMin)
+          .max(createDomainPackDraftRequestPoliciesItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        severity: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemSeverityMin)
+          .max(createDomainPackDraftRequestPoliciesItemSeverityMax)
+          .optional(),
+        conditionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemConditionJsonMin)
+          .max(createDomainPackDraftRequestPoliciesItemConditionJsonMax)
+          .optional(),
+        actionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemActionJsonMin)
+          .max(createDomainPackDraftRequestPoliciesItemActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemEvidenceJsonMin)
+          .max(createDomainPackDraftRequestPoliciesItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDomainPackDraftRequestPoliciesItemMetaJsonMin)
+          .max(createDomainPackDraftRequestPoliciesItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestPoliciesMin)
+    .max(createDomainPackDraftRequestPoliciesMax)
+    .optional(),
+  risks: zod
+    .array(
+      zod.object({
+        riskCode: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemRiskCodeMin)
+          .max(createDomainPackDraftRequestRisksItemRiskCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemNameMin)
+          .max(createDomainPackDraftRequestRisksItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        riskLevel: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemRiskLevelMin)
+          .max(createDomainPackDraftRequestRisksItemRiskLevelMax)
+          .optional(),
+        triggerConditionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemTriggerConditionJsonMin)
+          .max(createDomainPackDraftRequestRisksItemTriggerConditionJsonMax)
+          .optional(),
+        handlingActionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemHandlingActionJsonMin)
+          .max(createDomainPackDraftRequestRisksItemHandlingActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemEvidenceJsonMin)
+          .max(createDomainPackDraftRequestRisksItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDomainPackDraftRequestRisksItemMetaJsonMin)
+          .max(createDomainPackDraftRequestRisksItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestRisksMin)
+    .max(createDomainPackDraftRequestRisksMax)
+    .optional(),
+  workflows: zod
+    .array(
+      zod.object({
+        workflowCode: zod
+          .string()
+          .min(createDomainPackDraftRequestWorkflowsItemWorkflowCodeMin)
+          .max(createDomainPackDraftRequestWorkflowsItemWorkflowCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(createDomainPackDraftRequestWorkflowsItemNameMin)
+          .max(createDomainPackDraftRequestWorkflowsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        graphJson: zod
+          .string()
+          .min(createDomainPackDraftRequestWorkflowsItemGraphJsonMin)
+          .max(createDomainPackDraftRequestWorkflowsItemGraphJsonMax)
+          .optional(),
+        initialState: zod.string().optional(),
+        terminalStatesJson: zod.string().optional(),
+        evidenceJson: zod
+          .string()
+          .min(createDomainPackDraftRequestWorkflowsItemEvidenceJsonMin)
+          .max(createDomainPackDraftRequestWorkflowsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(createDomainPackDraftRequestWorkflowsItemMetaJsonMin)
+          .max(createDomainPackDraftRequestWorkflowsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestWorkflowsMin)
+    .max(createDomainPackDraftRequestWorkflowsMax)
+    .optional(),
+  intentWorkflowBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMin)
+          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMax)
+          .optional(),
+        workflowCode: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMin)
+          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMax)
+          .optional(),
+        isPrimary: zod.boolean().optional(),
+        routeConditionJson: zod
+          .string()
+          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMin)
+          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(createDomainPackDraftRequestIntentWorkflowBindingsMin)
+    .max(createDomainPackDraftRequestIntentWorkflowBindingsMax)
+    .optional(),
+});
 
 export type CreateDomainPackDraftRequest = zod.input<typeof CreateDomainPackDraftRequest>;
 export type CreateDomainPackDraftRequestOutput = zod.output<typeof CreateDomainPackDraftRequest>;

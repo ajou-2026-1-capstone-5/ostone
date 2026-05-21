@@ -4,90 +4,128 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const DemoChatWorkflowResponse = zod.object({
-  "domainPack": zod.object({
-  "id": zod.string().optional(),
-  "name": zod.string().optional(),
-  "version": zod.string().optional(),
-  "status": zod.string().optional(),
-  "intents": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional()
-})).optional(),
-  "policies": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().optional()
-})).optional(),
-  "risks": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional(),
-  "level": zod.string().optional()
-})).optional()
-}).optional(),
-  "workflow": zod.object({
-  "id": zod.string().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional(),
-  "states": zod.array(zod.string()).optional(),
-  "transitions": zod.array(zod.object({
-  "from": zod.string().optional(),
-  "to": zod.string().optional(),
-  "on": zod.string().optional()
-})).optional()
-}).optional(),
-  "chatSession": zod.object({
-  "id": zod.string().optional(),
-  "status": zod.string().optional(),
-  "startedAt": zod.string().optional(),
-  "completedAt": zod.string().optional()
-}).optional(),
-  "messages": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "role": zod.string().optional(),
-  "content": zod.string().optional(),
-  "timestamp": zod.string().optional()
-})).optional(),
-  "execution": zod.object({
-  "id": zod.string().optional(),
-  "status": zod.string().optional(),
-  "currentState": zod.string().optional(),
-  "currentNodeId": zod.string().optional(),
-  "intent": zod.string().optional(),
-  "slotValues": zod.record(zod.string(), zod.looseObject({
-
-})).optional(),
-  "missingSlots": zod.array(zod.string()).optional(),
-  "policyHits": zod.array(zod.object({
-  "policyId": zod.string().optional(),
-  "policyName": zod.string().optional(),
-  "result": zod.string().optional(),
-  "detail": zod.string().optional()
-})).optional(),
-  "riskHits": zod.array(zod.object({
-  "riskId": zod.string().optional(),
-  "riskName": zod.string().optional(),
-  "result": zod.string().optional(),
-  "detail": zod.string().optional()
-})).optional()
-}).optional(),
-  "decisionLogs": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "step": zod.number().optional(),
-  "messageId": zod.string().optional(),
-  "eventType": zod.string().optional(),
-  "stateFrom": zod.string().optional(),
-  "stateTo": zod.string().optional(),
-  "decision": zod.string().optional(),
-  "confidence": zod.number().optional(),
-  "reason": zod.string().optional()
-})).optional()
-})
+  domainPack: zod
+    .object({
+      id: zod.string().optional(),
+      name: zod.string().optional(),
+      version: zod.string().optional(),
+      status: zod.string().optional(),
+      intents: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            name: zod.string().optional(),
+            description: zod.string().optional(),
+          }),
+        )
+        .optional(),
+      policies: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            name: zod.string().optional(),
+            description: zod.string().optional(),
+            severity: zod.string().optional(),
+          }),
+        )
+        .optional(),
+      risks: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            name: zod.string().optional(),
+            description: zod.string().optional(),
+            level: zod.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  workflow: zod
+    .object({
+      id: zod.string().optional(),
+      name: zod.string().optional(),
+      description: zod.string().optional(),
+      states: zod.array(zod.string()).optional(),
+      transitions: zod
+        .array(
+          zod.object({
+            from: zod.string().optional(),
+            to: zod.string().optional(),
+            on: zod.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  chatSession: zod
+    .object({
+      id: zod.string().optional(),
+      status: zod.string().optional(),
+      startedAt: zod.string().optional(),
+      completedAt: zod.string().optional(),
+    })
+    .optional(),
+  messages: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        role: zod.string().optional(),
+        content: zod.string().optional(),
+        timestamp: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  execution: zod
+    .object({
+      id: zod.string().optional(),
+      status: zod.string().optional(),
+      currentState: zod.string().optional(),
+      currentNodeId: zod.string().optional(),
+      intent: zod.string().optional(),
+      slotValues: zod.record(zod.string(), zod.looseObject({})).optional(),
+      missingSlots: zod.array(zod.string()).optional(),
+      policyHits: zod
+        .array(
+          zod.object({
+            policyId: zod.string().optional(),
+            policyName: zod.string().optional(),
+            result: zod.string().optional(),
+            detail: zod.string().optional(),
+          }),
+        )
+        .optional(),
+      riskHits: zod
+        .array(
+          zod.object({
+            riskId: zod.string().optional(),
+            riskName: zod.string().optional(),
+            result: zod.string().optional(),
+            detail: zod.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  decisionLogs: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        step: zod.number().optional(),
+        messageId: zod.string().optional(),
+        eventType: zod.string().optional(),
+        stateFrom: zod.string().optional(),
+        stateTo: zod.string().optional(),
+        decision: zod.string().optional(),
+        confidence: zod.number().optional(),
+        reason: zod.string().optional(),
+      }),
+    )
+    .optional(),
+});
 
 export type DemoChatWorkflowResponse = zod.input<typeof DemoChatWorkflowResponse>;
 export type DemoChatWorkflowResponseOutput = zod.output<typeof DemoChatWorkflowResponse>;

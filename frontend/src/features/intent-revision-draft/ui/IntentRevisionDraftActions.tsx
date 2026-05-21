@@ -67,12 +67,7 @@ export function IntentRevisionDraftActions({
         >
           취소
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setDialog("apply")}
-          disabled={!canApply}
-        >
+        <Button type="button" size="sm" onClick={() => setDialog("apply")} disabled={!canApply}>
           적용
         </Button>
       </div>

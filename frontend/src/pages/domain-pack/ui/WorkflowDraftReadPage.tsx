@@ -4,6 +4,7 @@ import { InlineWorkflowEditor } from "@/features/update-workflow";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
+import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
@@ -54,10 +55,18 @@ export function WorkflowDraftReadPage() {
   });
 
   const workflow = query.data;
-  const graph = useMemo<WorkflowGraph | null>(() => parseGraphJson(workflow?.graphJson), [workflow?.graphJson]);
+  const graph = useMemo<WorkflowGraph | null>(
+    () => parseGraphJson(workflow?.graphJson),
+    [workflow?.graphJson],
+  );
   const nodeCount = graph?.nodes?.length ?? 0;
 
-  if (wsId === null || pId === null || vId === null || (workflowId !== undefined && wfId === null)) {
+  if (
+    wsId === null ||
+    pId === null ||
+    vId === null ||
+    (workflowId !== undefined && wfId === null)
+  ) {
     return (
       <OstoneShell active="domain" crumbs={["Domain Packs"]}>
         <div role="alert" style={{ padding: "24px", color: "var(--danger)" }}>
@@ -72,13 +81,7 @@ export function WorkflowDraftReadPage() {
     navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows`);
   };
 
-  const crumbs = [
-    `WS · ${wsId}`,
-    "Domain Packs",
-    `PACK · ${pId}`,
-    `VER · ${vId}`,
-    "Workflows",
-  ];
+  const crumbs = [`WS · ${wsId}`, "Domain Packs", `PACK · ${pId}`, `VER · ${vId}`, "Workflows"];
 
   let graphContent: ReactNode;
   if (isEditing) {
@@ -106,12 +109,7 @@ export function WorkflowDraftReadPage() {
   }
 
   return (
-    <OstoneShell
-      active="workflows"
-      crumbs={crumbs}
-      activePackId={pId}
-      activeWorkflowId={wfId}
-    >
+    <OstoneShell active="workflows" crumbs={crumbs} activePackId={pId} activeWorkflowId={wfId}>
       <div
         style={{
           display: "flex",
@@ -131,32 +129,29 @@ export function WorkflowDraftReadPage() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleBackToList}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                padding: "4px 8px",
-                borderRadius: "var(--r-2)",
-                border: "1px solid var(--line)",
-                background: "var(--paper-2)",
-                color: "var(--ink-2)",
-                fontFamily: "var(--mono)",
-                fontSize: "11px",
-                cursor: "pointer",
-              }}
+              data-testid="list-back"
+              /*
+               * shadcn Button defaults to font-medium (500); Pretendard renders
+               * that with a noticeably heavy stem. 450 sits between the original
+               * thin look and the shadcn default — heavier than regular body
+               * copy but lighter than the page title.
+               */
+              style={{ fontWeight: 450 }}
             >
-              <Icon name="chevron" size={12} />
+              <Icon name="chevron" size={14} />
               목록
-            </button>
+            </Button>
             <h2
               data-testid="workflow-detail-title"
               style={{
                 fontFamily: "var(--sans)",
                 fontSize: "16px",
-                fontWeight: 500,
+                fontWeight: 600,
                 margin: 0,
                 color: "var(--ink)",
                 overflow: "hidden",
@@ -167,13 +162,13 @@ export function WorkflowDraftReadPage() {
               {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
             </h2>
             {workflow?.workflowCode && (
-              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>{workflow.workflowCode}</Mono>
+              <Mono style={{ fontSize: "12px", color: "var(--ink-3)", fontWeight: 500 }}>
+                {workflow.workflowCode}
+              </Mono>
             )}
+            {workflow && <Pill tone="signal">DRAFT</Pill>}
             {workflow && (
-              <Pill tone="signal">DRAFT</Pill>
-            )}
-            {workflow && (
-              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>
+              <Mono style={{ fontSize: "12px", color: "var(--ink-3)", fontWeight: 500 }}>
                 {nodeCount} nodes
               </Mono>
             )}
@@ -181,50 +176,30 @@ export function WorkflowDraftReadPage() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
             {workflow && !isEditing && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 data-testid="edit-toggle"
                 onClick={() => setIsEditing(true)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  borderRadius: "var(--r-2)",
-                  border: "1px solid var(--line)",
-                  background: "var(--paper-2)",
-                  color: "var(--ink-2)",
-                  fontFamily: "var(--mono)",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                }}
+                style={{ fontWeight: 450 }}
               >
                 <Icon name="edit" size={14} />
                 편집
-              </button>
+              </Button>
             )}
             {workflow && isEditing && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 data-testid="view-toggle"
                 onClick={() => setIsEditing(false)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  borderRadius: "var(--r-2)",
-                  border: "1px solid var(--line)",
-                  background: "var(--paper-2)",
-                  color: "var(--ink-2)",
-                  fontFamily: "var(--mono)",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                }}
+                style={{ fontWeight: 450 }}
               >
                 <Icon name="eye" size={14} />
                 보기
-              </button>
+              </Button>
             )}
           </div>
         </div>

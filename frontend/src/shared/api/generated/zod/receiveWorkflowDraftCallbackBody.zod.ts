@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const receiveWorkflowDraftCallbackBodyExternalEventIdMin = 0;
 export const receiveWorkflowDraftCallbackBodyExternalEventIdMax = 255;
@@ -120,65 +120,230 @@ export const receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemRouteCond
 export const receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMin = 0;
 export const receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMax = 1000;
 
-
 export const ReceiveWorkflowDraftCallbackBody = zod.object({
-  "externalEventId": zod.string().min(receiveWorkflowDraftCallbackBodyExternalEventIdMin).max(receiveWorkflowDraftCallbackBodyExternalEventIdMax).optional(),
-  "domainPackVersionId": zod.number(),
-  "slots": zod.array(zod.object({
-  "slotCode": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemSlotCodeMin).max(receiveWorkflowDraftCallbackBodySlotsItemSlotCodeMax).optional(),
-  "name": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemNameMin).max(receiveWorkflowDraftCallbackBodySlotsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "dataType": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemDataTypeMin).max(receiveWorkflowDraftCallbackBodySlotsItemDataTypeMax).optional(),
-  "isSensitive": zod.boolean().optional(),
-  "validationRuleJson": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemValidationRuleJsonMin).max(receiveWorkflowDraftCallbackBodySlotsItemValidationRuleJsonMax).optional(),
-  "defaultValueJson": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemDefaultValueJsonMin).max(receiveWorkflowDraftCallbackBodySlotsItemDefaultValueJsonMax).optional(),
-  "metaJson": zod.string().min(receiveWorkflowDraftCallbackBodySlotsItemMetaJsonMin).max(receiveWorkflowDraftCallbackBodySlotsItemMetaJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodySlotsMin).max(receiveWorkflowDraftCallbackBodySlotsMax).optional(),
-  "policies": zod.array(zod.object({
-  "policyCode": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemPolicyCodeMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemPolicyCodeMax).optional(),
-  "name": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemNameMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemSeverityMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemSeverityMax).optional(),
-  "conditionJson": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemConditionJsonMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemConditionJsonMax).optional(),
-  "actionJson": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemActionJsonMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemEvidenceJsonMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(receiveWorkflowDraftCallbackBodyPoliciesItemMetaJsonMin).max(receiveWorkflowDraftCallbackBodyPoliciesItemMetaJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodyPoliciesMin).max(receiveWorkflowDraftCallbackBodyPoliciesMax).optional(),
-  "risks": zod.array(zod.object({
-  "riskCode": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemRiskCodeMin).max(receiveWorkflowDraftCallbackBodyRisksItemRiskCodeMax).optional(),
-  "name": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemNameMin).max(receiveWorkflowDraftCallbackBodyRisksItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "riskLevel": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemRiskLevelMin).max(receiveWorkflowDraftCallbackBodyRisksItemRiskLevelMax).optional(),
-  "triggerConditionJson": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemTriggerConditionJsonMin).max(receiveWorkflowDraftCallbackBodyRisksItemTriggerConditionJsonMax).optional(),
-  "handlingActionJson": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemHandlingActionJsonMin).max(receiveWorkflowDraftCallbackBodyRisksItemHandlingActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemEvidenceJsonMin).max(receiveWorkflowDraftCallbackBodyRisksItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(receiveWorkflowDraftCallbackBodyRisksItemMetaJsonMin).max(receiveWorkflowDraftCallbackBodyRisksItemMetaJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodyRisksMin).max(receiveWorkflowDraftCallbackBodyRisksMax).optional(),
-  "workflows": zod.array(zod.object({
-  "workflowCode": zod.string().min(receiveWorkflowDraftCallbackBodyWorkflowsItemWorkflowCodeMin).max(receiveWorkflowDraftCallbackBodyWorkflowsItemWorkflowCodeMax).optional(),
-  "name": zod.string().min(receiveWorkflowDraftCallbackBodyWorkflowsItemNameMin).max(receiveWorkflowDraftCallbackBodyWorkflowsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "graphJson": zod.string().min(receiveWorkflowDraftCallbackBodyWorkflowsItemGraphJsonMin).max(receiveWorkflowDraftCallbackBodyWorkflowsItemGraphJsonMax).optional(),
-  "initialState": zod.string().optional(),
-  "terminalStatesJson": zod.string().optional(),
-  "evidenceJson": zod.string().min(receiveWorkflowDraftCallbackBodyWorkflowsItemEvidenceJsonMin).max(receiveWorkflowDraftCallbackBodyWorkflowsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(receiveWorkflowDraftCallbackBodyWorkflowsItemMetaJsonMin).max(receiveWorkflowDraftCallbackBodyWorkflowsItemMetaJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodyWorkflowsMin).max(receiveWorkflowDraftCallbackBodyWorkflowsMax).optional(),
-  "intentSlotBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemIntentCodeMin).max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemIntentCodeMax).optional(),
-  "slotCode": zod.string().min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemSlotCodeMin).max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemSlotCodeMax).optional(),
-  "isRequired": zod.boolean().optional(),
-  "collectionOrder": zod.number().optional(),
-  "promptHint": zod.string().optional(),
-  "conditionJson": zod.string().min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemConditionJsonMin).max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemConditionJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsMin).max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsMax).optional(),
-  "intentWorkflowBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemIntentCodeMin).max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemIntentCodeMax).optional(),
-  "workflowCode": zod.string().min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemWorkflowCodeMin).max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemWorkflowCodeMax).optional(),
-  "isPrimary": zod.boolean().optional(),
-  "routeConditionJson": zod.string().min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemRouteConditionJsonMin).max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemRouteConditionJsonMax).optional()
-})).min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMin).max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMax).optional()
-})
+  externalEventId: zod
+    .string()
+    .min(receiveWorkflowDraftCallbackBodyExternalEventIdMin)
+    .max(receiveWorkflowDraftCallbackBodyExternalEventIdMax)
+    .optional(),
+  domainPackVersionId: zod.number(),
+  slots: zod
+    .array(
+      zod.object({
+        slotCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemSlotCodeMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemSlotCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemNameMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        dataType: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemDataTypeMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemDataTypeMax)
+          .optional(),
+        isSensitive: zod.boolean().optional(),
+        validationRuleJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemValidationRuleJsonMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemValidationRuleJsonMax)
+          .optional(),
+        defaultValueJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemDefaultValueJsonMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemDefaultValueJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodySlotsItemMetaJsonMin)
+          .max(receiveWorkflowDraftCallbackBodySlotsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodySlotsMin)
+    .max(receiveWorkflowDraftCallbackBodySlotsMax)
+    .optional(),
+  policies: zod
+    .array(
+      zod.object({
+        policyCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemPolicyCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemPolicyCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemNameMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        severity: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemSeverityMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemSeverityMax)
+          .optional(),
+        conditionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemConditionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemConditionJsonMax)
+          .optional(),
+        actionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemActionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemEvidenceJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyPoliciesItemMetaJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyPoliciesItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodyPoliciesMin)
+    .max(receiveWorkflowDraftCallbackBodyPoliciesMax)
+    .optional(),
+  risks: zod
+    .array(
+      zod.object({
+        riskCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemRiskCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemRiskCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemNameMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        riskLevel: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemRiskLevelMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemRiskLevelMax)
+          .optional(),
+        triggerConditionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemTriggerConditionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemTriggerConditionJsonMax)
+          .optional(),
+        handlingActionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemHandlingActionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemHandlingActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemEvidenceJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyRisksItemMetaJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyRisksItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodyRisksMin)
+    .max(receiveWorkflowDraftCallbackBodyRisksMax)
+    .optional(),
+  workflows: zod
+    .array(
+      zod.object({
+        workflowCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyWorkflowsItemWorkflowCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyWorkflowsItemWorkflowCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyWorkflowsItemNameMin)
+          .max(receiveWorkflowDraftCallbackBodyWorkflowsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        graphJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyWorkflowsItemGraphJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyWorkflowsItemGraphJsonMax)
+          .optional(),
+        initialState: zod.string().optional(),
+        terminalStatesJson: zod.string().optional(),
+        evidenceJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyWorkflowsItemEvidenceJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyWorkflowsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyWorkflowsItemMetaJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyWorkflowsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodyWorkflowsMin)
+    .max(receiveWorkflowDraftCallbackBodyWorkflowsMax)
+    .optional(),
+  intentSlotBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemIntentCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemIntentCodeMax)
+          .optional(),
+        slotCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemSlotCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemSlotCodeMax)
+          .optional(),
+        isRequired: zod.boolean().optional(),
+        collectionOrder: zod.number().optional(),
+        promptHint: zod.string().optional(),
+        conditionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemConditionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsItemConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodyIntentSlotBindingsMin)
+    .max(receiveWorkflowDraftCallbackBodyIntentSlotBindingsMax)
+    .optional(),
+  intentWorkflowBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemIntentCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemIntentCodeMax)
+          .optional(),
+        workflowCode: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemWorkflowCodeMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemWorkflowCodeMax)
+          .optional(),
+        isPrimary: zod.boolean().optional(),
+        routeConditionJson: zod
+          .string()
+          .min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemRouteConditionJsonMin)
+          .max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsItemRouteConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMin)
+    .max(receiveWorkflowDraftCallbackBodyIntentWorkflowBindingsMax)
+    .optional(),
+});
 
 export type ReceiveWorkflowDraftCallbackBody = zod.input<typeof ReceiveWorkflowDraftCallbackBody>;
-export type ReceiveWorkflowDraftCallbackBodyOutput = zod.output<typeof ReceiveWorkflowDraftCallbackBody>;
+export type ReceiveWorkflowDraftCallbackBodyOutput = zod.output<
+  typeof ReceiveWorkflowDraftCallbackBody
+>;

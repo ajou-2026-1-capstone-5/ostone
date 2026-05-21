@@ -1,15 +1,15 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   getDomainPack,
   listDomainPacks,
-} from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
-import { listWorkflows } from '@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller';
-import { unwrapApiResponse } from '@/shared/api/unwrapApiResponse';
+} from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
+import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type {
   DomainPackDetailResult,
   DomainPackSummaryResult,
   WorkflowDefinitionSummary,
-} from '@/shared/api/generated/zod';
+} from "@/shared/api/generated/zod";
 
 export interface WorkspaceWorkflowEntry {
   packId: number;
@@ -44,18 +44,18 @@ export function useListAllWorkspaceWorkflows({
   const wsId = workspaceId ?? 0;
 
   const packsQuery = useQuery({
-    queryKey: ['workspace-workflows', 'packs', wsId] as const,
+    queryKey: ["workspace-workflows", "packs", wsId] as const,
     queryFn: async ({ signal }) => listDomainPacks(wsId, { signal }),
     enabled,
   });
 
   const packs = (unwrapApiResponse<DomainPackSummaryResult[]>(packsQuery.data) ?? []).filter(
-    (p): p is DomainPackSummaryResult & { packId: number } => typeof p.packId === 'number',
+    (p): p is DomainPackSummaryResult & { packId: number } => typeof p.packId === "number",
   );
 
   const detailQueries = useQueries({
     queries: packs.map((pack) => ({
-      queryKey: ['workspace-workflows', 'pack-detail', wsId, pack.packId] as const,
+      queryKey: ["workspace-workflows", "pack-detail", wsId, pack.packId] as const,
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         getDomainPack(wsId, pack.packId, { signal }),
       enabled,
@@ -69,7 +69,13 @@ export function useListAllWorkspaceWorkflows({
 
   const workflowQueries = useQueries({
     queries: packVersionPairs.map((pair) => ({
-      queryKey: ['workspace-workflows', 'workflows', wsId, pair.pack.packId, pair.versionId ?? 0] as const,
+      queryKey: [
+        "workspace-workflows",
+        "workflows",
+        wsId,
+        pair.pack.packId,
+        pair.versionId ?? 0,
+      ] as const,
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         pair.versionId !== null
           ? listWorkflows(wsId, pair.pack.packId!, pair.versionId, { signal })
@@ -85,11 +91,11 @@ export function useListAllWorkspaceWorkflows({
 
   let error: string | null = null;
   if (packsQuery.isError) {
-    error = '도메인팩 목록 조회 실패';
+    error = "도메인팩 목록 조회 실패";
   } else if (detailQueries.find((q) => q.isError)) {
-    error = '도메인팩 상세 조회 실패';
+    error = "도메인팩 상세 조회 실패";
   } else if (workflowQueries.find((q) => q.isError)) {
-    error = '워크플로우 목록 조회 실패';
+    error = "워크플로우 목록 조회 실패";
   }
 
   const entries: WorkspaceWorkflowEntry[] = [];
@@ -97,7 +103,7 @@ export function useListAllWorkspaceWorkflows({
     if (pair.versionId === null) return;
     const wfList = unwrapApiResponse<WorkflowDefinitionSummary[]>(workflowQueries[idx]?.data) ?? [];
     wfList.forEach((wf) => {
-      if (typeof wf.id !== 'number') return;
+      if (typeof wf.id !== "number") return;
       entries.push({
         packId: pair.pack.packId!,
         packName: pair.pack.name || `pack-${pair.pack.packId}`,

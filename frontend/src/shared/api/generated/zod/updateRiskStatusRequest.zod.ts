@@ -4,13 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
-
-
+import { z as zod } from "zod";
 
 export const UpdateRiskStatusRequest = zod.object({
-  "status": zod.string().min(1).optional()
-})
+  status: zod.string().min(1).optional(),
+});
 
 export type UpdateRiskStatusRequest = zod.input<typeof UpdateRiskStatusRequest>;
 export type UpdateRiskStatusRequestOutput = zod.output<typeof UpdateRiskStatusRequest>;

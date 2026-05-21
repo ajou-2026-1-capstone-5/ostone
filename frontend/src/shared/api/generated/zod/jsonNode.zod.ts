@@ -4,11 +4,9 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
-export const JsonNode = zod.looseObject({
-
-})
+export const JsonNode = zod.looseObject({});
 
 export type JsonNode = zod.input<typeof JsonNode>;
 export type JsonNodeOutput = zod.output<typeof JsonNode>;

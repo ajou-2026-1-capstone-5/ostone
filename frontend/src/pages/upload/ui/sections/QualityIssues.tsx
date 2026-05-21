@@ -70,9 +70,7 @@ export const QualityIssues: React.FC = () => {
               borderRadius: "var(--r-2)",
             }}
           >
-            <Pill tone={issue.severity === "high" ? "danger" : "warn"}>
-              {issue.severity}
-            </Pill>
+            <Pill tone={issue.severity === "high" ? "danger" : "warn"}>{issue.severity}</Pill>
             <Mono style={{ fontSize: 11, color: "var(--ink)" }}>{issue.id}</Mono>
             <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{issue.convs}</Mono>
             <span

@@ -97,12 +97,10 @@ describe("intentRevisionDraftApi", () => {
     });
     await intentRevisionDraftApi.discardDraft(1, 2, 3);
 
-    expect(mockedPatch).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/intents/7",
-      { name: "환불 문의", description: "" },
-    );
-    expect(mockedDelete).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/draft",
-    );
+    expect(mockedPatch).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/intents/7", {
+      name: "환불 문의",
+      description: "",
+    });
+    expect(mockedDelete).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/draft");
   });
 });

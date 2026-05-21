@@ -26,9 +26,7 @@ const detail = {
   updatedAt: "2026-05-01T00:00:00Z",
 } as IntentDetail;
 
-function renderForm(
-  props: Partial<React.ComponentProps<typeof IntentRevisionEditForm>> = {},
-) {
+function renderForm(props: Partial<React.ComponentProps<typeof IntentRevisionEditForm>> = {}) {
   const defaults = {
     wsId: 1,
     packId: 2,

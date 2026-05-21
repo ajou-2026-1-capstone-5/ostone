@@ -4,23 +4,23 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const RiskDefinitionResponse = zod.object({
-  "id": zod.number().optional(),
-  "domainPackVersionId": zod.number().optional(),
-  "riskCode": zod.string().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional(),
-  "riskLevel": zod.string().optional(),
-  "triggerConditionJson": zod.string().optional(),
-  "handlingActionJson": zod.string().optional(),
-  "evidenceJson": zod.string().optional(),
-  "metaJson": zod.string().optional(),
-  "status": zod.string().optional(),
-  "createdAt": zod.iso.datetime({"offset":true}).optional(),
-  "updatedAt": zod.iso.datetime({"offset":true}).optional()
-})
+  id: zod.number().optional(),
+  domainPackVersionId: zod.number().optional(),
+  riskCode: zod.string().optional(),
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  riskLevel: zod.string().optional(),
+  triggerConditionJson: zod.string().optional(),
+  handlingActionJson: zod.string().optional(),
+  evidenceJson: zod.string().optional(),
+  metaJson: zod.string().optional(),
+  status: zod.string().optional(),
+  createdAt: zod.iso.datetime({ offset: true }).optional(),
+  updatedAt: zod.iso.datetime({ offset: true }).optional(),
+});
 
 export type RiskDefinitionResponse = zod.input<typeof RiskDefinitionResponse>;
 export type RiskDefinitionResponseOutput = zod.output<typeof RiskDefinitionResponse>;

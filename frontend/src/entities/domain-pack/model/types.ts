@@ -1,4 +1,4 @@
-export type DomainPackLifecycleStatus = 'DRAFT' | 'PUBLISHED';
+export type DomainPackLifecycleStatus = "DRAFT" | "PUBLISHED";
 
 export type {
   DomainPackDraftEntryResponse,

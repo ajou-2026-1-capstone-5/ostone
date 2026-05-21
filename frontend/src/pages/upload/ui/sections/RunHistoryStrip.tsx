@@ -50,11 +50,8 @@ export function RunHistoryStrip({ hours = 24 }: { hours?: number }) {
     <div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: 24 }}>
         {bars.map((bar) => {
-          const deterministicOffset = ((bar.hour * 7 + 13) % 9);
-          const height =
-            bar.status === "none"
-              ? 8
-              : 12 + deterministicOffset;
+          const deterministicOffset = (bar.hour * 7 + 13) % 9;
+          const height = bar.status === "none" ? 8 : 12 + deterministicOffset;
 
           const color =
             bar.status === "success"

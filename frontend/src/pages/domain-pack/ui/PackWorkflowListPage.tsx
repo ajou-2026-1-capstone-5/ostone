@@ -80,7 +80,9 @@ export function PackWorkflowListPage() {
             }}
           >
             <LoadingSpinner />
-            <p style={{ color: "var(--ink)", fontSize: "14px" }}>워크플로우 목록을 불러오는 중입니다.</p>
+            <p style={{ color: "var(--ink)", fontSize: "14px" }}>
+              워크플로우 목록을 불러오는 중입니다.
+            </p>
           </div>
         )}
 
@@ -97,11 +99,7 @@ export function PackWorkflowListPage() {
         )}
 
         {!query.isLoading && !query.isError && entries.length > 0 && (
-          <WorkflowListView
-            entries={entries}
-            onOpen={handleOpen}
-            testIdPrefix="pack-workflows"
-          />
+          <WorkflowListView entries={entries} onOpen={handleOpen} testIdPrefix="pack-workflows" />
         )}
       </div>
     </OstoneShell>

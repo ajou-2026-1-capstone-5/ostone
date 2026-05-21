@@ -151,10 +151,10 @@ interface EdgeLabelSlot {
 
 const LABEL_SLOTS: Record<string, EdgeLabelSlot> = {
   "eligible->process": { condX: 62, condY: 3.5, pctX: 62, pctY: 3.5, combine: true },
-  "eligible->risk":    { condX: 39, condY: 30, pctX: 39, pctY: 32 },
-  "eligible->reject":  { condX: 58, condY: 32, pctX: 58, pctY: 32, combine: true },
-  "risk->manual":      { condX: 62, condY: 42, pctX: 62, pctY: 42, combine: true },
-  "risk->reject":      { condX: 72.5, condY: 47, pctX: 72.5, pctY: 47, combine: true },
+  "eligible->risk": { condX: 39, condY: 30, pctX: 39, pctY: 32 },
+  "eligible->reject": { condX: 58, condY: 32, pctX: 58, pctY: 32, combine: true },
+  "risk->manual": { condX: 62, condY: 42, pctX: 62, pctY: 42, combine: true },
+  "risk->reject": { condX: 72.5, condY: 47, pctX: 72.5, pctY: 47, combine: true },
 };
 
 function truncateSvgText(text: string, maxChars: number): string {
@@ -276,25 +276,13 @@ function NodeShape({ node }: { node: WorkflowNode }) {
       const hh = h / 2;
       const pts = `${cx},${y} ${x + w},${cy - hh / 2} ${x + w},${cy + hh / 2} ${cx},${y + h} ${x},${cy + hh / 2} ${x},${cy - hh / 2}`;
       return (
-        <polygon
-          points={pts}
-          fill="var(--danger-bg)"
-          stroke="var(--danger)"
-          strokeWidth={0.3}
-        />
+        <polygon points={pts} fill="var(--danger-bg)" stroke="var(--danger)" strokeWidth={0.3} />
       );
     }
     case "human": {
       const r = 1.5;
       const path = `M ${x},${y + r} L ${x + r},${y} L ${x + w - r},${y} Q ${x + w},${y} ${x + w},${y + r} L ${x + w},${y + h - r} Q ${x + w},${y + h} ${x + w - r},${y + h} L ${x + r},${y + h} L ${x},${y + h - r} Z`;
-      return (
-        <path
-          d={path}
-          fill="var(--warn-bg)"
-          stroke="var(--warn)"
-          strokeWidth={0.3}
-        />
-      );
+      return <path d={path} fill="var(--warn-bg)" stroke="var(--warn)" strokeWidth={0.3} />;
     }
     case "error":
       return (
@@ -373,13 +361,7 @@ function NodeLabels({ node }: { node: WorkflowNode }) {
   );
 }
 
-export function WorkflowCanvas({
-  nodes,
-  edges,
-}: {
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-}) {
+export function WorkflowCanvas({ nodes, edges }: { nodes: WorkflowNode[]; edges: WorkflowEdge[] }) {
   return (
     <svg
       viewBox="0 0 100 60"
@@ -392,14 +374,7 @@ export function WorkflowCanvas({
       }}
     >
       <defs>
-        <marker
-          id="arrowhead"
-          markerWidth="2.5"
-          markerHeight="2"
-          refX="2"
-          refY="1"
-          orient="auto"
-        >
+        <marker id="arrowhead" markerWidth="2.5" markerHeight="2" refX="2" refY="1" orient="auto">
           <polygon points="0 0, 2.5 1, 0 2" fill="var(--ink)" />
         </marker>
         <marker
@@ -555,9 +530,7 @@ export function WorkflowCanvas({
                 fontFamily="var(--mono)"
                 fill="var(--ink-3)"
               >
-                {node.n >= 1000
-                  ? `${(node.n / 1000).toFixed(1)}k`
-                  : node.n}
+                {node.n >= 1000 ? `${(node.n / 1000).toFixed(1)}k` : node.n}
               </text>
             </g>
           )}
@@ -643,7 +616,13 @@ export function WorkflowCanvas({
                 height={1.4}
                 rx={0.5}
                 fill="var(--paper)"
-                stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
+                stroke={
+                  edge.tone === "danger"
+                    ? "var(--danger)"
+                    : edge.tone === "warn"
+                      ? "var(--warn)"
+                      : "var(--line)"
+                }
                 strokeWidth={0.15}
               />
               <text
@@ -669,7 +648,13 @@ export function WorkflowCanvas({
               height={1.4}
               rx={0.5}
               fill="var(--paper)"
-              stroke={edge.tone === "danger" ? "var(--danger)" : edge.tone === "warn" ? "var(--warn)" : "var(--line)"}
+              stroke={
+                edge.tone === "danger"
+                  ? "var(--danger)"
+                  : edge.tone === "warn"
+                    ? "var(--warn)"
+                    : "var(--line)"
+              }
               strokeWidth={0.15}
             />
             <text

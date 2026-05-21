@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface MonoProps {
   children: ReactNode;
@@ -11,8 +11,8 @@ export function Mono({ children, className, style }: MonoProps) {
     <span
       className={className}
       style={{
-        fontFamily: 'var(--mono)',
-        fontVariantNumeric: 'tabular-nums',
+        fontFamily: "var(--mono)",
+        fontVariantNumeric: "tabular-nums",
         ...style,
       }}
     >

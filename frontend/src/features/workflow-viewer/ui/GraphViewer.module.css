@@ -3,43 +3,56 @@
   height: 100%;
   min-height: 500px;
   position: relative;
-  background: var(--bg-color);
+  background: var(--node-canvas-bg);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   overflow: hidden;
 }
 
 .container :global(.react-flow__edge-path) {
-  stroke: var(--text-primary);
+  stroke: var(--text-secondary);
+  stroke-width: 1.5;
 }
 
 .container :global(.react-flow__arrowhead) {
-  fill: var(--text-primary);
-}
-
-.container :global(.react-flow__edge-text) {
-  font-family: "Geist Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.54px;
-  fill: var(--text-primary);
-}
-
-.container :global(.react-flow__edge-textbg) {
-  fill: var(--bg-color);
-}
-
-.container :global(.react-flow__background) {
-  background: var(--bg-secondary);
+  fill: var(--text-secondary);
 }
 
 .container :global(.react-flow__controls) {
-  box-shadow: none;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
+  background: var(--bg-color);
+  overflow: hidden;
+  margin: 0 16px 16px 0;
 }
 
 .container :global(.react-flow__controls-button) {
   background: var(--bg-color);
   color: var(--text-primary);
   border-bottom: 1px solid var(--glass-border);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+
+.container :global(.react-flow__controls-button:hover) {
+  background: var(--node-canvas-bg);
+}
+
+.container :global(.react-flow__controls-button svg) {
+  fill: var(--text-primary);
+}
+
+.container :global(.react-flow__handle) {
+  z-index: 2;
+}
+
+/* edge path hover affordance */
+.container :global(.react-flow__edge:hover .react-flow__edge-path) {
+  stroke: var(--text-primary);
+  stroke-width: 2;
 }

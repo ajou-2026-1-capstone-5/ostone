@@ -9,9 +9,12 @@ vi.mock("@/shared/api/generated/endpoints/update-slot-controller/update-slot-con
   updateSlot: vi.fn(),
 }));
 
-vi.mock("@/shared/api/generated/endpoints/update-slot-status-controller/update-slot-status-controller", () => ({
-  updateSlotStatus: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/update-slot-status-controller/update-slot-status-controller",
+  () => ({
+    updateSlotStatus: vi.fn(),
+  }),
+);
 
 vi.mock("sonner", () => ({
   toast: {
@@ -76,7 +79,11 @@ describe("useUpdateSlot", () => {
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdateSlot.mockResolvedValue({ data: { ...stubSlot, description: undefined, defaultValueJson: undefined }, status: 200, headers: new Headers() });
+    mockedUpdateSlot.mockResolvedValue({
+      data: { ...stubSlot, description: undefined, defaultValueJson: undefined },
+      status: 200,
+      headers: new Headers(),
+    });
     const { result } = renderHook(() => useUpdateSlot(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -120,7 +127,16 @@ describe("useUpdateSlotStatus", () => {
   });
 
   it("성공 시 toast.error를 호출하지 않고 invalidateQueries를 호출한다", async () => {
-    mockedUpdateSlotStatus.mockResolvedValue({ data: { ...stubSlot, description: undefined, defaultValueJson: undefined, status: "INACTIVE" }, status: 200, headers: new Headers() });
+    mockedUpdateSlotStatus.mockResolvedValue({
+      data: {
+        ...stubSlot,
+        description: undefined,
+        defaultValueJson: undefined,
+        status: "INACTIVE",
+      },
+      status: 200,
+      headers: new Headers(),
+    });
     const { wrapper, qc } = makeWrapperWithClient();
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useUpdateSlotStatus(), { wrapper });

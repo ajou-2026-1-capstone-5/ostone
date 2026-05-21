@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 const TABS = [
-  { label: '문의 유형', count: 3 },
-  { label: '필요 정보', count: 2 },
-  { label: '응대 정책', count: 4 },
-  { label: '주의 사항', count: 5 },
-  { label: '응대 흐름', count: 3 },
-  { label: '테스트', count: 0 },
-  { label: '버전 기록', count: null },
+  { label: "문의 유형", count: 3 },
+  { label: "필요 정보", count: 2 },
+  { label: "응대 정책", count: 4 },
+  { label: "주의 사항", count: 5 },
+  { label: "응대 흐름", count: 3 },
+  { label: "테스트", count: 0 },
+  { label: "버전 기록", count: null },
 ];
 
 export function PackTabs() {
@@ -17,17 +17,16 @@ export function PackTabs() {
     <div
       role="tablist"
       style={{
-        display: 'flex',
-        gap: '4px',
-        padding: '0 28px',
-        borderBottom: '1px solid var(--line-2)',
-        overflowX: 'auto',
+        display: "flex",
+        gap: "4px",
+        padding: "0 28px",
+        borderBottom: "1px solid var(--line-2)",
+        overflowX: "auto",
       }}
     >
       {TABS.map((tab, i) => {
         const isActive = i === activeIndex;
-        const display =
-          tab.count !== null ? `${tab.label} · ${tab.count}` : tab.label;
+        const display = tab.count !== null ? `${tab.label} · ${tab.count}` : tab.label;
         return (
           <button
             key={tab.label}
@@ -35,28 +34,26 @@ export function PackTabs() {
             aria-selected={isActive}
             onClick={() => setActiveIndex(i)}
             style={{
-              padding: '10px 16px',
-              fontFamily: 'var(--mono)',
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              cursor: 'pointer',
-              border: 'none',
-              borderBottom: isActive
-                ? '1.5px solid var(--signal)'
-                : '1.5px solid transparent',
-              background: 'transparent',
-              color: isActive ? 'var(--ink)' : 'var(--ink-3)',
-              whiteSpace: 'nowrap',
+              padding: "10px 16px",
+              fontFamily: "var(--mono)",
+              fontSize: "11px",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              cursor: "pointer",
+              border: "none",
+              borderBottom: isActive ? "1.5px solid var(--signal)" : "1.5px solid transparent",
+              background: "transparent",
+              color: isActive ? "var(--ink)" : "var(--ink-3)",
+              whiteSpace: "nowrap",
             }}
             onMouseEnter={(e) => {
               if (!isActive) {
-                e.currentTarget.style.color = 'var(--ink)';
+                e.currentTarget.style.color = "var(--ink)";
               }
             }}
             onMouseLeave={(e) => {
               if (!isActive) {
-                e.currentTarget.style.color = 'var(--ink-3)';
+                e.currentTarget.style.color = "var(--ink-3)";
               }
             }}
           >

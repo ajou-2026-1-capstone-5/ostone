@@ -57,7 +57,11 @@ describe("useUpdateRisk", () => {
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdateRisk.mockResolvedValue({ data: { ...stubRisk, description: undefined, name: "새 위험요소" }, status: 200, headers: new Headers() });
+    mockedUpdateRisk.mockResolvedValue({
+      data: { ...stubRisk, description: undefined, name: "새 위험요소" },
+      status: 200,
+      headers: new Headers(),
+    });
     const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });
 
     act(() => {

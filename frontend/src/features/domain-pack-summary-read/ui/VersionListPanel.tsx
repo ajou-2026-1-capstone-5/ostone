@@ -1,11 +1,13 @@
-import type { UseQueryResult } from '@tanstack/react-query';
-import type { DomainPackDetail, DomainPackVersionSummary } from '@/entities/domain-pack';
-import styles from './VersionListPanel.module.css';
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { DomainPackDetail, DomainPackVersionSummary } from "@/entities/domain-pack";
+import styles from "./VersionListPanel.module.css";
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('ko-KR', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
+    return new Date(iso).toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch {
     return iso;
@@ -19,7 +21,12 @@ interface VersionListPanelProps {
   onCreateDraft?: () => void;
 }
 
-export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }: VersionListPanelProps) {
+export function VersionListPanel({
+  query,
+  selectedId,
+  onSelect,
+  onCreateDraft,
+}: VersionListPanelProps) {
   if (query.isLoading) {
     return (
       <div className={styles.panel}>
@@ -46,7 +53,7 @@ export function VersionListPanel({ query, selectedId, onSelect, onCreateDraft }:
   }
 
   const versions = query.data?.versions ?? [];
-  const effectiveSelectedId = selectedId ?? (versions[0]?.versionId ?? null);
+  const effectiveSelectedId = selectedId ?? versions[0]?.versionId ?? null;
 
   if (versions.length === 0) {
     return (
@@ -90,7 +97,7 @@ interface VersionListItemProps {
 
 function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionListItemProps) {
   return (
-    <li className={`${styles.item} ${isActive ? styles.active : ''}`}>
+    <li className={`${styles.item} ${isActive ? styles.active : ""}`}>
       <button
         type="button"
         className={styles.itemBtn}
@@ -102,7 +109,7 @@ function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionList
           <span className={styles.versionNo}>v{version.versionNo}</span>
           <span
             className={`${styles.badge} ${
-              version.lifecycleStatus === 'PUBLISHED' ? styles.badgePublished : styles.badgeDraft
+              version.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : styles.badgeDraft
             }`}
           >
             {version.lifecycleStatus}

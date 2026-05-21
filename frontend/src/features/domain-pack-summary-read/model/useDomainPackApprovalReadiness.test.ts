@@ -5,9 +5,12 @@ import { useListIntents } from "@/shared/api/generated/endpoints/intent-definiti
 import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
 import { useDomainPackApprovalReadiness } from "./useDomainPackApprovalReadiness";
 
-vi.mock("@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller", () => ({
-  useListIntents: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller",
+  () => ({
+    useListIntents: vi.fn(),
+  }),
+);
 
 const mockedUseListIntents = vi.mocked(useListIntents);
 

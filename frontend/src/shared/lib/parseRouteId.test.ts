@@ -22,24 +22,24 @@ describe("parseRouteId", () => {
     expect(parseRouteId("0")).toBeNull();
   });
 
-  it('빈 문자열 → null', () => {
+  it("빈 문자열 → null", () => {
     expect(parseRouteId("")).toBeNull();
   });
 
-  it('공백 문자열 → null', () => {
+  it("공백 문자열 → null", () => {
     expect(parseRouteId(" ")).toBeNull();
     expect(parseRouteId("  ")).toBeNull();
   });
 
-  it('소수점 → null', () => {
+  it("소수점 → null", () => {
     expect(parseRouteId("1.5")).toBeNull();
   });
 
-  it('음수 → null', () => {
+  it("음수 → null", () => {
     expect(parseRouteId("-1")).toBeNull();
   });
 
-  it('지수 표기법 → null', () => {
+  it("지수 표기법 → null", () => {
     expect(parseRouteId("1e3")).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
-import React from 'react';
-import { User, Clock, AlertTriangle, Monitor } from 'lucide-react';
-import styles from './customer-info-panel.module.css';
+import React from "react";
+import { User, Clock, AlertTriangle, Monitor } from "lucide-react";
+import styles from "./customer-info-panel.module.css";
 
 interface CustomerInfoPanelProps {
   customer: {
@@ -23,7 +23,11 @@ export const CustomerInfoPanel: React.FC<CustomerInfoPanelProps> = ({
       <aside className={styles.infoWrapper}>
         <div className={styles.emptyInfo}>
           <User size={40} className={styles.emptyInfoIcon} />
-          <p className={styles.emptyInfoText}>고객을 선택하면<br/>정보가 표시됩니다</p>
+          <p className={styles.emptyInfoText}>
+            고객을 선택하면
+            <br />
+            정보가 표시됩니다
+          </p>
         </div>
       </aside>
     );
@@ -74,7 +78,9 @@ export const CustomerInfoPanel: React.FC<CustomerInfoPanelProps> = ({
 
       {/* Memo */}
       <div className={styles.infoSection}>
-        <label htmlFor="consultation-memo" className={styles.sectionTitle}>상담 메모</label>
+        <label htmlFor="consultation-memo" className={styles.sectionTitle}>
+          상담 메모
+        </label>
         <div className={styles.memoArea}>
           <textarea
             id="consultation-memo"

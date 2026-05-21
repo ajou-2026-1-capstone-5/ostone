@@ -1,12 +1,4 @@
-import {
-  Suspense,
-  lazy,
-  useState,
-  useEffect,
-  useId,
-  useMemo,
-  type KeyboardEvent,
-} from "react";
+import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
@@ -48,12 +40,13 @@ export function WorkflowDetailPanel({
   workflowId,
   onEdit,
 }: WorkflowDetailPanelProps) {
-  const { data: detail, isLoading, isError, error, refetch } = useWorkflowDetail(
-    wsId,
-    packId,
-    versionId,
-    workflowId,
-  );
+  const {
+    data: detail,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useWorkflowDetail(wsId, packId, versionId, workflowId);
   const [tab, setTab] = useState<Tab>("graph");
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const idPrefix = useId();
@@ -81,8 +74,8 @@ export function WorkflowDetailPanel({
     () =>
       new Map<string, PolicySummary>(
         (policyList ?? [])
-          .filter((p): p is PolicySummary & { policyCode: string } =>
-            typeof p.policyCode === "string"
+          .filter(
+            (p): p is PolicySummary & { policyCode: string } => typeof p.policyCode === "string",
           )
           .map((p) => [p.policyCode, p] as [string, PolicySummary]),
       ),
@@ -204,7 +197,11 @@ export function WorkflowDetailPanel({
               </div>
             }
           >
-            <GraphContent detail={detail} onEdgeClick={setSelectedEdgeId} onPaneClick={() => setSelectedEdgeId(null)} />
+            <GraphContent
+              detail={detail}
+              onEdgeClick={setSelectedEdgeId}
+              onPaneClick={() => setSelectedEdgeId(null)}
+            />
           </ErrorBoundary>
           {selectedEdgeId !== null && selectedTransition !== null && (
             <TransitionPopover
@@ -293,9 +290,7 @@ function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () 
         <div className={styles.headerInfo}>
           <span className={styles.code}>{detail.workflowCode}</span>
           <span className={styles.name}>{detail.name}</span>
-          {detail.description && (
-            <span className={styles.description}>{detail.description}</span>
-          )}
+          {detail.description && <span className={styles.description}>{detail.description}</span>}
           <span className={styles.updatedAt}>
             UPDATED · {detail.updatedAt ? new Date(detail.updatedAt).toLocaleString() : "—"}
           </span>

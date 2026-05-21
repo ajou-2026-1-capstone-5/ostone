@@ -20,10 +20,7 @@ describe("customFetch", () => {
       method: "GET",
     });
 
-    expect(apiClient.request).toHaveBeenCalledWith(
-      "/test",
-      { method: "GET" },
-    );
+    expect(apiClient.request).toHaveBeenCalledWith("/test", { method: "GET" });
     expect(result).toEqual({ data: "hello" });
   });
 
@@ -82,9 +79,7 @@ describe("customFetch", () => {
     const apiError = new Error("Network error");
     vi.mocked(apiClient.request).mockRejectedValueOnce(apiError);
 
-    await expect(
-      customFetch("/test", { method: "GET" }),
-    ).rejects.toThrow("Network error");
+    await expect(customFetch("/test", { method: "GET" })).rejects.toThrow("Network error");
   });
 
   it("URL에 /api/v1 prefix가 있으면 제거하여 apiClient.request에 전달한다", async () => {
