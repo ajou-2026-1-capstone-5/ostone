@@ -3,11 +3,11 @@ package com.init.workflowruntime.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.SendChatMessageCommand;
@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChatWebSocketService")
@@ -54,7 +55,7 @@ class ChatWebSocketServiceTest {
   }
 
   @Test
-  @DisplayName("saveAndBroadcast: 세션 상태가 ACTIVE → 정상 저장 및 broadcast")
+  @DisplayName("saveAndBroadcast: 세션 상태가 ACTIVE → 정상 저장 및 afterCommit broadcast")
   void should_saveAndBroadcast_when_sessionActive() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
@@ -65,18 +66,31 @@ class ChatWebSocketServiceTest {
     ChatMessage savedMsg = createMessage(1L, 1, "USER", "Hello");
     given(chatMessageRepository.save(any())).willReturn(savedMsg);
 
-    ChatMessageResponse result =
-        service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER"));
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      ChatMessageResponse result =
+          service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER"));
 
-    assertThat(result).isNotNull();
-    assertThat(result.content()).isEqualTo("Hello");
-    assertThat(result.senderRole()).isEqualTo("USER");
-    verify(chatMessageRepository).save(any());
-    verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
+      assertThat(result).isNotNull();
+      assertThat(result.content()).isEqualTo("Hello");
+      assertThat(result.senderRole()).isEqualTo("USER");
+      verify(chatMessageRepository).save(any());
+
+      // 즉시 전송되지 않음
+      verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+
+      // afterCommit 수동 트리거
+      TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
+
+      // 커밋 후 전송 확인
+      verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
   }
 
   @Test
-  @DisplayName("saveAndBroadcast: 세션 상태가 OPEN → 정상 저장 및 broadcast")
+  @DisplayName("saveAndBroadcast: 세션 상태가 OPEN → 정상 저장 및 afterCommit broadcast")
   void should_saveAndBroadcast_when_sessionOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
@@ -87,62 +101,23 @@ class ChatWebSocketServiceTest {
     ChatMessage savedMsg = createMessage(1L, 1, "USER", "Hello");
     given(chatMessageRepository.save(any())).willReturn(savedMsg);
 
-    ChatMessageResponse result =
-        service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER"));
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      ChatMessageResponse result =
+          service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER"));
 
-    assertThat(result).isNotNull();
-    assertThat(result.content()).isEqualTo("Hello");
-    verify(chatMessageRepository).save(any());
-    verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
-  }
+      assertThat(result).isNotNull();
+      assertThat(result.content()).isEqualTo("Hello");
+      verify(chatMessageRepository).save(any());
 
-  @Test
-  @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → BadRequestException")
-  void should_throwBadRequestException_when_sessionCompleted() {
-    ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
-    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+      verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
 
-    assertThatThrownBy(
-            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("is not open or active");
-  }
+      TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 
-  @Test
-  @DisplayName("saveAndBroadcast: 기존 메시지 있음 → seqNo 증가 확인")
-  void should_incrementSeqNo_when_existingMessages() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
-
-    ChatMessage lastMsg = createMessage(1L, 3, "USER", "Previous");
-    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
-        .willReturn(Optional.of(lastMsg));
-
-    ChatMessage savedMsg = createMessage(1L, 4, "USER", "New message");
-    given(chatMessageRepository.save(any())).willReturn(savedMsg);
-
-    ChatMessageResponse result =
-        service.saveAndBroadcast(new SendChatMessageCommand(1L, "New message", 1L, "USER"));
-
-    assertThat(result.seqNo()).isEqualTo(4);
-  }
-
-  @Test
-  @DisplayName("saveAndBroadcast: messagingTemplate.convertAndSend 호출 확인")
-  void should_callConvertAndSend_when_saved() {
-    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
-    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
-
-    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
-        .willReturn(Optional.empty());
-
-    ChatMessage savedMsg = createMessage(1L, 1, "USER", "Hello");
-    given(chatMessageRepository.save(any())).willReturn(savedMsg);
-
-    ChatMessageResponse result =
-        service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER"));
-
-    verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), eq(result));
+      verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
   }
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {

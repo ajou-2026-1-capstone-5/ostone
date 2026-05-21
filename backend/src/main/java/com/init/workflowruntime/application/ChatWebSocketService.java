@@ -12,6 +12,8 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @Transactional(readOnly = true)
@@ -59,7 +61,14 @@ public class ChatWebSocketService {
     chatMessageRepository.save(message);
 
     ChatMessageResponse response = ChatMessageResponse.from(message);
-    messagingTemplate.convertAndSend("/topic/chat." + command.sessionId(), response);
+    String destination = "/topic/chat." + command.sessionId();
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            messagingTemplate.convertAndSend(destination, response);
+          }
+        });
 
     return response;
   }
