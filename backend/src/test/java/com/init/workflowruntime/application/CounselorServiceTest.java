@@ -18,6 +18,7 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.InvalidSessionStateException;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
 import java.util.List;
 import java.util.Optional;
@@ -83,14 +84,14 @@ class CounselorServiceTest {
   }
 
   @Test
-  @DisplayName("assignSession: 이미 배정된 세션 → IllegalStateException")
-  void should_throwIllegalState_when_alreadyAssigned() {
+  @DisplayName("assignSession: 이미 배정된 세션 → InvalidSessionStateException")
+  void should_throwInvalidState_when_alreadyAssigned() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
     assertThatThrownBy(() -> service.assignSession(42L, 1L))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(InvalidSessionStateException.class)
         .hasMessageContaining("already assigned");
   }
 

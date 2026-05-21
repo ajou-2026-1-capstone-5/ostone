@@ -146,7 +146,7 @@ public class ChatSession {
           "assignTo() requires status OPEN but was " + this.status);
     }
     if (this.assignedCounselorId != null) {
-      throw new IllegalStateException("Session already assigned to counselor: " + this.assignedCounselorId);
+      throw new InvalidSessionStateException("Session already assigned to counselor: " + this.assignedCounselorId);
     }
     this.assignedCounselorId = counselorId;
     this.status = ChatSessionStatus.ACTIVE;
@@ -154,7 +154,7 @@ public class ChatSession {
 
   public void releaseFrom() {
     if (this.assignedCounselorId == null) {
-      throw new IllegalStateException("Session is not assigned to any counselor");
+      throw new InvalidSessionStateException("Session is not assigned to any counselor");
     }
     this.assignedCounselorId = null;
     this.status = ChatSessionStatus.OPEN;

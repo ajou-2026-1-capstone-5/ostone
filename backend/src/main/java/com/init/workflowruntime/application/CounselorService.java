@@ -109,9 +109,9 @@ public class CounselorService {
         .orElse(1);
 
     ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, "COUNSELOR", "TEXT", content);
-    chatMessageRepository.save(message);
+    ChatMessage savedMessage = chatMessageRepository.save(message);
 
-    ChatMessageResponse response = ChatMessageResponse.from(message);
+    ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + sessionId;
     TransactionSynchronizationManager.registerSynchronization(
         new TransactionSynchronization() {
