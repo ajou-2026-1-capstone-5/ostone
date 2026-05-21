@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-import { OstoneShell } from '@/widgets/ostone-shell';
+import { OstoneShell } from "@/widgets/ostone-shell";
 
 interface WorkspaceShellProps {
   workspaceId: number;

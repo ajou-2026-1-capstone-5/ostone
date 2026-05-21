@@ -25,7 +25,9 @@ export function WorkspaceLayout() {
   const { workspaceId } = useParams();
   const location = useLocation();
   const parsedWorkspaceId = parseRouteId(workspaceId);
-  const basePath = parsedWorkspaceId ? `/workspaces/${parsedWorkspaceId}` : "/workspaces";
+  const basePath = parsedWorkspaceId
+    ? `/workspaces/${parsedWorkspaceId}`
+    : "/workspaces";
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
   const [error, setError] = useState("");
@@ -33,8 +35,14 @@ export function WorkspaceLayout() {
   const [crumbs, setCrumbs] = useState<string[]>([]);
   const active = getActiveFromPath(location.pathname);
 
-  const { data: fetchedWorkspace, isLoading: isFetchingWorkspace, error: fetchError, refetch: refetchWorkspace } =
-    useGetWorkspace(parsedWorkspaceId ?? 0, { query: { enabled: parsedWorkspaceId !== null } });
+  const {
+    data: fetchedWorkspace,
+    isLoading: isFetchingWorkspace,
+    error: fetchError,
+    refetch: refetchWorkspace,
+  } = useGetWorkspace(parsedWorkspaceId ?? 0, {
+    query: { enabled: parsedWorkspaceId !== null },
+  });
 
   useEffect(() => {
     if (fetchedWorkspace) {
@@ -52,7 +60,10 @@ export function WorkspaceLayout() {
     }
   }, [isFetchingWorkspace, parsedWorkspaceId]);
 
-  const defaultCrumbs = useMemo(() => (workspace?.name ? [workspace.name] : []), [workspace]);
+  const defaultCrumbs = useMemo(
+    () => (workspace?.name ? [workspace.name] : []),
+    [workspace],
+  );
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -75,7 +86,9 @@ export function WorkspaceLayout() {
           aria-live="polite"
         >
           <LoadingSpinner />
-          <p style={{ color: "var(--ink)", fontSize: "14px" }}>워크스페이스 정보를 불러오는 중입니다.</p>
+          <p style={{ color: "var(--ink)", fontSize: "14px" }}>
+            워크스페이스 정보를 불러오는 중입니다.
+          </p>
         </div>
       </OstoneShell>
     );

@@ -5,9 +5,12 @@ import type { ReactNode } from "react";
 import { useTransitionList } from "./useTransitionList";
 import { listTransitions } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
-vi.mock("@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller", () => ({
-  listTransitions: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
+  () => ({
+    listTransitions: vi.fn(),
+  }),
+);
 
 const mockedListTransitions = vi.mocked(listTransitions);
 

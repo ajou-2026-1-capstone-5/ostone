@@ -1,10 +1,10 @@
-import { useState, useMemo, Fragment } from 'react';
-import { parseSummaryJson } from '../model/parseSummaryJson';
-import styles from './SummaryJsonCard.module.css';
+import { useState, useMemo, Fragment } from "react";
+import { parseSummaryJson } from "../model/parseSummaryJson";
+import styles from "./SummaryJsonCard.module.css";
 
 function renderValue(v: unknown): string {
   if (v === null || v === undefined) return String(v);
-  if (typeof v === 'object') return JSON.stringify(v);
+  if (typeof v === "object") return JSON.stringify(v);
   return String(v);
 }
 
@@ -13,7 +13,7 @@ interface SummaryJsonCardProps {
 }
 
 export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
-  const [mode, setMode] = useState<'card' | 'raw'>('card');
+  const [mode, setMode] = useState<"card" | "raw">("card");
 
   const parsed = useMemo(() => parseSummaryJson(summaryJson), [summaryJson]);
 
@@ -24,24 +24,24 @@ export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
         <div className={styles.toggleGroup} role="group" aria-label="보기 방식">
           <button
             type="button"
-            className={`${styles.toggleBtn} ${mode === 'card' ? styles.active : ''}`}
-            onClick={() => setMode('card')}
-            aria-pressed={mode === 'card'}
+            className={`${styles.toggleBtn} ${mode === "card" ? styles.active : ""}`}
+            onClick={() => setMode("card")}
+            aria-pressed={mode === "card"}
           >
             카드
           </button>
           <button
             type="button"
-            className={`${styles.toggleBtn} ${mode === 'raw' ? styles.active : ''}`}
-            onClick={() => setMode('raw')}
-            aria-pressed={mode === 'raw'}
+            className={`${styles.toggleBtn} ${mode === "raw" ? styles.active : ""}`}
+            onClick={() => setMode("raw")}
+            aria-pressed={mode === "raw"}
           >
             Raw JSON
           </button>
         </div>
       </div>
       <div className={styles.cardBody}>
-        {mode === 'card' ? (
+        {mode === "card" ? (
           <>
             {!parsed.ok && (
               <p className={styles.fallbackWarning} role="alert">
@@ -62,11 +62,15 @@ export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
                 </div>
               )
             ) : (
-              <pre className={styles.rawPre}><code>{parsed.raw}</code></pre>
+              <pre className={styles.rawPre}>
+                <code>{parsed.raw}</code>
+              </pre>
             )}
           </>
         ) : (
-          <pre className={styles.rawPre}><code>{summaryJson}</code></pre>
+          <pre className={styles.rawPre}>
+            <code>{summaryJson}</code>
+          </pre>
         )}
       </div>
     </div>

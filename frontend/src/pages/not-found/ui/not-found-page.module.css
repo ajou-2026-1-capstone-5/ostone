@@ -31,7 +31,7 @@
 .description {
   font-size: 1rem;
   letter-spacing: -0.14px;
-  color: var(--text-secondary, rgba(0,0,0,0.5));
+  color: var(--text-secondary, rgba(0, 0, 0, 0.5));
   max-width: 400px;
   margin-bottom: 32px;
   line-height: 1.5;
@@ -46,7 +46,7 @@
   .title {
     font-size: 5rem;
   }
-  
+
   .actions {
     flex-direction: column;
     width: 100%;

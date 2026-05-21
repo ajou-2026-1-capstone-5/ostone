@@ -9,7 +9,11 @@ vi.mock("./WorkflowGraphMini", () => ({
   WorkflowGraphMini: () => <div data-testid="graph-mini-stub" />,
 }));
 
-function makeEntry(id: number, name = `wf-${id}`, code = `wf.${String(id).padStart(2, "0")}`): WorkspaceWorkflowEntry {
+function makeEntry(
+  id: number,
+  name = `wf-${id}`,
+  code = `wf.${String(id).padStart(2, "0")}`,
+): WorkspaceWorkflowEntry {
   return {
     packId: 2,
     packName: "Pack",
@@ -37,7 +41,9 @@ beforeEach(() => {
 });
 
 describe("WorkflowListView", () => {
-  const big = Array.from({ length: 20 }, (_, i) => makeEntry(i + 1, `wf-${String(i).padStart(2, "0")}`));
+  const big = Array.from({ length: 20 }, (_, i) =>
+    makeEntry(i + 1, `wf-${String(i).padStart(2, "0")}`),
+  );
 
   it("처음에는 기본 page size(12) 만큼만 그리고 pagination 이 노출된다", () => {
     setup(big);

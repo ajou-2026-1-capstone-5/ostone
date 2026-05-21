@@ -95,10 +95,7 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
             <FormItem className="flex flex-row items-center justify-between">
               <FormLabel>민감 정보</FormLabel>
               <FormControl>
-                <Switch
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
               </FormControl>
             </FormItem>
           )}

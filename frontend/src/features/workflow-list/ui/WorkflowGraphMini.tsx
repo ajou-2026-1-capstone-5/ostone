@@ -140,9 +140,22 @@ function safeParseGraph(graphJson: unknown): {
     const root = parsed as { nodes?: unknown; edges?: unknown };
     const nodes = Array.isArray(root.nodes)
       ? root.nodes
-          .filter((n): n is { id: string; type?: unknown; label?: string; position?: { x?: number; y?: number } } => {
-            return typeof n === "object" && n !== null && typeof (n as { id?: unknown }).id === "string";
-          })
+          .filter(
+            (
+              n,
+            ): n is {
+              id: string;
+              type?: unknown;
+              label?: string;
+              position?: { x?: number; y?: number };
+            } => {
+              return (
+                typeof n === "object" &&
+                n !== null &&
+                typeof (n as { id?: unknown }).id === "string"
+              );
+            },
+          )
           .map<ParsedNode>((n, idx) => ({
             id: n.id,
             label: typeof n.label === "string" && n.label.length > 0 ? n.label : n.id,

@@ -22,8 +22,7 @@
   border: 1px solid var(--glass-border);
   background:
     radial-gradient(circle at top right, var(--glass-dark), transparent 34%),
-    linear-gradient(180deg, var(--bg-secondary), rgba(255, 255, 255, 0) 32%),
-    var(--bg-color);
+    linear-gradient(180deg, var(--bg-secondary), rgba(255, 255, 255, 0) 32%), var(--bg-color);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.05);
   transition:
     transform 0.22s ease,

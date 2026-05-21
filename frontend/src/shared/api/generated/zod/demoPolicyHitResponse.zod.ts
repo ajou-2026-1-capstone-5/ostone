@@ -4,14 +4,14 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const DemoPolicyHitResponse = zod.object({
-  "policyId": zod.string().optional(),
-  "policyName": zod.string().optional(),
-  "result": zod.string().optional(),
-  "detail": zod.string().optional()
-})
+  policyId: zod.string().optional(),
+  policyName: zod.string().optional(),
+  result: zod.string().optional(),
+  detail: zod.string().optional(),
+});
 
 export type DemoPolicyHitResponse = zod.input<typeof DemoPolicyHitResponse>;
 export type DemoPolicyHitResponseOutput = zod.output<typeof DemoPolicyHitResponse>;

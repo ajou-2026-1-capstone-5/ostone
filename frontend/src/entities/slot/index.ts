@@ -1,1 +1,6 @@
-export type { SlotDefinition, SlotSummary, UpdateSlotRequest, UpdateSlotStatusRequest } from "./model/types";
+export type {
+  SlotDefinition,
+  SlotSummary,
+  UpdateSlotRequest,
+  UpdateSlotStatusRequest,
+} from "./model/types";

@@ -8,9 +8,12 @@ import { toast } from "sonner";
 import { RISK_ERROR_MESSAGES } from "./messages";
 import { useUpdateRiskStatus } from "./useUpdateRiskStatus";
 
-vi.mock("@/shared/api/generated/endpoints/update-risk-status-controller/update-risk-status-controller", () => ({
-  updateRiskStatus: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/update-risk-status-controller/update-risk-status-controller",
+  () => ({
+    updateRiskStatus: vi.fn(),
+  }),
+);
 
 vi.mock("sonner", () => ({
   toast: {
@@ -63,7 +66,11 @@ describe("useUpdateRiskStatus", () => {
   });
 
   it("성공 시 detail/list query cache를 갱신한다", async () => {
-    mockedUpdateRiskStatus.mockResolvedValue({ data: { ...stubRisk, status: "INACTIVE" } as any, status: 200, headers: new Headers() });
+    mockedUpdateRiskStatus.mockResolvedValue({
+      data: { ...stubRisk, status: "INACTIVE" } as any,
+      status: 200,
+      headers: new Headers(),
+    });
     const { wrapper, queryClient } = makeWrapperWithClient();
     const detailKey = riskKeys.detail(
       params.workspaceId,

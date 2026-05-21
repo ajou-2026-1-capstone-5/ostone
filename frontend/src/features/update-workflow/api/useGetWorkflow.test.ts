@@ -4,9 +4,12 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useGetWorkflow } from "./useGetWorkflow";
 
-vi.mock("@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller", () => ({
-  getWorkflow: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
+  () => ({
+    getWorkflow: vi.fn(),
+  }),
+);
 
 import { getWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 

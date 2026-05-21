@@ -68,9 +68,7 @@ describe("WorkflowSearchBar", () => {
   });
 
   it("testIdPrefix 가 적용된다", () => {
-    render(
-      <WorkflowSearchBar entries={ENTRIES} onFilter={vi.fn()} testIdPrefix="page-search" />,
-    );
+    render(<WorkflowSearchBar entries={ENTRIES} onFilter={vi.fn()} testIdPrefix="page-search" />);
     expect(screen.getByTestId("page-search-input")).toBeInTheDocument();
   });
 });

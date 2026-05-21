@@ -194,7 +194,11 @@ function JsonCard({
 function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>) {
   const statusClassName = status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive;
 
-  return <span className={`${styles.badge} ${statusClassName}`}>{STATUS_LABELS[status as keyof typeof STATUS_LABELS]}</span>;
+  return (
+    <span className={`${styles.badge} ${statusClassName}`}>
+      {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
+    </span>
+  );
 }
 
 function formatJsonForDisplay(raw: string): string {

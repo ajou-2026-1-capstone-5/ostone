@@ -138,9 +138,7 @@ describe("WorkflowDetailPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("workflow를 찾을 수 없습니다."),
-    );
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("workflow를 찾을 수 없습니다."));
   });
 
   it("성공 상태에서는 헤더 정보와 탭 목록을 보여준다", () => {
@@ -271,7 +269,10 @@ describe("WorkflowDetailPanel", () => {
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
     fireEvent.keyDown(screen.getByRole("tab", { name: "Graph" }), { key: "End" });
-    expect(screen.getByRole("tab", { name: "Transitions" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Transitions" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   it("Meta 탭 — evidenceJson이 malformed JSON이면 raw 문자열을 표시한다", () => {

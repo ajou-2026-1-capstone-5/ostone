@@ -1,11 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
-import React from 'react';
-import { useVersionDetail } from './usePackDetail';
-import { useGetDomainPackVersion } from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import React from "react";
+import { useVersionDetail } from "./usePackDetail";
+import { useGetDomainPackVersion } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 
-vi.mock('@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller', () => ({
+vi.mock("@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller", () => ({
   useGetDomainPackVersion: vi.fn(),
 }));
 
@@ -20,23 +20,23 @@ function makeWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-describe('useVersionDetail', () => {
+describe("useVersionDetail", () => {
   beforeEach(() => mockedUseGetDomainPackVersion.mockReset());
 
-  it('versionId가 null이면 쿼리가 비활성화된다', () => {
+  it("versionId가 null이면 쿼리가 비활성화된다", () => {
     mockedUseGetDomainPackVersion.mockReturnValue({
       data: undefined,
-      fetchStatus: 'idle',
+      fetchStatus: "idle",
       isPending: true,
     } as any);
     const { result } = renderHook(() => useVersionDetail(1, 2, null), { wrapper: makeWrapper() });
-    expect(result.current.fetchStatus).toBe('idle');
+    expect(result.current.fetchStatus).toBe("idle");
     expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(1, 2, -1, {
       query: { enabled: false, select: expect.any(Function) },
     });
   });
 
-  it('versionId가 있으면 상세 API를 호출한다', async () => {
+  it("versionId가 있으면 상세 API를 호출한다", async () => {
     const data = { versionId: 3, versionNo: 1 };
     mockedUseGetDomainPackVersion.mockReturnValue({
       data,
@@ -45,12 +45,12 @@ describe('useVersionDetail', () => {
       isSuccess: true,
       isError: false,
       isFetching: false,
-      status: 'success',
+      status: "success",
       error: null,
       failureCount: 0,
       failureReason: null,
       dataUpdatedAt: 0,
-      fetchStatus: 'idle',
+      fetchStatus: "idle",
     } as any);
     const { result } = renderHook(() => useVersionDetail(1, 2, 3), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.data).toEqual(data));

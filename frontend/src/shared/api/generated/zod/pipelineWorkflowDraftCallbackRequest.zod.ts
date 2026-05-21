@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const pipelineWorkflowDraftCallbackRequestExternalEventIdMin = 0;
 export const pipelineWorkflowDraftCallbackRequestExternalEventIdMax = 255;
@@ -120,65 +120,232 @@ export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRoute
 export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMin = 0;
 export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMax = 1000;
 
-
 export const PipelineWorkflowDraftCallbackRequest = zod.object({
-  "externalEventId": zod.string().min(pipelineWorkflowDraftCallbackRequestExternalEventIdMin).max(pipelineWorkflowDraftCallbackRequestExternalEventIdMax).optional(),
-  "domainPackVersionId": zod.number(),
-  "slots": zod.array(zod.object({
-  "slotCode": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemSlotCodeMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemSlotCodeMax).optional(),
-  "name": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemNameMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "dataType": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemDataTypeMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemDataTypeMax).optional(),
-  "isSensitive": zod.boolean().optional(),
-  "validationRuleJson": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemValidationRuleJsonMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemValidationRuleJsonMax).optional(),
-  "defaultValueJson": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemDefaultValueJsonMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemDefaultValueJsonMax).optional(),
-  "metaJson": zod.string().min(pipelineWorkflowDraftCallbackRequestSlotsItemMetaJsonMin).max(pipelineWorkflowDraftCallbackRequestSlotsItemMetaJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestSlotsMin).max(pipelineWorkflowDraftCallbackRequestSlotsMax).optional(),
-  "policies": zod.array(zod.object({
-  "policyCode": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemPolicyCodeMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemPolicyCodeMax).optional(),
-  "name": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemNameMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "severity": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemSeverityMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemSeverityMax).optional(),
-  "conditionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemConditionJsonMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemConditionJsonMax).optional(),
-  "actionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemActionJsonMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemEvidenceJsonMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(pipelineWorkflowDraftCallbackRequestPoliciesItemMetaJsonMin).max(pipelineWorkflowDraftCallbackRequestPoliciesItemMetaJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestPoliciesMin).max(pipelineWorkflowDraftCallbackRequestPoliciesMax).optional(),
-  "risks": zod.array(zod.object({
-  "riskCode": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemRiskCodeMin).max(pipelineWorkflowDraftCallbackRequestRisksItemRiskCodeMax).optional(),
-  "name": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemNameMin).max(pipelineWorkflowDraftCallbackRequestRisksItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "riskLevel": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemRiskLevelMin).max(pipelineWorkflowDraftCallbackRequestRisksItemRiskLevelMax).optional(),
-  "triggerConditionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemTriggerConditionJsonMin).max(pipelineWorkflowDraftCallbackRequestRisksItemTriggerConditionJsonMax).optional(),
-  "handlingActionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemHandlingActionJsonMin).max(pipelineWorkflowDraftCallbackRequestRisksItemHandlingActionJsonMax).optional(),
-  "evidenceJson": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemEvidenceJsonMin).max(pipelineWorkflowDraftCallbackRequestRisksItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(pipelineWorkflowDraftCallbackRequestRisksItemMetaJsonMin).max(pipelineWorkflowDraftCallbackRequestRisksItemMetaJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestRisksMin).max(pipelineWorkflowDraftCallbackRequestRisksMax).optional(),
-  "workflows": zod.array(zod.object({
-  "workflowCode": zod.string().min(pipelineWorkflowDraftCallbackRequestWorkflowsItemWorkflowCodeMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsItemWorkflowCodeMax).optional(),
-  "name": zod.string().min(pipelineWorkflowDraftCallbackRequestWorkflowsItemNameMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "graphJson": zod.string().min(pipelineWorkflowDraftCallbackRequestWorkflowsItemGraphJsonMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsItemGraphJsonMax).optional(),
-  "initialState": zod.string().optional(),
-  "terminalStatesJson": zod.string().optional(),
-  "evidenceJson": zod.string().min(pipelineWorkflowDraftCallbackRequestWorkflowsItemEvidenceJsonMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestWorkflowsMin).max(pipelineWorkflowDraftCallbackRequestWorkflowsMax).optional(),
-  "intentSlotBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemIntentCodeMin).max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemIntentCodeMax).optional(),
-  "slotCode": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemSlotCodeMin).max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemSlotCodeMax).optional(),
-  "isRequired": zod.boolean().optional(),
-  "collectionOrder": zod.number().optional(),
-  "promptHint": zod.string().optional(),
-  "conditionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemConditionJsonMin).max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemConditionJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMin).max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMax).optional(),
-  "intentWorkflowBindings": zod.array(zod.object({
-  "intentCode": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMin).max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMax).optional(),
-  "workflowCode": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMin).max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMax).optional(),
-  "isPrimary": zod.boolean().optional(),
-  "routeConditionJson": zod.string().min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMin).max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMax).optional()
-})).min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMin).max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMax).optional()
-})
+  externalEventId: zod
+    .string()
+    .min(pipelineWorkflowDraftCallbackRequestExternalEventIdMin)
+    .max(pipelineWorkflowDraftCallbackRequestExternalEventIdMax)
+    .optional(),
+  domainPackVersionId: zod.number(),
+  slots: zod
+    .array(
+      zod.object({
+        slotCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemSlotCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemSlotCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemNameMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        dataType: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemDataTypeMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemDataTypeMax)
+          .optional(),
+        isSensitive: zod.boolean().optional(),
+        validationRuleJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemValidationRuleJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemValidationRuleJsonMax)
+          .optional(),
+        defaultValueJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemDefaultValueJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemDefaultValueJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestSlotsItemMetaJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestSlotsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestSlotsMin)
+    .max(pipelineWorkflowDraftCallbackRequestSlotsMax)
+    .optional(),
+  policies: zod
+    .array(
+      zod.object({
+        policyCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemPolicyCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemPolicyCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemNameMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        severity: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemSeverityMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemSeverityMax)
+          .optional(),
+        conditionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemConditionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemConditionJsonMax)
+          .optional(),
+        actionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemActionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemEvidenceJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestPoliciesItemMetaJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestPoliciesItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestPoliciesMin)
+    .max(pipelineWorkflowDraftCallbackRequestPoliciesMax)
+    .optional(),
+  risks: zod
+    .array(
+      zod.object({
+        riskCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemRiskCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemRiskCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemNameMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        riskLevel: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemRiskLevelMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemRiskLevelMax)
+          .optional(),
+        triggerConditionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemTriggerConditionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemTriggerConditionJsonMax)
+          .optional(),
+        handlingActionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemHandlingActionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemHandlingActionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemEvidenceJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestRisksItemMetaJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestRisksItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestRisksMin)
+    .max(pipelineWorkflowDraftCallbackRequestRisksMax)
+    .optional(),
+  workflows: zod
+    .array(
+      zod.object({
+        workflowCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemWorkflowCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemWorkflowCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemNameMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        graphJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemGraphJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemGraphJsonMax)
+          .optional(),
+        initialState: zod.string().optional(),
+        terminalStatesJson: zod.string().optional(),
+        evidenceJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemEvidenceJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestWorkflowsMin)
+    .max(pipelineWorkflowDraftCallbackRequestWorkflowsMax)
+    .optional(),
+  intentSlotBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemIntentCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemIntentCodeMax)
+          .optional(),
+        slotCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemSlotCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemSlotCodeMax)
+          .optional(),
+        isRequired: zod.boolean().optional(),
+        collectionOrder: zod.number().optional(),
+        promptHint: zod.string().optional(),
+        conditionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemConditionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMin)
+    .max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMax)
+    .optional(),
+  intentWorkflowBindings: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMax)
+          .optional(),
+        workflowCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMax)
+          .optional(),
+        isPrimary: zod.boolean().optional(),
+        routeConditionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMax)
+          .optional(),
+      }),
+    )
+    .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMin)
+    .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMax)
+    .optional(),
+});
 
-export type PipelineWorkflowDraftCallbackRequest = zod.input<typeof PipelineWorkflowDraftCallbackRequest>;
-export type PipelineWorkflowDraftCallbackRequestOutput = zod.output<typeof PipelineWorkflowDraftCallbackRequest>;
+export type PipelineWorkflowDraftCallbackRequest = zod.input<
+  typeof PipelineWorkflowDraftCallbackRequest
+>;
+export type PipelineWorkflowDraftCallbackRequestOutput = zod.output<
+  typeof PipelineWorkflowDraftCallbackRequest
+>;

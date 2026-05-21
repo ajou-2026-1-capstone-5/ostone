@@ -4,108 +4,147 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
+  UseMutationResult,
+} from "@tanstack/react-query";
 
-import type {
-  IntentDefinitionStatusResponse,
-  UpdateIntentStatusRequest
-} from '../../zod';
+import type { IntentDefinitionStatusResponse, UpdateIntentStatusRequest } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type updateIntentStatusResponse200 = {
-  data: IntentDefinitionStatusResponse
-  status: 200
-}
+  data: IntentDefinitionStatusResponse;
+  status: 200;
+};
 
-export type updateIntentStatusResponseSuccess = (updateIntentStatusResponse200) & {
+export type updateIntentStatusResponseSuccess = updateIntentStatusResponse200 & {
   headers: Headers;
 };
-;
 
-export type updateIntentStatusResponse = (updateIntentStatusResponseSuccess)
+export type updateIntentStatusResponse = updateIntentStatusResponseSuccess;
 
-export const getUpdateIntentStatusUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number,) => {
+export const getUpdateIntentStatusUrl = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}/status`;
+};
 
+export const updateIntentStatus = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  updateIntentStatusRequest: UpdateIntentStatusRequest,
+  options?: RequestInit,
+): Promise<updateIntentStatusResponse> => {
+  return customFetch<updateIntentStatusResponse>(
+    getUpdateIntentStatusUrl(workspaceId, packId, versionId, intentId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateIntentStatusRequest),
+    },
+  );
+};
 
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}/status`
-}
-
-export const updateIntentStatus = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number,
-    updateIntentStatusRequest: UpdateIntentStatusRequest, options?: RequestInit): Promise<updateIntentStatusResponse> => {
-
-  return customFetch<updateIntentStatusResponse>(getUpdateIntentStatusUrl(workspaceId,packId,versionId,intentId),
+export const getUpdateIntentStatusMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateIntentStatus>>,
+    TError,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      intentId: number;
+      data: UpdateIntentStatusRequest;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateIntentStatus>>,
+  TError,
   {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateIntentStatusRequest,)
-  }
-);}
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    intentId: number;
+    data: UpdateIntentStatusRequest;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateIntentStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-
-
-
-export const getUpdateIntentStatusMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIntentStatus>>, TError,{workspaceId: number;packId: number;versionId: number;intentId: number;data: UpdateIntentStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateIntentStatus>>, TError,{workspaceId: number;packId: number;versionId: number;intentId: number;data: UpdateIntentStatusRequest}, TContext> => {
-
-const mutationKey = ['updateIntentStatus'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIntentStatus>>, {workspaceId: number;packId: number;versionId: number;intentId: number;data: UpdateIntentStatusRequest}> = (props) => {
-          const {workspaceId,packId,versionId,intentId,data} = props ?? {};
-
-          return  updateIntentStatus(workspaceId,packId,versionId,intentId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateIntentStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateIntentStatus>>>
-    export type UpdateIntentStatusMutationBody = UpdateIntentStatusRequest
-    export type UpdateIntentStatusMutationError = unknown
-
-    export const useUpdateIntentStatus = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIntentStatus>>, TError,{workspaceId: number;packId: number;versionId: number;intentId: number;data: UpdateIntentStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateIntentStatus>>,
-        TError,
-        {workspaceId: number;packId: number;versionId: number;intentId: number;data: UpdateIntentStatusRequest},
-        TContext
-      > => {
-      return useMutation(getUpdateIntentStatusMutationOptions(options), queryClient);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateIntentStatus>>,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      intentId: number;
+      data: UpdateIntentStatusRequest;
     }
+  > = (props) => {
+    const { workspaceId, packId, versionId, intentId, data } = props ?? {};
+
+    return updateIntentStatus(workspaceId, packId, versionId, intentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateIntentStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateIntentStatus>>
+>;
+export type UpdateIntentStatusMutationBody = UpdateIntentStatusRequest;
+export type UpdateIntentStatusMutationError = unknown;
+
+export const useUpdateIntentStatus = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateIntentStatus>>,
+      TError,
+      {
+        workspaceId: number;
+        packId: number;
+        versionId: number;
+        intentId: number;
+        data: UpdateIntentStatusRequest;
+      },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateIntentStatus>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    intentId: number;
+    data: UpdateIntentStatusRequest;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateIntentStatusMutationOptions(options), queryClient);
+};

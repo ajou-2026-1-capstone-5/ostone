@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, StickyNote, MessageSquare } from 'lucide-react';
-import styles from './chat-panel.module.css';
+import React, { useState, useRef, useEffect } from "react";
+import { Send, StickyNote, MessageSquare } from "lucide-react";
+import styles from "./chat-panel.module.css";
 
 export interface ChatMessage {
   id: string;
-  senderRole: 'CUSTOMER' | 'AGENT' | 'SYSTEM' | 'NOTE';
+  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE";
   content: string;
   timestamp: string;
 }
@@ -21,7 +21,7 @@ interface ChatPanelProps {
 /**
  * 상담 대화 내용을 표시하고 메시지를 전송하는 패널 컴포넌트입니다.
  * 실시간 메시지 렌더링, 전송 시 스크롤 관리, 한글 입력 최적화 등을 처리합니다.
- * 
+ *
  * @param {ChatPanelProps} props - 메시지 목록 및 전송 핸들러
  * @returns {JSX.Element} 채팅 패널 컴포넌트
  */
@@ -33,7 +33,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   selectedMessageId,
   onSelectMessage,
 }) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -50,14 +50,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(input.trim(), isNoteMode);
-    setInput('');
+    setInput("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Prevent triggering send while composing (e.g. Korean IME)
     if (e.nativeEvent.isComposing) return;
 
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -94,14 +94,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Messages */}
       <div className={styles.messageList} ref={listRef}>
         {messages.map((msg) => {
-          if (msg.senderRole === 'SYSTEM') {
+          if (msg.senderRole === "SYSTEM") {
             return (
               <div key={msg.id} className={styles.systemMessage}>
                 {msg.content}
               </div>
             );
           }
-          if (msg.senderRole === 'NOTE') {
+          if (msg.senderRole === "NOTE") {
             return (
               <div key={msg.id} className={styles.internalNote}>
                 <div className={styles.noteLabel}>📝 내부 메모</div>
@@ -109,12 +109,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               </div>
             );
           }
-          const isAgent = msg.senderRole === 'AGENT';
+          const isAgent = msg.senderRole === "AGENT";
           const isSelected = selectedMessageId === msg.id;
           return (
             <div
               key={msg.id}
-              className={`${styles.messageGroup} ${isAgent ? styles.messageGroupAgent : styles.messageGroupCustomer} ${isSelected ? styles.messageSelected : ''}`}
+              className={`${styles.messageGroup} ${isAgent ? styles.messageGroupAgent : styles.messageGroupCustomer} ${isSelected ? styles.messageSelected : ""}`}
               onClick={() => {
                 if (isSelected) {
                   onSelectMessage(null);
@@ -123,7 +123,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   if (isSelected) {
                     onSelectMessage(null);
@@ -139,7 +139,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? 'A' : customerName.charAt(0)}
+                {isAgent ? "A" : customerName.charAt(0)}
               </div>
               <div>
                 <div
@@ -147,7 +147,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 >
                   {msg.content}
                 </div>
-                <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ''}`}>
+                <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
                   {msg.timestamp}
                 </div>
               </div>
@@ -159,25 +159,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Input */}
       <div className={styles.inputArea}>
         <button
-          className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ''}`}
+          className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ""}`}
           onClick={() => setIsNoteMode(!isNoteMode)}
-          title={isNoteMode ? '일반 메시지로 전환' : '내부 메모 모드'}
+          title={isNoteMode ? "일반 메시지로 전환" : "내부 메모 모드"}
         >
           <StickyNote size={18} />
         </button>
         <textarea
           className={styles.messageInput}
           rows={1}
-          placeholder={isNoteMode ? '내부 메모를 입력하세요 (고객에게 보이지 않음)...' : '메시지를 입력하세요...'}
+          placeholder={
+            isNoteMode
+              ? "내부 메모를 입력하세요 (고객에게 보이지 않음)..."
+              : "메시지를 입력하세요..."
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button
-          className={styles.sendBtn}
-          onClick={handleSend}
-          disabled={!input.trim()}
-        >
+        <button className={styles.sendBtn} onClick={handleSend} disabled={!input.trim()}>
           <Send size={18} />
         </button>
       </div>

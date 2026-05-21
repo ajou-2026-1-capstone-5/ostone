@@ -9,13 +9,19 @@ import { POLICY_ERROR_MESSAGES } from "../messages";
 import { useUpdatePolicy } from "../useUpdatePolicy";
 import { useUpdatePolicyStatus } from "../useUpdatePolicyStatus";
 
-vi.mock("@/shared/api/generated/endpoints/update-policy-controller/update-policy-controller", () => ({
-  updatePolicy: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/update-policy-controller/update-policy-controller",
+  () => ({
+    updatePolicy: vi.fn(),
+  }),
+);
 
-vi.mock("@/shared/api/generated/endpoints/update-policy-status-controller/update-policy-status-controller", () => ({
-  updatePolicyStatus: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/update-policy-status-controller/update-policy-status-controller",
+  () => ({
+    updatePolicyStatus: vi.fn(),
+  }),
+);
 
 vi.mock("sonner", () => ({
   toast: {
@@ -80,7 +86,11 @@ describe("useUpdatePolicy", () => {
   });
 
   it("성공 시 toast.success를 호출한다", async () => {
-    mockedUpdatePolicy.mockResolvedValue({ data: { ...stubPolicy, description: undefined, name: "새 정책" }, status: 200, headers: new Headers() });
+    mockedUpdatePolicy.mockResolvedValue({
+      data: { ...stubPolicy, description: undefined, name: "새 정책" },
+      status: 200,
+      headers: new Headers(),
+    });
     const { result } = renderHook(() => useUpdatePolicy(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -91,7 +101,9 @@ describe("useUpdatePolicy", () => {
   });
 
   it("POLICY_NOT_EDITABLE 에러 시 전용 안내 메시지를 표시한다", async () => {
-    mockedUpdatePolicy.mockRejectedValue(new ApiRequestError(400, "POLICY_NOT_EDITABLE", "수정 불가"));
+    mockedUpdatePolicy.mockRejectedValue(
+      new ApiRequestError(400, "POLICY_NOT_EDITABLE", "수정 불가"),
+    );
     const { result } = renderHook(() => useUpdatePolicy(), { wrapper: makeWrapper() });
 
     act(() => {
@@ -139,7 +151,11 @@ describe("useUpdatePolicyStatus", () => {
   });
 
   it("성공 시 detail/list query cache를 갱신한다", async () => {
-    mockedUpdatePolicyStatus.mockResolvedValue({ data: { ...stubPolicy, description: undefined, status: "INACTIVE" }, status: 200, headers: new Headers() });
+    mockedUpdatePolicyStatus.mockResolvedValue({
+      data: { ...stubPolicy, description: undefined, status: "INACTIVE" },
+      status: 200,
+      headers: new Headers(),
+    });
     const { wrapper, queryClient } = makeWrapperWithClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     queryClient.setQueryData<PolicyDefinition>(

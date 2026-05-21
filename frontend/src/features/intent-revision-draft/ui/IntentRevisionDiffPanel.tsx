@@ -30,15 +30,7 @@ export function IntentRevisionDiffPanel({ change }: IntentRevisionDiffPanelProps
   );
 }
 
-function DiffRow({
-  label,
-  before,
-  after,
-}: {
-  label: string;
-  before: string;
-  after: string;
-}) {
+function DiffRow({ label, before, after }: { label: string; before: string; after: string }) {
   return (
     <div className={styles.diffRow}>
       <span className={styles.diffLabel}>{label}</span>

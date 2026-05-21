@@ -36,14 +36,7 @@ describe("DomainPackApprovalDialog", () => {
   });
 
   it("pending 중 확인/취소 버튼이 disabled 된다", () => {
-    render(
-      <DomainPackApprovalDialog
-        open
-        onOpenChange={vi.fn()}
-        onConfirm={vi.fn()}
-        isLoading
-      />,
-    );
+    render(<DomainPackApprovalDialog open onOpenChange={vi.fn()} onConfirm={vi.fn()} isLoading />);
 
     expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /처리 중/ })).toBeDisabled();

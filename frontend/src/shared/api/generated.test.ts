@@ -21,12 +21,14 @@ function getParseableSchemas(): ParseableSchema[] {
 }
 
 function isParseableSchema(value: unknown): value is ParseableSchema {
-  return typeof value === "object"
-    && value !== null
-    && "parse" in value
-    && typeof value.parse === "function"
-    && "safeParse" in value
-    && typeof value.safeParse === "function";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "parse" in value &&
+    typeof value.parse === "function" &&
+    "safeParse" in value &&
+    typeof value.safeParse === "function"
+  );
 }
 
 describe("Generated API code smoke test", () => {
@@ -44,8 +46,8 @@ describe("Generated API code smoke test", () => {
     const exports = Object.values(endpointModules).flatMap(
       (endpointModule) => Object.entries(endpointModule) as EndpointExportEntry[],
     );
-    const hookExports = exports.filter(([name, value]) =>
-      name.startsWith("use") && typeof value === "function",
+    const hookExports = exports.filter(
+      ([name, value]) => name.startsWith("use") && typeof value === "function",
     );
 
     expect(Object.keys(endpointModules).length).toBeGreaterThan(0);

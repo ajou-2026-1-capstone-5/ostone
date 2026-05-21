@@ -81,9 +81,7 @@ export function buildIntentRevisionSummary(
     changedIntents,
     changedFieldCounts: {
       name: changedIntents.filter((change) => change.fields.includes("name")).length,
-      description: changedIntents.filter((change) =>
-        change.fields.includes("description"),
-      ).length,
+      description: changedIntents.filter((change) => change.fields.includes("description")).length,
     },
     changedByDraftIntentId: Object.fromEntries(
       changedIntents.map((change) => [change.intentId, change]),
@@ -147,9 +145,7 @@ export function useIntentRevisionSummary({
           value: {
             status: "error",
             message:
-              error instanceof Error
-                ? error.message
-                : "Intent 수정 요약을 불러오지 못했습니다.",
+              error instanceof Error ? error.message : "Intent 수정 요약을 불러오지 못했습니다.",
           },
         });
       });

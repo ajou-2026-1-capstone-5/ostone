@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import type { UseQueryResult } from '@tanstack/react-query';
-import { ApiRequestError } from '@/shared/api';
-import { OstoneShell } from '@/widgets/ostone-shell';
-import { LoadingSpinner } from '@/shared/ui/ostone/atoms/LoadingSpinner';
-import { ErrorState } from '@/shared/ui/ostone/atoms/ErrorState';
-import { parseRouteId } from '@/shared/lib/parseRouteId';
-import { usePackDetail, useVersionDetail, VersionListPanel, SummaryDetailPanel } from '@/features/domain-pack-summary-read';
-import { CreateDraftModal } from '@/features/domain-pack-draft-create';
-import type { DomainPackDetail, DomainPackVersionDetail } from '@/entities/domain-pack';
-import styles from './domain-pack-summary-page.module.css';
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import type { UseQueryResult } from "@tanstack/react-query";
+import { ApiRequestError } from "@/shared/api";
+import { OstoneShell } from "@/widgets/ostone-shell";
+import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { parseRouteId } from "@/shared/lib/parseRouteId";
+import {
+  usePackDetail,
+  useVersionDetail,
+  VersionListPanel,
+  SummaryDetailPanel,
+} from "@/features/domain-pack-summary-read";
+import { CreateDraftModal } from "@/features/domain-pack-draft-create";
+import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domain-pack";
+import styles from "./domain-pack-summary-page.module.css";
 
 export function DomainPackSummaryPage() {
   const { workspaceId, packId } = useParams();
@@ -30,28 +35,47 @@ export function DomainPackSummaryPage() {
     );
   }
 
-  return <DomainPackSummaryPageContent wsId={wsId} packId={pId} search={search} setSearch={setSearch} isCreateOpen={isCreateOpen} setCreateOpen={setCreateOpen} />;
+  return (
+    <DomainPackSummaryPageContent
+      wsId={wsId}
+      packId={pId}
+      search={search}
+      setSearch={setSearch}
+      isCreateOpen={isCreateOpen}
+      setCreateOpen={setCreateOpen}
+    />
+  );
 }
 
 interface ContentProps {
   wsId: number;
   packId: number;
   search: URLSearchParams;
-  setSearch: (updater: ((prev: URLSearchParams) => URLSearchParams) | URLSearchParams, options?: { replace?: boolean }) => void;
+  setSearch: (
+    updater: ((prev: URLSearchParams) => URLSearchParams) | URLSearchParams,
+    options?: { replace?: boolean },
+  ) => void;
   isCreateOpen: boolean;
   setCreateOpen: (open: boolean) => void;
 }
 
-function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreateOpen, setCreateOpen }: ContentProps) {
+function DomainPackSummaryPageContent({
+  wsId,
+  packId,
+  search,
+  setSearch,
+  isCreateOpen,
+  setCreateOpen,
+}: ContentProps) {
   const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
 
   useEffect(() => {
     if (!packQuery.isError) return;
     const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
-    toast.error(is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.');
+    toast.error(is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다.");
   }, [packQuery.isError, packQuery.error]);
 
-  const rawVersionId = search.get('versionId');
+  const rawVersionId = search.get("versionId");
   const selectedVersionId = rawVersionId !== null ? parseRouteId(rawVersionId) : null;
 
   useEffect(() => {
@@ -59,25 +83,27 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
     if (selectedVersionId !== null) return;
     const versions = packQuery.data?.versions;
     if (!versions || versions.length === 0) return;
-    const latest = versions.reduce((a, b) =>
-      (a.versionNo ?? 0) >= (b.versionNo ?? 0) ? a : b,
-    );
+    const latest = versions.reduce((a, b) => ((a.versionNo ?? 0) >= (b.versionNo ?? 0) ? a : b));
     setSearch(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set('versionId', String(latest.versionId));
+        next.set("versionId", String(latest.versionId));
         return next;
       },
       { replace: true },
     );
   }, [packQuery.data, search, selectedVersionId, setSearch]);
 
-  const versionQuery = useVersionDetail(wsId, packId, selectedVersionId) as UseQueryResult<DomainPackVersionDetail>;
+  const versionQuery = useVersionDetail(
+    wsId,
+    packId,
+    selectedVersionId,
+  ) as UseQueryResult<DomainPackVersionDetail>;
 
   const handleSelectVersion = (versionId: number) => {
     setSearch((prev) => {
       const next = new URLSearchParams(prev);
-      next.set('versionId', String(versionId));
+      next.set("versionId", String(versionId));
       return next;
     });
   };
@@ -86,7 +112,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
     setCreateOpen(false);
     setSearch((prev) => {
       const next = new URLSearchParams(prev);
-      next.set('versionId', String(newVersionId));
+      next.set("versionId", String(newVersionId));
       return next;
     });
   };
@@ -106,7 +132,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
     return (
       <OstoneShell active="domain" crumbs={[`PACK \u00b7 ${packId}`]}>
         <ErrorState
-          message={is404 ? 'Pack을 찾을 수 없습니다.' : 'Pack 정보를 불러오지 못했습니다.'}
+          message={is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다."}
           onRetry={!is404 ? () => packQuery.refetch() : undefined}
         />
       </OstoneShell>
@@ -131,11 +157,7 @@ function DomainPackSummaryPageContent({ wsId, packId, search, setSearch, isCreat
             )}
           </div>
           <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.createBtn}
-              onClick={() => setCreateOpen(true)}
-            >
+            <button type="button" className={styles.createBtn} onClick={() => setCreateOpen(true)}>
               새 DRAFT 묶기
             </button>
           </div>

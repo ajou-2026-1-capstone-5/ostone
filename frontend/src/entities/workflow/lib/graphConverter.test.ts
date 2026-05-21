@@ -15,20 +15,29 @@ describe("graphConverter", () => {
   describe("toNodeType via convertFlowToWorkflowGraph", () => {
     it("maps undefined type to ACTION", () => {
       const nodes: Node[] = [
-        { id: "n1", type: undefined as unknown as string, data: { label: "Test" }, position: { x: 0, y: 0 } },
+        {
+          id: "n1",
+          type: undefined as unknown as string,
+          data: { label: "Test" },
+          position: { x: 0, y: 0 },
+        },
       ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
 
     it("maps empty string type to ACTION", () => {
-      const nodes: Node[] = [{ id: "n1", type: "", data: { label: "Test" }, position: { x: 0, y: 0 } }];
+      const nodes: Node[] = [
+        { id: "n1", type: "", data: { label: "Test" }, position: { x: 0, y: 0 } },
+      ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
 
     it("maps whitespace string type to ACTION", () => {
-      const nodes: Node[] = [{ id: "n1", type: "   ", data: { label: "Test" }, position: { x: 0, y: 0 } }];
+      const nodes: Node[] = [
+        { id: "n1", type: "   ", data: { label: "Test" }, position: { x: 0, y: 0 } },
+      ];
       const result = convertFlowToWorkflowGraph(nodes, []);
       expect(result.nodes[0].type).toBe("ACTION");
     });
@@ -55,7 +64,7 @@ describe("graphConverter", () => {
       ];
       convertFlowToWorkflowGraph(nodes, []);
       expect(console.warn).toHaveBeenCalledWith(
-        '[graphConverter] unknown node type: "INVALID" — falling back to ACTION'
+        '[graphConverter] unknown node type: "INVALID" — falling back to ACTION',
       );
     });
   });
@@ -143,9 +152,7 @@ describe("graphConverter", () => {
     it("uses provided position", () => {
       const graph: WorkflowGraph = {
         direction: "TB",
-        nodes: [
-          { id: "n1", type: "ACTION", label: "Act", position: { x: 100, y: 200 } },
-        ],
+        nodes: [{ id: "n1", type: "ACTION", label: "Act", position: { x: 100, y: 200 } }],
         edges: [],
       };
       const { nodes } = toFlow(graph);
@@ -175,11 +182,12 @@ describe("graphConverter", () => {
         edges: [],
       };
       const { nodes } = toFlow(graph);
+      // NODE_GAP_X = 320, NODE_GAP_Y = 200 (LR: column-major, 4 rows)
       expect(nodes[0].position).toEqual({ x: 0, y: 0 });
-      expect(nodes[1].position).toEqual({ x: 0, y: 120 });
-      expect(nodes[2].position).toEqual({ x: 0, y: 240 });
-      expect(nodes[3].position).toEqual({ x: 0, y: 360 });
-      expect(nodes[4].position).toEqual({ x: 200, y: 0 });
+      expect(nodes[1].position).toEqual({ x: 0, y: 200 });
+      expect(nodes[2].position).toEqual({ x: 0, y: 400 });
+      expect(nodes[3].position).toEqual({ x: 0, y: 600 });
+      expect(nodes[4].position).toEqual({ x: 320, y: 0 });
     });
 
     it("computes positions for TB direction with multiple nodes", () => {
@@ -195,11 +203,12 @@ describe("graphConverter", () => {
         edges: [],
       };
       const { nodes } = toFlow(graph);
+      // NODE_GAP_X = 320, NODE_GAP_Y = 200 (TB: row-major, 4 columns)
       expect(nodes[0].position).toEqual({ x: 0, y: 0 });
-      expect(nodes[1].position).toEqual({ x: 200, y: 0 });
-      expect(nodes[2].position).toEqual({ x: 400, y: 0 });
-      expect(nodes[3].position).toEqual({ x: 600, y: 0 });
-      expect(nodes[4].position).toEqual({ x: 0, y: 120 });
+      expect(nodes[1].position).toEqual({ x: 320, y: 0 });
+      expect(nodes[2].position).toEqual({ x: 640, y: 0 });
+      expect(nodes[3].position).toEqual({ x: 960, y: 0 });
+      expect(nodes[4].position).toEqual({ x: 0, y: 200 });
     });
 
     it("handles HANDOFF node type", () => {
@@ -360,9 +369,7 @@ describe("graphConverter", () => {
         { id: "n1", type: "ACTION", data: { label: "A" }, position: { x: 0, y: 0 } },
         { id: "n2", type: "ACTION", data: { label: "B" }, position: { x: 0, y: 0 } },
       ];
-      const edges = [
-        { id: "e1", source: "n1", target: "n2", label: "" },
-      ];
+      const edges = [{ id: "e1", source: "n1", target: "n2", label: "" }];
       const result = convertFlowToWorkflowGraph(nodes, edges);
       expect(result.edges[0].label).toBeUndefined();
     });
@@ -372,9 +379,7 @@ describe("graphConverter", () => {
         { id: "n1", type: "ACTION", data: { label: "A" }, position: { x: 0, y: 0 } },
         { id: "n2", type: "ACTION", data: { label: "B" }, position: { x: 0, y: 0 } },
       ];
-      const edges = [
-        { id: "e1", source: "n1", target: "n2", label: null as unknown as string },
-      ];
+      const edges = [{ id: "e1", source: "n1", target: "n2", label: null as unknown as string }];
       const result = convertFlowToWorkflowGraph(nodes, edges);
       expect(result.edges[0].label).toBeUndefined();
     });
@@ -382,7 +387,12 @@ describe("graphConverter", () => {
     it("converts multiple nodes and edges together", () => {
       const nodes: Node[] = [
         { id: "n1", type: "START", data: { label: "Start" }, position: { x: 0, y: 0 } },
-        { id: "n2", type: "ACTION", data: { label: "Process", policyRef: "pol-1" }, position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "ACTION",
+          data: { label: "Process", policyRef: "pol-1" },
+          position: { x: 0, y: 0 },
+        },
         { id: "n3", type: "DECISION", data: { label: "Check" }, position: { x: 0, y: 0 } },
         { id: "n4", type: "TERMINAL", data: { label: "End" }, position: { x: 0, y: 0 } },
       ];

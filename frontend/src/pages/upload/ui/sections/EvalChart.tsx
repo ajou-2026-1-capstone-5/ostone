@@ -14,13 +14,7 @@ const DEFAULT_RUNS: EvalRun[] = [
   { id: "run-5", label: "run-5", k1: 0.92, mappingRate: 0.82, separability: 0.91 },
 ];
 
-export function EvalChart({
-  runs,
-  threshold = 0.6,
-}: {
-  runs: EvalRun[];
-  threshold?: number;
-}) {
+export function EvalChart({ runs, threshold = 0.6 }: { runs: EvalRun[]; threshold?: number }) {
   const data = runs.length > 0 ? runs : DEFAULT_RUNS;
   const viewW = 200;
   const viewH = 80;
@@ -35,9 +29,7 @@ export function EvalChart({
   const yFor = (v: number) => padTop + (1 - v) * chartH;
 
   function makePath(values: number[]) {
-    return values
-      .map((v, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(v)}`)
-      .join(" ");
+    return values.map((v, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(v)}`).join(" ");
   }
 
   const k1Path = makePath(data.map((d) => d.k1));
@@ -149,10 +141,7 @@ export function EvalChart({
           { color: "var(--warn)", label: "mapping_rate" },
           { color: "var(--info)", label: "separability" },
         ].map((item) => (
-          <div
-            key={item.label}
-            style={{ display: "flex", alignItems: "center", gap: "4px" }}
-          >
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <span
               style={{
                 width: 6,

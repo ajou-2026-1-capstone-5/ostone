@@ -29,8 +29,7 @@ export function parseIntentRevisionDraftSource(
     return {
       type: "INTENT_REVISION",
       baseVersionId: source.baseVersionId,
-      baseVersionNo:
-        typeof source.baseVersionNo === "number" ? source.baseVersionNo : undefined,
+      baseVersionNo: typeof source.baseVersionNo === "number" ? source.baseVersionNo : undefined,
       reason: typeof source.reason === "string" ? source.reason : undefined,
     };
   } catch {

@@ -34,12 +34,7 @@ export function TransitionPopover({ transition, policy, onClose }: TransitionPop
     <div ref={ref} className={styles.popover} role="dialog" aria-label="transition 상세">
       <div className={styles.header}>
         <span className={styles.id}>{transition.id}</span>
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="닫기"
-        >
+        <button type="button" className={styles.closeButton} onClick={onClose} aria-label="닫기">
           ✕
         </button>
       </div>
@@ -62,9 +57,7 @@ export function TransitionPopover({ transition, policy, onClose }: TransitionPop
         <div className={styles.policySection}>
           <span className={styles.label}>Policy</span>
           <span className={styles.policyName}>{policy.name}</span>
-          {policy.description && (
-            <span className={styles.policyDesc}>{policy.description}</span>
-          )}
+          {policy.description && <span className={styles.policyDesc}>{policy.description}</span>}
         </div>
       )}
     </div>

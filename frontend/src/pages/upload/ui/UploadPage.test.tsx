@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { UploadPage } from './UploadPage';
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { UploadPage } from "./UploadPage";
 
 const shellContext = {
   setTopbarRight: vi.fn(),
@@ -9,8 +9,8 @@ const shellContext = {
   workspace: null,
 };
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
     ...actual,
     useOutletContext: () => shellContext,
@@ -28,30 +28,30 @@ function renderUploadPage() {
   );
 }
 
-describe('UploadPage', () => {
-  it('renders hero h1 with expected text', () => {
+describe("UploadPage", () => {
+  it("renders hero h1 with expected text", () => {
     renderUploadPage();
-    const h1 = screen.getByRole('heading', { level: 1 });
-    expect(h1).toHaveTextContent('상담 로그');
-    expect(h1).toHaveTextContent('도메인 팩 초안');
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toHaveTextContent("상담 로그");
+    expect(h1).toHaveTextContent("도메인 팩 초안");
   });
 
-  it('renders dropzone with upload prompt', () => {
+  it("renders dropzone with upload prompt", () => {
     renderUploadPage();
-    expect(screen.getByText('파일을 클릭하여 선택하세요')).toBeInTheDocument();
+    expect(screen.getByText("파일을 클릭하여 선택하세요")).toBeInTheDocument();
   });
 
-  it('renders datasets table with 5 or more rows', () => {
+  it("renders datasets table with 5 or more rows", () => {
     renderUploadPage();
     const rows = screen.getAllByText(/\.jsonl|\.csv|\.parquet/);
     expect(rows.length).toBeGreaterThanOrEqual(5);
   });
 
-  it('renders 4 quality issues', () => {
+  it("renders 4 quality issues", () => {
     renderUploadPage();
-    expect(screen.getByText('intent_023')).toBeInTheDocument();
-    expect(screen.getByText('slot_007')).toBeInTheDocument();
-    expect(screen.getByText('policy_004')).toBeInTheDocument();
-    expect(screen.getByText('risk_001')).toBeInTheDocument();
+    expect(screen.getByText("intent_023")).toBeInTheDocument();
+    expect(screen.getByText("slot_007")).toBeInTheDocument();
+    expect(screen.getByText("policy_004")).toBeInTheDocument();
+    expect(screen.getByText("risk_001")).toBeInTheDocument();
   });
 });

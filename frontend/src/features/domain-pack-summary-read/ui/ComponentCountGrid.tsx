@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   useIntentPreview,
   useSlotPreview,
   usePolicyPreview,
   useRiskPreview,
   useWorkflowPreview,
-} from '../model/usePreviewLists';
-import styles from './ComponentCountGrid.module.css';
+} from "../model/usePreviewLists";
+import styles from "./ComponentCountGrid.module.css";
 
 interface ComponentCountGridProps {
   wsId: number;
@@ -45,23 +45,23 @@ export function ComponentCountGrid({
   const workflowPreview = useWorkflowPreview(wsId, packId, versionId);
 
   useEffect(() => {
-    if (intentPreview.isError) toast.error('Intent 미리보기 로드 실패');
+    if (intentPreview.isError) toast.error("Intent 미리보기 로드 실패");
   }, [intentPreview.isError]);
 
   useEffect(() => {
-    if (slotPreview.isError) toast.error('Slot 미리보기 로드 실패');
+    if (slotPreview.isError) toast.error("Slot 미리보기 로드 실패");
   }, [slotPreview.isError]);
 
   useEffect(() => {
-    if (policyPreview.isError) toast.error('Policy 미리보기 로드 실패');
+    if (policyPreview.isError) toast.error("Policy 미리보기 로드 실패");
   }, [policyPreview.isError]);
 
   useEffect(() => {
-    if (riskPreview.isError) toast.error('Risk 미리보기 로드 실패');
+    if (riskPreview.isError) toast.error("Risk 미리보기 로드 실패");
   }, [riskPreview.isError]);
 
   useEffect(() => {
-    if (workflowPreview.isError) toast.error('Workflow 미리보기 로드 실패');
+    if (workflowPreview.isError) toast.error("Workflow 미리보기 로드 실패");
   }, [workflowPreview.isError]);
 
   const firstSlotId = slotPreview.data?.[0]?.id;
@@ -69,48 +69,53 @@ export function ComponentCountGrid({
   return (
     <>
       <div className={styles.grid}>
-      <CountCard
-        label="Intent"
-        count={intentCount}
-        disabled={false}
-        onNavigate={() => navigate(`${basePath}/intents`)}
-        previewNames={intentPreview.data?.map((i) => i.name) as string[]}
-        isLoadingPreview={intentPreview.isLoading}
-      />
-      <CountCard
-        label="Slot"
-        count={slotCount}
-        disabled={firstSlotId === undefined}
-        tooltip="수정할 Slot이 없습니다"
-        onNavigate={() => setSlotEditOpen(true)}
-        previewNames={slotPreview.data?.map((s) => s.name) as string[]}
-        isLoadingPreview={slotPreview.isLoading}
-      />
-      <CountCard
-        label="Policy"
-        count={policyCount}
-        disabled={false}
-        onNavigate={() => navigate(`${basePath}/policies`)}
-        previewNames={policyPreview.data?.map((p) => p.name) as string[]}
-        isLoadingPreview={policyPreview.isLoading}
-      />
-      <CountCard
-        label="Risk"
-        count={riskCount}
-        disabled={false}
-        onNavigate={() => navigate(`${basePath}/risks`)}
-        previewNames={riskPreview.data?.map((r) => r.name) as string[]}
-        isLoadingPreview={riskPreview.isLoading}
-      />
-      <CountCard
-        label="Workflow"
-        count={workflowCount}
-        disabled={false}
-        onNavigate={() => navigate(`${basePath}/workflows`)}
-        previewItems={workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as { id: number; name: string }[]}
-        isLoadingPreview={workflowPreview.isLoading}
-        onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
-      />
+        <CountCard
+          label="Intent"
+          count={intentCount}
+          disabled={false}
+          onNavigate={() => navigate(`${basePath}/intents`)}
+          previewNames={intentPreview.data?.map((i) => i.name) as string[]}
+          isLoadingPreview={intentPreview.isLoading}
+        />
+        <CountCard
+          label="Slot"
+          count={slotCount}
+          disabled={firstSlotId === undefined}
+          tooltip="수정할 Slot이 없습니다"
+          onNavigate={() => setSlotEditOpen(true)}
+          previewNames={slotPreview.data?.map((s) => s.name) as string[]}
+          isLoadingPreview={slotPreview.isLoading}
+        />
+        <CountCard
+          label="Policy"
+          count={policyCount}
+          disabled={false}
+          onNavigate={() => navigate(`${basePath}/policies`)}
+          previewNames={policyPreview.data?.map((p) => p.name) as string[]}
+          isLoadingPreview={policyPreview.isLoading}
+        />
+        <CountCard
+          label="Risk"
+          count={riskCount}
+          disabled={false}
+          onNavigate={() => navigate(`${basePath}/risks`)}
+          previewNames={riskPreview.data?.map((r) => r.name) as string[]}
+          isLoadingPreview={riskPreview.isLoading}
+        />
+        <CountCard
+          label="Workflow"
+          count={workflowCount}
+          disabled={false}
+          onNavigate={() => navigate(`${basePath}/workflows`)}
+          previewItems={
+            workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as {
+              id: number;
+              name: string;
+            }[]
+          }
+          isLoadingPreview={workflowPreview.isLoading}
+          onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
+        />
       </div>
       {firstSlotId !== undefined &&
         renderSlotEditSheet?.(firstSlotId, slotEditOpen, () => setSlotEditOpen(false))}
@@ -147,37 +152,57 @@ function CountCard({
 
   return (
     <div
-      className={`${styles.countCard} ${disabled ? styles.disabled : ''}`}
+      className={`${styles.countCard} ${disabled ? styles.disabled : ""}`}
       title={disabled ? tooltip : undefined}
       onClick={handleClick}
-      role={!disabled ? 'button' : undefined}
+      role={!disabled ? "button" : undefined}
       tabIndex={!disabled ? 0 : undefined}
-      onKeyDown={!disabled ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); }
-      } : undefined}
+      onKeyDown={
+        !disabled
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick();
+              }
+            }
+          : undefined
+      }
     >
       <span className={styles.cardLabel}>{label}</span>
       <span className={styles.countNumber}>{count}</span>
       {isLoadingPreview ? (
         <div>
-          {[0, 1, 2].map((i) => <div key={i} className={styles.skeletonLine} aria-hidden />)}
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={styles.skeletonLine} aria-hidden />
+          ))}
         </div>
       ) : previewItems && previewItems.length > 0 ? (
         <ul className={styles.previewList}>
           {previewItems.map((item) => (
             <li
               key={item.id}
-              className={`${styles.previewItem} ${!disabled && onPreviewItemClick ? styles.clickable : ''}`}
-              onClick={!disabled && onPreviewItemClick ? (e) => {
-                e.stopPropagation();
-                onPreviewItemClick(item.id);
-              } : undefined}
-              onKeyDown={!disabled && onPreviewItemClick ? (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onPreviewItemClick(item.id);
-                }
-              } : undefined}
+              role={!disabled && onPreviewItemClick ? "button" : undefined}
+              tabIndex={!disabled && onPreviewItemClick ? 0 : undefined}
+              className={`${styles.previewItem} ${!disabled && onPreviewItemClick ? styles.clickable : ""}`}
+              onClick={
+                !disabled && onPreviewItemClick
+                  ? (e) => {
+                      e.stopPropagation();
+                      onPreviewItemClick(item.id);
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                !disabled && onPreviewItemClick
+                  ? (e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onPreviewItemClick(item.id);
+                      }
+                    }
+                  : undefined
+              }
             >
               {item.name}
             </li>

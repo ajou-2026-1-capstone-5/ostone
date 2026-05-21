@@ -4,22 +4,30 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const DemoChatSessionEndpointResponse = zod.object({
-  "chatSession": zod.object({
-  "id": zod.string().optional(),
-  "status": zod.string().optional(),
-  "startedAt": zod.string().optional(),
-  "completedAt": zod.string().optional()
-}).optional(),
-  "messages": zod.array(zod.object({
-  "id": zod.string().optional(),
-  "role": zod.string().optional(),
-  "content": zod.string().optional(),
-  "timestamp": zod.string().optional()
-})).optional()
-})
+  chatSession: zod
+    .object({
+      id: zod.string().optional(),
+      status: zod.string().optional(),
+      startedAt: zod.string().optional(),
+      completedAt: zod.string().optional(),
+    })
+    .optional(),
+  messages: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        role: zod.string().optional(),
+        content: zod.string().optional(),
+        timestamp: zod.string().optional(),
+      }),
+    )
+    .optional(),
+});
 
 export type DemoChatSessionEndpointResponse = zod.input<typeof DemoChatSessionEndpointResponse>;
-export type DemoChatSessionEndpointResponseOutput = zod.output<typeof DemoChatSessionEndpointResponse>;
+export type DemoChatSessionEndpointResponseOutput = zod.output<
+  typeof DemoChatSessionEndpointResponse
+>;

@@ -22,7 +22,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `${styles.navItem} ${isActive ? styles.active : ''}`;
+    `${styles.navItem} ${isActive ? styles.active : ""}`;
 
   return (
     <div className={styles.wrapper}>
@@ -36,23 +36,33 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <span className={styles.logoHighlight}>Ostone</span> Workflow
         </div>
         <nav className={styles.navMenu}>
-          <NavLink to="/workspaces" className={getNavLinkClass}>Workspaces</NavLink>
-          <NavLink to="/workspaces" className={getNavLinkClass}>Upload Log</NavLink>
-          <NavLink to="/workspaces" className={getNavLinkClass}>Consultation</NavLink>
+          <NavLink to="/workspaces" className={getNavLinkClass}>
+            Workspaces
+          </NavLink>
+          <NavLink to="/workspaces" className={getNavLinkClass}>
+            Upload Log
+          </NavLink>
+          <NavLink to="/workspaces" className={getNavLinkClass}>
+            Consultation
+          </NavLink>
           <span className={`${styles.navItem} ${styles.disabled}`}>Settings</span>
         </nav>
         <div className={styles.profileArea}>
           <div className={styles.avatar}>{userInitial}</div>
-          <button className={styles.logoutButton} onClick={() => { clearAuthSession(); navigate('/login'); }}>
+          <button
+            className={styles.logoutButton}
+            onClick={() => {
+              clearAuthSession();
+              navigate("/login");
+            }}
+          >
             로그아웃
           </button>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className={styles.mainContent}>
-        {children}
-      </main>
+      <main className={styles.mainContent}>{children}</main>
     </div>
   );
 };

@@ -1,21 +1,28 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 import theme from "@/shared/styles/workflow-node-theme.module.css";
-import { DEFAULT_NODE_STATUS, type GraphNodeStatus } from "@/entities/workflow";
-import { STATUS_MAP } from "../nodeStyles";
+import { readBadges, readString, renderNodeIcon } from "../nodeStyles";
+import { NodeCardShell } from "./NodeCardShell";
+import { useConnectedSides } from "./useConnectedSides";
 
-export function ActionNode({ data }: NodeProps) {
-  const label = typeof data?.label === "string" ? data.label : "";
-  const status: GraphNodeStatus =
-    (data?.status as GraphNodeStatus | undefined) ?? DEFAULT_NODE_STATUS;
-  const policyRef =
-    typeof data?.policyRef === "string" ? data.policyRef : undefined;
+export function ActionNode({ id, data }: NodeProps) {
+  const label = readString(data, "label") ?? "";
+  const description = readString(data, "description");
+  const iconHint = readString(data, "iconHint");
+  const policyRef = readString(data, "policyRef");
+  const badges = readBadges(data);
+  const connected = useConnectedSides(id);
 
   return (
-    <div className={`${theme.action} ${STATUS_MAP[status] ?? theme.statusIdle}`}>
-      <Handle type="target" position={Position.Left} />
-      <div>{label}</div>
-      {policyRef && <div>{policyRef}</div>}
-      <Handle type="source" position={Position.Right} />
-    </div>
+    <NodeCardShell
+      kindClassName={theme.action}
+      icon={renderNodeIcon("ACTION", iconHint)}
+      title={label}
+      description={description}
+      policyRef={policyRef}
+      badges={badges}
+      sourceHandles={connected.sources}
+      targetHandles={connected.targets}
+      containerTestId="action-node"
+    />
   );
 }

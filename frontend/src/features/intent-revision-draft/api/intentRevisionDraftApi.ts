@@ -29,7 +29,10 @@ function normalizeDraftVersionId(response: RevisionDraftResponse): number {
   const unwrapped = unwrapApiResponse(response);
   const canonicalId = unwrapped.draftVersionId;
   const legacyId =
-    unwrapped.versionId ?? unwrapped.id ?? unwrapped.draftVersion?.versionId ?? unwrapped.draftVersion?.id;
+    unwrapped.versionId ??
+    unwrapped.id ??
+    unwrapped.draftVersion?.versionId ??
+    unwrapped.draftVersion?.id;
   const id = canonicalId ?? legacyId;
 
   if (canonicalId === undefined && legacyId !== undefined) {
@@ -94,11 +97,7 @@ export const intentRevisionDraftApi = {
     return { activatedVersionId: normalizeActivatedVersionId(response) };
   },
 
-  async discardDraft(
-    workspaceId: number,
-    packId: number,
-    draftVersionId: number,
-  ): Promise<void> {
+  async discardDraft(workspaceId: number, packId: number, draftVersionId: number): Promise<void> {
     await apiClient.delete<void>(
       `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/draft`,
     );
@@ -134,9 +133,9 @@ export const intentRevisionDraftApi = {
     packId: number,
     versionId: number,
   ): Promise<DomainPackVersionDetail> {
-    const response = await apiClient.get<DomainPackVersionDetail | { data: DomainPackVersionDetail }>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`,
-    );
+    const response = await apiClient.get<
+      DomainPackVersionDetail | { data: DomainPackVersionDetail }
+    >(`/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`);
     return unwrapApiResponse(response);
   },
 };

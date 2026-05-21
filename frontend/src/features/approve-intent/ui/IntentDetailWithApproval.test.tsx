@@ -113,9 +113,7 @@ describe("IntentDetailWithApproval", () => {
   });
 
   it("iId가 변경되면 상태가 초기화된다", () => {
-    const { rerender } = render(
-      <IntentDetailWithApproval wsId={1} pId={2} vId={3} iId={4} />,
-    );
+    const { rerender } = render(<IntentDetailWithApproval wsId={1} pId={2} vId={3} iId={4} />);
 
     const publishButtons = screen.getAllByRole("button", { name: "승인" });
     fireEvent.click(publishButtons[0]);

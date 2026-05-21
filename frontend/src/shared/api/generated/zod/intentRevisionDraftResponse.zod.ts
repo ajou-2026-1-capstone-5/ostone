@@ -4,19 +4,21 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const IntentRevisionDraftResponse = zod.object({
-  "draftVersion": zod.object({
-  "versionId": zod.number().optional(),
-  "versionNo": zod.number().optional(),
-  "lifecycleStatus": zod.string().optional(),
-  "sourceType": zod.string().optional(),
-  "baseVersionId": zod.number().optional(),
-  "baseVersionNo": zod.number().optional(),
-  "reason": zod.string().optional()
-}).optional()
-})
+  draftVersion: zod
+    .object({
+      versionId: zod.number().optional(),
+      versionNo: zod.number().optional(),
+      lifecycleStatus: zod.string().optional(),
+      sourceType: zod.string().optional(),
+      baseVersionId: zod.number().optional(),
+      baseVersionNo: zod.number().optional(),
+      reason: zod.string().optional(),
+    })
+    .optional(),
+});
 
 export type IntentRevisionDraftResponse = zod.input<typeof IntentRevisionDraftResponse>;
 export type IntentRevisionDraftResponseOutput = zod.output<typeof IntentRevisionDraftResponse>;

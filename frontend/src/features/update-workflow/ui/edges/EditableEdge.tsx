@@ -56,7 +56,9 @@ export function EditableEdge({
           }}
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
-          onFocus={() => { focusedRef.current = true; }}
+          onFocus={() => {
+            focusedRef.current = true;
+          }}
           onBlur={commitLabel}
           placeholder="전이 조건"
           aria-label="엣지 레이블"

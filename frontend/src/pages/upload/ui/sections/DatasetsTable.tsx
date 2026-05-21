@@ -87,24 +87,22 @@ export const DatasetsTable: React.FC = () => {
           gridTemplateColumns: "2fr 0.9fr 1fr 1.4fr 0.9fr 0.9fr 32px",
         }}
       >
-        {["dataset", "size", "conversations", "stage", "quality", "uploaded", ""].map(
-          (h) => (
-            <div
-              key={h}
-              style={{
-                background: "var(--paper-2)",
-                padding: "10px 14px",
-                fontFamily: "var(--mono)",
-                fontSize: 10,
-                textTransform: "uppercase",
-                color: "var(--ink-3)",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {h}
-            </div>
-          )
-        )}
+        {["dataset", "size", "conversations", "stage", "quality", "uploaded", ""].map((h) => (
+          <div
+            key={h}
+            style={{
+              background: "var(--paper-2)",
+              padding: "10px 14px",
+              fontFamily: "var(--mono)",
+              fontSize: 10,
+              textTransform: "uppercase",
+              color: "var(--ink-3)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {h}
+          </div>
+        ))}
 
         {DATASET_ROWS.map((row, _i) => (
           <React.Fragment key={row.name}>
@@ -137,9 +135,7 @@ export const DatasetsTable: React.FC = () => {
                 borderTop: "1px solid var(--line-2)",
               }}
             >
-              <Mono style={{ fontSize: 11, color: "var(--ink-2)" }}>
-                {row.conversations}
-              </Mono>
+              <Mono style={{ fontSize: 11, color: "var(--ink-2)" }}>{row.conversations}</Mono>
             </div>
             <div
               style={{
@@ -148,9 +144,7 @@ export const DatasetsTable: React.FC = () => {
                 borderTop: "1px solid var(--line-2)",
               }}
             >
-              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                StagePips (T12)
-              </Mono>
+              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>StagePips (T12)</Mono>
             </div>
             <div
               style={{
@@ -174,9 +168,7 @@ export const DatasetsTable: React.FC = () => {
                 borderTop: "1px solid var(--line-2)",
               }}
             >
-              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                {row.uploadedAt}
-              </Mono>
+              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{row.uploadedAt}</Mono>
             </div>
             <div
               style={{

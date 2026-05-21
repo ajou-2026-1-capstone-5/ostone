@@ -4,11 +4,9 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
-export const UpdateTransitionBody = zod.looseObject({
-
-})
+export const UpdateTransitionBody = zod.looseObject({});
 
 export type UpdateTransitionBody = zod.input<typeof UpdateTransitionBody>;
 export type UpdateTransitionBodyOutput = zod.output<typeof UpdateTransitionBody>;

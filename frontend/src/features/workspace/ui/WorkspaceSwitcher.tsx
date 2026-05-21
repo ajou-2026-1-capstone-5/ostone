@@ -81,9 +81,7 @@ export function WorkspaceSwitcher({
           >
             <span className={styles.workspaceName}>{workspace.name ?? ""}</span>
             <span className={styles.workspaceItemRight}>
-              {workspace.id === currentWorkspaceId && (
-                <CheckIcon className={styles.currentBadge} />
-              )}
+              {workspace.id === currentWorkspaceId && <CheckIcon className={styles.currentBadge} />}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger
                   className={styles.actionButton}
@@ -92,12 +90,8 @@ export function WorkspaceSwitcher({
                   <MoreHorizontalIcon className="size-4" />
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => handleEdit(workspace)}>
-                    수정
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleArchive(workspace)}>
-                    삭제
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(workspace)}>수정</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleArchive(workspace)}>삭제</DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             </span>
@@ -106,9 +100,7 @@ export function WorkspaceSwitcher({
         {archivedWorkspaces.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className={styles.archivedLabel}>
-              보관됨
-            </DropdownMenuLabel>
+            <DropdownMenuLabel className={styles.archivedLabel}>보관됨</DropdownMenuLabel>
             {archivedWorkspaces.map((workspace) => (
               <DropdownMenuItem
                 key={workspace.id}

@@ -1,217 +1,330 @@
-.base {
-  font-family: figmaSans, "figmaSans Fallback", "SF Pro Display", system-ui, helvetica;
-  font-weight: 330;
-  font-size: 13px;
-  letter-spacing: -0.14px;
-  color: var(--text-primary);
+/* =========================================================================
+   Editable workflow nodes — card-style with inline input fields.
+
+   Mirrors frontend/src/shared/styles/workflow-node-theme.module.css visually
+   (same --node-* tokens, same card geometry), and adds editable inputs in
+   place of the static label span. Description / badges are rendered read-only
+   so editor and viewer surfaces present identical information.
+   ========================================================================= */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: 280px;
   background: var(--bg-color);
-  border: 1px solid var(--text-primary);
-  padding: 6px 12px;
-  min-width: 120px;
-  max-width: 180px;
-  text-align: center;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--node-shadow);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  overflow: hidden;
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  letter-spacing: -0.01em;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  flex: 0 0 auto;
+  color: #fff;
 }
 
 .labelInput {
-  display: block;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px dashed var(--text-primary);
-  color: var(--text-primary);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.55);
+  color: #fff;
   font-family: inherit;
   font-size: inherit;
   font-weight: inherit;
   letter-spacing: inherit;
-  text-align: center;
   outline: none;
-  padding: 2px 4px;
-  min-width: 80px;
+  padding: 2px 0;
 }
 
-.labelInput:focus {
-  outline: dashed 2px var(--text-primary);
-  outline-offset: 1px;
-}
-
-.policyInput {
-  display: block;
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px dashed var(--text-primary);
-  color: var(--text-primary);
-  font-family: figmaMono, monospace;
-  font-size: 11px;
-  letter-spacing: 0.54px;
-  text-align: center;
-  outline: none;
-  padding: 2px 4px;
-  margin-top: 4px;
-  opacity: 0.7;
-}
-
-.policyInput:focus {
-  outline: dashed 2px var(--text-primary);
-  outline-offset: 1px;
-  opacity: 1;
-}
-
-.policyInput::placeholder {
-  opacity: 0.4;
+.labelInput::placeholder {
+  color: rgba(255, 255, 255, 0.55);
   font-style: italic;
 }
 
+.labelInput:focus {
+  border-bottom-color: #fff;
+  outline: none;
+}
+
+.body {
+  padding: 10px 12px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.description {
+  color: var(--text-secondary);
+  /* Match the viewer's .description — Pretendard base (340) is too thin for
+     the small node card; 450 stays comfortably below heading weight (540)
+     while improving readability. */
+  font-weight: 450;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  /* Center chips vertically so the policyRef chip / input and badges share
+     a clean baseline regardless of intrinsic-height differences. */
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: oklch(0.96 0.005 270);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMono {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  /* keep parity with the viewer's policyRef chip — soft indigo wash. */
+  background: var(--node-indigo-50);
+  color: var(--node-indigo-600);
+  border-color: var(--node-indigo-100);
+}
+
+/* ---- policyRef chip-input -------------------------------------------------
+   Mirrors the viewer's `.chipMono` chip (font-family / size / radius / soft
+   indigo wash) so the same field looks the same in edit and read modes.
+   The input width tracks its content via the `size` attribute set by the
+   component, so it sits next to the other badges inside the footer instead
+   of consuming a separate dedicated row.
+*/
+.policyChipInput {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  background: var(--node-indigo-50);
+  color: var(--node-indigo-600);
+  border: 1px solid var(--node-indigo-100);
+  outline: none;
+  min-width: 64px;
+  max-width: 200px;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.policyChipInput::placeholder {
+  color: var(--node-indigo-500);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.policyChipInput:focus {
+  background: #fff;
+  border-color: var(--node-indigo-500);
+  box-shadow: 0 0 0 3px oklch(0.58 0.2 265 / 0.18);
+}
+
+/* ---- Kind variants ----------------------------------------------------
+   Only header gradient + border tone carry the accent. .body stays white
+   to match ACTION; visually consistent description block across kinds.
+*/
+
 .start {
-  composes: base;
-  border-radius: var(--radius-xl);
-  background: var(--text-primary);
-  color: var(--bg-color);
-  padding: 8px 16px;
+  composes: card;
+  border-color: var(--node-violet-100);
 }
-
-.start .labelInput {
-  color: var(--bg-color);
-  border-bottom-color: var(--bg-color);
-}
-
-.start .labelInput:focus {
-  outline-color: var(--bg-color);
+.start .header {
+  background: linear-gradient(180deg, var(--node-violet-500), var(--node-violet-600));
 }
 
 .action {
-  composes: base;
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  composes: card;
+  border-color: var(--node-indigo-100);
+}
+.action .header {
+  background: linear-gradient(180deg, var(--node-indigo-500), var(--node-indigo-600));
 }
 
 .decision {
-  composes: base;
-  position: relative;
-  width: 96px;
-  height: 96px;
-  min-width: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  border-radius: 0;
+  composes: card;
+  border-color: var(--node-amber-100);
 }
-
-.decision::before {
-  content: "";
-  position: absolute;
-  width: 68px;
-  height: 68px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--bg-color);
-  border: 1px solid var(--text-primary);
-  border-radius: var(--radius-sm);
-}
-
-.decisionInner {
-  position: relative;
-  z-index: 1;
-  width: 60px;
-  text-align: center;
-}
-
-.decisionInner .labelInput {
-  font-size: 11px;
-  width: 100%;
+.decision .header {
+  background: linear-gradient(180deg, var(--node-amber-500), var(--node-amber-600));
 }
 
 .answer {
-  composes: base;
-  position: relative;
-  border: none;
-  background: transparent;
-  padding-left: 20px;
-  display: flex;
-  align-items: center;
+  composes: card;
+  border-color: var(--node-sky-100);
 }
-
-.answer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
-  border-radius: var(--radius-md);
-  background: var(--glass-dark);
-  border: 1px solid var(--text-primary);
-  z-index: -1;
+.answer .header {
+  background: linear-gradient(180deg, var(--node-sky-500), var(--node-sky-600));
 }
 
 .handoff {
-  composes: base;
-  position: relative;
-  border: none;
-  background: transparent;
-  padding-left: 18px;
-  padding-right: 18px;
-  display: flex;
-  align-items: center;
+  composes: card;
+  border-color: var(--node-rose-100);
+}
+.handoff .header {
+  background: linear-gradient(180deg, var(--node-rose-500), var(--node-rose-600));
 }
 
-.handoff::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--text-primary);
-  z-index: -1;
-}
-
+/* ---- Terminal (circle preserved) -------------------------------------- */
 .terminal {
-  composes: base;
-  border-radius: var(--radius-full);
-  width: 80px;
-  height: 80px;
-  min-width: 0;
-  padding: 0;
+  position: relative;
+  width: 130px;
+  height: 130px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--text-primary);
-  color: var(--bg-color);
+  gap: 4px;
+  background: var(--node-zinc-50);
+  color: var(--node-zinc-700);
+  border: 1.5px solid var(--node-zinc-100);
+  border-radius: 50%;
+  box-shadow: var(--node-shadow);
+  padding: 12px;
+  font-family: var(--font-sans);
 }
 
-.terminal .labelInput {
-  color: var(--bg-color);
-  border-bottom-color: var(--bg-color);
-  width: 60px;
-  font-size: 11px;
+.terminalIcon {
+  color: var(--node-zinc-700);
 }
 
-.terminal .labelInput:focus {
-  outline-color: var(--bg-color);
-}
-
-.deleteBtn {
-  background: var(--text-primary);
-  color: var(--bg-color);
+.terminalInput {
+  width: 90px;
+  background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  font-size: 11px;
+  border-bottom: 1px dashed var(--node-zinc-500);
+  color: var(--node-zinc-700);
   font-family: inherit;
-  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  padding: 2px 0;
+}
+
+.terminalInput::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.terminalInput:focus {
+  border-bottom-color: var(--node-status-active);
+}
+
+/* ---- Handles ---------------------------------------------------------- */
+/*
+   In the editor every node exposes 4 source + 4 target handles so the user
+   can drag a connection out of any side. To avoid implying "max 4
+   connections", unused handles render with opacity 0 and only fade in on
+   hover or while a connection is being made.
+*/
+.handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-color);
+  border: 1.5px solid var(--text-muted);
+  opacity: 0;
+  transition:
+    border-color var(--transition-fast),
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.handle.handleConnected {
+  opacity: 0.55;
+}
+.card:hover .handle,
+.terminal:hover .handle {
   opacity: 0.85;
+}
+.handle:hover {
+  opacity: 1;
+  border-color: var(--node-status-active);
+  transform: scale(1.25);
+  box-shadow: 0 0 0 4px oklch(0.62 0.22 285 / 0.18);
+}
+
+/* ---- Delete toolbar button ------------------------------------------- */
+.deleteBtn {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  transition: opacity var(--transition-fast);
 }
 
 .deleteBtn:hover {
-  opacity: 1;
+  opacity: 0.9;
 }
 
-.deleteBtn:focus {
-  outline: dashed 2px var(--text-primary);
+.deleteBtn:focus-visible {
+  outline: dashed 2px var(--danger);
   outline-offset: 2px;
 }

@@ -61,7 +61,9 @@ describe("RiskEditPanel", () => {
     render(<RiskEditPanel workspaceId={1} packId={2} versionId={3} riskId={4} onClose={vi.fn()} />);
 
     expect(screen.getByText("RISK_FRAUD · 사기 위험")).toBeInTheDocument();
-    expect(screen.getByTestId("risk-edit-form")).toHaveTextContent("RISK_FRAUD · 사기 위험 · 1/2/3");
+    expect(screen.getByTestId("risk-edit-form")).toHaveTextContent(
+      "RISK_FRAUD · 사기 위험 · 1/2/3",
+    );
   });
 
   it("닫기 버튼을 누르면 onClose를 호출한다", () => {

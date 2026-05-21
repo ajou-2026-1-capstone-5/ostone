@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const receiveFailureCallbackBodyExternalEventIdMin = 0;
 export const receiveFailureCallbackBodyExternalEventIdMax = 255;
@@ -24,19 +24,40 @@ export const receiveFailureCallbackBodyReasonMax = 100;
 export const receiveFailureCallbackBodyMessageMin = 0;
 export const receiveFailureCallbackBodyMessageMax = 5000;
 
-
 export const ReceiveFailureCallbackBody = zod.object({
-  "externalEventId": zod.string().min(receiveFailureCallbackBodyExternalEventIdMin).max(receiveFailureCallbackBodyExternalEventIdMax).optional(),
-  "dagId": zod.string().min(receiveFailureCallbackBodyDagIdMin).max(receiveFailureCallbackBodyDagIdMax).optional(),
-  "dagRunId": zod.string().min(receiveFailureCallbackBodyDagRunIdMin).max(receiveFailureCallbackBodyDagRunIdMax).optional(),
-  "failedStage": zod.string().min(receiveFailureCallbackBodyFailedStageMin).max(receiveFailureCallbackBodyFailedStageMax).optional(),
-  "reason": zod.string().min(receiveFailureCallbackBodyReasonMin).max(receiveFailureCallbackBodyReasonMax).optional(),
-  "message": zod.string().min(receiveFailureCallbackBodyMessageMin).max(receiveFailureCallbackBodyMessageMax).optional(),
-  "occurredAt": zod.iso.datetime({"offset":true}),
-  "error": zod.looseObject({
-
-}).optional()
-})
+  externalEventId: zod
+    .string()
+    .min(receiveFailureCallbackBodyExternalEventIdMin)
+    .max(receiveFailureCallbackBodyExternalEventIdMax)
+    .optional(),
+  dagId: zod
+    .string()
+    .min(receiveFailureCallbackBodyDagIdMin)
+    .max(receiveFailureCallbackBodyDagIdMax)
+    .optional(),
+  dagRunId: zod
+    .string()
+    .min(receiveFailureCallbackBodyDagRunIdMin)
+    .max(receiveFailureCallbackBodyDagRunIdMax)
+    .optional(),
+  failedStage: zod
+    .string()
+    .min(receiveFailureCallbackBodyFailedStageMin)
+    .max(receiveFailureCallbackBodyFailedStageMax)
+    .optional(),
+  reason: zod
+    .string()
+    .min(receiveFailureCallbackBodyReasonMin)
+    .max(receiveFailureCallbackBodyReasonMax)
+    .optional(),
+  message: zod
+    .string()
+    .min(receiveFailureCallbackBodyMessageMin)
+    .max(receiveFailureCallbackBodyMessageMax)
+    .optional(),
+  occurredAt: zod.iso.datetime({ offset: true }),
+  error: zod.looseObject({}).optional(),
+});
 
 export type ReceiveFailureCallbackBody = zod.input<typeof ReceiveFailureCallbackBody>;
 export type ReceiveFailureCallbackBodyOutput = zod.output<typeof ReceiveFailureCallbackBody>;

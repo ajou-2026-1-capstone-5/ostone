@@ -5,7 +5,7 @@ export type ParsedSummary =
 export function parseSummaryJson(json: string): ParsedSummary {
   try {
     const parsed: unknown = JSON.parse(json);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return { ok: true, data: parsed as Record<string, unknown> };
     }
     return { ok: false, raw: json };

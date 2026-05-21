@@ -4,11 +4,12 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
+  BackgroundVariant,
   Controls,
   MarkerType,
   addEdge,
-  useNodesState,
   useEdgesState,
+  useNodesState,
   useReactFlow,
   type Node,
   type Edge,
@@ -16,6 +17,8 @@ import {
   type NodeTypes,
   type EdgeTypes,
 } from "@xyflow/react";
+import { FitOnInit } from "@/shared/ui/react-flow/FitOnInit";
+import { FIT_OPTIONS } from "@/shared/ui/react-flow/fitOptions";
 import "@xyflow/react/dist/style.css";
 import type { GraphNodeType } from "@/entities/workflow";
 import { EditableStartNode } from "./nodes/EditableStartNode";
@@ -61,11 +64,40 @@ function InteractiveGraphEditorCore({
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
+      // Surface the initial state so callers that grab a snapshot before any
+      // user edit still receive the seeded nodes/edges (incl. positions and
+      // handle sides from the persisted graph).
+      onStateChange(nodes, edges);
+      prevSignatureRef.current = JSON.stringify([
+        nodes.map(({ id, data, position }) => ({ id, data, position })),
+        edges.map(({ id, source, target, sourceHandle, targetHandle, label, data }) => ({
+          id,
+          source,
+          target,
+          sourceHandle,
+          targetHandle,
+          label,
+          data,
+        })),
+      ]);
       return;
     }
     const signature = JSON.stringify([
-      nodes.map(({ id, data }) => ({ id, data })),
-      edges.map(({ id, source, target, label, data }) => ({ id, source, target, label, data })),
+      // `position` matters: drag interactions only mutate position, and losing
+      // those on save would silently revert the layout to its persisted state.
+      nodes.map(({ id, data, position }) => ({ id, data, position })),
+      // `sourceHandle` / `targetHandle` decide which side of a node an edge
+      // anchors to; they must round-trip through save or branches lose their
+      // explicit handle pinning.
+      edges.map(({ id, source, target, sourceHandle, targetHandle, label, data }) => ({
+        id,
+        source,
+        target,
+        sourceHandle,
+        targetHandle,
+        label,
+        data,
+      })),
     ]);
     if (signature === prevSignatureRef.current) return;
     prevSignatureRef.current = signature;
@@ -110,7 +142,17 @@ function InteractiveGraphEditorCore({
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <AddNodeToolbar onAddNode={handleAddNode} disabledTypes={disabledTypes} />
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }}>
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          background: "var(--node-canvas-bg)",
+          borderRadius: "var(--radius-card)",
+          border: "1px solid var(--glass-border)",
+          overflow: "hidden",
+        }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -122,9 +164,18 @@ function InteractiveGraphEditorCore({
           onConnect={onConnect}
           deleteKeyCode={["Delete", "Backspace"]}
           fitView
+          fitViewOptions={FIT_OPTIONS}
+          minZoom={0.15}
+          maxZoom={2}
         >
-          <Background gap={20} size={1} />
-          <Controls />
+          <FitOnInit />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={24}
+            size={1.5}
+            color="var(--node-canvas-dot)"
+          />
+          <Controls position="bottom-right" />
         </ReactFlow>
       </div>
     </div>

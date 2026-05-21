@@ -42,9 +42,7 @@ describe("ActionNode", () => {
   });
 
   it("does not apply selected style when data.selected is falsy", () => {
-    const { container } = render(
-      <ActionNode {...(baseProps as any)} data={{ label: "Test" }} />,
-    );
+    const { container } = render(<ActionNode {...(baseProps as any)} data={{ label: "Test" }} />);
     const nodeDiv = container.firstElementChild;
     expect(nodeDiv?.className).not.toContain("selected");
   });

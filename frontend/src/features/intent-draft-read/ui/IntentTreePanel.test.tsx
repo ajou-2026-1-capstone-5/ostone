@@ -58,10 +58,7 @@ describe("IntentTreePanel", () => {
 
     expect(screen.getByText("2 · TREE")).toBeInTheDocument();
     expect(screen.getByText("수정 중")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /refund/ })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: /refund/ })).toHaveAttribute("aria-current", "true");
 
     fireEvent.click(screen.getByRole("button", { name: /refund/ }));
     expect(onSelect).toHaveBeenCalledWith(2);
@@ -74,7 +71,9 @@ describe("IntentTreePanel", () => {
       message: "목록 실패",
     });
 
-    render(<IntentTreePanel wsId={1} packId={2} versionId={3} selectedId={null} onSelect={vi.fn()} />);
+    render(
+      <IntentTreePanel wsId={1} packId={2} versionId={3} selectedId={null} onSelect={vi.fn()} />,
+    );
 
     expect(screen.getByText("목록을 불러오지 못했습니다.")).toBeInTheDocument();
     expect(mockedToastError).toHaveBeenCalledWith("목록 실패");

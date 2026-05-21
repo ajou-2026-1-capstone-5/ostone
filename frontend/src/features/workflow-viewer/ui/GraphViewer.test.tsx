@@ -22,10 +22,18 @@ vi.mock("@/entities/workflow/lib/graphConverter", () => ({
 }));
 
 vi.mock("@xyflow/react", () => ({
-  ReactFlow: () => <div data-testid="reactflow" />,
+  ReactFlow: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="reactflow">{children}</div>
+  ),
+  ReactFlowProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Background: () => null,
+  BackgroundVariant: { Dots: "dots", Lines: "lines", Cross: "cross" },
   Controls: () => null,
   MarkerType: { ArrowClosed: "arrowclosed" },
+  Handle: () => null,
+  Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
+  useNodesInitialized: () => false,
+  useReactFlow: () => ({ fitView: () => {} }),
 }));
 
 const mockGraph: WorkflowGraph = {

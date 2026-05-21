@@ -5,10 +5,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "orval";
 
 const OPENAPI_PATH = resolve(__dirname, "../backend/build/openapi.json");
-const META_PATH = resolve(
-  __dirname,
-  "./src/shared/api/generated/.codegen-meta.json",
-);
+const META_PATH = resolve(__dirname, "./src/shared/api/generated/.codegen-meta.json");
 const PACKAGE_PATH = resolve(__dirname, "./package.json");
 
 const writeCodegenMeta = (): void => {
@@ -31,8 +28,7 @@ const writeCodegenMeta = (): void => {
   let orvalVersion = "unknown";
   try {
     const pkg = JSON.parse(readFileSync(PACKAGE_PATH, "utf8"));
-    orvalVersion =
-      pkg.devDependencies?.orval ?? pkg.dependencies?.orval ?? "unknown";
+    orvalVersion = pkg.devDependencies?.orval ?? pkg.dependencies?.orval ?? "unknown";
   } catch {
     /* keep default */
   }

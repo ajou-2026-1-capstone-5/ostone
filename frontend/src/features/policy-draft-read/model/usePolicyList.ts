@@ -32,10 +32,14 @@ export function usePolicyList(
     return mapApiError(query.error);
   }
 
-  const payload = (query.data as { data?: PolicySummary[] } | PolicySummary[] | undefined);
+  const payload = query.data as { data?: PolicySummary[] } | PolicySummary[] | undefined;
   const list = Array.isArray(payload) ? payload : payload?.data;
   if (!Array.isArray(list)) {
-    return { status: "error", code: "UNEXPECTED_RESPONSE", message: "Invalid policy list response shape" };
+    return {
+      status: "error",
+      code: "UNEXPECTED_RESPONSE",
+      message: "Invalid policy list response shape",
+    };
   }
   return { status: "ready", data: list as PolicySummary[] };
 }

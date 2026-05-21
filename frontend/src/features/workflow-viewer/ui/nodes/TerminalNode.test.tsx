@@ -1,10 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { TerminalNode } from './TerminalNode';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { TerminalNode } from "./TerminalNode";
 
-vi.mock('@xyflow/react', () => ({
-  Handle: () => <div data-testid="handle" />,
-  Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
+vi.mock("@xyflow/react", () => ({
+  Handle: ({ type, id }: { type: string; id: string }) => (
+    <div data-testid={`handle-${type}-${id}`} />
+  ),
+  Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
+  // Run the selector against an empty edges store so the hook produces an
+  // empty {sources, targets} object — "no edges yet" is the right baseline
+  // for unit tests of a single node.
+  useStore: (selector: (s: { edges: never[] }) => unknown) => selector({ edges: [] }),
 }));
 
 const defaultProps = {
@@ -21,21 +27,15 @@ const defaultProps = {
   positionAbsoluteY: 0,
 };
 
-describe('TerminalNode', () => {
-  it('renders with label', () => {
+describe("TerminalNode", () => {
+  it("renders with label", () => {
     render(<TerminalNode {...defaultProps} data={{ label: "종료" }} />);
-    expect(screen.getByText('종료')).toBeInTheDocument();
+    expect(screen.getByText("종료")).toBeInTheDocument();
   });
 
-  it('renders with COMPLETED status', () => {
+  it("never applies runtime status class on the definition view", () => {
     render(<TerminalNode {...defaultProps} data={{ label: "종료", status: "COMPLETED" }} />);
-    const container = screen.getByText('종료').parentElement;
-    expect(container?.className).toContain('statusCompleted');
-  });
-
-  it('renders with IDLE status by default', () => {
-    render(<TerminalNode {...defaultProps} data={{ label: "종료" }} />);
-    const container = screen.getByText('종료').parentElement;
-    expect(container?.className).toContain('statusIdle');
+    const container = screen.getByTestId("terminal-node");
+    expect(container.className).not.toMatch(/status/);
   });
 });

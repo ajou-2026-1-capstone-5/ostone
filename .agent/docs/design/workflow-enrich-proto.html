@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workflow Viewer · Visual Enrichment Prototype</title>
+    <!--
+      Single-file design prototype for ostone workflow viewer enrichment.
+
+      Purpose:
+        - Validate visual formula (card layout, icon mapping, accent colors, status states)
+          before porting into the actual React/CSS Modules implementation.
+        - Mirrors tokens that will live in frontend/src/app/index.css
+          and frontend/src/shared/styles/workflow-node-theme.module.css.
+
+      How to use:
+        - Open directly in a browser (file:// is fine; Tailwind CDN is loaded from JSDelivr).
+        - Compare against:
+            * channeltalk-style reference screenshot (provided)
+            * current viewer at http://localhost:5173 (workflow detail page)
+
+      Notes:
+        - Tailwind CSS v4 via Browser CDN is used here only for prototyping.
+          Production code will use the project's installed Tailwind v4 + CSS Modules.
+        - Icons are inline lucide SVGs (matches lucide-react 1.7.0 paths).
+        - All colors expressed in oklch() to match the project's existing
+          --signal / --danger token convention.
+    -->
+
+    <!-- Pretendard variable (matches frontend/src/app/index.css :: --font-sans) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+
+    <!-- Tailwind v4 (browser build, prototype-only) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <style>
+      /* =====================================================================
+         Design tokens — will graduate into frontend/src/app/index.css
+         Naming convention: --node-{kind}-{50|100|500|600}
+         =====================================================================
+      */
+      :root {
+        /* base typography / surface (already in app/index.css) */
+        --font-sans: "pretendard variable", -apple-system, blinkmacsystemfont, "Segoe UI", sans-serif;
+        --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+        --canvas-bg: oklch(0.985 0.005 250);
+        --canvas-dot: oklch(0.92 0.005 250);
+        --text-primary: oklch(0.18 0.01 270);
+        --text-secondary: oklch(0.5 0.01 270);
+        --text-muted: oklch(0.65 0.01 270);
+
+        /* Status (mirrors existing --signal / --danger) */
+        --status-active: oklch(0.62 0.18 285); /* violet pulse */
+        --status-completed: oklch(0.62 0.18 145);
+        --status-completed-bg: oklch(0.95 0.06 145);
+        --status-failed: oklch(0.62 0.16 25);
+        --status-failed-bg: oklch(0.96 0.04 25);
+
+        /* Node category palettes */
+        --node-violet-50: oklch(0.975 0.015 285);
+        --node-violet-100: oklch(0.94 0.05 285);
+        --node-violet-500: oklch(0.62 0.22 285);
+        --node-violet-600: oklch(0.55 0.22 285);
+
+        --node-indigo-50: oklch(0.975 0.015 265);
+        --node-indigo-100: oklch(0.94 0.05 265);
+        --node-indigo-500: oklch(0.58 0.2 265);
+        --node-indigo-600: oklch(0.5 0.2 265);
+
+        --node-amber-50: oklch(0.98 0.025 80);
+        --node-amber-100: oklch(0.95 0.07 80);
+        --node-amber-500: oklch(0.78 0.16 75);
+        --node-amber-600: oklch(0.7 0.18 70);
+
+        --node-sky-50: oklch(0.975 0.015 230);
+        --node-sky-100: oklch(0.94 0.06 230);
+        --node-sky-500: oklch(0.7 0.13 230);
+        --node-sky-600: oklch(0.6 0.15 230);
+
+        --node-rose-50: oklch(0.975 0.015 15);
+        --node-rose-100: oklch(0.94 0.06 15);
+        --node-rose-500: oklch(0.68 0.18 15);
+        --node-rose-600: oklch(0.6 0.2 15);
+
+        --node-zinc-50: oklch(0.975 0 0);
+        --node-zinc-100: oklch(0.93 0.003 270);
+        --node-zinc-500: oklch(0.55 0.005 270);
+        --node-zinc-700: oklch(0.35 0.01 270);
+
+        --node-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06);
+        --node-shadow-active: 0 0 0 3px oklch(0.62 0.22 285 / 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+
+        --radius-card: 12px;
+        --radius-pill: 999px;
+      }
+
+      html,
+      body {
+        font-family: var(--font-sans);
+        color: var(--text-primary);
+        background: oklch(0.99 0 0);
+      }
+
+      /* ---- Canvas (mimics ReactFlow Background variant="dots") ------------ */
+      .proto-canvas {
+        background-color: var(--canvas-bg);
+        background-image: radial-gradient(var(--canvas-dot) 1.2px, transparent 1.2px);
+        background-size: 24px 24px;
+        border-radius: 14px;
+        border: 1px solid oklch(0.92 0 0);
+      }
+
+      /* =====================================================================
+         Base node card — shared geometry for START / ACTION / ANSWER / HANDOFF
+         =====================================================================
+      */
+      .node-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 220px;
+        max-width: 280px;
+        background: #fff;
+        border: 1px solid oklch(0.92 0 0);
+        border-radius: var(--radius-card);
+        box-shadow: var(--node-shadow);
+        overflow: hidden;
+        transition:
+          box-shadow 0.18s ease,
+          transform 0.18s ease,
+          border-color 0.18s ease;
+      }
+
+      .node-card__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        color: #fff;
+        font-weight: 540;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+      }
+
+      .node-card__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.18);
+        flex: 0 0 auto;
+      }
+
+      .node-card__title {
+        flex: 1 1 auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .node-card__status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.6);
+        flex: 0 0 auto;
+      }
+
+      .node-card__body {
+        padding: 10px 12px 12px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--text-primary);
+      }
+
+      .node-card__desc {
+        color: var(--text-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .node-card__footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0 12px 12px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: var(--radius-pill);
+        font-size: 11px;
+        font-weight: 500;
+        background: oklch(0.96 0.005 270);
+        color: var(--text-secondary);
+        border: 1px solid oklch(0.92 0 0);
+      }
+
+      .chip--mono {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+      }
+
+      /* ---- Kind variants -------------------------------------------------- */
+      .node-card--start .node-card__header {
+        background: linear-gradient(180deg, var(--node-violet-500), var(--node-violet-600));
+      }
+      .node-card--start {
+        border-color: var(--node-violet-100);
+      }
+      .node-card--start .node-card__body {
+        background: var(--node-violet-50);
+      }
+
+      .node-card--action .node-card__header {
+        background: linear-gradient(180deg, var(--node-indigo-500), var(--node-indigo-600));
+      }
+      .node-card--action {
+        border-color: var(--node-indigo-100);
+      }
+
+      .node-card--answer .node-card__header {
+        background: linear-gradient(180deg, var(--node-sky-500), var(--node-sky-600));
+      }
+      .node-card--answer {
+        border-color: var(--node-sky-100);
+      }
+      .node-card--answer .node-card__body {
+        background: var(--node-sky-50);
+      }
+
+      .node-card--handoff .node-card__header {
+        background: linear-gradient(180deg, var(--node-rose-500), var(--node-rose-600));
+      }
+      .node-card--handoff {
+        border-color: var(--node-rose-100);
+      }
+      .node-card--handoff .node-card__body {
+        background: var(--node-rose-50);
+      }
+
+      .node-card--decision .node-card__header {
+        background: linear-gradient(180deg, var(--node-amber-500), var(--node-amber-600));
+      }
+      .node-card--decision {
+        border-color: var(--node-amber-100);
+      }
+      .node-card--decision .node-card__body {
+        background: var(--node-amber-50);
+      }
+
+      /* ---- Terminal (circle shape preserved) ------------------------------ */
+      .node-terminal {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background: var(--node-zinc-50);
+        color: var(--node-zinc-700);
+        border: 1.5px solid var(--node-zinc-100);
+        border-radius: 50%;
+        box-shadow: var(--node-shadow);
+        text-align: center;
+        padding: 8px;
+      }
+      .node-terminal__title {
+        font-size: 12px;
+        font-weight: 540;
+        line-height: 1.2;
+      }
+      .node-terminal__sub {
+        font-size: 10.5px;
+        color: var(--node-zinc-500);
+      }
+
+      /* =====================================================================
+         Status state overlays (idle / active / completed / failed)
+         These mirror the workflow-node-theme.module.css STATUS_MAP classes.
+         =====================================================================
+      */
+      .is-idle {
+        /* default */
+      }
+      .is-active {
+        border-color: var(--status-active) !important;
+        box-shadow: var(--node-shadow-active);
+      }
+      .is-active .node-card__status-dot,
+      .is-active .node-terminal__sub::before {
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      .is-completed {
+        border-color: var(--status-completed) !important;
+      }
+      .is-completed::after {
+        content: "✓ 완료";
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: var(--radius-pill);
+        background: var(--status-completed-bg);
+        color: var(--status-completed);
+      }
+      .is-failed {
+        border-color: var(--status-failed) !important;
+      }
+      .is-failed::after {
+        content: "! 실패";
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: var(--radius-pill);
+        background: var(--status-failed-bg);
+        color: var(--status-failed);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
+
+      /* =====================================================================
+         Handle dots (mimic @xyflow/react Handle visual)
+         =====================================================================
+      */
+      .handle {
+        position: absolute;
+        top: 50%;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--text-muted);
+        transform: translateY(-50%);
+      }
+      .handle--left {
+        left: -6px;
+      }
+      .handle--right {
+        right: -6px;
+      }
+      .handle--top {
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      /* =====================================================================
+         Edge label badge (drop-in replacement for current PlainEdge label)
+         =====================================================================
+      */
+      .edge-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        background: #fff;
+        border: 1px solid oklch(0.9 0 0);
+        border-radius: var(--radius-pill);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-primary);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        white-space: nowrap;
+      }
+      .edge-label::before {
+        content: "";
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--text-muted);
+      }
+      .edge-label--yes::before {
+        background: var(--status-completed);
+      }
+      .edge-label--no::before {
+        background: var(--status-failed);
+      }
+      .edge-label--neutral::before {
+        background: var(--text-muted);
+      }
+
+      /* =====================================================================
+         Mini graph (static svg-based mock of a full workflow)
+         =====================================================================
+      */
+      .mini-graph {
+        position: relative;
+        padding: 32px;
+      }
+      .mini-graph__svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .mini-graph__nodes {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px 56px;
+        align-items: center;
+      }
+
+      /* Section scaffolding */
+      .section {
+        margin: 48px auto;
+        max-width: 1200px;
+        padding: 0 24px;
+      }
+      .section__title {
+        font-size: 14px;
+        font-weight: 540;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        margin: 0 0 12px;
+      }
+      .section__subtitle {
+        font-size: 20px;
+        font-weight: 540;
+        letter-spacing: -0.02em;
+        margin: 0 0 24px;
+      }
+
+      .token-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .token-card {
+        border: 1px solid oklch(0.92 0 0);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+      }
+      .token-swatch {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid oklch(0.9 0 0);
+      }
+      .token-meta {
+        display: flex;
+        flex-direction: column;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+      .token-meta strong {
+        color: var(--text-primary);
+        font-weight: 540;
+        font-family: var(--font-sans);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body class="antialiased">
+    <!-- ===================================================================
+         Reusable lucide icon SVGs (matches lucide-react 1.7.0 paths)
+         ===================================================================
+    -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+        </symbol>
+        <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </symbol>
+        <symbol id="i-git-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" x2="6" y1="3" y2="15"></line>
+          <circle cx="18" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <path d="M18 9a9 9 0 0 1-9 9"></path>
+        </symbol>
+        <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </symbol>
+        <symbol id="i-user-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <line x1="19" x2="19" y1="8" y2="14"></line>
+          <line x1="22" x2="16" y1="11" y2="11"></line>
+        </symbol>
+        <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="m9 12 2 2 4-4"></path>
+        </symbol>
+        <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="section">
+      <p class="section__title">Workflow Viewer · Visual Enrichment Prototype</p>
+      <h1 class="text-3xl font-semibold tracking-tight" style="letter-spacing: -0.025em">
+        흑백 다이어그램 → 노코드형 카드 워크플로우
+      </h1>
+      <p class="mt-2 text-sm" style="color: var(--text-secondary); max-width: 720px">
+        ostone <code class="font-mono text-[12px]">frontend/src/features/workflow-viewer</code> 의 6종 노드와
+        엣지를 채널톡 스타일의 카드형 시안으로 재구성한 정적 시안입니다. 토큰/아이콘/형태가 모두 실제
+        구현에서 차용할 값과 1:1 대응합니다.
+      </p>
+    </header>
+
+    <!-- =================================================================
+         Section 1 — Color tokens
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">1 · Tokens</p>
+      <h2 class="section__subtitle">노드 카테고리 색상 (oklch)</h2>
+      <div class="token-grid">
+        <!-- generate swatches inline -->
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-violet-600)"></div>
+          <div class="token-meta"><strong>START / Trigger</strong>violet 600/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-indigo-600)"></div>
+          <div class="token-meta"><strong>ACTION</strong>indigo 600/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-amber-600)"></div>
+          <div class="token-meta"><strong>DECISION</strong>amber 600/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-sky-600)"></div>
+          <div class="token-meta"><strong>ANSWER</strong>sky 600/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-rose-600)"></div>
+          <div class="token-meta"><strong>HANDOFF</strong>rose 600/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--node-zinc-700)"></div>
+          <div class="token-meta"><strong>TERMINAL</strong>zinc 700/500/100/50</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--status-active)"></div>
+          <div class="token-meta"><strong>Status · Active</strong>oklch(0.62 0.18 285)</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--status-completed)"></div>
+          <div class="token-meta"><strong>Status · Completed</strong>oklch(0.62 0.18 145)</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background: var(--status-failed)"></div>
+          <div class="token-meta"><strong>Status · Failed</strong>oklch(0.62 0.16 25)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         Section 2 — Node × Status matrix
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">2 · Node × Status matrix</p>
+      <h2 class="section__subtitle">6 노드 종류 × 4 상태 (idle / active / completed / failed)</h2>
+
+      <div class="proto-canvas" style="padding: 32px">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-10">
+          <!-- ============== START ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              START · idle
+            </p>
+            <div class="node-card node-card--start is-idle">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-inbox" /></svg></span>
+                <span class="node-card__title">상담이 인입되었을 때</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">트리거 시점 · 최초 1회 — 연동 채널의 새 상담을 받아 워크플로우를 시작합니다.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip">트리거</span>
+                <span class="chip chip--mono">channel:kakao</span>
+              </div>
+              <span class="handle handle--right" title="source"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              START · active
+            </p>
+            <div class="node-card node-card--start is-active">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-inbox" /></svg></span>
+                <span class="node-card__title">상담이 인입되었을 때</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">현재 실행 중 — 들어온 메시지를 분류 단계로 전달합니다.</p>
+              </div>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ============== ACTION ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              ACTION · idle
+            </p>
+            <div class="node-card node-card--action is-idle">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-zap" /></svg></span>
+                <span class="node-card__title">VIP 등급 처리</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">우선순위 높음으로 설정하고, 상담 태그를 VIP로 기록합니다.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip chip--mono">policy:PR-014</span>
+                <span class="chip">tag:VIP</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              ACTION · completed
+            </p>
+            <div class="node-card node-card--action is-completed">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-zap" /></svg></span>
+                <span class="node-card__title">VIP 등급 처리</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">완료 — 14:02:11 에 PR-014 적용. 다음 단계: 팀 배정.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip chip--mono">policy:PR-014</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ============== DECISION ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              DECISION · idle
+            </p>
+            <div class="node-card node-card--decision is-idle">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-git-branch" /></svg></span>
+                <span class="node-card__title">고객 유형 분류하기</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">고객 등급에 따라 VIP / 일반 / 비회원 분기로 라우팅합니다.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip">분기 3</span>
+                <span class="chip chip--mono">field:customer.tier</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              DECISION · failed
+            </p>
+            <div class="node-card node-card--decision is-failed">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-git-branch" /></svg></span>
+                <span class="node-card__title">고객 유형 분류하기</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">대상 필드(customer.tier) 누락으로 분류 실패 — Fallback으로 비회원 경로 진입.</p>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ============== ANSWER ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              ANSWER · idle
+            </p>
+            <div class="node-card node-card--answer is-idle">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-message" /></svg></span>
+                <span class="node-card__title">일반 회원 환영 메시지</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">“[이름]님, 반가워요 😊 상담이 필요하신 주제를 선택해주세요.”</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip">버튼 2</span>
+                <span class="chip">컨설팅 문의</span>
+                <span class="chip">환불 안내</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              ANSWER · active
+            </p>
+            <div class="node-card node-card--answer is-active">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-message" /></svg></span>
+                <span class="node-card__title">일반 회원 환영 메시지</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">전송 중 — 카카오 채널로 환영 메시지가 발송되고 있습니다.</p>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ============== HANDOFF ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              HANDOFF · idle
+            </p>
+            <div class="node-card node-card--handoff is-idle">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-user-plus" /></svg></span>
+                <span class="node-card__title">VIP 전담 팀에 배정</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">VIP 등급 상담을 전담 매니저 큐로 인계합니다. SLA 5분.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip">팀: VIP 전담</span>
+                <span class="chip chip--mono">sla:5m</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              HANDOFF · completed
+            </p>
+            <div class="node-card node-card--handoff is-completed">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-user-plus" /></svg></span>
+                <span class="node-card__title">VIP 전담 팀에 배정</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">완료 — 매니저 이지현에게 인계 (14:03:42).</p>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ============== TERMINAL ============== -->
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              TERMINAL · idle
+            </p>
+            <div class="node-terminal is-idle" style="position: relative">
+              <svg width="18" height="18" style="color: var(--node-zinc-700)"><use href="#i-check-circle" /></svg>
+              <div class="node-terminal__title">상담 종료</div>
+              <div class="node-terminal__sub">resolved</div>
+              <span class="handle handle--left"></span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-muted)">
+              TERMINAL · completed
+            </p>
+            <div class="node-terminal is-completed" style="position: relative">
+              <svg width="18" height="18" style="color: var(--status-completed)"><use href="#i-check-circle" /></svg>
+              <div class="node-terminal__title">상담 종료</div>
+              <div class="node-terminal__sub">resolved · 14:08</div>
+              <span class="handle handle--left"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         Section 3 — Edge label badges
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">3 · Edge labels</p>
+      <h2 class="section__subtitle">PlainEdge 라벨 뱃지 (현재 시인성 문제 해결안)</h2>
+      <div class="proto-canvas" style="padding: 32px">
+        <div class="flex flex-wrap gap-3 items-center">
+          <span class="edge-label edge-label--yes">고객 등급 VIP</span>
+          <span class="edge-label edge-label--yes">일치</span>
+          <span class="edge-label edge-label--no">일치하지 않음</span>
+          <span class="edge-label edge-label--no">실패 시</span>
+          <span class="edge-label edge-label--neutral">기본 흐름</span>
+          <span class="edge-label edge-label--neutral">retry × 3</span>
+          <span class="edge-label edge-label--neutral">fallback</span>
+        </div>
+        <p class="mt-4 text-xs" style="color: var(--text-secondary)">
+          핵심 변경: 텍스트만 떠있던 라벨 → 흰색 배경 + 1px border + pill 형태 +
+          좌측 색점(yes/no/neutral)으로 분기 의미 즉시 식별.
+        </p>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         Section 4 — Mini graph mock
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">4 · Mini graph</p>
+      <h2 class="section__subtitle">실제 그래프 모사 — START → DECISION → ACTION/ANSWER → HANDOFF/TERMINAL</h2>
+      <div class="proto-canvas mini-graph" style="height: 540px">
+        <!-- background edges -->
+        <svg class="mini-graph__svg" viewBox="0 0 1200 480" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="oklch(0.62 0.01 270)"></path>
+            </marker>
+          </defs>
+          <g fill="none" stroke="oklch(0.62 0.01 270)" stroke-width="1.5">
+            <path d="M 245 80 C 320 80 320 80 380 80" marker-end="url(#arrow)" />
+            <path d="M 625 80 C 700 60 700 60 760 60" marker-end="url(#arrow)" />
+            <path d="M 625 100 C 700 220 700 220 760 220" marker-end="url(#arrow)" />
+            <path d="M 625 120 C 700 380 700 380 760 380" marker-end="url(#arrow)" />
+            <path d="M 1005 60 C 1060 60 1060 60 1100 60" marker-end="url(#arrow)" />
+            <path d="M 1005 220 C 1060 220 1060 220 1100 220" marker-end="url(#arrow)" />
+            <path d="M 1005 380 C 1060 380 1060 380 1100 380" marker-end="url(#arrow)" />
+          </g>
+          <!-- decision edge labels (positioned roughly mid-curve) -->
+          <foreignObject x="680" y="38" width="100" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              <span class="edge-label edge-label--yes">VIP</span>
+            </div>
+          </foreignObject>
+          <foreignObject x="680" y="208" width="100" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              <span class="edge-label edge-label--neutral">일반 회원</span>
+            </div>
+          </foreignObject>
+          <foreignObject x="680" y="368" width="120" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              <span class="edge-label edge-label--no">비회원</span>
+            </div>
+          </foreignObject>
+        </svg>
+
+        <!-- nodes (absolute positioned to align with svg coordinates) -->
+        <div style="position: relative; height: 100%">
+          <!-- START -->
+          <div style="position: absolute; left: 24px; top: 32px">
+            <div class="node-card node-card--start">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-inbox" /></svg></span>
+                <span class="node-card__title">상담이 인입되었을 때</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">트리거 시점 · 최초 1회</p>
+              </div>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- DECISION -->
+          <div style="position: absolute; left: 380px; top: 32px">
+            <div class="node-card node-card--decision">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-git-branch" /></svg></span>
+                <span class="node-card__title">고객 유형 분류하기</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">VIP / 일반 회원 / 비회원 으로 분기.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip chip--mono">field:customer.tier</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ACTION (VIP) -->
+          <div style="position: absolute; left: 760px; top: 12px">
+            <div class="node-card node-card--action is-completed">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-zap" /></svg></span>
+                <span class="node-card__title">VIP 등급 처리</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">우선순위 높음 · 상담 태그 VIP 적용.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip chip--mono">policy:PR-014</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ANSWER (일반 회원) -->
+          <div style="position: absolute; left: 760px; top: 172px">
+            <div class="node-card node-card--answer">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-message" /></svg></span>
+                <span class="node-card__title">환영 메시지</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">“[이름]님, 반가워요 😊 상담 주제를 선택해주세요.”</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip">컨설팅 문의</span>
+                <span class="chip">환불 안내</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- ACTION (비회원 리드 수집) -->
+          <div style="position: absolute; left: 760px; top: 332px">
+            <div class="node-card node-card--action">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-zap" /></svg></span>
+                <span class="node-card__title">비회원 리드 제출받기</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">이메일/이름 수집 후 상담 열기.</p>
+              </div>
+              <div class="node-card__footer">
+                <span class="chip chip--mono">policy:LD-002</span>
+              </div>
+              <span class="handle handle--left"></span>
+              <span class="handle handle--right"></span>
+            </div>
+          </div>
+
+          <!-- HANDOFF (VIP) -->
+          <div style="position: absolute; left: 1100px; top: 12px">
+            <div class="node-card node-card--handoff is-completed">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-user-plus" /></svg></span>
+                <span class="node-card__title">VIP 전담 배정</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">매니저 큐로 인계.</p>
+              </div>
+              <span class="handle handle--left"></span>
+            </div>
+          </div>
+
+          <!-- TERMINAL (일반 회원) -->
+          <div style="position: absolute; left: 1130px; top: 178px">
+            <div class="node-terminal" style="position: relative">
+              <svg width="18" height="18" style="color: var(--node-zinc-700)"><use href="#i-check-circle" /></svg>
+              <div class="node-terminal__title">상담 종료</div>
+              <div class="node-terminal__sub">self-served</div>
+              <span class="handle handle--left"></span>
+            </div>
+          </div>
+
+          <!-- HANDOFF (비회원) -->
+          <div style="position: absolute; left: 1100px; top: 332px">
+            <div class="node-card node-card--handoff">
+              <div class="node-card__header">
+                <span class="node-card__icon"><svg width="14" height="14"><use href="#i-user-plus" /></svg></span>
+                <span class="node-card__title">상담사 연결</span>
+                <span class="node-card__status-dot"></span>
+              </div>
+              <div class="node-card__body">
+                <p class="node-card__desc">리드 수집 후 일반 상담사 큐로 인계.</p>
+              </div>
+              <span class="handle handle--left"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-4 text-xs" style="color: var(--text-secondary)">
+        ※ 실제 그래프는 ReactFlow가 자동 레이아웃합니다. 이 시안은 카드/엣지/라벨이 한 캔버스 위에서
+        어떻게 어우러지는지 확인하기 위한 정적 모사입니다.
+      </p>
+    </section>
+
+    <!-- =================================================================
+         Section 5 — Before/After
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">5 · Before vs After</p>
+      <h2 class="section__subtitle">현재 ostone(흑백) → 제안 시안 — 핵심 변화 요약</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rounded-xl border p-5" style="border-color: oklch(0.92 0 0)">
+          <p class="text-xs uppercase tracking-wider mb-2" style="color: var(--text-muted)">Before · ostone</p>
+          <ul class="text-sm leading-7" style="color: var(--text-secondary)">
+            <li>· 흑백 도형(원/사각형/마름모/사다리꼴)만 사용</li>
+            <li>· 노드는 라벨 한 줄만 표시 (description/icon/badge 없음)</li>
+            <li>· Decision 분기 라벨이 패스 위에 직접 떠 가독성↓</li>
+            <li>· Answer/Handoff <code class="font-mono text-xs">clip-path</code> 때문에 그림자 잘림</li>
+            <li>· 배경 격자(gap=20) 톤이 무채색</li>
+          </ul>
+        </div>
+        <div class="rounded-xl border p-5" style="border-color: var(--node-violet-100); background: var(--node-violet-50)">
+          <p class="text-xs uppercase tracking-wider mb-2" style="color: var(--node-violet-600)">After · enriched</p>
+          <ul class="text-sm leading-7" style="color: var(--text-primary)">
+            <li>· 카테고리별 색상 코드(violet/indigo/amber/sky/rose/zinc)</li>
+            <li>· lucide 아이콘 + 헤더/본문/푸터 3단 카드 위계</li>
+            <li>· 엣지 라벨이 pill 뱃지(좌측 색점으로 yes/no 분기 식별)</li>
+            <li>· clip-path 폐기 → border-radius 카드 + box-shadow 깔끔</li>
+            <li>· dot grid(gap=24) + 옅은 청회색 캔버스로 카드 부각</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         Section 6 — node.data mock schema (graph_json 1차 확장안)
+         =================================================================
+    -->
+    <section class="section">
+      <p class="section__title">6 · Mock data schema</p>
+      <h2 class="section__subtitle">node.data 확장안 (graph_json 노드 객체에 옵셔널 필드 추가)</h2>
+      <pre class="overflow-x-auto rounded-xl p-5 text-[12px] leading-6" style="background: oklch(0.97 0 0); font-family: var(--font-mono); color: var(--text-primary)">
+{
+  "id": "n3",
+  "type": "ACTION",
+  "label": "VIP 등급 처리",
+  "policyRef": "PR-014",
+
+  // ↓ 신설 (모두 optional, backward-compatible)
+  "description": "우선순위 높음으로 설정하고 상담 태그 VIP를 적용합니다.",
+  "iconHint": "Zap",                          // lucide icon key — 미지정 시 type 기본
+  "badges": ["tag:VIP", "priority:high"],
+  "accentColor": "indigo",                    // violet|indigo|amber|sky|rose|zinc
+  "meta": {                                   // 자유 필드
+    "channel": "kakao",
+    "team": "VIP 전담",
+    "sla": "5m"
+  }
+}
+      </pre>
+      <p class="mt-3 text-xs" style="color: var(--text-secondary)">
+        Frontend → <code class="font-mono">GraphNode</code> 타입에 위 5필드를 옵셔널로 추가.
+        Backend는 <code class="font-mono">graph_json</code> JSONB 그대로 passthrough(<code class="font-mono">@JsonRawValue</code>)이므로 DTO/DDL 변경 없음.
+        ML은 <code class="font-mono">GraphNodeSpec</code> + <code class="font-mono">serialize_graph_json</code> 에 같은 필드 추가 필요(별도 PR).
+      </p>
+    </section>
+
+    <footer class="section pt-0 pb-16">
+      <p class="text-xs" style="color: var(--text-muted)">
+        Prototype location · <code class="font-mono">.agent/docs/design/workflow-enrich-proto.html</code>
+        — single file, browser-only. Tokens/icons/shapes here will be ported to
+        <code class="font-mono">frontend/src/shared/styles/workflow-node-theme.module.css</code> +
+        <code class="font-mono">frontend/src/features/workflow-viewer/ui/nodes/*.tsx</code>.
+      </p>
+    </footer>
+  </body>
+</html>

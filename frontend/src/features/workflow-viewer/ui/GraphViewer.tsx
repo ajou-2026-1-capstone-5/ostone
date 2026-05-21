@@ -1,8 +1,18 @@
 import { useMemo } from "react";
-import { ReactFlow, Background, Controls, MarkerType, type NodeTypes } from "@xyflow/react";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  BackgroundVariant,
+  Controls,
+  MarkerType,
+  type NodeTypes,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow/lib/graphConverter";
+import { FitOnInit } from "@/shared/ui/react-flow/FitOnInit";
+import { FIT_OPTIONS } from "@/shared/ui/react-flow/fitOptions";
 import { StartNode } from "./nodes/StartNode";
 import { ActionNode } from "./nodes/ActionNode";
 import { DecisionNode } from "./nodes/DecisionNode";
@@ -31,39 +41,57 @@ interface GraphViewerProps {
   onPaneClick?: () => void;
 }
 
-export function GraphViewer({
-  graph,
-  onEdgeClick,
-  onPaneClick,
-}: GraphViewerProps) {
+function GraphViewerCore({ graph, onEdgeClick, onPaneClick }: GraphViewerProps) {
   const { nodes, edges: rawEdges } = useMemo(() => toFlow(graph), [graph]);
   const edges = useMemo(
-    () => rawEdges.map((e) => ({ ...e, type: "plain" as const, markerEnd: { type: MarkerType.ArrowClosed } })),
+    () =>
+      rawEdges.map((e) => ({
+        ...e,
+        type: "plain" as const,
+        markerEnd: { type: MarkerType.ArrowClosed },
+      })),
     [rawEdges],
   );
 
   return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      fitView
+      fitViewOptions={FIT_OPTIONS}
+      minZoom={0.15}
+      maxZoom={2}
+      panOnDrag={true}
+      zoomOnScroll={false}
+      zoomOnPinch={true}
+      zoomOnDoubleClick={true}
+      preventScrolling={false}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
+      onPaneClick={onPaneClick}
+    >
+      <FitOnInit />
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={24}
+        size={1.5}
+        color="var(--node-canvas-dot)"
+      />
+      <Controls showInteractive={false} position="bottom-right" />
+    </ReactFlow>
+  );
+}
+
+export function GraphViewer(props: GraphViewerProps) {
+  return (
     <div className={styles.container}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        fitView
-        panOnDrag={true}
-        zoomOnScroll={false}
-        zoomOnPinch={true}
-        zoomOnDoubleClick={true}
-        preventScrolling={false}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        onEdgeClick={(_, edge) => onEdgeClick?.(edge.id)}
-        onPaneClick={onPaneClick}
-      >
-        <Background gap={20} size={1} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+      <ReactFlowProvider>
+        <GraphViewerCore {...props} />
+      </ReactFlowProvider>
     </div>
   );
 }

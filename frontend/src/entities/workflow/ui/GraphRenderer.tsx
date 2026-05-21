@@ -34,7 +34,18 @@ interface GraphRendererProps {
   readonly emptyMessage?: string;
 }
 
-export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selectedNodeIds, onNodeSelect, currentNodeId, showEdgeLabels = true, isLoading, error, emptyMessage }: GraphRendererProps) {
+export default function GraphRenderer({
+  graph,
+  onEdgeClick,
+  onPaneClick,
+  selectedNodeIds,
+  onNodeSelect,
+  currentNodeId,
+  showEdgeLabels = true,
+  isLoading,
+  error,
+  emptyMessage,
+}: GraphRendererProps) {
   const { nodes, edges } = useMemo(() => {
     const flow = toFlow(graph);
     const selectedSet = selectedNodeIds?.length ? new Set(selectedNodeIds) : null;
@@ -61,7 +72,9 @@ export default function GraphRenderer({ graph, onEdgeClick, onPaneClick, selecte
       {isLoading ? (
         <div className={styles.loading}>Loading workflow...</div>
       ) : error ? (
-        <div className={styles.error}>Error: {typeof error === "string" ? error : error.message}</div>
+        <div className={styles.error}>
+          Error: {typeof error === "string" ? error : error.message}
+        </div>
       ) : !nodes || nodes.length === 0 ? (
         <div className={styles.empty}>{emptyMessage ?? "No workflow data"}</div>
       ) : (

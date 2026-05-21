@@ -27,17 +27,14 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
       },
       onError: (error) => {
         setStatus("idle");
-        toast.error(
-          error instanceof Error ? error.message : "업로드에 실패했습니다.",
-          {
-            action: {
-              label: "재시도",
-              onClick: () => {
-                if (file) handleUpload(file);
-              },
+        toast.error(error instanceof Error ? error.message : "업로드에 실패했습니다.", {
+          action: {
+            label: "재시도",
+            onClick: () => {
+              if (file) handleUpload(file);
             },
-          }
-        );
+          },
+        });
       },
     },
   });
@@ -72,9 +69,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     setStatus("idle");
   };
 
-  const domainPacksPath = workspaceId
-    ? `/workspaces/${workspaceId}/domain-packs`
-    : "/workspaces";
+  const domainPacksPath = workspaceId ? `/workspaces/${workspaceId}/domain-packs` : "/workspaces";
 
   return (
     <div className={styles.container}>
@@ -105,10 +100,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
 
       {status === "success" && (
         <div className={styles.successActions}>
-          <Button variant="secondary" onClick={handleReset}>Upload Another File</Button>
-          <Button onClick={() => navigate(domainPacksPath)}>
-            도메인팩 보기
+          <Button variant="secondary" onClick={handleReset}>
+            Upload Another File
           </Button>
+          <Button onClick={() => navigate(domainPacksPath)}>도메인팩 보기</Button>
         </div>
       )}
     </div>

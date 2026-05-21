@@ -9,13 +9,7 @@ export interface UseGetRiskParams {
   enabled: boolean;
 }
 
-export function useGetRisk({
-  workspaceId,
-  packId,
-  versionId,
-  riskId,
-  enabled,
-}: UseGetRiskParams) {
+export function useGetRisk({ workspaceId, packId, versionId, riskId, enabled }: UseGetRiskParams) {
   return useQuery({
     queryKey: ["risk", "detail", workspaceId, packId, versionId, riskId] as const,
     queryFn: async () => {

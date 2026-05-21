@@ -51,10 +51,7 @@ describe("apiClient", () => {
         json: async () => mockResponse,
       });
 
-      const result = await apiClient.post<{ id: number; name: string }>(
-        "/test",
-        { name: "test" },
-      );
+      const result = await apiClient.post<{ id: number; name: string }>("/test", { name: "test" });
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/v1/test",
@@ -104,10 +101,9 @@ describe("apiClient", () => {
         json: async () => mockResponse,
       });
 
-      const result = await apiClient.patch<{ id: number; name: string }>(
-        "/test/1",
-        { name: "updated" },
-      );
+      const result = await apiClient.patch<{ id: number; name: string }>("/test/1", {
+        name: "updated",
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/v1/test/1",
@@ -147,13 +143,10 @@ describe("apiClient", () => {
         json: async () => mockResponse,
       });
 
-      const result = await apiClient.request<{ success: boolean }>(
-        "/test",
-        {
-          method: "PUT",
-          headers: { "X-Custom-Header": "value" },
-        },
-      );
+      const result = await apiClient.request<{ success: boolean }>("/test", {
+        method: "PUT",
+        headers: { "X-Custom-Header": "value" },
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/v1/test",
@@ -276,12 +269,8 @@ describe("apiClient", () => {
         }),
       });
 
-      await expect(apiClient.get<{ id: number }>("/test")).rejects.toThrow(
-        "잘못된 요청입니다.",
-      );
-      await expect(apiClient.get<{ id: number }>("/test")).rejects.toThrow(
-        ApiRequestError,
-      );
+      await expect(apiClient.get<{ id: number }>("/test")).rejects.toThrow("잘못된 요청입니다.");
+      await expect(apiClient.get<{ id: number }>("/test")).rejects.toThrow(ApiRequestError);
     });
 
     it("non-ok 응답 且 JSON 파싱 실패 시 기본 에러 메시지를 사용한다", async () => {

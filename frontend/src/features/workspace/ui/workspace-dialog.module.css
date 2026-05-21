@@ -35,7 +35,9 @@
 
 .dialogInput input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 1px #000000, 0 12px 28px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 1px #000000,
+    0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
 .fieldError {

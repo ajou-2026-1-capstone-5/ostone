@@ -77,7 +77,12 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
     intentId: number | null;
     afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
     beforeJsonCards?: () => React.ReactNode;
-    children?: (detail: { id: number; intentCode: string; name: string; description: string }) => React.ReactNode;
+    children?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
   }) => {
     if (intentId === null) return <div>empty intent detail</div>;
     const detail = {
@@ -152,10 +157,10 @@ vi.mock("@/features/intent-revision-draft", () => ({
     getVersionDetail: mocks.getVersionDetail,
   },
   parseIntentRevisionDraftSource: (summaryJson?: string) =>
-    summaryJson?.includes("INTENT_REVISION")
-      ? { type: "INTENT_REVISION", baseVersionId: 2 }
-      : null,
-  resolveSingleExistingDraft: (versions?: Array<{ versionId?: number; lifecycleStatus?: string }>) => {
+    summaryJson?.includes("INTENT_REVISION") ? { type: "INTENT_REVISION", baseVersionId: 2 } : null,
+  resolveSingleExistingDraft: (
+    versions?: Array<{ versionId?: number; lifecycleStatus?: string }>,
+  ) => {
     const drafts = versions?.filter((version) => version.lifecycleStatus === "DRAFT") ?? [];
     return drafts.length === 1 && drafts[0]?.versionId != null
       ? { status: "resolved", versionId: drafts[0].versionId }

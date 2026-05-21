@@ -1,17 +1,17 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   getDomainPack,
   getListDomainPacksQueryOptions,
   listDomainPacks,
-} from '@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller';
-import { listWorkflows } from '@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller';
-import { unwrapApiResponse } from '@/shared/api/unwrapApiResponse';
+} from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
+import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type {
   DomainPackDetailResult,
   DomainPackSummaryResult,
   WorkflowDefinitionSummary,
-} from '@/shared/api/generated/zod';
-import type { SidebarTreeData, SidebarTreePack } from './Sidebar';
+} from "@/shared/api/generated/zod";
+import type { SidebarTreeData, SidebarTreePack } from "./Sidebar";
 
 interface UseSidebarTreeDataParams {
   workspaceId: number | null;
@@ -30,7 +30,10 @@ function pickLatestVersionId(detail: DomainPackDetailResult | undefined): number
   return sorted[0]?.versionId ?? null;
 }
 
-export function useSidebarTreeData({ workspaceId, enabled }: UseSidebarTreeDataParams): SidebarTreeData {
+export function useSidebarTreeData({
+  workspaceId,
+  enabled,
+}: UseSidebarTreeDataParams): SidebarTreeData {
   const wsId = workspaceId ?? 0;
   const isEnabled = enabled && workspaceId !== null;
 
@@ -40,12 +43,12 @@ export function useSidebarTreeData({ workspaceId, enabled }: UseSidebarTreeDataP
   });
 
   const packs = (unwrapApiResponse<DomainPackSummaryResult[]>(packsQuery.data) ?? []).filter(
-    (p): p is DomainPackSummaryResult & { packId: number } => typeof p.packId === 'number',
+    (p): p is DomainPackSummaryResult & { packId: number } => typeof p.packId === "number",
   );
 
   const packDetailQueries = useQueries({
     queries: packs.map((pack) => ({
-      queryKey: ['sidebar-tree', 'pack-detail', wsId, pack.packId] as const,
+      queryKey: ["sidebar-tree", "pack-detail", wsId, pack.packId] as const,
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         getDomainPack(wsId, pack.packId, { signal }),
       enabled: isEnabled,
@@ -59,7 +62,7 @@ export function useSidebarTreeData({ workspaceId, enabled }: UseSidebarTreeDataP
 
   const workflowQueries = useQueries({
     queries: packVersionPairs.map((pair) => ({
-      queryKey: ['sidebar-tree', 'workflows', wsId, pair.pack.packId, pair.versionId ?? 0] as const,
+      queryKey: ["sidebar-tree", "workflows", wsId, pair.pack.packId, pair.versionId ?? 0] as const,
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         pair.versionId !== null
           ? listWorkflows(wsId, pair.pack.packId!, pair.versionId, { signal })
@@ -75,17 +78,17 @@ export function useSidebarTreeData({ workspaceId, enabled }: UseSidebarTreeDataP
 
   let error: string | null = null;
   if (packsQuery.isError) {
-    error = '도메인팩 목록 조회 실패';
+    error = "도메인팩 목록 조회 실패";
   } else if (packDetailQueries.find((q) => q.isError)) {
-    error = '도메인팩 상세 조회 실패';
+    error = "도메인팩 상세 조회 실패";
   } else if (workflowQueries.find((q) => q.isError)) {
-    error = '워크플로우 목록 조회 실패';
+    error = "워크플로우 목록 조회 실패";
   }
 
   const treePacks: SidebarTreePack[] = packVersionPairs.map((pair, idx) => {
     const wfList = unwrapApiResponse<WorkflowDefinitionSummary[]>(workflowQueries[idx]?.data) ?? [];
     const workflows = wfList
-      .filter((wf): wf is WorkflowDefinitionSummary & { id: number } => typeof wf.id === 'number')
+      .filter((wf): wf is WorkflowDefinitionSummary & { id: number } => typeof wf.id === "number")
       .map((wf) => ({
         id: wf.id,
         name: wf.name || wf.workflowCode || `wf-${wf.id}`,

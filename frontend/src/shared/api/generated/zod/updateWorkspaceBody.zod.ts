@@ -4,14 +4,14 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const UpdateWorkspaceBody = zod.object({
-  "nameProvided": zod.boolean().optional(),
-  "descriptionProvided": zod.boolean().optional(),
-  "name": zod.string().optional(),
-  "description": zod.string().optional()
-})
+  nameProvided: zod.boolean().optional(),
+  descriptionProvided: zod.boolean().optional(),
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+});
 
 export type UpdateWorkspaceBody = zod.input<typeof UpdateWorkspaceBody>;
 export type UpdateWorkspaceBodyOutput = zod.output<typeof UpdateWorkspaceBody>;

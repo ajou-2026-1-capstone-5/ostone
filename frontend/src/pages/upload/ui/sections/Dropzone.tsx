@@ -38,8 +38,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
         toast.success("업로드 완료");
       },
       onError: (error) => {
-        const message =
-          error instanceof Error ? error.message : "업로드에 실패했습니다.";
+        const message = error instanceof Error ? error.message : "업로드에 실패했습니다.";
         setStatus({ kind: "error", message });
         toast.error(message);
       },
@@ -121,8 +120,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "radial-gradient(circle 12px, var(--line) 0.5px, transparent 0.5px) 0 0",
+          background: "radial-gradient(circle 12px, var(--line) 0.5px, transparent 0.5px) 0 0",
           backgroundSize: "24px 24px",
           opacity: 0.15,
           pointerEvents: "none",
@@ -271,8 +269,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
           }}
         >
           <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-            PII 자동 마스킹: email, phone, card_number 필드는 업로드 시 자동으로
-            마스킹됩니다.
+            PII 자동 마스킹: email, phone, card_number 필드는 업로드 시 자동으로 마스킹됩니다.
           </Mono>
         </div>
       </div>

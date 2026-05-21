@@ -15,7 +15,7 @@ interface SparkBarsProps {
 }
 
 function computePoints(data: number[], w: number, h: number): string {
-  if (data.length === 0) return '';
+  if (data.length === 0) return "";
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max === min ? 1 : max - min;
@@ -25,10 +25,16 @@ function computePoints(data: number[], w: number, h: number): string {
       const y = h - ((v - min) / range) * h;
       return `${x},${y}`;
     })
-    .join(' ');
+    .join(" ");
 }
 
-export function SparkLine({ data, w = 60, h = 20, color = 'var(--signal)', className }: SparkLineProps) {
+export function SparkLine({
+  data,
+  w = 60,
+  h = 20,
+  color = "var(--signal)",
+  className,
+}: SparkLineProps) {
   if (data.length === 0) return null;
   const points = computePoints(data, w, h);
   const lastX = w;
@@ -38,20 +44,38 @@ export function SparkLine({ data, w = 60, h = 20, color = 'var(--signal)', class
   const lastY = h - ((data[data.length - 1] - min) / range) * h;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} />
       <circle cx={lastX} cy={lastY} r={2} fill={color} />
     </svg>
   );
 }
 
-export function SparkBars({ data, w = 60, h = 20, color = 'var(--signal)', className }: SparkBarsProps) {
+export function SparkBars({
+  data,
+  w = 60,
+  h = 20,
+  color = "var(--signal)",
+  className,
+}: SparkBarsProps) {
   if (data.length === 0) return null;
   const max = Math.max(...data);
   const barWidth = Math.max(1, w / data.length - 1);
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
       {data.map((v, i) => {
         const barHeight = max === 0 ? 0 : (v / max) * h;
         const x = i * (w / data.length);

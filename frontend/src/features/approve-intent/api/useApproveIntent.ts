@@ -15,7 +15,13 @@ const INTENT_ERROR_MESSAGES = {
   INTENT_NOT_EDITABLE: "편집할 수 없는 상태의 intent입니다.",
 } as const;
 
-export function useApproveIntent({ wsId, packId, versionId, intentId, onStatusChanged }: UseApproveIntentProps) {
+export function useApproveIntent({
+  wsId,
+  packId,
+  versionId,
+  intentId,
+  onStatusChanged,
+}: UseApproveIntentProps) {
   const mutation = useUpdateIntentStatus();
 
   const mutate = (status: IntentApprovalStatus) => {
@@ -35,7 +41,7 @@ export function useApproveIntent({ wsId, packId, versionId, intentId, onStatusCh
           }
           toast.error("intent 상태 변경에 실패했습니다.");
         },
-      }
+      },
     );
   };
 

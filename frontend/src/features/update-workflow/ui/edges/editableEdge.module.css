@@ -1,19 +1,31 @@
 .edgeLabelInput {
   position: absolute;
   pointer-events: all;
-  background: var(--bg-color, #fff);
-  border: 1px dashed var(--text-primary, #000);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-family: inherit;
-  color: var(--text-primary, #000);
+  background: var(--bg-color);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
   text-align: center;
-  width: 80px;
+  width: 110px;
   outline: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.edgeLabelInput::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .edgeLabelInput:focus {
-  outline: dashed 2px var(--text-primary, #000);
-  outline-offset: 1px;
+  border-color: var(--node-status-active);
+  box-shadow:
+    0 0 0 3px oklch(0.62 0.22 285 / 0.18),
+    0 1px 2px rgba(15, 23, 42, 0.04);
 }

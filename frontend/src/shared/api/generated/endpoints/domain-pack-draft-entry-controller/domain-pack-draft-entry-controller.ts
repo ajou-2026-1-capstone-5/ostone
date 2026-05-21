@@ -4,9 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useQuery
-} from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -16,123 +14,137 @@ import type {
   QueryKey,
   UndefinedInitialDataOptions,
   UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
+  UseQueryResult,
+} from "@tanstack/react-query";
 
-import type {
-  DomainPackDraftEntryResponse
-} from '../../zod';
+import type { DomainPackDraftEntryResponse } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type getDraftEntryResponse200 = {
-  data: DomainPackDraftEntryResponse
-  status: 200
-}
+  data: DomainPackDraftEntryResponse;
+  status: 200;
+};
 
-export type getDraftEntryResponseSuccess = (getDraftEntryResponse200) & {
+export type getDraftEntryResponseSuccess = getDraftEntryResponse200 & {
   headers: Headers;
 };
-;
 
-export type getDraftEntryResponse = (getDraftEntryResponseSuccess)
+export type getDraftEntryResponse = getDraftEntryResponseSuccess;
 
-export const getGetDraftEntryUrl = (workspaceId: number,) => {
+export const getGetDraftEntryUrl = (workspaceId: number) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/draft-entry`;
+};
 
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/draft-entry`
-}
-
-export const getDraftEntry = async (workspaceId: number, options?: RequestInit): Promise<getDraftEntryResponse> => {
-
-  return customFetch<getDraftEntryResponse>(getGetDraftEntryUrl(workspaceId),
-  {
+export const getDraftEntry = async (
+  workspaceId: number,
+  options?: RequestInit,
+): Promise<getDraftEntryResponse> => {
+  return customFetch<getDraftEntryResponse>(getGetDraftEntryUrl(workspaceId), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
+export const getGetDraftEntryQueryKey = (workspaceId: number) => {
+  return [`/api/v1/workspaces/${workspaceId}/domain-packs/draft-entry`] as const;
+};
 
-  }
-);}
-
-
-
-
-
-export const getGetDraftEntryQueryKey = (workspaceId: number,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/draft-entry`
-    ] as const;
-    }
-
-
-export const getGetDraftEntryQueryOptions = <TData = Awaited<ReturnType<typeof getDraftEntry>>, TError = unknown>(workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetDraftEntryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDraftEntry>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetDraftEntryQueryKey(workspaceId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDraftEntryQueryKey(workspaceId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDraftEntry>>> = ({ signal }) =>
+    getDraftEntry(workspaceId, { signal, ...requestOptions });
 
+  return { queryKey, queryFn, enabled: !!workspaceId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDraftEntry>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
 
+export type GetDraftEntryQueryResult = NonNullable<Awaited<ReturnType<typeof getDraftEntry>>>;
+export type GetDraftEntryQueryError = unknown;
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDraftEntry>>> = ({ signal }) => getDraftEntry(workspaceId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetDraftEntryQueryResult = NonNullable<Awaited<ReturnType<typeof getDraftEntry>>>
-export type GetDraftEntryQueryError = unknown
-
-
-export function useGetDraftEntry<TData = Awaited<ReturnType<typeof getDraftEntry>>, TError = unknown>(
- workspaceId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>> & Pick<
+export function useGetDraftEntry<
+  TData = Awaited<ReturnType<typeof getDraftEntry>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDraftEntry>>,
           TError,
           Awaited<ReturnType<typeof getDraftEntry>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDraftEntry<TData = Awaited<ReturnType<typeof getDraftEntry>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDraftEntry<
+  TData = Awaited<ReturnType<typeof getDraftEntry>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDraftEntry>>,
           TError,
           Awaited<ReturnType<typeof getDraftEntry>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDraftEntry<TData = Awaited<ReturnType<typeof getDraftEntry>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDraftEntry<
+  TData = Awaited<ReturnType<typeof getDraftEntry>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
-export function useGetDraftEntry<TData = Awaited<ReturnType<typeof getDraftEntry>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+export function useGetDraftEntry<
+  TData = Awaited<ReturnType<typeof getDraftEntry>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftEntry>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDraftEntryQueryOptions(workspaceId, options);
 
-  const queryOptions = getGetDraftEntryQueryOptions(workspaceId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-

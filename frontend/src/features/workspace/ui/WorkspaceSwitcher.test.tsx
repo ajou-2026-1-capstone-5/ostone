@@ -5,25 +5,51 @@ vi.mock("@/shared/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+  DropdownMenuItem: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
     <div
       role="menuitem"
       tabIndex={-1}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
-    >{children}</div>
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
+      {children}
+    </div>
   ),
   DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuSub: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSubContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuSubTrigger: ({ children, onClick }: { children: React.ReactNode; onClick?: (e: React.MouseEvent) => void }) => (
+  DropdownMenuSubTrigger: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: (e: React.MouseEvent) => void;
+  }) => (
     <div
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(e as unknown as React.MouseEvent); } }}
-    >{children}</div>
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.(e as unknown as React.MouseEvent);
+        }
+      }}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -34,9 +60,7 @@ const activeWorkspaces = [
   { id: 2, name: "WS Two", status: "ACTIVE" as const },
 ];
 
-const archivedWorkspaces = [
-  { id: 3, name: "Archived WS", status: "ARCHIVED" as const },
-];
+const archivedWorkspaces = [{ id: 3, name: "Archived WS", status: "ARCHIVED" as const }];
 
 const allWorkspaces = [...activeWorkspaces, ...archivedWorkspaces];
 
@@ -122,9 +146,7 @@ describe("WorkspaceSwitcher", () => {
     const menuItems = screen.getAllByRole("menuitem");
     const editItem = menuItems.find((el) => el.textContent === "수정");
     if (editItem) fireEvent.click(editItem);
-    expect(onEdit).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 1, name: "WS One" }),
-    );
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: "WS One" }));
   });
 
   it("supports no-archived case hiding archived label", () => {

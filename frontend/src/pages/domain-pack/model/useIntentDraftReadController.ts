@@ -475,15 +475,7 @@ function useApplyRevisionDraftHandler({
         setVersionActionPending(false);
       }
     },
-    [
-      navigateToIntentCode,
-      pId,
-      packQuery,
-      setVersionActionPending,
-      summaryState,
-      vId,
-      wsId,
-    ],
+    [navigateToIntentCode, pId, packQuery, setVersionActionPending, summaryState, vId, wsId],
   );
 }
 

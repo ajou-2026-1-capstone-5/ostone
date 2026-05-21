@@ -1,12 +1,12 @@
-export { usePackDetail, useVersionDetail, parseSummaryJson } from './model';
-export type { ParsedSummary } from './model';
+export { usePackDetail, useVersionDetail, parseSummaryJson } from "./model";
+export type { ParsedSummary } from "./model";
 export {
   useIntentPreview,
   useSlotPreview,
   usePolicyPreview,
   useRiskPreview,
   useWorkflowPreview,
-} from './model';
+} from "./model";
 export {
   VersionListPanel,
   SummaryDetailPanel,
@@ -14,4 +14,4 @@ export {
   DomainPackApprovalDialog,
   SummaryJsonCard,
   ComponentCountGrid,
-} from './ui';
+} from "./ui";

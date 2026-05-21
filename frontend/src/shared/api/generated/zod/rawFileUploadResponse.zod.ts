@@ -4,19 +4,19 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const RawFileUploadResponse = zod.object({
-  "datasetId": zod.number().optional(),
-  "datasetKey": zod.string().optional(),
-  "workspaceId": zod.number().optional(),
-  "objectKey": zod.string().optional(),
-  "originalFilename": zod.string().optional(),
-  "sizeBytes": zod.number().optional(),
-  "status": zod.enum(['READY', 'PROCESSING', 'DONE', 'ERROR']).optional(),
-  "piiRedactionStatus": zod.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'ERROR']).optional(),
-  "conversationCount": zod.number().optional()
-})
+  datasetId: zod.number().optional(),
+  datasetKey: zod.string().optional(),
+  workspaceId: zod.number().optional(),
+  objectKey: zod.string().optional(),
+  originalFilename: zod.string().optional(),
+  sizeBytes: zod.number().optional(),
+  status: zod.enum(["READY", "PROCESSING", "DONE", "ERROR"]).optional(),
+  piiRedactionStatus: zod.enum(["PENDING", "IN_PROGRESS", "DONE", "ERROR"]).optional(),
+  conversationCount: zod.number().optional(),
+});
 
 export type RawFileUploadResponse = zod.input<typeof RawFileUploadResponse>;
 export type RawFileUploadResponseOutput = zod.output<typeof RawFileUploadResponse>;

@@ -4,9 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useQuery
-} from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -16,270 +14,290 @@ import type {
   QueryKey,
   UndefinedInitialDataOptions,
   UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
+  UseQueryResult,
+} from "@tanstack/react-query";
 
-import type {
-  IntentDefinitionDetail,
-  IntentDefinitionSummary
-} from '../../zod';
+import type { IntentDefinitionDetail, IntentDefinitionSummary } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type listIntentsResponse200 = {
-  data: IntentDefinitionSummary[]
-  status: 200
-}
+  data: IntentDefinitionSummary[];
+  status: 200;
+};
 
-export type listIntentsResponseSuccess = (listIntentsResponse200) & {
+export type listIntentsResponseSuccess = listIntentsResponse200 & {
   headers: Headers;
 };
-;
 
-export type listIntentsResponse = (listIntentsResponseSuccess)
+export type listIntentsResponse = listIntentsResponseSuccess;
 
-export const getListIntentsUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,) => {
+export const getListIntentsUrl = (workspaceId: number, packId: number, versionId: number) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`;
+};
 
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`
-}
-
-export const listIntents = async (workspaceId: number,
-    packId: number,
-    versionId: number, options?: RequestInit): Promise<listIntentsResponse> => {
-
-  return customFetch<listIntentsResponse>(getListIntentsUrl(workspaceId,packId,versionId),
-  {
+export const listIntents = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: RequestInit,
+): Promise<listIntentsResponse> => {
+  return customFetch<listIntentsResponse>(getListIntentsUrl(workspaceId, packId, versionId), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
+export const getListIntentsQueryKey = (workspaceId: number, packId: number, versionId: number) => {
+  return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`,
+  ] as const;
+};
 
-  }
-);}
-
-
-
-
-
-export const getListIntentsQueryKey = (workspaceId: number,
-    packId: number,
-    versionId: number,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`
-    ] as const;
-    }
-
-
-export const getListIntentsQueryOptions = <TData = Awaited<ReturnType<typeof listIntents>>, TError = unknown>(workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListIntentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIntents>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListIntentsQueryKey(workspaceId, packId, versionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getListIntentsQueryKey(workspaceId,packId,versionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIntents>>> = ({ signal }) =>
+    listIntents(workspaceId, packId, versionId, { signal, ...requestOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(workspaceId && packId && versionId),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
 
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIntents>>> = ({ signal }) => listIntents(workspaceId,packId,versionId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListIntentsQueryResult = NonNullable<Awaited<ReturnType<typeof listIntents>>>
-export type ListIntentsQueryError = unknown
-
+export type ListIntentsQueryResult = NonNullable<Awaited<ReturnType<typeof listIntents>>>;
+export type ListIntentsQueryError = unknown;
 
 export function useListIntents<TData = Awaited<ReturnType<typeof listIntents>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIntents>>,
           TError,
           Awaited<ReturnType<typeof listIntents>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useListIntents<TData = Awaited<ReturnType<typeof listIntents>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIntents>>,
           TError,
           Awaited<ReturnType<typeof listIntents>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useListIntents<TData = Awaited<ReturnType<typeof listIntents>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
 export function useListIntents<TData = Awaited<ReturnType<typeof listIntents>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIntents>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListIntentsQueryOptions(workspaceId, packId, versionId, options);
 
-  const queryOptions = getListIntentsQueryOptions(workspaceId,packId,versionId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 export type getIntentResponse200 = {
-  data: IntentDefinitionDetail
-  status: 200
-}
+  data: IntentDefinitionDetail;
+  status: 200;
+};
 
-export type getIntentResponseSuccess = (getIntentResponse200) & {
+export type getIntentResponseSuccess = getIntentResponse200 & {
   headers: Headers;
 };
-;
 
-export type getIntentResponse = (getIntentResponseSuccess)
+export type getIntentResponse = getIntentResponseSuccess;
 
-export const getGetIntentUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number,) => {
-
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`
-}
-
-export const getIntent = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options?: RequestInit): Promise<getIntentResponse> => {
-
-  return customFetch<getIntentResponse>(getGetIntentUrl(workspaceId,packId,versionId,intentId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetIntentQueryKey = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`
-    ] as const;
-    }
-
-
-export const getGetIntentQueryOptions = <TData = Awaited<ReturnType<typeof getIntent>>, TError = unknown>(workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetIntentUrl = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
 ) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getIntent = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options?: RequestInit,
+): Promise<getIntentResponse> => {
+  return customFetch<getIntentResponse>(getGetIntentUrl(workspaceId, packId, versionId, intentId), {
+    ...options,
+    method: "GET",
+  });
+};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetIntentQueryKey(workspaceId,packId,versionId,intentId);
+export const getGetIntentQueryKey = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+) => {
+  return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`,
+  ] as const;
+};
 
+export const getGetIntentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIntent>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
+  const queryKey =
+    queryOptions?.queryKey ?? getGetIntentQueryKey(workspaceId, packId, versionId, intentId);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIntent>>> = ({ signal }) => getIntent(workspaceId,packId,versionId,intentId, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIntent>>> = ({ signal }) =>
+    getIntent(workspaceId, packId, versionId, intentId, { signal, ...requestOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(workspaceId && packId && versionId && intentId),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
 
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId && intentId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetIntentQueryResult = NonNullable<Awaited<ReturnType<typeof getIntent>>>
-export type GetIntentQueryError = unknown
-
+export type GetIntentQueryResult = NonNullable<Awaited<ReturnType<typeof getIntent>>>;
+export type GetIntentQueryError = unknown;
 
 export function useGetIntent<TData = Awaited<ReturnType<typeof getIntent>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getIntent>>,
           TError,
           Awaited<ReturnType<typeof getIntent>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetIntent<TData = Awaited<ReturnType<typeof getIntent>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getIntent>>,
           TError,
           Awaited<ReturnType<typeof getIntent>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetIntent<TData = Awaited<ReturnType<typeof getIntent>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
 export function useGetIntent<TData = Awaited<ReturnType<typeof getIntent>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    intentId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  intentId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIntent>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetIntentQueryOptions(workspaceId, packId, versionId, intentId, options);
 
-  const queryOptions = getGetIntentQueryOptions(workspaceId,packId,versionId,intentId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-

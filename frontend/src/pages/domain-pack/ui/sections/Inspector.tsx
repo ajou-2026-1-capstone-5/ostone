@@ -1,74 +1,64 @@
-import {
-  Eyebrow,
-  Icon,
-  Pill,
-  Mono,
-  Bar,
-  Avatar,
-  Dot,
-} from '@/shared/ui/ostone/atoms';
+import { Eyebrow, Icon, Pill, Mono, Bar, Avatar, Dot } from "@/shared/ui/ostone/atoms";
 
 function InspectorHeader() {
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '14px 18px',
-        borderBottom: '1px solid var(--line-2)',
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 18px",
+        borderBottom: "1px solid var(--line-2)",
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <Eyebrow>Selected node</Eyebrow>
         <div
           style={{
-            width: '26px',
-            height: '26px',
-            background: 'var(--signal-bg)',
-            borderRadius: 'var(--r-1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: "26px",
+            height: "26px",
+            background: "var(--signal-bg)",
+            borderRadius: "var(--r-1)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <span
             style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '8px',
-              background: 'var(--signal-ink)',
-              transform: 'rotate(45deg)',
+              display: "inline-block",
+              width: "8px",
+              height: "8px",
+              background: "var(--signal-ink)",
+              transform: "rotate(45deg)",
             }}
           />
         </div>
         <span
           style={{
-            fontFamily: 'var(--sans)',
-            fontSize: '14px',
+            fontFamily: "var(--sans)",
+            fontSize: "14px",
             fontWeight: 600,
-            color: 'var(--ink)',
+            color: "var(--ink)",
           }}
         >
           eligible_check
         </span>
-        <Mono style={{ fontSize: '11px', color: 'var(--ink-3)' }}>
-          n3 · decision · risk_gate
-        </Mono>
+        <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>n3 · decision · risk_gate</Mono>
       </div>
       <button
         type="button"
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '26px',
-          height: '26px',
-          borderRadius: 'var(--r-2)',
-          border: '1px solid var(--line)',
-          background: 'transparent',
-          cursor: 'pointer',
-          color: 'var(--ink-3)',
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "26px",
+          height: "26px",
+          borderRadius: "var(--r-2)",
+          border: "1px solid var(--line)",
+          background: "transparent",
+          cursor: "pointer",
+          color: "var(--ink-3)",
         }}
       >
         <Icon name="dot3" size={16} />
@@ -79,20 +69,20 @@ function InspectorHeader() {
 
 function InspectorMetrics() {
   const stats = [
-    { label: 'Pass rate', value: '0.86', meta: '+2.3%', metaColor: 'var(--signal)' },
-    { label: 'Samples', value: '1,334', meta: '1389 total' },
-    { label: 'Latency', value: '0.34s', meta: 'p50' },
-    { label: 'Confidence', value: '0.79', meta: null, bar: 0.79 },
+    { label: "Pass rate", value: "0.86", meta: "+2.3%", metaColor: "var(--signal)" },
+    { label: "Samples", value: "1,334", meta: "1389 total" },
+    { label: "Latency", value: "0.34s", meta: "p50" },
+    { label: "Confidence", value: "0.79", meta: null, bar: 0.79 },
   ];
 
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '8px',
-        padding: '14px 18px',
-        borderBottom: '1px solid var(--line-2)',
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        padding: "14px 18px",
+        borderBottom: "1px solid var(--line-2)",
       }}
     >
       {stats.map((s) => (
@@ -100,18 +90,18 @@ function InspectorMetrics() {
           <Eyebrow>{s.label}</Eyebrow>
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginTop: '4px',
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              marginTop: "4px",
             }}
           >
             <span
               className="t-num"
               style={{
-                fontSize: '16px',
+                fontSize: "16px",
                 fontWeight: 700,
-                color: 'var(--ink)',
+                color: "var(--ink)",
               }}
             >
               {s.value}
@@ -119,8 +109,8 @@ function InspectorMetrics() {
             {s.meta && (
               <Mono
                 style={{
-                  fontSize: '9px',
-                  color: s.metaColor ?? 'var(--ink-3)',
+                  fontSize: "9px",
+                  color: s.metaColor ?? "var(--ink-3)",
                 }}
               >
                 {s.meta}
@@ -128,7 +118,7 @@ function InspectorMetrics() {
             )}
           </div>
           {s.bar !== undefined && (
-            <div style={{ marginTop: '4px' }}>
+            <div style={{ marginTop: "4px" }}>
               <Bar value={s.bar} tone="signal" w={80} h={4} />
             </div>
           )}
@@ -149,21 +139,21 @@ function InspField({ label, type, required, matchRate }: InspFieldProps) {
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 0',
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "6px 0",
       }}
     >
       <div
         style={{
-          width: '20px',
-          height: '20px',
-          borderRadius: 'var(--r-1)',
-          background: 'var(--paper-3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: "20px",
+          height: "20px",
+          borderRadius: "var(--r-1)",
+          background: "var(--paper-3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           flexShrink: 0,
         }}
       >
@@ -171,21 +161,19 @@ function InspField({ label, type, required, matchRate }: InspFieldProps) {
       </div>
       <span
         style={{
-          fontFamily: 'var(--mono)',
-          fontSize: '11px',
+          fontFamily: "var(--mono)",
+          fontSize: "11px",
           fontWeight: 500,
-          color: 'var(--ink)',
+          color: "var(--ink)",
         }}
       >
         {label}
       </span>
-      <Mono style={{ fontSize: '9px', color: 'var(--ink-3)' }}>{type}</Mono>
-      <Pill tone={required ? 'signal' : 'mute'}>
-        {required ? 'required' : 'optional'}
-      </Pill>
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <Mono style={{ fontSize: "9px", color: "var(--ink-3)" }}>{type}</Mono>
+      <Pill tone={required ? "signal" : "mute"}>{required ? "required" : "optional"}</Pill>
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
         <Bar value={matchRate} tone="signal" w={48} h={3} />
-        <Mono style={{ fontSize: '9px', color: 'var(--ink-3)' }}>
+        <Mono style={{ fontSize: "9px", color: "var(--ink-3)" }}>
           {Math.round(matchRate * 100)}%
         </Mono>
       </div>
@@ -195,10 +183,10 @@ function InspField({ label, type, required, matchRate }: InspFieldProps) {
 
 function InspectorFields() {
   return (
-    <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-2)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
         <Eyebrow>Fields extracted</Eyebrow>
-        <Mono style={{ fontSize: '10px', color: 'var(--ink-3)' }}>3 of 7 slots</Mono>
+        <Mono style={{ fontSize: "10px", color: "var(--ink-3)" }}>3 of 7 slots</Mono>
       </div>
       <InspField label="amount" type="number" required matchRate={0.94} />
       <InspField label="card_last4" type="string" required matchRate={0.88} />
@@ -212,7 +200,7 @@ interface PolicyRowProps {
   kind: string;
   description: string;
   passRate: string;
-  dotTone: 'signal' | 'warn' | 'danger' | 'info' | 'mute';
+  dotTone: "signal" | "warn" | "danger" | "info" | "mute";
   barValue: number;
 }
 
@@ -220,27 +208,27 @@ function PolicyRow({ id, kind, description, passRate, dotTone, barValue }: Polic
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 0',
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "6px 0",
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '70px' }}>
-        <Mono style={{ fontSize: '10px', color: 'var(--ink-2)' }}>{id}</Mono>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: "70px" }}>
+        <Mono style={{ fontSize: "10px", color: "var(--ink-2)" }}>{id}</Mono>
         <Pill tone="mute">{kind}</Pill>
       </div>
       <span
         style={{
-          fontFamily: 'var(--sans)',
-          fontSize: '12px',
-          color: 'var(--ink)',
+          fontFamily: "var(--sans)",
+          fontSize: "12px",
+          color: "var(--ink)",
           flex: 1,
         }}
       >
         {description}
       </span>
-      <Mono style={{ fontSize: '10px', color: 'var(--ink-3)' }}>{passRate}</Mono>
+      <Mono style={{ fontSize: "10px", color: "var(--ink-3)" }}>{passRate}</Mono>
       <Dot tone={dotTone} size={6} />
       <Bar value={barValue} tone="signal" w={48} h={3} />
     </div>
@@ -249,10 +237,10 @@ function PolicyRow({ id, kind, description, passRate, dotTone, barValue }: Polic
 
 function InspectorPolicies() {
   return (
-    <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-2)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
         <Eyebrow>Applied policies</Eyebrow>
-        <Mono style={{ fontSize: '10px', color: 'var(--ink-3)' }}>2</Mono>
+        <Mono style={{ fontSize: "10px", color: "var(--ink-3)" }}>2</Mono>
       </div>
       <PolicyRow
         id="POL-001"
@@ -286,17 +274,17 @@ function BranchRow({ label, percent, fraction, fillColor, isHot }: BranchRowProp
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '5px 0',
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "5px 0",
       }}
     >
       <span
         style={{
-          fontFamily: 'var(--sans)',
-          fontSize: '12px',
-          color: 'var(--ink)',
+          fontFamily: "var(--sans)",
+          fontSize: "12px",
+          color: "var(--ink)",
           flex: 1,
         }}
       >
@@ -304,10 +292,10 @@ function BranchRow({ label, percent, fraction, fillColor, isHot }: BranchRowProp
       </span>
       <span
         style={{
-          fontFamily: 'var(--mono)',
-          fontSize: '12px',
-          fontVariantNumeric: 'tabular-nums',
-          color: isHot ? 'var(--signal)' : 'var(--ink-2)',
+          fontFamily: "var(--mono)",
+          fontSize: "12px",
+          fontVariantNumeric: "tabular-nums",
+          color: isHot ? "var(--signal)" : "var(--ink-2)",
           fontWeight: isHot ? 600 : 400,
         }}
       >
@@ -315,18 +303,18 @@ function BranchRow({ label, percent, fraction, fillColor, isHot }: BranchRowProp
       </span>
       <div
         style={{
-          width: '80px',
-          height: '4px',
-          borderRadius: 'var(--r-pill)',
-          background: 'var(--line-2)',
-          overflow: 'hidden',
+          width: "80px",
+          height: "4px",
+          borderRadius: "var(--r-pill)",
+          background: "var(--line-2)",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
             width: `${fraction * 100}%`,
-            height: '100%',
-            borderRadius: 'var(--r-pill)',
+            height: "100%",
+            borderRadius: "var(--r-pill)",
             background: fillColor,
           }}
         />
@@ -337,8 +325,8 @@ function BranchRow({ label, percent, fraction, fillColor, isHot }: BranchRowProp
 
 function InspectorBranch() {
   return (
-    <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-2)' }}>
-      <div style={{ marginBottom: '8px' }}>
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-2)" }}>
+      <div style={{ marginBottom: "8px" }}>
         <Eyebrow>Branch analysis</Eyebrow>
       </div>
       <BranchRow
@@ -348,65 +336,55 @@ function InspectorBranch() {
         fillColor="var(--signal)"
         isHot
       />
-      <BranchRow
-        label="risk > 0.4"
-        percent="14.0%"
-        fraction={0.14}
-        fillColor="var(--warn)"
-      />
-      <BranchRow
-        label="× ineligible"
-        percent="4.0%"
-        fraction={0.04}
-        fillColor="var(--danger)"
-      />
+      <BranchRow label="risk > 0.4" percent="14.0%" fraction={0.14} fillColor="var(--warn)" />
+      <BranchRow label="× ineligible" percent="4.0%" fraction={0.04} fillColor="var(--danger)" />
     </div>
   );
 }
 
 function InspectorSample() {
   return (
-    <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-2)' }}>
-      <div style={{ marginBottom: '8px' }}>
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-2)" }}>
+      <div style={{ marginBottom: "8px" }}>
         <Eyebrow>Sample conversation turn</Eyebrow>
       </div>
       <div
         style={{
-          background: 'var(--paper)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--r-2)',
-          padding: '12px',
+          background: "var(--paper)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--r-2)",
+          padding: "12px",
         }}
       >
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '8px',
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "8px",
           }}
         >
           <Avatar initial="CS" tone="mute" size={24} />
-          <Mono style={{ fontSize: '11px', color: 'var(--ink-2)' }}>CS-7</Mono>
-          <Mono style={{ fontSize: '11px', color: 'var(--ink-3)' }}>14:22:34</Mono>
-          <div style={{ marginLeft: 'auto' }}>
+          <Mono style={{ fontSize: "11px", color: "var(--ink-2)" }}>CS-7</Mono>
+          <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>14:22:34</Mono>
+          <div style={{ marginLeft: "auto" }}>
             <Pill tone="mute">turn 47/89</Pill>
           </div>
         </div>
         <p
           style={{
-            fontFamily: 'var(--sans)',
-            fontSize: '13px',
+            fontFamily: "var(--sans)",
+            fontSize: "13px",
             lineHeight: 1.5,
-            color: 'var(--ink)',
+            color: "var(--ink)",
             margin: 0,
-            marginBottom: '8px',
+            marginBottom: "8px",
           }}
         >
-          고객님, 카드 결제 내역 확인 결과 부분 환불이 가능하십니다. 현재까지 3회 환불
-          중 2회 사용하셨고, 남은 횟수 내에서 처리 가능합니다.
+          고객님, 카드 결제 내역 확인 결과 부분 환불이 가능하십니다. 현재까지 3회 환불 중 2회
+          사용하셨고, 남은 횟수 내에서 처리 가능합니다.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Eyebrow>matched intent: refund.partial</Eyebrow>
           <Pill tone="signal">confidence 0.91</Pill>
         </div>
@@ -418,11 +396,11 @@ function InspectorSample() {
 interface ReviewCommentProps {
   initial: string;
   name: string;
-  tone: 'signal' | 'warn' | 'info' | 'mute';
+  tone: "signal" | "warn" | "info" | "mute";
   timeAgo: string;
   body: string;
   status: string;
-  statusTone: 'signal' | 'warn' | 'danger' | 'info' | 'mute' | 'ink';
+  statusTone: "signal" | "warn" | "danger" | "info" | "mute" | "ink";
 }
 
 function ReviewComment({
@@ -437,33 +415,33 @@ function ReviewComment({
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '8px',
-        padding: '8px 0',
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "8px",
+        padding: "8px 0",
       }}
     >
       <Avatar initial={initial} tone={tone} size={28} />
       <div style={{ flex: 1 }}>
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '2px',
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            marginBottom: "2px",
           }}
         >
-          <Mono style={{ fontSize: '11px', color: 'var(--ink-2)' }}>{name}</Mono>
-          <Mono style={{ fontSize: '10px', color: 'var(--ink-4)' }}>{timeAgo}</Mono>
+          <Mono style={{ fontSize: "11px", color: "var(--ink-2)" }}>{name}</Mono>
+          <Mono style={{ fontSize: "10px", color: "var(--ink-4)" }}>{timeAgo}</Mono>
         </div>
         <p
           style={{
-            fontFamily: 'var(--sans)',
-            fontSize: '12px',
+            fontFamily: "var(--sans)",
+            fontSize: "12px",
             lineHeight: 1.4,
-            color: 'var(--ink)',
+            color: "var(--ink)",
             margin: 0,
-            marginBottom: '4px',
+            marginBottom: "4px",
           }}
         >
           {body}
@@ -476,29 +454,29 @@ function ReviewComment({
 
 function InspectorReview() {
   return (
-    <div style={{ padding: '14px 18px' }}>
+    <div style={{ padding: "14px 18px" }}>
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '4px',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "4px",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Eyebrow>Review thread</Eyebrow>
-          <Mono style={{ fontSize: '10px', color: 'var(--ink-3)' }}>3 comments</Mono>
+          <Mono style={{ fontSize: "10px", color: "var(--ink-3)" }}>3 comments</Mono>
         </div>
         <button
           type="button"
           style={{
-            background: 'none',
-            border: 'none',
+            background: "none",
+            border: "none",
             padding: 0,
-            fontFamily: 'var(--mono)',
-            fontSize: '11px',
-            color: 'var(--signal)',
-            cursor: 'pointer',
+            fontFamily: "var(--mono)",
+            fontSize: "11px",
+            color: "var(--signal)",
+            cursor: "pointer",
           }}
         >
           + Add
@@ -539,10 +517,10 @@ export function Inspector() {
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'auto',
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "auto",
       }}
     >
       <InspectorHeader />

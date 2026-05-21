@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const uploadDatasetBodyDatasetKeyMin = 0;
 export const uploadDatasetBodyDatasetKeyMax = 100;
@@ -29,30 +29,65 @@ export const uploadDatasetBodyConversationsItemTurnsItemTurnIndexMin = 0;
 export const uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMin = 0;
 export const uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMax = 50;
 
-
 export const uploadDatasetBodyConversationsItemTurnsMax = 2147483647;
 
 export const uploadDatasetBodyConversationsMax = 2147483647;
 
-
 export const UploadDatasetBody = zod.object({
-  "datasetKey": zod.string().min(uploadDatasetBodyDatasetKeyMin).max(uploadDatasetBodyDatasetKeyMax).optional(),
-  "name": zod.string().min(uploadDatasetBodyNameMin).max(uploadDatasetBodyNameMax).optional(),
-  "sourceType": zod.string().min(uploadDatasetBodySourceTypeMin).max(uploadDatasetBodySourceTypeMax).optional(),
-  "conversations": zod.array(zod.object({
-  "externalCaseId": zod.string().min(uploadDatasetBodyConversationsItemExternalCaseIdMin).max(uploadDatasetBodyConversationsItemExternalCaseIdMax).optional(),
-  "channel": zod.string().min(uploadDatasetBodyConversationsItemChannelMin).max(uploadDatasetBodyConversationsItemChannelMax).optional(),
-  "languageCode": zod.string().min(uploadDatasetBodyConversationsItemLanguageCodeMin).max(uploadDatasetBodyConversationsItemLanguageCodeMax).optional(),
-  "startedAt": zod.iso.datetime({"offset":true}).optional(),
-  "endedAt": zod.iso.datetime({"offset":true}).optional(),
-  "turns": zod.array(zod.object({
-  "turnIndex": zod.number().min(uploadDatasetBodyConversationsItemTurnsItemTurnIndexMin).optional(),
-  "speakerRole": zod.string().min(uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMin).max(uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMax).optional(),
-  "messageText": zod.string().min(1).optional(),
-  "eventTime": zod.iso.datetime({"offset":true}).optional()
-})).min(1).max(uploadDatasetBodyConversationsItemTurnsMax)
-})).min(1).max(uploadDatasetBodyConversationsMax)
-})
+  datasetKey: zod
+    .string()
+    .min(uploadDatasetBodyDatasetKeyMin)
+    .max(uploadDatasetBodyDatasetKeyMax)
+    .optional(),
+  name: zod.string().min(uploadDatasetBodyNameMin).max(uploadDatasetBodyNameMax).optional(),
+  sourceType: zod
+    .string()
+    .min(uploadDatasetBodySourceTypeMin)
+    .max(uploadDatasetBodySourceTypeMax)
+    .optional(),
+  conversations: zod
+    .array(
+      zod.object({
+        externalCaseId: zod
+          .string()
+          .min(uploadDatasetBodyConversationsItemExternalCaseIdMin)
+          .max(uploadDatasetBodyConversationsItemExternalCaseIdMax)
+          .optional(),
+        channel: zod
+          .string()
+          .min(uploadDatasetBodyConversationsItemChannelMin)
+          .max(uploadDatasetBodyConversationsItemChannelMax)
+          .optional(),
+        languageCode: zod
+          .string()
+          .min(uploadDatasetBodyConversationsItemLanguageCodeMin)
+          .max(uploadDatasetBodyConversationsItemLanguageCodeMax)
+          .optional(),
+        startedAt: zod.iso.datetime({ offset: true }).optional(),
+        endedAt: zod.iso.datetime({ offset: true }).optional(),
+        turns: zod
+          .array(
+            zod.object({
+              turnIndex: zod
+                .number()
+                .min(uploadDatasetBodyConversationsItemTurnsItemTurnIndexMin)
+                .optional(),
+              speakerRole: zod
+                .string()
+                .min(uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMin)
+                .max(uploadDatasetBodyConversationsItemTurnsItemSpeakerRoleMax)
+                .optional(),
+              messageText: zod.string().min(1).optional(),
+              eventTime: zod.iso.datetime({ offset: true }).optional(),
+            }),
+          )
+          .min(1)
+          .max(uploadDatasetBodyConversationsItemTurnsMax),
+      }),
+    )
+    .min(1)
+    .max(uploadDatasetBodyConversationsMax),
+});
 
 export type UploadDatasetBody = zod.input<typeof UploadDatasetBody>;
 export type UploadDatasetBodyOutput = zod.output<typeof UploadDatasetBody>;

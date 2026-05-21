@@ -46,9 +46,7 @@ export function WorkflowSearchBar({
 
   const trimmed = query.trim().toLowerCase();
   const matches = trimmed
-    ? entries
-        .filter((e) => e.name.toLowerCase().includes(trimmed))
-        .slice(0, maxResults)
+    ? entries.filter((e) => e.name.toLowerCase().includes(trimmed)).slice(0, maxResults)
     : [];
 
   const inputStyle: CSSProperties = {

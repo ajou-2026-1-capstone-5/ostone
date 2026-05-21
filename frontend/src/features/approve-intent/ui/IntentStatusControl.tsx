@@ -34,20 +34,10 @@ export function IntentStatusControl({
     <div className={styles.container}>
       <span className={styles.header}>intent 상태 관리</span>
       <div className={styles.buttonGroup}>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={onPublish}
-          disabled={isDisabled}
-        >
+        <Button variant="default" size="sm" onClick={onPublish} disabled={isDisabled}>
           {renderButtonContent("승인")}
         </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={onReject}
-          disabled={isDisabled}
-        >
+        <Button variant="destructive" size="sm" onClick={onReject} disabled={isDisabled}>
           {renderButtonContent("반려")}
         </Button>
       </div>

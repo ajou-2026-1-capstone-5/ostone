@@ -1,19 +1,26 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 import theme from "@/shared/styles/workflow-node-theme.module.css";
-import { DEFAULT_NODE_STATUS, type GraphNodeStatus } from "@/entities/workflow";
-import { STATUS_MAP } from "../nodeStyles";
+import { readBadges, readString, renderNodeIcon } from "../nodeStyles";
+import { NodeCardShell } from "./NodeCardShell";
+import { useConnectedSides } from "./useConnectedSides";
 
-export function AnswerNode({ data }: NodeProps) {
-  const label = typeof data?.label === "string" ? data.label : "";
-  const status: GraphNodeStatus =
-    (data?.status as GraphNodeStatus | undefined) ?? DEFAULT_NODE_STATUS;
-  const statusClass = STATUS_MAP[status] ?? theme.statusIdle;
+export function AnswerNode({ id, data }: NodeProps) {
+  const label = readString(data, "label") ?? "";
+  const description = readString(data, "description");
+  const iconHint = readString(data, "iconHint");
+  const badges = readBadges(data);
+  const connected = useConnectedSides(id);
 
   return (
-    <div className={`${theme.answer} ${statusClass}`}>
-      <Handle type="target" position={Position.Left} />
-      <span className={theme.label}>{label}</span>
-      <Handle type="source" position={Position.Right} />
-    </div>
+    <NodeCardShell
+      kindClassName={theme.answer}
+      icon={renderNodeIcon("ANSWER", iconHint)}
+      title={label}
+      description={description}
+      badges={badges}
+      sourceHandles={connected.sources}
+      targetHandles={connected.targets}
+      containerTestId="answer-node"
+    />
   );
 }

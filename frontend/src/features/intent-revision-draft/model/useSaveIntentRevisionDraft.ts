@@ -14,11 +14,7 @@ interface SaveIntentRevisionDraftApiPort {
     packId: number,
     versionId: number,
   ) => Promise<{ draftVersionId: number }>;
-  listIntents: (
-    workspaceId: number,
-    packId: number,
-    versionId: number,
-  ) => Promise<IntentSummary[]>;
+  listIntents: (workspaceId: number, packId: number, versionId: number) => Promise<IntentSummary[]>;
   updateDraftIntent: (
     workspaceId: number,
     packId: number,
@@ -38,13 +34,7 @@ interface SaveIntentRevisionDraftParams {
 
 export async function saveIntentRevisionDraftFlow(
   api: SaveIntentRevisionDraftApiPort,
-  {
-    workspaceId,
-    packId,
-    baseVersionId,
-    intentCode,
-    values,
-  }: SaveIntentRevisionDraftParams,
+  { workspaceId, packId, baseVersionId, intentCode, values }: SaveIntentRevisionDraftParams,
 ): Promise<SaveIntentRevisionDraftResult> {
   const { draftVersionId } = await api.createRevisionDraft(workspaceId, packId, baseVersionId);
 

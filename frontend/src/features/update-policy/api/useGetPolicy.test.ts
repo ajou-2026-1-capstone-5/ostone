@@ -4,9 +4,12 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGetPolicy } from "./useGetPolicy";
 
-vi.mock("@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller", () => ({
-  getPolicy: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller",
+  () => ({
+    getPolicy: vi.fn(),
+  }),
+);
 
 import { getPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 
@@ -43,7 +46,11 @@ describe("useGetPolicy", () => {
   });
 
   it("enabled 상태면 정책 상세를 조회한다", async () => {
-    mockedGetPolicy.mockResolvedValue({ data: stubPolicy as any, status: 200, headers: new Headers() });
+    mockedGetPolicy.mockResolvedValue({
+      data: stubPolicy as any,
+      status: 200,
+      headers: new Headers(),
+    });
 
     const { result } = renderHook(
       () =>

@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const pipelineIntentDraftCallbackRequestExternalEventIdMin = 0;
 export const pipelineIntentDraftCallbackRequestExternalEventIdMax = 255;
@@ -32,22 +32,62 @@ export const pipelineIntentDraftCallbackRequestIntentsItemMetaJsonMax = 5000;
 
 export const pipelineIntentDraftCallbackRequestIntentsMax = 200;
 
-
 export const PipelineIntentDraftCallbackRequest = zod.object({
-  "externalEventId": zod.string().min(pipelineIntentDraftCallbackRequestExternalEventIdMin).max(pipelineIntentDraftCallbackRequestExternalEventIdMax).optional(),
-  "domainPackVersionId": zod.number(),
-  "intents": zod.array(zod.object({
-  "intentCode": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemIntentCodeMin).max(pipelineIntentDraftCallbackRequestIntentsItemIntentCodeMax).optional(),
-  "name": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemNameMin).max(pipelineIntentDraftCallbackRequestIntentsItemNameMax).optional(),
-  "description": zod.string().optional(),
-  "taxonomyLevel": zod.number().optional(),
-  "parentIntentCode": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemParentIntentCodeMin).max(pipelineIntentDraftCallbackRequestIntentsItemParentIntentCodeMax).optional(),
-  "sourceClusterRef": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemSourceClusterRefMin).max(pipelineIntentDraftCallbackRequestIntentsItemSourceClusterRefMax).optional(),
-  "entryConditionJson": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemEntryConditionJsonMin).max(pipelineIntentDraftCallbackRequestIntentsItemEntryConditionJsonMax).optional(),
-  "evidenceJson": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemEvidenceJsonMin).max(pipelineIntentDraftCallbackRequestIntentsItemEvidenceJsonMax).optional(),
-  "metaJson": zod.string().min(pipelineIntentDraftCallbackRequestIntentsItemMetaJsonMin).max(pipelineIntentDraftCallbackRequestIntentsItemMetaJsonMax).optional()
-})).min(1).max(pipelineIntentDraftCallbackRequestIntentsMax)
-})
+  externalEventId: zod
+    .string()
+    .min(pipelineIntentDraftCallbackRequestExternalEventIdMin)
+    .max(pipelineIntentDraftCallbackRequestExternalEventIdMax)
+    .optional(),
+  domainPackVersionId: zod.number(),
+  intents: zod
+    .array(
+      zod.object({
+        intentCode: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemIntentCodeMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemIntentCodeMax)
+          .optional(),
+        name: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemNameMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemNameMax)
+          .optional(),
+        description: zod.string().optional(),
+        taxonomyLevel: zod.number().optional(),
+        parentIntentCode: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemParentIntentCodeMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemParentIntentCodeMax)
+          .optional(),
+        sourceClusterRef: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemSourceClusterRefMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemSourceClusterRefMax)
+          .optional(),
+        entryConditionJson: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemEntryConditionJsonMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemEntryConditionJsonMax)
+          .optional(),
+        evidenceJson: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemEvidenceJsonMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemEvidenceJsonMax)
+          .optional(),
+        metaJson: zod
+          .string()
+          .min(pipelineIntentDraftCallbackRequestIntentsItemMetaJsonMin)
+          .max(pipelineIntentDraftCallbackRequestIntentsItemMetaJsonMax)
+          .optional(),
+      }),
+    )
+    .min(1)
+    .max(pipelineIntentDraftCallbackRequestIntentsMax),
+});
 
-export type PipelineIntentDraftCallbackRequest = zod.input<typeof PipelineIntentDraftCallbackRequest>;
-export type PipelineIntentDraftCallbackRequestOutput = zod.output<typeof PipelineIntentDraftCallbackRequest>;
+export type PipelineIntentDraftCallbackRequest = zod.input<
+  typeof PipelineIntentDraftCallbackRequest
+>;
+export type PipelineIntentDraftCallbackRequestOutput = zod.output<
+  typeof PipelineIntentDraftCallbackRequest
+>;

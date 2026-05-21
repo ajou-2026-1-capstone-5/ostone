@@ -7,9 +7,12 @@ import { ApiRequestError } from "@/shared/api";
 import { getSlot } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
 import type { SlotDefinitionResponse } from "@/shared/api/generated/zod";
 
-vi.mock("@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller", () => ({
-  getSlot: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller",
+  () => ({
+    getSlot: vi.fn(),
+  }),
+);
 
 const mockedGetSlot = vi.mocked(getSlot);
 const slotDetailKey = (...args: number[]) => ["slots", "detail", ...args] as const;

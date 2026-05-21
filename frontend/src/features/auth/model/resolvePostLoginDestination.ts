@@ -1,5 +1,5 @@
-const DEFAULT_POST_LOGIN_PATH = '/workspaces';
-const ALLOWED_RETURN_PREFIXES = ['/workspaces'];
+const DEFAULT_POST_LOGIN_PATH = "/workspaces";
+const ALLOWED_RETURN_PREFIXES = ["/workspaces"];
 
 interface ReturnLocation {
   pathname?: unknown;
@@ -7,7 +7,7 @@ interface ReturnLocation {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function extractReturnLocation(state: unknown): ReturnLocation | null {
@@ -25,7 +25,7 @@ function extractReturnLocation(state: unknown): ReturnLocation | null {
 }
 
 function isExternalUrl(pathname: string): boolean {
-  return /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(pathname) || pathname.startsWith('//');
+  return /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(pathname) || pathname.startsWith("//");
 }
 
 function isAllowedPath(pathname: string): boolean {
@@ -35,10 +35,10 @@ function isAllowedPath(pathname: string): boolean {
 }
 
 function hasDotSegment(pathname: string): boolean {
-  return pathname.split('/').some((segment) => {
+  return pathname.split("/").some((segment) => {
     try {
       const decoded = decodeURIComponent(segment);
-      return decoded === '.' || decoded === '..';
+      return decoded === "." || decoded === "..";
     } catch {
       return true;
     }
@@ -46,18 +46,18 @@ function hasDotSegment(pathname: string): boolean {
 }
 
 function extractSearch(location: ReturnLocation): string {
-  if (typeof location.search !== 'string') {
-    return '';
+  if (typeof location.search !== "string") {
+    return "";
   }
 
-  return location.search.startsWith('?') ? location.search : '';
+  return location.search.startsWith("?") ? location.search : "";
 }
 
 export function resolvePostLoginDestination(state: unknown): string {
   const location = extractReturnLocation(state);
   const pathname = location?.pathname;
 
-  if (typeof pathname !== 'string' || !pathname || isExternalUrl(pathname)) {
+  if (typeof pathname !== "string" || !pathname || isExternalUrl(pathname)) {
     return DEFAULT_POST_LOGIN_PATH;
   }
 

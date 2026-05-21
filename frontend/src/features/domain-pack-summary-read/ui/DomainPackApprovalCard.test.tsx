@@ -9,9 +9,7 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => navigate,
 }));
 
-function readiness(
-  overrides: Partial<DomainPackApprovalReadiness>,
-): DomainPackApprovalReadiness {
+function readiness(overrides: Partial<DomainPackApprovalReadiness>): DomainPackApprovalReadiness {
   return {
     ready: false,
     isLoading: false,
@@ -80,9 +78,7 @@ describe("DomainPackApprovalCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Intent 검토하기/ }));
 
-    expect(navigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/intents",
-    );
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/intents");
   });
 
   it("readiness error 상태에서 다시 시도 action을 호출한다", () => {

@@ -1,6 +1,6 @@
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
-const USER_KEY = 'user';
+const ACCESS_TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
+const USER_KEY = "user";
 
 export interface AuthUser {
   id: number;
@@ -47,10 +47,10 @@ export function getAuthUser(): AuthUser | null {
 }
 
 function normalizeBase64Url(value: string): string {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const paddingLength = (4 - (base64.length % 4)) % 4;
 
-  return `${base64}${'='.repeat(paddingLength)}`;
+  return `${base64}${"=".repeat(paddingLength)}`;
 }
 
 export function isAuthenticated(): boolean {
@@ -58,10 +58,10 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
 
   try {
-    const payload = JSON.parse(atob(normalizeBase64Url(token.split('.')[1] ?? '')));
+    const payload = JSON.parse(atob(normalizeBase64Url(token.split(".")[1] ?? "")));
     const exp = payload.exp;
 
-    return typeof exp === 'number' && exp > Date.now() / 1000;
+    return typeof exp === "number" && exp > Date.now() / 1000;
   } catch {
     return false;
   }

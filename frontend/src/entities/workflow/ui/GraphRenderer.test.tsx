@@ -95,13 +95,20 @@ describe("GraphRenderer new props", () => {
     mockToFlow.mockReturnValueOnce({
       nodes: [
         { id: "INITIAL", type: "action", data: { label: "Initial" }, position: { x: 0, y: 0 } },
-        { id: "COMPLETED", type: "action", data: { label: "Completed" }, position: { x: 200, y: 0 } },
+        {
+          id: "COMPLETED",
+          type: "action",
+          data: { label: "Completed" },
+          position: { x: 200, y: 0 },
+        },
         { id: "OTHER", type: "action", data: { label: "Other" }, position: { x: 400, y: 0 } },
       ],
       edges: [],
     });
     render(<GraphRenderer graph={stubGraph} selectedNodeIds={["INITIAL", "COMPLETED"]} />);
-    const [receivedProps] = mockReactFlow.mock.calls.at(-1)! as [{ nodes: Array<{ id: string; data: { selected?: boolean } }> }];
+    const [receivedProps] = mockReactFlow.mock.calls.at(-1)! as [
+      { nodes: Array<{ id: string; data: { selected?: boolean } }> },
+    ];
     const initialNode = receivedProps.nodes.find((n) => n.id === "INITIAL");
     const otherNode = receivedProps.nodes.find((n) => n.id === "OTHER");
     expect(initialNode?.data.selected).toBe(true);
@@ -157,7 +164,9 @@ describe("GraphRenderer new props", () => {
     });
     render(<GraphRenderer graph={stubGraph} currentNodeId="NODE_1" />);
     const [receivedProps] = mockReactFlow.mock.calls.at(-1) as unknown as [Record<string, unknown>];
-    const richProps = receivedProps as { nodes?: Array<{ id: string; data: Record<string, unknown> }> };
+    const richProps = receivedProps as {
+      nodes?: Array<{ id: string; data: Record<string, unknown> }>;
+    };
     const node1 = richProps.nodes?.find((n) => n.id === "NODE_1");
     const node2 = richProps.nodes?.find((n) => n.id === "NODE_2");
     expect(node1?.data.current).toBe(true);

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface EyebrowProps {
   children: ReactNode;
@@ -6,5 +6,5 @@ interface EyebrowProps {
 }
 
 export function Eyebrow({ children, className }: EyebrowProps) {
-  return <span className={`t-eyebrow${className ? ` ${className}` : ''}`}>{children}</span>;
+  return <span className={`t-eyebrow${className ? ` ${className}` : ""}`}>{children}</span>;
 }

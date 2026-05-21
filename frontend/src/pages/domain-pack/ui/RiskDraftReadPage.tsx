@@ -41,10 +41,7 @@ export function RiskDraftReadPage() {
       : null;
 
   return (
-    <OstoneShell
-      active="domain"
-      crumbs={[`WS · ${wsId}`, `PACK · ${pId}`, `VER · ${vId}`]}
-    >
+    <OstoneShell active="domain" crumbs={[`WS · ${wsId}`, `PACK · ${pId}`, `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <div className={styles.versionMeta}>

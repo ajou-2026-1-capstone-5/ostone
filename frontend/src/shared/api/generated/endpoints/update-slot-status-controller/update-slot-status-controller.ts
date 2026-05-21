@@ -4,108 +4,144 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
+  UseMutationResult,
+} from "@tanstack/react-query";
 
-import type {
-  SlotDefinitionResponse,
-  UpdateSlotStatusRequest
-} from '../../zod';
+import type { SlotDefinitionResponse, UpdateSlotStatusRequest } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type updateSlotStatusResponse200 = {
-  data: SlotDefinitionResponse
-  status: 200
-}
+  data: SlotDefinitionResponse;
+  status: 200;
+};
 
-export type updateSlotStatusResponseSuccess = (updateSlotStatusResponse200) & {
+export type updateSlotStatusResponseSuccess = updateSlotStatusResponse200 & {
   headers: Headers;
 };
-;
 
-export type updateSlotStatusResponse = (updateSlotStatusResponseSuccess)
+export type updateSlotStatusResponse = updateSlotStatusResponseSuccess;
 
-export const getUpdateSlotStatusUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    slotId: number,) => {
+export const getUpdateSlotStatusUrl = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  slotId: number,
+) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/slots/${slotId}/status`;
+};
 
+export const updateSlotStatus = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  slotId: number,
+  updateSlotStatusRequest: UpdateSlotStatusRequest,
+  options?: RequestInit,
+): Promise<updateSlotStatusResponse> => {
+  return customFetch<updateSlotStatusResponse>(
+    getUpdateSlotStatusUrl(workspaceId, packId, versionId, slotId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateSlotStatusRequest),
+    },
+  );
+};
 
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/slots/${slotId}/status`
-}
-
-export const updateSlotStatus = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    slotId: number,
-    updateSlotStatusRequest: UpdateSlotStatusRequest, options?: RequestInit): Promise<updateSlotStatusResponse> => {
-
-  return customFetch<updateSlotStatusResponse>(getUpdateSlotStatusUrl(workspaceId,packId,versionId,slotId),
+export const getUpdateSlotStatusMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSlotStatus>>,
+    TError,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      slotId: number;
+      data: UpdateSlotStatusRequest;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSlotStatus>>,
+  TError,
   {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateSlotStatusRequest,)
-  }
-);}
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    slotId: number;
+    data: UpdateSlotStatusRequest;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateSlotStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-
-
-
-export const getUpdateSlotStatusMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSlotStatus>>, TError,{workspaceId: number;packId: number;versionId: number;slotId: number;data: UpdateSlotStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateSlotStatus>>, TError,{workspaceId: number;packId: number;versionId: number;slotId: number;data: UpdateSlotStatusRequest}, TContext> => {
-
-const mutationKey = ['updateSlotStatus'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSlotStatus>>, {workspaceId: number;packId: number;versionId: number;slotId: number;data: UpdateSlotStatusRequest}> = (props) => {
-          const {workspaceId,packId,versionId,slotId,data} = props ?? {};
-
-          return  updateSlotStatus(workspaceId,packId,versionId,slotId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateSlotStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateSlotStatus>>>
-    export type UpdateSlotStatusMutationBody = UpdateSlotStatusRequest
-    export type UpdateSlotStatusMutationError = unknown
-
-    export const useUpdateSlotStatus = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSlotStatus>>, TError,{workspaceId: number;packId: number;versionId: number;slotId: number;data: UpdateSlotStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateSlotStatus>>,
-        TError,
-        {workspaceId: number;packId: number;versionId: number;slotId: number;data: UpdateSlotStatusRequest},
-        TContext
-      > => {
-      return useMutation(getUpdateSlotStatusMutationOptions(options), queryClient);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSlotStatus>>,
+    {
+      workspaceId: number;
+      packId: number;
+      versionId: number;
+      slotId: number;
+      data: UpdateSlotStatusRequest;
     }
+  > = (props) => {
+    const { workspaceId, packId, versionId, slotId, data } = props ?? {};
+
+    return updateSlotStatus(workspaceId, packId, versionId, slotId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSlotStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSlotStatus>>
+>;
+export type UpdateSlotStatusMutationBody = UpdateSlotStatusRequest;
+export type UpdateSlotStatusMutationError = unknown;
+
+export const useUpdateSlotStatus = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateSlotStatus>>,
+      TError,
+      {
+        workspaceId: number;
+        packId: number;
+        versionId: number;
+        slotId: number;
+        data: UpdateSlotStatusRequest;
+      },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateSlotStatus>>,
+  TError,
+  {
+    workspaceId: number;
+    packId: number;
+    versionId: number;
+    slotId: number;
+    data: UpdateSlotStatusRequest;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateSlotStatusMutationOptions(options), queryClient);
+};

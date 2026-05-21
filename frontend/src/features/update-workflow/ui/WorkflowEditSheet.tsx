@@ -1,10 +1,4 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/shared/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/shared/ui/sheet";
 import { Spinner } from "@/shared/ui/spinner";
 import { Button } from "@/shared/ui/button";
 import { useGetWorkflow } from "../api/useGetWorkflow";
@@ -35,7 +29,12 @@ export function WorkflowEditSheet({
   } = useGetWorkflow(wsId, packId, versionId, workflowId, isOpen);
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto flex flex-col">
         <SheetHeader className="px-4 pt-4">
           <SheetTitle>

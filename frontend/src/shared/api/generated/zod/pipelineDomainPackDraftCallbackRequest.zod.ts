@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const pipelineDomainPackDraftCallbackRequestExternalEventIdMin = 0;
 export const pipelineDomainPackDraftCallbackRequestExternalEventIdMax = 255;
@@ -18,13 +18,32 @@ export const pipelineDomainPackDraftCallbackRequestPackNameMax = 255;
 export const pipelineDomainPackDraftCallbackRequestSummaryJsonMin = 0;
 export const pipelineDomainPackDraftCallbackRequestSummaryJsonMax = 10000;
 
-
 export const PipelineDomainPackDraftCallbackRequest = zod.object({
-  "externalEventId": zod.string().min(pipelineDomainPackDraftCallbackRequestExternalEventIdMin).max(pipelineDomainPackDraftCallbackRequestExternalEventIdMax).optional(),
-  "packKey": zod.string().min(pipelineDomainPackDraftCallbackRequestPackKeyMin).max(pipelineDomainPackDraftCallbackRequestPackKeyMax).optional(),
-  "packName": zod.string().min(pipelineDomainPackDraftCallbackRequestPackNameMin).max(pipelineDomainPackDraftCallbackRequestPackNameMax).optional(),
-  "summaryJson": zod.string().min(pipelineDomainPackDraftCallbackRequestSummaryJsonMin).max(pipelineDomainPackDraftCallbackRequestSummaryJsonMax).optional()
-})
+  externalEventId: zod
+    .string()
+    .min(pipelineDomainPackDraftCallbackRequestExternalEventIdMin)
+    .max(pipelineDomainPackDraftCallbackRequestExternalEventIdMax)
+    .optional(),
+  packKey: zod
+    .string()
+    .min(pipelineDomainPackDraftCallbackRequestPackKeyMin)
+    .max(pipelineDomainPackDraftCallbackRequestPackKeyMax)
+    .optional(),
+  packName: zod
+    .string()
+    .min(pipelineDomainPackDraftCallbackRequestPackNameMin)
+    .max(pipelineDomainPackDraftCallbackRequestPackNameMax)
+    .optional(),
+  summaryJson: zod
+    .string()
+    .min(pipelineDomainPackDraftCallbackRequestSummaryJsonMin)
+    .max(pipelineDomainPackDraftCallbackRequestSummaryJsonMax)
+    .optional(),
+});
 
-export type PipelineDomainPackDraftCallbackRequest = zod.input<typeof PipelineDomainPackDraftCallbackRequest>;
-export type PipelineDomainPackDraftCallbackRequestOutput = zod.output<typeof PipelineDomainPackDraftCallbackRequest>;
+export type PipelineDomainPackDraftCallbackRequest = zod.input<
+  typeof PipelineDomainPackDraftCallbackRequest
+>;
+export type PipelineDomainPackDraftCallbackRequestOutput = zod.output<
+  typeof PipelineDomainPackDraftCallbackRequest
+>;

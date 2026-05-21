@@ -98,8 +98,7 @@ export function WorkflowListView({
         value: o.value,
         label: SORT_FIELD_KO_LABELS[o.value],
       })),
-      onChange: (next) =>
-        updateSettings({ sortField: next === "name" ? "name" : "workflowCode" }),
+      onChange: (next) => updateSettings({ sortField: next === "name" ? "name" : "workflowCode" }),
     },
     {
       key: "sortDir",
@@ -115,7 +114,7 @@ export function WorkflowListView({
 
   const filteredEntryName =
     filterWorkflowId !== null
-      ? entries.find((e) => e.workflowId === filterWorkflowId)?.name ?? null
+      ? (entries.find((e) => e.workflowId === filterWorkflowId)?.name ?? null)
       : null;
 
   const [prevEntries, setPrevEntries] = useState(entries);
@@ -226,4 +225,3 @@ export function WorkflowListView({
     </div>
   );
 }
-

@@ -4,9 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import {
-  useQuery
-} from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -16,270 +14,291 @@ import type {
   QueryKey,
   UndefinedInitialDataOptions,
   UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
+  UseQueryResult,
+} from "@tanstack/react-query";
 
-import type {
-  PolicyDefinitionResponse,
-  PolicyDefinitionSummary
-} from '../../zod';
+import type { PolicyDefinitionResponse, PolicyDefinitionSummary } from "../../zod";
 
-import { customFetch } from '../../../mutator';
-
+import { customFetch } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export type getPolicyResponse200 = {
-  data: PolicyDefinitionResponse
-  status: 200
-}
+  data: PolicyDefinitionResponse;
+  status: 200;
+};
 
-export type getPolicyResponseSuccess = (getPolicyResponse200) & {
+export type getPolicyResponseSuccess = getPolicyResponse200 & {
   headers: Headers;
 };
-;
 
-export type getPolicyResponse = (getPolicyResponseSuccess)
+export type getPolicyResponse = getPolicyResponseSuccess;
 
-export const getGetPolicyUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number,) => {
-
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`
-}
-
-export const getPolicy = async (workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options?: RequestInit): Promise<getPolicyResponse> => {
-
-  return customFetch<getPolicyResponse>(getGetPolicyUrl(workspaceId,packId,versionId,policyId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetPolicyQueryKey = (workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`
-    ] as const;
-    }
-
-
-export const getGetPolicyQueryOptions = <TData = Awaited<ReturnType<typeof getPolicy>>, TError = unknown>(workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetPolicyUrl = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
 ) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getPolicy = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options?: RequestInit,
+): Promise<getPolicyResponse> => {
+  return customFetch<getPolicyResponse>(getGetPolicyUrl(workspaceId, packId, versionId, policyId), {
+    ...options,
+    method: "GET",
+  });
+};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPolicyQueryKey(workspaceId,packId,versionId,policyId);
+export const getGetPolicyQueryKey = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+) => {
+  return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`,
+  ] as const;
+};
 
+export const getGetPolicyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPolicy>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPolicyQueryKey(workspaceId, packId, versionId, policyId);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPolicy>>> = ({ signal }) => getPolicy(workspaceId,packId,versionId,policyId, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPolicy>>> = ({ signal }) =>
+    getPolicy(workspaceId, packId, versionId, policyId, { signal, ...requestOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(workspaceId && packId && versionId && policyId),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
 
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId && policyId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetPolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getPolicy>>>
-export type GetPolicyQueryError = unknown
-
+export type GetPolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getPolicy>>>;
+export type GetPolicyQueryError = unknown;
 
 export function useGetPolicy<TData = Awaited<ReturnType<typeof getPolicy>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPolicy>>,
           TError,
           Awaited<ReturnType<typeof getPolicy>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetPolicy<TData = Awaited<ReturnType<typeof getPolicy>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPolicy>>,
           TError,
           Awaited<ReturnType<typeof getPolicy>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetPolicy<TData = Awaited<ReturnType<typeof getPolicy>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
 export function useGetPolicy<TData = Awaited<ReturnType<typeof getPolicy>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number,
-    policyId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  policyId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPolicy>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPolicyQueryOptions(workspaceId, packId, versionId, policyId, options);
 
-  const queryOptions = getGetPolicyQueryOptions(workspaceId,packId,versionId,policyId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 export type listPoliciesResponse200 = {
-  data: PolicyDefinitionSummary[]
-  status: 200
-}
+  data: PolicyDefinitionSummary[];
+  status: 200;
+};
 
-export type listPoliciesResponseSuccess = (listPoliciesResponse200) & {
+export type listPoliciesResponseSuccess = listPoliciesResponse200 & {
   headers: Headers;
 };
-;
 
-export type listPoliciesResponse = (listPoliciesResponseSuccess)
+export type listPoliciesResponse = listPoliciesResponseSuccess;
 
-export const getListPoliciesUrl = (workspaceId: number,
-    packId: number,
-    versionId: number,) => {
+export const getListPoliciesUrl = (workspaceId: number, packId: number, versionId: number) => {
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies`;
+};
 
-
-
-
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies`
-}
-
-export const listPolicies = async (workspaceId: number,
-    packId: number,
-    versionId: number, options?: RequestInit): Promise<listPoliciesResponse> => {
-
-  return customFetch<listPoliciesResponse>(getListPoliciesUrl(workspaceId,packId,versionId),
-  {
+export const listPolicies = async (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: RequestInit,
+): Promise<listPoliciesResponse> => {
+  return customFetch<listPoliciesResponse>(getListPoliciesUrl(workspaceId, packId, versionId), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
+export const getListPoliciesQueryKey = (workspaceId: number, packId: number, versionId: number) => {
+  return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies`,
+  ] as const;
+};
 
-  }
-);}
-
-
-
-
-
-export const getListPoliciesQueryKey = (workspaceId: number,
-    packId: number,
-    versionId: number,) => {
-    return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies`
-    ] as const;
-    }
-
-
-export const getListPoliciesQueryOptions = <TData = Awaited<ReturnType<typeof listPolicies>>, TError = unknown>(workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListPoliciesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPolicies>>,
+  TError = unknown,
+>(
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getListPoliciesQueryKey(workspaceId, packId, versionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getListPoliciesQueryKey(workspaceId,packId,versionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPolicies>>> = ({ signal }) =>
+    listPolicies(workspaceId, packId, versionId, { signal, ...requestOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(workspaceId && packId && versionId),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
 
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPolicies>>> = ({ signal }) => listPolicies(workspaceId,packId,versionId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListPoliciesQueryResult = NonNullable<Awaited<ReturnType<typeof listPolicies>>>
-export type ListPoliciesQueryError = unknown
-
+export type ListPoliciesQueryResult = NonNullable<Awaited<ReturnType<typeof listPolicies>>>;
+export type ListPoliciesQueryError = unknown;
 
 export function useListPolicies<TData = Awaited<ReturnType<typeof listPolicies>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPolicies>>,
           TError,
           Awaited<ReturnType<typeof listPolicies>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useListPolicies<TData = Awaited<ReturnType<typeof listPolicies>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>> & Pick<
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPolicies>>,
           TError,
           Awaited<ReturnType<typeof listPolicies>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useListPolicies<TData = Awaited<ReturnType<typeof listPolicies>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
 export function useListPolicies<TData = Awaited<ReturnType<typeof listPolicies>>, TError = unknown>(
- workspaceId: number,
-    packId: number,
-    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listPolicies>>, TError, TData>>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPoliciesQueryOptions(workspaceId, packId, versionId, options);
 
-  const queryOptions = getListPoliciesQueryOptions(workspaceId,packId,versionId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-

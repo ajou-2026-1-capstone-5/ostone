@@ -5,7 +5,7 @@ import {
   passwordResetInit,
   refresh,
   signup,
-} from '@/shared/api/generated/endpoints/auth-controller/auth-controller';
+} from "@/shared/api/generated/endpoints/auth-controller/auth-controller";
 import type {
   LoginRequest,
   LoginResponse,
@@ -14,7 +14,7 @@ import type {
   SignupRequest,
   SignupResponse,
   TokenRefreshResponse,
-} from '@/shared/api/generated/zod';
+} from "@/shared/api/generated/zod";
 
 export type {
   LoginRequest,

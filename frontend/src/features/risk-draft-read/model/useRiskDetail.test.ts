@@ -6,9 +6,12 @@ import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-contro
 import { ApiRequestError } from "@/shared/api";
 import { useRiskDetail } from "./useRiskDetail";
 
-vi.mock("@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller", () => ({
-  getRisk: vi.fn(),
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller",
+  () => ({
+    getRisk: vi.fn(),
+  }),
+);
 
 const mockedGetRisk = vi.mocked(getRisk);
 

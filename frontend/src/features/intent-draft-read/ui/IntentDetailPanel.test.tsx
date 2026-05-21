@@ -93,9 +93,7 @@ describe("IntentDetailPanel", () => {
 
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
     mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
-    const childrenFn = vi.fn((detail) => (
-      <div data-testid="children">{detail.name}</div>
-    ));
+    const childrenFn = vi.fn((detail) => <div data-testid="children">{detail.name}</div>);
 
     renderPanel({ children: childrenFn });
 

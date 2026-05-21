@@ -4,18 +4,22 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const PipelineDomainPackDraftCallbackResponse = zod.object({
-  "status": zod.string().optional(),
-  "externalEventId": zod.string().optional(),
-  "domainPackId": zod.number().optional(),
-  "domainPackVersionId": zod.number().optional(),
-  "versionNo": zod.number().optional(),
-  "packKey": zod.string().optional(),
-  "createdPack": zod.boolean().optional(),
-  "sourcePipelineJobId": zod.number().optional()
-})
+  status: zod.string().optional(),
+  externalEventId: zod.string().optional(),
+  domainPackId: zod.number().optional(),
+  domainPackVersionId: zod.number().optional(),
+  versionNo: zod.number().optional(),
+  packKey: zod.string().optional(),
+  createdPack: zod.boolean().optional(),
+  sourcePipelineJobId: zod.number().optional(),
+});
 
-export type PipelineDomainPackDraftCallbackResponse = zod.input<typeof PipelineDomainPackDraftCallbackResponse>;
-export type PipelineDomainPackDraftCallbackResponseOutput = zod.output<typeof PipelineDomainPackDraftCallbackResponse>;
+export type PipelineDomainPackDraftCallbackResponse = zod.input<
+  typeof PipelineDomainPackDraftCallbackResponse
+>;
+export type PipelineDomainPackDraftCallbackResponseOutput = zod.output<
+  typeof PipelineDomainPackDraftCallbackResponse
+>;

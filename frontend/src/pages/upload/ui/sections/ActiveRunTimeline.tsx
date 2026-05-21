@@ -150,9 +150,7 @@ export function ActiveRunTimeline({ stages }: ActiveRunTimelineProps) {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: isPending(stage.status)
-                      ? "var(--ink-3)"
-                      : "var(--ink)",
+                    color: isPending(stage.status) ? "var(--ink-3)" : "var(--ink)",
                   }}
                 >
                   {stage.name}
@@ -160,18 +158,14 @@ export function ActiveRunTimeline({ stages }: ActiveRunTimelineProps) {
                 {stage.duration && (
                   <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
                     {stage.duration}
-                    {isRunning && stage.progress !== undefined
-                      ? ` \u00b7 ${stage.progress}%`
-                      : ""}
+                    {isRunning && stage.progress !== undefined ? ` \u00b7 ${stage.progress}%` : ""}
                   </Mono>
                 )}
               </div>
               <div
                 style={{
                   fontSize: 11,
-                  color: isPending(stage.status)
-                    ? "var(--ink-4)"
-                    : "var(--ink-2)",
+                  color: isPending(stage.status) ? "var(--ink-4)" : "var(--ink-2)",
                   marginTop: 2,
                 }}
               >

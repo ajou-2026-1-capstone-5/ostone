@@ -198,9 +198,7 @@ export function IntentRevisionEditForm({
         <textarea
           id={descriptionId}
           value={values.description}
-          onChange={(event) =>
-            setValues((prev) => ({ ...prev, description: event.target.value }))
-          }
+          onChange={(event) => setValues((prev) => ({ ...prev, description: event.target.value }))}
           aria-invalid={Boolean(errors.description)}
           aria-describedby={errors.description ? descriptionErrorId : undefined}
           rows={5}

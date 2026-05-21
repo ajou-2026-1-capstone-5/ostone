@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from 'zod';
+import { z as zod } from "zod";
 
 export const rawConversationRequestSourceIdMin = 0;
 export const rawConversationRequestSourceIdMax = 255;
@@ -24,15 +24,38 @@ export const rawConversationRequestClientAgeMax = 10;
 export const rawConversationRequestConsultingContentMin = 0;
 export const rawConversationRequestConsultingContentMax = 5000;
 
-
 export const RawConversationRequest = zod.object({
-  "source_id": zod.string().min(rawConversationRequestSourceIdMin).max(rawConversationRequestSourceIdMax).optional(),
-  "source": zod.string().min(rawConversationRequestSourceMin).max(rawConversationRequestSourceMax).optional(),
-  "consulting_category": zod.string().min(rawConversationRequestConsultingCategoryMin).max(rawConversationRequestConsultingCategoryMax).optional(),
-  "client_gender": zod.string().min(rawConversationRequestClientGenderMin).max(rawConversationRequestClientGenderMax).optional(),
-  "client_age": zod.string().min(rawConversationRequestClientAgeMin).max(rawConversationRequestClientAgeMax).optional(),
-  "consulting_content": zod.string().min(rawConversationRequestConsultingContentMin).max(rawConversationRequestConsultingContentMax).optional()
-})
+  source_id: zod
+    .string()
+    .min(rawConversationRequestSourceIdMin)
+    .max(rawConversationRequestSourceIdMax)
+    .optional(),
+  source: zod
+    .string()
+    .min(rawConversationRequestSourceMin)
+    .max(rawConversationRequestSourceMax)
+    .optional(),
+  consulting_category: zod
+    .string()
+    .min(rawConversationRequestConsultingCategoryMin)
+    .max(rawConversationRequestConsultingCategoryMax)
+    .optional(),
+  client_gender: zod
+    .string()
+    .min(rawConversationRequestClientGenderMin)
+    .max(rawConversationRequestClientGenderMax)
+    .optional(),
+  client_age: zod
+    .string()
+    .min(rawConversationRequestClientAgeMin)
+    .max(rawConversationRequestClientAgeMax)
+    .optional(),
+  consulting_content: zod
+    .string()
+    .min(rawConversationRequestConsultingContentMin)
+    .max(rawConversationRequestConsultingContentMax)
+    .optional(),
+});
 
 export type RawConversationRequest = zod.input<typeof RawConversationRequest>;
 export type RawConversationRequestOutput = zod.output<typeof RawConversationRequest>;

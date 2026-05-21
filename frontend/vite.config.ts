@@ -33,14 +33,9 @@ export default defineConfig({
     testTimeout: 10000,
     hookTimeout: 10000,
     coverage: {
-      provider: 'v8',
-      reporter: ['lcov', 'text'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.d.ts',
-        '**/generated/**',
-      ],
+      provider: "v8",
+      reporter: ["lcov", "text"],
+      exclude: ["node_modules/", "dist/", "**/*.d.ts", "**/generated/**"],
     },
   },
 });
