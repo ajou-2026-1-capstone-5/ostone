@@ -9,6 +9,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.event.ChatMessageReceivedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +24,17 @@ public class ChatWebSocketService {
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
   private final SimpMessagingTemplate messagingTemplate;
+  private final ApplicationEventPublisher eventPublisher;
 
   public ChatWebSocketService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
-      SimpMessagingTemplate messagingTemplate) {
+      SimpMessagingTemplate messagingTemplate,
+      ApplicationEventPublisher eventPublisher) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.messagingTemplate = messagingTemplate;
+    this.eventPublisher = eventPublisher;
   }
 
   @Transactional
@@ -62,6 +67,10 @@ public class ChatWebSocketService {
 
     ChatMessageResponse response = ChatMessageResponse.from(message);
     String destination = "/topic/chat." + command.sessionId();
+
+    eventPublisher.publishEvent(
+        new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
+
     TransactionSynchronizationManager.registerSynchronization(
         new TransactionSynchronization() {
           @Override

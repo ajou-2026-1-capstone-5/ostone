@@ -2,8 +2,10 @@ package com.init.workflowruntime.application;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class LlmAssistantService {
 
   private final ChatClient chatClient;
