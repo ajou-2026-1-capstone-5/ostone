@@ -3,15 +3,28 @@ import { describe, expect, it, vi } from "vitest";
 
 // Closure variable to control edges in each test
 let testEdges: unknown[] = [];
+let capturedComparator: ((a: unknown, b: unknown) => boolean) | undefined;
 
 vi.mock("@xyflow/react", () => ({
-  useStore: (selector: (s: { edges: unknown[] }) => unknown) => selector({ edges: testEdges }),
+  useStore: (
+    selector: (s: { edges: unknown[] }) => unknown,
+    comparator?: (a: unknown, b: unknown) => boolean,
+  ) => {
+    capturedComparator = comparator;
+    return selector({ edges: testEdges });
+  },
   Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
 }));
 
 import { useConnectedSides } from "./useConnectedSides";
 
-type Edge = { id: string; source: string; sourceHandle: string; target: string; targetHandle: string };
+interface Edge {
+  id: string;
+  source: string;
+  sourceHandle: string;
+  target: string;
+  targetHandle: string;
+}
 
 const edge = (id: string, src: string, sh: string, tgt: string, th: string): Edge => ({
   id,
@@ -68,5 +81,30 @@ describe("useConnectedSides", () => {
   it("다른 노드의 엣지는 무시한다", () => {
     testEdges = [edge("e1", "n2", "right", "n3", "left")];
     expect(useConnectedSides("n1")).toEqual({ sources: [], targets: [] });
+  });
+});
+
+describe("useConnectedSides — comparator (memoization equality fn)", () => {
+  it("sources·targets가 동일하면 true를 반환한다", () => {
+    testEdges = [edge("e1", "n1", "right", "n2", "left")];
+    useConnectedSides("n1");
+    const state = { sources: ["right"], targets: ["left"] };
+    expect(capturedComparator?.(state, state)).toBe(true);
+  });
+
+  it("sources 개수가 다르면 false를 반환한다", () => {
+    testEdges = [];
+    useConnectedSides("n1");
+    const a = { sources: ["right"], targets: [] };
+    const b = { sources: [], targets: [] };
+    expect(capturedComparator?.(a, b)).toBe(false);
+  });
+
+  it("targets 원소가 다르면 false를 반환한다", () => {
+    testEdges = [];
+    useConnectedSides("n1");
+    const a = { sources: [], targets: ["left"] };
+    const b = { sources: [], targets: ["right"] };
+    expect(capturedComparator?.(a, b)).toBe(false);
   });
 });

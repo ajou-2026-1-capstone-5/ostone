@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
@@ -55,6 +55,10 @@ export const ConsultationPage: React.FC = () => {
   const { setTopbarRight, setCrumbs } = useOutletContext<ShellContext>();
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
+  const activeCustomerIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeCustomerIdRef.current = activeCustomerId;
+  }, [activeCustomerId]);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
@@ -167,7 +171,7 @@ export const ConsultationPage: React.FC = () => {
       const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
       // UX: 메시지 전송 후 선택 해제되어 고객 정보 패널 복원 (의도된 동작)
       setSelectedMessageId(null);
-      if (activeCustomerId === targetId) {
+      if (activeCustomerIdRef.current === targetId) {
         setMessages((prev) => [
           ...prev,
           {
