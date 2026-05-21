@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { loginApi, signupApi, passwordResetInitApi, logoutApi } from "./authApi";
+import {
+  loginApi,
+  signupApi,
+  passwordResetInitApi,
+  logoutApi,
+  refreshTokenApi,
+  passwordResetCompleteApi,
+} from "./authApi";
 import {
   login,
   signup,
   logout,
   passwordResetInit,
+  refresh,
+  passwordResetComplete,
 } from "@/shared/api/generated/endpoints/auth-controller/auth-controller";
 
 vi.mock("@/shared/api/generated/endpoints/auth-controller/auth-controller", () => ({
@@ -12,12 +21,16 @@ vi.mock("@/shared/api/generated/endpoints/auth-controller/auth-controller", () =
   signup: vi.fn(),
   logout: vi.fn(),
   passwordResetInit: vi.fn(),
+  refresh: vi.fn(),
+  passwordResetComplete: vi.fn(),
 }));
 
 const mockedLogin = vi.mocked(login);
 const mockedSignup = vi.mocked(signup);
 const mockedLogout = vi.mocked(logout);
 const mockedPasswordResetInit = vi.mocked(passwordResetInit);
+const mockedRefresh = vi.mocked(refresh);
+const mockedPasswordResetComplete = vi.mocked(passwordResetComplete);
 
 describe("Auth API Integration Tests", () => {
   let originalGetItem: typeof Storage.prototype.getItem;
@@ -27,6 +40,8 @@ describe("Auth API Integration Tests", () => {
     mockedSignup.mockClear();
     mockedLogout.mockClear();
     mockedPasswordResetInit.mockClear();
+    mockedRefresh.mockClear();
+    mockedPasswordResetComplete.mockClear();
     originalGetItem = Storage.prototype.getItem;
     Storage.prototype.getItem = vi.fn(() => "mock-token");
   });
@@ -80,5 +95,31 @@ describe("Auth API Integration Tests", () => {
     await expect(passwordResetInitApi("wrong@test.com")).rejects.toThrow(
       "가입되지 않은 이메일입니다.",
     );
+  });
+
+  it("refreshTokenApi가 refreshToken과 함께 refresh()를 호출한다", async () => {
+    const mockResponse = {
+      accessToken: "new-access",
+      refreshToken: "new-refresh",
+      tokenType: "Bearer",
+      expiresIn: 1800000,
+    };
+    mockedRefresh.mockResolvedValueOnce(mockResponse as any);
+
+    const result = await refreshTokenApi("old-refresh");
+
+    expect(mockedRefresh).toHaveBeenCalledWith({ refreshToken: "old-refresh" });
+    expect(result.accessToken).toBe("new-access");
+  });
+
+  it("passwordResetCompleteApi가 데이터와 함께 passwordResetComplete()를 호출한다", async () => {
+    mockedPasswordResetComplete.mockResolvedValueOnce(undefined as any);
+
+    await passwordResetCompleteApi({ token: "reset-token", newPassword: "newpwd123" });
+
+    expect(mockedPasswordResetComplete).toHaveBeenCalledWith({
+      token: "reset-token",
+      newPassword: "newpwd123",
+    });
   });
 });
