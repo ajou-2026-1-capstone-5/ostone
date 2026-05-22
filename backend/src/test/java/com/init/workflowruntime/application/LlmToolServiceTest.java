@@ -73,7 +73,7 @@ class LlmToolServiceTest {
     IntentSlotBinding customerBinding = createBinding(70L, 12L, true, 2, "고객명을 물어본다");
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.of(execution));
     given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
         .willReturn(List.of(customerSlot, orderSlot));
@@ -104,7 +104,7 @@ class LlmToolServiceTest {
     inactiveSlot.changeStatus(SlotDefinition.STATUS_INACTIVE);
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
     given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
         .willReturn(List.of(activeSlot, inactiveSlot));
@@ -129,7 +129,7 @@ class LlmToolServiceTest {
     inactiveSlot.changeStatus(SlotDefinition.STATUS_INACTIVE);
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
     given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
         .willReturn(Optional.of(inactiveSlot));
@@ -220,7 +220,7 @@ class LlmToolServiceTest {
     // given
     ChatSession session = createSession(1L, 10L, 101L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
     given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "unknown"))
         .willReturn(Optional.empty());

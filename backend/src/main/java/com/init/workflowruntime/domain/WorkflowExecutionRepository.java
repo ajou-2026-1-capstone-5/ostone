@@ -4,7 +4,7 @@ import java.util.Optional;
 
 public interface WorkflowExecutionRepository {
 
-  Optional<WorkflowExecution> findTopByChatSessionIdOrderByStartedAtDesc(Long chatSessionId);
+  Optional<WorkflowExecution> findTopByChatSessionIdOrderByStartedAtDescIdDesc(Long chatSessionId);
 
   Optional<WorkflowExecution> findLatestByChatSessionIdForUpdate(Long chatSessionId);
 

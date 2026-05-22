@@ -130,7 +130,7 @@ public class LlmToolService {
 
   private WorkflowExecution findExecution(Long sessionId) {
     return workflowExecutionRepository
-        .findTopByChatSessionIdOrderByStartedAtDesc(sessionId)
+        .findTopByChatSessionIdOrderByStartedAtDescIdDesc(sessionId)
         .orElse(null);
   }
 

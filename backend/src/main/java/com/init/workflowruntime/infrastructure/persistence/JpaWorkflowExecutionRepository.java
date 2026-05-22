@@ -29,7 +29,7 @@ public interface JpaWorkflowExecutionRepository
       select execution
       from WorkflowExecution execution
       where execution.chatSessionId = :chatSessionId
-      order by execution.startedAt desc
+      order by execution.startedAt desc, execution.id desc
       """)
   List<WorkflowExecution> findAllByChatSessionIdForUpdate(
       @Param("chatSessionId") Long chatSessionId, Pageable pageable);
