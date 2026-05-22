@@ -14,6 +14,7 @@ import { SlotDraftReadPage } from "../pages/domain-pack/ui/SlotDraftReadPage";
 import { WorkflowDraftReadPage } from "../pages/domain-pack/ui/WorkflowDraftReadPage";
 import { PackWorkflowListPage } from "../pages/domain-pack/ui/PackWorkflowListPage";
 import { DomainPackSummaryPage } from "../pages/domain-pack/ui/DomainPackSummaryPage";
+import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOutlet";
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
@@ -21,6 +22,7 @@ import { DomainPackListPage } from "../pages/domain-pack/ui/DomainPackListPage";
 import { PrivateRoute } from "../shared/ui/PrivateRoute";
 import { Toaster } from "../shared/ui/sonner";
 import { WorkflowGraphViewerPage } from "../pages/domain-pack/ui/WorkflowGraphViewerPage";
+import { LegacyDomainPackVersionRedirect } from "../pages/domain-pack/ui/LegacyDomainPackVersionRedirect";
 
 export function App() {
   return (
@@ -91,66 +93,31 @@ export function App() {
           path="/workspaces/:workspaceId/domain-packs/:packId"
           element={
             <PrivateRoute>
-              <DomainPackSummaryPage />
+              <DomainPackRouteOutlet />
             </PrivateRoute>
           }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?"
-          element={
-            <PrivateRoute>
-              <IntentDraftReadPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?"
-          element={
-            <PrivateRoute>
-              <PolicyDraftReadPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/risks/:riskId?"
-          element={
-            <PrivateRoute>
-              <RiskDraftReadPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/slots/:slotId?"
-          element={
-            <PrivateRoute>
-              <SlotDraftReadPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows"
-          element={
-            <PrivateRoute>
-              <PackWorkflowListPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId"
-          element={
-            <PrivateRoute>
-              <WorkflowDraftReadPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId/graph"
-          element={
-            <PrivateRoute>
-              <WorkflowGraphViewerPage />
-            </PrivateRoute>
-          }
-        />
+        >
+          <Route index element={<DomainPackSummaryPage />} />
+          <Route path="intents" element={<IntentDraftReadPage />}>
+            <Route path=":intentId" />
+          </Route>
+          <Route path="policies" element={<PolicyDraftReadPage />}>
+            <Route path=":policyId" />
+          </Route>
+          <Route path="risks" element={<RiskDraftReadPage />}>
+            <Route path=":riskId" />
+          </Route>
+          <Route path="slots" element={<SlotDraftReadPage />}>
+            <Route path=":slotId" />
+          </Route>
+          <Route path="workflows">
+            <Route index element={<PackWorkflowListPage />} />
+            <Route path=":workflowId" element={<WorkflowDraftReadPage />} />
+            <Route path=":workflowId/graph" element={<WorkflowGraphViewerPage />} />
+          </Route>
+          <Route path="versions/:versionId/*" element={<LegacyDomainPackVersionRedirect />} />
+          <Route path="versions/:versionId" element={<LegacyDomainPackVersionRedirect />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

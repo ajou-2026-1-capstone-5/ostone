@@ -63,6 +63,10 @@ export function IntentRevisionEditForm({
   const [baseline, setBaseline] = useState<Baseline>(() => normalizeDetail(detail));
   const [values, setValues] = useState<FormValues>(() => normalizeDetail(detail));
   const [latestConflict, setLatestConflict] = useState<IntentDetail | null>(null);
+  const [saveCompleted, setSaveCompleted] = useState<{
+    intentId: number | null;
+    visible: boolean;
+  }>({ intentId: null, visible: false });
   const skipNextDirtyReportRef = useRef(false);
   const nameId = useId();
   const descriptionId = useId();
@@ -98,6 +102,8 @@ export function IntentRevisionEditForm({
 
   const isDirty = baseline.name !== values.name || baseline.description !== values.description;
   const hasError = Boolean(errors.name || errors.description);
+  const shouldShowSaveCompleted =
+    saveCompleted.visible && saveCompleted.intentId === (detail.id ?? null);
 
   useEffect(() => {
     if (skipNextDirtyReportRef.current) {
@@ -149,6 +155,7 @@ export function IntentRevisionEditForm({
 
     if (saved) {
       setEditing(false);
+      setSaveCompleted({ intentId: detail.id ?? null, visible: true });
     }
   };
 
@@ -163,9 +170,23 @@ export function IntentRevisionEditForm({
   if (!isEditing) {
     return (
       <div className={styles.formShell}>
-        <Button type="button" size="sm" onClick={() => setEditing(true)}>
-          수정
-        </Button>
+        <div className={styles.formIdleRow}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setSaveCompleted({ intentId: detail.id ?? null, visible: false });
+              setEditing(true);
+            }}
+          >
+            수정
+          </Button>
+          {shouldShowSaveCompleted && (
+            <span className={styles.saveStatus} role="status">
+              수정 적용 완료
+            </span>
+          )}
+        </div>
       </div>
     );
   }

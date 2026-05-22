@@ -45,9 +45,11 @@ function renderPage(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/risks/:riskId?"
+          path="/workspaces/:workspaceId/domain-packs/:packId/risks"
           element={<RiskDraftReadPage />}
-        />
+        >
+          <Route path=":riskId" />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );
@@ -56,24 +58,37 @@ function renderPage(path: string) {
 describe("RiskDraftReadPage", () => {
   it("위험요소 선택 시 riskId가 포함된 상세 URL로 이동한다", () => {
     navigate.mockReset();
-    renderPage("/workspaces/1/domain-packs/7/versions/101/risks");
+    renderPage("/workspaces/1/domain-packs/7/risks?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "select risk" }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/risks/4");
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks/4?versionId=101");
+  });
+
+  it("위험요소 상세에서 다른 위험요소 선택 시 현재 상세 route를 replace한다", () => {
+    navigate.mockReset();
+    renderPage("/workspaces/1/domain-packs/7/risks/3?versionId=101");
+
+    fireEvent.click(screen.getByRole("button", { name: "select risk" }));
+
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks/4?versionId=101", {
+      replace: true,
+    });
   });
 
   it("상세 선택 상태에서 목록으로 돌아간다", () => {
     navigate.mockReset();
-    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/4");
+    renderPage("/workspaces/1/domain-packs/7/risks/4?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "← 목록" }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/risks");
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks?versionId=101", {
+      replace: true,
+    });
   });
 
   it("수정 버튼을 누르면 편집 패널로 전환하고 닫을 수 있다", () => {
-    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/4");
+    renderPage("/workspaces/1/domain-packs/7/risks/4?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "edit risk" }));
     expect(screen.getByText("risk edit panel")).toBeInTheDocument();
@@ -83,7 +98,7 @@ describe("RiskDraftReadPage", () => {
   });
 
   it("현재 선택과 다른 위험요소 편집 상태는 무시한다", () => {
-    renderPage("/workspaces/1/domain-packs/7/versions/101/risks/5");
+    renderPage("/workspaces/1/domain-packs/7/risks/5?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "edit risk" }));
 
@@ -92,7 +107,7 @@ describe("RiskDraftReadPage", () => {
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
-    renderPage("/workspaces/abc/domain-packs/7/versions/101/risks");
+    renderPage("/workspaces/abc/domain-packs/7/risks?versionId=101");
 
     expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
   });

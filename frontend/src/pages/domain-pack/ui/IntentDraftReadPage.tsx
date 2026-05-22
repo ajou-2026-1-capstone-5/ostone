@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import type { IntentDetail } from "@/entities/intent";
 import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
@@ -26,11 +27,12 @@ import { Mono } from "@/shared/ui/ostone/atoms";
 import styles from "./intent-draft-read-page.module.css";
 
 export function IntentDraftReadPage() {
-  const { workspaceId, packId, versionId, intentId } = useParams();
+  const { workspaceId, packId, intentId } = useParams();
+  const [search] = useSearchParams();
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const iId = intentId ? parseRouteId(intentId) : null;
 
   if (wsId === null || pId === null || vId === null || (intentId !== undefined && iId === null)) {
@@ -67,7 +69,7 @@ function IntentDraftReadContent({
   });
 
   return (
-    <OstoneShell active="domain" crumbs={[`PACK · ${pId}`, `Version · ${vId}`]}>
+    <OstoneShell active="intent" crumbs={[`PACK · ${pId}`, `Version · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <IntentDraftHeader
           controller={controller}
@@ -204,43 +206,62 @@ function IntentDetailSlot({
     );
   }
 
+  const detailSharedProps = {
+    key: iId,
+    wsId,
+    packId: pId,
+    versionId: vId,
+    intentId: iId,
+    refreshKey: controller.detailRefreshKey,
+    afterHeader: (detail: IntentDetail) => (
+      <>
+        <SelectedIntentCodeSync
+          intentCode={detail.intentCode ?? null}
+          onChange={controller.setSelectedIntentCode}
+        />
+        {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
+      </>
+    ),
+    beforeJsonCards: () =>
+      controller.isRevisionDraft ? (
+        <IntentRevisionDiffPanel change={controller.selectedChange} />
+      ) : null,
+  };
+  const renderRevisionEditor = (detail: IntentDetail) => (
+    <IntentRevisionEditForm
+      wsId={wsId}
+      packId={pId}
+      versionId={vId}
+      detail={detail}
+      canEdit={controller.canEditIntent}
+      isSaving={controller.isMutationPending}
+      onSave={(values) => controller.handleSaveRevision(detail, values)}
+      onDirtyChange={controller.handleDirtyChange}
+    />
+  );
+
+  if (controller.versionDetail?.lifecycleStatus === "PUBLISHED") {
+    return (
+      <div className={styles.detailSlot}>
+        <IntentDetailWithApproval
+          key={iId}
+          wsId={wsId}
+          pId={pId}
+          vId={vId}
+          iId={iId}
+          refreshKey={controller.detailRefreshKey}
+          afterHeader={detailSharedProps.afterHeader}
+          beforeJsonCards={detailSharedProps.beforeJsonCards}
+        >
+          {renderRevisionEditor}
+        </IntentDetailWithApproval>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.detailSlot}>
-      <IntentDetailPanel
-        key={iId}
-        wsId={wsId}
-        packId={pId}
-        versionId={vId}
-        intentId={iId}
-        refreshKey={controller.detailRefreshKey}
-        afterHeader={(detail) => (
-          <>
-            <SelectedIntentCodeSync
-              intentCode={detail.intentCode ?? null}
-              onChange={controller.setSelectedIntentCode}
-            />
-            {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
-          </>
-        )}
-        beforeJsonCards={() =>
-          controller.isRevisionDraft ? (
-            <IntentRevisionDiffPanel change={controller.selectedChange} />
-          ) : null
-        }
-      >
-        {(detail) => (
-          <IntentRevisionEditForm
-            wsId={wsId}
-            packId={pId}
-            versionId={vId}
-            detail={detail}
-            canEdit={controller.canEditIntent}
-            isSaving={controller.isMutationPending}
-            onSave={(values) => controller.handleSaveRevision(detail, values)}
-            onDirtyChange={controller.handleDirtyChange}
-          />
-        )}
-      </IntentDetailPanel>
+      <IntentDetailPanel {...detailSharedProps}>{renderRevisionEditor}</IntentDetailPanel>
     </div>
   );
 }

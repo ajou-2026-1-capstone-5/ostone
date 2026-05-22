@@ -33,6 +33,21 @@
   gap: 14px;
 }
 
+.formIdleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.saveStatus {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .field {
   display: flex;
   flex-direction: column;

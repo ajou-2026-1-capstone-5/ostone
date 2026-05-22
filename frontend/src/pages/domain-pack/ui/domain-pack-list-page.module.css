@@ -1,0 +1,231 @@
+.pageWrapper {
+  padding: var(--s-6) var(--s-8) var(--s-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.pageTitle {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.26px;
+  margin: 0 0 var(--s-3);
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.summaryPill,
+.sectionCount,
+.statusBadgeOperating,
+.statusBadgeIdle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-3);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.summaryPill {
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+}
+
+.packSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sectionCount {
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink-3);
+  min-width: 34px;
+}
+
+.packGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--s-3);
+}
+
+.packCard {
+  display: flex;
+  min-height: 188px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.packCard:hover {
+  background: var(--paper-2);
+  border-color: var(--ink-4);
+  transform: translateY(-1px);
+}
+
+.cardTopRow,
+.cardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.statusBadgeOperating {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.statusBadgeIdle {
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink-3);
+}
+
+.versionText,
+.cardMeta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.packName {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.packDescription,
+.packDescriptionMuted {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.packDescriptionMuted {
+  color: var(--ink-4);
+}
+
+.cardArrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.statePanel,
+.emptyPanel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  padding: var(--s-8);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  text-align: center;
+  background: var(--paper-2);
+}
+
+.statePanel {
+  margin: var(--s-6) var(--s-8);
+}
+
+.errorPanel {
+  padding: var(--s-6) var(--s-8);
+}
+
+.sectionEmpty {
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-6);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper-2);
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.stateText {
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .pageWrapper {
+    padding: var(--s-5) var(--s-4) var(--s-8);
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .statePanel {
+    margin: var(--s-5) var(--s-4);
+  }
+}

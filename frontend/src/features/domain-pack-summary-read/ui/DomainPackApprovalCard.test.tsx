@@ -65,7 +65,7 @@ describe("DomainPackApprovalCard", () => {
             {
               type: "INTENT",
               message: "승인 또는 반려되지 않은 Intent가 1개 남아 있습니다.",
-              actionPath: "/workspaces/1/domain-packs/2/versions/3/intents",
+              actionPath: "/workspaces/1/domain-packs/2/intents?versionId=3",
             },
           ],
         })}
@@ -78,7 +78,7 @@ describe("DomainPackApprovalCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Intent 검토하기/ }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/intents");
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/intents?versionId=3");
   });
 
   it("readiness error 상태에서 다시 시도 action을 호출한다", () => {

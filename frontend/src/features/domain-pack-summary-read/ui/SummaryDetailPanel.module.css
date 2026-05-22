@@ -59,6 +59,14 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.metaInfo {
+  min-width: 0;
 }
 
 .metaHeader {
@@ -66,6 +74,13 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.metaTitleRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 .versionNoLabel {
@@ -92,6 +107,47 @@
   background: var(--text-primary);
   color: var(--bg-color);
   border-color: var(--text-primary);
+}
+
+.badgeOperating {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.deployActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deployButton {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.deployButton:hover:not(:disabled) {
+  opacity: 0.84;
+}
+
+.deployButton:disabled {
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--glass-border);
 }
 
 .metaGrid {
@@ -241,6 +297,7 @@
 }
 
 .blockerAction:focus-visible,
+.deployButton:focus-visible,
 .approvalButton:focus-visible,
 .approvalDialogCancel:focus-visible,
 .approvalDialogConfirm:focus-visible {

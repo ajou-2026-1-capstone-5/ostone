@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -27,7 +28,13 @@ export function WorkspaceWorkflowsPage() {
 
   const handleOpen = (entry: { packId: number; versionId: number; workflowId: number }) => {
     navigate(
-      `/workspaces/${parsedWorkspaceId}/domain-packs/${entry.packId}/versions/${entry.versionId}/workflows/${entry.workflowId}`,
+      domainPackSectionPath(
+        parsedWorkspaceId,
+        entry.packId,
+        entry.versionId,
+        "workflows",
+        entry.workflowId,
+      ),
     );
   };
 

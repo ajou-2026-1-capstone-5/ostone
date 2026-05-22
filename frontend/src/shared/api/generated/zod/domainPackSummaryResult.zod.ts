@@ -11,7 +11,12 @@ export const DomainPackSummaryResult = zod.object({
   workspaceId: zod.number().optional(),
   name: zod.string().optional(),
   description: zod.string().optional(),
+  status: zod.string().optional(),
+  currentVersionId: zod.number().nullable().optional(),
+  currentVersionNo: zod.number().nullable().optional(),
+  currentVersionPublishedAt: zod.iso.datetime({ offset: true }).nullable().optional(),
   createdAt: zod.iso.datetime({ offset: true }).optional(),
+  updatedAt: zod.iso.datetime({ offset: true }).optional(),
 });
 
 export type DomainPackSummaryResult = zod.input<typeof DomainPackSummaryResult>;

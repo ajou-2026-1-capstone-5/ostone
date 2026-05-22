@@ -22,7 +22,7 @@ const stubVersion = {
   versionId: 1,
   versionNo: 1,
   lifecycleStatus: "DRAFT" as const,
-  sourcePipelineJobId: undefined as any,
+  sourcePipelineJobId: undefined,
   createdAt: "2026-01-01T00:00:00Z",
   updatedAt: "2026-01-01T00:00:00Z",
 };
@@ -31,7 +31,7 @@ const stubVersion2 = {
   versionId: 2,
   versionNo: 2,
   lifecycleStatus: "DRAFT" as const,
-  sourcePipelineJobId: undefined as any,
+  sourcePipelineJobId: undefined,
   createdAt: "2026-01-02T00:00:00Z",
   updatedAt: "2026-01-02T00:00:00Z",
 };
@@ -41,7 +41,7 @@ const stubPack: DomainPackDetail = {
   workspaceId: 1,
   code: "CS",
   name: "고객지원",
-  description: undefined as any,
+  description: undefined,
   versions: [stubVersion],
   createdAt: "",
   updatedAt: "",
@@ -93,20 +93,6 @@ describe("VersionListPanel", () => {
     expect(screen.getByText("버전이 없습니다.")).toBeInTheDocument();
   });
 
-  it('onCreateDraft 전달 시 "새 DRAFT 묶기" 버튼을 표시하고 클릭 시 호출한다', () => {
-    const onCreateDraft = vi.fn();
-    render(
-      <VersionListPanel
-        query={makeQuery({ data: { ...stubPack, versions: [] } })}
-        selectedId={null}
-        onSelect={vi.fn()}
-        onCreateDraft={onCreateDraft}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "새 DRAFT 묶기" }));
-    expect(onCreateDraft).toHaveBeenCalled();
-  });
-
   it("버전 목록을 렌더링하고 클릭 시 onSelect를 호출한다", () => {
     const onSelect = vi.fn();
     render(
@@ -139,5 +125,30 @@ describe("VersionListPanel", () => {
     );
     expect(screen.getByRole("button", { name: /v1/ })).toHaveAttribute("tabindex", "0");
     expect(screen.getByRole("button", { name: /v2/ })).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("버전 리스트에는 배포 버튼을 렌더링하지 않는다", () => {
+    render(
+      <VersionListPanel
+        query={makeQuery({ data: stubPack })}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "v1 배포" })).not.toBeInTheDocument();
+  });
+
+  it("현재 운영 버전이면 버전 리스트 row에 배포중 배지를 표시한다", () => {
+    render(
+      <VersionListPanel
+        query={makeQuery({ data: stubPack })}
+        selectedId={1}
+        currentVersionId={1}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
   });
 });

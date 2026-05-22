@@ -1,25 +1,32 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
 import { PolicyEditPanel } from "@/features/update-policy";
+import {
+  domainPackSectionPath,
+  shouldReplaceDomainPackChildRoute,
+} from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./policy-draft-read-page.module.css";
 
+interface EditingPolicyState {
+  routeKey: string;
+  policyId: number;
+}
+
 export function PolicyDraftReadPage() {
-  const { workspaceId, packId, versionId, policyId } = useParams();
+  const { workspaceId, packId, policyId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
-  const [editingPolicyId, setEditingPolicyId] = useState<number | null>(null);
+  const [editingPolicy, setEditingPolicy] = useState<EditingPolicyState | null>(null);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const selectedPolicyId = policyId ? parseRouteId(policyId) : null;
   const hasInvalidPolicyId = policyId !== undefined && selectedPolicyId === null;
-
-  useEffect(() => {
-    setEditingPolicyId(null);
-  }, [selectedPolicyId]);
+  const routeKey = `${wsId}:${pId}:${vId}:${selectedPolicyId}`;
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
@@ -32,19 +39,28 @@ export function PolicyDraftReadPage() {
   }
 
   const handleSelect = (id: number) => {
-    setEditingPolicyId(null);
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/policies/${id}`);
+    setEditingPolicy(null);
+    const path = domainPackSectionPath(wsId, pId, vId, "policies", id);
+    if (shouldReplaceDomainPackChildRoute(selectedPolicyId)) {
+      navigate(path, { replace: true });
+      return;
+    }
+    navigate(path);
   };
 
   const handleBack = () => {
-    setEditingPolicyId(null);
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/policies`);
+    setEditingPolicy(null);
+    navigate(domainPackSectionPath(wsId, pId, vId, "policies"), { replace: true });
   };
 
   const hasSelection = selectedPolicyId !== null;
+  const activeEditingPolicyId =
+    editingPolicy?.routeKey === routeKey && editingPolicy.policyId === selectedPolicyId
+      ? editingPolicy.policyId
+      : null;
 
   return (
-    <OstoneShell active="domain" crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}>
+    <OstoneShell active="policy" crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <div className={styles.versionMeta}>
@@ -68,21 +84,21 @@ export function PolicyDraftReadPage() {
             />
           </div>
           <div className={styles.detailSlot}>
-            {editingPolicyId === null ? (
+            {activeEditingPolicyId === null ? (
               <PolicyDetailPanel
                 workspaceId={wsId}
                 packId={pId}
                 versionId={vId}
                 policyId={selectedPolicyId}
-                onEdit={setEditingPolicyId}
+                onEdit={(id) => setEditingPolicy({ routeKey, policyId: id })}
               />
             ) : (
               <PolicyEditPanel
                 workspaceId={wsId}
                 packId={pId}
                 versionId={vId}
-                policyId={editingPolicyId}
-                onClose={() => setEditingPolicyId(null)}
+                policyId={activeEditingPolicyId}
+                onClose={() => setEditingPolicy(null)}
               />
             )}
           </div>

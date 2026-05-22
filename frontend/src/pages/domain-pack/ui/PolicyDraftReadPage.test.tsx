@@ -39,9 +39,11 @@ function renderPage(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/policies/:policyId?"
+          path="/workspaces/:workspaceId/domain-packs/:packId/policies"
           element={<PolicyDraftReadPage />}
-        />
+        >
+          <Route path=":policyId" />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );
@@ -50,17 +52,29 @@ function renderPage(path: string) {
 describe("PolicyDraftReadPage", () => {
   it("정책 선택과 수정 화면 전환을 처리한다", () => {
     navigate.mockReset();
-    renderPage("/workspaces/1/domain-packs/7/versions/101/policies");
+    renderPage("/workspaces/1/domain-packs/7/policies?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "select policy" }));
     fireEvent.click(screen.getByRole("button", { name: "edit policy" }));
 
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/versions/101/policies/4");
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/policies/4?versionId=101");
     expect(screen.getByRole("button", { name: "close editor" })).toBeInTheDocument();
   });
 
+  it("정책 상세에서 다른 정책 선택 시 현재 상세 route를 replace한다", () => {
+    navigate.mockReset();
+    renderPage("/workspaces/1/domain-packs/7/policies/3?versionId=101");
+
+    fireEvent.click(screen.getByRole("button", { name: "select policy" }));
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/7/policies/4?versionId=101",
+      { replace: true },
+    );
+  });
+
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
-    renderPage("/workspaces/abc/domain-packs/7/versions/101/policies");
+    renderPage("/workspaces/abc/domain-packs/7/policies?versionId=101");
 
     expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
   });

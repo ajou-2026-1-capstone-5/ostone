@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import {
   useIntentPreview,
   useSlotPreview,
@@ -36,7 +37,6 @@ export function ComponentCountGrid({
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
   const [slotEditOpen, setSlotEditOpen] = useState(false);
-  const basePath = `/workspaces/${wsId}/domain-packs/${packId}/versions/${versionId}`;
 
   const intentPreview = useIntentPreview(wsId, packId, versionId);
   const slotPreview = useSlotPreview(wsId, packId, versionId);
@@ -73,7 +73,7 @@ export function ComponentCountGrid({
           label="Intent"
           count={intentCount}
           disabled={false}
-          onNavigate={() => navigate(`${basePath}/intents`)}
+          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
           previewNames={intentPreview.data?.map((i) => i.name) as string[]}
           isLoadingPreview={intentPreview.isLoading}
         />
@@ -90,7 +90,7 @@ export function ComponentCountGrid({
           label="Policy"
           count={policyCount}
           disabled={false}
-          onNavigate={() => navigate(`${basePath}/policies`)}
+          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
           previewNames={policyPreview.data?.map((p) => p.name) as string[]}
           isLoadingPreview={policyPreview.isLoading}
         />
@@ -98,7 +98,7 @@ export function ComponentCountGrid({
           label="Risk"
           count={riskCount}
           disabled={false}
-          onNavigate={() => navigate(`${basePath}/risks`)}
+          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "risks"))}
           previewNames={riskPreview.data?.map((r) => r.name) as string[]}
           isLoadingPreview={riskPreview.isLoading}
         />
@@ -106,7 +106,7 @@ export function ComponentCountGrid({
           label="Workflow"
           count={workflowCount}
           disabled={false}
-          onNavigate={() => navigate(`${basePath}/workflows`)}
+          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}
           previewItems={
             workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as {
               id: number;
@@ -114,7 +114,9 @@ export function ComponentCountGrid({
             }[]
           }
           isLoadingPreview={workflowPreview.isLoading}
-          onPreviewItemClick={(id) => navigate(`${basePath}/workflows/${id}`)}
+          onPreviewItemClick={(id) =>
+            navigate(domainPackSectionPath(wsId, packId, versionId, "workflows", id))
+          }
         />
       </div>
       {firstSlotId !== undefined &&

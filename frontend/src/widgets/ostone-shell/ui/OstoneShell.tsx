@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Sidebar,
-  Topbar,
-  type SidebarActive,
-  type SidebarTreeData,
-} from "@/shared/ui/ostone/chrome";
-import { useSidebarTreeData } from "@/shared/ui/ostone/chrome/useSidebarTreeData";
+import { Sidebar, Topbar, type SidebarActive } from "@/shared/ui/ostone/chrome";
 import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
 
 const COLLAPSED_STORAGE_KEY = "ostone:sidebar:collapsed";
@@ -39,10 +33,6 @@ interface OstoneShellProps {
   dark?: boolean;
   basePath?: string;
   children: ReactNode;
-  activePackId?: number | null;
-  activeWorkflowId?: number | null;
-  /** Override tree data — primarily for tests. */
-  treeOverride?: SidebarTreeData;
 }
 
 interface SidebarBaseProps {
@@ -52,17 +42,6 @@ interface SidebarBaseProps {
   switcher: ReactNode;
   collapsed: boolean;
   onToggleCollapsed: () => void;
-  activePackId: number | null;
-  activeWorkflowId: number | null;
-}
-
-interface SidebarWithFetchedTreeProps extends SidebarBaseProps {
-  workspaceId: number | null;
-}
-
-function SidebarWithFetchedTree({ workspaceId, ...sidebarProps }: SidebarWithFetchedTreeProps) {
-  const tree = useSidebarTreeData({ workspaceId, enabled: true });
-  return <Sidebar {...sidebarProps} tree={tree} />;
 }
 
 export function OstoneShell({
@@ -73,9 +52,6 @@ export function OstoneShell({
   dark = false,
   basePath,
   children,
-  activePackId = null,
-  activeWorkflowId = null,
-  treeOverride,
 }: OstoneShellProps) {
   const { workspaceId } = useParams();
   const resolvedBasePath = basePath ?? (workspaceId ? `/workspaces/${workspaceId}` : "/workspaces");
@@ -104,11 +80,7 @@ export function OstoneShell({
     switcher: fallbackSwitcher,
     collapsed,
     onToggleCollapsed: handleToggle,
-    activePackId,
-    activeWorkflowId,
   };
-
-  const shouldFetchTree = !collapsed && treeOverride === undefined;
 
   return (
     <div
@@ -119,11 +91,7 @@ export function OstoneShell({
       }}
     >
       <div style={{ flexShrink: 0 }}>
-        {shouldFetchTree ? (
-          <SidebarWithFetchedTree {...sidebarBaseProps} workspaceId={safeWorkspaceId} />
-        ) : (
-          <Sidebar {...sidebarBaseProps} tree={treeOverride} />
-        )}
+        <Sidebar {...sidebarBaseProps} />
       </div>
       <div
         style={{

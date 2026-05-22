@@ -75,6 +75,7 @@ describe("IntentRevisionEditForm", () => {
       }),
     );
     await waitFor(() => expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("수정 적용 완료");
   });
 
   it("최신 intent가 변경되었으면 저장하지 않고 conflict dialog를 보여준다", async () => {

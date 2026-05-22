@@ -6,6 +6,10 @@ import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domai
 import type { IntentDetail } from "@/entities/intent";
 import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import {
+  domainPackSectionPath,
+  shouldReplaceDomainPackChildRoute,
+} from "@/shared/lib/domainPackRoutes";
+import {
   classifyExistingDraftSource,
   intentRevisionDraftApi,
   parseIntentRevisionDraftSource,
@@ -93,10 +97,14 @@ export function useIntentDraftReadController({
 
   const navigateToIntentRoute = useCallback(
     (versionId: number, intentId: number | null) => {
-      const suffix = intentId === null ? "" : `/${intentId}`;
-      navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${versionId}/intents${suffix}`);
+      const path = domainPackSectionPath(wsId, pId, versionId, "intents", intentId ?? undefined);
+      if (shouldReplaceDomainPackChildRoute(iId)) {
+        navigate(path, { replace: true });
+        return;
+      }
+      navigate(path);
     },
-    [navigate, pId, wsId],
+    [iId, navigate, pId, wsId],
   );
   const navigateToIntentCode = useCallback(
     async (versionId: number, intentCode?: string | null) => {
@@ -159,6 +167,8 @@ export function useIntentDraftReadController({
     vId,
     summaryState,
     packQuery,
+    versionQuery,
+    refreshIntentViews,
     navigateToIntentCode,
     setVersionActionPending,
   });
@@ -354,6 +364,7 @@ function useSaveRevisionHandler({
         });
         resetDirty();
         refreshIntentViews();
+        toast.success("Intent 수정 내용이 저장되었습니다.");
         return true;
       } catch {
         toast.error("Intent 수정 내용 저장에 실패했습니다.");
@@ -423,6 +434,7 @@ async function savePublishedIntentRevision({
       setRecoveryVersionId(result.draftVersionId);
     }
     navigateToIntentRoute(result.draftVersionId, result.clonedIntentId);
+    toast.success("Intent 수정 초안이 생성되었습니다.");
     return true;
   } catch (error) {
     if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {
@@ -447,6 +459,8 @@ function useApplyRevisionDraftHandler({
   vId,
   summaryState,
   packQuery,
+  versionQuery,
+  refreshIntentViews,
   navigateToIntentCode,
   setVersionActionPending,
 }: {
@@ -455,6 +469,8 @@ function useApplyRevisionDraftHandler({
   vId: number;
   summaryState: ReturnType<typeof useIntentRevisionSummary>;
   packQuery: UseQueryResult<DomainPackDetail>;
+  versionQuery: UseQueryResult<DomainPackVersionDetail>;
+  refreshIntentViews: () => void;
   navigateToIntentCode: (versionId: number, intentCode?: string | null) => Promise<void>;
   setVersionActionPending: (isPending: boolean) => void;
 }) {
@@ -466,7 +482,8 @@ function useApplyRevisionDraftHandler({
       setVersionActionPending(true);
       try {
         const activated = await intentRevisionDraftApi.activateVersion(wsId, pId, vId);
-        await packQuery.refetch();
+        await Promise.all([packQuery.refetch(), versionQuery.refetch()]);
+        refreshIntentViews();
         toast.success("Intent 수정 초안이 적용되었습니다.");
         await navigateToIntentCode(activated.activatedVersionId, intentCode);
       } catch {
@@ -475,7 +492,17 @@ function useApplyRevisionDraftHandler({
         setVersionActionPending(false);
       }
     },
-    [navigateToIntentCode, pId, packQuery, setVersionActionPending, summaryState, vId, wsId],
+    [
+      navigateToIntentCode,
+      pId,
+      packQuery,
+      refreshIntentViews,
+      setVersionActionPending,
+      summaryState,
+      vId,
+      versionQuery,
+      wsId,
+    ],
   );
 }
 

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { ApiRequestError } from "@/shared/api";
+import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -13,19 +14,19 @@ import {
   VersionListPanel,
   SummaryDetailPanel,
 } from "@/features/domain-pack-summary-read";
-import { CreateDraftModal } from "@/features/domain-pack-draft-create";
 import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domain-pack";
 import styles from "./domain-pack-summary-page.module.css";
 
 export function DomainPackSummaryPage() {
   const { workspaceId, packId } = useParams();
   const [search, setSearch] = useSearchParams();
-  const [isCreateOpen, setCreateOpen] = useState(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
+  const rawVersionId = search.get("versionId");
+  const vId = rawVersionId === null ? null : parseRouteId(rawVersionId);
 
-  if (wsId === null || pId === null) {
+  if (wsId === null || pId === null || (rawVersionId !== null && vId === null)) {
     return (
       <OstoneShell active="domain" crumbs={[]}>
         <div className={styles.invalidParams} role="alert">
@@ -39,10 +40,8 @@ export function DomainPackSummaryPage() {
     <DomainPackSummaryPageContent
       wsId={wsId}
       packId={pId}
-      search={search}
+      selectedVersionId={vId}
       setSearch={setSearch}
-      isCreateOpen={isCreateOpen}
-      setCreateOpen={setCreateOpen}
     />
   );
 }
@@ -50,22 +49,15 @@ export function DomainPackSummaryPage() {
 interface ContentProps {
   wsId: number;
   packId: number;
-  search: URLSearchParams;
-  setSearch: (
-    updater: ((prev: URLSearchParams) => URLSearchParams) | URLSearchParams,
-    options?: { replace?: boolean },
-  ) => void;
-  isCreateOpen: boolean;
-  setCreateOpen: (open: boolean) => void;
+  selectedVersionId: number | null;
+  setSearch: ReturnType<typeof useSearchParams>[1];
 }
 
 function DomainPackSummaryPageContent({
   wsId,
   packId,
-  search,
+  selectedVersionId,
   setSearch,
-  isCreateOpen,
-  setCreateOpen,
 }: ContentProps) {
   const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
 
@@ -75,49 +67,41 @@ function DomainPackSummaryPageContent({
     toast.error(is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다.");
   }, [packQuery.isError, packQuery.error]);
 
-  const rawVersionId = search.get("versionId");
-  const selectedVersionId = rawVersionId !== null ? parseRouteId(rawVersionId) : null;
-
-  useEffect(() => {
-    if (!packQuery.data) return;
-    if (selectedVersionId !== null) return;
-    const versions = packQuery.data?.versions;
-    if (!versions || versions.length === 0) return;
-    const latest = versions.reduce((a, b) => ((a.versionNo ?? 0) >= (b.versionNo ?? 0) ? a : b));
-    setSearch(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("versionId", String(latest.versionId));
-        return next;
-      },
-      { replace: true },
-    );
-  }, [packQuery.data, search, selectedVersionId, setSearch]);
-
   const versionQuery = useVersionDetail(
     wsId,
     packId,
     selectedVersionId,
   ) as UseQueryResult<DomainPackVersionDetail>;
+  const deployMutation = useDeploy({
+    mutation: {
+      onSuccess: async () => {
+        await Promise.all([packQuery.refetch(), versionQuery.refetch()]);
+        toast.success("도메인팩 버전이 배포되었습니다.");
+      },
+      onError: (error) => {
+        toast.error(resolveDeployErrorMessage(error));
+      },
+    },
+  });
 
   const handleSelectVersion = (versionId: number) => {
-    setSearch((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("versionId", String(versionId));
-      return next;
-    });
+    setSearch(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("versionId", String(versionId));
+        return next;
+      },
+      { replace: true },
+    );
   };
 
-  const handleCreateSuccess = (newVersionId: number) => {
-    setCreateOpen(false);
-    setSearch((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("versionId", String(newVersionId));
-      return next;
-    });
+  const handleDeployVersion = (versionId: number) => {
+    deployMutation.mutate({ workspaceId: wsId, packId, versionId });
   };
 
   const pack = packQuery.data;
+  const currentVersionId =
+    pack?.currentVersionId ?? inferSinglePublishedVersionId(pack?.versions ?? []);
 
   if (packQuery.isLoading) {
     return (
@@ -156,38 +140,42 @@ function DomainPackSummaryPageContent({
               </div>
             )}
           </div>
-          <div className={styles.headerActions}>
-            <button type="button" className={styles.createBtn} onClick={() => setCreateOpen(true)}>
-              새 DRAFT 묶기
-            </button>
-          </div>
         </header>
 
         <div className={styles.twoPane}>
           <VersionListPanel
             query={packQuery}
             selectedId={selectedVersionId}
+            currentVersionId={currentVersionId}
             onSelect={handleSelectVersion}
-            onCreateDraft={() => setCreateOpen(true)}
           />
           <SummaryDetailPanel
             query={versionQuery}
             wsId={wsId}
             packId={packId}
-            versions={pack?.versions ?? []}
-            onActivated={() => packQuery.refetch()}
+            currentVersionId={currentVersionId}
+            deployingVersionId={
+              deployMutation.isPending ? deployMutation.variables?.versionId : null
+            }
+            onDeploy={handleDeployVersion}
           />
         </div>
       </div>
-
-      {isCreateOpen && (
-        <CreateDraftModal
-          wsId={wsId}
-          packId={packId}
-          onClose={() => setCreateOpen(false)}
-          onSuccess={handleCreateSuccess}
-        />
-      )}
     </OstoneShell>
   );
+}
+
+function inferSinglePublishedVersionId(
+  versions: DomainPackDetail["versions"] = [],
+): number | null {
+  const publishedVersions = versions.filter((version) => version.lifecycleStatus === "PUBLISHED");
+  if (publishedVersions.length !== 1) return null;
+  return publishedVersions[0]?.versionId ?? null;
+}
+
+function resolveDeployErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError && error.message) {
+    return error.message;
+  }
+  return "도메인팩 버전을 배포하지 못했습니다.";
 }

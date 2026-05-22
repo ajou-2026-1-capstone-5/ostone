@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -9,11 +9,12 @@ import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
 import styles from "./WorkflowGraphViewerPage.module.css";
 
 export function WorkflowGraphViewerPage() {
-  const { workspaceId, packId, versionId, workflowId } = useParams();
+  const { workspaceId, packId, workflowId } = useParams();
+  const [search] = useSearchParams();
 
   const wsId = parseRouteId(workspaceId);
   const pkId = parseRouteId(packId);
-  const vsId = parseRouteId(versionId);
+  const vsId = parseRouteId(search.get("versionId") ?? undefined);
   const wfId = parseRouteId(workflowId);
 
   const enabled = wsId !== null && pkId !== null && vsId !== null && wfId !== null;

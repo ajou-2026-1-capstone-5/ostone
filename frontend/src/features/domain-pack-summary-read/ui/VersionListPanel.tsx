@@ -15,15 +15,15 @@ function formatDate(iso: string): string {
 interface VersionListPanelProps {
   query: UseQueryResult<DomainPackDetail>;
   selectedId: number | null;
+  currentVersionId?: number | null;
   onSelect: (versionId: number) => void;
-  onCreateDraft?: () => void;
 }
 
 export function VersionListPanel({
   query,
   selectedId,
+  currentVersionId = null,
   onSelect,
-  onCreateDraft,
 }: VersionListPanelProps) {
   if (query.isLoading) {
     return (
@@ -58,11 +58,6 @@ export function VersionListPanel({
       <div className={styles.panel}>
         <div className={styles.empty}>
           <span>버전이 없습니다.</span>
-          {onCreateDraft && (
-            <button className={styles.ctaButton} type="button" onClick={onCreateDraft}>
-              새 DRAFT 묶기
-            </button>
-          )}
         </div>
       </div>
     );
@@ -77,6 +72,7 @@ export function VersionListPanel({
             key={v.versionId}
             version={v}
             isActive={v.versionId === selectedId}
+            isCurrentVersion={v.versionId != null && v.versionId === currentVersionId}
             isTabStop={v.versionId === effectiveSelectedId}
             onSelect={onSelect}
           />
@@ -89,11 +85,22 @@ export function VersionListPanel({
 interface VersionListItemProps {
   version: DomainPackVersionSummary;
   isActive: boolean;
+  isCurrentVersion: boolean;
   isTabStop: boolean;
   onSelect: (versionId: number) => void;
 }
 
-function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionListItemProps) {
+function VersionListItem({
+  version,
+  isActive,
+  isCurrentVersion,
+  isTabStop,
+  onSelect,
+}: VersionListItemProps) {
+  const versionId = version.versionId;
+  const versionNo = version.versionNo ?? "-";
+  const isPublished = version.lifecycleStatus === "PUBLISHED";
+
   return (
     <li className={`${styles.item} ${isActive ? styles.active : ""}`}>
       <button
@@ -101,19 +108,17 @@ function VersionListItem({ version, isActive, isTabStop, onSelect }: VersionList
         className={styles.itemBtn}
         tabIndex={isTabStop ? 0 : -1}
         aria-current={isActive || undefined}
-        onClick={() => onSelect(version.versionId!)}
+        onClick={() => versionId !== undefined && onSelect(versionId)}
       >
         <div className={styles.itemRow}>
-          <span className={styles.versionNo}>v{version.versionNo}</span>
+          <span className={styles.versionNo}>v{versionNo}</span>
           <span
-            className={`${styles.badge} ${
-              version.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : styles.badgeDraft
-            }`}
+            className={`${styles.badge} ${isPublished ? styles.badgePublished : styles.badgeDraft}`}
           >
             {version.lifecycleStatus}
           </span>
-          {version.sourcePipelineJobId !== null && (
-            <span className={styles.sourceBadge}>PIPELINE</span>
+          {isCurrentVersion && (
+            <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
           )}
         </div>
         <span className={styles.createdAt}>{formatDate(version.createdAt ?? "")}</span>

@@ -120,7 +120,7 @@ describe("WorkspaceWorkflowsPage", () => {
     renderPage();
     fireEvent.click(screen.getByTestId("workspace-workflows-card-100"));
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/11/versions/22/workflows/100",
+      "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
     );
   });
 
