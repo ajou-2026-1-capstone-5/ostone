@@ -13,6 +13,9 @@ public class AiConfig {
   private final String systemPrompt;
 
   public AiConfig(@Value("${app.ai.chat.system-prompt}") String systemPrompt) {
+    if (systemPrompt == null || systemPrompt.isBlank()) {
+      throw new IllegalArgumentException("systemPrompt must not be null or blank");
+    }
     this.systemPrompt = systemPrompt;
   }
 
