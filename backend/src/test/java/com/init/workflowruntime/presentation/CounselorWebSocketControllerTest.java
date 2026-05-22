@@ -2,7 +2,6 @@ package com.init.workflowruntime.presentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import com.init.shared.application.exception.BadRequestException;
@@ -43,10 +42,10 @@ class CounselorWebSocketControllerTest {
     Principal principal = () -> "42";
 
     ChatMessageResponse expected =
-        new ChatMessageResponse(10L, 1, "COUNSELOR", "TEXT", "Counselor message", OffsetDateTime.now());
+        new ChatMessageResponse(
+            10L, 1, "COUNSELOR", "TEXT", "Counselor message", OffsetDateTime.now());
 
-    given(counselorService.sendCounselorMessage(1L, "Counselor message", 42L))
-        .willReturn(expected);
+    given(counselorService.sendCounselorMessage(1L, "Counselor message", 42L)).willReturn(expected);
 
     ChatMessageResponse result = controller.sendCounselorMessage(request, principal);
 
@@ -68,7 +67,8 @@ class CounselorWebSocketControllerTest {
 
     assertThatThrownBy(() -> controller.sendCounselorMessage(request, principal))
         .isInstanceOf(NotFoundException.class)
-        .satisfies(e -> assertThat(((NotFoundException) e).getCode()).isEqualTo("SESSION_NOT_FOUND"));
+        .satisfies(
+            e -> assertThat(((NotFoundException) e).getCode()).isEqualTo("SESSION_NOT_FOUND"));
   }
 
   @Test
@@ -81,8 +81,9 @@ class CounselorWebSocketControllerTest {
     Principal principal = () -> "99";
 
     given(counselorService.sendCounselorMessage(1L, "Hello", 99L))
-        .willThrow(new BadRequestException("SESSION_NOT_ASSIGNED",
-            "Session 1 is not assigned to counselor: 99"));
+        .willThrow(
+            new BadRequestException(
+                "SESSION_NOT_ASSIGNED", "Session 1 is not assigned to counselor: 99"));
 
     assertThatThrownBy(() -> controller.sendCounselorMessage(request, principal))
         .isInstanceOf(BadRequestException.class)

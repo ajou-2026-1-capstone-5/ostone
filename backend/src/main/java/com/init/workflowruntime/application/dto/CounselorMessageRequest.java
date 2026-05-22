@@ -5,14 +5,23 @@ import jakarta.validation.constraints.NotNull;
 
 public class CounselorMessageRequest {
 
-  @NotNull
-  private Long sessionId;
+  @NotNull private Long sessionId;
 
-  @NotBlank
-  private String content;
+  @NotBlank private String content;
 
-  public Long getSessionId() { return sessionId; }
-  public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
-  public String getContent() { return content; }
-  public void setContent(String content) { this.content = content; }
+  public Long getSessionId() {
+    return sessionId;
+  }
+
+  public void setSessionId(Long sessionId) {
+    this.sessionId = sessionId;
+  }
+
+  public String getContent() {
+    return content;
+  }
+
+  public void setContent(String content) {
+    this.content = content;
+  }
 }

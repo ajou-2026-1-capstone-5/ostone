@@ -47,9 +47,12 @@ public class CounselorService {
   public CounselorSessionResponse assignSession(Long counselorId, Long sessionId) {
     validateCounselorId(counselorId);
 
-    ChatSession session = chatSessionRepository
-        .findByIdForUpdate(sessionId)
-        .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    ChatSession session =
+        chatSessionRepository
+            .findByIdForUpdate(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
@@ -63,12 +66,16 @@ public class CounselorService {
   public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId) {
     validateCounselorId(counselorId);
 
-    ChatSession session = chatSessionRepository
-        .findByIdForUpdate(sessionId)
-        .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    ChatSession session =
+        chatSessionRepository
+            .findByIdForUpdate(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
-      throw new BadRequestException("SESSION_NOT_ASSIGNED_TO_COUNSELOR",
+      throw new BadRequestException(
+          "SESSION_NOT_ASSIGNED_TO_COUNSELOR",
           "Session " + sessionId + " is not assigned to counselor: " + counselorId);
     }
 
@@ -79,9 +86,12 @@ public class CounselorService {
   }
 
   public boolean isSessionAssigned(Long sessionId) {
-    ChatSession session = chatSessionRepository
-        .findById(sessionId)
-        .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    ChatSession session =
+        chatSessionRepository
+            .findById(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     return session.getAssignedCounselorId() != null;
   }
 
@@ -92,28 +102,35 @@ public class CounselorService {
   }
 
   @Transactional
-  public ChatMessageResponse sendCounselorMessage(Long sessionId, String content, Long counselorId) {
+  public ChatMessageResponse sendCounselorMessage(
+      Long sessionId, String content, Long counselorId) {
     validateCounselorId(counselorId);
 
-    ChatSession session = chatSessionRepository
-        .findByIdForUpdate(sessionId)
-        .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    ChatSession session =
+        chatSessionRepository
+            .findByIdForUpdate(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
-      throw new BadRequestException("SESSION_NOT_ASSIGNED",
+      throw new BadRequestException(
+          "SESSION_NOT_ASSIGNED",
           "Session " + sessionId + " is not assigned to counselor: " + counselorId);
     }
 
     ChatSessionStatus status = session.getStatus();
     if (status != ChatSessionStatus.ACTIVE) {
-      throw new BadRequestException("SESSION_NOT_ACTIVE",
+      throw new BadRequestException(
+          "SESSION_NOT_ACTIVE",
           "Session " + sessionId + " is not ACTIVE; current status: " + status);
     }
 
-    Integer nextSeqNo = chatMessageRepository
-        .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
-        .map(msg -> msg.getSeqNo() + 1)
-        .orElse(1);
+    Integer nextSeqNo =
+        chatMessageRepository
+            .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+            .map(msg -> msg.getSeqNo() + 1)
+            .orElse(1);
 
     ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, "COUNSELOR", "TEXT", content);
     ChatMessage savedMessage = chatMessageRepository.save(message);
@@ -153,12 +170,17 @@ public class CounselorService {
       sessionPage = chatSessionRepository.findAll(pageRequest);
     }
 
-    List<ChatSessionResponse> content = sessionPage.getContent().stream()
-        .map(ChatSessionResponse::from)
-        .collect(Collectors.toList());
+    List<ChatSessionResponse> content =
+        sessionPage.getContent().stream()
+            .map(ChatSessionResponse::from)
+            .collect(Collectors.toList());
 
-    return new CounselorSessionResponse(content, sessionPage.getNumber(), sessionPage.getSize(),
-        sessionPage.getTotalElements(), sessionPage.getTotalPages());
+    return new CounselorSessionResponse(
+        content,
+        sessionPage.getNumber(),
+        sessionPage.getSize(),
+        sessionPage.getTotalElements(),
+        sessionPage.getTotalPages());
   }
 
   private void validateCounselorId(Long counselorId) {

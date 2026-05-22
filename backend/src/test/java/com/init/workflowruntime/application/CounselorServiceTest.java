@@ -53,8 +53,9 @@ class CounselorServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new CounselorService(
-        chatSessionRepository, chatMessageRepository, messagingTemplate, eventPublisher);
+    service =
+        new CounselorService(
+            chatSessionRepository, chatMessageRepository, messagingTemplate, eventPublisher);
   }
 
   // ── assignSession ─────────────────────────────────────────────────────────
@@ -171,8 +172,7 @@ class CounselorServiceTest {
   void should_throwNotFound_when_sessionNotFound() {
     given(chatSessionRepository.findById(999L)).willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.isSessionAssigned(999L))
-        .isInstanceOf(NotFoundException.class);
+    assertThatThrownBy(() -> service.isSessionAssigned(999L)).isInstanceOf(NotFoundException.class);
   }
 
   // ── getAssignedSessions ───────────────────────────────────────────────────

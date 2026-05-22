@@ -19,8 +19,7 @@ public class SessionAssignedEventListener {
   private final SimpMessagingTemplate messagingTemplate;
 
   public SessionAssignedEventListener(
-      ChatSessionRepository chatSessionRepository,
-      SimpMessagingTemplate messagingTemplate) {
+      ChatSessionRepository chatSessionRepository, SimpMessagingTemplate messagingTemplate) {
     this.chatSessionRepository = chatSessionRepository;
     this.messagingTemplate = messagingTemplate;
   }
@@ -28,9 +27,7 @@ public class SessionAssignedEventListener {
   @EventListener
   @Transactional
   public void handleSessionAssigned(SessionAssignedEvent event) {
-    ChatSession session = chatSessionRepository
-        .findById(event.sessionId())
-        .orElse(null);
+    ChatSession session = chatSessionRepository.findById(event.sessionId()).orElse(null);
     if (session == null) return;
 
     ChatSessionResponse response = ChatSessionResponse.from(session);

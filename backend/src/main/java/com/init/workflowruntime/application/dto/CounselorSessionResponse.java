@@ -20,7 +20,8 @@ public class CounselorSessionResponse {
 
   public CounselorSessionResponse() {}
 
-  public CounselorSessionResponse(List<ChatSessionResponse> content, int page, int size, long totalElements, int totalPages) {
+  public CounselorSessionResponse(
+      List<ChatSessionResponse> content, int page, int size, long totalElements, int totalPages) {
     this.content = content;
     this.page = page;
     this.size = size;
@@ -39,26 +40,91 @@ public class CounselorSessionResponse {
     return resp;
   }
 
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
-  public String getStatus() { return status; }
-  public void setStatus(String status) { this.status = status; }
-  public String getChannel() { return channel; }
-  public void setChannel(String channel) { this.channel = channel; }
-  public String getMetaJson() { return metaJson; }
-  public void setMetaJson(String metaJson) { this.metaJson = metaJson; }
-  public OffsetDateTime getStartedAt() { return startedAt; }
-  public void setStartedAt(OffsetDateTime startedAt) { this.startedAt = startedAt; }
-  public Long getAssignedCounselorId() { return assignedCounselorId; }
-  public void setAssignedCounselorId(Long assignedCounselorId) { this.assignedCounselorId = assignedCounselorId; }
-  public List<ChatSessionResponse> getContent() { return content; }
-  public void setContent(List<ChatSessionResponse> content) { this.content = content; }
-  public int getPage() { return page; }
-  public void setPage(int page) { this.page = page; }
-  public int getSize() { return size; }
-  public void setSize(int size) { this.size = size; }
-  public long getTotalElements() { return totalElements; }
-  public void setTotalElements(long totalElements) { this.totalElements = totalElements; }
-  public int getTotalPages() { return totalPages; }
-  public void setTotalPages(int totalPages) { this.totalPages = totalPages; }
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
+  }
+
+  public String getChannel() {
+    return channel;
+  }
+
+  public void setChannel(String channel) {
+    this.channel = channel;
+  }
+
+  public String getMetaJson() {
+    return metaJson;
+  }
+
+  public void setMetaJson(String metaJson) {
+    this.metaJson = metaJson;
+  }
+
+  public OffsetDateTime getStartedAt() {
+    return startedAt;
+  }
+
+  public void setStartedAt(OffsetDateTime startedAt) {
+    this.startedAt = startedAt;
+  }
+
+  public Long getAssignedCounselorId() {
+    return assignedCounselorId;
+  }
+
+  public void setAssignedCounselorId(Long assignedCounselorId) {
+    this.assignedCounselorId = assignedCounselorId;
+  }
+
+  public List<ChatSessionResponse> getContent() {
+    return content;
+  }
+
+  public void setContent(List<ChatSessionResponse> content) {
+    this.content = content;
+  }
+
+  public int getPage() {
+    return page;
+  }
+
+  public void setPage(int page) {
+    this.page = page;
+  }
+
+  public int getSize() {
+    return size;
+  }
+
+  public void setSize(int size) {
+    this.size = size;
+  }
+
+  public long getTotalElements() {
+    return totalElements;
+  }
+
+  public void setTotalElements(long totalElements) {
+    this.totalElements = totalElements;
+  }
+
+  public int getTotalPages() {
+    return totalPages;
+  }
+
+  public void setTotalPages(int totalPages) {
+    this.totalPages = totalPages;
+  }
 }

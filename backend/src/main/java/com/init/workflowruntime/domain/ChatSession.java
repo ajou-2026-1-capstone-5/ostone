@@ -149,7 +149,8 @@ public class ChatSession {
           "assignTo() requires status OPEN but was " + this.status);
     }
     if (this.assignedCounselorId != null) {
-      throw new InvalidSessionStateException("Session already assigned to counselor: " + this.assignedCounselorId);
+      throw new InvalidSessionStateException(
+          "Session already assigned to counselor: " + this.assignedCounselorId);
     }
     this.assignedCounselorId = counselorId;
     this.status = ChatSessionStatus.ACTIVE;
