@@ -10,8 +10,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 public class AiConfig {
 
-  @Value("${app.ai.chat.system-prompt}")
-  private String systemPrompt;
+  private final String systemPrompt;
+
+  public AiConfig(@Value("${app.ai.chat.system-prompt}") String systemPrompt) {
+    this.systemPrompt = systemPrompt;
+  }
 
   @Bean
   public ChatClient chatClient(ChatClient.Builder builder) {
