@@ -42,7 +42,8 @@ class LlmResponseHandlerTest {
   @BeforeEach
   void setUp() {
     handler =
-        new LlmResponseHandler(llmAssistantService, chatMessageRepository, chatSessionRepository, messagingTemplate);
+        new LlmResponseHandler(
+            llmAssistantService, chatMessageRepository, chatSessionRepository, messagingTemplate);
   }
 
   @Test

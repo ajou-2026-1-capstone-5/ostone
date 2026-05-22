@@ -21,8 +21,6 @@ public class AiConfig {
 
   @Bean
   public ChatClient chatClient(ChatClient.Builder builder) {
-    return builder
-        .defaultSystem(systemPrompt)
-        .build();
+    return builder.defaultSystem(systemPrompt).build();
   }
 }

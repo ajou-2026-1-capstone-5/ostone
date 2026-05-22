@@ -44,7 +44,10 @@ public class LlmResponseHandler {
 
       chatSessionRepository
           .findByIdForUpdate(event.sessionId())
-          .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
+          .orElseThrow(
+              () ->
+                  new NotFoundException(
+                      "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
 
       Integer nextSeqNo =
           chatMessageRepository
@@ -54,8 +57,7 @@ public class LlmResponseHandler {
 
       ChatMessage savedMessage =
           chatMessageRepository.save(
-              ChatMessage.create(
-                  event.sessionId(), nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
+              ChatMessage.create(event.sessionId(), nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
 
       ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
       String destination = "/topic/chat." + event.sessionId();
