@@ -25,8 +25,18 @@ export function createLlmSlotToolHandler({
       case LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow:
         return wrapToolResult(toolCall, name, await requestJson("/workflow"));
 
+      case LLM_WORKFLOW_TOOL_NAMES.advanceWorkflow:
+        return wrapToolResult(
+          toolCall,
+          name,
+          await requestRuntimeJson("/advance", { method: "POST" }),
+        );
+
       case LLM_SLOT_TOOL_NAMES.getContext:
         return wrapToolResult(toolCall, name, await requestJson("/context"));
+
+      case LLM_SLOT_TOOL_NAMES.getPolicyContext:
+        return wrapToolResult(toolCall, name, await requestJson("/policy-context"));
 
       case LLM_SLOT_TOOL_NAMES.listIntents:
         return wrapToolResult(toolCall, name, await requestJson("/intents"));
@@ -77,6 +87,15 @@ export function createLlmSlotToolHandler({
 
   async function requestJson(path, { method = "GET", body } = {}) {
     const url = buildToolUrl(backendBaseUrl, sessionId, path);
+    return requestBackendJson(url, { method, body });
+  }
+
+  async function requestRuntimeJson(path, { method = "GET", body } = {}) {
+    const url = buildRuntimeUrl(backendBaseUrl, sessionId, path);
+    return requestBackendJson(url, { method, body });
+  }
+
+  async function requestBackendJson(url, { method = "GET", body } = {}) {
     const headers = {
       Accept: "application/json",
     };
@@ -124,6 +143,14 @@ export function buildToolUrl(backendBaseUrl, sessionId, path) {
   const normalizedPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
   const relativePath =
     `api/v1/llm-tools/sessions/${encodeURIComponent(sessionId)}${normalizedPath}`;
+  return new URL(relativePath, baseUrl).toString();
+}
+
+export function buildRuntimeUrl(backendBaseUrl, sessionId, path) {
+  const baseUrl = backendBaseUrl.endsWith("/") ? backendBaseUrl : `${backendBaseUrl}/`;
+  const normalizedPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  const relativePath =
+    `api/v1/workflow-runtime/sessions/${encodeURIComponent(sessionId)}${normalizedPath}`;
   return new URL(relativePath, baseUrl).toString();
 }
 

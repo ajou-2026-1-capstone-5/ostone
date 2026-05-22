@@ -20,6 +20,7 @@ import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolPolicyContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
@@ -28,6 +29,8 @@ import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueComman
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
+import com.init.workflowruntime.application.dto.LlmToolPolicyContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolPolicyResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
@@ -55,6 +58,7 @@ public class LlmToolService {
   private final IntentSlotBindingRepository intentSlotBindingRepository;
   private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
+  private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   private final ObjectMapper objectMapper;
 
   public LlmToolService(
@@ -65,6 +69,7 @@ public class LlmToolService {
       IntentSlotBindingRepository intentSlotBindingRepository,
       IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
+      WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
       ObjectMapper objectMapper) {
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
@@ -73,6 +78,7 @@ public class LlmToolService {
     this.intentSlotBindingRepository = intentSlotBindingRepository;
     this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
+    this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
     this.objectMapper = objectMapper;
   }
 
@@ -128,6 +134,13 @@ public class LlmToolService {
     List<LlmToolSlotResponse> slots = buildSlotResponses(session, execution, slotValues);
     List<String> missingSlots =
         slots.stream().filter(slot -> !slot.hasValue()).map(LlmToolSlotResponse::slotCode).toList();
+    JsonNode policySnapshot =
+        readJsonNode(execution != null ? execution.getPolicySnapshotJson() : "{}", "{}");
+    LlmToolPolicyResponse currentPolicy =
+        execution != null
+            ? workflowPolicyRuntimeService.evaluateCurrentPolicy(
+                session.getDomainPackVersionId(), execution, slotValues)
+            : null;
 
     return new LlmToolContextResponse(
         session.getId(),
@@ -137,8 +150,31 @@ public class LlmToolService {
         execution != null ? execution.getStatus() : null,
         execution != null ? execution.getCurrentState() : null,
         slotValues,
+        policySnapshot,
+        currentPolicy,
         missingSlots,
         slots);
+  }
+
+  public LlmToolPolicyContextResponse getPolicyContext(GetLlmToolPolicyContextCommand command) {
+    Long sessionId = command.sessionId();
+    ChatSession session = findSession(sessionId);
+    WorkflowExecution execution = findExecution(sessionId);
+    if (execution == null) {
+      return new LlmToolPolicyContextResponse(
+          session.getId(), null, null, readJsonNode("{}", "{}"), null);
+    }
+    ObjectNode slotValues = readObjectNode(execution.getSlotValuesJson());
+    LlmToolPolicyResponse currentPolicy =
+        workflowPolicyRuntimeService.evaluateCurrentPolicy(
+            session.getDomainPackVersionId(), execution, slotValues);
+    JsonNode policySnapshot = readJsonNode(execution.getPolicySnapshotJson(), "{}");
+    return new LlmToolPolicyContextResponse(
+        session.getId(),
+        execution.getId(),
+        execution.getCurrentState(),
+        policySnapshot,
+        currentPolicy);
   }
 
   public List<LlmToolSlotResponse> listSlots(ListLlmToolSlotsCommand command) {

@@ -3,15 +3,19 @@ package com.init.workflowruntime.application.dto;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-public record LlmToolContextResponse(
+public record WorkflowAdvanceResponse(
     Long sessionId,
-    Long workspaceId,
-    Long domainPackVersionId,
     Long executionId,
     String executionStatus,
+    String previousState,
     String currentState,
-    JsonNode slotValues,
+    String currentNodeType,
+    String actionType,
+    String edgeId,
+    String targetState,
+    List<String> missingSlotCodes,
+    JsonNode condition,
     JsonNode policySnapshot,
+    LlmToolPolicyResponse transitionPolicy,
     LlmToolPolicyResponse currentPolicy,
-    List<String> missingSlots,
-    List<LlmToolSlotResponse> slots) {}
+    String reason) {}

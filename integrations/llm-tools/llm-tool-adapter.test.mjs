@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   LLM_SLOT_TOOL_NAMES,
   LLM_WORKFLOW_TOOL_NAMES,
+  buildRuntimeUrl,
   buildToolUrl,
   createLlmSlotToolHandler,
   llmSlotTools,
@@ -99,6 +100,13 @@ describe("llm slot tools", () => {
     );
   });
 
+  it("builds backend workflow-runtime URLs", () => {
+    assert.equal(
+      buildRuntimeUrl("http://localhost:8080", 7, "/advance"),
+      "http://localhost:8080/api/v1/workflow-runtime/sessions/7/advance",
+    );
+  });
+
   it("maps get_current_slot tool calls to the backend slot endpoint", async () => {
     const requests = [];
     const handler = createLlmSlotToolHandler({
@@ -182,6 +190,60 @@ describe("llm slot tools", () => {
     assert.equal(requests[0].url, "http://localhost:8080/api/v1/llm-tools/sessions/7/intents");
     assert.equal(requests[0].init.method, "GET");
     assert.deepEqual(result.result, [{ intentCode: "request_refund" }]);
+  });
+
+  it("maps get_current_policy_context tool calls to the backend policy context endpoint", async () => {
+    const requests = [];
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      sessionId: 7,
+      fetchImpl: async (url, init) => {
+        requests.push({ url, init });
+        return {
+          ok: true,
+          status: 200,
+          text: async () => "{\"currentState\":\"confirm_cancel\",\"currentPolicy\":null}",
+        };
+      },
+    });
+
+    await handler({
+      name: LLM_SLOT_TOOL_NAMES.getPolicyContext,
+      arguments: {},
+    });
+
+    assert.equal(
+      requests[0].url,
+      "http://localhost:8080/api/v1/llm-tools/sessions/7/policy-context",
+    );
+    assert.equal(requests[0].init.method, "GET");
+  });
+
+  it("maps advance_current_workflow tool calls to the backend runtime endpoint", async () => {
+    const requests = [];
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      sessionId: 7,
+      fetchImpl: async (url, init) => {
+        requests.push({ url, init });
+        return {
+          ok: true,
+          status: 200,
+          text: async () => "{\"actionType\":\"ASK_SLOT\"}",
+        };
+      },
+    });
+
+    await handler({
+      name: LLM_WORKFLOW_TOOL_NAMES.advanceWorkflow,
+      arguments: {},
+    });
+
+    assert.equal(
+      requests[0].url,
+      "http://localhost:8080/api/v1/workflow-runtime/sessions/7/advance",
+    );
+    assert.equal(requests[0].init.method, "POST");
   });
 
   it("maps select_current_intent tool calls to POST with intentCode body", async () => {

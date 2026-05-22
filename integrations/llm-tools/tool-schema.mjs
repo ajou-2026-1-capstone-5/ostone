@@ -1,5 +1,6 @@
 export const LLM_WORKFLOW_TOOL_NAMES = Object.freeze({
   getCurrentWorkflow: "get_current_workflow",
+  advanceWorkflow: "advance_current_workflow",
 });
 
 export const LLM_SLOT_TOOL_NAMES = Object.freeze({
@@ -9,6 +10,7 @@ export const LLM_SLOT_TOOL_NAMES = Object.freeze({
   upsertSlotValue: "upsert_current_slot_value",
   listIntents: "list_current_intents",
   selectIntent: "select_current_intent",
+  getPolicyContext: "get_current_policy_context",
 });
 
 const emptyParameters = Object.freeze({
@@ -96,6 +98,24 @@ export const llmSlotTools = Object.freeze([
       name: LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow,
       description:
         "현재 상담 세션에 묶인 결정론적 워크플로우 그래프와 현재 실행 상태(state, status)를 조회한다.",
+      parameters: emptyParameters,
+    }),
+  }),
+  Object.freeze({
+    type: "function",
+    function: Object.freeze({
+      name: LLM_SLOT_TOOL_NAMES.getPolicyContext,
+      description:
+        "현재 workflow node에 연결된 정책 평가 결과와 policy snapshot을 조회한다.",
+      parameters: emptyParameters,
+    }),
+  }),
+  Object.freeze({
+    type: "function",
+    function: Object.freeze({
+      name: LLM_WORKFLOW_TOOL_NAMES.advanceWorkflow,
+      description:
+        "현재 workflow execution의 state, slot, policy snapshot을 기준으로 다음 action과 state를 계산한다.",
       parameters: emptyParameters,
     }),
   }),

@@ -87,6 +87,8 @@ class LlmToolControllerSecurityTest {
                 null,
                 null,
                 objectMapper.readTree("{}"),
+                objectMapper.readTree("{\"hits\":[]}"),
+                null,
                 List.of(),
                 List.of()));
 

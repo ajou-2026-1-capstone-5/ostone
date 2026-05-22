@@ -126,6 +126,14 @@ public class WorkflowExecution {
     this.slotValuesJson = slotValuesJson != null ? slotValuesJson : "{}";
   }
 
+  public void replacePolicySnapshotJson(String policySnapshotJson) {
+    this.policySnapshotJson = policySnapshotJson != null ? policySnapshotJson : "{}";
+  }
+
+  public void replaceRiskSnapshotJson(String riskSnapshotJson) {
+    this.riskSnapshotJson = riskSnapshotJson != null ? riskSnapshotJson : "{}";
+  }
+
   public void assignIntentWorkflow(
       Long intentDefinitionId, Long workflowDefinitionId, String currentState) {
     Objects.requireNonNull(intentDefinitionId, "intentDefinitionId must not be null");
@@ -141,6 +149,29 @@ public class WorkflowExecution {
     this.workflowDefinitionId = workflowDefinitionId;
     this.currentState = currentState;
     this.status = STATUS_RUNNING;
+  }
+
+  public void moveToState(String nextState) {
+    Objects.requireNonNull(nextState, "nextState must not be null");
+    if (nextState.isBlank()) {
+      throw new InvalidSessionStateException("nextState must not be blank");
+    }
+    if (isTerminalStatus()) {
+      throw new InvalidSessionStateException(
+          "Cannot move terminal execution to next state: " + this.status);
+    }
+    this.currentState = nextState;
+  }
+
+  public void complete() {
+    if (STATUS_COMPLETED.equals(this.status)) {
+      return;
+    }
+    if (STATUS_FAILED.equals(this.status)) {
+      throw new InvalidSessionStateException("Cannot complete failed execution");
+    }
+    this.status = STATUS_COMPLETED;
+    this.finishedAt = OffsetDateTime.now();
   }
 
   private boolean isTerminalStatus() {
