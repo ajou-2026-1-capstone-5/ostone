@@ -10,26 +10,27 @@ vi.mock("./consultationApi", () => ({
   },
 }));
 
+import { ChatSessionResponse, ChatMessageResponse } from "../../../shared/api/generated/zod";
 import { useChatSessions, useChatMessages } from "./chatHistoryApi";
 import { consultationApi } from "./consultationApi";
 
 const mockedGetSessions = vi.mocked(consultationApi.getSessions);
 const mockedGetMessages = vi.mocked(consultationApi.getMessages);
 
-const stubSession = {
+const stubSession: ChatSessionResponse = {
   id: 1,
-  title: "테스트 상담 세션",
-  customerName: "홍길동",
-  status: "ACTIVE",
-  createdAt: "2025-01-01T00:00:00Z",
-  updatedAt: "2025-01-01T00:00:00Z",
+  status: "COMPLETED",
+  channel: "KAKAO",
+  metaJson: null,
+  startedAt: "2025-01-01T00:00:00Z",
 };
 
-const stubMessage = {
+const stubMessage: ChatMessageResponse = {
   id: 1,
-  sessionId: 1,
+  seqNo: 1,
+  senderRole: "CUSTOMER",
+  messageType: "TEXT",
   content: "안녕하세요",
-  role: "USER" as const,
   createdAt: "2025-01-01T00:00:00Z",
 };
 
@@ -48,7 +49,7 @@ describe("useChatSessions", () => {
   });
 
   it("세션 목록을 조회한다", async () => {
-    mockedGetSessions.mockResolvedValue([stubSession as any]);
+    mockedGetSessions.mockResolvedValue([stubSession]);
 
     const { result } = renderHook(
       () =>
@@ -63,7 +64,7 @@ describe("useChatSessions", () => {
   });
 
   it("상태 필터로 세션 목록을 조회한다", async () => {
-    mockedGetSessions.mockResolvedValue([stubSession as any]);
+    mockedGetSessions.mockResolvedValue([stubSession]);
 
     const { result } = renderHook(
       () =>
@@ -87,7 +88,7 @@ describe("useChatMessages", () => {
   });
 
   it("sessionId가 있으면 메시지 목록을 조회한다", async () => {
-    mockedGetMessages.mockResolvedValue([stubMessage as any]);
+    mockedGetMessages.mockResolvedValue([stubMessage]);
 
     const { result } = renderHook(() => useChatMessages("1"), { wrapper: makeWrapper() });
 
@@ -103,7 +104,7 @@ describe("useChatMessages", () => {
   });
 
   it("페이지를 지정해서 메시지 목록을 조회한다", async () => {
-    mockedGetMessages.mockResolvedValue([stubMessage as any]);
+    mockedGetMessages.mockResolvedValue([stubMessage]);
 
     const { result } = renderHook(() => useChatMessages("1", 2, 30), { wrapper: makeWrapper() });
 
