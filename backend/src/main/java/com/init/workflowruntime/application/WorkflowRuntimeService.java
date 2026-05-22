@@ -188,7 +188,7 @@ public class WorkflowRuntimeService {
     LlmToolPolicyResponse targetPolicy =
         evaluateNodePolicy(context.session(), context.execution(), targetNode, slotValues);
     JsonNode targetPolicySnapshot = workflowPolicyRuntimeService.buildPolicySnapshot(targetPolicy);
-    LlmToolPolicyResponse transitionPolicy = transitionPolicyFor(edge, context.currentPolicy());
+    LlmToolPolicyResponse transitionPolicy = transitionPolicyFor(context, edge);
     return response(
         context,
         ResponseDraft.transition(
@@ -259,28 +259,44 @@ public class WorkflowRuntimeService {
             session.getDomainPackVersionId(), currentNode, slotValues, execution));
   }
 
-  private LlmToolPolicyResponse transitionPolicyFor(
-      RuntimeEdge edge, LlmToolPolicyResponse sourcePolicy) {
-    String policyCode = policyHitCode(edge.condition());
+  private LlmToolPolicyResponse transitionPolicyFor(AdvanceContext context, RuntimeEdge edge) {
+    LlmToolPolicyResponse sourcePolicy = context.currentPolicy();
+    ConditionContext conditionContext =
+        new ConditionContext(
+            context.slotValues(), context.policySnapshot(), context.riskSnapshot());
+    String policyCode = matchedPolicyHitCode(edge.condition(), conditionContext);
     if (policyCode == null || sourcePolicy == null || !sourcePolicy.matched()) {
       return null;
     }
     return policyCode.equals(sourcePolicy.policyCode()) ? sourcePolicy : null;
   }
 
-  private String policyHitCode(JsonNode condition) {
+  private String matchedPolicyHitCode(JsonNode condition, ConditionContext context) {
     if (condition == null || !condition.isObject()) {
       return null;
     }
     String type = condition.path("type").asText(null);
     if ("policy_hit".equals(type)) {
-      return trimToNull(condition.path("policyCode").asText(null));
+      ConditionEvaluation result = WorkflowConditionEvaluator.evaluate(condition, context);
+      return result.matched() ? trimToNull(condition.path("policyCode").asText(null)) : null;
     }
-    if ("all".equals(type) || "any".equals(type)) {
+    if ("all".equals(type)) {
       for (JsonNode child : condition.path("conditions")) {
-        String policyCode = policyHitCode(child);
+        ConditionEvaluation result = WorkflowConditionEvaluator.evaluate(child, context);
+        if (result.defaultCondition() || !result.matched()) {
+          return null;
+        }
+        String policyCode = matchedPolicyHitCode(child, context);
         if (policyCode != null) {
           return policyCode;
+        }
+      }
+    }
+    if ("any".equals(type)) {
+      for (JsonNode child : condition.path("conditions")) {
+        ConditionEvaluation result = WorkflowConditionEvaluator.evaluate(child, context);
+        if (!result.defaultCondition() && result.matched()) {
+          return matchedPolicyHitCode(child, context);
         }
       }
     }

@@ -177,6 +177,54 @@ class WorkflowRuntimeServiceTest {
     assertThat(execution.getCurrentState()).isEqualTo("handoff");
   }
 
+  @Test
+  @DisplayName("advance: any 조건에서 먼저 매칭된 조건이 policy_hit이 아니면 transitionPolicy를 비운다")
+  void should_notSetTransitionPolicy_when_anyMatchedByNonPolicyConditionFirst() throws Exception {
+    ChatSession session = createSession(1L, 10L, 101L);
+    WorkflowExecution execution =
+        createExecution(50L, 1L, 150L, "policy_check", "{\"reservation_no\":\"R-1234\"}");
+    WorkflowDefinition workflow = createWorkflow(150L, 101L, policyHitAfterSlotAnyGraphJson());
+    LlmToolPolicyResponse policyResponse =
+        new LlmToolPolicyResponse(
+            300L,
+            "refund_policy",
+            "환불 정책",
+            "환불 가능 조건",
+            "HIGH",
+            objectMapper.createObjectNode(),
+            objectMapper.createObjectNode(),
+            objectMapper.createArrayNode(),
+            objectMapper.createObjectNode(),
+            "ACTIVE",
+            "policy_check",
+            true,
+            List.of(),
+            "policy condition matched");
+    JsonNode policySnapshot =
+        objectMapper.readTree("{\"hits\":[{\"policyCode\":\"refund_policy\"}]}");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.of(execution));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+        .willReturn(Optional.of(workflow));
+    given(
+            workflowPolicyRuntimeService.evaluateNodePolicy(
+                argThat(command -> command != null && "policy_check".equals(command.node().id()))))
+        .willReturn(policyResponse);
+    given(workflowPolicyRuntimeService.buildPolicySnapshot(policyResponse))
+        .willReturn(policySnapshot);
+    given(workflowExecutionRepository.save(execution)).willReturn(execution);
+
+    WorkflowAdvanceResponse result = service.advance(1L);
+
+    assertThat(result.actionType()).isEqualTo("HANDOFF");
+    assertThat(result.edgeId()).isEqualTo("e_policy_handoff");
+    assertThat(result.condition().path("type").asText()).isEqualTo("any");
+    assertThat(result.transitionPolicy()).isNull();
+    assertThat(execution.getCurrentState()).isEqualTo("handoff");
+  }
+
   private ChatSession createSession(Long id, Long workspaceId, Long versionId) {
     ChatSession session =
         ChatSession.create(workspaceId, versionId, ChatSessionStatus.OPEN, "WEB", "{}");
@@ -296,6 +344,44 @@ class WorkflowRuntimeServiceTest {
               "condition": {
                 "type": "all",
                 "conditions": [
+                  {"type": "policy_hit", "policyCode": "refund_policy"}
+                ]
+              }
+            },
+            {
+              "id": "e_policy_answer",
+              "from": "policy_check",
+              "to": "answer",
+              "condition": {"type": "default"}
+            }
+          ]
+        }
+        """;
+  }
+
+  private String policyHitAfterSlotAnyGraphJson() {
+    return """
+        {
+          "direction": "LR",
+          "nodes": [
+            {
+              "id": "policy_check",
+              "type": "ACTION",
+              "label": "정책 확인",
+              "policyRef": "refund_policy"
+            },
+            {"id": "handoff", "type": "HANDOFF", "label": "상담사 이관"},
+            {"id": "answer", "type": "ANSWER", "label": "일반 답변"}
+          ],
+          "edges": [
+            {
+              "id": "e_policy_handoff",
+              "from": "policy_check",
+              "to": "handoff",
+              "condition": {
+                "type": "any",
+                "conditions": [
+                  {"type": "slot_present", "slotCode": "reservation_no"},
                   {"type": "policy_hit", "policyCode": "refund_policy"}
                 ]
               }
