@@ -62,12 +62,8 @@ export const ConsultationPage: React.FC = () => {
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
-  const [categories, setCategories] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const { connectionStatus, subscribe, sendTo } = useStomp<RealtimeChatMessage>();
-
-  void categories;
-  void setCategories;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;

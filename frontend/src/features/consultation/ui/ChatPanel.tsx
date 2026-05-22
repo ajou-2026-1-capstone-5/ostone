@@ -18,12 +18,18 @@ interface ChatPanelProps {
   onSelectMessage: (messageId: string | null) => void;
 }
 
+const ROLE_LABEL: Record<string, { avatar: string; label?: string }> = {
+  AGENT: { avatar: "A" },
+  COUNSELOR: { avatar: "C", label: "상담사" },
+  ASSISTANT: { avatar: "A", label: "AI" },
+};
+
 /**
  * 상담 대화 내용을 표시하고 메시지를 전송하는 패널 컴포넌트입니다.
  * 실시간 메시지 렌더링, 전송 시 스크롤 관리, 한글 입력 최적화 등을 처리합니다.
  *
- * @param {ChatPanelProps} props - 메시지 목록 및 전송 핸들러
- * @returns {JSX.Element} 채팅 패널 컴포넌트
+ * @param props - 메시지 목록 및 전송 핸들러
+ * @returns 채팅 패널 컴포넌트
  */
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   customerName,
@@ -142,7 +148,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? "A" : customerName.charAt(0)}
+                {isAgent ? (ROLE_LABEL[msg.senderRole]?.avatar ?? "A") : customerName.charAt(0)}
               </div>
               <div>
                 <div
@@ -151,6 +157,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {msg.content}
                 </div>
                 <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
+                  {ROLE_LABEL[msg.senderRole]?.label && (
+                    <span>{ROLE_LABEL[msg.senderRole].label} · </span>
+                  )}
                   {msg.timestamp}
                 </div>
               </div>
