@@ -133,7 +133,7 @@ public class WorkflowExecution {
     Objects.requireNonNull(currentState, "currentState must not be null");
 
     if (isTerminalStatus()) {
-      throw new IllegalStateException(
+      throw new InvalidSessionStateException(
           "Cannot assign intent workflow to terminal execution: " + this.status);
     }
 

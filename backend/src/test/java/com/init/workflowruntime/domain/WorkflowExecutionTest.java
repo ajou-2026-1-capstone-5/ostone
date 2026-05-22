@@ -1,7 +1,7 @@
 package com.init.workflowruntime.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.OffsetDateTime;
@@ -79,7 +79,7 @@ class WorkflowExecutionTest {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_COMPLETED);
 
-    assertThatIllegalStateException()
+    assertThatExceptionOfType(InvalidSessionStateException.class)
         .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
         .withMessageContaining("terminal execution");
 
@@ -95,7 +95,7 @@ class WorkflowExecutionTest {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
 
-    assertThatIllegalStateException()
+    assertThatExceptionOfType(InvalidSessionStateException.class)
         .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
         .withMessageContaining("terminal execution");
 
