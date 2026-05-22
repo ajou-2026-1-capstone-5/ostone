@@ -31,6 +31,14 @@ public class WorkflowRuntimeService {
   private static final String NODE_TYPE_ANSWER = "ANSWER";
   private static final String NODE_TYPE_HANDOFF = "HANDOFF";
   private static final String NODE_TYPE_TERMINAL = "TERMINAL";
+  private static final String ACTION_ADVANCE = "ADVANCE";
+  private static final String ACTION_ASK_SLOT = "ASK_SLOT";
+  private static final String ACTION_ANSWER = "ANSWER";
+  private static final String ACTION_COMPLETED = "COMPLETED";
+  private static final String ACTION_HANDOFF = "HANDOFF";
+  private static final String ACTION_WAIT = "WAIT";
+  private static final String ACTION_WAIT_CONDITION = "WAIT_CONDITION";
+  private static final JsonNode NO_CONDITION = NullNode.getInstance();
 
   private final ChatSessionRepository chatSessionRepository;
   private final WorkflowExecutionRepository workflowExecutionRepository;
@@ -53,92 +61,28 @@ public class WorkflowRuntimeService {
 
   @Transactional
   public WorkflowAdvanceResponse advance(Long sessionId) {
-    ChatSession session = findSession(sessionId);
-    WorkflowExecution execution = findExecution(sessionId);
-    WorkflowDefinition workflow = findWorkflow(session, execution);
-    WorkflowRuntimeGraph graph =
-        WorkflowRuntimeGraph.parse(objectMapper, workflow.getGraphJson(), workflow.getId());
+    AdvanceContext context = loadAdvanceContext(sessionId);
 
-    String previousState = requireCurrentState(execution);
-    RuntimeNode currentNode = graph.requireNode(previousState);
-    ObjectNode slotValues = readObjectNode(execution.getSlotValuesJson());
-    LlmToolPolicyResponse sourcePolicy =
-        evaluateNodePolicy(session, execution, currentNode, slotValues);
-    JsonNode policySnapshot = workflowPolicyRuntimeService.buildPolicySnapshot(sourcePolicy);
-    JsonNode riskSnapshot = readJsonNode(execution.getRiskSnapshotJson(), "{}");
-
-    if (NODE_TYPE_TERMINAL.equals(currentNode.type())) {
-      execution.complete();
-      WorkflowExecution saved = workflowExecutionRepository.save(execution);
-      return response(
-          session,
-          saved,
-          previousState,
-          currentNode,
-          "COMPLETED",
-          null,
-          previousState,
-          List.of(),
-          NullNode.getInstance(),
-          readObjectNode(saved.getSlotValuesJson()),
-          null,
-          false,
-          "terminal state reached");
+    if (NODE_TYPE_TERMINAL.equals(context.currentNode().type())) {
+      context.execution().complete();
+      return completedResponse(context);
     }
-    if (NODE_TYPE_HANDOFF.equals(currentNode.type())) {
-      return response(
-          session,
-          execution,
-          previousState,
-          currentNode,
-          "HANDOFF",
-          null,
-          previousState,
-          List.of(),
-          NullNode.getInstance(),
-          slotValues,
-          null,
-          false,
-          "current state requires counselor handoff");
+    if (NODE_TYPE_HANDOFF.equals(context.currentNode().type())) {
+      return handoffResponse(context);
     }
-    if (NODE_TYPE_ANSWER.equals(currentNode.type())) {
-      return response(
-          session,
-          execution,
-          previousState,
-          currentNode,
-          "ANSWER",
-          null,
-          previousState,
-          List.of(),
-          NullNode.getInstance(),
-          slotValues,
-          null,
-          false,
-          "current state is answer node");
+    if (NODE_TYPE_ANSWER.equals(context.currentNode().type())) {
+      return answerResponse(context);
     }
 
-    List<RuntimeEdge> outgoingEdges = graph.outgoingEdges(previousState);
+    List<RuntimeEdge> outgoingEdges = context.graph().outgoingEdges(context.previousState());
     if (outgoingEdges.isEmpty()) {
-      return response(
-          session,
-          execution,
-          previousState,
-          currentNode,
-          "WAIT",
-          null,
-          previousState,
-          List.of(),
-          NullNode.getInstance(),
-          slotValues,
-          null,
-          false,
-          "current state has no outgoing edge");
+      return waitResponse(context);
     }
 
     RuntimeEdge defaultEdge = null;
     ConditionContext conditionContext =
-        new ConditionContext(slotValues, policySnapshot, riskSnapshot);
+        new ConditionContext(
+            context.slotValues(), context.policySnapshot(), context.riskSnapshot());
     for (RuntimeEdge edge : outgoingEdges) {
       if (WorkflowConditionEvaluator.isDefaultCondition(edge.condition())) {
         if (defaultEdge == null) {
@@ -149,87 +93,120 @@ public class WorkflowRuntimeService {
       ConditionEvaluation result =
           WorkflowConditionEvaluator.evaluate(edge.condition(), conditionContext);
       if (result.matched()) {
-        return advanceToEdge(
-            session, execution, graph, previousState, currentNode, edge, sourcePolicy);
+        return advanceToEdge(context, edge);
       }
     }
 
     if (defaultEdge != null) {
-      return advanceToEdge(
-          session, execution, graph, previousState, currentNode, defaultEdge, sourcePolicy);
+      return advanceToEdge(context, defaultEdge);
     }
 
     List<String> missingSlotCodes =
-        WorkflowConditionEvaluator.blockedSlotCodes(outgoingEdges, slotValues);
+        WorkflowConditionEvaluator.blockedSlotCodes(outgoingEdges, context.slotValues());
     if (!missingSlotCodes.isEmpty()) {
-      return response(
-          session,
-          execution,
-          previousState,
-          currentNode,
-          "ASK_SLOT",
-          null,
-          previousState,
-          missingSlotCodes,
-          NullNode.getInstance(),
-          slotValues,
-          null,
-          false,
-          "required slot values are missing");
+      return askSlotResponse(context, missingSlotCodes);
     }
 
-    return response(
-        session,
-        execution,
-        previousState,
-        currentNode,
-        "WAIT_CONDITION",
-        null,
-        previousState,
-        List.of(),
-        NullNode.getInstance(),
-        slotValues,
-        null,
-        false,
-        "no edge condition matched");
+    return waitConditionResponse(context);
   }
 
-  private WorkflowAdvanceResponse advanceToEdge(
-      ChatSession session,
-      WorkflowExecution execution,
-      WorkflowRuntimeGraph graph,
-      String previousState,
-      RuntimeNode previousNode,
-      RuntimeEdge edge,
-      LlmToolPolicyResponse sourcePolicy) {
-    RuntimeNode targetNode = graph.requireNode(edge.to());
-    execution.moveToState(targetNode.id());
-    if (NODE_TYPE_TERMINAL.equals(targetNode.type())) {
-      execution.complete();
-    }
-    LlmToolPolicyResponse transitionPolicy = transitionPolicyFor(edge, sourcePolicy);
-    return response(
+  private AdvanceContext loadAdvanceContext(Long sessionId) {
+    ChatSession session = findSession(sessionId);
+    WorkflowExecution execution = findExecution(sessionId);
+    WorkflowDefinition workflow = findWorkflow(session, execution);
+    WorkflowRuntimeGraph graph =
+        WorkflowRuntimeGraph.parse(objectMapper, workflow.getGraphJson(), workflow.getId());
+
+    String previousState = requireCurrentState(execution);
+    RuntimeNode currentNode = graph.requireNode(previousState);
+    ObjectNode slotValues = readObjectNode(execution.getSlotValuesJson());
+    LlmToolPolicyResponse currentPolicy =
+        evaluateNodePolicy(session, execution, currentNode, slotValues);
+    JsonNode policySnapshot = workflowPolicyRuntimeService.buildPolicySnapshot(currentPolicy);
+    JsonNode riskSnapshot = readJsonNode(execution.getRiskSnapshotJson(), "{}");
+    return AdvanceContext.of(
         session,
         execution,
+        graph,
         previousState,
-        targetNode,
-        actionTypeFor(targetNode),
-        edge.id(),
-        targetNode.id(),
-        List.of(),
-        edge.condition(),
-        readObjectNode(execution.getSlotValuesJson()),
-        transitionPolicy,
-        true,
-        "transitioned from " + previousNode.id() + " to " + targetNode.id());
+        currentNode,
+        slotValues,
+        currentPolicy,
+        policySnapshot,
+        riskSnapshot);
+  }
+
+  private WorkflowAdvanceResponse completedResponse(AdvanceContext context) {
+    return currentNodeResponse(
+        context, ACTION_COMPLETED, List.of(), true, "terminal state reached");
+  }
+
+  private WorkflowAdvanceResponse handoffResponse(AdvanceContext context) {
+    return currentNodeResponse(
+        context, ACTION_HANDOFF, List.of(), false, "current state requires counselor handoff");
+  }
+
+  private WorkflowAdvanceResponse answerResponse(AdvanceContext context) {
+    return currentNodeResponse(
+        context, ACTION_ANSWER, List.of(), false, "current state is answer node");
+  }
+
+  private WorkflowAdvanceResponse waitResponse(AdvanceContext context) {
+    return currentNodeResponse(
+        context, ACTION_WAIT, List.of(), false, "current state has no outgoing edge");
+  }
+
+  private WorkflowAdvanceResponse askSlotResponse(
+      AdvanceContext context, List<String> missingSlotCodes) {
+    return currentNodeResponse(
+        context, ACTION_ASK_SLOT, missingSlotCodes, false, "required slot values are missing");
+  }
+
+  private WorkflowAdvanceResponse waitConditionResponse(AdvanceContext context) {
+    return currentNodeResponse(
+        context, ACTION_WAIT_CONDITION, List.of(), false, "no edge condition matched");
+  }
+
+  private WorkflowAdvanceResponse currentNodeResponse(
+      AdvanceContext context,
+      String actionType,
+      List<String> missingSlotCodes,
+      boolean persistExecution,
+      String reason) {
+    return response(
+        context,
+        ResponseDraft.currentNode(context, actionType, missingSlotCodes, persistExecution, reason));
+  }
+
+  private WorkflowAdvanceResponse advanceToEdge(AdvanceContext context, RuntimeEdge edge) {
+    RuntimeNode targetNode = context.graph().requireNode(edge.to());
+    context.execution().moveToState(targetNode.id());
+    if (NODE_TYPE_TERMINAL.equals(targetNode.type())) {
+      context.execution().complete();
+    }
+    ObjectNode slotValues = readObjectNode(context.execution().getSlotValuesJson());
+    LlmToolPolicyResponse targetPolicy =
+        evaluateNodePolicy(context.session(), context.execution(), targetNode, slotValues);
+    JsonNode targetPolicySnapshot = workflowPolicyRuntimeService.buildPolicySnapshot(targetPolicy);
+    LlmToolPolicyResponse transitionPolicy = transitionPolicyFor(edge, context.currentPolicy());
+    return response(
+        context,
+        ResponseDraft.transition(
+            targetNode,
+            actionTypeFor(targetNode),
+            edge,
+            targetPolicySnapshot,
+            transitionPolicy,
+            targetPolicy,
+            "transitioned from " + context.currentNode().id() + " to " + targetNode.id()));
   }
 
   private String actionTypeFor(RuntimeNode targetNode) {
     return switch (targetNode.type()) {
-      case NODE_TYPE_ANSWER -> "ANSWER";
-      case NODE_TYPE_HANDOFF -> "HANDOFF";
-      case NODE_TYPE_TERMINAL -> "COMPLETED";
-      default -> "ADVANCE";
+      case NODE_TYPE_ANSWER -> ACTION_ANSWER;
+      case NODE_TYPE_HANDOFF -> ACTION_HANDOFF;
+      case NODE_TYPE_TERMINAL -> ACTION_COMPLETED;
+      default -> ACTION_ADVANCE;
     };
   }
 
@@ -298,49 +275,123 @@ public class WorkflowRuntimeService {
     return trimToNull(policyCode);
   }
 
-  private WorkflowAdvanceResponse response(
-      ChatSession session,
-      WorkflowExecution execution,
-      String previousState,
-      RuntimeNode currentNode,
-      String actionType,
-      String edgeId,
-      String targetState,
-      List<String> missingSlotCodes,
-      JsonNode condition,
-      ObjectNode slotValues,
-      LlmToolPolicyResponse transitionPolicy,
-      boolean persistExecution,
-      String reason) {
-    LlmToolPolicyResponse currentPolicy =
-        workflowPolicyRuntimeService.evaluateNodePolicy(
-            session.getDomainPackVersionId(), currentNode, slotValues, execution);
-    JsonNode policySnapshot = workflowPolicyRuntimeService.buildPolicySnapshot(currentPolicy);
-    String policySnapshotJson = writeJson(policySnapshot);
+  private WorkflowAdvanceResponse response(AdvanceContext context, ResponseDraft draft) {
+    WorkflowExecution execution = context.execution();
+    String policySnapshotJson = writeJson(draft.policySnapshot());
     boolean policySnapshotChanged = !policySnapshotJson.equals(execution.getPolicySnapshotJson());
     if (policySnapshotChanged) {
       execution.replacePolicySnapshotJson(policySnapshotJson);
     }
     WorkflowExecution responseExecution =
-        persistExecution || policySnapshotChanged
+        draft.persistExecution() || policySnapshotChanged
             ? workflowExecutionRepository.save(execution)
             : execution;
     return new WorkflowAdvanceResponse(
-        session.getId(),
+        context.session().getId(),
         responseExecution.getId(),
         responseExecution.getStatus(),
-        previousState,
+        context.previousState(),
         responseExecution.getCurrentState(),
-        currentNode.type(),
-        actionType,
-        edgeId,
-        targetState,
-        missingSlotCodes,
-        condition,
-        policySnapshot,
-        transitionPolicy,
-        currentPolicy,
-        reason);
+        draft.node().type(),
+        draft.actionType(),
+        draft.edgeId(),
+        draft.targetState(),
+        draft.missingSlotCodes(),
+        draft.condition(),
+        draft.policySnapshot(),
+        draft.transitionPolicy(),
+        draft.currentPolicy(),
+        draft.reason());
+  }
+
+  private record AdvanceContext(
+      ChatSession session,
+      WorkflowExecution execution,
+      WorkflowRuntimeGraph graph,
+      String previousState,
+      RuntimeNode currentNode,
+      ObjectNode slotValues,
+      LlmToolPolicyResponse currentPolicy,
+      JsonNode policySnapshot,
+      JsonNode riskSnapshot) {
+
+    private static AdvanceContext of(
+        ChatSession session,
+        WorkflowExecution execution,
+        WorkflowRuntimeGraph graph,
+        String previousState,
+        RuntimeNode currentNode,
+        ObjectNode slotValues,
+        LlmToolPolicyResponse currentPolicy,
+        JsonNode policySnapshot,
+        JsonNode riskSnapshot) {
+      return new AdvanceContext(
+          session,
+          execution,
+          graph,
+          previousState,
+          currentNode,
+          slotValues,
+          currentPolicy,
+          policySnapshot,
+          riskSnapshot);
+    }
+  }
+
+  private record ResponseDraft(
+      RuntimeNode node,
+      String actionType,
+      String edgeId,
+      String targetState,
+      List<String> missingSlotCodes,
+      JsonNode condition,
+      JsonNode policySnapshot,
+      LlmToolPolicyResponse transitionPolicy,
+      LlmToolPolicyResponse currentPolicy,
+      boolean persistExecution,
+      String reason) {
+
+    private static ResponseDraft currentNode(
+        AdvanceContext context,
+        String actionType,
+        List<String> missingSlotCodes,
+        boolean persistExecution,
+        String reason) {
+      return new ResponseDraft(
+          context.currentNode(),
+          actionType,
+          null,
+          context.previousState(),
+          missingSlotCodes,
+          NO_CONDITION,
+          context.policySnapshot(),
+          null,
+          context.currentPolicy(),
+          persistExecution,
+          reason);
+    }
+
+    private static ResponseDraft transition(
+        RuntimeNode targetNode,
+        String actionType,
+        RuntimeEdge edge,
+        JsonNode policySnapshot,
+        LlmToolPolicyResponse transitionPolicy,
+        LlmToolPolicyResponse currentPolicy,
+        String reason) {
+      return new ResponseDraft(
+          targetNode,
+          actionType,
+          edge.id(),
+          targetNode.id(),
+          List.of(),
+          edge.condition(),
+          policySnapshot,
+          transitionPolicy,
+          currentPolicy,
+          true,
+          reason);
+    }
   }
 
   private ObjectNode readObjectNode(String json) {
