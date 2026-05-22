@@ -53,6 +53,15 @@ class LlmToolControllerSecurityTest {
   }
 
   @Test
+  @WithMockUser(roles = "USER")
+  @DisplayName("/workflow 경로에서 ROLE_OPERATOR가 없으면 403")
+  void should_return403_when_userIsNotOperator_forWorkflow() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/1/workflow"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   @WithMockUser(roles = "OPERATOR")
   @DisplayName("ROLE_OPERATOR면 200")
   void should_return200_when_userIsOperator() throws Exception {
