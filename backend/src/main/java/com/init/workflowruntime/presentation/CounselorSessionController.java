@@ -2,6 +2,8 @@ package com.init.workflowruntime.presentation;
 
 import com.init.workflowruntime.application.CounselorService;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,8 +37,8 @@ public class CounselorSessionController {
   @GetMapping("/sessions")
   public ResponseEntity<CounselorSessionResponse> getSessions(
       @RequestParam(required = false) String status,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(defaultValue = "0") @Min(0) int page,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
     return ResponseEntity.ok(counselorService.getSessions(status, page, size));
   }
 }

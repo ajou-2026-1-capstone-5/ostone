@@ -1,5 +1,6 @@
 package com.init.workflowruntime.presentation;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.BusinessException;
 import com.init.workflowruntime.application.CounselorService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
@@ -28,7 +29,15 @@ public class CounselorWebSocketController {
   @MessageMapping("/chat.counselor.send")
   public ChatMessageResponse sendCounselorMessage(
       @Valid CounselorMessageRequest request, Principal principal) {
-    Long counselorId = Long.parseLong(principal.getName());
+    if (principal == null || principal.getName() == null) {
+      throw new BadRequestException("INVALID_PRINCIPAL", "Counselor principal is required");
+    }
+    final Long counselorId;
+    try {
+      counselorId = Long.valueOf(principal.getName());
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("INVALID_PRINCIPAL", "Counselor id must be numeric");
+    }
     return counselorService.sendCounselorMessage(
         request.getSessionId(), request.getContent(), counselorId);
   }

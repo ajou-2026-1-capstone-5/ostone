@@ -12,6 +12,7 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,8 @@ public class CounselorService {
 
   @Transactional
   public CounselorSessionResponse assignSession(Long counselorId, Long sessionId) {
+    validateCounselorId(counselorId);
+
     ChatSession session = chatSessionRepository
         .findByIdForUpdate(sessionId)
         .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
@@ -58,11 +61,13 @@ public class CounselorService {
 
   @Transactional
   public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId) {
+    validateCounselorId(counselorId);
+
     ChatSession session = chatSessionRepository
         .findByIdForUpdate(sessionId)
         .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
-    if (!counselorId.equals(session.getAssignedCounselorId())) {
+    if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException("SESSION_NOT_ASSIGNED_TO_COUNSELOR",
           "Session " + sessionId + " is not assigned to counselor: " + counselorId);
     }
@@ -88,11 +93,13 @@ public class CounselorService {
 
   @Transactional
   public ChatMessageResponse sendCounselorMessage(Long sessionId, String content, Long counselorId) {
+    validateCounselorId(counselorId);
+
     ChatSession session = chatSessionRepository
         .findByIdForUpdate(sessionId)
         .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
-    if (!counselorId.equals(session.getAssignedCounselorId())) {
+    if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException("SESSION_NOT_ASSIGNED",
           "Session " + sessionId + " is not assigned to counselor: " + counselorId);
     }
@@ -125,6 +132,10 @@ public class CounselorService {
   }
 
   public CounselorSessionResponse getSessions(String status, int page, int size) {
+    if (page < 0 || size <= 0) {
+      throw new BadRequestException("INVALID_PAGING", "page must be >= 0 and size must be > 0");
+    }
+
     ChatSessionStatus sessionStatus = null;
     if (status != null && !status.isBlank()) {
       try {
@@ -148,5 +159,11 @@ public class CounselorService {
 
     return new CounselorSessionResponse(content, sessionPage.getNumber(), sessionPage.getSize(),
         sessionPage.getTotalElements(), sessionPage.getTotalPages());
+  }
+
+  private void validateCounselorId(Long counselorId) {
+    if (counselorId == null) {
+      throw new BadRequestException("INVALID_COUNSELOR_ID", "counselorId must not be null");
+    }
   }
 }

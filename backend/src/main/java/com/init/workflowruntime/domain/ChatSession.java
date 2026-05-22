@@ -141,6 +141,9 @@ public class ChatSession {
   }
 
   public void assignTo(Long counselorId) {
+    if (counselorId == null) {
+      throw new InvalidSessionStateException("assignTo() requires non-null counselorId");
+    }
     if (this.status != ChatSessionStatus.OPEN) {
       throw new InvalidSessionStateException(
           "assignTo() requires status OPEN but was " + this.status);
@@ -153,6 +156,10 @@ public class ChatSession {
   }
 
   public void releaseFrom() {
+    if (this.status != ChatSessionStatus.ACTIVE) {
+      throw new InvalidSessionStateException(
+          "releaseFrom() requires status ACTIVE but was " + this.status);
+    }
     if (this.assignedCounselorId == null) {
       throw new InvalidSessionStateException("Session is not assigned to any counselor");
     }
