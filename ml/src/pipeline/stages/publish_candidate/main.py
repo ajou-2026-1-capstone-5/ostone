@@ -410,19 +410,17 @@ def _run_callbacks(
     stage_context: StageContext,
     runtime_config: PipelineRuntimeConfig,
 ) -> None:
-    candidates = _candidate_items(candidate)
-    result["candidateCount"] = len(candidates)
-    for index, current_candidate in enumerate(candidates):
-        scope = _candidate_scope(current_candidate, index) if len(candidates) > 1 else None
-        _run_candidate_callbacks(
-            current_candidate,
-            result,
-            result_path,
-            stage_context,
-            runtime_config,
-            scope,
-            final_callback=index == len(candidates) - 1,
-        )
+    _candidate_items(candidate)
+    result["candidateCount"] = 1
+    _run_candidate_callbacks(
+        candidate,
+        result,
+        result_path,
+        stage_context,
+        runtime_config,
+        None,
+        final_callback=True,
+    )
 
 
 def _run_candidate_callbacks(
@@ -648,22 +646,9 @@ def _candidate_items(candidate: dict[str, Any]) -> list[dict[str, Any]]:
     candidates = candidate.get("candidates")
     if candidates is None:
         return [candidate]
-    if not isinstance(candidates, list) or not candidates:
-        raise PipelineStageError("candidates must be a non-empty JSON array when present.")
-    if not all(isinstance(item, dict) for item in candidates):
-        raise PipelineStageError("candidates must contain JSON objects.")
-    return cast(list[dict[str, Any]], candidates)
-
-
-def _candidate_scope(candidate: dict[str, Any], index: int) -> str:
-    domain_pack_draft = _required_object(candidate, "domainPackDraft")
-    pack_key = domain_pack_draft.get("packKey")
-    if isinstance(pack_key, str) and pack_key.strip():
-        return pack_key.strip()
-    consultation_id = candidate.get("consultationId")
-    if isinstance(consultation_id, str) and consultation_id.strip():
-        return f"consultation_{consultation_id.strip()}"
-    return f"candidate_{index}"
+    raise PipelineStageError(
+        "Candidate artifact must describe exactly one domain pack; candidates arrays are not supported."
+    )
 
 
 def _required_object(payload: dict[str, Any], key: str) -> dict[str, Any]:

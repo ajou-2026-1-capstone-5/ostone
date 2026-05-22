@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
-import re
 import time
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -32,8 +29,6 @@ _logger = logging.getLogger("pipeline.draft_generation")
 DEFAULT_CANDIDATE_ARTIFACT = "candidate.json"
 DEFAULT_CLUSTERS_ARTIFACT = "clusters.json"
 DEFAULT_PREPROCESSED_ARTIFACT = "preprocessed_data.json"
-DEFAULT_SEGMENT_ARTIFACT = "intent_segments_v3.jsonl"
-INTENT_MISC = "기타 문의"
 
 
 class SlotTemplate(NamedTuple):
@@ -74,17 +69,9 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     preprocessed_index = _read_preprocessed_index(runtime_config, stage_context)
     logger.info("draft_generation.preprocessed_loaded conversation_count=%d", len(preprocessed_index))
 
-    segment_rows = _read_segment_rows(runtime_config, stage_context)
-    consultation_cluster_groups = _build_consultation_cluster_groups(clusters, segment_rows)
-    if consultation_cluster_groups:
-        logger.info(
-            "draft_generation.consultation_split consultation_count=%d",
-            len(consultation_cluster_groups),
-        )
-
     cases_per_intent = _resolve_cases_per_intent()
     candidate, metrics = _build_candidate_artifact(
-        consultation_cluster_groups or {"": clusters},
+        clusters,
         preprocessed_index,
         cases_per_intent,
         stage_context,
@@ -177,140 +164,6 @@ def _read_preprocessed_index(
     return {conv["id"]: conv for conv in conversations if isinstance(conv, dict) and "id" in conv}
 
 
-def _read_segment_rows(
-    runtime_config: PipelineRuntimeConfig,
-    stage_context: StageContext,
-) -> list[dict[str, Any]]:
-    segment_path = _upstream_stage_dir("intent_discovery", runtime_config, stage_context) / DEFAULT_SEGMENT_ARTIFACT
-    if not segment_path.exists():
-        return []
-
-    rows: list[dict[str, Any]] = []
-    try:
-        for line_number, line in enumerate(segment_path.read_text(encoding="utf-8").splitlines(), start=1):
-            line = line.strip()
-            if not line:
-                continue
-            payload = json.loads(line)
-            if not isinstance(payload, dict):
-                raise PipelineStageError(f"{DEFAULT_SEGMENT_ARTIFACT} line {line_number} must be a JSON object.")
-            rows.append(payload)
-    except OSError as exc:
-        raise PipelineStageError(f"Failed to read {DEFAULT_SEGMENT_ARTIFACT}: {segment_path}") from exc
-    except json.JSONDecodeError as exc:
-        raise PipelineStageError(f"Invalid JSONL in {DEFAULT_SEGMENT_ARTIFACT}: {segment_path}") from exc
-    return rows
-
-
-def _build_consultation_cluster_groups(
-    clusters: list[Any],
-    segment_rows: list[dict[str, Any]],
-) -> dict[str, list[dict[str, Any]]]:
-    if not segment_rows:
-        return {}
-
-    global_by_canonical, global_by_cluster_id = _build_global_cluster_index(clusters)
-    grouped = _group_segment_rows_by_consultation(segment_rows)
-    consultation_clusters: dict[str, list[dict[str, Any]]] = {}
-    for consultation_id, canonical_groups in grouped.items():
-        consultation_clusters[consultation_id] = [
-            _build_local_consultation_cluster(
-                local_cluster_id,
-                consultation_id,
-                canonical,
-                rows,
-                global_by_canonical,
-                global_by_cluster_id,
-            )
-            for local_cluster_id, (canonical, rows) in enumerate(canonical_groups.items())
-        ]
-    return consultation_clusters
-
-
-def _build_global_cluster_index(
-    clusters: list[Any],
-) -> tuple[dict[str, dict[str, Any]], dict[int, dict[str, Any]]]:
-    global_by_canonical: dict[str, dict[str, Any]] = {}
-    global_by_cluster_id: dict[int, dict[str, Any]] = {}
-    for cluster in clusters:
-        if not isinstance(cluster, dict):
-            continue
-        canonical = _string_value(cluster.get("canonical_intent")) or _string_value(cluster.get("suggested_name"))
-        if canonical:
-            global_by_canonical[canonical] = cluster
-        cluster_id = _int_value(cluster.get("cluster_id"))
-        if cluster_id is not None:
-            global_by_cluster_id[cluster_id] = cluster
-    return global_by_canonical, global_by_cluster_id
-
-
-def _group_segment_rows_by_consultation(
-    segment_rows: list[dict[str, Any]],
-) -> dict[str, dict[str, list[dict[str, Any]]]]:
-    grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
-    for row in segment_rows:
-        consultation_id = _string_value(row.get("consultation_id"))
-        canonical = _string_value(row.get("canonical_intent"))
-        if consultation_id and canonical:
-            grouped.setdefault(consultation_id, {}).setdefault(canonical, []).append(row)
-    return grouped
-
-
-def _build_local_consultation_cluster(
-    local_cluster_id: int,
-    consultation_id: str,
-    canonical: str,
-    rows: list[dict[str, Any]],
-    global_by_canonical: dict[str, dict[str, Any]],
-    global_by_cluster_id: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    base = _base_cluster(canonical, rows[0], global_by_canonical, global_by_cluster_id)
-    workflow_signal = base.get("workflow_signal")
-    return {
-        "cluster_id": local_cluster_id,
-        "canonical_intent": canonical,
-        "suggested_name": canonical,
-        "description": _string_value(base.get("description")) or _description_from_canonical(canonical),
-        "suggested_description": _string_value(base.get("suggested_description"))
-        or _description_from_canonical(canonical),
-        "cluster_size": len(rows),
-        "source": base.get("source") or "consultation_split_v1",
-        "segment_ids": _non_empty_values(_string_value(row.get("segment_id")) for row in rows),
-        "sample_intent_phrases": _unique_non_empty(
-            (_string_value(row.get("intent_phrase_refined")) or canonical for row in rows),
-        )[:8],
-        "sample_segment_texts": _non_empty_values(_string_value(row.get("segment_customer_text")) for row in rows)[:5],
-        "member_conv_ids": [consultation_id],
-        "exemplar_conv_ids": [consultation_id],
-        "workflow_signal": workflow_signal
-        if isinstance(workflow_signal, dict)
-        else _workflow_signal_from_canonical(canonical),
-        "fallback_name": bool(base.get("fallback_name", canonical == INTENT_MISC)),
-    }
-
-
-def _base_cluster(
-    canonical: str,
-    first_row: dict[str, Any],
-    global_by_canonical: dict[str, dict[str, Any]],
-    global_by_cluster_id: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    cluster_id = _int_value(first_row.get("cluster_id"))
-    if canonical in global_by_canonical:
-        return global_by_canonical[canonical]
-    if cluster_id is not None and cluster_id in global_by_cluster_id:
-        return global_by_cluster_id[cluster_id]
-    return {}
-
-
-def _non_empty_values(values: Iterable[str | None]) -> list[str]:
-    return [value for value in values if value]
-
-
-def _unique_non_empty(values: Iterable[str | None]) -> list[str]:
-    return list(dict.fromkeys(value for value in values if value).keys())
-
-
 def _upstream_stage_dir(
     stage_name: str,
     runtime_config: PipelineRuntimeConfig,
@@ -328,90 +181,30 @@ def _upstream_stage_dir(
 
 
 def _build_candidate_artifact(
-    cluster_groups: dict[str, list[dict[str, Any]]],
+    clusters: list[Any],
     preprocessed_index: dict[str, dict[str, Any]],
     cases_per_intent: int,
     stage_context: StageContext,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    intent_metrics = _empty_intent_metrics()
-    workflow_metrics = _empty_workflow_metrics()
-    slot_metrics = _empty_slot_metrics()
-
-    for consultation_id, clusters in cluster_groups.items():
-        scoped_consultation_id = consultation_id or None
-        intents, current_intent_metrics = _build_intents(clusters, preprocessed_index, cases_per_intent)
-        workflow_draft, current_workflow_metrics = _build_workflow_draft(clusters)
-        slots, intent_slot_bindings, current_slot_metrics = _build_slot_draft(clusters)
-        workflow_draft["slots"] = slots
-        workflow_draft["intentSlotBindings"] = intent_slot_bindings
-        candidates.append(_build_candidate(intents, workflow_draft, stage_context, scoped_consultation_id))
-        _merge_numeric_metrics(intent_metrics, current_intent_metrics)
-        _merge_numeric_metrics(workflow_metrics, current_workflow_metrics)
-        _merge_numeric_metrics(slot_metrics, current_slot_metrics)
+    intents, intent_metrics = _build_intents(clusters, preprocessed_index, cases_per_intent)
+    workflow_draft, workflow_metrics = _build_workflow_draft(clusters)
+    slots, intent_slot_bindings, slot_metrics = _build_slot_draft(clusters)
+    workflow_draft["slots"] = slots
+    workflow_draft["intentSlotBindings"] = intent_slot_bindings
 
     if intent_metrics["intent_count"] > 0:
         intent_metrics["representative_case_avg_per_intent"] = (
             intent_metrics["representative_case_total"] / intent_metrics["intent_count"]
         )
 
-    candidate: dict[str, Any]
-    if len(candidates) == 1:
-        candidate = candidates[0]
-    else:
-        candidate = {
-            "schemaVersion": "1.0",
-            "candidateMode": "consultation_split_v1",
-            "candidates": candidates,
-        }
+    candidate = _build_candidate(intents, workflow_draft, stage_context)
 
     return candidate, {
-        "candidate_count": len(candidates),
+        "candidate_count": 1,
         "intent_metrics": intent_metrics,
         "workflow_metrics": workflow_metrics,
         "slot_metrics": slot_metrics,
     }
-
-
-def _empty_intent_metrics() -> dict[str, Any]:
-    return {
-        "intent_count": 0,
-        "representative_case_total": 0,
-        "representative_case_avg_per_intent": 0.0,
-        "intents_with_zero_cases": 0,
-    }
-
-
-def _empty_workflow_metrics() -> dict[str, Any]:
-    return {
-        "workflow_count": 0,
-        "workflow_with_identify_count": 0,
-        "workflow_with_payment_check_count": 0,
-        "workflow_with_escalation_count": 0,
-        "workflow_evidence_keyword_total": 0,
-        "workflow_evidence_exemplar_total": 0,
-        "workflow_evidence_member_total": 0,
-        "workflow_with_empty_evidence_count": 0,
-    }
-
-
-def _empty_slot_metrics() -> dict[str, Any]:
-    return {
-        "slot_count": 0,
-        "cluster_with_slot_count": 0,
-        "signal_slot_hit_payment_check": 0,
-        "signal_slot_hit_user_identification": 0,
-        "signal_slot_hit_escalation": 0,
-    }
-
-
-def _merge_numeric_metrics(target: dict[str, Any], source: dict[str, Any]) -> None:
-    for key, value in source.items():
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            continue
-        if key.endswith("_avg_per_intent"):
-            continue
-        target[key] = target.get(key, 0) + value
 
 
 def _flatten_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
@@ -521,29 +314,14 @@ def _hydrate_case(conv: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _derive_pack_identity(stage_context: StageContext, consultation_id: str | None = None) -> tuple[str, str]:
+def _derive_pack_identity(stage_context: StageContext) -> tuple[str, str]:
     if stage_context.workspace_id is None or stage_context.dataset_id is None:
         raise PipelineStageError("packKey requires both workspace_id and dataset_id in StageContext.")
     base_key = f"pack_ws{stage_context.workspace_id}_ds{stage_context.dataset_id}"
     base_name = f"Pack ws{stage_context.workspace_id}/ds{stage_context.dataset_id}"
-    if consultation_id:
-        digest = hashlib.sha256(consultation_id.encode("utf-8")).hexdigest()[:8]
-        suffix = f"_{digest}"
-        prefix = f"{base_key}_conv_"
-        if len(prefix) + len(suffix) >= 100:
-            prefix = f"{base_key[: 100 - len('_conv_') - len(suffix) - 1]}_conv_"
-        slug = _slugify(consultation_id, max_length=100 - len(prefix) - len(suffix))
-        pack_key = f"{prefix}{slug}{suffix}"
-        pack_name = f"{base_name}/{consultation_id}"[:255]
-        return pack_key, pack_name
     pack_key = base_key
     pack_name = base_name
     return pack_key, pack_name
-
-
-def _slugify(value: str, max_length: int) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", value).strip("-_").lower()
-    return (slug or "conversation")[:max_length]
 
 
 def _aggregate_evidence_metrics(
@@ -752,59 +530,19 @@ def _build_candidate(
     intents: list[dict[str, Any]],
     workflow_draft: dict[str, Any],
     stage_context: StageContext,
-    consultation_id: str | None = None,
 ) -> dict[str, Any]:
-    pack_key, pack_name = _derive_pack_identity(stage_context, consultation_id)
+    pack_key, pack_name = _derive_pack_identity(stage_context)
     domain_pack_draft: dict[str, Any] = {
         "packKey": pack_key,
         "packName": pack_name,
     }
-    if consultation_id:
-        domain_pack_draft["summaryJson"] = _compact_json(
-            {
-                "generationScope": "consultation",
-                "consultationId": consultation_id,
-                "workspaceId": stage_context.workspace_id,
-                "datasetId": stage_context.dataset_id,
-                "pipelineVersion": "consultation_split_v1",
-            }
-        )
     return {
         "schemaVersion": "1.0",
-        "consultationId": consultation_id,
         "domainPackDraft": domain_pack_draft,
         "intentDraft": {
             "intents": intents,
         },
         "workflowDraft": workflow_draft,
-    }
-
-
-def _string_value(value: object) -> str | None:
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
-
-
-def _int_value(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str) and value.isdecimal():
-        return int(value)
-    return None
-
-
-def _description_from_canonical(canonical: str) -> str:
-    return f"고객이 {canonical.replace(' 문의', '')}와 관련해 확인, 요청 또는 상담을 원하는 의도"
-
-
-def _workflow_signal_from_canonical(canonical: str) -> dict[str, bool]:
-    return {
-        "requires_payment_check": bool(re.search(r"결제|입금|환불|가격|견적|요금|비용", canonical)),
-        "requires_user_identification": bool(re.search(r"예약|변경|취소|환불|신청", canonical)),
-        "has_escalation_cases": bool(re.search(r"문제|보상|불만|컴플레인", canonical)),
     }
 
 

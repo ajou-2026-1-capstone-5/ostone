@@ -177,6 +177,20 @@ def test_validate_candidate_requires_workflow_component() -> None:
         publish.validate_candidate(candidate)
 
 
+@pytest.mark.parametrize("candidate_count", [1, 2])
+def test_validate_candidate_rejects_legacy_domain_pack_candidates_array(
+    candidate_count: int,
+) -> None:
+    candidate = {
+        "schemaVersion": "1.0",
+        "candidateMode": "consultation_split_v1",
+        "candidates": [_candidate() for _ in range(candidate_count)],
+    }
+
+    with pytest.raises(PipelineStageError, match="exactly one domain pack"):
+        publish.validate_candidate(candidate)
+
+
 def test_validate_candidate_rejects_missing_spring_required_fields() -> None:
     cases = [
         ("intent name", ("intentDraft", "intents", 0, "name")),

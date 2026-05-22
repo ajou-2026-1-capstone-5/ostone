@@ -264,8 +264,27 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
     given(pipelineJobRepository.findById(11L))
         .willReturn(Optional.of(pipelineJob(11L, 3L, PipelineJob.STATUS_WAITING_INTENT_CALLBACK)));
 
-    assertThatThrownBy(() -> useCase.execute(validCommand()))
+    ReceiveDomainPackDraftCallbackCommand command = validCommand();
+
+    assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(PipelineJobCallbackNotAllowedException.class);
+  }
+
+  @Test
+  @DisplayName("이미 DomainPack이 연결된 RUNNING job에 domain-pack callback이 다시 오면 409 예외를 던진다")
+  void execute_runningJobWithDomainPack_throwsConflict() {
+    PipelineJob job = pipelineJob(11L, 3L, PipelineJob.STATUS_RUNNING);
+    ReflectionTestUtils.setField(job, "domainPackId", 7L);
+    given(webhookReceiptRepository.findByExternalEventId("evt-draft-1"))
+        .willReturn(Optional.empty());
+    given(pipelineJobRepository.findById(11L)).willReturn(Optional.of(job));
+
+    ReceiveDomainPackDraftCallbackCommand command = validCommand();
+
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(PipelineJobCallbackNotAllowedException.class);
+
+    verify(createDomainPackDraftPort, never()).execute(any());
   }
 
   private ReceiveDomainPackDraftCallbackCommand validCommand() {

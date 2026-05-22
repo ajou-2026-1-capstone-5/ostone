@@ -116,11 +116,12 @@ describe("Dropzone", () => {
     render(<Dropzone workspaceId={1} />);
     act(() => {
       lastConfig?.mutation?.onSuccess?.(
-        { datasetId: 42 },
+        { datasetId: 42, conversationCount: 10 },
         { data: { file: new File(["x"], "a.json") } },
       );
     });
     expect(screen.getByText(/업로드 완료 — a\.json \(dataset 42\)/)).toBeInTheDocument();
+    expect(screen.getByText("상담 10건은 도메인팩 초안 1개 안에 반영됩니다.")).toBeInTheDocument();
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith("업로드 완료");
   });
 
@@ -128,11 +129,12 @@ describe("Dropzone", () => {
     render(<Dropzone workspaceId={1} />);
     act(() => {
       lastConfig?.mutation?.onSuccess?.(
-        { data: { datasetId: 99 } },
+        { data: { datasetId: 99, conversationCount: 3 } },
         { data: { file: new File(["x"], "b.json") } },
       );
     });
     expect(screen.getByText(/업로드 완료 — b\.json \(dataset 99\)/)).toBeInTheDocument();
+    expect(screen.getByText("상담 3건은 도메인팩 초안 1개 안에 반영됩니다.")).toBeInTheDocument();
   });
 
   it("onSuccess: datasetId 가 없으면 -1 로 폴백한다", () => {
