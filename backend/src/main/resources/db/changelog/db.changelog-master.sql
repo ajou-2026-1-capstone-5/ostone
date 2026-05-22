@@ -750,3 +750,16 @@ ALTER TABLE pack.intent_definition
 ALTER TABLE pack.intent_definition
     ADD CONSTRAINT chk_intent_definition_status
     CHECK (status IN ('DRAFT', 'PUBLISHED', 'REJECTED'));
+
+--changeset init:20260522-add-assigned-counselor-id-to-chat-session
+--comment: Add assigned_counselor_id column to runtime.chat_session for counselor intervention
+ALTER TABLE runtime.chat_session ADD COLUMN assigned_counselor_id BIGINT;
+
+--changeset init:20260522-add-assigned-counselor-id-constraints
+--comment: Add FK and index for assigned counselor lookup
+ALTER TABLE runtime.chat_session
+    ADD CONSTRAINT fk_chat_session_assigned_counselor
+    FOREIGN KEY (assigned_counselor_id) REFERENCES app.app_user(id);
+
+CREATE INDEX idx_chat_session_assigned_counselor_id
+    ON runtime.chat_session (assigned_counselor_id);
