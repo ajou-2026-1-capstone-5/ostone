@@ -19,4 +19,7 @@ public interface SlotDefinitionRepository {
   List<SlotDefinition> findAllByDomainPackVersionIdOrderBySlotCodeAsc(Long domainPackVersionId);
 
   Optional<SlotDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
+
+  Optional<SlotDefinition> findByDomainPackVersionIdAndSlotCode(
+      Long domainPackVersionId, String slotCode);
 }
