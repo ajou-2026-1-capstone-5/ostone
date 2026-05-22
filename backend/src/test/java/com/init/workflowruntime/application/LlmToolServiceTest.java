@@ -3,6 +3,7 @@ package com.init.workflowruntime.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,6 +32,8 @@ import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
+import com.init.workflowruntime.application.dto.LlmToolPolicyContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolPolicyResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
@@ -139,6 +142,65 @@ class LlmToolServiceTest {
     assertThat(result.get(0).required()).isFalse();
     assertThat(result.get(0).hasValue()).isFalse();
     assertThat(result.get(0).value().isNull()).isTrue();
+  }
+
+  @Test
+  @DisplayName("getPolicyContext: 실행이 없으면 세션과 빈 policy snapshot만 반환한다")
+  void returnsEmptyPolicyContextWhenExecutionMissing() {
+    ChatSession session = createSession(1L, 10L, 101L);
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.empty());
+
+    LlmToolPolicyContextResponse result = service.getPolicyContext(1L);
+
+    assertThat(result.sessionId()).isEqualTo(1L);
+    assertThat(result.executionId()).isNull();
+    assertThat(result.currentState()).isNull();
+    assertThat(result.policySnapshot().isObject()).isTrue();
+    assertThat(result.policySnapshot()).isEmpty();
+    assertThat(result.currentPolicy()).isNull();
+  }
+
+  @Test
+  @DisplayName("getPolicyContext: 실행이 있으면 current policy와 policy snapshot을 반환한다")
+  void returnsPolicyContextWhenExecutionExists() throws Exception {
+    ChatSession session = createSession(1L, 10L, 101L);
+    WorkflowExecution execution = createExecution(50L, 1L, 70L, "{\"order_id\":\"A-100\"}");
+    ReflectionTestUtils.setField(execution, "currentState", "policy_check");
+    execution.replacePolicySnapshotJson("{\"hits\":[{\"policyCode\":\"refund_policy\"}]}");
+    LlmToolPolicyResponse policyResponse =
+        new LlmToolPolicyResponse(
+            300L,
+            "refund_policy",
+            "환불 정책",
+            "환불 가능 조건",
+            "HIGH",
+            objectMapper.createObjectNode(),
+            objectMapper.createObjectNode(),
+            objectMapper.createArrayNode(),
+            objectMapper.createObjectNode(),
+            "ACTIVE",
+            "policy_check",
+            true,
+            List.of(),
+            "policy condition matched");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.of(execution));
+    given(workflowPolicyRuntimeService.evaluateCurrentPolicy(eq(101L), eq(execution), any()))
+        .willReturn(policyResponse);
+
+    LlmToolPolicyContextResponse result = service.getPolicyContext(1L);
+
+    assertThat(result.sessionId()).isEqualTo(1L);
+    assertThat(result.executionId()).isEqualTo(50L);
+    assertThat(result.currentState()).isEqualTo("policy_check");
+    assertThat(result.policySnapshot().path("hits").get(0).path("policyCode").asText())
+        .isEqualTo("refund_policy");
+    assertThat(result.currentPolicy()).isEqualTo(policyResponse);
   }
 
   @Test

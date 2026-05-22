@@ -62,6 +62,26 @@ class WorkflowExecutionTest {
   }
 
   @Test
+  @DisplayName("replacePolicySnapshotJson: null은 빈 JSON object로 저장한다")
+  void replacesPolicySnapshotWithEmptyJsonWhenValueIsNull() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+
+    execution.replacePolicySnapshotJson(null);
+
+    assertThat(execution.getPolicySnapshotJson()).isEqualTo("{}");
+  }
+
+  @Test
+  @DisplayName("replaceRiskSnapshotJson: null은 빈 JSON object로 저장한다")
+  void replacesRiskSnapshotWithEmptyJsonWhenValueIsNull() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+
+    execution.replaceRiskSnapshotJson(null);
+
+    assertThat(execution.getRiskSnapshotJson()).isEqualTo("{}");
+  }
+
+  @Test
   @DisplayName("assignIntentWorkflow: 실행 중이면 intent/workflow/currentState를 저장한다")
   void should_assignIntentWorkflow_when_running() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
@@ -72,6 +92,69 @@ class WorkflowExecutionTest {
     assertThat(execution.getWorkflowDefinitionId()).isEqualTo(20L);
     assertThat(execution.getCurrentState()).isEqualTo("start");
     assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_RUNNING);
+  }
+
+  @Test
+  @DisplayName("moveToState: 실행 중이면 currentState를 변경한다")
+  void movesToStateWhenRunning() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    execution.assignIntentWorkflow(10L, 20L, "start");
+
+    execution.moveToState("confirm");
+
+    assertThat(execution.getCurrentState()).isEqualTo("confirm");
+  }
+
+  @Test
+  @DisplayName("moveToState: 완료된 실행이면 currentState를 변경하지 않는다")
+  void throwsWhenMovingCompletedExecution() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    execution.assignIntentWorkflow(10L, 20L, "start");
+    execution.complete();
+
+    assertThatExceptionOfType(BadRequestException.class)
+        .isThrownBy(() -> execution.moveToState("confirm"))
+        .withMessageContaining("terminal execution");
+
+    assertThat(execution.getCurrentState()).isEqualTo("start");
+  }
+
+  @Test
+  @DisplayName("complete: 실행 중이면 완료 상태와 종료 시각을 저장한다")
+  void completesExecutionWhenRunning() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+
+    execution.complete();
+
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_COMPLETED);
+    assertThat(execution.getFinishedAt()).isNotNull();
+  }
+
+  @Test
+  @DisplayName("complete: 이미 완료된 실행이면 상태를 유지한다")
+  void keepsCompletedExecutionWhenAlreadyCompleted() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    execution.complete();
+    OffsetDateTime firstFinishedAt = execution.getFinishedAt();
+
+    execution.complete();
+
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_COMPLETED);
+    assertThat(execution.getFinishedAt()).isEqualTo(firstFinishedAt);
+  }
+
+  @Test
+  @DisplayName("complete: 실패한 실행이면 완료로 변경하지 않는다")
+  void throwsWhenCompletingFailedExecution() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
+
+    assertThatExceptionOfType(BadRequestException.class)
+        .isThrownBy(execution::complete)
+        .withMessageContaining("Cannot complete failed execution");
+
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_FAILED);
+    assertThat(execution.getFinishedAt()).isNull();
   }
 
   @Test
