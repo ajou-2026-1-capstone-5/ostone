@@ -15,6 +15,10 @@ import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
@@ -77,7 +81,7 @@ class LlmToolServiceTest {
         .willReturn(List.of(orderBinding, customerBinding));
 
     // when
-    LlmToolContextResponse result = service.getContext(1L);
+    LlmToolContextResponse result = service.getContext(new GetLlmToolContextCommand(1L));
 
     // then
     assertThat(result.sessionId()).isEqualTo(1L);
@@ -106,7 +110,7 @@ class LlmToolServiceTest {
         .willReturn(List.of(activeSlot, inactiveSlot));
 
     // when
-    List<LlmToolSlotResponse> result = service.listSlots(1L);
+    List<LlmToolSlotResponse> result = service.listSlots(new ListLlmToolSlotsCommand(1L));
 
     // then
     assertThat(result).hasSize(1);
@@ -131,7 +135,7 @@ class LlmToolServiceTest {
         .willReturn(Optional.of(inactiveSlot));
 
     // when & then
-    assertThatThrownBy(() -> service.getSlot(1L, "order_id"))
+    assertThatThrownBy(() -> service.getSlot(new GetLlmToolSlotCommand(1L, "order_id")))
         .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("SlotDefinition not found");
   }
@@ -147,14 +151,15 @@ class LlmToolServiceTest {
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
         .willReturn(Optional.of(slot));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
         .willReturn(Optional.of(execution));
     given(workflowExecutionRepository.save(execution)).willReturn(execution);
 
     JsonNode value = objectMapper.readTree("\"A-200\"");
 
     // when
-    LlmToolSlotValueResponse result = service.upsertSlotValue(1L, "order_id", value);
+    LlmToolSlotValueResponse result =
+        service.upsertSlotValue(new UpsertLlmToolSlotValueCommand(1L, "order_id", value));
 
     // then
     assertThat(result.executionId()).isEqualTo(50L);
@@ -167,7 +172,8 @@ class LlmToolServiceTest {
   @Test
   @DisplayName("upsertSlotValue: value가 null이면 400 예외")
   void should_throwBadRequest_when_valueIsNull() {
-    assertThatThrownBy(() -> service.upsertSlotValue(1L, "order_id", null))
+    assertThatThrownBy(
+            () -> service.upsertSlotValue(new UpsertLlmToolSlotValueCommand(1L, "order_id", null)))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("slot value is required");
   }
@@ -182,7 +188,7 @@ class LlmToolServiceTest {
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
         .willReturn(Optional.of(slot));
-    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDesc(1L))
+    given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
         .willReturn(Optional.empty());
     given(workflowExecutionRepository.save(any(WorkflowExecution.class)))
         .willAnswer(
@@ -197,7 +203,8 @@ class LlmToolServiceTest {
     JsonNode value = objectMapper.readTree("\"A-100\"");
 
     // when
-    LlmToolSlotValueResponse result = service.upsertSlotValue(1L, "order_id", value);
+    LlmToolSlotValueResponse result =
+        service.upsertSlotValue(new UpsertLlmToolSlotValueCommand(1L, "order_id", value));
 
     // then
     assertThat(result.executionId()).isEqualTo(90L);
@@ -219,7 +226,7 @@ class LlmToolServiceTest {
         .willReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> service.getSlot(1L, "unknown"))
+    assertThatThrownBy(() -> service.getSlot(new GetLlmToolSlotCommand(1L, "unknown")))
         .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("SlotDefinition not found");
   }

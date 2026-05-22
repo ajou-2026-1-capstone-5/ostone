@@ -1,6 +1,10 @@
 package com.init.workflowruntime.presentation;
 
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
@@ -27,18 +31,19 @@ public class LlmToolController {
 
   @GetMapping("/context")
   public ResponseEntity<LlmToolContextResponse> getContext(@PathVariable Long sessionId) {
-    return ResponseEntity.ok(llmToolService.getContext(sessionId));
+    return ResponseEntity.ok(llmToolService.getContext(new GetLlmToolContextCommand(sessionId)));
   }
 
   @GetMapping("/slots")
   public ResponseEntity<List<LlmToolSlotResponse>> listSlots(@PathVariable Long sessionId) {
-    return ResponseEntity.ok(llmToolService.listSlots(sessionId));
+    return ResponseEntity.ok(llmToolService.listSlots(new ListLlmToolSlotsCommand(sessionId)));
   }
 
   @GetMapping("/slots/{slotCode}")
   public ResponseEntity<LlmToolSlotResponse> getSlot(
       @PathVariable Long sessionId, @PathVariable String slotCode) {
-    return ResponseEntity.ok(llmToolService.getSlot(sessionId, slotCode));
+    return ResponseEntity.ok(
+        llmToolService.getSlot(new GetLlmToolSlotCommand(sessionId, slotCode)));
   }
 
   @PutMapping("/slots/{slotCode}")
@@ -46,6 +51,8 @@ public class LlmToolController {
       @PathVariable Long sessionId,
       @PathVariable String slotCode,
       @Valid @RequestBody UpsertSlotValueRequest request) {
-    return ResponseEntity.ok(llmToolService.upsertSlotValue(sessionId, slotCode, request.value()));
+    return ResponseEntity.ok(
+        llmToolService.upsertSlotValue(
+            new UpsertLlmToolSlotValueCommand(sessionId, slotCode, request.value())));
   }
 }

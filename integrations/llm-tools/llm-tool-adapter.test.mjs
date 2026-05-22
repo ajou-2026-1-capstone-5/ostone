@@ -39,6 +39,10 @@ describe("llm slot tools", () => {
       buildToolUrl("http://localhost:8080", 7, "/slots/order_id"),
       "http://localhost:8080/api/v1/llm-tools/sessions/7/slots/order_id",
     );
+    assert.equal(
+      buildToolUrl("http://localhost:8080/", 7, "slots/order_id"),
+      "http://localhost:8080/api/v1/llm-tools/sessions/7/slots/order_id",
+    );
   });
 
   it("maps get_current_slot tool calls to the backend slot endpoint", async () => {
@@ -99,5 +103,30 @@ describe("llm slot tools", () => {
     assert.equal(requests[0].init.method, "PUT");
     assert.equal(requests[0].init.headers["Content-Type"], "application/json");
     assert.equal(requests[0].init.body, "{\"value\":\"A-200\"}");
+  });
+
+  it("preserves status and non-JSON payloads from failed backend responses", async () => {
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      sessionId: 7,
+      fetchImpl: async () => ({
+        ok: false,
+        status: 502,
+        text: async () => "bad gateway",
+      }),
+    });
+
+    await assert.rejects(
+      () =>
+        handler({
+          name: LLM_SLOT_TOOL_NAMES.listSlots,
+          arguments: {},
+        }),
+      error => {
+        assert.equal(error.status, 502);
+        assert.equal(error.payload, "bad gateway");
+        return true;
+      },
+    );
   });
 });

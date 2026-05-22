@@ -6,5 +6,7 @@ public interface WorkflowExecutionRepository {
 
   Optional<WorkflowExecution> findTopByChatSessionIdOrderByStartedAtDesc(Long chatSessionId);
 
+  Optional<WorkflowExecution> findLatestByChatSessionIdForUpdate(Long chatSessionId);
+
   WorkflowExecution save(WorkflowExecution execution);
 }

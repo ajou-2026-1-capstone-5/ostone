@@ -1,7 +1,6 @@
 package com.init.workflowruntime.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -11,6 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
@@ -46,7 +49,7 @@ class LlmToolControllerTest {
   @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/context → 200 OK")
   void should_returnContext_when_validRequest() throws Exception {
     // given
-    given(llmToolService.getContext(1L))
+    given(llmToolService.getContext(new GetLlmToolContextCommand(1L)))
         .willReturn(
             new LlmToolContextResponse(
                 1L,
@@ -73,7 +76,8 @@ class LlmToolControllerTest {
   @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/slots → 200 OK")
   void should_returnSlots_when_validRequest() throws Exception {
     // given
-    given(llmToolService.listSlots(1L)).willReturn(List.of(slotResponse("order_id", true)));
+    given(llmToolService.listSlots(new ListLlmToolSlotsCommand(1L)))
+        .willReturn(List.of(slotResponse("order_id", true)));
 
     // when & then
     mockMvc
@@ -87,7 +91,8 @@ class LlmToolControllerTest {
   @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/slots/{slotCode} → 200 OK")
   void should_returnSlot_when_validRequest() throws Exception {
     // given
-    given(llmToolService.getSlot(1L, "order_id")).willReturn(slotResponse("order_id", true));
+    given(llmToolService.getSlot(new GetLlmToolSlotCommand(1L, "order_id")))
+        .willReturn(slotResponse("order_id", true));
 
     // when & then
     mockMvc
@@ -102,7 +107,7 @@ class LlmToolControllerTest {
   @DisplayName("PUT /api/v1/llm-tools/sessions/{sessionId}/slots/{slotCode} → 200 OK")
   void should_upsertSlotValue_when_validRequest() throws Exception {
     // given
-    given(llmToolService.upsertSlotValue(eq(1L), eq("order_id"), any()))
+    given(llmToolService.upsertSlotValue(any(UpsertLlmToolSlotValueCommand.class)))
         .willReturn(
             new LlmToolSlotValueResponse(
                 1L, 50L, "order_id", true, objectMapper.readTree("\"A-200\"")));

@@ -12,6 +12,10 @@ import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
@@ -51,7 +55,8 @@ public class LlmToolService {
     this.objectMapper = objectMapper;
   }
 
-  public LlmToolContextResponse getContext(Long sessionId) {
+  public LlmToolContextResponse getContext(GetLlmToolContextCommand command) {
+    Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
     WorkflowExecution execution = findExecution(sessionId);
     ObjectNode slotValues =
@@ -72,7 +77,8 @@ public class LlmToolService {
         slots);
   }
 
-  public List<LlmToolSlotResponse> listSlots(Long sessionId) {
+  public List<LlmToolSlotResponse> listSlots(ListLlmToolSlotsCommand command) {
+    Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
     WorkflowExecution execution = findExecution(sessionId);
     ObjectNode slotValues =
@@ -80,7 +86,9 @@ public class LlmToolService {
     return buildSlotResponses(session, execution, slotValues);
   }
 
-  public LlmToolSlotResponse getSlot(Long sessionId, String slotCode) {
+  public LlmToolSlotResponse getSlot(GetLlmToolSlotCommand command) {
+    Long sessionId = command.sessionId();
+    String slotCode = command.slotCode();
     ChatSession session = findSession(sessionId);
     WorkflowExecution execution = findExecution(sessionId);
     ObjectNode slotValues =
@@ -91,7 +99,10 @@ public class LlmToolService {
   }
 
   @Transactional
-  public LlmToolSlotValueResponse upsertSlotValue(Long sessionId, String slotCode, JsonNode value) {
+  public LlmToolSlotValueResponse upsertSlotValue(UpsertLlmToolSlotValueCommand command) {
+    Long sessionId = command.sessionId();
+    String slotCode = command.slotCode();
+    JsonNode value = command.value();
     if (value == null) {
       throw new BadRequestException("SLOT_VALUE_REQUIRED", "slot value is required");
     }
@@ -99,7 +110,7 @@ public class LlmToolService {
     ChatSession session = findSession(sessionId);
     findActiveSlot(session.getDomainPackVersionId(), slotCode);
 
-    WorkflowExecution execution = findOrCreateExecution(session);
+    WorkflowExecution execution = findOrCreateExecutionForUpdate(session);
     ObjectNode slotValues = readObjectNode(execution.getSlotValuesJson());
     slotValues.set(slotCode, value.deepCopy());
     execution.replaceSlotValuesJson(writeJson(slotValues));
@@ -123,13 +134,13 @@ public class LlmToolService {
         .orElse(null);
   }
 
-  private WorkflowExecution findOrCreateExecution(ChatSession session) {
+  private WorkflowExecution findOrCreateExecutionForUpdate(ChatSession session) {
     Long sessionId = session.getId();
     if (sessionId == null) {
       throw new InternalException("SESSION_ID_MISSING", "Session ID cannot be null");
     }
     return workflowExecutionRepository
-        .findTopByChatSessionIdOrderByStartedAtDesc(sessionId)
+        .findLatestByChatSessionIdForUpdate(sessionId)
         .orElseGet(() -> workflowExecutionRepository.save(WorkflowExecution.create(sessionId)));
   }
 

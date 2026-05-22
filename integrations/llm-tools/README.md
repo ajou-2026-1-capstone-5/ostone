@@ -17,7 +17,7 @@ PUT /api/v1/llm-tools/sessions/{sessionId}/slots/{slotCode}
 import {
   createLlmSlotToolHandler,
   llmSlotTools,
-} from "./integrations/llm-tools/llm-tool-adapter.mjs";
+} from "./llm-tool-adapter.mjs";
 
 const handleToolCall = createLlmSlotToolHandler({
   backendBaseUrl: "http://localhost:8080",

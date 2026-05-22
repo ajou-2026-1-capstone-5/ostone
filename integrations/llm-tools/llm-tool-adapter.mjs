@@ -76,16 +76,15 @@ export function createLlmSlotToolHandler({
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const responseText = await response.text();
-    const payload = responseText ? JSON.parse(responseText) : null;
 
     if (!response.ok) {
       const error = new Error(`LLM slot tool request failed: ${response.status}`);
       error.status = response.status;
-      error.payload = payload;
+      error.payload = parseResponsePayload(responseText);
       throw error;
     }
 
-    return payload;
+    return responseText ? JSON.parse(responseText) : null;
   }
 }
 
@@ -104,7 +103,9 @@ export function parseToolCall(toolCall) {
 
 export function buildToolUrl(backendBaseUrl, sessionId, path) {
   const baseUrl = backendBaseUrl.endsWith("/") ? backendBaseUrl : `${backendBaseUrl}/`;
-  const relativePath = `api/v1/llm-tools/sessions/${encodeURIComponent(sessionId)}${path}`;
+  const normalizedPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  const relativePath =
+    `api/v1/llm-tools/sessions/${encodeURIComponent(sessionId)}${normalizedPath}`;
   return new URL(relativePath, baseUrl).toString();
 }
 
@@ -125,6 +126,17 @@ function requireString(args, key) {
     throw new Error(`${key} must be a non-empty string`);
   }
   return value;
+}
+
+function parseResponsePayload(responseText) {
+  if (!responseText) {
+    return null;
+  }
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return responseText;
+  }
 }
 
 function wrapToolResult(toolCall, name, result) {
