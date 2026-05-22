@@ -62,6 +62,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/consultation/**")
                     .hasRole("OPERATOR")
+                    .requestMatchers("/api/v1/llm-tools/**")
+                    .hasRole("OPERATOR")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
