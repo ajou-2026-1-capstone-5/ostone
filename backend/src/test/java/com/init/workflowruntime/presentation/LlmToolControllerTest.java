@@ -22,6 +22,7 @@ import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueComman
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
+import com.init.workflowruntime.application.dto.LlmToolPolicyContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
@@ -131,6 +132,8 @@ class LlmToolControllerTest {
                 "RUNNING",
                 "collect_slots",
                 objectMapper.readTree("{\"order_id\":\"A-100\"}"),
+                objectMapper.readTree("{\"hits\":[]}"),
+                null,
                 List.of("customer_name"),
                 List.of(slotResponse("order_id", true))));
 
@@ -142,6 +145,27 @@ class LlmToolControllerTest {
         .andExpect(jsonPath("$.slotValues.order_id").value("A-100"))
         .andExpect(jsonPath("$.missingSlots[0]").value("customer_name"))
         .andExpect(jsonPath("$.slots[0].slotCode").value("order_id"));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/policy-context → 200 OK")
+  void should_returnPolicyContext_when_validRequest() throws Exception {
+    given(llmToolService.getPolicyContext(1L))
+        .willReturn(
+            new LlmToolPolicyContextResponse(
+                1L,
+                50L,
+                "confirm_cancel",
+                objectMapper.readTree(
+                    "{\"hits\":[{\"policyCode\":\"cancel_policy\",\"nodeId\":\"confirm_cancel\"}]}"),
+                null));
+
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/1/policy-context"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.currentState").value("confirm_cancel"))
+        .andExpect(jsonPath("$.policySnapshot.hits[0].policyCode").value("cancel_policy"));
   }
 
   @Test

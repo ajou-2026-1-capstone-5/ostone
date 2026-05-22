@@ -61,6 +61,7 @@ class LlmToolServiceTest {
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
   @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
 
   private ObjectMapper objectMapper;
   private LlmToolService service;
@@ -77,6 +78,7 @@ class LlmToolServiceTest {
             intentSlotBindingRepository,
             intentWorkflowBindingRepository,
             workflowDefinitionRepository,
+            workflowPolicyRuntimeService,
             objectMapper);
   }
 
