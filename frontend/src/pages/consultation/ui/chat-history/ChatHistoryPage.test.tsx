@@ -68,6 +68,7 @@ function renderPage(path = "/workspaces/workspace-1/consultation/history") {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/workspaces/:workspaceId/consultation/history" element={<ChatHistoryPage />} />
+        <Route path="/workspaces/:workspaceId/consultation/history/:sessionId" element={<ChatHistoryPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -151,5 +152,12 @@ describe("ChatHistoryPage", () => {
 
     expect(screen.getByText("메시지 오류")).toBeTruthy();
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it("URL의 sessionId로 초기 세션을 선택한다", () => {
+    mockedUseChatMessages.mockReturnValue(makeMessagesResult({ data: [makeMessage()] }));
+    renderPage("/workspaces/workspace-1/consultation/history/7");
+
+    expect(mockedUseChatMessages).toHaveBeenLastCalledWith("7");
   });
 });

@@ -61,17 +61,19 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
         </div>
       ) : (
         <div className={styles.list}>
-          {sessions.map((session) => {
-            const sessionId = String(session.id ?? "");
-            return (
-              <SessionCard
-                key={sessionId}
-                session={session}
-                isSelected={selectedSessionId === sessionId}
-                onSelectSession={onSelectSession}
-              />
-            );
-          })}
+          {sessions
+            .filter((session): session is typeof session & { id: number } => session.id != null)
+            .map((session) => {
+              const sessionId = String(session.id);
+              return (
+                <SessionCard
+                  key={sessionId}
+                  session={session}
+                  isSelected={selectedSessionId === sessionId}
+                  onSelectSession={onSelectSession}
+                />
+              );
+            })}
         </div>
       )}
     </aside>

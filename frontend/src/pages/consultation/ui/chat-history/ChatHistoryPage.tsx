@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { MessageHistory } from "../../../../features/consultation/ui/chat-history/MessageHistory";
 import { SessionList } from "../../../../features/consultation/ui/chat-history/SessionList";
@@ -12,6 +12,10 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
   const { workspaceId: workspaceIdParam, sessionId: sessionIdParam } = useParams<{ workspaceId: string; sessionId: string }>();
   const workspaceId = workspaceIdProp ?? workspaceIdParam ?? "";
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionIdParam ?? null);
+
+  useEffect(() => {
+    setSelectedSessionId(sessionIdParam ?? null);
+  }, [sessionIdParam]);
 
   return (
     <main className={styles.page}>
