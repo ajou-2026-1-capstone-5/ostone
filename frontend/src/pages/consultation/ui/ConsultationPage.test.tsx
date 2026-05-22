@@ -5,6 +5,15 @@ import { MemoryRouter } from "react-router-dom";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 
+const { mockUnsubscribe, mockSubscribe, mockSendTo } = vi.hoisted(() => {
+  const mockUnsubscribe = vi.fn();
+  return {
+    mockUnsubscribe,
+    mockSubscribe: vi.fn(() => mockUnsubscribe),
+    mockSendTo: vi.fn(),
+  };
+});
+
 const shellContext = {
   setTopbarRight: vi.fn(),
   setCrumbs: vi.fn(),
@@ -44,18 +53,20 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         },
       ]),
     ),
-    sendMessage: vi.fn(() =>
-      Promise.resolve({
-        id: 99,
-        seqNo: 1,
-        senderRole: "AGENT",
-        messageType: "TEXT",
-        content: "test",
-        createdAt: new Date().toISOString(),
-      }),
-    ),
     updateStatus: vi.fn(() => Promise.resolve({})),
   },
+}));
+
+vi.mock("@/shared/lib/websocket", () => ({
+  useStomp: () => ({
+    connectionStatus: "CONNECTED",
+    subscribe: mockSubscribe,
+    sendTo: mockSendTo,
+    sendMessage: vi.fn(),
+    lastMessage: null,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+  }),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -65,6 +76,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe("ConsultationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSubscribe.mockReturnValue(mockUnsubscribe);
     window.alert = vi.fn();
   });
 
@@ -144,6 +156,46 @@ describe("ConsultationPage", () => {
     });
 
     expect(screen.queryByText("AI가 분류한 주제")).not.toBeInTheDocument();
+  });
+
+  it("subscribes to STOMP topic when a customer is selected and connection is established", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalledWith("/topic/chat.counselor.1", expect.any(Function));
+    });
+  });
+
+  it("sends messages through STOMP and adds an optimistic message", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "처리 도와드리겠습니다.");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(mockSendTo).toHaveBeenCalledWith("/app/chat.counselor.send", {
+        sessionId: 1,
+        content: "처리 도와드리겠습니다.",
+        isNote: false,
+      });
+    });
+    expect(screen.getByText("처리 도와드리겠습니다.")).toBeInTheDocument();
   });
 
   it("cleans up topbar and crumbs on unmount", () => {

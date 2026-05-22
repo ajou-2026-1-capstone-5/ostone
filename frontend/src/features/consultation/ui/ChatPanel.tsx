@@ -4,7 +4,7 @@ import styles from "./chat-panel.module.css";
 
 export interface ChatMessage {
   id: string;
-  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE";
+  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE" | "COUNSELOR" | "ASSISTANT";
   content: string;
   timestamp: string;
 }
@@ -109,7 +109,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               </div>
             );
           }
-          const isAgent = msg.senderRole === "AGENT";
+          const isAgent =
+            msg.senderRole === "AGENT" ||
+            msg.senderRole === "COUNSELOR" ||
+            msg.senderRole === "ASSISTANT";
           const isSelected = selectedMessageId === msg.id;
           return (
             <div
