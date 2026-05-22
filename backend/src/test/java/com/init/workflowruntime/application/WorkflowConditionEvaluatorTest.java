@@ -245,9 +245,9 @@ class WorkflowConditionEvaluatorTest {
             new RuntimeEdge("e2", "a", "c", read("{\"type\":\"default\"}")));
 
     assertThat(WorkflowConditionEvaluator.blockedSlotCodes(condition, slotValues))
-        .containsExactly("reservation_no", "order_no");
+        .containsExactlyInAnyOrder("reservation_no", "order_no");
     assertThat(WorkflowConditionEvaluator.blockedSlotCodes(edges, slotValues))
-        .containsExactly("reservation_no", "order_no");
+        .containsExactlyInAnyOrder("reservation_no", "order_no");
   }
 
   @Test

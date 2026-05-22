@@ -20,6 +20,7 @@ import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolPolicyContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
@@ -155,7 +156,8 @@ public class LlmToolService {
         slots);
   }
 
-  public LlmToolPolicyContextResponse getPolicyContext(Long sessionId) {
+  public LlmToolPolicyContextResponse getPolicyContext(GetLlmToolPolicyContextCommand command) {
+    Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
     WorkflowExecution execution = findExecution(sessionId);
     if (execution == null) {

@@ -27,7 +27,7 @@ final class WorkflowRuntimeGraph {
       Map<String, RuntimeNode> nodesById = parseNodes(root, workflowId);
       Map<String, List<RuntimeEdge>> outgoingEdgesByNodeId = parseEdges(root, workflowId);
       return new WorkflowRuntimeGraph(nodesById, outgoingEdgesByNodeId);
-    } catch (JsonProcessingException e) {
+    } catch (JsonProcessingException | IllegalArgumentException e) {
       throw new InternalException(
           "WORKFLOW_GRAPH_PARSE_FAILED", "Workflow graphJson cannot be parsed: " + workflowId, e);
     }

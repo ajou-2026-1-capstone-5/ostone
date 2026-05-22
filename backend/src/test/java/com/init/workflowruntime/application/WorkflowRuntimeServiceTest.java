@@ -1,8 +1,7 @@
 package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -159,10 +158,7 @@ class WorkflowRuntimeServiceTest {
         .willReturn(Optional.of(workflow));
     given(
             workflowPolicyRuntimeService.evaluateNodePolicy(
-                eq(101L),
-                eq(new WorkflowRuntimeGraph.RuntimeNode("policy_check", "ACTION", "refund_policy")),
-                any(),
-                eq(execution)))
+                argThat(command -> command != null && "policy_check".equals(command.node().id()))))
         .willReturn(policyResponse);
     given(workflowPolicyRuntimeService.buildPolicySnapshot(policyResponse))
         .willReturn(policySnapshot);
@@ -173,7 +169,9 @@ class WorkflowRuntimeServiceTest {
     assertThat(result.actionType()).isEqualTo("HANDOFF");
     assertThat(result.edgeId()).isEqualTo("e_policy_handoff");
     assertThat(result.currentState()).isEqualTo("handoff");
-    assertThat(result.condition().path("type").asText()).isEqualTo("policy_hit");
+    assertThat(result.condition().path("type").asText()).isEqualTo("all");
+    assertThat(result.condition().path("conditions").get(0).path("type").asText())
+        .isEqualTo("policy_hit");
     assertThat(result.transitionPolicy()).isEqualTo(policyResponse);
     assertThat(result.currentPolicy()).isNull();
     assertThat(execution.getCurrentState()).isEqualTo("handoff");
@@ -295,7 +293,12 @@ class WorkflowRuntimeServiceTest {
               "id": "e_policy_handoff",
               "from": "policy_check",
               "to": "handoff",
-              "condition": {"type": "policy_hit", "policyCode": "refund_policy"}
+              "condition": {
+                "type": "all",
+                "conditions": [
+                  {"type": "policy_hit", "policyCode": "refund_policy"}
+                ]
+              }
             },
             {
               "id": "e_policy_answer",

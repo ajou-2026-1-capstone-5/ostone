@@ -25,6 +25,7 @@ import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolPolicyContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
@@ -153,7 +154,8 @@ class LlmToolServiceTest {
     given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
 
-    LlmToolPolicyContextResponse result = service.getPolicyContext(1L);
+    LlmToolPolicyContextResponse result =
+        service.getPolicyContext(new GetLlmToolPolicyContextCommand(1L));
 
     assertThat(result.sessionId()).isEqualTo(1L);
     assertThat(result.executionId()).isNull();
@@ -193,7 +195,8 @@ class LlmToolServiceTest {
     given(workflowPolicyRuntimeService.evaluateCurrentPolicy(eq(101L), eq(execution), any()))
         .willReturn(policyResponse);
 
-    LlmToolPolicyContextResponse result = service.getPolicyContext(1L);
+    LlmToolPolicyContextResponse result =
+        service.getPolicyContext(new GetLlmToolPolicyContextCommand(1L));
 
     assertThat(result.sessionId()).isEqualTo(1L);
     assertThat(result.executionId()).isEqualTo(50L);

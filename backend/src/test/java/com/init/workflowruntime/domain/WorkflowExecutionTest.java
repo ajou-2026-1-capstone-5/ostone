@@ -120,6 +120,19 @@ class WorkflowExecutionTest {
   }
 
   @Test
+  @DisplayName("moveToState: 공백 state는 허용하지 않는다")
+  void throwsWhenMovingToBlankState() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    execution.assignIntentWorkflow(10L, 20L, "start");
+
+    assertThatExceptionOfType(BadRequestException.class)
+        .isThrownBy(() -> execution.moveToState(" "))
+        .withMessageContaining("nextState must not be blank");
+
+    assertThat(execution.getCurrentState()).isEqualTo("start");
+  }
+
+  @Test
   @DisplayName("complete: 실행 중이면 완료 상태와 종료 시각을 저장한다")
   void completesExecutionWhenRunning() {
     WorkflowExecution execution = WorkflowExecution.create(1L);

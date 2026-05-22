@@ -153,6 +153,9 @@ public class WorkflowExecution {
 
   public void moveToState(String nextState) {
     Objects.requireNonNull(nextState, "nextState must not be null");
+    if (nextState.isBlank()) {
+      throw new InvalidSessionStateException("nextState must not be blank");
+    }
     if (isTerminalStatus()) {
       throw new InvalidSessionStateException(
           "Cannot move terminal execution to next state: " + this.status);

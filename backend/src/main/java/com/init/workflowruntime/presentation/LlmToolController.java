@@ -3,6 +3,7 @@ package com.init.workflowruntime.presentation;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolPolicyContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
@@ -52,7 +53,8 @@ public class LlmToolController {
   @GetMapping("/policy-context")
   public ResponseEntity<LlmToolPolicyContextResponse> getPolicyContext(
       @PathVariable Long sessionId) {
-    return ResponseEntity.ok(llmToolService.getPolicyContext(sessionId));
+    return ResponseEntity.ok(
+        llmToolService.getPolicyContext(new GetLlmToolPolicyContextCommand(sessionId)));
   }
 
   @GetMapping("/slots")

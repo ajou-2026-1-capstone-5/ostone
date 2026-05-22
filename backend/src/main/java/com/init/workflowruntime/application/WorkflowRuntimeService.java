@@ -255,7 +255,8 @@ public class WorkflowRuntimeService {
       RuntimeNode currentNode,
       ObjectNode slotValues) {
     return workflowPolicyRuntimeService.evaluateNodePolicy(
-        session.getDomainPackVersionId(), currentNode, slotValues, execution);
+        new PolicyEvaluationCommand(
+            session.getDomainPackVersionId(), currentNode, slotValues, execution));
   }
 
   private LlmToolPolicyResponse transitionPolicyFor(
@@ -268,11 +269,22 @@ public class WorkflowRuntimeService {
   }
 
   private String policyHitCode(JsonNode condition) {
-    if (condition == null || !"policy_hit".equals(condition.path("type").asText())) {
+    if (condition == null || !condition.isObject()) {
       return null;
     }
-    String policyCode = condition.path("policyCode").asText(null);
-    return trimToNull(policyCode);
+    String type = condition.path("type").asText(null);
+    if ("policy_hit".equals(type)) {
+      return trimToNull(condition.path("policyCode").asText(null));
+    }
+    if ("all".equals(type) || "any".equals(type)) {
+      for (JsonNode child : condition.path("conditions")) {
+        String policyCode = policyHitCode(child);
+        if (policyCode != null) {
+          return policyCode;
+        }
+      }
+    }
+    return null;
   }
 
   private WorkflowAdvanceResponse response(AdvanceContext context, ResponseDraft draft) {

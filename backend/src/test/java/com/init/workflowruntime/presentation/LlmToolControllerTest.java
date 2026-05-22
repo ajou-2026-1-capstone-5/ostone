@@ -14,6 +14,7 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.GetLlmToolPolicyContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
@@ -150,7 +151,7 @@ class LlmToolControllerTest {
   @Test
   @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/policy-context → 200 OK")
   void should_returnPolicyContext_when_validRequest() throws Exception {
-    given(llmToolService.getPolicyContext(1L))
+    given(llmToolService.getPolicyContext(new GetLlmToolPolicyContextCommand(1L)))
         .willReturn(
             new LlmToolPolicyContextResponse(
                 1L,

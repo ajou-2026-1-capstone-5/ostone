@@ -18,8 +18,10 @@ import com.init.workflowruntime.application.dto.LlmToolPolicyResponse;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class WorkflowPolicyRuntimeService {
 
   private final PolicyDefinitionRepository policyDefinitionRepository;
@@ -41,14 +43,15 @@ public class WorkflowPolicyRuntimeService {
     if (currentNode == null) {
       return null;
     }
-    return evaluateNodePolicy(domainPackVersionId, currentNode, slotValues, execution);
+    return evaluateNodePolicy(
+        new PolicyEvaluationCommand(domainPackVersionId, currentNode, slotValues, execution));
   }
 
-  LlmToolPolicyResponse evaluateNodePolicy(
-      Long domainPackVersionId,
-      RuntimeNode node,
-      ObjectNode slotValues,
-      WorkflowExecution execution) {
+  LlmToolPolicyResponse evaluateNodePolicy(PolicyEvaluationCommand command) {
+    Long domainPackVersionId = command.domainPackVersionId();
+    RuntimeNode node = command.node();
+    ObjectNode slotValues = command.slotValues();
+    WorkflowExecution execution = command.execution();
     String policyRef = trimToNull(node.policyRef());
     if (policyRef == null) {
       return null;
