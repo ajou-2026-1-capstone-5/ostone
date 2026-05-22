@@ -22,39 +22,60 @@ function parseMessage<TLastMessage>(message: IMessage): TLastMessage {
 export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage> {
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<StompSubscription | null>(null);
+  const connectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("DISCONNECTED");
   const [lastMessage, setLastMessage] = useState<TLastMessage | null>(null);
+
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
 
   const disconnect = useCallback(() => {
     subscriptionRef.current?.unsubscribe();
     subscriptionRef.current = null;
     clientRef.current?.deactivate();
+    connectionStatusRef.current = "DISCONNECTED";
     setConnectionStatus("DISCONNECTED");
   }, []);
 
   const connect = useCallback(() => {
+    if (
+      connectionStatusRef.current === "CONNECTING" ||
+      connectionStatusRef.current === "CONNECTED"
+    ) {
+      return;
+    }
     if (clientRef.current?.connected) return;
 
     const client = createStompClient();
     clientRef.current = client;
+    connectionStatusRef.current = "CONNECTING";
     setConnectionStatus("CONNECTING");
 
     client.onConnect = () => {
+      connectionStatusRef.current = "CONNECTED";
       setConnectionStatus("CONNECTED");
       subscriptionRef.current = client.subscribe(MESSAGE_QUEUE, (message) => {
-        setLastMessage(parseMessage<TLastMessage>(message));
+        try {
+          setLastMessage(parseMessage<TLastMessage>(message));
+        } catch {
+          // Skip malformed messages
+        }
       });
     };
 
     client.onDisconnect = () => {
+      connectionStatusRef.current = "DISCONNECTED";
       setConnectionStatus("DISCONNECTED");
     };
 
     client.onStompError = () => {
+      connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 
     client.onWebSocketError = () => {
+      connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 

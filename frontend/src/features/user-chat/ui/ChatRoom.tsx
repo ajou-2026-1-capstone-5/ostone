@@ -29,13 +29,18 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
+    setMessages([]);
+  }, [sessionId]);
+
+  useEffect(() => {
     if (!isChatMessage(lastMessage)) return;
+    if (lastMessage.sessionId !== sessionId) return;
 
     setMessages((current) => {
       if (current.some((message) => message.id === lastMessage.id)) return current;
       return [...current, lastMessage];
     });
-  }, [lastMessage]);
+  }, [lastMessage, sessionId]);
 
   return (
     <section className="flex h-full min-h-[520px] flex-col rounded-lg border border-gray-200 bg-white">

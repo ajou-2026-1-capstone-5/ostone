@@ -21,7 +21,7 @@ describe("createStompClient", () => {
 
     expect(MockedClient).toHaveBeenCalledWith(
       expect.objectContaining({
-        brokerURL: "http://localhost:8080/ws/chat",
+        brokerURL: "ws://localhost:8080/ws/chat",
         connectHeaders: { Authorization: "Bearer access-token" },
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,

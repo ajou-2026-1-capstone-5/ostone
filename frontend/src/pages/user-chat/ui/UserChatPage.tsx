@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { createChatSession } from "@/entities/chat";
 import type { ChatSession } from "@/entities/chat";
 import { ChatRoom } from "@/features/user-chat";
@@ -13,22 +14,29 @@ export function UserChatPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workspaceId) return;
+    if (!raw || Number.isNaN(workspaceId)) {
+      setError("유효하지 않은 워크스페이스입니다.");
+      return;
+    }
 
     let cancelled = false;
 
-    createChatSession(workspaceId)
-      .then((nextSession) => {
+    (async () => {
+      try {
+        const nextSession = await createChatSession(workspaceId);
         if (!cancelled) setSession(nextSession);
-      })
-      .catch(() => {
-        if (!cancelled) setError("채팅 세션을 시작할 수 없습니다.");
-      });
+      } catch {
+        if (!cancelled) {
+          setError("채팅 세션을 시작할 수 없습니다.");
+          toast.error("채팅 세션을 시작할 수 없습니다.");
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [workspaceId]);
+  }, [raw, workspaceId]);
 
   if (error) {
     return <div className="flex h-full items-center justify-center p-8 text-sm">{error}</div>;
