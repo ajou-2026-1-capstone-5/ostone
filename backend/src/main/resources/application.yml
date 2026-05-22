@@ -79,3 +79,10 @@ airflow:
 springdoc:
   api-docs:
     version: openapi_3_0
+
+app:
+  ai:
+    chat:
+      system-prompt: |
+        당신은 고객상담 어시스턴트입니다.
+        친절하고 정확하게 답변해주세요.

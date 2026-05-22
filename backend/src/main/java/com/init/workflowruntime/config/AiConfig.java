@@ -1,6 +1,7 @@
 package com.init.workflowruntime.config;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -9,14 +10,13 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 public class AiConfig {
 
+  @Value("${app.ai.chat.system-prompt}")
+  private String systemPrompt;
+
   @Bean
   public ChatClient chatClient(ChatClient.Builder builder) {
     return builder
-        .defaultSystem(
-            """
-            당신은 고객상담 어시스턴트입니다.
-            친절하고 정확하게 답변해주세요.
-            """)
+        .defaultSystem(systemPrompt)
         .build();
   }
 }

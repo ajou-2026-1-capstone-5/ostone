@@ -4,11 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
+import com.init.workflowruntime.domain.ChatSession;
+import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +33,7 @@ class LlmResponseHandlerTest {
   @Mock private LlmAssistantService llmAssistantService;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
+  @Mock private ChatSessionRepository chatSessionRepository;
 
   @Captor private ArgumentCaptor<ChatMessageResponse> responseCaptor;
 
@@ -37,7 +42,7 @@ class LlmResponseHandlerTest {
   @BeforeEach
   void setUp() {
     handler =
-        new LlmResponseHandler(llmAssistantService, chatMessageRepository, messagingTemplate);
+        new LlmResponseHandler(llmAssistantService, chatMessageRepository, chatSessionRepository, messagingTemplate);
   }
 
   @Test
@@ -45,6 +50,7 @@ class LlmResponseHandlerTest {
   void should_saveAndPush_when_llmRespondsSuccessfully() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(llmAssistantService.generateResponse("", "안녕하세요")).willReturn("안녕하세요! 무엇을 도와드릴까요?");
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
 
@@ -71,11 +77,16 @@ class LlmResponseHandlerTest {
 
     handler.handleChatMessageReceived(event);
 
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
     verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
 
     ChatMessageResponse pushed = responseCaptor.getValue();
     assertThat(pushed.senderRole()).isEqualTo("SYSTEM");
     assertThat(pushed.messageType()).isEqualTo("ERROR");
     assertThat(pushed.content()).contains("LLM_ERROR");
+  }
+
+  private ChatSession mockSession() {
+    return mock(ChatSession.class);
   }
 }

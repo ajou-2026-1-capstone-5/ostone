@@ -1,8 +1,10 @@
 package com.init.workflowruntime.application;
 
+import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
+import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,14 +21,17 @@ public class LlmResponseHandler {
 
   private final LlmAssistantService llmAssistantService;
   private final ChatMessageRepository chatMessageRepository;
+  private final ChatSessionRepository chatSessionRepository;
   private final SimpMessagingTemplate messagingTemplate;
 
   public LlmResponseHandler(
       LlmAssistantService llmAssistantService,
       ChatMessageRepository chatMessageRepository,
+      ChatSessionRepository chatSessionRepository,
       SimpMessagingTemplate messagingTemplate) {
     this.llmAssistantService = llmAssistantService;
     this.chatMessageRepository = chatMessageRepository;
+    this.chatSessionRepository = chatSessionRepository;
     this.messagingTemplate = messagingTemplate;
   }
 
@@ -36,6 +41,10 @@ public class LlmResponseHandler {
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
       String llmResponse = llmAssistantService.generateResponse("", event.content());
+
+      chatSessionRepository
+          .findByIdForUpdate(event.sessionId())
+          .orElseThrow(() -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
 
       Integer nextSeqNo =
           chatMessageRepository

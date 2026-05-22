@@ -68,14 +68,13 @@ public class ChatWebSocketService {
     ChatMessageResponse response = ChatMessageResponse.from(message);
     String destination = "/topic/chat." + command.sessionId();
 
-    eventPublisher.publishEvent(
-        new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
-
     TransactionSynchronizationManager.registerSynchronization(
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
             messagingTemplate.convertAndSend(destination, response);
+            eventPublisher.publishEvent(
+                new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
           }
         });
 
