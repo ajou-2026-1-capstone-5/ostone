@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   LLM_SLOT_TOOL_NAMES,
+  LLM_WORKFLOW_TOOL_NAMES,
   buildToolUrl,
   createLlmSlotToolHandler,
   llmSlotTools,
@@ -17,6 +18,59 @@ describe("llm slot tools", () => {
         false,
       );
     }
+  });
+
+  it("get_current_workflow tool schema does not expose sessionId", () => {
+    const workflowTool = llmSlotTools.find(
+      (t) => t.function.name === LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow,
+    );
+    assert.ok(workflowTool, "get_current_workflow tool must exist in llmSlotTools");
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(
+        workflowTool.function.parameters.properties,
+        "sessionId",
+      ),
+      false,
+    );
+  });
+
+  it("maps get_current_workflow tool calls to GET /workflow", async () => {
+    const requests = [];
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      bearerToken: "token",
+      sessionId: 7,
+      fetchImpl: async (url, init) => {
+        requests.push({ url, init });
+        return {
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              sessionId: 7,
+              workflowCode: "refund_v1",
+              graphJson: { nodes: [] },
+            }),
+        };
+      },
+    });
+
+    const result = await handler({
+      id: "call_wf1",
+      function: {
+        name: LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow,
+        arguments: "{}",
+      },
+    });
+
+    assert.equal(
+      requests[0].url,
+      "http://localhost:8080/api/v1/llm-tools/sessions/7/workflow",
+    );
+    assert.equal(requests[0].init.method, "GET");
+    assert.equal(requests[0].init.headers.Authorization, "Bearer token");
+    assert.equal(result.toolCallId, "call_wf1");
+    assert.equal(result.name, LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow);
   });
 
   it("parses OpenAI-style function tool calls", () => {

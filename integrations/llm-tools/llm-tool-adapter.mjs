@@ -1,6 +1,6 @@
-import { LLM_SLOT_TOOL_NAMES, llmSlotTools } from "./tool-schema.mjs";
+import { LLM_SLOT_TOOL_NAMES, LLM_WORKFLOW_TOOL_NAMES, llmSlotTools } from "./tool-schema.mjs";
 
-export { LLM_SLOT_TOOL_NAMES, llmSlotTools };
+export { LLM_SLOT_TOOL_NAMES, LLM_WORKFLOW_TOOL_NAMES, llmSlotTools };
 
 export function createLlmSlotToolHandler({
   backendBaseUrl,
@@ -22,6 +22,9 @@ export function createLlmSlotToolHandler({
     const { name, arguments: args } = parseToolCall(toolCall);
 
     switch (name) {
+      case LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow:
+        return wrapToolResult(toolCall, name, await requestJson("/workflow"));
+
       case LLM_SLOT_TOOL_NAMES.getContext:
         return wrapToolResult(toolCall, name, await requestJson("/context"));
 
