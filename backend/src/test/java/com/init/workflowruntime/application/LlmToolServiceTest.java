@@ -20,7 +20,9 @@ import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
@@ -31,6 +33,7 @@ import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -490,5 +494,202 @@ class LlmToolServiceTest {
             "{}");
     ReflectionTestUtils.setField(workflow, "id", id);
     return workflow;
+  }
+
+  @Nested
+  @DisplayName("getCurrentWorkflow")
+  class GetCurrentWorkflow {
+
+    @Test
+    @DisplayName("세션 + execution + workflow definition이 모두 있으면 graphJson 포함 응답")
+    void returnsFullWorkflowWhenAllPresent() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      ReflectionTestUtils.setField(execution, "currentState", "collect_slots");
+      WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "collect_slots");
+      ReflectionTestUtils.setField(definition, "name", "환불 처리 워크플로우");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
+          .willReturn(Optional.of(definition));
+
+      // when
+      LlmToolWorkflowResponse result =
+          service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      // then
+      assertThat(result.sessionId()).isEqualTo(1L);
+      assertThat(result.workspaceId()).isEqualTo(10L);
+      assertThat(result.domainPackVersionId()).isEqualTo(101L);
+      assertThat(result.executionId()).isEqualTo(50L);
+      assertThat(result.executionStatus()).isEqualTo("RUNNING");
+      assertThat(result.currentState()).isEqualTo("collect_slots");
+      assertThat(result.workflowDefinitionId()).isEqualTo(77L);
+      assertThat(result.workflowCode()).isEqualTo("refund_v1");
+      assertThat(result.graphJson()).isNotNull();
+      assertThat(result.graphJson().isNull()).isFalse();
+      assertThat(result.initialState()).isEqualTo("collect_slots");
+      assertThat(result.terminalStates()).isNotNull();
+      assertThat(result.terminalStates().isArray()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execution 없으면 execution/workflow 필드 모두 null")
+    void returnsNullsWhenExecutionMissing() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.empty());
+
+      // when
+      LlmToolWorkflowResponse result =
+          service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      // then
+      assertThat(result.sessionId()).isEqualTo(1L);
+      assertThat(result.workspaceId()).isEqualTo(10L);
+      assertThat(result.domainPackVersionId()).isEqualTo(101L);
+      assertThat(result.executionId()).isNull();
+      assertThat(result.executionStatus()).isNull();
+      assertThat(result.currentState()).isNull();
+      assertThat(result.workflowDefinitionId()).isNull();
+      assertThat(result.graphJson()).isNull();
+      assertThat(result.terminalStates()).isNull();
+    }
+
+    @Test
+    @DisplayName("workflowDefinitionId가 null이면 execution 필드만 채우고 workflow는 null")
+    void returnsExecutionOnlyWhenWorkflowNotBound() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, null, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+
+      // when
+      LlmToolWorkflowResponse result =
+          service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      // then
+      assertThat(result.executionId()).isEqualTo(50L);
+      assertThat(result.executionStatus()).isEqualTo("RUNNING");
+      assertThat(result.workflowDefinitionId()).isNull();
+      assertThat(result.graphJson()).isNull();
+      assertThat(result.terminalStates()).isNull();
+    }
+
+    @Test
+    @DisplayName("workflowDefinitionId와 session domainPackVersionId가 불일치하면 workflow null")
+    void returnsWorkflowNullOnCrossPackMismatch() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
+          .willReturn(Optional.empty());
+
+      // when
+      LlmToolWorkflowResponse result =
+          service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      // then
+      assertThat(result.executionId()).isEqualTo(50L);
+      assertThat(result.workflowDefinitionId()).isNull();
+      assertThat(result.graphJson()).isNull();
+      assertThat(result.terminalStates()).isNull();
+    }
+
+    @Test
+    @DisplayName("sessionId가 없으면 SESSION_NOT_FOUND")
+    void throwsWhenSessionMissing() {
+      // given
+      given(chatSessionRepository.findById(99L)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> service.getCurrentWorkflow(new GetCurrentWorkflowCommand(99L)))
+          .isInstanceOf(NotFoundException.class)
+          .hasMessageContaining("Session not found");
+    }
+
+    @Test
+    @DisplayName("graphJson이 malformed이면 JSON_PARSE_FAILED")
+    void throwsWhenGraphJsonMalformed() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
+      ReflectionTestUtils.setField(definition, "graphJson", "not-valid-json");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
+          .willReturn(Optional.of(definition));
+
+      // when & then
+      assertThatThrownBy(() -> service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+          .isInstanceOf(InternalException.class)
+          .satisfies(
+              ex -> assertThat(((InternalException) ex).getCode()).isEqualTo("JSON_PARSE_FAILED"));
+    }
+
+    @Test
+    @DisplayName("terminalStatesJson이 malformed이면 JSON_PARSE_FAILED")
+    void throwsWhenTerminalStatesJsonMalformed() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
+      ReflectionTestUtils.setField(definition, "terminalStatesJson", "not-valid-json");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
+          .willReturn(Optional.of(definition));
+
+      // when & then
+      assertThatThrownBy(() -> service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+          .isInstanceOf(InternalException.class)
+          .satisfies(
+              ex -> assertThat(((InternalException) ex).getCode()).isEqualTo("JSON_PARSE_FAILED"));
+    }
+
+    @Test
+    @DisplayName("terminalStatesJson이 array가 아니면 JSON_PARSE_FAILED")
+    void throwsWhenTerminalStatesJsonNotArray() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "workflowDefinitionId", 77L);
+      WorkflowDefinition definition = createWorkflow(77L, 101L, "refund_v1", "start");
+      ReflectionTestUtils.setField(definition, "terminalStatesJson", "{\"key\":\"value\"}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
+          .willReturn(Optional.of(definition));
+
+      // when & then
+      assertThatThrownBy(() -> service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+          .isInstanceOf(InternalException.class)
+          .satisfies(
+              ex -> assertThat(((InternalException) ex).getCode()).isEqualTo("JSON_PARSE_FAILED"));
+    }
   }
 }

@@ -9,8 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
@@ -22,6 +24,7 @@ import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,70 @@ class LlmToolControllerTest {
   @Autowired private ObjectMapper objectMapper;
 
   @MockitoBean private LlmToolService llmToolService;
+
+  @Test
+  @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/workflow → 200 OK")
+  void getCurrentWorkflow_returnsOk() throws Exception {
+    // given
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(
+            new LlmToolWorkflowResponse(
+                1L,
+                10L,
+                101L,
+                50L,
+                "RUNNING",
+                "collect_slots",
+                77L,
+                "refund_v1",
+                "환불 처리 워크플로우",
+                "환불 요청 처리",
+                objectMapper.readTree("{\"nodes\":[]}"),
+                "collect_slots",
+                objectMapper.readTree("[\"refund_granted\"]")));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/1/workflow"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.executionId").value(50))
+        .andExpect(jsonPath("$.workflowCode").value("refund_v1"))
+        .andExpect(jsonPath("$.currentState").value("collect_slots"))
+        .andExpect(jsonPath("$.graphJson.nodes").isArray());
+  }
+
+  @Test
+  @DisplayName("GET /workflow session 없으면 404")
+  void getCurrentWorkflow_returnsNotFound_whenSessionMissing() throws Exception {
+    // given
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(99L)))
+        .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 99"));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/99/workflow"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("GET /workflow execution 없으면 200 + null 필드")
+  void getCurrentWorkflow_returnsOk_withNulls_whenNoExecution() throws Exception {
+    // given
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(
+            new LlmToolWorkflowResponse(
+                1L, 10L, 101L, null, null, null, null, null, null, null, null, null, null));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/1/workflow"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.executionId").doesNotExist())
+        .andExpect(jsonPath("$.workflowCode").doesNotExist());
+  }
 
   @Test
   @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/context → 200 OK")

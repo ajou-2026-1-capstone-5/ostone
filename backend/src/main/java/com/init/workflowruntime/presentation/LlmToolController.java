@@ -1,6 +1,7 @@
 package com.init.workflowruntime.presentation;
 
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
@@ -12,6 +13,7 @@ import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SelectIntentRequest;
 import com.init.workflowruntime.application.dto.UpsertSlotValueRequest;
 import jakarta.validation.Valid;
@@ -33,6 +35,12 @@ public class LlmToolController {
 
   public LlmToolController(LlmToolService llmToolService) {
     this.llmToolService = llmToolService;
+  }
+
+  @GetMapping("/workflow")
+  public ResponseEntity<LlmToolWorkflowResponse> getCurrentWorkflow(@PathVariable Long sessionId) {
+    return ResponseEntity.ok(
+        llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(sessionId)));
   }
 
   @GetMapping("/context")

@@ -5,6 +5,7 @@
 현재 backend endpoint:
 
 ```text
+GET /api/v1/llm-tools/sessions/{sessionId}/workflow
 GET /api/v1/llm-tools/sessions/{sessionId}/context
 GET /api/v1/llm-tools/sessions/{sessionId}/intents
 POST /api/v1/llm-tools/sessions/{sessionId}/intent-selection
@@ -38,6 +39,7 @@ const toolResult = await handleToolCall(toolCall);
 
 | Tool | Purpose |
 | --- | --- |
+| `get_current_workflow` | 현재 세션에 묶인 워크플로우 그래프와 현재 실행 상태(state, status) 조회 |
 | `get_current_slot_context` | 현재 세션의 전체 slot context, missing slot 목록, 저장된 값을 조회 |
 | `list_current_intents` | 현재 세션 domain pack version에 등록된 intent 목록 조회 |
 | `select_current_intent` | 목록에서 선택한 `intentCode`로 workflow execution을 시작하고 필수 slot 누락 여부 조회 |

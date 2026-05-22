@@ -10,8 +10,10 @@ import com.init.shared.infrastructure.security.ApiAuthenticationEntryPoint;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.shared.infrastructure.security.SecurityConfig;
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,25 @@ class LlmToolControllerSecurityTest {
   @DisplayName("ROLE_OPERATOR가 없으면 403")
   void should_return403_when_userIsNotOperator() throws Exception {
     mockMvc.perform(get("/api/v1/llm-tools/sessions/1/context")).andExpect(status().isForbidden());
+  }
+
+  @Test
+  @WithMockUser(roles = "USER")
+  @DisplayName("/workflow 경로에서 ROLE_OPERATOR가 없으면 403")
+  void should_return403_when_userIsNotOperator_forWorkflow() throws Exception {
+    mockMvc.perform(get("/api/v1/llm-tools/sessions/1/workflow")).andExpect(status().isForbidden());
+  }
+
+  @Test
+  @WithMockUser(roles = "OPERATOR")
+  @DisplayName("/workflow 경로에서 ROLE_OPERATOR면 200")
+  void should_return200_when_userIsOperator_forWorkflow() throws Exception {
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(
+            new LlmToolWorkflowResponse(
+                1L, 10L, 101L, null, null, null, null, null, null, null, null, null, null));
+
+    mockMvc.perform(get("/api/v1/llm-tools/sessions/1/workflow")).andExpect(status().isOk());
   }
 
   @Test

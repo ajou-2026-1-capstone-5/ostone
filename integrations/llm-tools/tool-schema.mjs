@@ -1,3 +1,7 @@
+export const LLM_WORKFLOW_TOOL_NAMES = Object.freeze({
+  getCurrentWorkflow: "get_current_workflow",
+});
+
 export const LLM_SLOT_TOOL_NAMES = Object.freeze({
   getContext: "get_current_slot_context",
   listSlots: "list_current_slots",
@@ -83,6 +87,15 @@ export const llmSlotTools = Object.freeze([
       name: LLM_SLOT_TOOL_NAMES.listIntents,
       description:
         "현재 상담 세션의 domain pack version에 등록된 전체 intent 목록을 조회한다. 이 목록의 intentCode 중 하나를 선택해야 한다.",
+      parameters: emptyParameters,
+    }),
+  }),
+  Object.freeze({
+    type: "function",
+    function: Object.freeze({
+      name: LLM_WORKFLOW_TOOL_NAMES.getCurrentWorkflow,
+      description:
+        "현재 상담 세션에 묶인 결정론적 워크플로우 그래프와 현재 실행 상태(state, status)를 조회한다.",
       parameters: emptyParameters,
     }),
   }),

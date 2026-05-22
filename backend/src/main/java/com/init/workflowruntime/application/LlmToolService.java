@@ -18,6 +18,7 @@ import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
@@ -29,6 +30,7 @@ import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.WorkflowExecution;
@@ -72,6 +74,49 @@ public class LlmToolService {
     this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.objectMapper = objectMapper;
+  }
+
+  public LlmToolWorkflowResponse getCurrentWorkflow(GetCurrentWorkflowCommand command) {
+    Long sessionId = command.sessionId();
+    ChatSession session = findSession(sessionId);
+    WorkflowExecution execution = findExecution(sessionId);
+
+    Long executionId = execution != null ? execution.getId() : null;
+    String executionStatus = execution != null ? execution.getStatus() : null;
+    String currentState = execution != null ? execution.getCurrentState() : null;
+    Long workflowDefinitionId = execution != null ? execution.getWorkflowDefinitionId() : null;
+
+    WorkflowDefinition definition = null;
+    if (workflowDefinitionId != null) {
+      definition =
+          workflowDefinitionRepository
+              .findByIdAndDomainPackVersionId(
+                  workflowDefinitionId, session.getDomainPackVersionId())
+              .orElse(null);
+    }
+
+    JsonNode graphJson = definition != null ? readJsonNode(definition.getGraphJson(), null) : null;
+    JsonNode terminalStates =
+        definition != null ? readJsonNode(definition.getTerminalStatesJson(), "[]") : null;
+    if (terminalStates != null && !terminalStates.isArray()) {
+      throw new InternalException(
+          "JSON_PARSE_FAILED", "Stored terminalStatesJson must be a JSON array");
+    }
+
+    return new LlmToolWorkflowResponse(
+        session.getId(),
+        session.getWorkspaceId(),
+        session.getDomainPackVersionId(),
+        executionId,
+        executionStatus,
+        currentState,
+        definition != null ? definition.getId() : null,
+        definition != null ? definition.getWorkflowCode() : null,
+        definition != null ? definition.getName() : null,
+        definition != null ? definition.getDescription() : null,
+        graphJson,
+        definition != null ? definition.getInitialState() : null,
+        terminalStates);
   }
 
   public LlmToolContextResponse getContext(GetLlmToolContextCommand command) {
