@@ -59,7 +59,7 @@ describe("LogUploadForm", () => {
 
   it("renders upload header and file uploader", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    expect(screen.getByText("Upload Consult Logs")).toBeInTheDocument();
+    expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
   });
 
@@ -131,6 +131,6 @@ describe("LogUploadForm", () => {
     fireEvent.click(screen.getByText("Upload Another File"));
     expect(mockReset).toHaveBeenCalled();
     expect(screen.queryByText("Upload Another File")).not.toBeInTheDocument();
-    expect(screen.getByText("Upload Consult Logs")).toBeInTheDocument();
+    expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
   });
 });

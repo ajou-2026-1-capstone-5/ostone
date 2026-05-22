@@ -50,6 +50,22 @@ class PipelineJobTest {
   }
 
   @Test
+  @DisplayName("이미 DomainPack이 연결된 job은 RUNNING이어도 domain-pack draft callback을 다시 받을 수 없다")
+  void canAcceptDomainPackDraftCallback_runningWithDomainPack_returnsFalse() {
+    PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);
+    job.assignAirflowRun("domain_pack_generation", "pipeline_job_123", "{}");
+    job.markAirflowTriggered(NOW);
+    assertThat(job.canAcceptDomainPackDraftCallback()).isTrue();
+
+    job.markAwaitingIntentCallback(3L, "{}");
+    job.markRunning("{}");
+
+    assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(job.getDomainPackId()).isEqualTo(3L);
+    assertThat(job.canAcceptDomainPackDraftCallback()).isFalse();
+  }
+
+  @Test
   @DisplayName("종료된 job은 RUNNING 상태로 되돌릴 수 없다")
   void markRunning_finalizedJob_throws() {
     PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 7L, 55L, "{}", NOW);

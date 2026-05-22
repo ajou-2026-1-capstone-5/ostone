@@ -11,7 +11,6 @@ from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.draft_generation.main import (
     _build_candidate,
-    _build_consultation_cluster_groups,
     _build_intents,
     _build_slot_draft,
     _build_workflow_draft,
@@ -274,65 +273,6 @@ def test_build_intents_avg_per_intent() -> None:
     assert metrics["intents_with_zero_cases"] == 1
 
 
-def test_build_consultation_cluster_groups_splits_by_consultation_and_canonical() -> None:
-    clusters: list[Any] = [
-        "invalid",
-        {
-            "cluster_id": 10,
-            "canonical_intent": "항공권 변경 문의",
-            "description": "항공권 변경",
-            "suggested_description": "항공권 변경 설명",
-            "source": "global",
-            "workflow_signal": {"requires_user_identification": True},
-        },
-        {
-            "cluster_id": 20,
-            "description": "fallback cluster",
-            "fallback_name": True,
-            "workflow_signal": {"requires_payment_check": True},
-        },
-    ]
-    segment_rows: list[dict[str, Any]] = [
-        {
-            "consultation_id": "consultation-a",
-            "canonical_intent": "항공권 변경 문의",
-            "cluster_id": 10,
-            "segment_id": "seg-a-1",
-            "segment_customer_text": "항공권 날짜를 변경하고 싶어요",
-            "intent_phrase_refined": "항공권 변경 문의",
-        },
-        {
-            "consultation_id": "consultation-a",
-            "canonical_intent": "항공권 변경 문의",
-            "cluster_id": 10,
-            "segment_id": "seg-a-2",
-            "segment_customer_text": "인원을 추가할 수 있나요?",
-            "intent_phrase_refined": "항공권 변경 문의",
-        },
-        {
-            "consultation_id": "consultation-b",
-            "canonical_intent": "기타 문의",
-            "cluster_id": 20,
-            "segment_id": "seg-b-1",
-            "segment_customer_text": "안녕하세요",
-            "intent_phrase_refined": "",
-        },
-        {"consultation_id": "", "canonical_intent": "무시"},
-    ]
-
-    grouped = _build_consultation_cluster_groups(clusters, segment_rows)
-
-    assert set(grouped) == {"consultation-a", "consultation-b"}
-    assert grouped["consultation-a"][0]["cluster_id"] == 0
-    assert grouped["consultation-a"][0]["source"] == "global"
-    assert grouped["consultation-a"][0]["segment_ids"] == ["seg-a-1", "seg-a-2"]
-    assert grouped["consultation-a"][0]["sample_intent_phrases"] == ["항공권 변경 문의"]
-    assert grouped["consultation-a"][0]["workflow_signal"] == {"requires_user_identification": True}
-    assert grouped["consultation-b"][0]["description"] == "fallback cluster"
-    assert grouped["consultation-b"][0]["fallback_name"] is True
-    assert grouped["consultation-b"][0]["member_conv_ids"] == ["consultation-b"]
-
-
 def _write_upstream_manifest(tmp_path: Path) -> Path:
     manifest_path = tmp_path / "upstream_manifest.json"
     manifest_payload = {
@@ -382,6 +322,71 @@ def test_run_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     assert candidate["workflowDraft"]["workflows"][0]["workflowCode"] == "WORKFLOW_0"
 
 
+def test_run_keeps_single_dataset_candidate_when_segment_rows_exist(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    artifact_root = tmp_path / "artifacts"
+    clusters_dir = artifact_root / "dag" / "run1" / "intent_discovery"
+    preprocessed_dir = artifact_root / "dag" / "run1" / "preprocessing"
+    _write_clusters(
+        clusters_dir,
+        [
+            {
+                "cluster_id": 0,
+                "canonical_intent": "항공권 변경 문의",
+                "suggested_name": "항공권 변경 문의",
+                "suggested_description": "항공권 변경 관련",
+                "exemplar_conv_ids": ["consultation-a", "consultation-b"],
+                "workflow_signal": {"requires_user_identification": True},
+            }
+        ],
+    )
+    (clusters_dir / "intent_segments_v3.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "consultation_id": "consultation-a",
+                        "canonical_intent": "항공권 변경 문의",
+                        "cluster_id": 0,
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "consultation_id": "consultation-b",
+                        "canonical_intent": "항공권 변경 문의",
+                        "cluster_id": 0,
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_preprocessed(
+        preprocessed_dir,
+        [
+            _preprocessed_conv("consultation-a", "항공권 변경 요청", "항공권 변경"),
+            _preprocessed_conv("consultation-b", "탑승자 변경 문의", "탑승자 변경"),
+        ],
+    )
+    manifest_path = _write_upstream_manifest(tmp_path)
+
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+
+    result = run(upstream_manifest_path=str(manifest_path))
+
+    candidate = json.loads(Path(str(result["candidateArtifactPath"])).read_text(encoding="utf-8"))
+    assert "candidateMode" not in candidate
+    assert "candidates" not in candidate
+    assert "consultationId" not in candidate
+    assert candidate["domainPackDraft"]["packKey"] == "pack_wsws1_dsds1"
+    assert len(candidate["intentDraft"]["intents"]) == 1
+    assert len(candidate["intentDraft"]["intents"][0]["representativeCases"]) == 2
+
+
 def test_build_candidate_structure() -> None:
     intents = [{"intentCode": "INTENT_0", "name": "환불", "representativeCases": []}]
     clusters = [{"cluster_id": 0, "suggested_name": "환불", "workflow_signal": {}}]
@@ -421,33 +426,6 @@ def test_derive_pack_identity_formats_correctly() -> None:
     pack_key, pack_name = _derive_pack_identity(context)
     assert pack_key == "pack_wsws42_dsds7"
     assert pack_name == "Pack wsws42/dsds7"
-
-
-def test_derive_pack_identity_adds_hash_suffix_for_consultation_scope() -> None:
-    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
-    pack_key, pack_name = _derive_pack_identity(context, "consultation-001")
-    suffix = pack_key.rsplit("_", 1)[-1]
-
-    assert pack_key.startswith("pack_wsws42_dsds7_conv_consultation-001_")
-    assert len(pack_key) <= 100
-    assert len(suffix) == 8
-    int(suffix, 16)
-    assert pack_name == "Pack wsws42/dsds7/consultation-001"
-
-
-def test_derive_pack_identity_keeps_long_similar_consultation_ids_distinct() -> None:
-    context = _stage_context(workspace_id="ws42", dataset_id="ds7")
-    long_id_a = f"consultation-{'a' * 120}"
-    long_id_b = f"consultation-{'a' * 119}b"
-
-    pack_key_a, _ = _derive_pack_identity(context, long_id_a)
-    pack_key_b, _ = _derive_pack_identity(context, long_id_b)
-
-    assert len(pack_key_a) <= 100
-    assert len(pack_key_b) <= 100
-    assert pack_key_a != pack_key_b
-    assert len(pack_key_a.rsplit("_", 1)[-1]) == 8
-    assert len(pack_key_b.rsplit("_", 1)[-1]) == 8
 
 
 def test_derive_pack_identity_raises_on_none_workspace() -> None:

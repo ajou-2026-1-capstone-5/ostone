@@ -10,7 +10,7 @@ interface DropzoneProps {
 type UploadStatus =
   | { kind: "idle" }
   | { kind: "uploading"; fileName: string }
-  | { kind: "success"; fileName: string; datasetId: number }
+  | { kind: "success"; fileName: string; datasetId: number; conversationCount: number | null }
   | { kind: "error"; message: string };
 
 export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
@@ -27,13 +27,19 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
         // 단 null/primitive 응답에서 `in` 연산자 TypeError 만 차단.
         const r =
           typeof response === "object" && response !== null
-            ? (response as { data?: { datasetId?: number }; datasetId?: number })
+            ? (response as {
+                data?: { datasetId?: number; conversationCount?: number };
+                datasetId?: number;
+                conversationCount?: number;
+              })
             : null;
         const datasetId = r?.data?.datasetId ?? r?.datasetId;
+        const conversationCount = r?.data?.conversationCount ?? r?.conversationCount ?? null;
         setStatus({
           kind: "success",
           fileName: variables.data?.file?.name ?? "",
           datasetId: datasetId ?? -1,
+          conversationCount,
         });
         toast.success("업로드 완료");
       },
@@ -170,7 +176,9 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
           {status.kind === "idle" && "파일을 클릭하여 선택하세요"}
         </span>
         <Mono style={{ color: "var(--ink-3)" }}>
-          .json (consulting conversation array) &middot; max 50MB
+          {status.kind === "success"
+            ? `상담 ${status.conversationCount ?? "-"}건은 도메인팩 초안 1개 안에 반영됩니다.`
+            : ".json (consulting conversation array) · max 50MB"}
         </Mono>
       </div>
 

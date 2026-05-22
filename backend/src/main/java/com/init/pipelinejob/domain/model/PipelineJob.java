@@ -138,7 +138,7 @@ public class PipelineJob {
   }
 
   public boolean canAcceptDomainPackDraftCallback() {
-    return STATUS_QUEUED.equals(status) || STATUS_RUNNING.equals(status);
+    return domainPackId == null && (STATUS_QUEUED.equals(status) || STATUS_RUNNING.equals(status));
   }
 
   public boolean canAcceptIntentDraftCallback() {

@@ -74,8 +74,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>Upload Consult Logs</h2>
-        <p>Drop your customer service log file to automatically generate a workflow.</p>
+        <h2>상담 로그 업로드</h2>
+        <p>파일 하나를 데이터셋으로 올리고, 데이터셋 단위로 도메인팩 초안 1개를 생성합니다.</p>
       </div>
 
       <div className={styles.uploadArea}>
