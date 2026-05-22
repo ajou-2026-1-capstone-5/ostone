@@ -147,7 +147,7 @@ class LlmToolServiceTest {
 
   @Test
   @DisplayName("getPolicyContext: 실행이 없으면 세션과 빈 policy snapshot만 반환한다")
-  void returnsEmptyPolicyContextWhenExecutionMissing() {
+  void should_returnEmptyPolicyContext_when_executionMissing() {
     ChatSession session = createSession(1L, 10L, 101L);
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
@@ -167,7 +167,7 @@ class LlmToolServiceTest {
 
   @Test
   @DisplayName("getPolicyContext: 실행이 있으면 current policy와 policy snapshot을 반환한다")
-  void returnsPolicyContextWhenExecutionExists() throws Exception {
+  void should_returnPolicyContext_when_executionExists() throws Exception {
     ChatSession session = createSession(1L, 10L, 101L);
     WorkflowExecution execution = createExecution(50L, 1L, 70L, "{\"order_id\":\"A-100\"}");
     ReflectionTestUtils.setField(execution, "currentState", "policy_check");

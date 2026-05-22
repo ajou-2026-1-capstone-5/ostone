@@ -63,7 +63,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("replacePolicySnapshotJson: null은 빈 JSON object로 저장한다")
-  void replacesPolicySnapshotWithEmptyJsonWhenValueIsNull() {
+  void should_replacePolicySnapshotWithEmptyJson_when_valueIsNull() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
 
     execution.replacePolicySnapshotJson(null);
@@ -73,7 +73,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("replaceRiskSnapshotJson: null은 빈 JSON object로 저장한다")
-  void replacesRiskSnapshotWithEmptyJsonWhenValueIsNull() {
+  void should_replaceRiskSnapshotWithEmptyJson_when_valueIsNull() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
 
     execution.replaceRiskSnapshotJson(null);
@@ -96,7 +96,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("moveToState: 실행 중이면 currentState를 변경한다")
-  void movesToStateWhenRunning() {
+  void should_moveToState_when_running() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     execution.assignIntentWorkflow(10L, 20L, "start");
 
@@ -107,7 +107,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("moveToState: 완료된 실행이면 currentState를 변경하지 않는다")
-  void throwsWhenMovingCompletedExecution() {
+  void should_throw_when_movingCompletedExecution() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     execution.assignIntentWorkflow(10L, 20L, "start");
     execution.complete();
@@ -121,7 +121,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("moveToState: 공백 state는 허용하지 않는다")
-  void throwsWhenMovingToBlankState() {
+  void should_throw_when_movingToBlankState() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     execution.assignIntentWorkflow(10L, 20L, "start");
 
@@ -134,7 +134,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("complete: 실행 중이면 완료 상태와 종료 시각을 저장한다")
-  void completesExecutionWhenRunning() {
+  void should_completeExecution_when_running() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
 
     execution.complete();
@@ -145,7 +145,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("complete: 이미 완료된 실행이면 상태를 유지한다")
-  void keepsCompletedExecutionWhenAlreadyCompleted() {
+  void should_keepCompletedExecution_when_alreadyCompleted() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     execution.complete();
     OffsetDateTime firstFinishedAt = execution.getFinishedAt();
@@ -158,7 +158,7 @@ class WorkflowExecutionTest {
 
   @Test
   @DisplayName("complete: 실패한 실행이면 완료로 변경하지 않는다")
-  void throwsWhenCompletingFailedExecution() {
+  void should_throw_when_completingFailedExecution() {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
 
