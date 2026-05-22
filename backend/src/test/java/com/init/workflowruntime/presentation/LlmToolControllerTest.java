@@ -3,6 +3,7 @@ package com.init.workflowruntime.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,9 +13,13 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
+import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import java.util.List;
@@ -101,6 +106,64 @@ class LlmToolControllerTest {
         .andExpect(jsonPath("$.slotCode").value("order_id"))
         .andExpect(jsonPath("$.hasValue").value(true))
         .andExpect(jsonPath("$.value").value("A-100"));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/llm-tools/sessions/{sessionId}/intents → 200 OK")
+  void should_returnIntents_when_validRequest() throws Exception {
+    // given
+    given(llmToolService.listIntents(new ListLlmToolIntentsCommand(1L)))
+        .willReturn(
+            List.of(
+                new LlmToolIntentResponse(
+                    70L,
+                    "request_refund",
+                    "환불 요청",
+                    "환불 요청 intent",
+                    1,
+                    null,
+                    "PUBLISHED",
+                    objectMapper.readTree("{}"),
+                    objectMapper.readTree("{}"))));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/llm-tools/sessions/1/intents"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].intentCode").value("request_refund"))
+        .andExpect(jsonPath("$[0].name").value("환불 요청"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/llm-tools/sessions/{sessionId}/intent-selection → 200 OK")
+  void should_selectIntent_when_validRequest() throws Exception {
+    // given
+    given(llmToolService.selectIntent(any(SelectLlmToolIntentCommand.class)))
+        .willReturn(
+            new LlmToolIntentSelectionResponse(
+                1L,
+                50L,
+                70L,
+                "request_refund",
+                "환불 요청",
+                150L,
+                "refund_flow",
+                "start",
+                true,
+                List.of("order_id"),
+                List.of(slotResponse("order_id", false))));
+
+    // when & then
+    mockMvc
+        .perform(
+            post("/api/v1/llm-tools/sessions/1/intent-selection")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"intentCode\":\"request_refund\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.intentCode").value("request_refund"))
+        .andExpect(jsonPath("$.workflowCode").value("refund_flow"))
+        .andExpect(jsonPath("$.currentState").value("start"))
+        .andExpect(jsonPath("$.missingRequiredSlots[0]").value("order_id"));
   }
 
   @Test

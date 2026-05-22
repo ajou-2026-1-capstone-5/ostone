@@ -5,18 +5,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
+import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
+import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
+import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.domain.ChatSession;
@@ -38,20 +48,29 @@ public class LlmToolService {
 
   private final ChatSessionRepository chatSessionRepository;
   private final WorkflowExecutionRepository workflowExecutionRepository;
+  private final IntentDefinitionRepository intentDefinitionRepository;
   private final SlotDefinitionRepository slotDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
+  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
+  private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final ObjectMapper objectMapper;
 
   public LlmToolService(
       ChatSessionRepository chatSessionRepository,
       WorkflowExecutionRepository workflowExecutionRepository,
+      IntentDefinitionRepository intentDefinitionRepository,
       SlotDefinitionRepository slotDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
+      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
+      WorkflowDefinitionRepository workflowDefinitionRepository,
       ObjectMapper objectMapper) {
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
+    this.intentDefinitionRepository = intentDefinitionRepository;
     this.slotDefinitionRepository = slotDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
+    this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
+    this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.objectMapper = objectMapper;
   }
 
@@ -96,6 +115,61 @@ public class LlmToolService {
     SlotDefinition slot = findActiveSlot(session.getDomainPackVersionId(), slotCode);
     Map<Long, IntentSlotBinding> bindings = loadBindingsBySlotId(execution);
     return toSlotResponse(slot, bindings.get(slot.getId()), slotValues);
+  }
+
+  public List<LlmToolIntentResponse> listIntents(ListLlmToolIntentsCommand command) {
+    ChatSession session = findSession(command.sessionId());
+    return intentDefinitionRepository
+        .findByDomainPackVersionId(session.getDomainPackVersionId())
+        .stream()
+        .filter(intent -> !IntentDefinition.STATUS_REJECTED.equals(intent.getStatus()))
+        .sorted(Comparator.comparing(IntentDefinition::getIntentCode))
+        .map(this::toIntentResponse)
+        .toList();
+  }
+
+  @Transactional
+  public LlmToolIntentSelectionResponse selectIntent(SelectLlmToolIntentCommand command) {
+    String intentCode = command.intentCode();
+    if (intentCode == null || intentCode.isBlank()) {
+      throw new BadRequestException("INTENT_CODE_REQUIRED", "intentCode is required");
+    }
+
+    ChatSession session = findSession(command.sessionId());
+    IntentDefinition intent = findIntent(session.getDomainPackVersionId(), intentCode.trim());
+    if (IntentDefinition.STATUS_REJECTED.equals(intent.getStatus())) {
+      throw new BadRequestException(
+          "INTENT_NOT_SELECTABLE", "Rejected intent cannot be selected: " + intentCode);
+    }
+
+    WorkflowDefinition workflow = resolveWorkflow(session.getDomainPackVersionId(), intent);
+    WorkflowExecution execution = findOrCreateExecutionForUpdate(session);
+    execution.assignIntentWorkflow(intent.getId(), workflow.getId(), resolveInitialState(workflow));
+    WorkflowExecution saved = workflowExecutionRepository.save(execution);
+
+    ObjectNode slotValues = readObjectNode(saved.getSlotValuesJson());
+    List<LlmToolSlotResponse> requiredSlots =
+        buildSlotResponses(session, saved, slotValues).stream()
+            .filter(slot -> Boolean.TRUE.equals(slot.required()))
+            .toList();
+    List<String> missingRequiredSlots =
+        requiredSlots.stream()
+            .filter(slot -> !slot.hasValue())
+            .map(LlmToolSlotResponse::slotCode)
+            .toList();
+
+    return new LlmToolIntentSelectionResponse(
+        session.getId(),
+        saved.getId(),
+        intent.getId(),
+        intent.getIntentCode(),
+        intent.getName(),
+        workflow.getId(),
+        workflow.getWorkflowCode(),
+        saved.getCurrentState(),
+        !missingRequiredSlots.isEmpty(),
+        missingRequiredSlots,
+        requiredSlots);
   }
 
   @Transactional
@@ -192,6 +266,82 @@ public class LlmToolService {
     return slot;
   }
 
+  private IntentDefinition findIntent(Long domainPackVersionId, String intentCode) {
+    return intentDefinitionRepository
+        .findByDomainPackVersionIdAndIntentCode(domainPackVersionId, intentCode)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    "INTENT_DEFINITION_NOT_FOUND", "IntentDefinition not found: " + intentCode));
+  }
+
+  private WorkflowDefinition resolveWorkflow(Long domainPackVersionId, IntentDefinition intent) {
+    List<IntentWorkflowBinding> bindings =
+        intentWorkflowBindingRepository
+            .findAllByIntentDefinitionIdIn(List.of(intent.getId()))
+            .stream()
+            .sorted(
+                Comparator.comparing(
+                        IntentWorkflowBinding::getIsPrimary,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(
+                        IntentWorkflowBinding::getId,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+            .toList();
+    if (bindings.isEmpty()) {
+      throw new NotFoundException(
+          "INTENT_WORKFLOW_BINDING_NOT_FOUND",
+          "Intent workflow binding not found: " + intent.getIntentCode());
+    }
+
+    for (IntentWorkflowBinding binding : bindings) {
+      var workflow =
+          workflowDefinitionRepository.findByIdAndDomainPackVersionId(
+              binding.getWorkflowDefinitionId(), domainPackVersionId);
+      if (workflow.isPresent()) {
+        return workflow.get();
+      }
+    }
+
+    throw new NotFoundException(
+        "WORKFLOW_DEFINITION_NOT_FOUND",
+        "WorkflowDefinition not found for intent: " + intent.getIntentCode());
+  }
+
+  private String resolveInitialState(WorkflowDefinition workflow) {
+    String initialState = trimToNull(workflow.getInitialState());
+    if (initialState != null) {
+      return initialState;
+    }
+
+    JsonNode graph = readJsonNode(workflow.getGraphJson(), null);
+    for (JsonNode node : graph.path("nodes")) {
+      if ("START".equals(node.path("type").asText(null))) {
+        String nodeId = trimToNull(node.path("id").asText(null));
+        if (nodeId != null) {
+          return nodeId;
+        }
+      }
+    }
+
+    throw new InternalException(
+        "WORKFLOW_INITIAL_STATE_MISSING",
+        "Workflow initial state cannot be resolved: " + workflow.getId());
+  }
+
+  private LlmToolIntentResponse toIntentResponse(IntentDefinition intent) {
+    return new LlmToolIntentResponse(
+        intent.getId(),
+        intent.getIntentCode(),
+        intent.getName(),
+        intent.getDescription(),
+        intent.getTaxonomyLevel(),
+        intent.getParentIntentId(),
+        intent.getStatus(),
+        readJsonNode(intent.getEntryConditionJson(), "{}"),
+        readJsonNode(intent.getMetaJson(), "{}"));
+  }
+
   private Map<Long, IntentSlotBinding> loadBindingsBySlotId(WorkflowExecution execution) {
     if (execution == null || execution.getIntentDefinitionId() == null) {
       return Map.of();
@@ -254,5 +404,13 @@ public class LlmToolService {
 
   private boolean hasValue(ObjectNode slotValues, String slotCode) {
     return slotValues.hasNonNull(slotCode);
+  }
+
+  private String trimToNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }
