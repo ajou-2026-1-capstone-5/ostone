@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import com.init.shared.application.exception.BadRequestException;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -79,7 +80,7 @@ class WorkflowExecutionTest {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_COMPLETED);
 
-    assertThatExceptionOfType(InvalidSessionStateException.class)
+    assertThatExceptionOfType(BadRequestException.class)
         .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
         .withMessageContaining("terminal execution");
 
@@ -95,7 +96,7 @@ class WorkflowExecutionTest {
     WorkflowExecution execution = WorkflowExecution.create(1L);
     ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
 
-    assertThatExceptionOfType(InvalidSessionStateException.class)
+    assertThatExceptionOfType(BadRequestException.class)
         .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
         .withMessageContaining("terminal execution");
 
