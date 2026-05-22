@@ -14,6 +14,9 @@ export function UserChatPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
+    setSession(null);
+
     if (!raw || Number.isNaN(workspaceId)) {
       setError("유효하지 않은 워크스페이스입니다.");
       return;
