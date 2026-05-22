@@ -25,6 +25,21 @@ export function createLlmSlotToolHandler({
       case LLM_SLOT_TOOL_NAMES.getContext:
         return wrapToolResult(toolCall, name, await requestJson("/context"));
 
+      case LLM_SLOT_TOOL_NAMES.listIntents:
+        return wrapToolResult(toolCall, name, await requestJson("/intents"));
+
+      case LLM_SLOT_TOOL_NAMES.selectIntent: {
+        const intentCode = requireString(args, "intentCode");
+        return wrapToolResult(
+          toolCall,
+          name,
+          await requestJson("/intent-selection", {
+            method: "POST",
+            body: { intentCode },
+          }),
+        );
+      }
+
       case LLM_SLOT_TOOL_NAMES.listSlots:
         return wrapToolResult(toolCall, name, await requestJson("/slots"));
 

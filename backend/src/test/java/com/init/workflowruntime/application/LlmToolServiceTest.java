@@ -9,17 +9,26 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
+import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
+import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.GetLlmToolSlotCommand;
+import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.ListLlmToolSlotsCommand;
+import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
+import com.init.workflowruntime.application.dto.LlmToolIntentSelectionResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotResponse;
 import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.domain.ChatSession;
@@ -43,8 +52,11 @@ class LlmToolServiceTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private WorkflowExecutionRepository workflowExecutionRepository;
+  @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private SlotDefinitionRepository slotDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
+  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
+  @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
 
   private ObjectMapper objectMapper;
   private LlmToolService service;
@@ -56,8 +68,11 @@ class LlmToolServiceTest {
         new LlmToolService(
             chatSessionRepository,
             workflowExecutionRepository,
+            intentDefinitionRepository,
             slotDefinitionRepository,
             intentSlotBindingRepository,
+            intentWorkflowBindingRepository,
+            workflowDefinitionRepository,
             objectMapper);
   }
 
@@ -231,6 +246,72 @@ class LlmToolServiceTest {
         .hasMessageContaining("SlotDefinition not found");
   }
 
+  @Test
+  @DisplayName("listIntents: 세션 domain pack version의 intent 목록을 intentCode 순서로 반환한다")
+  void should_returnCurrentDomainPackIntents() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition refundIntent = createIntent(70L, 101L, "request_refund", "환불 요청");
+    IntentDefinition addressIntent = createIntent(71L, 101L, "change_address", "배송지 변경");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(List.of(refundIntent, addressIntent));
+
+    // when
+    var result = service.listIntents(new ListLlmToolIntentsCommand(1L));
+
+    // then
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).intentCode()).isEqualTo("change_address");
+    assertThat(result.get(1).intentCode()).isEqualTo("request_refund");
+  }
+
+  @Test
+  @DisplayName(
+      "selectIntent: intentCode 선택 시 execution에 intent/workflow/currentState를 저장하고 필수 slot 누락을 반환한다")
+  void should_selectIntentAndReturnMissingRequiredSlots() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+    WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", "start");
+    IntentWorkflowBinding workflowBinding = createWorkflowBinding(70L, 150L, true);
+    WorkflowExecution execution = createExecution(50L, 1L, null, "{\"order_id\":\"A-100\"}");
+    SlotDefinition orderSlot = createSlot(11L, 101L, "order_id");
+    SlotDefinition refundSlot = createSlot(12L, 101L, "refund_reason");
+    IntentSlotBinding orderBinding = createBinding(70L, 11L, true, 1, "주문번호를 물어본다");
+    IntentSlotBinding refundBinding = createBinding(70L, 12L, true, 2, "환불 사유를 확인한다");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
+        .willReturn(Optional.of(intent));
+    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+        .willReturn(List.of(workflowBinding));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+        .willReturn(Optional.of(workflow));
+    given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+        .willReturn(Optional.of(execution));
+    given(workflowExecutionRepository.save(execution)).willReturn(execution);
+    given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+        .willReturn(List.of(refundSlot, orderSlot));
+    given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+        .willReturn(List.of(orderBinding, refundBinding));
+
+    // when
+    LlmToolIntentSelectionResponse result =
+        service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund"));
+
+    // then
+    assertThat(result.executionId()).isEqualTo(50L);
+    assertThat(result.intentDefinitionId()).isEqualTo(70L);
+    assertThat(result.workflowDefinitionId()).isEqualTo(150L);
+    assertThat(result.currentState()).isEqualTo("start");
+    assertThat(result.slotCollectionRequired()).isTrue();
+    assertThat(result.missingRequiredSlots()).containsExactly("refund_reason");
+    assertThat(execution.getIntentDefinitionId()).isEqualTo(70L);
+    assertThat(execution.getWorkflowDefinitionId()).isEqualTo(150L);
+  }
+
   private ChatSession createSession(Long id, Long workspaceId, Long versionId) {
     ChatSession session =
         ChatSession.create(workspaceId, versionId, ChatSessionStatus.OPEN, "WEB", "{}");
@@ -271,5 +352,40 @@ class LlmToolServiceTest {
       String promptHint) {
     return IntentSlotBinding.create(
         intentDefinitionId, slotDefinitionId, required, collectionOrder, promptHint, "{}");
+  }
+
+  private IntentDefinition createIntent(Long id, Long versionId, String intentCode, String name) {
+    IntentDefinition intent =
+        IntentDefinition.create(
+            versionId, intentCode, name, "intent description", 1, "{}", "{}", "[]", "{}");
+    ReflectionTestUtils.setField(intent, "id", id);
+    return intent;
+  }
+
+  private IntentWorkflowBinding createWorkflowBinding(
+      Long intentDefinitionId, Long workflowDefinitionId, Boolean primary) {
+    IntentWorkflowBinding binding =
+        IntentWorkflowBinding.create(intentDefinitionId, workflowDefinitionId, primary, "{}");
+    ReflectionTestUtils.setField(binding, "id", 300L);
+    return binding;
+  }
+
+  private WorkflowDefinition createWorkflow(
+      Long id, Long versionId, String workflowCode, String initialState) {
+    WorkflowDefinition workflow =
+        WorkflowDefinition.create(
+            versionId,
+            workflowCode,
+            "workflow name",
+            "workflow description",
+            """
+            {"direction":"LR","nodes":[{"id":"start","type":"START"},{"id":"end","type":"TERMINAL"}],"edges":[{"id":"e1","from":"start","to":"end"}]}
+            """,
+            initialState,
+            "[\"end\"]",
+            "[]",
+            "{}");
+    ReflectionTestUtils.setField(workflow, "id", id);
+    return workflow;
   }
 }

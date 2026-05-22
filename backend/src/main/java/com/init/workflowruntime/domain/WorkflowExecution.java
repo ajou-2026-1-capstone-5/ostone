@@ -123,4 +123,16 @@ public class WorkflowExecution {
   public void replaceSlotValuesJson(String slotValuesJson) {
     this.slotValuesJson = slotValuesJson != null ? slotValuesJson : "{}";
   }
+
+  public void assignIntentWorkflow(
+      Long intentDefinitionId, Long workflowDefinitionId, String currentState) {
+    Objects.requireNonNull(intentDefinitionId, "intentDefinitionId must not be null");
+    Objects.requireNonNull(workflowDefinitionId, "workflowDefinitionId must not be null");
+    Objects.requireNonNull(currentState, "currentState must not be null");
+
+    this.intentDefinitionId = intentDefinitionId;
+    this.workflowDefinitionId = workflowDefinitionId;
+    this.currentState = currentState;
+    this.status = STATUS_RUNNING;
+  }
 }

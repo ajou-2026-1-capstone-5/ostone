@@ -105,6 +105,60 @@ describe("llm slot tools", () => {
     assert.equal(requests[0].init.body, "{\"value\":\"A-200\"}");
   });
 
+  it("maps list_current_intents tool calls to the backend intents endpoint", async () => {
+    const requests = [];
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      sessionId: 7,
+      fetchImpl: async (url, init) => {
+        requests.push({ url, init });
+        return {
+          ok: true,
+          status: 200,
+          text: async () => "[{\"intentCode\":\"request_refund\"}]",
+        };
+      },
+    });
+
+    const result = await handler({
+      name: LLM_SLOT_TOOL_NAMES.listIntents,
+      arguments: {},
+    });
+
+    assert.equal(requests[0].url, "http://localhost:8080/api/v1/llm-tools/sessions/7/intents");
+    assert.equal(requests[0].init.method, "GET");
+    assert.deepEqual(result.result, [{ intentCode: "request_refund" }]);
+  });
+
+  it("maps select_current_intent tool calls to POST with intentCode body", async () => {
+    const requests = [];
+    const handler = createLlmSlotToolHandler({
+      backendBaseUrl: "http://localhost:8080",
+      sessionId: 7,
+      fetchImpl: async (url, init) => {
+        requests.push({ url, init });
+        return {
+          ok: true,
+          status: 200,
+          text: async () => "{\"intentCode\":\"request_refund\",\"currentState\":\"start\"}",
+        };
+      },
+    });
+
+    await handler({
+      name: LLM_SLOT_TOOL_NAMES.selectIntent,
+      arguments: { intentCode: "request_refund" },
+    });
+
+    assert.equal(
+      requests[0].url,
+      "http://localhost:8080/api/v1/llm-tools/sessions/7/intent-selection",
+    );
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.headers["Content-Type"], "application/json");
+    assert.equal(requests[0].init.body, "{\"intentCode\":\"request_refund\"}");
+  });
+
   it("preserves status and non-JSON payloads from failed backend responses", async () => {
     const handler = createLlmSlotToolHandler({
       backendBaseUrl: "http://localhost:8080",
