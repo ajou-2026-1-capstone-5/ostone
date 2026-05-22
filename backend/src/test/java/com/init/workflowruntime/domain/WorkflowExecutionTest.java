@@ -1,6 +1,7 @@
 package com.init.workflowruntime.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.OffsetDateTime;
@@ -57,5 +58,47 @@ class WorkflowExecutionTest {
 
     assertThat(execution.getId()).isEqualTo(10L);
     assertThat(execution.getSlotValuesJson()).isEqualTo("{}");
+  }
+
+  @Test
+  @DisplayName("assignIntentWorkflow: 실행 중이면 intent/workflow/currentState를 저장한다")
+  void should_assignIntentWorkflow_when_running() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+
+    execution.assignIntentWorkflow(10L, 20L, "start");
+
+    assertThat(execution.getIntentDefinitionId()).isEqualTo(10L);
+    assertThat(execution.getWorkflowDefinitionId()).isEqualTo(20L);
+    assertThat(execution.getCurrentState()).isEqualTo("start");
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_RUNNING);
+  }
+
+  @Test
+  @DisplayName("assignIntentWorkflow: 완료된 실행이면 재할당하지 않는다")
+  void should_throw_when_assigningCompletedExecution() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_COMPLETED);
+
+    assertThatIllegalStateException()
+        .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
+        .withMessageContaining("terminal execution");
+
+    assertThat(execution.getIntentDefinitionId()).isNull();
+    assertThat(execution.getWorkflowDefinitionId()).isNull();
+    assertThat(execution.getCurrentState()).isNull();
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_COMPLETED);
+  }
+
+  @Test
+  @DisplayName("assignIntentWorkflow: 실패한 실행이면 재할당하지 않는다")
+  void should_throw_when_assigningFailedExecution() {
+    WorkflowExecution execution = WorkflowExecution.create(1L);
+    ReflectionTestUtils.setField(execution, "status", WorkflowExecution.STATUS_FAILED);
+
+    assertThatIllegalStateException()
+        .isThrownBy(() -> execution.assignIntentWorkflow(10L, 20L, "start"))
+        .withMessageContaining("terminal execution");
+
+    assertThat(execution.getStatus()).isEqualTo(WorkflowExecution.STATUS_FAILED);
   }
 }

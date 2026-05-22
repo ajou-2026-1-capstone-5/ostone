@@ -247,16 +247,18 @@ class LlmToolServiceTest {
   }
 
   @Test
-  @DisplayName("listIntents: 세션 domain pack version의 intent 목록을 intentCode 순서로 반환한다")
-  void should_returnCurrentDomainPackIntents() {
+  @DisplayName("listIntents: rejected intent를 제외하고 intentCode 순서로 반환한다")
+  void should_returnCurrentDomainPackIntentsExceptRejected() {
     // given
     ChatSession session = createSession(1L, 10L, 101L);
     IntentDefinition refundIntent = createIntent(70L, 101L, "request_refund", "환불 요청");
     IntentDefinition addressIntent = createIntent(71L, 101L, "change_address", "배송지 변경");
+    IntentDefinition rejectedIntent = createIntent(72L, 101L, "legacy_refund", "레거시 환불");
+    rejectedIntent.changeStatus(IntentDefinition.STATUS_REJECTED);
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(intentDefinitionRepository.findByDomainPackVersionId(101L))
-        .willReturn(List.of(refundIntent, addressIntent));
+        .willReturn(List.of(refundIntent, rejectedIntent, addressIntent));
 
     // when
     var result = service.listIntents(new ListLlmToolIntentsCommand(1L));
@@ -310,6 +312,107 @@ class LlmToolServiceTest {
     assertThat(result.missingRequiredSlots()).containsExactly("refund_reason");
     assertThat(execution.getIntentDefinitionId()).isEqualTo(70L);
     assertThat(execution.getWorkflowDefinitionId()).isEqualTo(150L);
+  }
+
+  @Test
+  @DisplayName("selectIntent: workflow initialState가 없으면 START node id를 currentState로 사용한다")
+  void should_useStartNodeAsCurrentState_when_initialStateMissing() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+    WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", null);
+    WorkflowExecution execution = createExecution(50L, 1L, null, "{\"order_id\":\"A-100\"}");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
+        .willReturn(Optional.of(intent));
+    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+        .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+        .willReturn(Optional.of(workflow));
+    given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+        .willReturn(Optional.of(execution));
+    given(workflowExecutionRepository.save(execution)).willReturn(execution);
+    given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+        .willReturn(List.of());
+
+    // when
+    LlmToolIntentSelectionResponse result =
+        service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund"));
+
+    // then
+    assertThat(result.currentState()).isEqualTo("start");
+    assertThat(result.slotCollectionRequired()).isFalse();
+    assertThat(result.missingRequiredSlots()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("selectIntent: intentCode가 비어 있으면 400 예외")
+  void should_throwBadRequest_when_intentCodeBlank() {
+    assertThatThrownBy(() -> service.selectIntent(new SelectLlmToolIntentCommand(1L, " ")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("intentCode is required");
+  }
+
+  @Test
+  @DisplayName("selectIntent: rejected intent는 선택할 수 없다")
+  void should_throwBadRequest_when_intentIsRejected() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+    intent.changeStatus(IntentDefinition.STATUS_REJECTED);
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
+        .willReturn(Optional.of(intent));
+
+    // when & then
+    assertThatThrownBy(
+            () -> service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("Rejected intent cannot be selected");
+  }
+
+  @Test
+  @DisplayName("selectIntent: intent workflow binding이 없으면 404 예외")
+  void should_throwNotFound_when_workflowBindingMissing() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
+        .willReturn(Optional.of(intent));
+    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+        .willReturn(List.of());
+
+    // when & then
+    assertThatThrownBy(
+            () -> service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund")))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Intent workflow binding not found");
+  }
+
+  @Test
+  @DisplayName("selectIntent: binding workflow가 세션 version에 없으면 404 예외")
+  void should_throwNotFound_when_workflowMissing() {
+    // given
+    ChatSession session = createSession(1L, 10L, 101L);
+    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
+        .willReturn(Optional.of(intent));
+    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+        .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(
+            () -> service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund")))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("WorkflowDefinition not found");
   }
 
   private ChatSession createSession(Long id, Long workspaceId, Long versionId) {

@@ -17,6 +17,8 @@ import org.hibernate.type.SqlTypes;
 public class WorkflowExecution {
 
   public static final String STATUS_RUNNING = "RUNNING";
+  public static final String STATUS_COMPLETED = "COMPLETED";
+  public static final String STATUS_FAILED = "FAILED";
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -130,9 +132,18 @@ public class WorkflowExecution {
     Objects.requireNonNull(workflowDefinitionId, "workflowDefinitionId must not be null");
     Objects.requireNonNull(currentState, "currentState must not be null");
 
+    if (isTerminalStatus()) {
+      throw new IllegalStateException(
+          "Cannot assign intent workflow to terminal execution: " + this.status);
+    }
+
     this.intentDefinitionId = intentDefinitionId;
     this.workflowDefinitionId = workflowDefinitionId;
     this.currentState = currentState;
     this.status = STATUS_RUNNING;
+  }
+
+  private boolean isTerminalStatus() {
+    return STATUS_COMPLETED.equals(this.status) || STATUS_FAILED.equals(this.status);
   }
 }

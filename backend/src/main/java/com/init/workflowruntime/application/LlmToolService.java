@@ -122,6 +122,7 @@ public class LlmToolService {
     return intentDefinitionRepository
         .findByDomainPackVersionId(session.getDomainPackVersionId())
         .stream()
+        .filter(intent -> !IntentDefinition.STATUS_REJECTED.equals(intent.getStatus()))
         .sorted(Comparator.comparing(IntentDefinition::getIntentCode))
         .map(this::toIntentResponse)
         .toList();
