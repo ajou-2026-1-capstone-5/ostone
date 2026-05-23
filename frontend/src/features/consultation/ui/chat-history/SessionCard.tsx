@@ -48,18 +48,11 @@ export function SessionCard({ session, isSelected, onSelectSession }: SessionCar
     if (sessionId) onSelectSession(sessionId);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    handleSelect();
-  };
-
   return (
     <button
       type="button"
       className={`${styles.card} ${isSelected ? styles.selected : ""}`}
       onClick={handleSelect}
-      onKeyDown={handleKeyDown}
       aria-pressed={isSelected}
     >
       <div className={styles.header}>

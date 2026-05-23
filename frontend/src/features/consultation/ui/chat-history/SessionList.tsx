@@ -19,6 +19,9 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
     workspaceId,
     status: "completed",
   });
+  const validSessions = sessions.filter(
+    (session): session is typeof session & { id: number } => session.id != null,
+  );
 
   if (isLoading) {
     return (
@@ -52,28 +55,26 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
     <aside className={styles.wrapper} aria-label="채팅 기록 목록">
       <div className={styles.header}>
         <Eyebrow>Chat history</Eyebrow>
-        <span className={styles.count}>{sessions.length}개 세션</span>
+        <span className={styles.count}>{validSessions.length}개 세션</span>
       </div>
 
-      {sessions.length === 0 ? (
+      {validSessions.length === 0 ? (
         <div className={styles.stateArea}>
           <EmptyState message="아직 채팅 기록이 없습니다" />
         </div>
       ) : (
         <div className={styles.list}>
-          {sessions
-            .filter((session): session is typeof session & { id: number } => session.id != null)
-            .map((session) => {
-              const sessionId = String(session.id);
-              return (
-                <SessionCard
-                  key={sessionId}
-                  session={session}
-                  isSelected={selectedSessionId === sessionId}
-                  onSelectSession={onSelectSession}
-                />
-              );
-            })}
+          {validSessions.map((session) => {
+            const sessionId = String(session.id);
+            return (
+              <SessionCard
+                key={sessionId}
+                session={session}
+                isSelected={selectedSessionId === sessionId}
+                onSelectSession={onSelectSession}
+              />
+            );
+          })}
         </div>
       )}
     </aside>
