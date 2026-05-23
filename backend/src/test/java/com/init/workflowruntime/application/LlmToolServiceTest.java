@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
 import com.init.domainpack.domain.model.IntentWorkflowBinding;
@@ -41,8 +43,14 @@ import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DecisionLog;
+import com.init.workflowruntime.domain.DecisionLogRepository;
+import com.init.workflowruntime.domain.DecisionLogType;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import com.init.workflowruntime.domain.WorkflowExecutionRepository;
+import com.init.workflowruntime.domain.WorkflowExecutionStep;
+import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
+import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +58,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -66,6 +77,8 @@ class LlmToolServiceTest {
   @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
+  @Mock private DecisionLogRepository decisionLogRepository;
+  @Mock private WorkflowExecutionStepRepository workflowExecutionStepRepository;
 
   private ObjectMapper objectMapper;
   private LlmToolService service;
@@ -83,6 +96,8 @@ class LlmToolServiceTest {
             intentWorkflowBindingRepository,
             workflowDefinitionRepository,
             workflowPolicyRuntimeService,
+            decisionLogRepository,
+            workflowExecutionStepRepository,
             objectMapper);
   }
 
@@ -561,6 +576,459 @@ class LlmToolServiceTest {
             "{}");
     ReflectionTestUtils.setField(workflow, "id", id);
     return workflow;
+  }
+
+  @Nested
+  @DisplayName("Decision log writer")
+  class DecisionLogWriter {
+
+    @Test
+    @DisplayName("selectIntent 는 decision_log + step 두 row 를 같은 seq 로 작성")
+    void selectIntent_writesBothRowsWithSameSeq() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+      WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", "start");
+      WorkflowExecution execution = createExecution(50L, 1L, null, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(
+              intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                  101L, "request_refund"))
+          .willReturn(Optional.of(intent));
+      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+          .willReturn(Optional.of(workflow));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+          .willReturn(List.of());
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.of(5));
+
+      service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund"));
+
+      ArgumentCaptor<WorkflowExecutionStep> stepCaptor =
+          ArgumentCaptor.forClass(WorkflowExecutionStep.class);
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(workflowExecutionStepRepository).save(stepCaptor.capture());
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(stepCaptor.getValue().getSeqNo()).isEqualTo(6);
+      assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("upsertSlotValue 는 두 row 를 같은 seq 로 작성")
+    void upsertSlotValue_writesBothRowsWithSameSeq() throws Exception {
+      ChatSession session = createSession(1L, 10L, 101L);
+      SlotDefinition slot = createSlot(11L, 101L, "order_id");
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
+          .willReturn(Optional.of(slot));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.of(2));
+
+      service.upsertSlotValue(
+          new UpsertLlmToolSlotValueCommand(1L, "order_id", objectMapper.readTree("\"A-100\"")));
+
+      ArgumentCaptor<WorkflowExecutionStep> stepCaptor =
+          ArgumentCaptor.forClass(WorkflowExecutionStep.class);
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(workflowExecutionStepRepository).save(stepCaptor.capture());
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(stepCaptor.getValue().getSeqNo()).isEqualTo(3);
+      assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("upsertSlotValue 의 sensitive slot 은 payload_json.value 가 '***' 로 마스킹")
+    void upsertSlotValue_masksSensitiveSlotValue() throws Exception {
+      ChatSession session = createSession(1L, 10L, 101L);
+      SlotDefinition sensitiveSlot = createSlot(11L, 101L, "credit_card");
+      ReflectionTestUtils.setField(sensitiveSlot, "isSensitive", true);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "credit_card"))
+          .willReturn(Optional.of(sensitiveSlot));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.upsertSlotValue(
+          new UpsertLlmToolSlotValueCommand(
+              1L, "credit_card", objectMapper.readTree("\"4111-1111-1111-1111\"")));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      ObjectNode payload =
+          (ObjectNode) objectMapper.readTree(dlogCaptor.getValue().getPayloadJson());
+      assertThat(payload.get("value").asText()).isEqualTo("***");
+    }
+
+    @Test
+    @DisplayName("upsertSlotValue 의 non-sensitive slot 은 원본 값 유지")
+    void upsertSlotValue_preservesNonSensitiveSlotValue() throws Exception {
+      ChatSession session = createSession(1L, 10L, 101L);
+      SlotDefinition slot = createSlot(11L, 101L, "order_id");
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
+          .willReturn(Optional.of(slot));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.upsertSlotValue(
+          new UpsertLlmToolSlotValueCommand(1L, "order_id", objectMapper.readTree("\"A-200\"")));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      ObjectNode payload =
+          (ObjectNode) objectMapper.readTree(dlogCaptor.getValue().getPayloadJson());
+      assertThat(payload.get("value").asText()).isEqualTo("A-200");
+    }
+
+    @Test
+    @DisplayName("selectIntent 의 step.state_from=null, state_to=initialState")
+    void selectIntent_stepStateFromNullToInitial() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+      WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", "start");
+      WorkflowExecution execution = createExecution(50L, 1L, null, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(
+              intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                  101L, "request_refund"))
+          .willReturn(Optional.of(intent));
+      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+          .willReturn(Optional.of(workflow));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+          .willReturn(List.of());
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund"));
+
+      ArgumentCaptor<WorkflowExecutionStep> stepCaptor =
+          ArgumentCaptor.forClass(WorkflowExecutionStep.class);
+      verify(workflowExecutionStepRepository).save(stepCaptor.capture());
+
+      assertThat(stepCaptor.getValue().getStateFrom()).isNull();
+      assertThat(stepCaptor.getValue().getStateTo()).isEqualTo("start");
+      assertThat(stepCaptor.getValue().getActionType())
+          .isEqualTo(WorkflowExecutionStepActionType.ASSIGN_INTENT);
+    }
+
+    @Test
+    @DisplayName("upsertSlotValue 의 step.state_from=state_to=currentState")
+    void upsertSlotValue_stepStateUnchanged() throws Exception {
+      ChatSession session = createSession(1L, 10L, 101L);
+      SlotDefinition slot = createSlot(11L, 101L, "order_id");
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      ReflectionTestUtils.setField(execution, "currentState", "collect_slots");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
+          .willReturn(Optional.of(slot));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.upsertSlotValue(
+          new UpsertLlmToolSlotValueCommand(1L, "order_id", objectMapper.readTree("\"A-100\"")));
+
+      ArgumentCaptor<WorkflowExecutionStep> stepCaptor =
+          ArgumentCaptor.forClass(WorkflowExecutionStep.class);
+      verify(workflowExecutionStepRepository).save(stepCaptor.capture());
+
+      assertThat(stepCaptor.getValue().getStateFrom()).isEqualTo("collect_slots");
+      assertThat(stepCaptor.getValue().getStateTo()).isEqualTo("collect_slots");
+      assertThat(stepCaptor.getValue().getActionType())
+          .isEqualTo(WorkflowExecutionStepActionType.UPSERT_SLOT);
+    }
+
+    @Test
+    @DisplayName("getCurrentWorkflow 는 execution 이 있으면 WORKFLOW_FETCHED 1행 작성, step 미작성")
+    void getCurrentWorkflow_writesDecisionLogOnly_whenExecutionExists() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+      verify(workflowExecutionStepRepository, never()).save(any());
+
+      assertThat(dlogCaptor.getValue().getDecisionType())
+          .isEqualTo(DecisionLogType.WORKFLOW_FETCHED);
+      assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getCurrentWorkflow 는 execution 이 없으면 로그 스킵")
+    void getCurrentWorkflow_skipsLogging_whenNoExecution() {
+      ChatSession session = createSession(1L, 10L, 101L);
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.empty());
+
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      verify(decisionLogRepository, never()).save(any());
+      verify(workflowExecutionStepRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("getContext 는 missingSlots 를 missing_slots_json 에 기록")
+    void getContext_recordsMissingSlots() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{\"order_id\":\"A-100\"}");
+      SlotDefinition orderSlot = createSlot(11L, 101L, "order_id");
+      SlotDefinition customerSlot = createSlot(12L, 101L, "customer_name");
+      IntentSlotBinding orderBinding = createBinding(70L, 11L, true, 1, "주문번호");
+      IntentSlotBinding customerBinding = createBinding(70L, 12L, true, 2, "고객명");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+          .willReturn(List.of(customerSlot, orderSlot));
+      given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of(orderBinding, customerBinding));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.getContext(new GetLlmToolContextCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(dlogCaptor.getValue().getDecisionType())
+          .isEqualTo(DecisionLogType.CONTEXT_FETCHED);
+      assertThat(dlogCaptor.getValue().getMissingSlotsJson()).contains("customer_name");
+    }
+
+    @Test
+    @DisplayName("listSlots 는 payload_json.returnedCount 에 slot 갯수 기록")
+    void listSlots_recordsReturnedCount() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      SlotDefinition slot1 = createSlot(11L, 101L, "order_id");
+      SlotDefinition slot2 = createSlot(12L, 101L, "customer_name");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(slotDefinitionRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(101L))
+          .willReturn(List.of(slot1, slot2));
+      given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of());
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.listSlots(new ListLlmToolSlotsCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(dlogCaptor.getValue().getDecisionType()).isEqualTo(DecisionLogType.SLOTS_LISTED);
+      assertThat(dlogCaptor.getValue().getPayloadJson()).contains("\"returnedCount\":2");
+    }
+
+    @Test
+    @DisplayName("getSlot 은 payload_json.slotCode 기록")
+    void getSlot_recordsSlotCode() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      SlotDefinition slot = createSlot(11L, 101L, "order_id");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
+          .willReturn(Optional.of(slot));
+      given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of());
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.getSlot(new GetLlmToolSlotCommand(1L, "order_id"));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(dlogCaptor.getValue().getDecisionType()).isEqualTo(DecisionLogType.SLOT_FETCHED);
+      assertThat(dlogCaptor.getValue().getPayloadJson()).contains("\"slotCode\":\"order_id\"");
+    }
+
+    @Test
+    @DisplayName("listIntents 는 returnedCount 기록")
+    void listIntents_recordsReturnedCount() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+      IntentDefinition intent1 = createIntent(70L, 101L, "request_refund", "환불 요청");
+      IntentDefinition intent2 = createIntent(71L, 101L, "change_address", "배송지 변경");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+          .willReturn(List.of(intent1, intent2));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.listIntents(new ListLlmToolIntentsCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(dlogCaptor.getValue().getDecisionType()).isEqualTo(DecisionLogType.INTENTS_LISTED);
+      assertThat(dlogCaptor.getValue().getPayloadJson()).contains("\"returnedCount\":2");
+    }
+
+    @Test
+    @DisplayName("step_seq_no 는 decision_log MAX + 1")
+    void stepSeqNo_isMaxPlusOne() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.of(7));
+
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(8);
+    }
+
+    @Test
+    @DisplayName("같은 execution 에 read 가 연속되면 step_seq_no 가 매번 증가")
+    void readsBumpSeqEachCall() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L))
+          .willReturn(Optional.of(3))
+          .willReturn(Optional.of(4));
+
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(decisionLogRepository, times(2)).save(dlogCaptor.capture());
+
+      List<DecisionLog> captured = dlogCaptor.getAllValues();
+      assertThat(captured.get(0).getStepSeqNo()).isEqualTo(4);
+      assertThat(captured.get(1).getStepSeqNo()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("write 후 read 가 와도 step.seq_no = dlog.step_seq_no (write row 기준)")
+    void writeAndReadShareSeqWithinSameTransaction() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      SlotDefinition slot = createSlot(11L, 101L, "order_id");
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(101L, "order_id"))
+          .willReturn(Optional.of(slot));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution)).willReturn(execution);
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.of(3));
+
+      service.upsertSlotValue(
+          new UpsertLlmToolSlotValueCommand(
+              1L, "order_id", objectMapper.createObjectNode().put("v", "x")));
+
+      ArgumentCaptor<WorkflowExecutionStep> stepCaptor =
+          ArgumentCaptor.forClass(WorkflowExecutionStep.class);
+      ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
+      verify(workflowExecutionStepRepository).save(stepCaptor.capture());
+      verify(decisionLogRepository).save(dlogCaptor.capture());
+
+      assertThat(stepCaptor.getValue().getSeqNo()).isEqualTo(dlogCaptor.getValue().getStepSeqNo());
+    }
+
+    @Test
+    @DisplayName("WorkflowExecution.save 가 실패하면 dlog 도 저장되지 않는다 (verify never)")
+    void writePath_doesNotWriteLog_whenExecutionSaveThrows() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
+      WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", "start");
+      WorkflowExecution execution = createExecution(50L, 1L, null, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(
+              intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                  101L, "request_refund"))
+          .willReturn(Optional.of(intent));
+      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
+          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
+      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
+          .willReturn(Optional.of(workflow));
+      given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
+          .willReturn(Optional.of(execution));
+      given(workflowExecutionRepository.save(execution))
+          .willThrow(new RuntimeException("DB failure"));
+
+      assertThatThrownBy(
+              () -> service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund")))
+          .isInstanceOf(RuntimeException.class);
+
+      verify(decisionLogRepository, never()).save(any());
+      verify(workflowExecutionStepRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName(
+        "read tool 은 dlog 저장 직전에 findLatestByChatSessionIdForUpdate (PESSIMISTIC_WRITE) 를 호출")
+    void readPath_acquiresPessimisticLockBeforeDlogSave() {
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowExecution execution = createExecution(50L, 1L, 70L, "{}");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.of(execution));
+      given(decisionLogRepository.findMaxStepSeqNoByExecutionId(50L)).willReturn(Optional.empty());
+
+      service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      InOrder inOrder = Mockito.inOrder(workflowExecutionRepository, decisionLogRepository);
+      inOrder
+          .verify(workflowExecutionRepository)
+          .findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L);
+      inOrder.verify(workflowExecutionRepository).findLatestByChatSessionIdForUpdate(1L);
+      inOrder.verify(decisionLogRepository).findMaxStepSeqNoByExecutionId(50L);
+      inOrder.verify(decisionLogRepository).save(any(DecisionLog.class));
+    }
   }
 
   @Nested

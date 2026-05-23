@@ -3,8 +3,10 @@ package com.init.workflowruntime.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
 import com.init.domainpack.domain.model.IntentWorkflowBinding;
@@ -36,8 +38,14 @@ import com.init.workflowruntime.application.dto.LlmToolSlotValueResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.DecisionLog;
+import com.init.workflowruntime.domain.DecisionLogRepository;
+import com.init.workflowruntime.domain.DecisionLogType;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import com.init.workflowruntime.domain.WorkflowExecutionRepository;
+import com.init.workflowruntime.domain.WorkflowExecutionStep;
+import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
+import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +67,8 @@ public class LlmToolService {
   private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
+  private final DecisionLogRepository decisionLogRepository;
+  private final WorkflowExecutionStepRepository workflowExecutionStepRepository;
   private final ObjectMapper objectMapper;
 
   public LlmToolService(
@@ -70,6 +80,8 @@ public class LlmToolService {
       IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
+      DecisionLogRepository decisionLogRepository,
+      WorkflowExecutionStepRepository workflowExecutionStepRepository,
       ObjectMapper objectMapper) {
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
@@ -79,9 +91,12 @@ public class LlmToolService {
     this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
+    this.decisionLogRepository = decisionLogRepository;
+    this.workflowExecutionStepRepository = workflowExecutionStepRepository;
     this.objectMapper = objectMapper;
   }
 
+  @Transactional
   public LlmToolWorkflowResponse getCurrentWorkflow(GetCurrentWorkflowCommand command) {
     Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
@@ -109,22 +124,42 @@ public class LlmToolService {
           "JSON_PARSE_FAILED", "Stored terminalStatesJson must be a JSON array");
     }
 
-    return new LlmToolWorkflowResponse(
-        session.getId(),
-        session.getWorkspaceId(),
-        session.getDomainPackVersionId(),
-        executionId,
-        executionStatus,
-        currentState,
-        definition != null ? definition.getId() : null,
-        definition != null ? definition.getWorkflowCode() : null,
-        definition != null ? definition.getName() : null,
-        definition != null ? definition.getDescription() : null,
-        graphJson,
-        definition != null ? definition.getInitialState() : null,
-        terminalStates);
+    LlmToolWorkflowResponse response =
+        new LlmToolWorkflowResponse(
+            session.getId(),
+            session.getWorkspaceId(),
+            session.getDomainPackVersionId(),
+            executionId,
+            executionStatus,
+            currentState,
+            definition != null ? definition.getId() : null,
+            definition != null ? definition.getWorkflowCode() : null,
+            definition != null ? definition.getName() : null,
+            definition != null ? definition.getDescription() : null,
+            graphJson,
+            definition != null ? definition.getInitialState() : null,
+            terminalStates);
+
+    if (execution != null) {
+      workflowExecutionRepository.findLatestByChatSessionIdForUpdate(sessionId);
+      int seq = nextStepSeqNo(execution.getId());
+      decisionLogRepository.save(
+          DecisionLog.record(
+              execution.getId(),
+              seq,
+              DecisionLogType.WORKFLOW_FETCHED,
+              execution.getIntentDefinitionId(),
+              execution.getCurrentState(),
+              null,
+              null,
+              "[]",
+              "{}"));
+    }
+
+    return response;
   }
 
+  @Transactional
   public LlmToolContextResponse getContext(GetLlmToolContextCommand command) {
     Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
@@ -142,18 +177,37 @@ public class LlmToolService {
                 session.getDomainPackVersionId(), execution, slotValues)
             : null;
 
-    return new LlmToolContextResponse(
-        session.getId(),
-        session.getWorkspaceId(),
-        session.getDomainPackVersionId(),
-        execution != null ? execution.getId() : null,
-        execution != null ? execution.getStatus() : null,
-        execution != null ? execution.getCurrentState() : null,
-        slotValues,
-        policySnapshot,
-        currentPolicy,
-        missingSlots,
-        slots);
+    LlmToolContextResponse response =
+        new LlmToolContextResponse(
+            session.getId(),
+            session.getWorkspaceId(),
+            session.getDomainPackVersionId(),
+            execution != null ? execution.getId() : null,
+            execution != null ? execution.getStatus() : null,
+            execution != null ? execution.getCurrentState() : null,
+            slotValues,
+            policySnapshot,
+            currentPolicy,
+            missingSlots,
+            slots);
+
+    if (execution != null) {
+      workflowExecutionRepository.findLatestByChatSessionIdForUpdate(sessionId);
+      int seq = nextStepSeqNo(execution.getId());
+      decisionLogRepository.save(
+          DecisionLog.record(
+              execution.getId(),
+              seq,
+              DecisionLogType.CONTEXT_FETCHED,
+              execution.getIntentDefinitionId(),
+              execution.getCurrentState(),
+              null,
+              null,
+              writeJson(toJsonArray(missingSlots)),
+              "{}"));
+    }
+
+    return response;
   }
 
   public LlmToolPolicyContextResponse getPolicyContext(GetLlmToolPolicyContextCommand command) {
@@ -177,15 +231,35 @@ public class LlmToolService {
         currentPolicy);
   }
 
+  @Transactional
   public List<LlmToolSlotResponse> listSlots(ListLlmToolSlotsCommand command) {
     Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
     WorkflowExecution execution = findExecution(sessionId);
     ObjectNode slotValues =
         readObjectNode(execution != null ? execution.getSlotValuesJson() : "{}");
-    return buildSlotResponses(session, execution, slotValues);
+    List<LlmToolSlotResponse> slots = buildSlotResponses(session, execution, slotValues);
+
+    if (execution != null) {
+      workflowExecutionRepository.findLatestByChatSessionIdForUpdate(sessionId);
+      int seq = nextStepSeqNo(execution.getId());
+      decisionLogRepository.save(
+          DecisionLog.record(
+              execution.getId(),
+              seq,
+              DecisionLogType.SLOTS_LISTED,
+              execution.getIntentDefinitionId(),
+              execution.getCurrentState(),
+              null,
+              null,
+              "[]",
+              writeJson(objectMapper.createObjectNode().put("returnedCount", slots.size()))));
+    }
+
+    return slots;
   }
 
+  @Transactional
   public LlmToolSlotResponse getSlot(GetLlmToolSlotCommand command) {
     Long sessionId = command.sessionId();
     String slotCode = command.slotCode();
@@ -195,18 +269,58 @@ public class LlmToolService {
         readObjectNode(execution != null ? execution.getSlotValuesJson() : "{}");
     SlotDefinition slot = findActiveSlot(session.getDomainPackVersionId(), slotCode);
     Map<Long, IntentSlotBinding> bindings = loadBindingsBySlotId(execution);
-    return toSlotResponse(slot, bindings.get(slot.getId()), slotValues);
+    LlmToolSlotResponse response = toSlotResponse(slot, bindings.get(slot.getId()), slotValues);
+
+    if (execution != null) {
+      workflowExecutionRepository.findLatestByChatSessionIdForUpdate(sessionId);
+      int seq = nextStepSeqNo(execution.getId());
+      decisionLogRepository.save(
+          DecisionLog.record(
+              execution.getId(),
+              seq,
+              DecisionLogType.SLOT_FETCHED,
+              execution.getIntentDefinitionId(),
+              execution.getCurrentState(),
+              null,
+              null,
+              "[]",
+              writeJson(objectMapper.createObjectNode().put("slotCode", slotCode))));
+    }
+
+    return response;
   }
 
+  @Transactional
   public List<LlmToolIntentResponse> listIntents(ListLlmToolIntentsCommand command) {
-    ChatSession session = findSession(command.sessionId());
-    return intentDefinitionRepository
-        .findByDomainPackVersionId(session.getDomainPackVersionId())
-        .stream()
-        .filter(intent -> !IntentDefinition.STATUS_REJECTED.equals(intent.getStatus()))
-        .sorted(Comparator.comparing(IntentDefinition::getIntentCode))
-        .map(this::toIntentResponse)
-        .toList();
+    Long sessionId = command.sessionId();
+    ChatSession session = findSession(sessionId);
+    List<LlmToolIntentResponse> result =
+        intentDefinitionRepository
+            .findByDomainPackVersionId(session.getDomainPackVersionId())
+            .stream()
+            .filter(intent -> !IntentDefinition.STATUS_REJECTED.equals(intent.getStatus()))
+            .sorted(Comparator.comparing(IntentDefinition::getIntentCode))
+            .map(this::toIntentResponse)
+            .toList();
+
+    WorkflowExecution execution = findExecution(sessionId);
+    if (execution != null) {
+      workflowExecutionRepository.findLatestByChatSessionIdForUpdate(sessionId);
+      int seq = nextStepSeqNo(execution.getId());
+      decisionLogRepository.save(
+          DecisionLog.record(
+              execution.getId(),
+              seq,
+              DecisionLogType.INTENTS_LISTED,
+              execution.getIntentDefinitionId(),
+              execution.getCurrentState(),
+              null,
+              null,
+              "[]",
+              writeJson(objectMapper.createObjectNode().put("returnedCount", result.size()))));
+    }
+
+    return result;
   }
 
   @Transactional
@@ -239,6 +353,26 @@ public class LlmToolService {
             .map(LlmToolSlotResponse::slotCode)
             .toList();
 
+    int seq = nextStepSeqNo(saved.getId());
+    workflowExecutionStepRepository.save(
+        WorkflowExecutionStep.record(
+            saved.getId(),
+            seq,
+            null,
+            saved.getCurrentState(),
+            WorkflowExecutionStepActionType.ASSIGN_INTENT));
+    decisionLogRepository.save(
+        DecisionLog.record(
+            saved.getId(),
+            seq,
+            DecisionLogType.INTENT_SELECTED,
+            intent.getId(),
+            saved.getCurrentState(),
+            null,
+            "ASSIGN_WORKFLOW",
+            writeJson(toJsonArray(missingRequiredSlots)),
+            writeJson(objectMapper.createObjectNode().put("intentCode", intent.getIntentCode()))));
+
     return new LlmToolIntentSelectionResponse(
         session.getId(),
         saved.getId(),
@@ -263,13 +397,37 @@ public class LlmToolService {
     }
 
     ChatSession session = findSession(sessionId);
-    findActiveSlot(session.getDomainPackVersionId(), slotCode);
+    SlotDefinition slotDef = findActiveSlot(session.getDomainPackVersionId(), slotCode);
 
     WorkflowExecution execution = findOrCreateExecutionForUpdate(session);
     ObjectNode slotValues = readObjectNode(execution.getSlotValuesJson());
     slotValues.set(slotCode, value.deepCopy());
     execution.replaceSlotValuesJson(writeJson(slotValues));
     WorkflowExecution saved = workflowExecutionRepository.save(execution);
+
+    int seq = nextStepSeqNo(saved.getId());
+    workflowExecutionStepRepository.save(
+        WorkflowExecutionStep.record(
+            saved.getId(),
+            seq,
+            saved.getCurrentState(),
+            saved.getCurrentState(),
+            WorkflowExecutionStepActionType.UPSERT_SLOT));
+
+    ObjectNode payload = objectMapper.createObjectNode();
+    payload.put("slotCode", slotCode);
+    payload.set("value", maskSensitiveSlotValue(slotDef, value));
+    decisionLogRepository.save(
+        DecisionLog.record(
+            saved.getId(),
+            seq,
+            DecisionLogType.SLOT_UPSERTED,
+            saved.getIntentDefinitionId(),
+            saved.getCurrentState(),
+            null,
+            null,
+            "[]",
+            writeJson(payload)));
 
     JsonNode savedValue = slotValues.get(slotCode);
     return new LlmToolSlotValueResponse(
@@ -297,6 +455,28 @@ public class LlmToolService {
     return workflowExecutionRepository
         .findLatestByChatSessionIdForUpdate(sessionId)
         .orElseGet(() -> workflowExecutionRepository.save(WorkflowExecution.create(sessionId)));
+  }
+
+  private int nextStepSeqNo(Long executionId) {
+    return decisionLogRepository
+        .findMaxStepSeqNoByExecutionId(executionId)
+        .map(max -> max + 1)
+        .orElse(1);
+  }
+
+  private JsonNode maskSensitiveSlotValue(SlotDefinition slotDef, JsonNode rawValue) {
+    if (Boolean.TRUE.equals(slotDef.getIsSensitive())) {
+      return TextNode.valueOf("***");
+    }
+    return rawValue;
+  }
+
+  private ArrayNode toJsonArray(List<String> codes) {
+    ArrayNode arr = objectMapper.createArrayNode();
+    for (String code : codes) {
+      arr.add(code);
+    }
+    return arr;
   }
 
   private List<LlmToolSlotResponse> buildSlotResponses(
