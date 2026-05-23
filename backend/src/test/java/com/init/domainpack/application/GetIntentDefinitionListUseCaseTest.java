@@ -55,11 +55,13 @@ class GetIntentDefinitionListUseCaseTest {
             domainPackRepository,
             domainPackVersionRepository,
             policyDefinitionRepository);
-    useCase = new GetIntentDefinitionListUseCase(validator, intentDefinitionRepository);
+    useCase =
+        new GetIntentDefinitionListUseCase(
+            validator, domainPackVersionRepository, intentDefinitionRepository);
   }
 
   @Test
-  @DisplayName("유효한 query로 intent 목록 반환")
+  @DisplayName("DRAFT version은 REJECTED를 제외한 intent 목록 반환")
   void should_returnIntentList_when_validQuery() {
     // given
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
@@ -67,7 +69,9 @@ class GetIntentDefinitionListUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(intentDefinitionRepository.findByDomainPackVersionId(VERSION_ID))
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndStatusNot(
+                VERSION_ID, IntentDefinition.STATUS_REJECTED))
         .willReturn(List.of(createIntent(1L, "INTENT_001", "배송 조회 문의")));
 
     // when
@@ -82,6 +86,31 @@ class GetIntentDefinitionListUseCaseTest {
   }
 
   @Test
+  @DisplayName("PUBLISHED version은 PUBLISHED intent만 반환")
+  void should_returnOnlyPublishedIntents_when_versionIsPublished() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(
+            Optional.of(createVersion(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_PUBLISHED)));
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndStatus(
+                VERSION_ID, IntentDefinition.STATUS_PUBLISHED))
+        .willReturn(List.of(createIntent(1L, "INTENT_001", "배송 조회 문의")));
+
+    // when
+    List<IntentDefinitionSummary> result =
+        useCase.execute(
+            new GetIntentDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
+
+    // then
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).intentCode()).isEqualTo("INTENT_001");
+  }
+
+  @Test
   @DisplayName("intent 없는 version → 빈 목록 반환")
   void should_returnEmptyList_when_noIntentsExist() {
     // given
@@ -90,7 +119,10 @@ class GetIntentDefinitionListUseCaseTest {
     given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
     given(domainPackVersionRepository.findById(VERSION_ID))
         .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
-    given(intentDefinitionRepository.findByDomainPackVersionId(VERSION_ID)).willReturn(List.of());
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndStatusNot(
+                VERSION_ID, IntentDefinition.STATUS_REJECTED))
+        .willReturn(List.of());
 
     // when
     List<IntentDefinitionSummary> result =
@@ -165,7 +197,11 @@ class GetIntentDefinitionListUseCaseTest {
   }
 
   private DomainPackVersion createVersion(Long id, Long packId) {
-    return DomainPackVersion.ofForTest(id, packId, DomainPackVersion.STATUS_DRAFT);
+    return createVersion(id, packId, DomainPackVersion.STATUS_DRAFT);
+  }
+
+  private DomainPackVersion createVersion(Long id, Long packId, String lifecycleStatus) {
+    return DomainPackVersion.ofForTest(id, packId, lifecycleStatus);
   }
 
   private IntentDefinition createIntent(Long id, String code, String name) {

@@ -80,7 +80,6 @@ class DomainPackVersionCloneServiceTest {
         version(100L, 7L, 2, DomainPackVersion.STATUS_PUBLISHED, "{\"origin\":\"manual\"}");
     IntentDefinition parent = intent(11L, 100L, "refund", "환불", null);
     IntentDefinition child = intent(12L, 100L, "refund_cancel", "환불 취소", 11L);
-    ReflectionTestUtils.setField(child, "status", IntentDefinition.STATUS_DRAFT);
     SlotDefinition slot = slot(21L, 100L, "order_id");
     PolicyDefinition policy = policy(31L, 100L, "refund_policy");
     RiskDefinition risk = risk(41L, 100L, "fraud_risk");
@@ -103,7 +102,10 @@ class DomainPackVersionCloneServiceTest {
               ReflectionTestUtils.setField(draft, "id", 200L);
               return draft;
             });
-    given(intentRepository.findByDomainPackVersionId(100L)).willReturn(List.of(parent, child));
+    given(
+            intentRepository.findByDomainPackVersionIdAndStatus(
+                100L, IntentDefinition.STATUS_PUBLISHED))
+        .willReturn(List.of(parent, child));
     given(slotRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(100L))
         .willReturn(List.of(slot));
     given(policyRepository.findAllByDomainPackVersionIdOrderByPolicyCodeAsc(100L))
@@ -176,7 +178,10 @@ class DomainPackVersionCloneServiceTest {
               ReflectionTestUtils.setField(draft, "id", 200L);
               return draft;
             });
-    given(intentRepository.findByDomainPackVersionId(100L)).willReturn(List.of(intent));
+    given(
+            intentRepository.findByDomainPackVersionIdAndStatus(
+                100L, IntentDefinition.STATUS_PUBLISHED))
+        .willReturn(List.of(intent));
     given(slotRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(100L))
         .willReturn(List.of());
     given(policyRepository.findAllByDomainPackVersionIdOrderByPolicyCodeAsc(100L))

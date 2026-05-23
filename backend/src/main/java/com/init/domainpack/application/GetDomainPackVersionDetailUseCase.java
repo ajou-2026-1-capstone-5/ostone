@@ -2,6 +2,7 @@ package com.init.domainpack.application;
 
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
@@ -48,6 +49,12 @@ public class GetDomainPackVersionDetailUseCase {
         domainPackVersionRepository
             .findByIdAndWorkspaceId(query.workspaceId(), query.versionId())
             .orElseThrow(() -> new DomainPackVersionNotFoundException(query.versionId()));
+    long intentCount =
+        DomainPackVersion.STATUS_PUBLISHED.equals(version.getLifecycleStatus())
+            ? intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                version.getId(), IntentDefinition.STATUS_PUBLISHED)
+            : intentDefinitionRepository.countByDomainPackVersionIdAndStatusNot(
+                version.getId(), IntentDefinition.STATUS_REJECTED);
 
     return new DomainPackVersionDetailResult(
         version.getId(),
@@ -56,7 +63,7 @@ public class GetDomainPackVersionDetailUseCase {
         version.getLifecycleStatus(),
         version.getSourcePipelineJobId(),
         version.getSummaryJson(),
-        intentDefinitionRepository.countByDomainPackVersionId(version.getId()),
+        intentCount,
         slotDefinitionRepository.countByDomainPackVersionId(version.getId()),
         policyDefinitionRepository.countByDomainPackVersionId(version.getId()),
         riskDefinitionRepository.countByDomainPackVersionId(version.getId()),

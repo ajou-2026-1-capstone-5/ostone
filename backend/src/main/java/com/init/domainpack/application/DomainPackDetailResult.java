@@ -11,17 +11,26 @@ public record DomainPackDetailResult(
     String code,
     String name,
     String description,
+    Long currentVersionId,
+    Integer currentVersionNo,
+    OffsetDateTime currentVersionPublishedAt,
     List<DomainPackVersionSummaryEntry> versions,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {
 
-  public static DomainPackDetailResult from(DomainPack pack, List<DomainPackVersion> versions) {
+  public static DomainPackDetailResult from(
+      DomainPack pack,
+      List<DomainPackVersion> versions,
+      DomainPackVersion currentPublishedVersion) {
     return new DomainPackDetailResult(
         pack.getId(),
         pack.getWorkspaceId(),
         pack.getPackKey(),
         pack.getName(),
         pack.getDescription(),
+        currentPublishedVersion != null ? currentPublishedVersion.getId() : null,
+        currentPublishedVersion != null ? currentPublishedVersion.getVersionNo() : null,
+        currentPublishedVersion != null ? currentPublishedVersion.getPublishedAt() : null,
         versions.stream().map(DomainPackVersionSummaryEntry::from).toList(),
         pack.getCreatedAt(),
         pack.getUpdatedAt());

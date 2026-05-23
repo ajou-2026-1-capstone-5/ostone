@@ -37,7 +37,12 @@ public class GetDomainPackDetailUseCase {
 
     List<DomainPackVersion> versions =
         domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(query.packId());
+    DomainPackVersion currentPublishedVersion =
+        domainPackVersionRepository
+            .findCurrentPublishedByWorkspaceId(query.workspaceId())
+            .filter(version -> version.getDomainPackId().equals(query.packId()))
+            .orElse(null);
 
-    return DomainPackDetailResult.from(pack, versions);
+    return DomainPackDetailResult.from(pack, versions, currentPublishedVersion);
   }
 }

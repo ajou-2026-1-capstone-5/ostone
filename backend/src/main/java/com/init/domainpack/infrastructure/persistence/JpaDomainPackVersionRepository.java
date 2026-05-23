@@ -31,12 +31,39 @@ public interface JpaDomainPackVersionRepository
           FROM pack.domain_pack_version
           WHERE domain_pack_id = :domainPackId
             AND lifecycle_status = 'PUBLISHED'
-          ORDER BY version_no DESC
+            AND NOT EXISTS (
+              SELECT 1
+              FROM pack.intent_definition i
+              WHERE i.domain_pack_version_id = pack.domain_pack_version.id
+                AND i.status = 'DRAFT'
+            )
+          ORDER BY published_at DESC NULLS LAST, version_no DESC, id DESC
           LIMIT 1
           """,
       nativeQuery = true)
   Optional<DomainPackVersion> findCurrentPublishedByDomainPackId(
       @Param("domainPackId") Long domainPackId);
+
+  @Query(
+      value =
+          """
+          SELECT v.*
+          FROM pack.domain_pack_version v
+          JOIN pack.domain_pack p ON p.id = v.domain_pack_id
+          WHERE p.workspace_id = :workspaceId
+            AND v.lifecycle_status = 'PUBLISHED'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM pack.intent_definition i
+              WHERE i.domain_pack_version_id = v.id
+                AND i.status = 'DRAFT'
+            )
+          ORDER BY v.published_at DESC NULLS LAST, v.version_no DESC, v.id DESC
+          LIMIT 1
+          """,
+      nativeQuery = true)
+  Optional<DomainPackVersion> findCurrentPublishedByWorkspaceId(
+      @Param("workspaceId") Long workspaceId);
 
   @Query("SELECT MAX(v.versionNo) FROM DomainPackVersion v WHERE v.domainPackId = :domainPackId")
   Optional<Integer> findMaxVersionNoByDomainPackId(@Param("domainPackId") Long domainPackId);

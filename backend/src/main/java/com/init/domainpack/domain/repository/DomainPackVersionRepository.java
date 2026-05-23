@@ -14,6 +14,8 @@ public interface DomainPackVersionRepository {
 
   Optional<DomainPackVersion> findCurrentPublishedByDomainPackId(Long domainPackId);
 
+  Optional<DomainPackVersion> findCurrentPublishedByWorkspaceId(Long workspaceId);
+
   List<DomainPackVersion> findAllByDomainPackIdOrderByVersionNoDesc(Long domainPackId);
 
   Optional<Integer> findMaxVersionNoByDomainPackId(Long domainPackId);
