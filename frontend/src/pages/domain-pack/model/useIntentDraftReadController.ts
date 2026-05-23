@@ -434,7 +434,9 @@ async function savePublishedIntentRevision({
       setRecoveryVersionId(result.draftVersionId);
     }
     navigateToIntentRoute(result.draftVersionId, result.clonedIntentId);
-    toast.success("Intent 수정 초안이 생성되었습니다.");
+    if (result.patchSucceeded) {
+      toast.success("Intent 수정 초안이 생성되었습니다.");
+    }
     return true;
   } catch (error) {
     if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {

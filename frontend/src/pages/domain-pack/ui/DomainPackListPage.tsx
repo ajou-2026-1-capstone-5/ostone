@@ -4,6 +4,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { unwrapApiResponse } from "@/shared/api";
 import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import type { DomainPackSummaryResult } from "@/shared/api/generated/zod";
+import { domainPackPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -12,7 +13,7 @@ import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import styles from "./domain-pack-list-page.module.css";
 
 function isOperatingPack(pack: DomainPackSummaryResult): boolean {
-  return pack.currentVersionId !== undefined && pack.currentVersionId !== null;
+  return pack.currentVersionId != null;
 }
 
 function displayPackName(pack: DomainPackSummaryResult): string {
@@ -21,12 +22,14 @@ function displayPackName(pack: DomainPackSummaryResult): string {
 
 function formatDate(value?: string | null): string {
   if (!value) return "기록 없음";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "기록 없음";
 
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function buildVersionLabel(pack: DomainPackSummaryResult): string {
@@ -57,14 +60,16 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
         <div className={styles.sectionEmpty}>{emptyMessage}</div>
       ) : (
         <div className={styles.packGrid}>
-          {packs.map((pack) => {
+          {packs.map((pack, index) => {
             const operating = isOperatingPack(pack);
             const packId = pack.packId ?? 0;
+            const packName = displayPackName(pack);
+            const listKey = pack.packId ?? `${packName}-${index}`;
 
             return (
               <Link
-                key={pack.packId ?? displayPackName(pack)}
-                to={`/workspaces/${workspaceId}/domain-packs/${packId}`}
+                key={listKey}
+                to={domainPackPath(workspaceId, packId)}
                 className={styles.packCard}
               >
                 <div className={styles.cardTopRow}>
@@ -74,7 +79,7 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
                   <span className={styles.versionText}>{buildVersionLabel(pack)}</span>
                 </div>
                 <div className={styles.cardMain}>
-                  <h3 className={styles.packName}>{displayPackName(pack)}</h3>
+                  <h3 className={styles.packName}>{packName}</h3>
                   {pack.description ? (
                     <p className={styles.packDescription}>{pack.description}</p>
                   ) : (

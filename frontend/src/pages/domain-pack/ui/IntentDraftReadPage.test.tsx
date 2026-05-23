@@ -386,8 +386,10 @@ describe("IntentDraftReadPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
 
     await waitFor(() => expect(mocks.activateVersion).toHaveBeenCalledWith(1, 7, 6));
-    expect(mocks.packRefetch).toHaveBeenCalled();
-    expect(mocks.versionRefetch).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.packRefetch).toHaveBeenCalled();
+      expect(mocks.versionRefetch).toHaveBeenCalled();
+    });
     await waitFor(() =>
       expect(mocks.navigate).toHaveBeenCalledWith(
         "/workspaces/1/domain-packs/7/intents/50?versionId=9",

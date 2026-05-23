@@ -48,7 +48,7 @@ const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/workflows";
 
 function NavigatedRoute() {
   const loc = useLocation();
-  return <div data-testid="navigated">{loc.pathname}</div>;
+  return <div data-testid="navigated">{loc.pathname + loc.search}</div>;
 }
 
 function renderPage(path: string) {
@@ -152,6 +152,8 @@ describe("PackWorkflowListPage", () => {
     });
     renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     fireEvent.click(screen.getByTestId("mock-card-42"));
-    expect(screen.getByTestId("navigated")).toBeInTheDocument();
+    expect(screen.getByTestId("navigated")).toHaveTextContent(
+      "/workspaces/1/domain-packs/2/workflows/42?versionId=3",
+    );
   });
 });
