@@ -96,6 +96,7 @@ public class LlmToolService {
     this.objectMapper = objectMapper;
   }
 
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
   @Transactional
   public LlmToolWorkflowResponse getCurrentWorkflow(GetCurrentWorkflowCommand command) {
     Long sessionId = command.sessionId();
@@ -159,6 +160,7 @@ public class LlmToolService {
     return response;
   }
 
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
   @Transactional
   public LlmToolContextResponse getContext(GetLlmToolContextCommand command) {
     Long sessionId = command.sessionId();
@@ -231,6 +233,7 @@ public class LlmToolService {
         currentPolicy);
   }
 
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
   @Transactional
   public List<LlmToolSlotResponse> listSlots(ListLlmToolSlotsCommand command) {
     Long sessionId = command.sessionId();
@@ -259,6 +262,7 @@ public class LlmToolService {
     return slots;
   }
 
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
   @Transactional
   public LlmToolSlotResponse getSlot(GetLlmToolSlotCommand command) {
     Long sessionId = command.sessionId();
@@ -290,6 +294,7 @@ public class LlmToolService {
     return response;
   }
 
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
   @Transactional
   public List<LlmToolIntentResponse> listIntents(ListLlmToolIntentsCommand command) {
     Long sessionId = command.sessionId();

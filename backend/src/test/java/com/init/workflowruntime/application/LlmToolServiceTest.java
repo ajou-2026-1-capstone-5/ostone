@@ -616,6 +616,10 @@ class LlmToolServiceTest {
 
       assertThat(stepCaptor.getValue().getSeqNo()).isEqualTo(6);
       assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(6);
+      assertThat(dlogCaptor.getValue().getPolicyHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getRiskHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getEvidenceJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getConfidenceScore()).isNull();
     }
 
     @Test
@@ -644,6 +648,10 @@ class LlmToolServiceTest {
 
       assertThat(stepCaptor.getValue().getSeqNo()).isEqualTo(3);
       assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(3);
+      assertThat(dlogCaptor.getValue().getPolicyHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getRiskHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getEvidenceJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getConfidenceScore()).isNull();
     }
 
     @Test
@@ -785,6 +793,10 @@ class LlmToolServiceTest {
       assertThat(dlogCaptor.getValue().getDecisionType())
           .isEqualTo(DecisionLogType.WORKFLOW_FETCHED);
       assertThat(dlogCaptor.getValue().getStepSeqNo()).isEqualTo(1);
+      assertThat(dlogCaptor.getValue().getPolicyHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getRiskHitsJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getEvidenceJson()).isEqualTo("[]");
+      assertThat(dlogCaptor.getValue().getConfidenceScore()).isNull();
     }
 
     @Test
