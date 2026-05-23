@@ -95,7 +95,7 @@ public class DeployDomainPackVersionUseCase {
       DomainPackVersion saved = versionRepository.saveAndFlush(version);
       return DeployDomainPackVersionResult.from(saved);
     } catch (ObjectOptimisticLockingFailureException e) {
-      throw new DomainPackVersionConflictException(command.versionId());
+      throw new DomainPackVersionConflictException(command.versionId(), e);
     }
   }
 }

@@ -125,7 +125,7 @@ class DeployDomainPackVersionUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(new DeployDomainPackVersionCommand(1L, 7L, 42L, 10L)))
         .isInstanceOf(DomainPackWorkspaceNotFoundException.class);
 
-    verify(versionRepository, never()).findById(any());
+    verify(versionRepository, never()).findByIdAndWorkspaceId(any(), any());
   }
 
   @Test
@@ -137,7 +137,7 @@ class DeployDomainPackVersionUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(new DeployDomainPackVersionCommand(1L, 7L, 42L, 10L)))
         .isInstanceOf(DomainPackUnauthorizedWorkspaceAccessException.class);
 
-    verify(versionRepository, never()).findById(any());
+    verify(versionRepository, never()).findByIdAndWorkspaceId(any(), any());
   }
 
   @Test
@@ -219,7 +219,9 @@ class DeployDomainPackVersionUseCaseTest {
       Constructor<DomainPackVersion> ctor = DomainPackVersion.class.getDeclaredConstructor();
       ctor.setAccessible(true);
       return ctor.newInstance();
-    } catch (Exception e) {
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    } catch (SecurityException e) {
       throw new RuntimeException(e);
     }
   }

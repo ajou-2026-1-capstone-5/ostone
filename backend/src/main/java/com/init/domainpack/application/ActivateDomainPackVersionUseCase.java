@@ -6,6 +6,7 @@ import com.init.domainpack.application.exception.DomainPackVersionConflictExcept
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
+import com.init.domainpack.application.exception.DomainPackVersionNotPublishableException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
@@ -15,7 +16,6 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
-import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -90,9 +90,7 @@ public class ActivateDomainPackVersionUseCase {
         intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
             version.getId(), IntentDefinition.STATUS_DRAFT);
     if (draftIntentCount > 0) {
-      throw new BadRequestException(
-          "DOMAIN_PACK_VERSION_NOT_PUBLISHABLE",
-          "DRAFT 상태의 Intent가 " + draftIntentCount + "개 남아 있어 Domain Pack Version을 발행할 수 없습니다.");
+      throw new DomainPackVersionNotPublishableException(draftIntentCount);
     }
 
     try {

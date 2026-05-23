@@ -200,6 +200,10 @@ class ActivateDomainPackVersionUseCaseTest {
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
         .isInstanceOf(BadRequestException.class)
+        .isInstanceOfSatisfying(
+            BadRequestException.class,
+            exception ->
+                assertThat(exception.getCode()).isEqualTo("DOMAIN_PACK_VERSION_NOT_PUBLISHABLE"))
         .hasMessageContaining("DRAFT");
 
     verify(versionRepository, never()).saveAndFlush(any());
