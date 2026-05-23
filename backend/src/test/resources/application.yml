@@ -1,7 +1,7 @@
 spring:
   datasource:
     # 1. H2 옵션 최적화: PostgreSQL 모드와 식별자 대소문자 설정을 맞춥니다.
-    url: "jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
+    url: "jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS app\\;CREATE SCHEMA IF NOT EXISTS corpus\\;CREATE SCHEMA IF NOT EXISTS pack\\;CREATE SCHEMA IF NOT EXISTS review\\;CREATE SCHEMA IF NOT EXISTS pipeline\\;CREATE SCHEMA IF NOT EXISTS runtime"
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -19,6 +19,13 @@ spring:
   # 4. Liquibase는 테스트 시에 비활성화 (main의 SQL 파일 충돌 방지)
   liquibase:
     enabled: false
+  ai:
+    openai:
+      api-key: test-api-key
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
 
 jwt:
   secret: test-secret-key-for-testing-purposes-only-min-32-bytes
@@ -27,6 +34,11 @@ jwt:
 
 cors:
   allowed-origins: "http://localhost:5173"
+
+app:
+  ai:
+    chat:
+      system-prompt: "당신은 고객상담 어시스턴트입니다.\n친절하고 정확하게 답변해주세요."
 
 airflow:
   webhook:

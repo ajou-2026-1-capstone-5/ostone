@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -34,13 +35,15 @@ class ChatWebSocketServiceTest {
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   private ChatWebSocketService service;
 
   @BeforeEach
   void setUp() {
     service =
-        new ChatWebSocketService(chatSessionRepository, chatMessageRepository, messagingTemplate);
+        new ChatWebSocketService(
+            chatSessionRepository, chatMessageRepository, messagingTemplate, eventPublisher);
   }
 
   @Test
