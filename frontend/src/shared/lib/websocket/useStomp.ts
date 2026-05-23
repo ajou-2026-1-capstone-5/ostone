@@ -13,6 +13,8 @@ export interface UseStompResult<TLastMessage = unknown> {
   lastMessage: TLastMessage | null;
   connect: () => void;
   disconnect: () => void;
+  subscribe: (topic: string, cb: (msg: TLastMessage) => void) => () => void;
+  sendTo: (destination: string, body: unknown) => void;
 }
 
 function parseMessage<TLastMessage>(message: IMessage): TLastMessage {
@@ -22,6 +24,7 @@ function parseMessage<TLastMessage>(message: IMessage): TLastMessage {
 export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage> {
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<StompSubscription | null>(null);
+  const customSubscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
   const connectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("DISCONNECTED");
   const [lastMessage, setLastMessage] = useState<TLastMessage | null>(null);
@@ -33,6 +36,8 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
   const disconnect = useCallback(() => {
     subscriptionRef.current?.unsubscribe();
     subscriptionRef.current = null;
+    customSubscriptionsRef.current.forEach((sub) => sub.unsubscribe());
+    customSubscriptionsRef.current.clear();
     clientRef.current?.deactivate();
     connectionStatusRef.current = "DISCONNECTED";
     setConnectionStatus("DISCONNECTED");
@@ -92,10 +97,46 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
     });
   }, []);
 
+  const subscribe = useCallback(
+    (topic: string, cb: (msg: TLastMessage) => void): (() => void) => {
+      const client = clientRef.current;
+      if (!client?.connected) {
+        return () => {};
+      }
+
+      const subscription = client.subscribe(topic, (message) => {
+        try {
+          cb(parseMessage<TLastMessage>(message));
+        } catch {
+          // Skip malformed messages
+        }
+      });
+      const prev = customSubscriptionsRef.current.get(topic);
+      prev?.unsubscribe();
+      customSubscriptionsRef.current.set(topic, subscription);
+
+      return () => {
+        subscription.unsubscribe();
+        customSubscriptionsRef.current.delete(topic);
+      };
+    },
+    [],
+  );
+
+  const sendTo = useCallback((destination: string, body: unknown) => {
+    const client = clientRef.current;
+    if (!client?.connected) return;
+
+    client.publish({
+      destination,
+      body: JSON.stringify(body),
+    });
+  }, []);
+
   useEffect(() => {
     connect();
     return disconnect;
   }, [connect, disconnect]);
 
-  return { connectionStatus, sendMessage, lastMessage, connect, disconnect };
+  return { connectionStatus, sendMessage, lastMessage, connect, disconnect, subscribe, sendTo };
 }

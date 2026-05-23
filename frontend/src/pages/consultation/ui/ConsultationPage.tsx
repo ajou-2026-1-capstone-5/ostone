@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
@@ -64,6 +64,7 @@ export const ConsultationPage: React.FC = () => {
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const { connectionStatus, subscribe, sendTo } = useStomp<RealtimeChatMessage>();
+  const pendingIdsRef = useRef<Set<string>>(new Set());
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
@@ -156,6 +157,21 @@ export const ConsultationPage: React.FC = () => {
 
     const topic = `/topic/chat.counselor.${activeCustomerId}`;
     const unsubscribe = subscribe(topic, (msg) => {
+      if (msg.senderRole === "COUNSELOR") {
+        setMessages((prev) => {
+          const temps = [...pendingIdsRef.current];
+          if (temps.length > 0) {
+            pendingIdsRef.current.delete(temps[0]);
+            return prev.map((m) =>
+              m.id === temps[0]
+                ? { id: String(msg.id), senderRole: "COUNSELOR" as const, content: msg.content ?? "", timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? "") }
+                : m,
+            );
+          }
+          return prev;
+        });
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -183,6 +199,10 @@ export const ConsultationPage: React.FC = () => {
   const handleSendMessage = useCallback(
     (content: string, isNote: boolean) => {
       if (!activeCustomerId) return;
+      if (connectionStatus !== "CONNECTED") {
+        toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
       const targetId = activeCustomerId;
 
       const messagePayload = {
@@ -198,11 +218,12 @@ export const ConsultationPage: React.FC = () => {
         timestamp: formatTime(new Date().toISOString()),
       };
       setMessages((prev) => [...prev, optimisticMsg]);
+      pendingIdsRef.current.add(optimisticMsg.id);
       setSelectedMessageId(null);
 
       sendTo("/app/chat.counselor.send", messagePayload);
     },
-    [activeCustomerId, sendTo],
+    [activeCustomerId, connectionStatus, sendTo],
   );
 
   const handleEndSession = async () => {

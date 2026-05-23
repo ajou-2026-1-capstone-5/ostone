@@ -18,7 +18,7 @@ interface ChatPanelProps {
   onSelectMessage: (messageId: string | null) => void;
 }
 
-const ROLE_LABEL: Record<string, { avatar: string; label?: string }> = {
+const roleLabel: Record<string, { avatar: string; label?: string }> = {
   AGENT: { avatar: "A" },
   COUNSELOR: { avatar: "C", label: "상담사" },
   ASSISTANT: { avatar: "A", label: "AI" },
@@ -148,7 +148,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? (ROLE_LABEL[msg.senderRole]?.avatar ?? "A") : customerName.charAt(0)}
+                {isAgent ? (roleLabel[msg.senderRole]?.avatar ?? "A") : customerName.charAt(0)}
               </div>
               <div>
                 <div
@@ -157,8 +157,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {msg.content}
                 </div>
                 <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
-                  {ROLE_LABEL[msg.senderRole]?.label && (
-                    <span>{ROLE_LABEL[msg.senderRole].label} · </span>
+                  {roleLabel[msg.senderRole]?.label && (
+                    <span>{roleLabel[msg.senderRole].label} · </span>
                   )}
                   {msg.timestamp}
                 </div>
