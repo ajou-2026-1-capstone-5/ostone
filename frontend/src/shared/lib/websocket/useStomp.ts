@@ -117,7 +117,10 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
 
       return () => {
         subscription.unsubscribe();
-        customSubscriptionsRef.current.delete(topic);
+        const current = customSubscriptionsRef.current.get(topic);
+        if (current === subscription) {
+          customSubscriptionsRef.current.delete(topic);
+        }
       };
     },
     [],

@@ -123,6 +123,8 @@ export const ConsultationPage: React.FC = () => {
       return;
     }
 
+    pendingIdsRef.current.clear();
+
     let cancelled = false;
 
     const loadMessages = async () => {
