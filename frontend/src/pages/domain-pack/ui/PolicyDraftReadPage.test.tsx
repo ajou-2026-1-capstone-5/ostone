@@ -55,9 +55,16 @@ describe("PolicyDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/7/policies?versionId=101");
 
     fireEvent.click(screen.getByRole("button", { name: "select policy" }));
-    fireEvent.click(screen.getByRole("button", { name: "edit policy" }));
 
     expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/policies/4?versionId=101");
+  });
+
+  it("정책 상세에서 수정 화면 전환을 처리한다", () => {
+    navigate.mockReset();
+    renderPage("/workspaces/1/domain-packs/7/policies/4?versionId=101");
+
+    fireEvent.click(screen.getByRole("button", { name: "edit policy" }));
+
     expect(screen.getByRole("button", { name: "close editor" })).toBeInTheDocument();
   });
 
