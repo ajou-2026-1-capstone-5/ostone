@@ -672,7 +672,7 @@ class LlmToolServiceTest {
 
       service.upsertSlotValue(
           new UpsertLlmToolSlotValueCommand(
-              1L, "credit_card", objectMapper.readTree("\"4111-1111-1111-1111\"")));
+              1L, "credit_card", objectMapper.readTree("\"TEST_SENSITIVE_VALUE\"")));
 
       ArgumentCaptor<DecisionLog> dlogCaptor = ArgumentCaptor.forClass(DecisionLog.class);
       verify(decisionLogRepository).save(dlogCaptor.capture());

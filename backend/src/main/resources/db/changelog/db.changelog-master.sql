@@ -763,8 +763,3 @@ ALTER TABLE runtime.chat_session
 
 CREATE INDEX idx_chat_session_assigned_counselor_id
     ON runtime.chat_session (assigned_counselor_id);
-
---changeset init:20260523-add-idx-decision-log-execution-seq
---comment: Index decision_log lookups by (workflow_execution_id, step_seq_no) for MAX(step_seq_no) hot path
-CREATE INDEX idx_decision_log_execution_seq
-    ON runtime.decision_log (workflow_execution_id, step_seq_no);
