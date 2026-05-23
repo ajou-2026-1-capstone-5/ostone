@@ -221,7 +221,7 @@ describe("DomainPackSummaryPage", () => {
     expect(mutate).toHaveBeenCalledWith({ workspaceId: 1, packId: 2, versionId: 4 });
   });
 
-  it("currentVersionId가 없고 PUBLISHED 버전이 하나뿐이면 해당 버전을 운영 버전으로 전달한다", () => {
+  it("currentVersionId가 없으면 PUBLISHED 버전이 하나뿐이어도 운영 버전을 추론하지 않는다", () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -235,7 +235,7 @@ describe("DomainPackSummaryPage", () => {
 
     renderPage("/workspaces/1/domain-packs/2?versionId=4");
 
-    expect(screen.getByTestId("current-version-id")).toHaveTextContent("4");
+    expect(screen.getByTestId("current-version-id")).toHaveTextContent("none");
   });
 
   it("currentVersionId가 없고 PUBLISHED 버전이 여러 개면 운영 버전을 추론하지 않는다", () => {

@@ -100,8 +100,7 @@ function DomainPackSummaryPageContent({
   };
 
   const pack = packQuery.data;
-  const currentVersionId =
-    pack?.currentVersionId ?? inferSinglePublishedVersionId(pack?.versions ?? []);
+  const currentVersionId = pack?.currentVersionId ?? null;
 
   if (packQuery.isLoading) {
     return (
@@ -163,14 +162,6 @@ function DomainPackSummaryPageContent({
       </div>
     </OstoneShell>
   );
-}
-
-function inferSinglePublishedVersionId(
-  versions: DomainPackDetail["versions"] = [],
-): number | null {
-  const publishedVersions = versions.filter((version) => version.lifecycleStatus === "PUBLISHED");
-  if (publishedVersions.length !== 1) return null;
-  return publishedVersions[0]?.versionId ?? null;
 }
 
 function resolveDeployErrorMessage(error: unknown): string {
