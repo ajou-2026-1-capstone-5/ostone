@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetDomainPackDetailUseCase")
@@ -68,6 +69,10 @@ class GetDomainPackDetailUseCaseTest {
         .willReturn(Optional.of(pack));
     given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))
         .willReturn(List.of(version));
+    DomainPackVersion currentVersion =
+        createPublishedVersion(3L, PACK_ID, 1, "2025-04-03T10:00:00+09:00");
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.of(currentVersion));
 
     DomainPackDetailResult result =
         useCase.execute(new GetDomainPackDetailQuery(WORKSPACE_ID, PACK_ID, USER_ID));
@@ -77,6 +82,10 @@ class GetDomainPackDetailUseCaseTest {
     assertThat(result.code()).isEqualTo("my-key");
     assertThat(result.name()).isEqualTo("My Pack");
     assertThat(result.description()).isNull();
+    assertThat(result.currentVersionId()).isEqualTo(3L);
+    assertThat(result.currentVersionNo()).isEqualTo(1);
+    assertThat(result.currentVersionPublishedAt())
+        .isEqualTo(OffsetDateTime.parse("2025-04-03T10:00:00+09:00"));
     assertThat(result.versions()).hasSize(1);
   }
 
@@ -92,11 +101,39 @@ class GetDomainPackDetailUseCaseTest {
         .willReturn(Optional.of(pack));
     given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))
         .willReturn(Collections.emptyList());
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.empty());
 
     DomainPackDetailResult result =
         useCase.execute(new GetDomainPackDetailQuery(WORKSPACE_ID, PACK_ID, USER_ID));
 
     assertThat(result.versions()).isEmpty();
+    assertThat(result.currentVersionId()).isNull();
+  }
+
+  @Test
+  @DisplayName("workspace current가 다른 pack 소속이면 상세 current 필드는 null")
+  void should_returnNullCurrent_when_workspaceCurrentBelongsToOtherPack() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+
+    StubDomainPack pack = new StubDomainPack(PACK_ID, WORKSPACE_ID, "my-key", "My Pack", null);
+    given(domainPackRepository.findByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID))
+        .willReturn(Optional.of(pack));
+    given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))
+        .willReturn(Collections.emptyList());
+    DomainPackVersion otherPackCurrentVersion =
+        createPublishedVersion(3L, 999L, 1, "2025-04-03T10:00:00+09:00");
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.of(otherPackCurrentVersion));
+
+    DomainPackDetailResult result =
+        useCase.execute(new GetDomainPackDetailQuery(WORKSPACE_ID, PACK_ID, USER_ID));
+
+    assertThat(result.currentVersionId()).isNull();
+    assertThat(result.currentVersionNo()).isNull();
+    assertThat(result.currentVersionPublishedAt()).isNull();
   }
 
   @Test
@@ -184,5 +221,14 @@ class GetDomainPackDetailUseCaseTest {
     public OffsetDateTime getUpdatedAt() {
       return OffsetDateTime.parse("2025-04-03T10:00:00+09:00");
     }
+  }
+
+  private static DomainPackVersion createPublishedVersion(
+      Long id, Long domainPackId, Integer versionNo, String publishedAt) {
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(id, domainPackId, DomainPackVersion.STATUS_PUBLISHED);
+    ReflectionTestUtils.setField(version, "versionNo", versionNo);
+    ReflectionTestUtils.setField(version, "publishedAt", OffsetDateTime.parse(publishedAt));
+    return version;
   }
 }

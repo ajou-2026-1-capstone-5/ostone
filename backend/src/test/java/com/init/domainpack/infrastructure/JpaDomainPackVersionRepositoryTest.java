@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.infrastructure.persistence.JpaDomainPackVersionRepository;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -71,5 +73,60 @@ class JpaDomainPackVersionRepositoryTest {
 
     // then
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("findCurrentPublishedByDomainPackId: DRAFT intent가 남은 PUBLISHED 버전은 제외")
+  void should_excludePublishedVersionWithDraftIntent_when_findCurrentPublishedByDomainPackId() {
+    DomainPack pack = DomainPack.create(1L, "refund-pack-3", "환불 Pack 3", null, null);
+    em.persistAndFlush(pack);
+    DomainPackVersion version = publishedVersion(pack.getId(), 1, "2026-05-22T13:40:00+09:00");
+    em.persistAndFlush(version);
+    em.persistAndFlush(intent(version.getId(), "REFUND", IntentDefinition.STATUS_DRAFT));
+
+    Optional<DomainPackVersion> result =
+        repository.findCurrentPublishedByDomainPackId(pack.getId());
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("findCurrentPublishedByWorkspaceId: DRAFT intent가 없는 최신 PUBLISHED 버전만 운영 후보")
+  void should_returnLatestDeployablePublishedVersion_when_findCurrentPublishedByWorkspaceId() {
+    DomainPack invalidPack = DomainPack.create(1L, "invalid-pack", "미완료 Pack", null, null);
+    DomainPack validPack = DomainPack.create(1L, "valid-pack", "완료 Pack", null, null);
+    em.persist(invalidPack);
+    em.persistAndFlush(validPack);
+
+    DomainPackVersion invalidVersion =
+        publishedVersion(invalidPack.getId(), 2, "2026-05-23T13:40:00+09:00");
+    DomainPackVersion validVersion =
+        publishedVersion(validPack.getId(), 1, "2026-05-22T13:40:00+09:00");
+    em.persist(invalidVersion);
+    em.persistAndFlush(validVersion);
+    em.persistAndFlush(intent(invalidVersion.getId(), "INVALID", IntentDefinition.STATUS_DRAFT));
+    em.persistAndFlush(intent(validVersion.getId(), "VALID", IntentDefinition.STATUS_PUBLISHED));
+
+    Optional<DomainPackVersion> result = repository.findCurrentPublishedByWorkspaceId(1L);
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getId()).isEqualTo(validVersion.getId());
+  }
+
+  private static DomainPackVersion publishedVersion(
+      Long domainPackId, Integer versionNo, String publishedAt) {
+    DomainPackVersion version =
+        DomainPackVersion.createDraft(domainPackId, versionNo, null, null, "{}");
+    version.activate(OffsetDateTime.parse(publishedAt));
+    return version;
+  }
+
+  private static IntentDefinition intent(Long versionId, String code, String status) {
+    IntentDefinition intent =
+        IntentDefinition.create(versionId, code, code, null, 1, "{}", "{}", "[]", "{}");
+    if (!IntentDefinition.STATUS_DRAFT.equals(status)) {
+      intent.changeStatus(status);
+    }
+    return intent;
   }
 }

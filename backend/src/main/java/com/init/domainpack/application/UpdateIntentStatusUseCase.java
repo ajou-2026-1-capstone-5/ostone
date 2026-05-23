@@ -61,9 +61,10 @@ public class UpdateIntentStatusUseCase {
       throw new NotFoundException("NOT_FOUND", "버전을 찾을 수 없습니다: " + command.versionId());
     }
 
-    if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())) {
+    if (!DomainPackVersion.STATUS_DRAFT.equals(version.getLifecycleStatus())
+        && !DomainPackVersion.STATUS_PUBLISHED.equals(version.getLifecycleStatus())) {
       throw new BadRequestException(
-          "INTENT_NOT_EDITABLE", "DRAFT 상태의 버전에서만 Intent 정의 상태를 변경할 수 있습니다.");
+          "INTENT_NOT_EDITABLE", "DRAFT 또는 PUBLISHED 상태의 버전에서만 Intent 정의 상태를 변경할 수 있습니다.");
     }
 
     IntentDefinition intent =

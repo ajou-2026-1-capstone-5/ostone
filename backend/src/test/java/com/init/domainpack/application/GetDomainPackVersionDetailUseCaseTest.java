@@ -9,6 +9,7 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
@@ -68,6 +69,35 @@ class GetDomainPackVersionDetailUseCaseTest {
   }
 
   @Test
+  @DisplayName("PUBLISHED version은 PUBLISHED intent만 count한다")
+  void should_countOnlyPublishedIntents_when_versionIsPublished() {
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_PUBLISHED);
+    given(domainPackVersionRepository.findById(VERSION_ID)).willReturn(Optional.of(version));
+    given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
+        .willReturn(Optional.of(version));
+
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                VERSION_ID, IntentDefinition.STATUS_PUBLISHED))
+        .willReturn(3L);
+    given(slotDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(3L);
+    given(policyDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(2L);
+    given(riskDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(1L);
+    given(workflowDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(4L);
+
+    DomainPackVersionDetailResult result =
+        useCase.execute(
+            new GetDomainPackVersionDetailQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID));
+
+    assertThat(result.intentCount()).isEqualTo(3L);
+  }
+
+  @Test
   @DisplayName("유효한 요청 → DomainPackVersionDetailResult 반환 (카운트 5종 포함)")
   void should_반환VersionDetail_when_유효한요청() {
     given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
@@ -80,7 +110,10 @@ class GetDomainPackVersionDetailUseCaseTest {
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(version));
 
-    given(intentDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(5L);
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatusNot(
+                VERSION_ID, IntentDefinition.STATUS_REJECTED))
+        .willReturn(4L);
     given(slotDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(3L);
     given(policyDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(2L);
     given(riskDefinitionRepository.countByDomainPackVersionId(VERSION_ID)).willReturn(1L);
@@ -92,7 +125,7 @@ class GetDomainPackVersionDetailUseCaseTest {
 
     assertThat(result.versionId()).isEqualTo(VERSION_ID);
     assertThat(result.packId()).isEqualTo(PACK_ID);
-    assertThat(result.intentCount()).isEqualTo(5L);
+    assertThat(result.intentCount()).isEqualTo(4L);
     assertThat(result.slotCount()).isEqualTo(3L);
     assertThat(result.policyCount()).isEqualTo(2L);
     assertThat(result.riskCount()).isEqualTo(1L);

@@ -16,5 +16,11 @@ public interface JpaIntentDefinitionRepository
 
   List<IntentDefinition> findByDomainPackVersionId(Long domainPackVersionId);
 
+  List<IntentDefinition> findByDomainPackVersionIdAndStatus(
+      Long domainPackVersionId, String status);
+
+  List<IntentDefinition> findByDomainPackVersionIdAndStatusNot(
+      Long domainPackVersionId, String status);
+
   Optional<IntentDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 }

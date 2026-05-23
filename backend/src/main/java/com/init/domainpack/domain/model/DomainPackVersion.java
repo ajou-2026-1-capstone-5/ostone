@@ -124,6 +124,16 @@ public class DomainPackVersion {
     this.updatedAt = now;
   }
 
+  /** PUBLISHED 상태의 버전을 현재 배포중 버전으로 선택한다. */
+  public void markDeployed(OffsetDateTime now) {
+    Objects.requireNonNull(now, "deployedAt (now) must not be null");
+    if (!STATUS_PUBLISHED.equals(this.lifecycleStatus)) {
+      throw new IllegalStateException("PUBLISHED 상태의 version만 배포할 수 있습니다.");
+    }
+    this.publishedAt = now;
+    this.updatedAt = now;
+  }
+
   public Long getId() {
     return id;
   }

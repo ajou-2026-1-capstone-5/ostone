@@ -95,7 +95,7 @@ public class DomainPackVersionCloneService {
       throw new DomainPackVersionConflictException(command.packId(), ex);
     }
     try {
-      cloneComponents(command.baseVersion().getId(), savedDraft.getId());
+      cloneComponents(command.baseVersion(), savedDraft.getId());
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
       throw new DomainPackVersionCloneFailedException(command.packId(), ex);
     }
@@ -133,9 +133,14 @@ public class DomainPackVersionCloneService {
     }
   }
 
-  private void cloneComponents(Long sourceVersionId, Long targetVersionId) {
+  private void cloneComponents(DomainPackVersion sourceVersion, Long targetVersionId) {
+    Long sourceVersionId = sourceVersion.getId();
     List<IntentDefinition> sourceIntents =
-        intentRepository.findByDomainPackVersionId(sourceVersionId);
+        DomainPackVersion.STATUS_PUBLISHED.equals(sourceVersion.getLifecycleStatus())
+            ? intentRepository.findByDomainPackVersionIdAndStatus(
+                sourceVersionId, IntentDefinition.STATUS_PUBLISHED)
+            : intentRepository.findByDomainPackVersionIdAndStatusNot(
+                sourceVersionId, IntentDefinition.STATUS_REJECTED);
     List<SlotDefinition> sourceSlots =
         slotRepository.findAllByDomainPackVersionIdOrderBySlotCodeAsc(sourceVersionId);
     List<PolicyDefinition> sourcePolicies =

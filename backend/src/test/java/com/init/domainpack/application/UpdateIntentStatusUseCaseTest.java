@@ -83,21 +83,24 @@ class UpdateIntentStatusUseCaseTest {
   }
 
   @Test
-  @DisplayName("PUBLISHED 버전 → BadRequestException(INTENT_NOT_EDITABLE)")
-  void should_INTENT_NOT_EDITABLE예외_when_PUBLISHED버전() {
+  @DisplayName("PUBLISHED 버전의 DRAFT intent도 PUBLISHED로 전환할 수 있다")
+  void should_PUBLISHED전환성공_when_PUBLISHED버전의DRAFT인텐트() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
     given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
     given(versionRepository.findById(10L))
         .willReturn(
             Optional.of(DomainPackVersion.ofForTest(10L, 7L, DomainPackVersion.STATUS_PUBLISHED)));
+    IntentDefinition intent = intent(99L, 10L);
+    ReflectionTestUtils.setField(intent, "status", IntentDefinition.STATUS_DRAFT);
+    given(intentRepository.findByIdAndDomainPackVersionId(99L, 10L))
+        .willReturn(Optional.of(intent));
+    given(intentRepository.save(any())).willReturn(intent);
 
-    assertThatThrownBy(
-            () ->
-                useCase.execute(
-                    new UpdateIntentStatusCommand(
-                        1L, 7L, 10L, 99L, 5L, IntentDefinition.STATUS_PUBLISHED)))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("DRAFT");
+    IntentDefinitionStatusResponse result =
+        useCase.execute(
+            new UpdateIntentStatusCommand(1L, 7L, 10L, 99L, 5L, IntentDefinition.STATUS_PUBLISHED));
+
+    assertThat(result.status()).isEqualTo(IntentDefinition.STATUS_PUBLISHED);
   }
 
   @Test

@@ -15,10 +15,13 @@ import com.init.domainpack.application.exception.DomainPackVersionNotLatestExcep
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import com.init.shared.application.exception.BadRequestException;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -43,6 +46,7 @@ class ActivateDomainPackVersionUseCaseTest {
 
   @Mock private DomainPackVersionRepository versionRepository;
   @Mock private DomainPackRepository domainPackRepository;
+  @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
@@ -54,6 +58,7 @@ class ActivateDomainPackVersionUseCaseTest {
         new ActivateDomainPackVersionUseCase(
             versionRepository,
             domainPackRepository,
+            intentDefinitionRepository,
             workspaceExistencePort,
             workspaceMembershipPort,
             FIXED_CLOCK);
@@ -69,6 +74,10 @@ class ActivateDomainPackVersionUseCaseTest {
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
     given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                42L, IntentDefinition.STATUS_DRAFT))
+        .willReturn(0L);
 
     DomainPackVersion saved = createSavedVersion(42L, 7L);
     given(versionRepository.saveAndFlush(any())).willReturn(saved);
@@ -145,6 +154,10 @@ class ActivateDomainPackVersionUseCaseTest {
     DomainPackVersion published = createPublishedVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(published));
     given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                42L, IntentDefinition.STATUS_DRAFT))
+        .willReturn(0L);
 
     assertThatThrownBy(
             () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
@@ -170,6 +183,33 @@ class ActivateDomainPackVersionUseCaseTest {
   }
 
   @Test
+  @DisplayName("DRAFT Intent가 남아 있으면 발행 불가")
+  void should_발행불가예외발생_when_DRAFT인텐트존재() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
+
+    DomainPackVersion version = createDraftVersion(42L, 7L);
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                42L, IntentDefinition.STATUS_DRAFT))
+        .willReturn(1L);
+
+    assertThatThrownBy(
+            () -> useCase.execute(new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L)))
+        .isInstanceOf(BadRequestException.class)
+        .isInstanceOfSatisfying(
+            BadRequestException.class,
+            exception ->
+                assertThat(exception.getCode()).isEqualTo("DOMAIN_PACK_VERSION_NOT_PUBLISHABLE"))
+        .hasMessageContaining("DRAFT");
+
+    verify(versionRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
   @DisplayName("동시 활성화 충돌 → DomainPackVersionConflictException")
   void should_충돌예외발생_when_동시활성화충돌() {
     given(workspaceExistencePort.existsById(1L)).willReturn(true);
@@ -179,6 +219,10 @@ class ActivateDomainPackVersionUseCaseTest {
     DomainPackVersion version = createDraftVersion(42L, 7L);
     given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
     given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                42L, IntentDefinition.STATUS_DRAFT))
+        .willReturn(0L);
     given(versionRepository.saveAndFlush(any()))
         .willThrow(new ObjectOptimisticLockingFailureException(DomainPackVersion.class, 42L));
 

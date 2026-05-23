@@ -5,8 +5,6 @@ import com.init.domainpack.application.exception.DomainPackUnauthorizedWorkspace
 import com.init.domainpack.application.exception.DomainPackVersionConflictException;
 import com.init.domainpack.application.exception.DomainPackVersionInvalidStateException;
 import com.init.domainpack.application.exception.DomainPackVersionNotFoundException;
-import com.init.domainpack.application.exception.DomainPackVersionNotLatestException;
-import com.init.domainpack.application.exception.DomainPackVersionNotPublishableException;
 import com.init.domainpack.application.exception.DomainPackWorkspaceNotFoundException;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
@@ -16,6 +14,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -25,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ActivateDomainPackVersionUseCase {
+public class DeployDomainPackVersionUseCase {
 
   private static final Set<WorkspaceMemberRole> ALLOWED_WORKSPACE_ROLES =
       Set.of(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.OPERATOR, WorkspaceMemberRole.ADMIN);
@@ -37,7 +36,7 @@ public class ActivateDomainPackVersionUseCase {
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
 
-  public ActivateDomainPackVersionUseCase(
+  public DeployDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
       DomainPackRepository domainPackRepository,
       IntentDefinitionRepository intentDefinitionRepository,
@@ -53,14 +52,12 @@ public class ActivateDomainPackVersionUseCase {
   }
 
   @Transactional
-  public ActivateDomainPackVersionResult execute(ActivateDomainPackVersionCommand command) {
-    // workspace 존재 확인 (U-005 Confirmed)
+  public DeployDomainPackVersionResult execute(DeployDomainPackVersionCommand command) {
     if (!workspaceExistencePort.existsById(command.workspaceId())) {
       throw new DomainPackWorkspaceNotFoundException(
           "워크스페이스를 찾을 수 없습니다. id=" + command.workspaceId());
     }
 
-    // workspace 멤버십 + 역할 확인: OWNER, OPERATOR 또는 ADMIN만 허용 (U-005 Confirmed)
     if (!workspaceMembershipPort.hasAnyRole(
         command.workspaceId(), command.userId(), ALLOWED_WORKSPACE_ROLES)) {
       throw new DomainPackUnauthorizedWorkspaceAccessException(
@@ -76,37 +73,29 @@ public class ActivateDomainPackVersionUseCase {
             .findByIdAndWorkspaceId(command.workspaceId(), command.versionId())
             .orElseThrow(() -> new DomainPackVersionNotFoundException(command.versionId()));
 
-    // packId 일치 검증 (path variable 위·변조 방어)
     if (!version.getDomainPackId().equals(command.packId())) {
       throw new DomainPackVersionNotFoundException(command.versionId());
     }
 
-    int maxVersionNo = versionRepository.findMaxVersionNoByDomainPackId(command.packId()).orElse(0);
-    if (version.getVersionNo() < maxVersionNo) {
-      throw new DomainPackVersionNotLatestException(command.versionId());
+    if (!DomainPackVersion.STATUS_PUBLISHED.equals(version.getLifecycleStatus())) {
+      throw new DomainPackVersionInvalidStateException("PUBLISHED 상태의 version만 배포할 수 있습니다.");
     }
 
     long draftIntentCount =
         intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
             version.getId(), IntentDefinition.STATUS_DRAFT);
     if (draftIntentCount > 0) {
-      throw new DomainPackVersionNotPublishableException(draftIntentCount);
+      throw new BadRequestException(
+          "DOMAIN_PACK_VERSION_NOT_DEPLOYABLE",
+          "DRAFT 상태의 Intent가 " + draftIntentCount + "개 남아 있어 Domain Pack Version을 배포할 수 없습니다.");
     }
 
     try {
-      version.activate(OffsetDateTime.now(clock));
-    } catch (IllegalStateException e) {
-      throw new DomainPackVersionInvalidStateException(e.getMessage());
-    }
-
-    // review_decision 검증 없음 (U-002 Confirmed)
-    // 기존 PUBLISHED 버전 비활성화 없음 (U-003 Confirmed)
-    // Domain Event 발행 없음 (U-004 Confirmed)
-    try {
+      version.markDeployed(OffsetDateTime.now(clock));
       DomainPackVersion saved = versionRepository.saveAndFlush(version);
-      return ActivateDomainPackVersionResult.from(saved);
+      return DeployDomainPackVersionResult.from(saved);
     } catch (ObjectOptimisticLockingFailureException e) {
-      throw new DomainPackVersionConflictException(command.versionId());
+      throw new DomainPackVersionConflictException(command.versionId(), e);
     }
   }
 }

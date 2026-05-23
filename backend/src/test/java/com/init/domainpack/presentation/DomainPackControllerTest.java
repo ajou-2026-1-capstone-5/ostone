@@ -51,7 +51,8 @@ class DomainPackControllerTest {
   @WithLongPrincipal(10L)
   void should_200_when_listDomainPacks() throws Exception {
     DomainPackSummaryResult fixture =
-        new DomainPackSummaryResult(10L, 1L, "CS Support Pack", "고객 지원용", NOW);
+        new DomainPackSummaryResult(
+            10L, 1L, "CS Support Pack", "고객 지원용", "ACTIVE", 101L, 2, NOW, NOW, NOW);
     given(
             packListUseCase.execute(
                 argThat(q -> q.workspaceId().equals(1L) && q.userId().equals(10L))))
@@ -65,7 +66,12 @@ class DomainPackControllerTest {
         .andExpect(jsonPath("$[0].workspaceId").value(1))
         .andExpect(jsonPath("$[0].name").value("CS Support Pack"))
         .andExpect(jsonPath("$[0].description").value("고객 지원용"))
-        .andExpect(jsonPath("$[0].createdAt").value("2025-04-03T10:00:00+09:00"));
+        .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+        .andExpect(jsonPath("$[0].currentVersionId").value(101))
+        .andExpect(jsonPath("$[0].currentVersionNo").value(2))
+        .andExpect(jsonPath("$[0].currentVersionPublishedAt").value("2025-04-03T10:00:00+09:00"))
+        .andExpect(jsonPath("$[0].createdAt").value("2025-04-03T10:00:00+09:00"))
+        .andExpect(jsonPath("$[0].updatedAt").value("2025-04-03T10:00:00+09:00"));
   }
 
   @Test
@@ -80,7 +86,7 @@ class DomainPackControllerTest {
   void should_200_when_getDomainPack() throws Exception {
     DomainPackDetailResult fixture =
         new DomainPackDetailResult(
-            10L, 1L, "my-pack-key", "CS Support Pack", "고객 지원용", List.of(), NOW, NOW);
+            10L, 1L, "my-pack-key", "CS Support Pack", "고객 지원용", 101L, 2, NOW, List.of(), NOW, NOW);
     given(
             packDetailUseCase.execute(
                 argThat(q -> q.workspaceId().equals(1L) && q.packId().equals(10L))))
@@ -93,6 +99,9 @@ class DomainPackControllerTest {
         .andExpect(jsonPath("$.workspaceId").value(1))
         .andExpect(jsonPath("$.code").value("my-pack-key"))
         .andExpect(jsonPath("$.name").value("CS Support Pack"))
+        .andExpect(jsonPath("$.currentVersionId").value(101))
+        .andExpect(jsonPath("$.currentVersionNo").value(2))
+        .andExpect(jsonPath("$.currentVersionPublishedAt").value("2025-04-03T10:00:00+09:00"))
         .andExpect(jsonPath("$.versions").isArray());
   }
 
