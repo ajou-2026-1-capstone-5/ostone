@@ -1,29 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Sidebar, Topbar, type SidebarActive } from "@/shared/ui/ostone/chrome";
 import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
-
-const COLLAPSED_STORAGE_KEY = "ostone:sidebar:collapsed";
-
-function readPersistedCollapsed(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
-    if (raw === null) return true;
-    return raw !== "false";
-  } catch {
-    return true;
-  }
-}
-
-function persistCollapsed(value: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? "true" : "false");
-  } catch {
-    /* noop */
-  }
-}
 
 interface OstoneShellProps {
   active: SidebarActive;
@@ -40,8 +18,6 @@ interface SidebarBaseProps {
   dark: boolean;
   basePath: string;
   switcher: ReactNode;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
 }
 
 export function OstoneShell({
@@ -59,18 +35,8 @@ export function OstoneShell({
   const safeWorkspaceId =
     numericWorkspaceId !== null && Number.isFinite(numericWorkspaceId) ? numericWorkspaceId : null;
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => readPersistedCollapsed());
-
-  useEffect(() => {
-    persistCollapsed(collapsed);
-  }, [collapsed]);
-
-  const handleToggle = useCallback(() => {
-    setCollapsed((v) => !v);
-  }, []);
-
   const fallbackSwitcher = sidebarSwitcher ?? (
-    <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={collapsed} />
+    <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={false} />
   );
 
   const sidebarBaseProps: SidebarBaseProps = {
@@ -78,8 +44,6 @@ export function OstoneShell({
     dark,
     basePath: resolvedBasePath,
     switcher: fallbackSwitcher,
-    collapsed,
-    onToggleCollapsed: handleToggle,
   };
 
   return (
