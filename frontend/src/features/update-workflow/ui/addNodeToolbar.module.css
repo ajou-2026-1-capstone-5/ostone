@@ -54,6 +54,7 @@
 }
 
 .addNodeBtn:focus-visible {
-  outline: dashed 2px var(--node-status-active);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 3px oklch(0.62 0.22 285 / 0.16);
 }

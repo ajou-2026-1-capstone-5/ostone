@@ -301,8 +301,8 @@
 .approvalButton:focus-visible,
 .approvalDialogCancel:focus-visible,
 .approvalDialogConfirm:focus-visible {
-  outline: 2px dashed #000000;
-  outline-offset: 3px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .approvalActions {

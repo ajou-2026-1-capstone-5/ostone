@@ -21,7 +21,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
     <div className="flex gap-2 border-t border-gray-200 bg-white p-4">
       <input
         aria-label="메시지 입력"
-        className="min-h-11 flex-1 rounded-full border border-gray-300 bg-white px-4 text-sm text-black outline-none transition focus:outline-2 focus:outline-dashed focus:outline-black disabled:pointer-events-none disabled:bg-gray-100 disabled:text-gray-500"
+        className="min-h-11 flex-1 rounded-full border border-gray-300 bg-white px-4 text-sm text-black outline-none transition focus:border-black focus:ring-3 focus:ring-black/10 disabled:pointer-events-none disabled:bg-gray-100 disabled:text-gray-500"
         disabled={disabled}
         placeholder="메시지를 입력하세요"
         value={content}
@@ -35,7 +35,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
       <button
         type="button"
         aria-label="메시지 보내기"
-        className="inline-flex size-11 items-center justify-center rounded-full bg-black text-white transition hover:bg-gray-900 focus:outline-2 focus:outline-dashed focus:outline-black focus:outline-offset-2 disabled:pointer-events-none disabled:bg-gray-300 disabled:text-white"
+        className="inline-flex size-11 items-center justify-center rounded-full bg-black text-white outline-none transition hover:bg-gray-900 focus:ring-3 focus:ring-black/15 disabled:pointer-events-none disabled:bg-gray-300 disabled:text-white"
         disabled={disabled}
         onClick={submit}
       >

@@ -129,8 +129,8 @@
 
 .field input:focus,
 .field textarea:focus {
-  outline: 2px dashed var(--text-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .field input[aria-invalid="true"],

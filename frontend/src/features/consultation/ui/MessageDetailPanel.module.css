@@ -196,8 +196,8 @@
 }
 
 .closeButton:focus-visible {
-  outline: 2px dashed var(--ink);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .closeButton:active {
