@@ -116,17 +116,6 @@ export function WorkflowDraftReadPage() {
       <div className={styles.detailPage}>
         <div className={styles.detailHeader}>
           <div className={styles.titleGroup}>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleBackToList}
-              data-testid="list-back"
-              className={styles.headerButton}
-            >
-              <Icon name="chevron" size={14} />
-              목록
-            </Button>
             <div className={styles.titleStack}>
               <h2 data-testid="workflow-detail-title" className={styles.detailTitle}>
                 {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
@@ -146,14 +135,24 @@ export function WorkflowDraftReadPage() {
           </div>
 
           <div className={styles.headerActions}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              onClick={handleBackToList}
+              data-testid="list-back"
+              className={`${styles.headerButton} ${styles.backAction}`}
+            >
+              <Icon name="chevron" size={14} />
+              목록
+            </Button>
             {workflow && !isEditing && (
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
+                size="default"
                 data-testid="edit-toggle"
                 onClick={() => setIsEditing(true)}
-                className={styles.headerButton}
+                className={`${styles.headerButton} ${styles.editAction}`}
               >
                 <Icon name="edit" size={14} />
                 편집

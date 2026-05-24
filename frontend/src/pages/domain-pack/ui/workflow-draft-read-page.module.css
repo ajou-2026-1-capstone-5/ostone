@@ -10,8 +10,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-3);
-  padding: 14px 20px;
+  gap: var(--s-4);
+  padding: 16px 22px;
   border-bottom: 1px solid var(--line-2);
   background: var(--paper);
 }
@@ -19,7 +19,7 @@
 .titleGroup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -64,12 +64,49 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .headerButton {
+  min-width: 104px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
   font-weight: 450;
+  letter-spacing: -0.1px;
+}
+
+.headerButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.backAction {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+}
+
+.backAction:hover {
+  border-color: var(--ink);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.editAction {
+  min-width: 112px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.1);
+}
+
+.editAction:hover {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+  color: var(--paper);
+  transform: translateY(-1px);
 }
 
 .canvasFrame {
