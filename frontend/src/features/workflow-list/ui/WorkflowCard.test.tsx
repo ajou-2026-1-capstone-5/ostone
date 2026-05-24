@@ -22,8 +22,6 @@ const ENTRY: WorkspaceWorkflowEntry = {
 function setup(overrides: Partial<React.ComponentProps<typeof WorkflowCard>> = {}) {
   const defaults: React.ComponentProps<typeof WorkflowCard> = {
     entry: ENTRY,
-    expanded: false,
-    onToggle: vi.fn(),
     onOpen: vi.fn(),
   };
   return render(
@@ -34,11 +32,10 @@ function setup(overrides: Partial<React.ComponentProps<typeof WorkflowCard>> = {
 }
 
 describe("WorkflowCard", () => {
-  it("기본(접힘) 상태에서는 graph mini, description, 열기 버튼이 보이지 않는다", () => {
+  it("기본 상태에서는 graph mini와 description이 보이지 않는다", () => {
     setup();
     expect(screen.queryByTestId("workflow-list-card-42-graph")).not.toBeInTheDocument();
     expect(screen.queryByTestId("workflow-list-card-42-detail")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("workflow-list-card-42-open")).not.toBeInTheDocument();
   });
 
   it("기본 상태에서 헤더의 pack 이름과 워크플로우 코드를 표시한다", () => {
@@ -48,41 +45,49 @@ describe("WorkflowCard", () => {
     expect(screen.getByText("환불 워크플로우")).toBeInTheDocument();
   });
 
-  it("카드 클릭 시 onToggle 호출", () => {
-    const onToggle = vi.fn();
-    setup({ onToggle });
-    fireEvent.click(screen.getByTestId("workflow-list-card-42-toggle"));
-    expect(onToggle).toHaveBeenCalledTimes(1);
+  it("카드 클릭 시 onOpen 호출", () => {
+    const onOpen = vi.fn();
+    setup({ onOpen });
+    fireEvent.click(screen.getByTestId("workflow-list-card-42-open"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  it("expanded=true 일 때 graph mini, description, 열기 버튼이 노출된다", () => {
-    setup({ expanded: true });
+  it("hover 중 graph mini와 description이 노출되고 hover가 끝나면 닫힌다", () => {
+    setup();
+    fireEvent.mouseEnter(screen.getByTestId("workflow-list-card-42"));
     expect(screen.getByTestId("workflow-list-card-42-graph")).toBeInTheDocument();
     expect(screen.getByTestId("workflow-list-card-42-detail")).toBeInTheDocument();
     expect(screen.getByText("환불 요청 처리")).toBeInTheDocument();
-    expect(screen.getByTestId("workflow-list-card-42-open")).toBeInTheDocument();
+    fireEvent.mouseLeave(screen.getByTestId("workflow-list-card-42"));
+    expect(screen.queryByTestId("workflow-list-card-42-graph")).not.toBeInTheDocument();
   });
 
-  it("열기 버튼 클릭 시 onOpen 호출 (onToggle 은 호출되지 않음)", () => {
-    const onToggle = vi.fn();
+  it("focus 중 graph mini와 description이 노출된다", () => {
+    setup();
+    fireEvent.focus(screen.getByTestId("workflow-list-card-42-open"));
+    expect(screen.getByTestId("workflow-list-card-42-graph")).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-list-card-42-detail")).toBeInTheDocument();
+  });
+
+  it("카드 버튼 클릭 시 onOpen이 호출된다", () => {
     const onOpen = vi.fn();
-    setup({ expanded: true, onToggle, onOpen });
+    setup({ onOpen });
     fireEvent.click(screen.getByTestId("workflow-list-card-42-open"));
     expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it("testIdPrefix 를 적용하면 모든 testId 가 그 prefix 를 사용한다", () => {
-    setup({ testIdPrefix: "pack-workflows", expanded: true });
+    setup({ testIdPrefix: "pack-workflows" });
+    fireEvent.mouseEnter(screen.getByTestId("pack-workflows-card-42"));
     expect(screen.getByTestId("pack-workflows-card-42")).toBeInTheDocument();
     expect(screen.getByTestId("pack-workflows-card-42-open")).toBeInTheDocument();
   });
 
   it("description 이 없으면 detail 영역에서 설명 단락을 건너뛴다", () => {
     setup({
-      expanded: true,
       entry: { ...ENTRY, description: null },
     });
+    fireEvent.mouseEnter(screen.getByTestId("workflow-list-card-42"));
     expect(screen.queryByText("환불 요청 처리")).not.toBeInTheDocument();
   });
 });

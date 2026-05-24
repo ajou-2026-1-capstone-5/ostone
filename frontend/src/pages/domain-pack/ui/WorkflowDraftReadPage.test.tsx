@@ -142,7 +142,7 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.getByTestId("inline-editor")).toHaveTextContent("editing refund.standard");
   });
 
-  it("편집 모드에서 보기 버튼 클릭 시 viewer로 복귀한다", () => {
+  it("편집 모드에서는 상단 보기 버튼을 렌더하지 않는다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -160,9 +160,7 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
     expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("view-toggle"));
-    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
-    expect(screen.getByTestId("graph-viewer")).toBeInTheDocument();
+    expect(screen.queryByTestId("view-toggle")).not.toBeInTheDocument();
   });
 
   it("InlineWorkflowEditor의 onClose가 호출되면 보기 모드로 복귀한다", () => {

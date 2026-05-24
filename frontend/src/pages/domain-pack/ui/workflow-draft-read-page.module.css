@@ -1,3 +1,113 @@
+.detailPage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--paper);
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.titleStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailTitle {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailDescription {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 340;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflowCode,
+.nodeCount,
+.loadingText {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.headerButton {
+  font-weight: 450;
+}
+
+.canvasFrame {
+  flex: 1;
+  position: relative;
+  margin: 12px 20px 20px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--line-2);
+  background: var(--paper);
+  overflow: hidden;
+  min-height: 400px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.015);
+}
+
+.canvasFrame[data-editing="true"] {
+  border-color: var(--line);
+  background: var(--paper-2);
+}
+
+.centerState {
+  padding: 32px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.errorState {
+  padding: 32px;
+}
+
 .pageWrapper {
   display: flex;
   flex-direction: column;
