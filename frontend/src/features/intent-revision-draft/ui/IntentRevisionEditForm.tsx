@@ -297,13 +297,15 @@ export function IntentRevisionEditForm({
   );
 }
 
+interface IntentRevisionEditActionProps {
+  onEdit: () => void;
+  disabled?: boolean;
+}
+
 export function IntentRevisionEditAction({
   onEdit,
   disabled = false,
-}: {
-  onEdit: () => void;
-  disabled?: boolean;
-}) {
+}: IntentRevisionEditActionProps) {
   return (
     <Button
       type="button"
