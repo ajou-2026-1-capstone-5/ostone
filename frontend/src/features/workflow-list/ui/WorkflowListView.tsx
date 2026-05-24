@@ -44,7 +44,6 @@ export function WorkflowListView({
 }: WorkflowListViewProps) {
   const [settings, setSettings] = useState<PageWorkflowSettings>(() => readPageWorkflowSettings());
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
   const [page, setPage] = useState(1);
   const [filterWorkflowId, setFilterWorkflowId] = useState<number | null>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
@@ -72,15 +71,6 @@ export function WorkflowListView({
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * settings.pageSize;
   const pageEntries = filteredAndSorted.slice(pageStart, pageStart + settings.pageSize);
-
-  const handleToggleCard = (workflowId: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(workflowId)) next.delete(workflowId);
-      else next.add(workflowId);
-      return next;
-    });
-  };
 
   const settingsEntries: WorkflowSettingEntry[] = [
     {
@@ -185,8 +175,6 @@ export function WorkflowListView({
           <WorkflowCard
             key={`${entry.packId}-${entry.workflowId}`}
             entry={entry}
-            expanded={expanded.has(entry.workflowId)}
-            onToggle={() => handleToggleCard(entry.workflowId)}
             onOpen={() => onOpen(entry)}
             testIdPrefix={testIdPrefix}
           />

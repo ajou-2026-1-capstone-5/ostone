@@ -19,8 +19,6 @@ interface SidebarProps {
   dark?: boolean;
   basePath?: string;
   switcher?: ReactNode;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
 }
 
 interface TopNavItem {
@@ -47,6 +45,7 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
 
 const DOMAIN_PACKS_LABEL = "Domain Packs";
 const DOMAIN_PACKS_ICON: IconName = "folder";
+const SIDEBAR_WIDTH = "200px";
 
 function deriveSidebarColors(dark: boolean) {
   return {
@@ -74,42 +73,30 @@ export function Sidebar({
   dark = false,
   basePath = "/workspaces",
   switcher,
-  collapsed,
-  onToggleCollapsed,
 }: SidebarProps) {
   const { containerBg, borderColor, defaultColor, hoverBg, activeColor } =
     deriveSidebarColors(dark);
 
-  const handleNavCapture: React.MouseEventHandler<HTMLElement> = (e) => {
-    if (collapsed) {
-      e.stopPropagation();
-      e.preventDefault();
-      onToggleCollapsed();
-    }
-  };
-
   return (
     <nav
-      onClickCapture={handleNavCapture}
       style={{
-        width: collapsed ? "72px" : "256px",
+        width: SIDEBAR_WIDTH,
         background: containerBg,
         borderRight: `1px solid ${borderColor}`,
         display: "flex",
         flexDirection: "column",
-        alignItems: collapsed ? "center" : "stretch",
+        alignItems: "stretch",
         padding: "var(--s-3) 0",
         gap: "var(--s-2)",
         height: "100%",
         flexShrink: 0,
         overflowY: "auto",
         overflowX: "hidden",
-        cursor: collapsed ? "pointer" : "default",
-        transition:
-          "width 400ms cubic-bezier(0.32, 0.72, 0.16, 1), background 200ms ease",
+        cursor: "default",
+        transition: "background 200ms ease",
       }}
       aria-label="주요 내비게이션"
-      data-collapsed={collapsed ? "true" : "false"}
+      data-collapsed="false"
     >
       <div
         style={{
@@ -118,54 +105,22 @@ export function Sidebar({
           alignItems: "center",
           gap: "var(--s-2)",
           marginBottom: "var(--s-2)",
-          padding: collapsed ? "0" : "0 var(--s-3)",
-          justifyContent: collapsed ? "center" : "flex-start",
-          width: collapsed ? "auto" : "100%",
+          padding: "0 var(--s-3)",
+          justifyContent: "flex-start",
+          width: "100%",
         }}
       >
         {switcher !== undefined && (
           <div
             style={{
-              flex: collapsed ? "0 0 auto" : "1 1 0",
+              flex: "1 1 0",
               minWidth: 0,
               display: "flex",
-              justifyContent: collapsed ? "center" : "flex-start",
+              justifyContent: "flex-start",
             }}
           >
             {switcher}
           </div>
-        )}
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label="사이드바 접기"
-            title="사이드바 접기"
-            style={{
-              flexShrink: 0,
-              width: "40px",
-              height: "40px",
-              borderRadius: "var(--r-2)",
-              border: "1px solid var(--line)",
-              background: "var(--paper)",
-              color: "var(--ink)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              transition: "background 160ms ease, border-color 160ms ease",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                transform: "rotate(180deg)",
-                transition: "transform 240ms cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-            >
-              <Icon name="chevron" size={14} />
-            </span>
-          </button>
         )}
       </div>
 
@@ -184,7 +139,6 @@ export function Sidebar({
             to={item.getPath(basePath)}
             icon={item.icon}
             label={item.label}
-            collapsed={collapsed}
             isActive={active === item.key}
             activeColor={activeColor}
             defaultColor={defaultColor}
@@ -196,7 +150,6 @@ export function Sidebar({
           to={`${basePath}/domain-packs`}
           icon={DOMAIN_PACKS_ICON}
           label={DOMAIN_PACKS_LABEL}
-          collapsed={collapsed}
           isActive={isDomainSectionActive(active)}
           activeColor={activeColor}
           defaultColor={defaultColor}
@@ -210,9 +163,9 @@ export function Sidebar({
         style={{
           marginTop: "auto",
           display: "flex",
-          justifyContent: collapsed ? "center" : "stretch",
-          paddingLeft: collapsed ? 0 : "var(--s-3)",
-          paddingRight: collapsed ? 0 : "var(--s-3)",
+          alignItems: "stretch",
+          paddingLeft: "var(--s-3)",
+          paddingRight: "var(--s-3)",
           paddingTop: "var(--s-3)",
           position: "sticky",
           bottom: 0,
@@ -220,7 +173,7 @@ export function Sidebar({
           zIndex: 50,
         }}
       >
-        <AccountMenu collapsed={collapsed} />
+        <AccountMenu collapsed={false} />
       </div>
     </nav>
   );
@@ -230,7 +183,6 @@ interface SidebarLinkProps {
   to: string;
   icon: IconName;
   label: string;
-  collapsed: boolean;
   isActive: boolean;
   activeColor: string;
   defaultColor: string;
@@ -242,27 +194,12 @@ function SidebarLink({
   to,
   icon,
   label,
-  collapsed,
   isActive,
   activeColor,
   defaultColor,
   hoverBg,
   testId,
 }: SidebarLinkProps) {
-  const collapsedStyle: CSSProperties = {
-    width: "40px",
-    height: "40px",
-    borderRadius: "var(--r-2)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: isActive ? activeColor : defaultColor,
-    background: isActive ? hoverBg : "transparent",
-    textDecoration: "none",
-    transition: "background 160ms ease, color 160ms ease",
-    margin: "0 auto",
-  };
-
   const expandedStyle: CSSProperties = {
     height: "40px",
     padding: "0 var(--s-3)",
@@ -287,7 +224,7 @@ function SidebarLink({
       title={label}
       data-active={isActive ? "true" : "false"}
       data-testid={testId}
-      style={collapsed ? collapsedStyle : expandedStyle}
+      style={expandedStyle}
       onMouseEnter={(e) => {
         if (!isActive) {
           e.currentTarget.style.background = hoverBg;
@@ -302,7 +239,7 @@ function SidebarLink({
       }}
     >
       <Icon name={icon} size={16} />
-      {!collapsed && <span>{label}</span>}
+      <span>{label}</span>
     </NavLink>
   );
 }

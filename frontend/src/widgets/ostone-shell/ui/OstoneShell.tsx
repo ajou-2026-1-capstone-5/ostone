@@ -1,29 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Sidebar, Topbar, type SidebarActive } from "@/shared/ui/ostone/chrome";
 import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
-
-const COLLAPSED_STORAGE_KEY = "ostone:sidebar:collapsed";
-
-function readPersistedCollapsed(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
-    if (raw === null) return true;
-    return raw !== "false";
-  } catch {
-    return true;
-  }
-}
-
-function persistCollapsed(value: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? "true" : "false");
-  } catch {
-    /* noop */
-  }
-}
 
 interface OstoneShellProps {
   active: SidebarActive;
@@ -40,8 +18,30 @@ interface SidebarBaseProps {
   dark: boolean;
   basePath: string;
   switcher: ReactNode;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
+}
+
+const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
+  workflows: "워크플로우 설계",
+  upload: "상담 로그 수집",
+  consult: "상담 응대",
+  domain: "도메인팩 관리",
+};
+
+function resolveDisplayCrumbs(active: SidebarActive, crumbs: string[]): string[] {
+  if (crumbs[0] === "CARD-CS" && crumbs[1] === "실시간 상담") {
+    return ["상담 응대"];
+  }
+
+  if (crumbs[0] === "CARD-CS" && crumbs[1] === "Pipeline · Datasets") {
+    return ["상담 로그 수집"];
+  }
+
+  const topLevelCrumb = TOP_LEVEL_CRUMB_BY_ACTIVE[active];
+  if (crumbs.length === 1 && topLevelCrumb) {
+    return [topLevelCrumb];
+  }
+
+  return crumbs;
 }
 
 export function OstoneShell({
@@ -58,19 +58,10 @@ export function OstoneShell({
   const numericWorkspaceId = workspaceId ? Number(workspaceId) : null;
   const safeWorkspaceId =
     numericWorkspaceId !== null && Number.isFinite(numericWorkspaceId) ? numericWorkspaceId : null;
-
-  const [collapsed, setCollapsed] = useState<boolean>(() => readPersistedCollapsed());
-
-  useEffect(() => {
-    persistCollapsed(collapsed);
-  }, [collapsed]);
-
-  const handleToggle = useCallback(() => {
-    setCollapsed((v) => !v);
-  }, []);
+  const displayCrumbs = resolveDisplayCrumbs(active, crumbs);
 
   const fallbackSwitcher = sidebarSwitcher ?? (
-    <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={collapsed} />
+    <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={false} />
   );
 
   const sidebarBaseProps: SidebarBaseProps = {
@@ -78,8 +69,6 @@ export function OstoneShell({
     dark,
     basePath: resolvedBasePath,
     switcher: fallbackSwitcher,
-    collapsed,
-    onToggleCollapsed: handleToggle,
   };
 
   return (
@@ -102,7 +91,7 @@ export function OstoneShell({
         }}
       >
         <div style={{ flexShrink: 0 }}>
-          <Topbar crumbs={crumbs} right={topbarRight} dark={dark} />
+          <Topbar crumbs={displayCrumbs} right={topbarRight} dark={dark} />
         </div>
         <main style={{ flex: 1, overflow: "auto" }}>{children}</main>
       </div>

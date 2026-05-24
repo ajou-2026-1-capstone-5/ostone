@@ -88,20 +88,20 @@ describe("WorkflowListView", () => {
     expect(cards[0].dataset.testid).toBe("wl-card-20");
   });
 
-  it("카드 클릭 시 펼침 상태가 토글된다", () => {
+  it("카드 hover 시 preview가 열리고 hover가 끝나면 닫힌다", () => {
     setup([makeEntry(1)]);
     const card = screen.getByTestId("wl-card-1");
-    expect(card.dataset.expanded).toBe("false");
-    fireEvent.click(screen.getByTestId("wl-card-1-toggle"));
-    expect(screen.getByTestId("wl-card-1").dataset.expanded).toBe("true");
-    fireEvent.click(screen.getByTestId("wl-card-1-toggle"));
-    expect(screen.getByTestId("wl-card-1").dataset.expanded).toBe("false");
+    expect(card.dataset.previewOpen).toBe("false");
+    fireEvent.mouseEnter(card);
+    expect(screen.getByTestId("wl-card-1").dataset.previewOpen).toBe("true");
+    expect(screen.getByTestId("wl-card-1-graph")).toBeInTheDocument();
+    fireEvent.mouseLeave(card);
+    expect(screen.getByTestId("wl-card-1").dataset.previewOpen).toBe("false");
   });
 
-  it("열기 버튼 클릭 시 onOpen 콜백이 entry 와 함께 호출된다", () => {
+  it("카드 클릭 시 onOpen 콜백이 entry 와 함께 호출된다", () => {
     const onOpen = vi.fn();
     setup([makeEntry(7, "Lucky")], onOpen);
-    fireEvent.click(screen.getByTestId("wl-card-7-toggle"));
     fireEvent.click(screen.getByTestId("wl-card-7-open"));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ workflowId: 7, name: "Lucky" }));
   });

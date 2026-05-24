@@ -65,6 +65,7 @@
   --divider-subtle: rgba(0, 0, 0, 0.04);
   --app-header-height: 72px;
   --overlay-bg: rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px rgba(0, 0, 0, 0.12);
 
   /* ---- Workflow node category palette (oklch) ---------------------------
      Used by frontend/src/shared/styles/workflow-node-theme.module.css
@@ -120,8 +121,8 @@
 }
 
 *:focus-visible {
-  outline: dashed 2px;
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 body {

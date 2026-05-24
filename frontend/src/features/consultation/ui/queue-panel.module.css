@@ -51,8 +51,8 @@
 }
 
 .queueItem:focus-visible {
-  outline: 2px dashed var(--primary-color);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
   background: rgba(0, 0, 0, 0.05);
 }
 

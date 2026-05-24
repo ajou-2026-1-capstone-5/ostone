@@ -12,6 +12,7 @@ import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { useGetWorkflowDefinition } from "@/entities/workflow";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
+import styles from "./workflow-draft-read-page.module.css";
 
 function isWorkflowGraph(v: unknown): v is WorkflowGraph {
   return (
@@ -112,140 +113,70 @@ export function WorkflowDraftReadPage() {
 
   return (
     <OstoneShell active="workflows" crumbs={crumbs}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 20px",
-            borderBottom: "1px solid var(--line-2)",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+      <div className={styles.detailPage}>
+        <div className={styles.detailHeader}>
+          <div className={styles.titleGroup}>
+            <div className={styles.titleStack}>
+              <h2 data-testid="workflow-detail-title" className={styles.detailTitle}>
+                {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
+              </h2>
+              {workflow?.description && (
+                <p className={styles.detailDescription}>{workflow.description}</p>
+              )}
+            </div>
+            {workflow?.workflowCode && (
+              <Mono className={styles.workflowCode}>{workflow.workflowCode}</Mono>
+            )}
+            {workflow && <Pill tone="signal">DRAFT</Pill>}
+            {workflow && isEditing && <Pill tone="ink">EDITING</Pill>}
+            {workflow && (
+              <Mono className={styles.nodeCount}>{nodeCount} nodes</Mono>
+            )}
+          </div>
+
+          <div className={styles.headerActions}>
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="default"
               onClick={handleBackToList}
               data-testid="list-back"
-              /*
-               * shadcn Button defaults to font-medium (500); Pretendard renders
-               * that with a noticeably heavy stem. 450 sits between the original
-               * thin look and the shadcn default — heavier than regular body
-               * copy but lighter than the page title.
-               */
-              style={{ fontWeight: 450 }}
+              className={`${styles.headerButton} ${styles.backAction}`}
             >
               <Icon name="chevron" size={14} />
               목록
             </Button>
-            <h2
-              data-testid="workflow-detail-title"
-              style={{
-                fontFamily: "var(--sans)",
-                fontSize: "16px",
-                fontWeight: 600,
-                margin: 0,
-                color: "var(--ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
-            </h2>
-            {workflow?.workflowCode && (
-              <Mono style={{ fontSize: "12px", color: "var(--ink-3)", fontWeight: 500 }}>
-                {workflow.workflowCode}
-              </Mono>
-            )}
-            {workflow && <Pill tone="signal">DRAFT</Pill>}
-            {workflow && (
-              <Mono style={{ fontSize: "12px", color: "var(--ink-3)", fontWeight: 500 }}>
-                {nodeCount} nodes
-              </Mono>
-            )}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
             {workflow && !isEditing && (
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
+                size="default"
                 data-testid="edit-toggle"
                 onClick={() => setIsEditing(true)}
-                style={{ fontWeight: 450 }}
+                className={`${styles.headerButton} ${styles.editAction}`}
               >
                 <Icon name="edit" size={14} />
                 편집
               </Button>
             )}
-            {workflow && isEditing && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                data-testid="view-toggle"
-                onClick={() => setIsEditing(false)}
-                style={{ fontWeight: 450 }}
-              >
-                <Icon name="eye" size={14} />
-                보기
-              </Button>
-            )}
           </div>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            position: "relative",
-            margin: "12px 20px 20px",
-            borderRadius: "var(--r-2)",
-            border: "1px solid var(--line-2)",
-            background: "var(--paper)",
-            overflow: "hidden",
-            minHeight: "400px",
-          }}
-        >
+        <div className={styles.canvasFrame} data-editing={isEditing ? "true" : "false"}>
           {!enabled && (
-            <div
-              data-testid="workflow-select-empty"
-              style={{ padding: "32px", textAlign: "center", color: "var(--ink-3)" }}
-            >
+            <div data-testid="workflow-select-empty" className={styles.centerState}>
               좌측 사이드바에서 워크플로우를 선택하세요.
             </div>
           )}
 
           {enabled && query.isLoading && (
-            <div
-              data-testid="workflow-loading"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
+            <div data-testid="workflow-loading" className={styles.loadingState}>
               <LoadingSpinner />
-              <Mono style={{ fontSize: "11px", color: "var(--ink-3)" }}>워크플로우 로드 중...</Mono>
+              <Mono className={styles.loadingText}>워크플로우 로드 중...</Mono>
             </div>
           )}
 
           {enabled && query.isError && (
-            <div data-testid="workflow-error" style={{ padding: "32px" }}>
+            <div data-testid="workflow-error" className={styles.errorState}>
               <ErrorState
                 message="워크플로우를 불러오지 못했습니다."
                 onRetry={() => query.refetch()}

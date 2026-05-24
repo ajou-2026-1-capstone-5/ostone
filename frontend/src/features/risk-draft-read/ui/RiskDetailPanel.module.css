@@ -82,8 +82,8 @@
 }
 
 .editButton:focus-visible {
-  outline: 2px dashed var(--text-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .body {
@@ -226,8 +226,8 @@
 }
 
 .retryButton:focus-visible {
-  outline: 2px dashed var(--text-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 @media (max-width: 767px) {

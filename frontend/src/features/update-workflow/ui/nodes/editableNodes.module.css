@@ -61,7 +61,7 @@
   min-width: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.38);
   color: #fff;
   font-family: inherit;
   font-size: inherit;
@@ -79,6 +79,7 @@
 .labelInput:focus {
   border-bottom-color: #fff;
   outline: none;
+  box-shadow: 0 1px 0 #fff;
 }
 
 .body {
@@ -252,7 +253,7 @@
   width: 90px;
   background: transparent;
   border: none;
-  border-bottom: 1px dashed var(--node-zinc-500);
+  border-bottom: 1px solid var(--node-zinc-500);
   color: var(--node-zinc-700);
   font-family: inherit;
   font-size: 12px;
@@ -269,6 +270,7 @@
 
 .terminalInput:focus {
   border-bottom-color: var(--node-status-active);
+  box-shadow: 0 1px 0 var(--node-status-active);
 }
 
 /* ---- Handles ---------------------------------------------------------- */
@@ -325,6 +327,6 @@
 }
 
 .deleteBtn:focus-visible {
-  outline: dashed 2px var(--danger);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }

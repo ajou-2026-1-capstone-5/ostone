@@ -6,7 +6,7 @@ Figma's interface is the design tool that designed itself — a masterclass in t
 
 The page presents a fascinating duality: the interface chrome is strictly black-and-white (literally only `#000000` and `#ffffff` detected as colors), while the hero section and product showcases explode with vibrant multi-color gradients — electric greens, bright yellows, deep purples, hot pinks. This separation means the design system itself is colorless, treating the product's colorful output as the hero content. Figma's marketing page is essentially a white gallery wall displaying colorful art.
 
-What makes Figma distinctive beyond the variable font is its circle-and-pill geometry. Buttons use 50px radius (pill) or 50% (perfect circle for icon buttons), creating an organic, tool-palette-like feel. The dashed-outline focus indicator (`dashed 2px`) is a deliberate design choice that echoes selection handles in the Figma editor itself — the website's UI language references the product's UI language.
+What makes Figma distinctive beyond the variable font is its circle-and-pill geometry. Buttons use 50px radius (pill) or 50% (perfect circle for icon buttons), creating an organic, tool-palette-like feel. In this product UI, focus should stay visible without using dotted or dashed outlines: deepen the border color and add a soft monochrome ring instead.
 
 **Key Characteristics:**
 
@@ -14,7 +14,7 @@ What makes Figma distinctive beyond the variable font is its circle-and-pill geo
 - Strictly black-and-white interface chrome — color exists only in product content
 - figmaMono for uppercase technical labels with wide letter-spacing
 - Pill (50px) and circular (50%) button geometry
-- Dashed focus outlines echoing Figma's editor selection handles
+- Border/ring focus states instead of dotted or dashed outlines
 - Vibrant multi-color hero gradients (green, yellow, purple, pink)
 - OpenType `"kern"` feature enabled globally
 - Negative letter-spacing throughout — even body text at -0.14px to -0.26px
@@ -78,7 +78,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Background: Pure Black (`#000000`)
 - Text: Pure White (`#ffffff`)
 - Radius: circle (50%) for icon buttons
-- Focus: dashed 2px outline
+- Focus: darker border plus soft monochrome ring
 - Maximum emphasis
 
 **White Pill**
@@ -87,7 +87,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Text: Pure Black (`#000000`)
 - Padding: 8px 18px 10px (asymmetric vertical)
 - Radius: pill (50px)
-- Focus: dashed 2px outline
+- Focus: darker border plus soft monochrome ring
 - Standard CTA on dark/colored surfaces
 
 **Glass Dark**
@@ -95,7 +95,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Background: `rgba(0, 0, 0, 0.08)` (subtle dark overlay)
 - Text: Pure Black
 - Radius: circle (50%)
-- Focus: dashed 2px outline
+- Focus: darker border plus soft monochrome ring
 - Secondary action on light surfaces
 
 **Glass Light**
@@ -103,7 +103,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Background: `rgba(255, 255, 255, 0.16)` (frosted glass)
 - Text: Pure White
 - Radius: circle (50%)
-- Focus: dashed 2px outline
+- Focus: darker border plus soft monochrome ring
 - Secondary action on dark/colored surfaces
 
 ### Cards & Containers
@@ -137,11 +137,11 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - White text overlay with 86px display heading
 - Product screenshots floating within the gradient
 
-**Dashed Focus Indicators**
+**Focus Indicators**
 
-- All interactive elements use `dashed 2px` outline on focus
-- References the selection handles in the Figma editor
-- A meta-design choice connecting website and product
+- Interactive elements must keep a visible focus state
+- Use `outline: none` with darker `border-color` and a subtle `box-shadow` ring
+- Do not use dotted or dashed outlines for selected inputs, cards, nodes, or controls
 
 ## 5. Layout Principles
 
@@ -189,7 +189,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Use figmaSans with precise variable weights (320–540) — the granular weight control IS the design
 - Keep the interface strictly black-and-white — color comes from product content only
 - Use pill (50px) and circular (50%) geometry for all interactive elements
-- Apply dashed 2px focus outlines — the signature accessibility pattern
+- Apply visible focus states with darker borders and soft monochrome rings
 - Enable `"kern"` feature on all text
 - Use figmaMono in uppercase with positive letter-spacing for labels
 - Apply negative letter-spacing throughout (-0.1px to -1.72px)
@@ -199,7 +199,7 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 - Don't add interface colors — the monochrome palette is absolute
 - Don't use standard font weights (400, 500, 600, 700) — use the variable font's unique stops (320, 330, 340, 450, 480, 540)
 - Don't use sharp corners on buttons — pill and circular geometry only
-- Don't use solid focus outlines — dashed is the signature
+- Don't use dotted or dashed focus outlines
 - Don't increase body font weight above 450 — the light-weight aesthetic is core
 - Don't use positive letter-spacing on body text — it's always negative
 
@@ -242,6 +242,6 @@ _Note: Figma's marketing site uses ONLY these two colors for its interface layer
 
 1. Use variable font weight stops precisely: 320, 330, 340, 450, 480, 540, 700
 2. Interface is always black + white — never add colors to chrome
-3. Dashed focus outlines, not solid
+3. Focus uses darker borders and soft monochrome rings, not dotted or dashed outlines
 4. Letter-spacing is always negative on body, always positive on mono labels
 5. Pill (50px) for buttons/tabs, circle (50%) for icon buttons

@@ -4,16 +4,16 @@
   width: 100%;
   height: calc(100vh - var(--app-header-height));
   overflow: hidden;
-  background: var(--bg-color);
+  background: var(--paper);
 }
 
 .pageHeader {
-  padding: 20px 28px 18px;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line-2);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: var(--bg-color);
+  gap: 10px;
+  background: var(--paper);
 }
 
 .breadcrumb {
@@ -26,11 +26,11 @@
   line-height: 1;
   letter-spacing: 0.54px;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .breadcrumbSeparator {
-  color: var(--text-muted);
+  color: var(--ink-4);
 }
 
 .versionMeta {
@@ -43,10 +43,10 @@
 .versionTitle {
   font-family: "Pretendard Variable", sans-serif;
   font-weight: 540;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.1;
-  letter-spacing: -0.26px;
-  color: var(--text-primary);
+  letter-spacing: -0.14px;
+  color: var(--ink);
 }
 
 .versionBadge {
@@ -57,11 +57,12 @@
   font-size: 11px;
   letter-spacing: 0.54px;
   text-transform: uppercase;
-  padding: 6px 12px 7px;
-  border-radius: var(--radius-xl);
-  background: var(--glass-dark);
-  border: 1px solid transparent;
-  color: var(--text-primary);
+  padding: 4px 10px 5px;
+  border-radius: var(--r-pill);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-weight: 540;
 }
 
 .twoPane {
@@ -69,6 +70,7 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  background: var(--paper);
 }
 
 .invalidParams {
@@ -84,10 +86,12 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
+  background: var(--paper);
 }
 
 .listSlot {
   flex: 0 0 auto;
+  border-right: 1px solid var(--line-2);
 }
 
 @media (max-width: 767px) {
@@ -102,6 +106,11 @@
 
   .twoPane {
     flex-direction: column;
+  }
+
+  .listSlot {
+    border-right: none;
+    border-bottom: 1px solid var(--line-2);
   }
 
   .twoPane.hasSelection .listSlot {
@@ -123,9 +132,9 @@
     margin: 12px 16px 0;
     padding: 8px 16px 9px;
     border-radius: var(--radius-xl);
-    border: 1px solid var(--text-primary);
-    background: var(--bg-color);
-    color: var(--text-primary);
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
     font-family: "Geist Mono", monospace;
     font-size: 11px;
     letter-spacing: 0.54px;

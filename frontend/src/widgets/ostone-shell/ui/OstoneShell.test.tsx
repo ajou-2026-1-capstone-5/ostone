@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { OstoneShell } from "./OstoneShell";
 
@@ -36,7 +36,32 @@ describe("OstoneShell", () => {
     );
     expect(screen.getByText("OSTONE")).toBeInTheDocument();
     expect(screen.getByText("CARD-CS")).toBeInTheDocument();
-    expect(screen.getByText("Domain Packs")).toBeInTheDocument();
+    expect(screen.getAllByText("Domain Packs")).toHaveLength(2);
+  });
+
+  it("상위 화면의 workspace breadcrumb를 업무 라벨로 표시한다", () => {
+    render(
+      <OstoneShell active="upload" crumbs={["CARD-CS"]}>
+        <div>content</div>
+      </OstoneShell>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.queryByText("CARD-CS")).not.toBeInTheDocument();
+    expect(screen.getByText("상담 로그 수집")).toBeInTheDocument();
+  });
+
+  it("상세 화면의 여러 breadcrumb는 그대로 유지한다", () => {
+    render(
+      <OstoneShell active="workflows" crumbs={["WS · 1", "Domain Packs", "Workflows"]}>
+        <div>content</div>
+      </OstoneShell>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText("WS · 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Domain Packs")).toHaveLength(2);
+    expect(screen.getByText("Workflows")).toBeInTheDocument();
   });
 
   it("renders children in main area", () => {
@@ -49,7 +74,7 @@ describe("OstoneShell", () => {
     expect(screen.getByTestId("shell-child")).toBeInTheDocument();
   });
 
-  it("starts collapsed by default", () => {
+  it("starts with fixed expanded sidebar", () => {
     render(
       <OstoneShell active="workflows" crumbs={[]}>
         <div>content</div>
@@ -58,11 +83,13 @@ describe("OstoneShell", () => {
     );
     expect(screen.getByLabelText("주요 내비게이션")).toHaveAttribute(
       "data-collapsed",
-      "true",
+      "false",
     );
+    expect(screen.getByLabelText("주요 내비게이션")).toHaveStyle({ width: "200px" });
   });
 
-  it("collapsed 시 nav 배경 클릭으로 펼쳐지고 localStorage에 저장되며, expanded 후엔 접기 버튼이 동작한다", () => {
+  it("sidebar collapsed localStorage 값이 있어도 fixed expanded 상태를 유지한다", () => {
+    window.localStorage.setItem("ostone:sidebar:collapsed", "true");
     render(
       <OstoneShell active="workflows" crumbs={[]}>
         <div>content</div>
@@ -70,23 +97,12 @@ describe("OstoneShell", () => {
       { wrapper: Wrapper },
     );
     const nav = screen.getByLabelText("주요 내비게이션");
-    expect(nav).toHaveAttribute("data-collapsed", "true");
-    fireEvent.click(nav);
-    expect(screen.getByLabelText("주요 내비게이션")).toHaveAttribute(
-      "data-collapsed",
-      "false",
-    );
-    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe(
-      "false",
-    );
-    fireEvent.click(screen.getByLabelText("사이드바 접기"));
-    expect(screen.getByLabelText("주요 내비게이션")).toHaveAttribute(
-      "data-collapsed",
-      "true",
-    );
+    expect(nav).toHaveAttribute("data-collapsed", "false");
+    expect(screen.queryByLabelText("사이드바 접기")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe("true");
   });
 
-  it("localStorage에 false가 저장돼 있으면 expanded로 시작한다", () => {
+  it("localStorage에 false가 저장돼 있어도 sidebar 값을 다시 쓰지 않는다", () => {
     window.localStorage.setItem("ostone:sidebar:collapsed", "false");
     render(
       <OstoneShell active="workflows" crumbs={[]}>
@@ -98,6 +114,7 @@ describe("OstoneShell", () => {
       "data-collapsed",
       "false",
     );
+    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe("false");
   });
 
   it("renders dark variant", () => {

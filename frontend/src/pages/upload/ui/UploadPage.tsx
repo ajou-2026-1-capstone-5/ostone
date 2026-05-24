@@ -15,7 +15,7 @@ export const UploadPage: React.FC = () => {
   const workspaceId = workspaceIdParam ? Number(workspaceIdParam) : undefined;
 
   useEffect(() => {
-    setCrumbs(["CARD-CS", "Pipeline · Datasets"]);
+    setCrumbs(["상담 로그 수집"]);
     return () => setCrumbs([]);
   }, [setCrumbs]);
 
