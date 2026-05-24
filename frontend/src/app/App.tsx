@@ -4,6 +4,7 @@ import { SignupPage } from "../pages/signup/ui/SignupPage";
 import { WorkspaceRootRedirect } from "../pages/workspace/ui/WorkspaceRootRedirect";
 import { PasswordResetInitPage } from "../pages/password-reset/ui/PasswordResetInitPage";
 import { PasswordResetCompletePage } from "../pages/password-reset/ui/PasswordResetCompletePage";
+import { ChatHistoryPage } from "../pages/consultation/ui/chat-history/ChatHistoryPage";
 import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
 import { UserChatPage } from "../pages/user-chat";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
@@ -56,6 +57,8 @@ export function App() {
           <Route index element={<Navigate to="workflows" replace />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="pipeline" element={<Navigate to="upload" replace />} />
+          <Route path="consultation/history" element={<ChatHistoryPage />} />
+          <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
           <Route path="consultation" element={<ConsultationPage />} />
           <Route
             path="consultation/:sessionId"

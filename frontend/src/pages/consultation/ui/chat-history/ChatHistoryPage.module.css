@@ -1,0 +1,23 @@
+.page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.contentPane {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+@media (max-width: 760px) {
+  .page {
+    flex-direction: column;
+  }
+}
