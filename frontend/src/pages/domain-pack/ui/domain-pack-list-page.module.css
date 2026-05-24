@@ -135,12 +135,14 @@
 .statusBadgeOperating {
   background: var(--ink);
   color: var(--paper);
+  font-weight: 540;
 }
 
 .statusBadgeIdle {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink-4);
   background: var(--paper-2);
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-weight: 540;
 }
 
 .versionText,
