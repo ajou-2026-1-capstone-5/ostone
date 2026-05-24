@@ -20,6 +20,30 @@ interface SidebarBaseProps {
   switcher: ReactNode;
 }
 
+const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
+  workflows: "워크플로우 설계",
+  upload: "상담 로그 수집",
+  consult: "상담 응대",
+  domain: "도메인팩 관리",
+};
+
+function resolveDisplayCrumbs(active: SidebarActive, crumbs: string[]): string[] {
+  if (crumbs[0] === "CARD-CS" && crumbs[1] === "실시간 상담") {
+    return ["상담 응대"];
+  }
+
+  if (crumbs[0] === "CARD-CS" && crumbs[1] === "Pipeline · Datasets") {
+    return ["상담 로그 수집"];
+  }
+
+  const topLevelCrumb = TOP_LEVEL_CRUMB_BY_ACTIVE[active];
+  if (crumbs.length === 1 && topLevelCrumb) {
+    return [topLevelCrumb];
+  }
+
+  return crumbs;
+}
+
 export function OstoneShell({
   active,
   crumbs,
@@ -34,6 +58,7 @@ export function OstoneShell({
   const numericWorkspaceId = workspaceId ? Number(workspaceId) : null;
   const safeWorkspaceId =
     numericWorkspaceId !== null && Number.isFinite(numericWorkspaceId) ? numericWorkspaceId : null;
+  const displayCrumbs = resolveDisplayCrumbs(active, crumbs);
 
   const fallbackSwitcher = sidebarSwitcher ?? (
     <WorkspaceMarker workspaceId={safeWorkspaceId} collapsed={false} />
@@ -66,7 +91,7 @@ export function OstoneShell({
         }}
       >
         <div style={{ flexShrink: 0 }}>
-          <Topbar crumbs={crumbs} right={topbarRight} dark={dark} />
+          <Topbar crumbs={displayCrumbs} right={topbarRight} dark={dark} />
         </div>
         <main style={{ flex: 1, overflow: "auto" }}>{children}</main>
       </div>

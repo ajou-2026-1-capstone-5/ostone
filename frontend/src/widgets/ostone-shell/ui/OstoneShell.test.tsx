@@ -39,6 +39,31 @@ describe("OstoneShell", () => {
     expect(screen.getAllByText("Domain Packs")).toHaveLength(2);
   });
 
+  it("상위 화면의 workspace breadcrumb를 업무 라벨로 표시한다", () => {
+    render(
+      <OstoneShell active="upload" crumbs={["CARD-CS"]}>
+        <div>content</div>
+      </OstoneShell>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.queryByText("CARD-CS")).not.toBeInTheDocument();
+    expect(screen.getByText("상담 로그 수집")).toBeInTheDocument();
+  });
+
+  it("상세 화면의 여러 breadcrumb는 그대로 유지한다", () => {
+    render(
+      <OstoneShell active="workflows" crumbs={["WS · 1", "Domain Packs", "Workflows"]}>
+        <div>content</div>
+      </OstoneShell>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText("WS · 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Domain Packs")).toHaveLength(2);
+    expect(screen.getByText("Workflows")).toBeInTheDocument();
+  });
+
   it("renders children in main area", () => {
     render(
       <OstoneShell active="workflows" crumbs={[]}>
