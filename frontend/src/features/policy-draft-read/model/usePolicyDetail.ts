@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useGetPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+import { unwrapApiResponse } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { PolicyDefinition } from "@/entities/policy";
 
@@ -44,5 +45,5 @@ export function usePolicyDetail(
     return { status: "loading" };
   }
 
-  return { status: "ready", data: query.data.data as unknown as PolicyDefinition };
+  return { status: "ready", data: unwrapApiResponse<PolicyDefinition>(query.data) };
 }

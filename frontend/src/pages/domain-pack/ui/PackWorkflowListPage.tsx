@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useListWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type { WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -14,11 +15,12 @@ import { WorkflowListView } from "@/features/workflow-list";
 
 export function PackWorkflowListPage() {
   const navigate = useNavigate();
-  const { workspaceId, packId, versionId } = useParams();
+  const { workspaceId, packId } = useParams();
+  const [search] = useSearchParams();
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const enabled = wsId !== null && pId !== null && vId !== null;
 
   const query = useListWorkflows(wsId ?? 0, pId ?? 0, vId ?? 0, {
@@ -48,13 +50,11 @@ export function PackWorkflowListPage() {
   const crumbs = [`WS · ${wsId}`, "Domain Packs", `PACK · ${pId}`, `VER · ${vId}`, "Workflows"];
 
   const handleOpen = (entry: WorkspaceWorkflowEntry) => {
-    navigate(
-      `/workspaces/${wsId}/domain-packs/${entry.packId}/versions/${entry.versionId}/workflows/${entry.workflowId}`,
-    );
+    navigate(domainPackSectionPath(wsId, entry.packId, entry.versionId, "workflows", entry.workflowId));
   };
 
   return (
-    <OstoneShell active="workflows" crumbs={crumbs} activePackId={pId}>
+    <OstoneShell active="workflows" crumbs={crumbs}>
       <div style={{ padding: "24px", height: "100%", overflow: "auto" }}>
         <h1
           style={{

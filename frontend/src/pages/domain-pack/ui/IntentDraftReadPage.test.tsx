@@ -70,11 +70,13 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
   ),
   IntentDetailPanel: ({
     intentId,
+    headerActions,
     afterHeader,
     beforeJsonCards,
     children,
   }: {
     intentId: number | null;
+    headerActions?: (detail: { id: number; intentCode: string }) => React.ReactNode;
     afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
     beforeJsonCards?: () => React.ReactNode;
     children?: (detail: {
@@ -93,6 +95,7 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
     };
     return (
       <section>
+        <header>{headerActions?.(detail)}</header>
         <div>intent detail {intentId}</div>
         {afterHeader?.(detail)}
         {beforeJsonCards?.()}
@@ -103,7 +106,55 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
 }));
 
 vi.mock("@/features/approve-intent", () => ({
-  IntentDetailWithApproval: () => <div>approval detail</div>,
+  IntentDetailWithApproval: ({
+    afterHeader,
+    beforeJsonCards,
+    nonDraftHeaderActions,
+    children,
+    iId,
+  }: {
+    afterHeader?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
+    beforeJsonCards?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
+    nonDraftHeaderActions?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
+    children?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
+    iId: number;
+  }) => {
+    const detail = {
+      id: iId,
+      intentCode: "refund",
+      name: "환불 문의",
+      description: "기존 설명",
+    };
+    return (
+      <section>
+        <header>{nonDraftHeaderActions?.(detail)}</header>
+        <div>approval detail</div>
+        {afterHeader?.(detail)}
+        {beforeJsonCards?.(detail)}
+        {children?.(detail)}
+      </section>
+    );
+  },
 }));
 
 vi.mock("@/features/intent-revision-draft", () => ({
@@ -131,23 +182,33 @@ vi.mock("@/features/intent-revision-draft", () => ({
     </div>
   ),
   IntentRevisionEditForm: ({
+    isEditing,
     onSave,
     onDirtyChange,
   }: {
+    isEditing?: boolean;
     onSave: (values: { name: string; description: string }) => Promise<boolean>;
     onDirtyChange: (dirty: boolean, intentId: number | null) => void;
-  }) => (
-    <div>
-      <button type="button" onClick={() => onDirtyChange(true, 10)}>
-        mark dirty
-      </button>
-      <button
-        type="button"
-        onClick={() => void onSave({ name: "환불 문의 수정", description: "수정 설명" })}
-      >
-        save revision
-      </button>
-    </div>
+  }) => {
+    if (!isEditing) return null;
+    return (
+      <div>
+        <button type="button" onClick={() => onDirtyChange(true, 10)}>
+          mark dirty
+        </button>
+        <button
+          type="button"
+          onClick={() => void onSave({ name: "환불 문의 수정", description: "수정 설명" })}
+        >
+          save revision
+        </button>
+      </div>
+    );
+  },
+  IntentRevisionEditAction: ({ onEdit }: { onEdit: () => void }) => (
+    <button type="button" onClick={onEdit}>
+      수정
+    </button>
   ),
   classifyExistingDraftSource: () => "INTENT_REVISION",
   intentRevisionDraftApi: {
@@ -183,9 +244,11 @@ function renderPage(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/intents/:intentId?"
+          path="/workspaces/:workspaceId/domain-packs/:packId/intents"
           element={<IntentDraftReadPage />}
-        />
+        >
+          <Route path=":intentId" />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );
@@ -237,18 +300,18 @@ describe("IntentDraftReadPage", () => {
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
-    renderPage("/workspaces/abc/domain-packs/7/versions/3/intents");
+    renderPage("/workspaces/abc/domain-packs/7/intents?versionId=3");
 
     expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
   });
 
   it("intent 선택 시 상세 URL로 이동한다", () => {
-    renderPage("/workspaces/1/domain-packs/7/versions/3/intents");
+    renderPage("/workspaces/1/domain-packs/7/intents?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: "select intent" }));
 
     expect(mocks.navigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/7/versions/3/intents/10",
+      "/workspaces/1/domain-packs/7/intents/10?versionId=3",
     );
   });
 
@@ -258,8 +321,9 @@ describe("IntentDraftReadPage", () => {
       clonedIntentId: 40,
       patchSucceeded: true,
     });
-    renderPage("/workspaces/1/domain-packs/7/versions/3/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() =>
@@ -272,7 +336,8 @@ describe("IntentDraftReadPage", () => {
       }),
     );
     expect(mocks.navigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/7/versions/4/intents/40",
+      "/workspaces/1/domain-packs/7/intents/40?versionId=4",
+      { replace: true },
     );
   });
 
@@ -293,8 +358,9 @@ describe("IntentDraftReadPage", () => {
     mocks.saveIntentRevisionDraft.mockRejectedValue(
       new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "draft exists"),
     );
-    renderPage("/workspaces/1/domain-packs/7/versions/3/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
@@ -317,15 +383,17 @@ describe("IntentDraftReadPage", () => {
     mocks.saveIntentRevisionDraft.mockRejectedValue(
       new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "draft exists"),
     );
-    renderPage("/workspaces/1/domain-packs/7/versions/3/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
     await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "이동" }));
 
     await waitFor(() =>
       expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/versions/5/intents/50",
+        "/workspaces/1/domain-packs/7/intents/50?versionId=5",
+        { replace: true },
       ),
     );
   });
@@ -337,14 +405,19 @@ describe("IntentDraftReadPage", () => {
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     };
     mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
-    renderPage("/workspaces/1/domain-packs/7/versions/6/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
     fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
 
     await waitFor(() => expect(mocks.activateVersion).toHaveBeenCalledWith(1, 7, 6));
+    await waitFor(() => {
+      expect(mocks.packRefetch).toHaveBeenCalled();
+      expect(mocks.versionRefetch).toHaveBeenCalled();
+    });
     await waitFor(() =>
       expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/versions/9/intents/50",
+        "/workspaces/1/domain-packs/7/intents/50?versionId=9",
+        { replace: true },
       ),
     );
   });
@@ -357,13 +430,14 @@ describe("IntentDraftReadPage", () => {
     };
     mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
     mocks.listIntents.mockRejectedValue(new Error("list failed"));
-    renderPage("/workspaces/1/domain-packs/7/versions/6/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
     fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
 
     await waitFor(() =>
       expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/versions/9/intents",
+        "/workspaces/1/domain-packs/7/intents?versionId=9",
+        { replace: true },
       ),
     );
   });
@@ -375,8 +449,9 @@ describe("IntentDraftReadPage", () => {
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     };
     mocks.updateDraftIntent.mockResolvedValue({ id: 10 });
-    renderPage("/workspaces/1/domain-packs/7/versions/6/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() =>
@@ -398,8 +473,9 @@ describe("IntentDraftReadPage", () => {
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     };
     mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
-    renderPage("/workspaces/1/domain-packs/7/versions/6/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "mark dirty" }));
     fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
 
@@ -416,14 +492,15 @@ describe("IntentDraftReadPage", () => {
       lifecycleStatus: "DRAFT",
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     };
-    renderPage("/workspaces/1/domain-packs/7/versions/6/intents/10");
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
     fireEvent.click(screen.getByRole("button", { name: "discard revision" }));
 
     await waitFor(() => expect(mocks.discardDraft).toHaveBeenCalledWith(1, 7, 6));
     await waitFor(() =>
       expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/versions/3/intents/50",
+        "/workspaces/1/domain-packs/7/intents/50?versionId=3",
+        { replace: true },
       ),
     );
   });

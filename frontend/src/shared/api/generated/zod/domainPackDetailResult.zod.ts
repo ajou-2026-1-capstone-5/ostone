@@ -12,6 +12,9 @@ export const DomainPackDetailResult = zod.object({
   code: zod.string().optional(),
   name: zod.string().optional(),
   description: zod.string().optional(),
+  currentVersionId: zod.number().nullable().optional(),
+  currentVersionNo: zod.number().nullable().optional(),
+  currentVersionPublishedAt: zod.iso.datetime({ offset: true }).nullable().optional(),
   versions: zod
     .array(
       zod.object({

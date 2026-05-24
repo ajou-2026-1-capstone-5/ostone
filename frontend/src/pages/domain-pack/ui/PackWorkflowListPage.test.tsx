@@ -44,11 +44,11 @@ vi.mock("@/widgets/ostone-shell", () => ({
   OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows";
+const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId/workflows";
 
 function NavigatedRoute() {
   const loc = useLocation();
-  return <div data-testid="navigated">{loc.pathname}</div>;
+  return <div data-testid="navigated">{loc.pathname + loc.search}</div>;
 }
 
 function renderPage(path: string) {
@@ -70,13 +70,13 @@ beforeEach(() => {
 describe("PackWorkflowListPage", () => {
   it("유효하지 않은 wsId는 /workspaces 로 redirect", () => {
     mockUseListWorkflows.mockReturnValue({ isLoading: false, isError: false, data: undefined });
-    renderPage("/workspaces/abc/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/abc/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("workspaces-root")).toBeInTheDocument();
   });
 
   it("loading 시 loading state 가 노출된다", () => {
     mockUseListWorkflows.mockReturnValue({ isLoading: true, isError: false, data: undefined });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("pack-workflows-loading")).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe("PackWorkflowListPage", () => {
       data: undefined,
       refetch: vi.fn(),
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("pack-workflows-error")).toBeInTheDocument();
   });
 
@@ -97,7 +97,7 @@ describe("PackWorkflowListPage", () => {
       isError: false,
       data: { data: [] },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("pack-workflows-empty")).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("PackWorkflowListPage", () => {
         ],
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("workflow-list-view")).toBeInTheDocument();
     expect(screen.getByTestId("mock-card-10")).toHaveTextContent("Alpha");
     expect(screen.getByTestId("mock-card-11")).toHaveTextContent("Beta");
@@ -129,7 +129,7 @@ describe("PackWorkflowListPage", () => {
         ],
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.queryByTestId("mock-card-22")).toBeInTheDocument();
     expect(screen.queryByText("noid")).not.toBeInTheDocument();
   });
@@ -140,7 +140,7 @@ describe("PackWorkflowListPage", () => {
       isError: false,
       data: [{ id: 99, name: "Plain", workflowCode: null, description: null }],
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("mock-card-99")).toBeInTheDocument();
   });
 
@@ -150,8 +150,10 @@ describe("PackWorkflowListPage", () => {
       isError: false,
       data: { data: [{ id: 42, name: "Click me", workflowCode: null, description: null }] },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     fireEvent.click(screen.getByTestId("mock-card-42"));
-    expect(screen.getByTestId("navigated")).toBeInTheDocument();
+    expect(screen.getByTestId("navigated")).toHaveTextContent(
+      "/workspaces/1/domain-packs/2/workflows/42?versionId=3",
+    );
   });
 });

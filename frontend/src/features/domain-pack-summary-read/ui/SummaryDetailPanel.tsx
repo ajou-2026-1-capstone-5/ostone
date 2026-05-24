@@ -1,22 +1,28 @@
+import { useState } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { toast } from "sonner";
-import type { DomainPackVersionDetail, DomainPackVersionSummary } from "@/entities/domain-pack";
+import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import { ApiRequestError } from "@/shared/api";
-import { useActivate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
-import { useDomainPackApprovalReadiness } from "../model/useDomainPackApprovalReadiness";
-import { resolveDomainPackApprovalErrorMessage } from "../model/resolveDomainPackApprovalErrorMessage";
+import { Spinner } from "@/shared/ui/spinner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { SummaryJsonCard } from "./SummaryJsonCard";
 import { ComponentCountGrid } from "./ComponentCountGrid";
-import { DomainPackApprovalCard } from "./DomainPackApprovalCard";
 import styles from "./SummaryDetailPanel.module.css";
 
 interface SummaryDetailPanelProps {
   query: UseQueryResult<DomainPackVersionDetail>;
   wsId: number;
   packId: number;
-  versions: DomainPackVersionSummary[];
-  onActivated: () => void | Promise<unknown>;
+  currentVersionId?: number | null;
+  deployingVersionId?: number | null;
+  onDeploy?: (versionId: number) => void;
   renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
@@ -24,53 +30,24 @@ export function SummaryDetailPanel({
   query,
   wsId,
   packId,
-  versions,
-  onActivated,
+  currentVersionId = null,
+  deployingVersionId = null,
+  onDeploy,
   renderSlotEditSheet,
 }: Readonly<SummaryDetailPanelProps>) {
-  const activateMutation = useActivate();
+  const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const v = query.data;
-  const readiness = useDomainPackApprovalReadiness({
-    workspaceId: wsId,
-    packId,
-    version: v,
-    versions,
-  });
   const versionId = v?.versionId;
+  const isCurrentVersion = versionId != null && versionId === currentVersionId;
+  const isDeploying = versionId != null && versionId === deployingVersionId;
+  const isDraftVersion = v?.lifecycleStatus === "DRAFT";
+  const canDeploy =
+    onDeploy != null && versionId != null && !isCurrentVersion && !isDeploying && !isDraftVersion;
 
-  const handleApprove = async () => {
-    if (versionId == null) {
-      toast.error("승인 준비 상태를 확인하는 데 필요한 정보가 부족합니다.");
-      return;
-    }
-
-    if (readiness.isLoading) {
-      toast.error("승인 준비 상태를 확인하는 중입니다.");
-      return;
-    }
-
-    if (!readiness.ready) {
-      toast.error(readiness.blockers[0]?.message ?? "승인 조건을 먼저 처리해 주세요.");
-      return;
-    }
-
-    try {
-      await activateMutation.mutateAsync({ workspaceId: wsId, packId, versionId });
-    } catch (error) {
-      toast.error(resolveDomainPackApprovalErrorMessage(error));
-      return;
-    }
-
-    toast.success("Domain Pack 버전이 승인되었습니다.");
-
-    try {
-      await query.refetch();
-      await onActivated();
-      readiness.retry();
-    } catch (error) {
-      console.error("Failed to sync domain pack approval state", error);
-      toast.error("승인 후 화면 정보를 갱신하지 못했습니다.");
-    }
+  const handleConfirmDeploy = () => {
+    if (!canDeploy) return;
+    onDeploy(versionId);
+    setDeployDialogOpen(false);
   };
 
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
@@ -110,35 +87,84 @@ export function SummaryDetailPanel({
   return (
     <div className={styles.panel}>
       <div className={styles.metaCard}>
-        <div className={styles.metaHeader}>
-          <span className={styles.versionNoLabel}>v{v.versionNo}</span>
-          <span
-            className={`${styles.badge} ${
-              v.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : ""
-            }`}
-          >
-            {v.lifecycleStatus}
-          </span>
+        <div className={styles.metaInfo}>
+          <div className={styles.metaHeader}>
+            <div className={styles.metaTitleRow}>
+              <span className={styles.versionNoLabel}>v{v.versionNo}</span>
+              <span
+                className={`${styles.badge} ${
+                  v.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : ""
+                }`}
+              >
+                {v.lifecycleStatus}
+              </span>
+              {isCurrentVersion && (
+                <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
+              )}
+            </div>
+          </div>
+          <div className={styles.metaGrid}>
+            <span className={styles.metaKey}>생성</span>
+            <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
+          </div>
         </div>
-        <div className={styles.metaGrid}>
-          <span className={styles.metaKey}>생성</span>
-          <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
-          {v.sourcePipelineJobId != null && (
-            <>
-              <span className={styles.metaKey}>Pipeline Job</span>
-              <span className={styles.metaValue}>{v.sourcePipelineJobId}</span>
-            </>
-          )}
-        </div>
+        {onDeploy && versionId != null && (
+          <div className={styles.deployActions}>
+            <button
+              type="button"
+              className={styles.deployButton}
+              disabled={!canDeploy}
+              onClick={() => {
+                if (canDeploy) setDeployDialogOpen(true);
+              }}
+            >
+              {isCurrentVersion ? "배포중" : isDeploying ? "배포 중..." : "배포"}
+            </button>
+          </div>
+        )}
       </div>
 
-      <DomainPackApprovalCard
-        readiness={readiness}
-        isActivating={activateMutation.isPending}
-        isPublished={v.lifecycleStatus === "PUBLISHED"}
-        onApprove={handleApprove}
-        onRetryReadiness={readiness.retry}
-      />
+      <AlertDialog
+        open={isDeployDialogOpen}
+        onOpenChange={(next) => {
+          if (!isDeploying) setDeployDialogOpen(next);
+        }}
+      >
+        <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
+          <AlertDialogTitle className={styles.approvalDialogTitle}>
+            이 버전을 배포할까요?
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.approvalDialogDescription}>
+            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로 전환됩니다.
+          </AlertDialogDescription>
+          <AlertDialogFooter className={styles.approvalDialogFooter}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.approvalDialogCancel}
+              onClick={() => setDeployDialogOpen(false)}
+              disabled={isDeploying}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              className={styles.approvalDialogConfirm}
+              onClick={handleConfirmDeploy}
+              disabled={isDeploying}
+            >
+              {isDeploying ? (
+                <>
+                  <Spinner />
+                  배포 중...
+                </>
+              ) : (
+                "배포하기"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div>
         <div className={styles.sectionTitle}>Summary JSON</div>

@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { PencilIcon, SaveIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,9 +19,12 @@ interface IntentRevisionEditFormProps {
   versionId: number;
   detail: IntentDetail;
   canEdit: boolean;
+  isEditing?: boolean;
   isSaving: boolean;
+  showIdleAction?: boolean;
   onSave: (values: UpdateDraftIntentBody) => Promise<boolean>;
   onDirtyChange: (dirty: boolean, intentId: number | null) => void;
+  onEditingChange?: (isEditing: boolean) => void;
 }
 
 interface FormValues {
@@ -55,19 +59,37 @@ export function IntentRevisionEditForm({
   versionId,
   detail,
   canEdit,
+  isEditing: controlledIsEditing,
   isSaving,
+  showIdleAction = true,
   onSave,
   onDirtyChange,
+  onEditingChange,
 }: IntentRevisionEditFormProps) {
-  const [isEditing, setEditing] = useState(false);
+  const [internalIsEditing, setInternalEditing] = useState(false);
   const [baseline, setBaseline] = useState<Baseline>(() => normalizeDetail(detail));
   const [values, setValues] = useState<FormValues>(() => normalizeDetail(detail));
   const [latestConflict, setLatestConflict] = useState<IntentDetail | null>(null);
+  const [saveCompleted, setSaveCompleted] = useState<{
+    intentId: number | null;
+    visible: boolean;
+  }>({ intentId: null, visible: false });
   const skipNextDirtyReportRef = useRef(false);
   const nameId = useId();
   const descriptionId = useId();
   const nameErrorId = `${nameId}-error`;
   const descriptionErrorId = `${descriptionId}-error`;
+  const isEditingControlled = controlledIsEditing !== undefined;
+  const isEditing = controlledIsEditing ?? internalIsEditing;
+  const setEditing = useCallback(
+    (next: boolean) => {
+      if (!isEditingControlled) {
+        setInternalEditing(next);
+      }
+      onEditingChange?.(next);
+    },
+    [isEditingControlled, onEditingChange],
+  );
 
   useEffect(() => {
     const next = normalizeDetail(detail);
@@ -79,7 +101,7 @@ export function IntentRevisionEditForm({
     setValues(next);
     setEditing(false);
     onDirtyChange(false, null);
-  }, [detail, onDirtyChange]);
+  }, [detail, onDirtyChange, setEditing]);
 
   const errors = useMemo(() => {
     const next: Partial<Record<keyof FormValues, string>> = {};
@@ -98,6 +120,8 @@ export function IntentRevisionEditForm({
 
   const isDirty = baseline.name !== values.name || baseline.description !== values.description;
   const hasError = Boolean(errors.name || errors.description);
+  const shouldShowSaveCompleted =
+    saveCompleted.visible && saveCompleted.intentId === (detail.id ?? null);
 
   useEffect(() => {
     if (skipNextDirtyReportRef.current) {
@@ -149,6 +173,7 @@ export function IntentRevisionEditForm({
 
     if (saved) {
       setEditing(false);
+      setSaveCompleted({ intentId: detail.id ?? null, visible: true });
     }
   };
 
@@ -161,11 +186,25 @@ export function IntentRevisionEditForm({
   };
 
   if (!isEditing) {
+    if (!showIdleAction && !shouldShowSaveCompleted) return null;
+
     return (
       <div className={styles.formShell}>
-        <Button type="button" size="sm" onClick={() => setEditing(true)}>
-          수정
-        </Button>
+        <div className={styles.formIdleRow}>
+          {showIdleAction && (
+            <IntentRevisionEditAction
+              onEdit={() => {
+                setSaveCompleted({ intentId: detail.id ?? null, visible: false });
+                setEditing(true);
+              }}
+            />
+          )}
+          {shouldShowSaveCompleted && (
+            <span className={styles.saveStatus} role="status">
+              수정 적용 완료
+            </span>
+          )}
+        </div>
       </div>
     );
   }
@@ -210,10 +249,22 @@ export function IntentRevisionEditForm({
         )}
       </div>
       <div className={styles.buttonRow}>
-        <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
+        <Button
+          type="button"
+          variant="outline"
+          className={styles.secondaryActionButton}
+          onClick={handleCancel}
+          disabled={isSaving}
+        >
+          <XIcon aria-hidden="true" />
           취소
         </Button>
-        <Button type="submit" disabled={hasError || !isDirty || isSaving}>
+        <Button
+          type="submit"
+          className={styles.primaryActionButton}
+          disabled={hasError || !isDirty || isSaving}
+        >
+          <SaveIcon aria-hidden="true" />
           {isSaving ? "저장 중..." : "저장"}
         </Button>
       </div>
@@ -227,15 +278,44 @@ export function IntentRevisionEditForm({
             최신 내용을 불러온 뒤 다시 수정해 주세요.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.dialogButtons}>
-            <Button type="button" variant="outline" onClick={() => setLatestConflict(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.secondaryActionButton}
+              onClick={() => setLatestConflict(null)}
+            >
+              <XIcon aria-hidden="true" />
               취소
             </Button>
-            <Button type="button" onClick={loadLatest}>
+            <Button type="button" className={styles.primaryActionButton} onClick={loadLatest}>
               최신 내용 불러오기
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </form>
+  );
+}
+
+interface IntentRevisionEditActionProps {
+  onEdit: () => void;
+  disabled?: boolean;
+}
+
+export function IntentRevisionEditAction({
+  onEdit,
+  disabled = false,
+}: IntentRevisionEditActionProps) {
+  return (
+    <Button
+      type="button"
+      size="default"
+      className={styles.editButton}
+      onClick={onEdit}
+      disabled={disabled}
+    >
+      <PencilIcon aria-hidden="true" />
+      수정
+    </Button>
   );
 }

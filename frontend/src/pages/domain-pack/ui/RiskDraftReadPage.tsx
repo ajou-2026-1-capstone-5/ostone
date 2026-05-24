@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { RiskDetailPanel, RiskListPanel } from "@/features/risk-draft-read/ui";
 import { RiskEditPanel } from "@/features/update-risk";
+import {
+  domainPackSectionPath,
+  shouldReplaceDomainPackChildRoute,
+} from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./risk-draft-read-page.module.css";
@@ -12,13 +16,14 @@ interface EditingRiskState {
 }
 
 export function RiskDraftReadPage() {
-  const { workspaceId, packId, versionId, riskId } = useParams();
+  const { workspaceId, packId, riskId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const [editingRisk, setEditingRisk] = useState<EditingRiskState | null>(null);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const selectedRiskId = riskId ? parseRouteId(riskId) : null;
   const hasInvalidRiskId = riskId !== undefined && selectedRiskId === null;
   const routeKey = `${wsId}:${pId}:${vId}:${selectedRiskId}`;
@@ -33,7 +38,7 @@ export function RiskDraftReadPage() {
     );
   }
 
-  const riskListPath = `/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/risks`;
+  const riskListPath = domainPackSectionPath(wsId, pId, vId, "risks");
   const hasSelection = selectedRiskId !== null;
   const activeEditingRiskId =
     editingRisk?.routeKey === routeKey && editingRisk.riskId === selectedRiskId
@@ -41,7 +46,7 @@ export function RiskDraftReadPage() {
       : null;
 
   return (
-    <OstoneShell active="domain" crumbs={[`WS · ${wsId}`, `PACK · ${pId}`, `VER · ${vId}`]}>
+    <OstoneShell active="risk" crumbs={[`WS · ${wsId}`, `PACK · ${pId}`, `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <div className={styles.versionMeta}>
@@ -55,7 +60,7 @@ export function RiskDraftReadPage() {
             className={styles.backButton}
             onClick={() => {
               setEditingRisk(null);
-              navigate(riskListPath);
+              navigate(riskListPath, { replace: true });
             }}
           >
             ← 목록
@@ -70,7 +75,12 @@ export function RiskDraftReadPage() {
               selectedId={selectedRiskId}
               onSelect={(id) => {
                 setEditingRisk(null);
-                navigate(`${riskListPath}/${id}`);
+                const path = domainPackSectionPath(wsId, pId, vId, "risks", id);
+                if (shouldReplaceDomainPackChildRoute(selectedRiskId)) {
+                  navigate(path, { replace: true });
+                  return;
+                }
+                navigate(path);
               }}
             />
           </div>

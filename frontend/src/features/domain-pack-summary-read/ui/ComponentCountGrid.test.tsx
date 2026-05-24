@@ -64,13 +64,13 @@ describe("ComponentCountGrid", () => {
   it("Intent, Policy, Risk 카드 클릭 시 상세 목록으로 이동한다", () => {
     render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
     fireEvent.click(screen.getByRole("button", { name: /Intent/ }));
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/intents");
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/intents?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: /Policy/ }));
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/policies");
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/policies?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: /Risk/ }));
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/versions/3/risks");
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/risks?versionId=3");
   });
 
   it("Slot 카드 클릭 시 SlotEditSheet를 연다", () => {
@@ -121,7 +121,7 @@ describe("ComponentCountGrid", () => {
     render(<ComponentCountGrid {...defaultProps} />);
     fireEvent.click(screen.getByText("wf-alpha"));
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/workflows/10",
+      "/workspaces/1/domain-packs/2/workflows/10?versionId=3",
     );
   });
 
@@ -140,7 +140,7 @@ describe("ComponentCountGrid", () => {
     render(<ComponentCountGrid {...defaultProps} />);
     fireEvent.keyDown(screen.getByText("wf-alpha"), { key: "Enter" });
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/workflows/10",
+      "/workspaces/1/domain-packs/2/workflows/10?versionId=3",
     );
   });
 
@@ -151,7 +151,7 @@ describe("ComponentCountGrid", () => {
     render(<ComponentCountGrid {...defaultProps} />);
     fireEvent.keyDown(screen.getByText("wf-alpha"), { key: " " });
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/2/versions/3/workflows/10",
+      "/workspaces/1/domain-packs/2/workflows/10?versionId=3",
     );
   });
 });

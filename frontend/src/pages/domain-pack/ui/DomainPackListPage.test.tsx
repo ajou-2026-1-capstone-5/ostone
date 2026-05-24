@@ -75,7 +75,7 @@ describe("DomainPackListPage", () => {
     expect(refetch).toHaveBeenCalled();
   });
 
-  it("빈 목록일 때 EmptyState와 업로드 링크를 표시한다", () => {
+  it("빈 목록일 때 EmptyState를 표시하고 업로드 링크는 표시하지 않는다", () => {
     useListDomainPacks.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -84,7 +84,7 @@ describe("DomainPackListPage", () => {
     });
     renderPage();
     expect(screen.getByTestId("empty-state")).toHaveTextContent("아직 도메인팩이 없습니다");
-    expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
+    expect(screen.queryByText("상담 로그 업로드")).not.toBeInTheDocument();
   });
 
   it("데이터가 있을 때 Domain Packs 제목과 목록을 렌더링한다", () => {
@@ -93,7 +93,14 @@ describe("DomainPackListPage", () => {
       isError: false,
       data: {
         data: [
-          { packId: 1, name: "CS Pack", description: "Customer service pack" },
+          {
+            packId: 1,
+            name: "CS Pack",
+            description: "Customer service pack",
+            currentVersionId: 11,
+            currentVersionNo: 2,
+            currentVersionPublishedAt: "2025-04-03T10:00:00+09:00",
+          },
           { packId: 2, name: null, description: null },
         ],
       },
@@ -104,6 +111,30 @@ describe("DomainPackListPage", () => {
     expect(screen.getByText("CS Pack")).toBeInTheDocument();
     expect(screen.getByText("Customer service pack")).toBeInTheDocument();
     expect(screen.getByText("Pack 2")).toBeInTheDocument();
+    expect(screen.getByText("운영중인 도메인팩")).toBeInTheDocument();
+    expect(screen.getByText("비운영 도메인팩")).toBeInTheDocument();
+    expect(screen.getByText("운영중")).toBeInTheDocument();
+    expect(screen.getByText("비운영")).toBeInTheDocument();
+    expect(screen.getByText("v2")).toBeInTheDocument();
+  });
+
+  it("운영중과 비운영 카운트를 요약한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+          { packId: 3, name: "Another Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByText("전체 3")).toBeInTheDocument();
+    expect(screen.getByText("운영중 1")).toBeInTheDocument();
+    expect(screen.getByText("비운영 2")).toBeInTheDocument();
   });
 
   it("name이 없으면 Pack {id} 폴백을 표시한다", () => {
@@ -115,5 +146,20 @@ describe("DomainPackListPage", () => {
     });
     renderPage();
     expect(screen.getByText("Pack 3")).toBeInTheDocument();
+  });
+
+  it("packId가 없으면 상세 링크를 렌더링하지 않는다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { data: [{ packId: null, name: "Missing ID Pack", description: null }] },
+      refetch: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByText("Missing ID Pack")).toBeInTheDocument();
+    expect(screen.getByText("Missing ID Pack").closest("a")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Missing ID Pack/ })).not.toBeInTheDocument();
   });
 });

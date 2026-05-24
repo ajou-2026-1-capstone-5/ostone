@@ -140,7 +140,7 @@ describe("useDomainPackApprovalReadiness", () => {
         type: "INTENT",
         count: 1,
         message: "승인 또는 반려되지 않은 Intent가 1개 남아 있습니다.",
-        actionPath: "/workspaces/1/domain-packs/2/versions/3/intents",
+        actionPath: "/workspaces/1/domain-packs/2/intents?versionId=3",
       },
     ]);
   });

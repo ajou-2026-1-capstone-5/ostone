@@ -1,16 +1,15 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
+import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
 import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import { DomainPackSummaryPage } from "./DomainPackSummaryPage";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
-
-const ROUTE = "/workspaces/:workspaceId/domain-packs/:packId";
 
 vi.mock("@/widgets/ostone-shell", () => ({
   OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -36,19 +35,35 @@ vi.mock("@/shared/ui/ostone/atoms/ErrorState", () => ({
 vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: vi.fn(),
   useVersionDetail: vi.fn(),
-  VersionListPanel: () => <div data-testid="version-list-panel" />,
-  SummaryDetailPanel: () => <div data-testid="summary-detail-panel" />,
-}));
-
-vi.mock("@/features/domain-pack-draft-create", () => ({
-  CreateDraftModal: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="create-draft-modal">
-      <button type="button" onClick={onClose}>
-        모달 닫기
+  VersionListPanel: ({ onSelect }: { onSelect: (versionId: number) => void }) => (
+    <div data-testid="version-list-panel">
+      <button type="button" onClick={() => onSelect(4)}>
+        select version
+      </button>
+    </div>
+  ),
+  SummaryDetailPanel: ({
+    currentVersionId,
+    onDeploy,
+  }: {
+    currentVersionId?: number | null;
+    onDeploy: (versionId: number) => void;
+  }) => (
+    <div data-testid="summary-detail-panel">
+      <span data-testid="current-version-id">{currentVersionId ?? "none"}</span>
+      <button type="button" onClick={() => onDeploy(4)}>
+        deploy version
       </button>
     </div>
   ),
 }));
+
+vi.mock(
+  "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller",
+  () => ({
+    useDeploy: vi.fn(),
+  }),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makePackQuery(overrides: Record<string, unknown> = {}): any {
@@ -63,11 +78,24 @@ function makePackQuery(overrides: Record<string, unknown> = {}): any {
   };
 }
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
+}
+
 function renderPage(path = "/workspaces/1/domain-packs/2") {
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path={ROUTE} element={<DomainPackSummaryPage />} />
+        <Route
+          path="/workspaces/:workspaceId/domain-packs/:packId"
+          element={
+            <>
+              <DomainPackSummaryPage />
+              <LocationProbe />
+            </>
+          }
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -77,6 +105,11 @@ describe("DomainPackSummaryPage", () => {
   beforeEach(() => {
     vi.mocked(usePackDetail).mockReturnValue(makePackQuery());
     vi.mocked(useVersionDetail).mockReturnValue(makePackQuery());
+    vi.mocked(useDeploy).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      variables: undefined,
+    } as unknown as ReturnType<typeof useDeploy>);
     vi.mocked(toast.error).mockReset();
   });
 
@@ -112,24 +145,125 @@ describe("DomainPackSummaryPage", () => {
     expect(screen.getByTestId("summary-detail-panel")).toBeInTheDocument();
   });
 
-  it('"새 DRAFT 묶기" 버튼 클릭 시 CreateDraftModal을 표시한다', async () => {
+  it("도메인팩 상위 route에서는 최신 버전으로 자동 이동하지 않는다", async () => {
     vi.mocked(usePackDetail).mockReturnValue(
-      makePackQuery({ data: { packId: 2, name: "CS Pack", code: "CS", versions: [] } }),
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 3, versionNo: 1 }],
+        },
+      }),
     );
-    renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "새 DRAFT 묶기" }));
-    await waitFor(() => expect(screen.getByTestId("create-draft-modal")).toBeInTheDocument());
+
+    renderPage("/workspaces/1/domain-packs/2");
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/1/domain-packs/2"),
+    );
+    expect(useVersionDetail).toHaveBeenCalledWith(1, 2, null);
   });
 
-  it("CreateDraftModal의 onClose 호출 시 모달이 닫힌다", async () => {
+  it("query string versionId로 선택 버전 상세를 조회한다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({ data: { packId: 2, name: "CS Pack", code: "CS", versions: [] } }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+
+    expect(useVersionDetail).toHaveBeenCalledWith(1, 2, 3);
+  });
+
+  it("버전 선택 시 현재 route를 replace하며 versionId만 갱신한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 3, versionNo: 1 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "select version" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=4",
+      ),
+    );
+  });
+
+  it("버전 배포 버튼 클릭 시 deploy mutation을 호출한다", () => {
+    const mutate = vi.fn();
+    vi.mocked(useDeploy).mockReturnValue({
+      mutate,
+      isPending: false,
+      variables: undefined,
+    } as unknown as ReturnType<typeof useDeploy>);
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
+
+    expect(mutate).toHaveBeenCalledWith({ workspaceId: 1, packId: 2, versionId: 4 });
+  });
+
+  it("currentVersionId가 없으면 PUBLISHED 버전이 하나뿐이어도 운영 버전을 추론하지 않는다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2, lifecycleStatus: "PUBLISHED" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=4");
+
+    expect(screen.getByTestId("current-version-id")).toHaveTextContent("none");
+  });
+
+  it("currentVersionId가 없고 PUBLISHED 버전이 여러 개면 운영 버전을 추론하지 않는다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+            { versionId: 4, versionNo: 2, lifecycleStatus: "PUBLISHED" },
+          ],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=4");
+
+    expect(screen.getByTestId("current-version-id")).toHaveTextContent("none");
+  });
+
+  it('"새 DRAFT 묶기" 버튼을 표시하지 않는다', () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({ data: { packId: 2, name: "CS Pack", code: "CS", versions: [] } }),
     );
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "새 DRAFT 묶기" }));
-    await waitFor(() => expect(screen.getByTestId("create-draft-modal")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "모달 닫기" }));
-    await waitFor(() => expect(screen.queryByTestId("create-draft-modal")).not.toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "새 DRAFT 묶기" })).not.toBeInTheDocument();
   });
 
   it("packDetail 로딩 중 LoadingSpinner를 표시한다", () => {

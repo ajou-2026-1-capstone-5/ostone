@@ -1,3 +1,5 @@
+import { CheckIcon, XIcon } from "lucide-react";
+
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import type { IntentApprovalStatus } from "../model/types";
@@ -16,7 +18,11 @@ export function IntentStatusControl({
   onReject,
   isPending,
 }: Readonly<IntentStatusControlProps>) {
-  const isDisabled = intentStatus !== "DRAFT" || isPending;
+  if (intentStatus !== "DRAFT") {
+    return null;
+  }
+
+  const isDisabled = isPending;
 
   const renderButtonContent = (label: string) => {
     if (isPending) {
@@ -31,13 +37,26 @@ export function IntentStatusControl({
   };
 
   return (
-    <div className={styles.container}>
-      <span className={styles.header}>intent 상태 관리</span>
+    <div className={styles.container} aria-label="intent 검토 액션">
       <div className={styles.buttonGroup}>
-        <Button variant="default" size="sm" onClick={onPublish} disabled={isDisabled}>
+        <Button
+          variant="default"
+          size="default"
+          className={styles.primaryButton}
+          onClick={onPublish}
+          disabled={isDisabled}
+        >
+          {isPending ? null : <CheckIcon aria-hidden="true" />}
           {renderButtonContent("승인")}
         </Button>
-        <Button variant="destructive" size="sm" onClick={onReject} disabled={isDisabled}>
+        <Button
+          variant="outline"
+          size="default"
+          className={styles.rejectButton}
+          onClick={onReject}
+          disabled={isDisabled}
+        >
+          {isPending ? null : <XIcon aria-hidden="true" />}
           {renderButtonContent("반려")}
         </Button>
       </div>

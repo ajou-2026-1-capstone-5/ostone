@@ -24,7 +24,7 @@ describe("IntentStatusControl", () => {
     expect(screen.getByRole("button", { name: "반려" })).toBeEnabled();
   });
 
-  it("intentStatus='PUBLISHED'일 때 publish 버튼이 disabled", () => {
+  it("intentStatus='PUBLISHED'일 때 publish/reject 버튼을 렌더링하지 않는다", () => {
     render(
       <IntentStatusControl
         intentStatus="PUBLISHED"
@@ -34,11 +34,11 @@ describe("IntentStatusControl", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "반려" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
   });
 
-  it("intentStatus='REJECTED'일 때 두 버튼이 모두 disabled", () => {
+  it("intentStatus='REJECTED'일 때 publish/reject 버튼을 렌더링하지 않는다", () => {
     render(
       <IntentStatusControl
         intentStatus="REJECTED"
@@ -48,8 +48,8 @@ describe("IntentStatusControl", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "승인" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "반려" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
   });
 
   it("isPending=true일 때 두 버튼이 모두 disabled", () => {

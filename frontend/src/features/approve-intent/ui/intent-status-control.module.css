@@ -1,17 +1,44 @@
 .container {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.header {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-weight: 500;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .buttonGroup {
   display: flex;
-  flex-direction: row;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+}
+
+.primaryButton,
+.rejectButton {
+  min-width: 88px;
+  min-height: 36px;
+  padding-inline: 16px;
+  border-radius: var(--radius-xl);
+  font-weight: 450;
+  letter-spacing: -0.14px;
+}
+
+.rejectButton {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: var(--bg-color);
+}
+
+.rejectButton:hover {
+  background: var(--bg-secondary);
+}
+
+@media (max-width: 767px) {
+  .container,
+  .buttonGroup {
+    width: 100%;
+  }
+
+  .buttonGroup {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }

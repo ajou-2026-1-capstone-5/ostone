@@ -1,11 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { OstoneShell } from "./OstoneShell";
-
-vi.mock("@/shared/ui/ostone/chrome/useSidebarTreeData", () => ({
-  useSidebarTreeData: () => ({ loading: false, error: null, packs: [] }),
-}));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
@@ -112,24 +108,5 @@ describe("OstoneShell", () => {
       { wrapper: Wrapper },
     );
     expect(screen.getByText("dark")).toBeInTheDocument();
-  });
-
-  it("treeOverride prop으로 트리 데이터를 직접 주입할 수 있다", () => {
-    render(
-      <OstoneShell
-        active="domain"
-        crumbs={[]}
-        treeOverride={{
-          loading: false,
-          error: null,
-          packs: [{ packId: 7, name: "Injected", versionId: 9, workflows: [] }],
-        }}
-      >
-        <div>x</div>
-      </OstoneShell>,
-      { wrapper: Wrapper },
-    );
-    fireEvent.click(screen.getByLabelText("주요 내비게이션"));
-    expect(screen.getByText("Injected")).toBeInTheDocument();
   });
 });

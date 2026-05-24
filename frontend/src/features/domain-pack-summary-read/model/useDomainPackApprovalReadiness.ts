@@ -2,6 +2,7 @@ import type { DomainPackVersionDetail, DomainPackVersionSummary } from "@/entiti
 import { unwrapApiResponse } from "@/shared/api";
 import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 import type { IntentDefinitionSummary } from "@/shared/api/generated/zod";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import {
   buildDomainPackApprovalReadiness,
   findMaxDomainPackVersionNo,
@@ -25,7 +26,7 @@ export function useDomainPackApprovalReadiness({
   const intentActionPath =
     versionId == null
       ? undefined
-      : `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`;
+      : domainPackSectionPath(workspaceId, packId, versionId, "intents");
   const shouldLoadIntents =
     version?.lifecycleStatus === "DRAFT" &&
     versionId != null &&

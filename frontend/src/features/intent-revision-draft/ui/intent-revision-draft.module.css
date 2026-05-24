@@ -22,6 +22,16 @@
   gap: 8px;
 }
 
+.actionButtons,
+.buttonRow {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.buttonRow {
+  padding-top: 2px;
+}
+
 .formShell {
   margin: 0 28px 28px;
   padding: 18px;
@@ -31,6 +41,63 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.formIdleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.editButton {
+  min-width: 88px;
+  min-height: 36px;
+  padding-inline: 16px;
+  border-radius: var(--radius-xl);
+  font-weight: 450;
+  letter-spacing: -0.14px;
+}
+
+.primaryActionButton,
+.secondaryActionButton,
+.dangerActionButton {
+  min-width: 88px;
+  min-height: 36px;
+  padding-inline: 16px;
+  border-radius: var(--radius-xl);
+  font-weight: 450;
+  letter-spacing: -0.14px;
+}
+
+.primaryActionButton svg,
+.secondaryActionButton svg,
+.dangerActionButton svg,
+.editButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.secondaryActionButton {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: var(--bg-color);
+}
+
+.secondaryActionButton:hover {
+  background: var(--bg-secondary);
+}
+
+.dangerActionButton {
+  border: 1px solid var(--text-primary);
+}
+
+.saveStatus {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .field {

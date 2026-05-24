@@ -1,16 +1,21 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SlotListPanel, SlotDetailPanel } from "../../../features/slot-draft-read/ui";
+import {
+  domainPackSectionPath,
+  shouldReplaceDomainPackChildRoute,
+} from "../../../shared/lib/domainPackRoutes";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./slot-draft-read-page.module.css";
 
 export function SlotDraftReadPage() {
-  const { workspaceId, packId, versionId, slotId } = useParams();
+  const { workspaceId, packId, slotId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const sId = slotId ? parseRouteId(slotId) : null;
 
   if (wsId === null || pId === null || vId === null || (slotId !== undefined && sId === null)) {
@@ -24,17 +29,22 @@ export function SlotDraftReadPage() {
   }
 
   const handleSelect = (id: number) => {
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/slots/${id}`);
+    const path = domainPackSectionPath(wsId, pId, vId, "slots", id);
+    if (shouldReplaceDomainPackChildRoute(sId)) {
+      navigate(path, { replace: true });
+      return;
+    }
+    navigate(path);
   };
 
   const handleBack = () => {
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/slots`);
+    navigate(domainPackSectionPath(wsId, pId, vId, "slots"), { replace: true });
   };
 
   const hasSelection = sId !== null;
 
   return (
-    <OstoneShell active="domain" crumbs={[`PACK · ${pId}`, `VER · ${vId}`]}>
+    <OstoneShell active="slot" crumbs={[`PACK · ${pId}`, `VER · ${vId}`]}>
       <div className={styles.pageWrapper}>
         <header className={styles.pageHeader}>
           <nav className={styles.breadcrumb} aria-label="경로">

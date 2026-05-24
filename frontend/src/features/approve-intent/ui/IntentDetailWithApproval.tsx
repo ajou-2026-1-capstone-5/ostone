@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, type ReactNode } from "react";
+import type { IntentDetail } from "@/entities/intent";
 import { IntentDetailPanel } from "../../intent-draft-read/ui";
 import {
   useApproveIntent,
@@ -24,21 +25,25 @@ export function IntentDetailWithApproval({
   pId,
   vId,
   iId,
+  refreshKey,
+  afterHeader,
+  beforeJsonCards,
+  nonDraftHeaderActions,
+  children,
 }: {
   wsId: number;
   pId: number;
   vId: number;
   iId: number;
+  refreshKey?: number;
+  afterHeader?: (detail: IntentDetail) => ReactNode;
+  beforeJsonCards?: (detail: IntentDetail) => ReactNode;
+  nonDraftHeaderActions?: (detail: IntentDetail) => ReactNode;
+  children?: (detail: IntentDetail) => ReactNode;
 }) {
-  const [dialogAction, setDialogAction] = useState<IntentApprovalAction | null>(null);
-  const [statusOverride, setStatusOverride] = useState<IntentApprovalStatus | null>(null);
-  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
-
-  useEffect(() => {
-    setDialogAction(null);
-    setStatusOverride(null);
-    setDetailRefreshKey(0);
-  }, [iId]);
+  const [approvalState, setApprovalState] = useState(() => createApprovalState(iId));
+  const currentState =
+    approvalState.intentId === iId ? approvalState : createApprovalState(iId);
 
   const mutation = useApproveIntent({
     wsId,
@@ -46,21 +51,39 @@ export function IntentDetailWithApproval({
     versionId: vId,
     intentId: iId,
     onStatusChanged: (status) => {
-      setStatusOverride(status);
-      setDialogAction(null);
-      setDetailRefreshKey((k) => k + 1);
+      setApprovalState((prev) => {
+        const base = prev.intentId === iId ? prev : createApprovalState(iId);
+        return {
+          ...base,
+          dialogAction: null,
+          statusOverride: status,
+          detailRefreshKey: base.detailRefreshKey + 1,
+        };
+      });
     },
   });
 
   const handleDialogOpenChange = (next: boolean) => {
-    if (!mutation.isPending) setDialogAction(next ? dialogAction : null);
+    if (mutation.isPending) return;
+    setApprovalState((prev) => {
+      const base = prev.intentId === iId ? prev : createApprovalState(iId);
+      return { ...base, dialogAction: next ? base.dialogAction : null };
+    });
   };
 
   const handleConfirm = () => {
-    if (dialogAction === null) return;
-    const status: IntentApprovalStatus = dialogAction === "publish" ? "PUBLISHED" : "REJECTED";
+    if (currentState.dialogAction === null) return;
+    const status: IntentApprovalStatus =
+      currentState.dialogAction === "publish" ? "PUBLISHED" : "REJECTED";
     mutation.mutate(status);
   };
+  const openDialog = (action: IntentApprovalAction) => {
+    setApprovalState((prev) => {
+      const base = prev.intentId === iId ? prev : createApprovalState(iId);
+      return { ...base, dialogAction: action };
+    });
+  };
+  const combinedRefreshKey = (refreshKey ?? 0) * 1000 + currentState.detailRefreshKey;
 
   return (
     <IntentDetailPanel
@@ -68,26 +91,46 @@ export function IntentDetailWithApproval({
       packId={pId}
       versionId={vId}
       intentId={iId}
-      refreshKey={detailRefreshKey}
+      refreshKey={combinedRefreshKey}
+      headerActions={(detail) => {
+        const intentStatus = normalizeIntentStatus(detail.status ?? "DRAFT", currentState.statusOverride);
+        if (intentStatus !== "DRAFT") {
+          return nonDraftHeaderActions?.(detail);
+        }
+        return (
+          <IntentStatusControl
+            intentStatus={intentStatus}
+            onPublish={() => openDialog("publish")}
+            onReject={() => openDialog("reject")}
+            isPending={mutation.isPending}
+          />
+        );
+      }}
+      afterHeader={afterHeader}
+      beforeJsonCards={beforeJsonCards}
     >
       {(detail) => (
         <>
-          <IntentStatusControl
-            intentStatus={normalizeIntentStatus(detail.status ?? "DRAFT", statusOverride)}
-            onPublish={() => setDialogAction("publish")}
-            onReject={() => setDialogAction("reject")}
-            isPending={mutation.isPending}
-          />
           <ApproveIntentDialog
             intentName={detail.name ?? ""}
-            action={dialogAction ?? "publish"}
-            open={dialogAction !== null}
+            action={currentState.dialogAction ?? "publish"}
+            open={currentState.dialogAction !== null}
             onOpenChange={handleDialogOpenChange}
             onConfirm={handleConfirm}
             isLoading={mutation.isPending}
           />
+          {children?.(detail)}
         </>
       )}
     </IntentDetailPanel>
   );
+}
+
+function createApprovalState(intentId: number) {
+  return {
+    intentId,
+    dialogAction: null as IntentApprovalAction | null,
+    statusOverride: null as IntentApprovalStatus | null,
+    detailRefreshKey: 0,
+  };
 }

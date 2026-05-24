@@ -35,7 +35,7 @@ vi.mock("@/widgets/ostone-shell", () => ({
 }));
 
 const ROUTE =
-  "/workspaces/:workspaceId/domain-packs/:packId/versions/:versionId/workflows/:workflowId?";
+  "/workspaces/:workspaceId/domain-packs/:packId/workflows/:workflowId?";
 
 function renderPage(path: string) {
   render(
@@ -54,19 +54,19 @@ beforeEach(() => {
 describe("WorkflowDraftReadPage", () => {
   it("유효하지 않은 URL 파라미터는 에러 메시지를 보여준다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: false });
-    renderPage("/workspaces/abc/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/abc/domain-packs/2/workflows?versionId=3");
     expect(screen.getByRole("alert")).toHaveTextContent("잘못된 URL 파라미터입니다.");
   });
 
   it("workflowId가 없으면 좌측 사이드바에서 선택하라는 안내를 표시한다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: false });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows");
+    renderPage("/workspaces/1/domain-packs/2/workflows?versionId=3");
     expect(screen.getByTestId("workflow-select-empty")).toBeInTheDocument();
   });
 
   it("loading 상태에서는 spinner를 표시한다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({ isLoading: true });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-loading")).toBeInTheDocument();
   });
 
@@ -76,7 +76,7 @@ describe("WorkflowDraftReadPage", () => {
       isError: true,
       refetch: vi.fn(),
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-error")).toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe("WorkflowDraftReadPage", () => {
         }),
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent("환불 처리");
     expect(screen.getByText("refund.standard")).toBeInTheDocument();
     expect(screen.getByText("2 nodes")).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe("WorkflowDraftReadPage", () => {
       isError: false,
       data: { id: 10, name: "환불 처리", workflowCode: "refund.standard" },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-empty-graph")).toBeInTheDocument();
   });
 
@@ -121,7 +121,7 @@ describe("WorkflowDraftReadPage", () => {
       isError: false,
       data: { id: 10, name: "환불 처리", workflowCode: "refund.standard", graphJson: "not-json" },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-empty-graph")).toBeInTheDocument();
   });
 
@@ -136,7 +136,7 @@ describe("WorkflowDraftReadPage", () => {
         graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("edit-toggle"));
     expect(screen.getByTestId("inline-editor")).toHaveTextContent("editing refund.standard");
@@ -157,7 +157,7 @@ describe("WorkflowDraftReadPage", () => {
         }),
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
     expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("view-toggle"));
@@ -180,7 +180,7 @@ describe("WorkflowDraftReadPage", () => {
         }),
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
     fireEvent.click(screen.getByTestId("editor-close"));
     expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
@@ -197,7 +197,7 @@ describe("WorkflowDraftReadPage", () => {
         graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
       },
     });
-    renderPage("/workspaces/1/domain-packs/2/versions/3/workflows/10");
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     // legacy panels gone
     expect(screen.queryByText(/검토 중 · v0\.4/)).not.toBeInTheDocument();
     expect(screen.queryByText("Card payment refund flow")).not.toBeInTheDocument();

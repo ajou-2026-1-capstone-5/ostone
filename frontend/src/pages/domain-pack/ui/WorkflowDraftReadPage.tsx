@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
@@ -35,13 +36,14 @@ function parseGraphJson(raw: unknown): WorkflowGraph | null {
 }
 
 export function WorkflowDraftReadPage() {
-  const { workspaceId, packId, versionId, workflowId } = useParams();
+  const { workspaceId, packId, workflowId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
-  const vId = parseRouteId(versionId);
+  const vId = parseRouteId(search.get("versionId") ?? undefined);
   const wfId = workflowId ? parseRouteId(workflowId) : null;
 
   const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
@@ -78,7 +80,7 @@ export function WorkflowDraftReadPage() {
 
   const handleBackToList = () => {
     setIsEditing(false);
-    navigate(`/workspaces/${wsId}/domain-packs/${pId}/versions/${vId}/workflows`);
+    navigate(domainPackSectionPath(wsId, pId, vId, "workflows"), { replace: true });
   };
 
   const crumbs = [`WS · ${wsId}`, "Domain Packs", `PACK · ${pId}`, `VER · ${vId}`, "Workflows"];
@@ -109,7 +111,7 @@ export function WorkflowDraftReadPage() {
   }
 
   return (
-    <OstoneShell active="workflows" crumbs={crumbs} activePackId={pId} activeWorkflowId={wfId}>
+    <OstoneShell active="workflows" crumbs={crumbs}>
       <div
         style={{
           display: "flex",
