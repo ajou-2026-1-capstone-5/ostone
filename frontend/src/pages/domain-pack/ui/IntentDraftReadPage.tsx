@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { IntentDetail } from "@/entities/intent";
 import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
@@ -6,6 +6,7 @@ import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
   IntentRevisionDiffPanel,
   IntentRevisionDraftActions,
+  IntentRevisionEditAction,
   IntentRevisionEditForm,
   IntentRevisionRecoveryBanner,
 } from "@/features/intent-revision-draft";
@@ -190,6 +191,15 @@ function IntentDetailSlot({
   vId: number;
   iId: number | null;
 }) {
+  const [editingTarget, setEditingTarget] = useState<{ intentId: number; versionId: number } | null>(
+    null,
+  );
+  const isEditingIntent =
+    editingTarget?.intentId === iId && editingTarget.versionId === vId;
+  const setEditingIntent = useCallback((next: boolean) => {
+    setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
+  }, [iId, vId]);
+
   if (iId === null) {
     return (
       <div className={styles.detailSlot}>
@@ -213,6 +223,13 @@ function IntentDetailSlot({
     versionId: vId,
     intentId: iId,
     refreshKey: controller.detailRefreshKey,
+    headerActions: (detail: IntentDetail) =>
+      controller.canEditIntent && detail.id != null && !isEditingIntent ? (
+        <IntentRevisionEditAction
+          disabled={controller.isMutationPending}
+          onEdit={() => setEditingIntent(true)}
+        />
+      ) : null,
     afterHeader: (detail: IntentDetail) => (
       <>
         <SelectedIntentCodeSync
@@ -235,8 +252,11 @@ function IntentDetailSlot({
       detail={detail}
       canEdit={controller.canEditIntent}
       isSaving={controller.isMutationPending}
+      isEditing={isEditingIntent}
+      showIdleAction={false}
       onSave={(values) => controller.handleSaveRevision(detail, values)}
       onDirtyChange={controller.handleDirtyChange}
+      onEditingChange={setEditingIntent}
     />
   );
 
@@ -252,6 +272,7 @@ function IntentDetailSlot({
           refreshKey={controller.detailRefreshKey}
           afterHeader={detailSharedProps.afterHeader}
           beforeJsonCards={detailSharedProps.beforeJsonCards}
+          nonDraftHeaderActions={detailSharedProps.headerActions}
         >
           {renderRevisionEditor}
         </IntentDetailWithApproval>

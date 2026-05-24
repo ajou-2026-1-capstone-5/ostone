@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -51,23 +52,34 @@ export function IntentRevisionDraftActions({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="default"
+            className={styles.secondaryActionButton}
             onClick={onRetrySummary}
             disabled={isPending || isSummaryLoading}
           >
+            <RotateCcwIcon aria-hidden="true" />
             다시 시도
           </Button>
         )}
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="default"
+          className={styles.secondaryActionButton}
           onClick={() => setDialog("discard")}
           disabled={isPending}
         >
+          <XIcon aria-hidden="true" />
           취소
         </Button>
-        <Button type="button" size="sm" onClick={() => setDialog("apply")} disabled={!canApply}>
+        <Button
+          type="button"
+          size="default"
+          className={styles.primaryActionButton}
+          onClick={() => setDialog("apply")}
+          disabled={!canApply}
+        >
+          <CheckIcon aria-hidden="true" />
           적용
         </Button>
       </div>
@@ -82,17 +94,25 @@ export function IntentRevisionDraftActions({
           </AlertDialogDescription>
           {summary && <ChangeSummaryPreview summary={summary} />}
           <AlertDialogFooter className={styles.dialogButtons}>
-            <Button type="button" variant="outline" onClick={() => setDialog(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.secondaryActionButton}
+              onClick={() => setDialog(null)}
+            >
+              <XIcon aria-hidden="true" />
               취소
             </Button>
             <Button
               type="button"
+              className={styles.primaryActionButton}
               onClick={() => {
                 setDialog(null);
                 onApply();
               }}
               disabled={!canApply}
             >
+              <CheckIcon aria-hidden="true" />
               적용
             </Button>
           </AlertDialogFooter>
@@ -108,18 +128,26 @@ export function IntentRevisionDraftActions({
             이 초안에 저장된 intent 수정 내용이 폐기되고 현재 운영 버전으로 돌아갑니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.dialogButtons}>
-            <Button type="button" variant="outline" onClick={() => setDialog(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.secondaryActionButton}
+              onClick={() => setDialog(null)}
+            >
+              <RotateCcwIcon aria-hidden="true" />
               계속 보기
             </Button>
             <Button
               type="button"
               variant="destructive"
+              className={styles.dangerActionButton}
               onClick={() => {
                 setDialog(null);
                 onDiscard();
               }}
               disabled={isPending}
             >
+              <XIcon aria-hidden="true" />
               취소
             </Button>
           </AlertDialogFooter>

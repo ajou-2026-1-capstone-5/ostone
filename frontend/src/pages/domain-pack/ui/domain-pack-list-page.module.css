@@ -114,6 +114,16 @@
   transform: translateY(-1px);
 }
 
+.packCardDisabled {
+  cursor: default;
+}
+
+.packCardDisabled:hover {
+  background: var(--paper);
+  border-color: var(--line);
+  transform: none;
+}
+
 .cardTopRow,
 .cardMeta {
   display: flex;

@@ -28,6 +28,7 @@ export function IntentDetailWithApproval({
   refreshKey,
   afterHeader,
   beforeJsonCards,
+  nonDraftHeaderActions,
   children,
 }: {
   wsId: number;
@@ -37,6 +38,7 @@ export function IntentDetailWithApproval({
   refreshKey?: number;
   afterHeader?: (detail: IntentDetail) => ReactNode;
   beforeJsonCards?: (detail: IntentDetail) => ReactNode;
+  nonDraftHeaderActions?: (detail: IntentDetail) => ReactNode;
   children?: (detail: IntentDetail) => ReactNode;
 }) {
   const [approvalState, setApprovalState] = useState(() => createApprovalState(iId));
@@ -90,17 +92,25 @@ export function IntentDetailWithApproval({
       versionId={vId}
       intentId={iId}
       refreshKey={combinedRefreshKey}
+      headerActions={(detail) => {
+        const intentStatus = normalizeIntentStatus(detail.status ?? "DRAFT", currentState.statusOverride);
+        if (intentStatus !== "DRAFT") {
+          return nonDraftHeaderActions?.(detail);
+        }
+        return (
+          <IntentStatusControl
+            intentStatus={intentStatus}
+            onPublish={() => openDialog("publish")}
+            onReject={() => openDialog("reject")}
+            isPending={mutation.isPending}
+          />
+        );
+      }}
       afterHeader={afterHeader}
       beforeJsonCards={beforeJsonCards}
     >
       {(detail) => (
         <>
-          <IntentStatusControl
-            intentStatus={normalizeIntentStatus(detail.status ?? "DRAFT", currentState.statusOverride)}
-            onPublish={() => openDialog("publish")}
-            onReject={() => openDialog("reject")}
-            isPending={mutation.isPending}
-          />
           <ApproveIntentDialog
             intentName={detail.name ?? ""}
             action={currentState.dialogAction ?? "publish"}

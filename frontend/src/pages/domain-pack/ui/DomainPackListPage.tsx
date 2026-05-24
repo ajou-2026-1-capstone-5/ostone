@@ -62,16 +62,10 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
         <div className={styles.packGrid}>
           {packs.map((pack, index) => {
             const operating = isOperatingPack(pack);
-            const packId = pack.packId ?? 0;
             const packName = displayPackName(pack);
             const listKey = pack.packId ?? `${packName}-${index}`;
-
-            return (
-              <Link
-                key={listKey}
-                to={domainPackPath(workspaceId, packId)}
-                className={styles.packCard}
-              >
+            const cardContent = (
+              <>
                 <div className={styles.cardTopRow}>
                   <span className={operating ? styles.statusBadgeOperating : styles.statusBadgeIdle}>
                     {operating ? "운영중" : "비운영"}
@@ -92,8 +86,32 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
                       ? `게시 ${formatDate(pack.currentVersionPublishedAt)}`
                       : `생성 ${formatDate(pack.createdAt)}`}
                   </span>
-                  <ArrowRightIcon className={styles.cardArrow} aria-hidden="true" />
+                  {pack.packId != null ? (
+                    <ArrowRightIcon className={styles.cardArrow} aria-hidden="true" />
+                  ) : null}
                 </div>
+              </>
+            );
+
+            if (pack.packId == null) {
+              return (
+                <article
+                  key={listKey}
+                  className={`${styles.packCard} ${styles.packCardDisabled}`}
+                  aria-disabled="true"
+                >
+                  {cardContent}
+                </article>
+              );
+            }
+
+            return (
+              <Link
+                key={pack.packId}
+                to={domainPackPath(workspaceId, pack.packId)}
+                className={styles.packCard}
+              >
+                {cardContent}
               </Link>
             );
           })}

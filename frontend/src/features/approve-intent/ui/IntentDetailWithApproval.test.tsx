@@ -1,9 +1,32 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { IntentDetailWithApproval } from "./IntentDetailWithApproval";
 
+type MockIntentDetail = {
+  name: string;
+  status: "DRAFT" | "PUBLISHED" | "REJECTED";
+};
+
+interface IntentDetailPanelMockProps {
+  headerActions?: (detail: MockIntentDetail) => ReactNode;
+  children: (detail: MockIntentDetail) => ReactNode;
+}
+
+const intentDetailPanelMocks = vi.hoisted(() => ({
+  status: "DRAFT" as MockIntentDetail["status"],
+}));
+
 vi.mock("../../intent-draft-read/ui", () => ({
-  IntentDetailPanel: ({ children }: any) => children({ name: "test_intent", status: "DRAFT" }),
+  IntentDetailPanel: ({ headerActions, children }: IntentDetailPanelMockProps) => {
+    const detail: MockIntentDetail = { name: "test_intent", status: intentDetailPanelMocks.status };
+    return (
+      <section>
+        <header>{headerActions?.(detail)}</header>
+        {children(detail)}
+      </section>
+    );
+  },
 }));
 
 vi.mock("sonner", () => ({
@@ -15,8 +38,12 @@ vi.mock("sonner", () => ({
 
 const mockMutate = vi.fn();
 
+interface UseApproveIntentMockParams {
+  onStatusChanged?: (status: "PUBLISHED" | "REJECTED") => void;
+}
+
 vi.mock("../api/useApproveIntent", () => ({
-  useApproveIntent: vi.fn(({ onStatusChanged }: any) => ({
+  useApproveIntent: vi.fn(({ onStatusChanged }: UseApproveIntentMockParams) => ({
     mutate: (status: string) => {
       mockMutate(status);
       onStatusChanged?.(status === "PUBLISHED" ? "PUBLISHED" : "REJECTED");
@@ -25,8 +52,24 @@ vi.mock("../api/useApproveIntent", () => ({
   })),
 }));
 
+interface ApproveIntentDialogMockProps {
+  open: boolean;
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+  intentName: string;
+  action: "publish" | "reject";
+  isLoading: boolean;
+}
+
 vi.mock("../ui/ApproveIntentDialog", () => ({
-  ApproveIntentDialog: ({ open, onConfirm, onOpenChange, intentName, action, isLoading }: any) => {
+  ApproveIntentDialog: ({
+    open,
+    onConfirm,
+    onOpenChange,
+    intentName,
+    action,
+    isLoading,
+  }: ApproveIntentDialogMockProps) => {
     if (!open) return null;
     return (
       <div role="dialog">
@@ -41,8 +84,20 @@ vi.mock("../ui/ApproveIntentDialog", () => ({
   },
 }));
 
+interface IntentStatusControlMockProps {
+  intentStatus: "DRAFT" | "PUBLISHED" | "REJECTED";
+  onPublish: () => void;
+  onReject: () => void;
+  isPending: boolean;
+}
+
 vi.mock("../ui/IntentStatusControl", () => ({
-  IntentStatusControl: ({ intentStatus, onPublish, onReject, isPending }: any) => (
+  IntentStatusControl: ({
+    intentStatus,
+    onPublish,
+    onReject,
+    isPending,
+  }: IntentStatusControlMockProps) => (
     <div>
       <button onClick={onPublish} disabled={isPending || intentStatus !== "DRAFT"}>
         {isPending ? "처리 중..." : "승인"}
@@ -57,6 +112,7 @@ vi.mock("../ui/IntentStatusControl", () => ({
 describe("IntentDetailWithApproval", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    intentDetailPanelMocks.status = "DRAFT";
   });
 
   it("DRAFT intent에서 publish 버튼 클릭 → dialog 열림", () => {
@@ -122,5 +178,23 @@ describe("IntentDetailWithApproval", () => {
     rerender(<IntentDetailWithApproval wsId={1} pId={2} vId={3} iId={5} />);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("DRAFT가 아니면 승인 액션 대신 nonDraftHeaderActions를 렌더링한다", () => {
+    intentDetailPanelMocks.status = "PUBLISHED";
+
+    render(
+      <IntentDetailWithApproval
+        wsId={1}
+        pId={2}
+        vId={3}
+        iId={4}
+        nonDraftHeaderActions={() => <button type="button">수정</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
   });
 });

@@ -21,5 +21,5 @@ export { useSaveIntentRevisionDraft } from "./model/useSaveIntentRevisionDraft";
 export { useUpdateDraftIntent } from "./model/useUpdateDraftIntent";
 export { IntentRevisionDiffPanel } from "./ui/IntentRevisionDiffPanel";
 export { IntentRevisionDraftActions } from "./ui/IntentRevisionDraftActions";
-export { IntentRevisionEditForm } from "./ui/IntentRevisionEditForm";
+export { IntentRevisionEditAction, IntentRevisionEditForm } from "./ui/IntentRevisionEditForm";
 export { IntentRevisionRecoveryBanner } from "./ui/IntentRevisionRecoveryBanner";

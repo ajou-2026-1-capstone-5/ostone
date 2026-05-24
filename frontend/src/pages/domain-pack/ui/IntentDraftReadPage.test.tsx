@@ -70,11 +70,13 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
   ),
   IntentDetailPanel: ({
     intentId,
+    headerActions,
     afterHeader,
     beforeJsonCards,
     children,
   }: {
     intentId: number | null;
+    headerActions?: (detail: { id: number; intentCode: string }) => React.ReactNode;
     afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
     beforeJsonCards?: () => React.ReactNode;
     children?: (detail: {
@@ -93,6 +95,7 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
     };
     return (
       <section>
+        <header>{headerActions?.(detail)}</header>
         <div>intent detail {intentId}</div>
         {afterHeader?.(detail)}
         {beforeJsonCards?.()}
@@ -106,6 +109,7 @@ vi.mock("@/features/approve-intent", () => ({
   IntentDetailWithApproval: ({
     afterHeader,
     beforeJsonCards,
+    nonDraftHeaderActions,
     children,
     iId,
   }: {
@@ -116,6 +120,12 @@ vi.mock("@/features/approve-intent", () => ({
       description: string;
     }) => React.ReactNode;
     beforeJsonCards?: (detail: {
+      id: number;
+      intentCode: string;
+      name: string;
+      description: string;
+    }) => React.ReactNode;
+    nonDraftHeaderActions?: (detail: {
       id: number;
       intentCode: string;
       name: string;
@@ -137,6 +147,7 @@ vi.mock("@/features/approve-intent", () => ({
     };
     return (
       <section>
+        <header>{nonDraftHeaderActions?.(detail)}</header>
         <div>approval detail</div>
         {afterHeader?.(detail)}
         {beforeJsonCards?.(detail)}
@@ -171,23 +182,33 @@ vi.mock("@/features/intent-revision-draft", () => ({
     </div>
   ),
   IntentRevisionEditForm: ({
+    isEditing,
     onSave,
     onDirtyChange,
   }: {
+    isEditing?: boolean;
     onSave: (values: { name: string; description: string }) => Promise<boolean>;
     onDirtyChange: (dirty: boolean, intentId: number | null) => void;
-  }) => (
-    <div>
-      <button type="button" onClick={() => onDirtyChange(true, 10)}>
-        mark dirty
-      </button>
-      <button
-        type="button"
-        onClick={() => void onSave({ name: "환불 문의 수정", description: "수정 설명" })}
-      >
-        save revision
-      </button>
-    </div>
+  }) => {
+    if (!isEditing) return null;
+    return (
+      <div>
+        <button type="button" onClick={() => onDirtyChange(true, 10)}>
+          mark dirty
+        </button>
+        <button
+          type="button"
+          onClick={() => void onSave({ name: "환불 문의 수정", description: "수정 설명" })}
+        >
+          save revision
+        </button>
+      </div>
+    );
+  },
+  IntentRevisionEditAction: ({ onEdit }: { onEdit: () => void }) => (
+    <button type="button" onClick={onEdit}>
+      수정
+    </button>
   ),
   classifyExistingDraftSource: () => "INTENT_REVISION",
   intentRevisionDraftApi: {
@@ -302,6 +323,7 @@ describe("IntentDraftReadPage", () => {
     });
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() =>
@@ -338,6 +360,7 @@ describe("IntentDraftReadPage", () => {
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
@@ -362,6 +385,7 @@ describe("IntentDraftReadPage", () => {
     );
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
     await waitFor(() => expect(screen.getByText("진행 중인 초안이 있습니다.")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "이동" }));
@@ -427,6 +451,7 @@ describe("IntentDraftReadPage", () => {
     mocks.updateDraftIntent.mockResolvedValue({ id: 10 });
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "save revision" }));
 
     await waitFor(() =>
@@ -450,6 +475,7 @@ describe("IntentDraftReadPage", () => {
     mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "mark dirty" }));
     fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
 

@@ -147,4 +147,19 @@ describe("DomainPackListPage", () => {
     renderPage();
     expect(screen.getByText("Pack 3")).toBeInTheDocument();
   });
+
+  it("packId가 없으면 상세 링크를 렌더링하지 않는다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { data: [{ packId: null, name: "Missing ID Pack", description: null }] },
+      refetch: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByText("Missing ID Pack")).toBeInTheDocument();
+    expect(screen.getByText("Missing ID Pack").closest("a")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Missing ID Pack/ })).not.toBeInTheDocument();
+  });
 });
