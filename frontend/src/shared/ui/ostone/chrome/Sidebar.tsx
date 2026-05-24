@@ -163,7 +163,7 @@ export function Sidebar({
         style={{
           marginTop: "auto",
           display: "flex",
-          justifyContent: "stretch",
+          alignItems: "stretch",
           paddingLeft: "var(--s-3)",
           paddingRight: "var(--s-3)",
           paddingTop: "var(--s-3)",

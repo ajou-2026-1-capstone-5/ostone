@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "react";
 
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
 import { Mono, Pill } from "@/shared/ui/ostone/atoms";
@@ -46,6 +46,12 @@ export function WorkflowCard({
     }
   };
 
+  const closePreviewOnMouseLeave = (event: MouseEvent<HTMLElement>) => {
+    if (!event.currentTarget.contains(document.activeElement)) {
+      setPreviewOpen(false);
+    }
+  };
+
   return (
     <article
       ref={cardRef}
@@ -54,7 +60,7 @@ export function WorkflowCard({
       data-preview-open={previewOpen ? "true" : "false"}
       style={{ gridRow: `span ${rowSpan}` }}
       onMouseEnter={() => setPreviewOpen(true)}
-      onMouseLeave={() => setPreviewOpen(false)}
+      onMouseLeave={closePreviewOnMouseLeave}
       onFocusCapture={() => setPreviewOpen(true)}
       onBlurCapture={closePreviewOnBlur}
     >

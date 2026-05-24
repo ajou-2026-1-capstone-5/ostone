@@ -69,6 +69,20 @@ describe("WorkflowCard", () => {
     expect(screen.getByTestId("workflow-list-card-42-detail")).toBeInTheDocument();
   });
 
+  it("keyboard focus가 카드 안에 남아 있으면 mouseLeave로 preview를 닫지 않는다", () => {
+    setup();
+    const card = screen.getByTestId("workflow-list-card-42");
+    const button = screen.getByTestId("workflow-list-card-42-open");
+
+    fireEvent.focus(button);
+    expect(screen.getByTestId("workflow-list-card-42-graph")).toBeInTheDocument();
+
+    button.focus();
+    fireEvent.mouseLeave(card);
+
+    expect(screen.getByTestId("workflow-list-card-42-graph")).toBeInTheDocument();
+  });
+
   it("카드 버튼 클릭 시 onOpen이 호출된다", () => {
     const onOpen = vi.fn();
     setup({ onOpen });
