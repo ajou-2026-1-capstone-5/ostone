@@ -365,7 +365,7 @@ def _default_dummy_policy() -> dict[str, Any]:
 
 def _process_cluster_entry(
     cluster: dict[str, Any],
-) -> tuple[dict[str, Any], dict[str, Any], int, int, int, bool, dict[str, Any]] | None:
+) -> tuple[dict[str, Any], int, int, int, bool, dict[str, Any]] | None:
     if not isinstance(cluster, dict):
         return None
     cluster_id = cluster.get("cluster_id")

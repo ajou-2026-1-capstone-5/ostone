@@ -265,18 +265,32 @@ alter table pack.workflow_definition
 
 --changeset init:20250525-backfill-workflow-intent-fk
 --comment: Backfill intent_definition_id from intent_workflow_binding (1:N migration step 2)
+with ranked as (
+    select intent_definition_id,
+           is_primary,
+           route_condition_json,
+           workflow_definition_id,
+           row_number() over (partition by workflow_definition_id order by is_primary desc, id asc) as rn
+    from pack.intent_workflow_binding
+)
 update pack.workflow_definition w
-set    intent_definition_id  = b.intent_definition_id,
-       is_primary             = b.is_primary,
-       route_condition_json   = b.route_condition_json
-from   pack.intent_workflow_binding b
-where  b.workflow_definition_id = w.id;
+set    intent_definition_id  = r.intent_definition_id,
+       is_primary             = r.is_primary,
+       route_condition_json   = r.route_condition_json
+from   ranked r
+where  r.workflow_definition_id = w.id
+  and  r.rn = 1;
 
 --changeset init:20250525-enforce-workflow-intent-fk-and-drop-binding
 --comment: Make intent_definition_id NOT NULL and drop binding table (1:N migration step 3)
 alter table pack.workflow_definition
     alter column intent_definition_id set not null;
 drop table pack.intent_workflow_binding;
+
+--changeset init:20250525-add-workflow-definition-intent-version-index
+--comment: Add composite index on (intent_definition_id, domain_pack_version_id) for LlmToolService resolveWorkflow
+create index idx_workflow_definition_intent_version
+    on pack.workflow_definition (intent_definition_id, domain_pack_version_id);
 
 --changeset init:20250403-create-review-schema
 --comment: Create review schema for review workflow

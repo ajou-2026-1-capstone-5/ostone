@@ -92,7 +92,6 @@
 - `pack.policy_definition`
 - `pack.risk_definition`
 - `pack.workflow_definition`
-- `pack.intent_workflow_binding`
 
 ### 5.4 review
 - `review.review_session`
@@ -198,10 +197,7 @@
 - `graph_json`을 source of truth로 사용
 - initial state / terminal states 저장
 - 현재 구현에서 `terminal_states_json`은 TERMINAL node의 `state` 값이 아니라 TERMINAL node `id` 배열을 저장한다.
-
-### `pack.intent_workflow_binding`
-- 특정 intent가 어떤 workflow로 연결되는지 정의
-- route condition으로 분기 조건도 표현 가능
+- `intent_definition_id` FK로 intent와 1:N 관계 직접 보유 (`pack.intent_workflow_binding` 테이블 제거됨, 2025-05-25)
 
 ---
 

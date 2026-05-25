@@ -89,10 +89,10 @@ def test_dev_bootstrap_draft_to_publish_smoke(
 
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-bootstrap_dsds-bootstrap"
     assert len(candidate["workflowDraft"]["workflows"]) >= 1
-    # 1:N 관계 이후: workflow마다 intentCode가 직접 포함. workflow 수 == intent 수
-    assert len(candidate["workflowDraft"]["workflows"]) == len(candidate["intentDraft"]["intents"])
+    intent_codes = {intent["intentCode"] for intent in candidate["intentDraft"]["intents"]}
     for wf in candidate["workflowDraft"]["workflows"]:
-        assert "intentCode" in wf, "workflow must have intentCode"
+        assert wf.get("intentCode"), "workflow must have non-empty intentCode"
+        assert wf["intentCode"] in intent_codes, "workflow intentCode must reference existing intent"
     evidence_items = json.loads(candidate["workflowDraft"]["workflows"][0]["evidenceJson"])
     assert isinstance(evidence_items, list)
     assert len(evidence_items) > 0
