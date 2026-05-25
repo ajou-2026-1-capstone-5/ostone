@@ -137,8 +137,16 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
   }, []);
 
   useEffect(() => {
-    connect();
-    return disconnect;
+    let isMounted = true;
+    Promise.resolve().then(() => {
+      if (isMounted) {
+        connect();
+      }
+    });
+    return () => {
+      isMounted = false;
+      disconnect();
+    };
   }, [connect, disconnect]);
 
   return { connectionStatus, sendMessage, lastMessage, connect, disconnect, subscribe, sendTo };
