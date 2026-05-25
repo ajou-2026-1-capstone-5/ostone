@@ -88,7 +88,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftPort.execute(any()))
-        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1));
+        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1));
 
     ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand());
 
@@ -115,7 +115,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftPort.execute(any()))
-        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1));
+        .willReturn(new AddWorkflowDraftPortResult(1, 1, 1, 1, 1));
 
     ReceiveWorkflowDraftCallbackResult result = useCase.execute(validCommand(false));
 
@@ -145,8 +145,8 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         .willAnswer(invocation -> invocation.getArgument(0));
     given(addWorkflowDraftPort.execute(any()))
         .willReturn(
-            new AddWorkflowDraftPortResult(1, 1, 1, 1, 1, 1),
-            new AddWorkflowDraftPortResult(2, 1, 1, 2, 1, 1));
+            new AddWorkflowDraftPortResult(1, 1, 1, 1, 1),
+            new AddWorkflowDraftPortResult(2, 1, 1, 2, 1));
 
     ReceiveWorkflowDraftCallbackResult partialResult = useCase.execute(validCommand(false));
 
@@ -268,8 +268,9 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
         List.of(),
         List.of(),
         List.of(),
-        List.of(new WorkflowDraft("refund_flow", "환불 플로우", null, "{}", null, null)),
-        List.of(),
+        List.of(
+            new WorkflowDraft(
+                "refund_flow", "환불 플로우", null, "{}", null, null, "refund_request", true, null)),
         List.of(),
         finalCallback,
         "{\"content-type\":\"application/json\"}",

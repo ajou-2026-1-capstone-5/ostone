@@ -22,6 +22,9 @@ public interface WorkflowDefinitionRepository {
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionIdForUpdate(
       Long id, Long domainPackVersionId);
 
+  List<WorkflowDefinition> findAllByIntentDefinitionIdAndDomainPackVersionId(
+      Long intentDefinitionId, Long domainPackVersionId);
+
   boolean existsByDomainPackVersionIdAndPolicyRef(Long versionId, String policyCode);
 
   long countByDomainPackVersionId(Long domainPackVersionId);

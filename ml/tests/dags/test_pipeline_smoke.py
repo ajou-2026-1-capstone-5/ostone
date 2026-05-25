@@ -89,7 +89,10 @@ def test_dev_bootstrap_draft_to_publish_smoke(
 
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws-bootstrap_dsds-bootstrap"
     assert len(candidate["workflowDraft"]["workflows"]) >= 1
-    assert len(candidate["workflowDraft"]["intentWorkflowBindings"]) == len(candidate["intentDraft"]["intents"])
+    intent_codes = {intent["intentCode"] for intent in candidate["intentDraft"]["intents"]}
+    for wf in candidate["workflowDraft"]["workflows"]:
+        assert wf.get("intentCode"), "workflow must have non-empty intentCode"
+        assert wf["intentCode"] in intent_codes, "workflow intentCode must reference existing intent"
     evidence_items = json.loads(candidate["workflowDraft"]["workflows"][0]["evidenceJson"])
     assert isinstance(evidence_items, list)
     assert len(evidence_items) > 0

@@ -29,7 +29,6 @@ import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -87,7 +86,6 @@ class CreateDomainPackDraftUseCaseTest {
   @Mock private RiskDefinitionRepository riskDefinitionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DomainPackVersionCloneService domainPackVersionCloneService;
@@ -106,7 +104,6 @@ class CreateDomainPackDraftUseCaseTest {
             riskDefinitionRepository,
             workflowDefinitionRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository,
             domainPackVersionCloneService);
     useCase =
         new CreateDomainPackDraftUseCase(
@@ -139,8 +136,6 @@ class CreateDomainPackDraftUseCaseTest {
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0), List.of(3001L)));
     given(intentSlotBindingRepository.saveAll(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(intentWorkflowBindingRepository.saveAll(any()))
-        .willAnswer(invocation -> invocation.getArgument(0));
 
     CreateDomainPackDraftResult result = useCase.execute(validCommand());
 
@@ -152,7 +147,6 @@ class CreateDomainPackDraftUseCaseTest {
     assertThat(result.slotCount()).isEqualTo(1);
     assertThat(result.workflowCount()).isEqualTo(1);
     verify(intentSlotBindingRepository).saveAll(any());
-    verify(intentWorkflowBindingRepository).saveAll(any());
   }
 
   @Test
@@ -213,7 +207,6 @@ class CreateDomainPackDraftUseCaseTest {
             List.of(
                 new CreateDomainPackDraftCommand.IntentSlotBindingDraft(
                     "refund_request", "missing_slot", true, 1, null, null)),
-            List.of(),
             List.of(),
             List.of(),
             List.of());
@@ -473,8 +466,17 @@ class CreateDomainPackDraftUseCaseTest {
             List.of(),
             List.of(
                 new CreateDomainPackDraftCommand.WorkflowDraft(
-                    "refund_flow", "환불 플로우", null, policyRefNotFoundGraph, null, null, null, null)),
-            List.of());
+                    "refund_flow",
+                    "환불 플로우",
+                    null,
+                    policyRefNotFoundGraph,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "refund_request",
+                    true,
+                    null)));
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class)
         .hasMessageContaining("missing_policy");
@@ -563,7 +565,7 @@ class CreateDomainPackDraftUseCaseTest {
                 new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .willReturn(createSavedVersion(101L, 7L, 3));
     given(intentDefinitionRepository.saveAllAndFlush(any()))
-        .willAnswer(invocation -> invocation.getArgument(0));
+        .willAnswer(invocation -> assignIntentIds(invocation.getArgument(0), List.of(1001L)));
     given(slotDefinitionRepository.saveAll(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
     given(policyDefinitionRepository.saveAll(any()))
@@ -574,8 +576,6 @@ class CreateDomainPackDraftUseCaseTest {
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0), List.of(3001L)));
     given(intentSlotBindingRepository.saveAll(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
-    given(intentWorkflowBindingRepository.saveAll(any()))
-        .willAnswer(invocation -> invocation.getArgument(0));
   }
 
   private CreateDomainPackDraftCommand commandWithGraphJson(String graphJson) {
@@ -585,7 +585,7 @@ class CreateDomainPackDraftUseCaseTest {
         10L,
         null,
         "{}",
-        List.of(),
+        List.of(new IntentDraft("refund_request", "환불 요청", null, 1, null, null, null, null, null)),
         List.of(),
         List.of(),
         List.of(
@@ -594,8 +594,17 @@ class CreateDomainPackDraftUseCaseTest {
         List.of(),
         List.of(
             new CreateDomainPackDraftCommand.WorkflowDraft(
-                "refund_flow", "환불 플로우", null, graphJson, null, null, null, null)),
-        List.of());
+                "refund_flow",
+                "환불 플로우",
+                null,
+                graphJson,
+                null,
+                null,
+                null,
+                null,
+                "refund_request",
+                true,
+                null)));
   }
 
   private CreateDomainPackDraftCommand validCommand() {
@@ -629,10 +638,17 @@ class CreateDomainPackDraftUseCaseTest {
         List.of(),
         List.of(
             new CreateDomainPackDraftCommand.WorkflowDraft(
-                "refund_flow", "환불 플로우", null, VALID_GRAPH_JSON, null, null, null, null)),
-        List.of(
-            new CreateDomainPackDraftCommand.IntentWorkflowBindingDraft(
-                "refund_request", "refund_flow", true, null)));
+                "refund_flow",
+                "환불 플로우",
+                null,
+                VALID_GRAPH_JSON,
+                null,
+                null,
+                null,
+                null,
+                "refund_request",
+                true,
+                null)));
   }
 
   private DomainPackVersion createSavedVersion(Long id, Long packId, Integer versionNo) {

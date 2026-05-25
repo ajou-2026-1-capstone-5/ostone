@@ -9,8 +9,7 @@ public record AddWorkflowDraftPortCommand(
     List<PolicyDraft> policies,
     List<RiskDraft> risks,
     List<WorkflowDraft> workflows,
-    List<IntentSlotBindingDraft> intentSlotBindings,
-    List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
+    List<IntentSlotBindingDraft> intentSlotBindings) {
 
   public AddWorkflowDraftPortCommand {
     Objects.requireNonNull(domainPackVersionId, "domainPackVersionId");
@@ -19,7 +18,6 @@ public record AddWorkflowDraftPortCommand(
     risks = risks != null ? risks : List.of();
     workflows = workflows != null ? workflows : List.of();
     intentSlotBindings = intentSlotBindings != null ? intentSlotBindings : List.of();
-    intentWorkflowBindings = intentWorkflowBindings != null ? intentWorkflowBindings : List.of();
   }
 
   public record SlotDraft(
@@ -58,7 +56,10 @@ public record AddWorkflowDraftPortCommand(
       String description,
       String graphJson,
       String evidenceJson,
-      String metaJson) {}
+      String metaJson,
+      String intentCode,
+      Boolean isPrimary,
+      String routeConditionJson) {}
 
   public record IntentSlotBindingDraft(
       String intentCode,
@@ -67,7 +68,4 @@ public record AddWorkflowDraftPortCommand(
       Integer collectionOrder,
       String promptHint,
       String conditionJson) {}
-
-  public record IntentWorkflowBindingDraft(
-      String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
 }

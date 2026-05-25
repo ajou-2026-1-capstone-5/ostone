@@ -12,7 +12,6 @@ import com.init.domainpack.application.exception.DomainPackVersionConflictExcept
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.model.SlotDefinition;
@@ -21,7 +20,6 @@ import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -48,7 +46,6 @@ public class DomainPackVersionCloneService {
   private final RiskDefinitionRepository riskRepository;
   private final WorkflowDefinitionRepository workflowRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
-  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final ObjectMapper objectMapper;
 
   public DomainPackVersionCloneService(
@@ -60,7 +57,6 @@ public class DomainPackVersionCloneService {
       RiskDefinitionRepository riskRepository,
       WorkflowDefinitionRepository workflowRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       ObjectMapper objectMapper) {
     this.domainPackRepository = domainPackRepository;
     this.versionRepository = versionRepository;
@@ -70,7 +66,6 @@ public class DomainPackVersionCloneService {
     this.riskRepository = riskRepository;
     this.workflowRepository = workflowRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
-    this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.objectMapper = objectMapper;
   }
 
@@ -189,20 +184,17 @@ public class DomainPackVersionCloneService {
             .map(risk -> RiskDefinition.copyToVersion(risk, targetVersionId))
             .toList());
 
-    List<WorkflowDefinition> copiedWorkflows =
-        workflowRepository.saveAllAndFlush(
-            sourceWorkflows.stream()
-                .map(workflow -> WorkflowDefinition.copyToVersion(workflow, targetVersionId))
-                .toList());
-    Map<Long, Long> workflowIdMap =
-        mapIdsByCode(
-            sourceWorkflows,
-            copiedWorkflows,
-            WorkflowDefinition::getWorkflowCode,
-            WorkflowDefinition::getId,
-            "workflowCode");
+    workflowRepository.saveAllAndFlush(
+        sourceWorkflows.stream()
+            .map(
+                workflow ->
+                    WorkflowDefinition.copyToVersion(
+                        workflow,
+                        targetVersionId,
+                        requireMapped(intentIdMap, workflow.getIntentDefinitionId(), "intent")))
+            .toList());
 
-    cloneBindings(sourceIntents, intentIdMap, slotIdMap, workflowIdMap);
+    cloneIntentSlotBindings(sourceIntents, intentIdMap, slotIdMap);
   }
 
   private void remapParentIntents(
@@ -226,11 +218,10 @@ public class DomainPackVersionCloneService {
     }
   }
 
-  private void cloneBindings(
+  private void cloneIntentSlotBindings(
       List<IntentDefinition> sourceIntents,
       Map<Long, Long> intentIdMap,
-      Map<Long, Long> slotIdMap,
-      Map<Long, Long> workflowIdMap) {
+      Map<Long, Long> slotIdMap) {
     List<Long> sourceIntentIds = sourceIntents.stream().map(IntentDefinition::getId).toList();
     if (sourceIntentIds.isEmpty()) {
       return;
@@ -246,16 +237,6 @@ public class DomainPackVersionCloneService {
                         binding.getCollectionOrder(),
                         binding.getPromptHint(),
                         binding.getConditionJson()))
-            .toList());
-    intentWorkflowBindingRepository.saveAllAndFlush(
-        intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(sourceIntentIds).stream()
-            .map(
-                binding ->
-                    IntentWorkflowBinding.create(
-                        requireMapped(intentIdMap, binding.getIntentDefinitionId(), "intent"),
-                        requireMapped(workflowIdMap, binding.getWorkflowDefinitionId(), "workflow"),
-                        binding.getIsPrimary(),
-                        binding.getRouteConditionJson()))
             .toList());
   }
 

@@ -108,17 +108,11 @@ export const pipelineWorkflowDraftCallbackRequestIntentSlotBindingsItemCondition
 export const pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMin = 0;
 export const pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMax = 1000;
 
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMin = 0;
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMax = 100;
+export const pipelineWorkflowDraftCallbackRequestWorkflowsItemIntentCodeMin = 0;
+export const pipelineWorkflowDraftCallbackRequestWorkflowsItemIntentCodeMax = 100;
 
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMin = 0;
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMax = 100;
-
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMin = 0;
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMax = 5000;
-
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMin = 0;
-export const pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMax = 1000;
+export const pipelineWorkflowDraftCallbackRequestWorkflowsItemRouteConditionJsonMin = 0;
+export const pipelineWorkflowDraftCallbackRequestWorkflowsItemRouteConditionJsonMax = 5000;
 
 export const PipelineWorkflowDraftCallbackRequest = zod.object({
   externalEventId: zod
@@ -286,6 +280,17 @@ export const PipelineWorkflowDraftCallbackRequest = zod.object({
           .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMin)
           .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemMetaJsonMax)
           .optional(),
+        intentCode: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemIntentCodeMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemIntentCodeMax)
+          .optional(),
+        isPrimary: zod.boolean().optional(),
+        routeConditionJson: zod
+          .string()
+          .min(pipelineWorkflowDraftCallbackRequestWorkflowsItemRouteConditionJsonMin)
+          .max(pipelineWorkflowDraftCallbackRequestWorkflowsItemRouteConditionJsonMax)
+          .optional(),
       }),
     )
     .min(pipelineWorkflowDraftCallbackRequestWorkflowsMin)
@@ -316,30 +321,6 @@ export const PipelineWorkflowDraftCallbackRequest = zod.object({
     )
     .min(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMin)
     .max(pipelineWorkflowDraftCallbackRequestIntentSlotBindingsMax)
-    .optional(),
-  intentWorkflowBindings: zod
-    .array(
-      zod.object({
-        intentCode: zod
-          .string()
-          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMin)
-          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemIntentCodeMax)
-          .optional(),
-        workflowCode: zod
-          .string()
-          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMin)
-          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemWorkflowCodeMax)
-          .optional(),
-        isPrimary: zod.boolean().optional(),
-        routeConditionJson: zod
-          .string()
-          .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMin)
-          .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsItemRouteConditionJsonMax)
-          .optional(),
-      }),
-    )
-    .min(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMin)
-    .max(pipelineWorkflowDraftCallbackRequestIntentWorkflowBindingsMax)
     .optional(),
 });
 

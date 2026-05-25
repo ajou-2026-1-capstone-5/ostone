@@ -470,7 +470,18 @@ class UpdateWorkflowUseCaseTest {
             + "\"edges\":[{\"from\":\"start\",\"to\":\"end\",\"label\":null}]}";
     WorkflowDefinition wf =
         WorkflowDefinition.create(
-            versionId, "wf_refund", "환불 플로우", null, graph, "start", "[\"end\"]", "[]", "{}");
+            versionId,
+            "wf_refund",
+            "환불 플로우",
+            null,
+            graph,
+            "start",
+            "[\"end\"]",
+            "[]",
+            "{}",
+            1L,
+            true,
+            "{}");
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }

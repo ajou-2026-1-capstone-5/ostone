@@ -252,6 +252,9 @@ class WorkflowRuntimeServiceTest {
             "start",
             "[\"done\"]",
             "[]",
+            "{}",
+            1L,
+            true,
             "{}");
     ReflectionTestUtils.setField(workflow, "id", id);
     return workflow;

@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS pack.workflow_definition (
     terminal_states_json JSONB NOT NULL,
     evidence_json JSONB NOT NULL,
     meta_json JSONB NOT NULL,
+    intent_definition_id BIGINT NOT NULL,
+    is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+    route_condition_json JSONB NOT NULL DEFAULT '{}'::JSONB,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
 );

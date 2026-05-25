@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import com.init.workflowruntime.domain.ChatMessageRepository;
@@ -82,11 +81,6 @@ class DemoRefundSeedRunnerIntegrationTest {
     @Bean
     IntentSlotBindingRepository intentSlotBindingRepository() {
       return mock(IntentSlotBindingRepository.class);
-    }
-
-    @Bean
-    IntentWorkflowBindingRepository intentWorkflowBindingRepository() {
-      return mock(IntentWorkflowBindingRepository.class);
     }
 
     @Bean

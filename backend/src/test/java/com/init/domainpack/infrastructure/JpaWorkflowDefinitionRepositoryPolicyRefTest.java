@@ -96,6 +96,17 @@ class JpaWorkflowDefinitionRepositoryPolicyRefTest {
 
   private WorkflowDefinition workflow(Long versionId, String code, String graphJson) {
     return WorkflowDefinition.create(
-        versionId, code, code + "_name", null, graphJson, "start", "[\"done\"]", "[]", "{}");
+        versionId,
+        code,
+        code + "_name",
+        null,
+        graphJson,
+        "start",
+        "[\"done\"]",
+        "[]",
+        "{}",
+        1L,
+        true,
+        "{}");
   }
 }

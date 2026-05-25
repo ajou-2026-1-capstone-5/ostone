@@ -52,7 +52,7 @@ class PipelineWorkflowDraftCallbackControllerTest {
     given(workflowUseCase.execute(any()))
         .willReturn(
             ReceiveWorkflowDraftCallbackResult.created(
-                "evt-workflow-1", 7L, 101L, 1, 1, 1, 1, 1, 1, 11L));
+                "evt-workflow-1", 7L, 101L, 1, 1, 1, 1, 1, 11L));
 
     mockMvc
         .perform(
@@ -65,8 +65,7 @@ class PipelineWorkflowDraftCallbackControllerTest {
         .andExpect(jsonPath("$.status").value("CREATED"))
         .andExpect(jsonPath("$.domainPackId").value(7))
         .andExpect(jsonPath("$.domainPackVersionId").value(101))
-        .andExpect(jsonPath("$.addedWorkflowCount").value(1))
-        .andExpect(jsonPath("$.addedIntentWorkflowBindingCount").value(1));
+        .andExpect(jsonPath("$.addedWorkflowCount").value(1));
   }
 
   @Test
@@ -206,7 +205,8 @@ class PipelineWorkflowDraftCallbackControllerTest {
             {
               "workflowCode": "refund_flow",
               "name": "환불 플로우",
-              "graphJson": "{\\"nodes\\":[{\\"id\\":\\"start\\",\\"type\\":\\"START\\"},{\\"id\\":\\"answer_refund\\",\\"type\\":\\"ACTION\\",\\"policyRef\\":\\"refund_policy_default\\"},{\\"id\\":\\"terminal\\",\\"type\\":\\"TERMINAL\\"}],\\"edges\\":[{\\"id\\":\\"e1\\",\\"from\\":\\"start\\",\\"to\\":\\"answer_refund\\"},{\\"id\\":\\"e2\\",\\"from\\":\\"answer_refund\\",\\"to\\":\\"terminal\\"}]}"
+              "graphJson": "{\\"nodes\\":[{\\"id\\":\\"start\\",\\"type\\":\\"START\\"},{\\"id\\":\\"answer_refund\\",\\"type\\":\\"ACTION\\",\\"policyRef\\":\\"refund_policy_default\\"},{\\"id\\":\\"terminal\\",\\"type\\":\\"TERMINAL\\"}],\\"edges\\":[{\\"id\\":\\"e1\\",\\"from\\":\\"start\\",\\"to\\":\\"answer_refund\\"},{\\"id\\":\\"e2\\",\\"from\\":\\"answer_refund\\",\\"to\\":\\"terminal\\"}]}",
+              "intentCode": "refund_request"
             }
           ],
           "intentSlotBindings": [
@@ -214,13 +214,6 @@ class PipelineWorkflowDraftCallbackControllerTest {
               "intentCode": "refund_request",
               "slotCode": "order_id",
               "isRequired": true
-            }
-          ],
-          "intentWorkflowBindings": [
-            {
-              "intentCode": "refund_request",
-              "workflowCode": "refund_flow",
-              "isPrimary": true
             }
           ]
         }

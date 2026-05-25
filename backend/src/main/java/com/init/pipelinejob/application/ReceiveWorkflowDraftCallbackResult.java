@@ -10,7 +10,6 @@ public record ReceiveWorkflowDraftCallbackResult(
     Integer addedRiskCount,
     Integer addedWorkflowCount,
     Integer addedIntentSlotBindingCount,
-    Integer addedIntentWorkflowBindingCount,
     Long sourcePipelineJobId) {
 
   public static ReceiveWorkflowDraftCallbackResult created(
@@ -22,7 +21,6 @@ public record ReceiveWorkflowDraftCallbackResult(
       int addedRiskCount,
       int addedWorkflowCount,
       int addedIntentSlotBindingCount,
-      int addedIntentWorkflowBindingCount,
       Long sourcePipelineJobId) {
     return new ReceiveWorkflowDraftCallbackResult(
         "CREATED",
@@ -34,12 +32,11 @@ public record ReceiveWorkflowDraftCallbackResult(
         addedRiskCount,
         addedWorkflowCount,
         addedIntentSlotBindingCount,
-        addedIntentWorkflowBindingCount,
         sourcePipelineJobId);
   }
 
   public static ReceiveWorkflowDraftCallbackResult duplicateIgnored(String externalEventId) {
     return new ReceiveWorkflowDraftCallbackResult(
-        "DUPLICATE_IGNORED", externalEventId, null, null, null, null, null, null, null, null, null);
+        "DUPLICATE_IGNORED", externalEventId, null, null, null, null, null, null, null, null);
   }
 }

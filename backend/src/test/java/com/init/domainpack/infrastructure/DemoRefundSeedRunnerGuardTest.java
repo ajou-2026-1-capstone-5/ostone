@@ -11,7 +11,6 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -40,7 +39,6 @@ class DemoRefundSeedRunnerGuardTest {
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private EntityManager entityManager;
@@ -55,7 +53,6 @@ class DemoRefundSeedRunnerGuardTest {
             workflowDefinitionRepository,
             intentDefinitionRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository,
             chatSessionRepository,
             chatMessageRepository,
             entityManager);
@@ -73,7 +70,6 @@ class DemoRefundSeedRunnerGuardTest {
     verify(intentDefinitionRepository, never()).save(any(IntentDefinition.class));
     verify(workflowDefinitionRepository, never()).save(any(WorkflowDefinition.class));
     verify(intentSlotBindingRepository, never()).saveAll(any());
-    verify(intentWorkflowBindingRepository, never()).saveAll(any());
     verify(chatSessionRepository, never()).save(any(ChatSession.class));
     verify(chatMessageRepository, never()).save(any(ChatMessage.class));
   }
@@ -119,7 +115,6 @@ class DemoRefundSeedRunnerGuardTest {
     verify(intentDefinitionRepository).save(any(IntentDefinition.class));
     verify(workflowDefinitionRepository).save(any(WorkflowDefinition.class));
     verify(intentSlotBindingRepository).saveAll(any());
-    verify(intentWorkflowBindingRepository).saveAll(any());
     verify(chatSessionRepository).save(any(ChatSession.class));
     verify(chatMessageRepository, times(5)).save(any(ChatMessage.class));
   }

@@ -9,12 +9,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -64,7 +62,6 @@ public class LlmToolService {
   private final IntentDefinitionRepository intentDefinitionRepository;
   private final SlotDefinitionRepository slotDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
-  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   private final DecisionLogRepository decisionLogRepository;
@@ -77,7 +74,6 @@ public class LlmToolService {
       IntentDefinitionRepository intentDefinitionRepository,
       SlotDefinitionRepository slotDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
       DecisionLogRepository decisionLogRepository,
@@ -88,7 +84,6 @@ public class LlmToolService {
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.slotDefinitionRepository = slotDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
-    this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
     this.decisionLogRepository = decisionLogRepository;
@@ -542,36 +537,24 @@ public class LlmToolService {
   }
 
   private WorkflowDefinition resolveWorkflow(Long domainPackVersionId, IntentDefinition intent) {
-    List<IntentWorkflowBinding> bindings =
-        intentWorkflowBindingRepository
-            .findAllByIntentDefinitionIdIn(List.of(intent.getId()))
+    List<WorkflowDefinition> workflows =
+        workflowDefinitionRepository
+            .findAllByIntentDefinitionIdAndDomainPackVersionId(intent.getId(), domainPackVersionId)
             .stream()
             .sorted(
                 Comparator.comparing(
-                        IntentWorkflowBinding::getIsPrimary,
+                        WorkflowDefinition::getIsPrimary,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                     .thenComparing(
-                        IntentWorkflowBinding::getId,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
+                        WorkflowDefinition::getId, Comparator.nullsLast(Comparator.naturalOrder())))
             .toList();
-    if (bindings.isEmpty()) {
+
+    if (workflows.isEmpty()) {
       throw new NotFoundException(
-          "INTENT_WORKFLOW_BINDING_NOT_FOUND",
-          "Intent workflow binding not found: " + intent.getIntentCode());
+          "WORKFLOW_DEFINITION_NOT_FOUND",
+          "WorkflowDefinition not found for intent: " + intent.getIntentCode());
     }
-
-    for (IntentWorkflowBinding binding : bindings) {
-      var workflow =
-          workflowDefinitionRepository.findByIdAndDomainPackVersionId(
-              binding.getWorkflowDefinitionId(), domainPackVersionId);
-      if (workflow.isPresent()) {
-        return workflow.get();
-      }
-    }
-
-    throw new NotFoundException(
-        "WORKFLOW_DEFINITION_NOT_FOUND",
-        "WorkflowDefinition not found for intent: " + intent.getIntentCode());
+    return workflows.get(0);
   }
 
   private String resolveInitialState(WorkflowDefinition workflow) {

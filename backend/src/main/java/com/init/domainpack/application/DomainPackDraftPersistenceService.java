@@ -7,7 +7,6 @@ import com.init.domainpack.application.exception.WorkflowActionNodePolicyRefNotF
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.model.SlotDefinition;
@@ -15,7 +14,6 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -42,7 +40,6 @@ public class DomainPackDraftPersistenceService {
   private final RiskDefinitionRepository riskDefinitionRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
-  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final DomainPackVersionCloneService domainPackVersionCloneService;
 
   public DomainPackDraftPersistenceService(
@@ -53,7 +50,6 @@ public class DomainPackDraftPersistenceService {
       RiskDefinitionRepository riskDefinitionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       DomainPackVersionCloneService domainPackVersionCloneService) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
@@ -62,7 +58,6 @@ public class DomainPackDraftPersistenceService {
     this.riskDefinitionRepository = riskDefinitionRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
-    this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.domainPackVersionCloneService = domainPackVersionCloneService;
   }
 
@@ -156,8 +151,7 @@ public class DomainPackDraftPersistenceService {
             toPolicyInputs(command.policies()),
             toRiskInputs(command.risks()),
             toWorkflowInputs(command.workflows()),
-            toIntentSlotBindingInputs(command.intentSlotBindings()),
-            toIntentWorkflowBindingInputs(command.intentWorkflowBindings()));
+            toIntentSlotBindingInputs(command.intentSlotBindings()));
     List<WorkflowInput> validatedWorkflows =
         validateDraftPayload(
             new DraftPayload(
@@ -166,8 +160,7 @@ public class DomainPackDraftPersistenceService {
                 components.intentSlotBindings(),
                 components.policies(),
                 components.risks(),
-                components.workflows(),
-                components.intentWorkflowBindings()),
+                components.workflows()),
             Set.of());
 
     DomainPackVersion savedVersion =
@@ -228,8 +221,7 @@ public class DomainPackDraftPersistenceService {
                 components.policies(),
                 components.risks(),
                 validatedWorkflows,
-                components.intentSlotBindings(),
-                components.intentWorkflowBindings()));
+                components.intentSlotBindings()));
 
     return CreateDomainPackDraftResult.from(
         savedVersion,
@@ -248,8 +240,7 @@ public class DomainPackDraftPersistenceService {
       List<AddWorkflowDraftToVersionCommand.PolicyDraft> policies,
       List<AddWorkflowDraftToVersionCommand.RiskDraft> risks,
       List<AddWorkflowDraftToVersionCommand.WorkflowDraft> workflows,
-      List<AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft> intentSlotBindings,
-      List<AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft> intentWorkflowBindings) {
+      List<AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft> intentSlotBindings) {
     DomainPackVersion version = requireDraftVersion(domainPackVersionId);
     DraftComponentsInput components =
         new DraftComponentsInput(
@@ -257,8 +248,7 @@ public class DomainPackDraftPersistenceService {
             toPolicyInputsFromWorkflowCallback(policies),
             toRiskInputsFromWorkflowCallback(risks),
             toWorkflowInputsFromWorkflowCallback(workflows),
-            toIntentSlotBindingInputsFromWorkflowCallback(intentSlotBindings),
-            toIntentWorkflowBindingInputsFromWorkflowCallback(intentWorkflowBindings));
+            toIntentSlotBindingInputsFromWorkflowCallback(intentSlotBindings));
     validateNonEmptyWorkflowDraft(components);
 
     ensureDraftPayloadUnique(
@@ -267,8 +257,7 @@ public class DomainPackDraftPersistenceService {
         components.intentSlotBindings(),
         components.policies(),
         components.risks(),
-        components.workflows(),
-        components.intentWorkflowBindings());
+        components.workflows());
     List<ParsedWorkflowInput> parsedWorkflows = parseWorkflowInputs(components.workflows());
     Set<String> submittedPolicyCodes =
         components.policies().stream().map(PolicyInput::policyCode).collect(Collectors.toSet());
@@ -293,8 +282,7 @@ public class DomainPackDraftPersistenceService {
                 components.policies(),
                 components.risks(),
                 validatedWorkflows,
-                components.intentSlotBindings(),
-                components.intentWorkflowBindings()));
+                components.intentSlotBindings()));
 
     return new AddWorkflowDraftToVersionResult(
         domainPackVersionId,
@@ -303,8 +291,7 @@ public class DomainPackDraftPersistenceService {
         savedComponents.addedPolicyCount(),
         savedComponents.addedRiskCount(),
         savedComponents.addedWorkflowCount(),
-        savedComponents.addedIntentSlotBindingCount(),
-        savedComponents.addedIntentWorkflowBindingCount());
+        savedComponents.addedIntentSlotBindingCount());
   }
 
   private SavedDraftComponents saveDraftComponents(
@@ -377,10 +364,11 @@ public class DomainPackDraftPersistenceService {
                             workflow.initialState(),
                             workflow.terminalStatesJson(),
                             workflow.evidenceJson(),
-                            workflow.metaJson()))
+                            workflow.metaJson(),
+                            requireByCode(intentsByCode, workflow.intentCode(), "intent").getId(),
+                            workflow.isPrimary(),
+                            workflow.routeConditionJson()))
                 .toList());
-    Map<String, WorkflowDefinition> workflowsByCode =
-        indexByCode(savedWorkflows, WorkflowDefinition::getWorkflowCode);
 
     List<IntentSlotBinding> savedIntentSlotBindings =
         intentSlotBindingRepository.saveAll(
@@ -396,26 +384,12 @@ public class DomainPackDraftPersistenceService {
                             binding.conditionJson()))
                 .toList());
 
-    List<IntentWorkflowBinding> savedIntentWorkflowBindings =
-        intentWorkflowBindingRepository.saveAll(
-            components.intentWorkflowBindings().stream()
-                .map(
-                    binding ->
-                        IntentWorkflowBinding.create(
-                            requireByCode(intentsByCode, binding.intentCode(), "intent").getId(),
-                            requireByCode(workflowsByCode, binding.workflowCode(), "workflow")
-                                .getId(),
-                            binding.isPrimary(),
-                            binding.routeConditionJson()))
-                .toList());
-
     return new SavedDraftComponents(
         savedSlots.size(),
         savedPolicies.size(),
         savedRisks.size(),
         savedWorkflows.size(),
-        savedIntentSlotBindings.size(),
-        savedIntentWorkflowBindings.size());
+        savedIntentSlotBindings.size());
   }
 
   private List<WorkflowInput> validateDraftPayload(
@@ -426,8 +400,7 @@ public class DomainPackDraftPersistenceService {
         payload.intentSlotBindings(),
         payload.policies(),
         payload.risks(),
-        payload.workflows(),
-        payload.intentWorkflowBindings());
+        payload.workflows());
     return validateParsedWorkflows(
         parseWorkflowInputs(safeList(payload.workflows())), payload.policies(), allowedPolicyCodes);
   }
@@ -438,8 +411,7 @@ public class DomainPackDraftPersistenceService {
       List<IntentSlotBindingInput> intentSlotBindings,
       List<PolicyInput> policies,
       List<RiskInput> risks,
-      List<WorkflowInput> workflows,
-      List<IntentWorkflowBindingInput> intentWorkflowBindings) {}
+      List<WorkflowInput> workflows) {}
 
   private void ensureDraftPayloadUnique(
       List<IntentDraft> intents,
@@ -447,8 +419,7 @@ public class DomainPackDraftPersistenceService {
       List<IntentSlotBindingInput> intentSlotBindings,
       List<PolicyInput> policies,
       List<RiskInput> risks,
-      List<WorkflowInput> workflows,
-      List<IntentWorkflowBindingInput> intentWorkflowBindings) {
+      List<WorkflowInput> workflows) {
     ensureUnique(safeList(intents), IntentDraft::intentCode, "intentCode");
     ensureUnique(safeList(slots), SlotInput::slotCode, "slotCode");
     ensureUnique(safeList(policies), PolicyInput::policyCode, "policyCode");
@@ -458,10 +429,6 @@ public class DomainPackDraftPersistenceService {
         safeList(intentSlotBindings),
         binding -> binding.intentCode() + "::" + binding.slotCode(),
         "intentSlotBinding");
-    ensureUnique(
-        safeList(intentWorkflowBindings),
-        binding -> binding.intentCode() + "::" + binding.workflowCode(),
-        "intentWorkflowBinding");
   }
 
   private List<WorkflowInput> validateParsedWorkflows(
@@ -497,7 +464,10 @@ public class DomainPackDraftPersistenceService {
         WorkflowGraphValidator.extractInitialState(graph),
         WorkflowGraphValidator.extractTerminalStatesJson(graph),
         workflow.evidenceJson(),
-        workflow.metaJson());
+        workflow.metaJson(),
+        workflow.intentCode(),
+        workflow.isPrimary(),
+        workflow.routeConditionJson());
   }
 
   private void validateNonEmptyWorkflowDraft(DraftComponentsInput components) {
@@ -505,8 +475,7 @@ public class DomainPackDraftPersistenceService {
         && components.policies().isEmpty()
         && components.risks().isEmpty()
         && components.workflows().isEmpty()
-        && components.intentSlotBindings().isEmpty()
-        && components.intentWorkflowBindings().isEmpty()) {
+        && components.intentSlotBindings().isEmpty()) {
       throw new DomainPackDraftRequestInvalidException("workflow draft payload는 비어 있을 수 없습니다.");
     }
   }
@@ -651,7 +620,10 @@ public class DomainPackDraftPersistenceService {
                     workflow.initialState(),
                     workflow.terminalStatesJson(),
                     workflow.evidenceJson(),
-                    workflow.metaJson()))
+                    workflow.metaJson(),
+                    workflow.intentCode(),
+                    workflow.isPrimary(),
+                    workflow.routeConditionJson()))
         .toList();
   }
 
@@ -668,7 +640,10 @@ public class DomainPackDraftPersistenceService {
                     null,
                     null,
                     workflow.evidenceJson(),
-                    workflow.metaJson()))
+                    workflow.metaJson(),
+                    workflow.intentCode(),
+                    workflow.isPrimary(),
+                    workflow.routeConditionJson()))
         .toList();
   }
 
@@ -702,39 +677,12 @@ public class DomainPackDraftPersistenceService {
         .toList();
   }
 
-  private List<IntentWorkflowBindingInput> toIntentWorkflowBindingInputs(
-      List<CreateDomainPackDraftCommand.IntentWorkflowBindingDraft> bindings) {
-    return safeList(bindings).stream()
-        .map(
-            binding ->
-                new IntentWorkflowBindingInput(
-                    binding.intentCode(),
-                    binding.workflowCode(),
-                    binding.isPrimary(),
-                    binding.routeConditionJson()))
-        .toList();
-  }
-
-  private List<IntentWorkflowBindingInput> toIntentWorkflowBindingInputsFromWorkflowCallback(
-      List<AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft> bindings) {
-    return safeList(bindings).stream()
-        .map(
-            binding ->
-                new IntentWorkflowBindingInput(
-                    binding.intentCode(),
-                    binding.workflowCode(),
-                    binding.isPrimary(),
-                    binding.routeConditionJson()))
-        .toList();
-  }
-
   private record DraftComponentsInput(
       List<SlotInput> slots,
       List<PolicyInput> policies,
       List<RiskInput> risks,
       List<WorkflowInput> workflows,
-      List<IntentSlotBindingInput> intentSlotBindings,
-      List<IntentWorkflowBindingInput> intentWorkflowBindings) {}
+      List<IntentSlotBindingInput> intentSlotBindings) {}
 
   private record SlotInput(
       String slotCode,
@@ -774,7 +722,10 @@ public class DomainPackDraftPersistenceService {
       String initialState,
       String terminalStatesJson,
       String evidenceJson,
-      String metaJson) {}
+      String metaJson,
+      String intentCode,
+      Boolean isPrimary,
+      String routeConditionJson) {}
 
   private record IntentSlotBindingInput(
       String intentCode,
@@ -784,9 +735,6 @@ public class DomainPackDraftPersistenceService {
       String promptHint,
       String conditionJson) {}
 
-  private record IntentWorkflowBindingInput(
-      String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
-
   private record ParsedWorkflowInput(
       WorkflowInput workflow, WorkflowGraphValidator.ParsedGraph graph) {}
 
@@ -795,8 +743,7 @@ public class DomainPackDraftPersistenceService {
       int addedPolicyCount,
       int addedRiskCount,
       int addedWorkflowCount,
-      int addedIntentSlotBindingCount,
-      int addedIntentWorkflowBindingCount) {}
+      int addedIntentSlotBindingCount) {}
 
   private <T> List<T> safeList(List<T> list) {
     return list == null ? List.of() : list;

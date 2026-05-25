@@ -118,16 +118,10 @@ public class CreateDomainPackDraftController {
                                 null, // server-extracted from graphJson post-validation
                                 null, // server-extracted from graphJson post-validation
                                 workflow.evidenceJson(),
-                                workflow.metaJson()))
-                    .toList(),
-                safeList(request.intentWorkflowBindings()).stream()
-                    .map(
-                        binding ->
-                            new CreateDomainPackDraftCommand.IntentWorkflowBindingDraft(
-                                binding.intentCode(),
-                                binding.workflowCode(),
-                                binding.isPrimary(),
-                                binding.routeConditionJson()))
+                                workflow.metaJson(),
+                                workflow.intentCode(),
+                                workflow.isPrimary(),
+                                workflow.routeConditionJson()))
                     .toList()));
 
     return ResponseEntity.status(HttpStatus.CREATED)

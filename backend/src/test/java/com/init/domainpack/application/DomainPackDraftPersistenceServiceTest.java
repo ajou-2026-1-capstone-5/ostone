@@ -16,7 +16,6 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -46,7 +45,6 @@ class DomainPackDraftPersistenceServiceTest {
   @Mock private RiskDefinitionRepository riskDefinitionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
 
   @InjectMocks private DomainPackDraftPersistenceService service;
 
@@ -191,7 +189,6 @@ class DomainPackDraftPersistenceServiceTest {
     given(riskDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(workflowDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(intentSlotBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
-    given(intentWorkflowBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
 
     AddWorkflowDraftToVersionResult result =
         service.persistWorkflowDraft(
@@ -208,10 +205,7 @@ class DomainPackDraftPersistenceServiceTest {
             List.of(validWorkflowDraft("refund_policy_default")),
             List.of(
                 new AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft(
-                    "refund_request", "order_id", true, 1, "주문번호를 알려주세요.", null)),
-            List.of(
-                new AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft(
-                    "refund_request", "refund_flow", true, null)));
+                    "refund_request", "order_id", true, 1, "주문번호를 알려주세요.", null)));
 
     assertThat(result.domainPackId()).isEqualTo(7L);
     assertThat(result.addedSlotCount()).isEqualTo(1);
@@ -219,7 +213,6 @@ class DomainPackDraftPersistenceServiceTest {
     assertThat(result.addedRiskCount()).isEqualTo(1);
     assertThat(result.addedWorkflowCount()).isEqualTo(1);
     assertThat(result.addedIntentSlotBindingCount()).isEqualTo(1);
-    assertThat(result.addedIntentWorkflowBindingCount()).isEqualTo(1);
     verify(intentDefinitionRepository, never()).saveAllAndFlush(any());
   }
 
@@ -233,13 +226,16 @@ class DomainPackDraftPersistenceServiceTest {
             policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(
                 101L, Set.of("existing_policy")))
         .willReturn(Set.of("existing_policy"));
-    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of());
+    IntentDefinition existingIntent2 =
+        IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
+    ReflectionTestUtils.setField(existingIntent2, "id", 55L);
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(List.of(existingIntent2));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(policyDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(riskDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(workflowDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(intentSlotBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
-    given(intentWorkflowBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
 
     AddWorkflowDraftToVersionResult result =
         service.persistWorkflowDraft(
@@ -248,7 +244,6 @@ class DomainPackDraftPersistenceServiceTest {
             List.of(),
             List.of(),
             List.of(validWorkflowDraft("existing_policy")),
-            List.of(),
             List.of());
 
     assertThat(result.addedPolicyCount()).isZero();
@@ -274,7 +269,6 @@ class DomainPackDraftPersistenceServiceTest {
                     List.of(),
                     List.of(),
                     List.of(validWorkflowDraft("missing_policy")),
-                    List.of(),
                     List.of()))
         .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class);
   }
@@ -289,7 +283,11 @@ class DomainPackDraftPersistenceServiceTest {
             policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(
                 101L, Set.of("refund_policy_default")))
         .willReturn(Set.of());
-    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of());
+    IntentDefinition existingIntentForWorkflow =
+        IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
+    ReflectionTestUtils.setField(existingIntentForWorkflow, "id", 55L);
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(List.of(existingIntentForWorkflow));
     given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(policyDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
     given(riskDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
@@ -316,8 +314,7 @@ class DomainPackDraftPersistenceServiceTest {
                     List.of(validWorkflowDraft("refund_policy_default")),
                     List.of(
                         new AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft(
-                            "missing_intent", "order_id", true, 1, null, null)),
-                    List.of()))
+                            "missing_intent", "order_id", true, 1, null, null))))
         .isInstanceOf(
             com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException.class);
   }
@@ -329,7 +326,7 @@ class DomainPackDraftPersistenceServiceTest {
         """
             .formatted(policyRef);
     return new AddWorkflowDraftToVersionCommand.WorkflowDraft(
-        "refund_flow", "환불 플로우", null, graphJson, null, null);
+        "refund_flow", "환불 플로우", null, graphJson, null, null, "refund_request", true, null);
   }
 
   @SuppressWarnings("unchecked")

@@ -21,8 +21,6 @@ public record PipelineWorkflowDraftCallbackRequest(
         List<@Valid WorkflowDraftRequest> workflows,
     @Size(max = 1000, message = "intentSlotBindings는 1000개 이하여야 합니다.")
         List<@Valid IntentSlotBindingDraftRequest> intentSlotBindings,
-    @Size(max = 1000, message = "intentWorkflowBindings는 1000개 이하여야 합니다.")
-        List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings,
     Boolean finalCallback) {
 
   public record SlotDraftRequest(
@@ -80,7 +78,13 @@ public record PipelineWorkflowDraftCallbackRequest(
           @Size(max = 20000, message = "graphJson은 20000자 이하여야 합니다.")
           String graphJson,
       @Size(max = 5000, message = "evidenceJson은 5000자 이하여야 합니다.") String evidenceJson,
-      @Size(max = 5000, message = "metaJson은 5000자 이하여야 합니다.") String metaJson) {}
+      @Size(max = 5000, message = "metaJson은 5000자 이하여야 합니다.") String metaJson,
+      @NotBlank(message = "intentCode는 필수입니다.")
+          @Size(max = 100, message = "intentCode는 100자 이하여야 합니다.")
+          String intentCode,
+      Boolean isPrimary,
+      @Size(max = 5000, message = "routeConditionJson은 5000자 이하여야 합니다.")
+          String routeConditionJson) {}
 
   public record IntentSlotBindingDraftRequest(
       @NotBlank(message = "intentCode는 필수입니다.")
@@ -92,15 +96,4 @@ public record PipelineWorkflowDraftCallbackRequest(
       Integer collectionOrder,
       @Size(max = 1000, message = "promptHint는 1000자 이하여야 합니다.") String promptHint,
       @Size(max = 5000, message = "conditionJson은 5000자 이하여야 합니다.") String conditionJson) {}
-
-  public record IntentWorkflowBindingDraftRequest(
-      @NotBlank(message = "intentCode는 필수입니다.")
-          @Size(max = 100, message = "intentCode는 100자 이하여야 합니다.")
-          String intentCode,
-      @NotBlank(message = "workflowCode는 필수입니다.")
-          @Size(max = 100, message = "workflowCode는 100자 이하여야 합니다.")
-          String workflowCode,
-      Boolean isPrimary,
-      @Size(max = 5000, message = "routeConditionJson은 5000자 이하여야 합니다.")
-          String routeConditionJson) {}
 }

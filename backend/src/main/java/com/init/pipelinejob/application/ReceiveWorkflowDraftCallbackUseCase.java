@@ -115,8 +115,7 @@ public class ReceiveWorkflowDraftCallbackUseCase {
                 command.policies(),
                 command.risks(),
                 command.workflows(),
-                command.intentSlotBindings(),
-                command.intentWorkflowBindings()));
+                command.intentSlotBindings()));
 
     String summaryJson =
         buildSuccessSummaryJson(workflowResult, domainPackId, command.domainPackVersionId());
@@ -137,7 +136,6 @@ public class ReceiveWorkflowDraftCallbackUseCase {
         workflowResult.addedRiskCount(),
         workflowResult.addedWorkflowCount(),
         workflowResult.addedIntentSlotBindingCount(),
-        workflowResult.addedIntentWorkflowBindingCount(),
         command.jobId());
   }
 
@@ -168,7 +166,6 @@ public class ReceiveWorkflowDraftCallbackUseCase {
     summary.put("addedRiskCount", result.addedRiskCount());
     summary.put("addedWorkflowCount", result.addedWorkflowCount());
     summary.put("addedIntentSlotBindingCount", result.addedIntentSlotBindingCount());
-    summary.put("addedIntentWorkflowBindingCount", result.addedIntentWorkflowBindingCount());
     try {
       return objectMapper.writeValueAsString(summary);
     } catch (JsonProcessingException ex) {

@@ -26,7 +26,6 @@ WORKFLOW_LIST_KEYS = (
     "risks",
     "workflows",
     "intentSlotBindings",
-    "intentWorkflowBindings",
 )
 
 
@@ -206,7 +205,7 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
     _validate_risk_drafts(workflow_lists)
     workflow_codes = _validate_workflow_drafts(workflow_lists)
     _validate_intent_slot_bindings(workflow_lists, intent_codes, slot_codes)
-    _validate_intent_workflow_bindings(workflow_lists, intent_codes, workflow_codes)
+    _validate_workflow_intent_codes(workflow_lists, intent_codes)
 
 
 def _validate_domain_pack_draft(candidate: dict[str, Any]) -> None:
@@ -282,18 +281,14 @@ def _validate_intent_slot_bindings(
             raise PipelineStageError(f"intentSlotBindings references unknown slotCode: {slot_code}")
 
 
-def _validate_intent_workflow_bindings(
+def _validate_workflow_intent_codes(
     workflow_lists: dict[str, list[dict[str, Any]]],
     intent_codes: set[str],
-    workflow_codes: set[str],
 ) -> None:
-    for binding in workflow_lists["intentWorkflowBindings"]:
-        intent_code = _required_non_blank(binding, "intentCode", 100)
-        workflow_code = _required_non_blank(binding, "workflowCode", 100)
+    for workflow in workflow_lists["workflows"]:
+        intent_code = _required_non_blank(workflow, "intentCode", 100)
         if intent_code not in intent_codes:
-            raise PipelineStageError(f"intentWorkflowBindings references unknown intentCode: {intent_code}")
-        if workflow_code not in workflow_codes:
-            raise PipelineStageError(f"intentWorkflowBindings references unknown workflowCode: {workflow_code}")
+            raise PipelineStageError(f"workflow references unknown intentCode: {intent_code}")
 
 
 def build_domain_pack_payload(

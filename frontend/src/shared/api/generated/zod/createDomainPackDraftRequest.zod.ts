@@ -129,20 +129,14 @@ export const createDomainPackDraftRequestWorkflowsItemEvidenceJsonMax = 5000;
 export const createDomainPackDraftRequestWorkflowsItemMetaJsonMin = 0;
 export const createDomainPackDraftRequestWorkflowsItemMetaJsonMax = 5000;
 
+export const createDomainPackDraftRequestWorkflowsItemIntentCodeMin = 0;
+export const createDomainPackDraftRequestWorkflowsItemIntentCodeMax = 100;
+
+export const createDomainPackDraftRequestWorkflowsItemRouteConditionJsonMin = 0;
+export const createDomainPackDraftRequestWorkflowsItemRouteConditionJsonMax = 5000;
+
 export const createDomainPackDraftRequestWorkflowsMin = 0;
 export const createDomainPackDraftRequestWorkflowsMax = 200;
-
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMin = 0;
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMax = 100;
-
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMin = 0;
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMax = 100;
-
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMin = 0;
-export const createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMax = 5000;
-
-export const createDomainPackDraftRequestIntentWorkflowBindingsMin = 0;
-export const createDomainPackDraftRequestIntentWorkflowBindingsMax = 500;
 
 export const CreateDomainPackDraftRequest = zod.object({
   sourcePipelineJobId: zod.number().optional(),
@@ -381,34 +375,21 @@ export const CreateDomainPackDraftRequest = zod.object({
           .min(createDomainPackDraftRequestWorkflowsItemMetaJsonMin)
           .max(createDomainPackDraftRequestWorkflowsItemMetaJsonMax)
           .optional(),
-      }),
-    )
-    .min(createDomainPackDraftRequestWorkflowsMin)
-    .max(createDomainPackDraftRequestWorkflowsMax)
-    .optional(),
-  intentWorkflowBindings: zod
-    .array(
-      zod.object({
         intentCode: zod
           .string()
-          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMin)
-          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemIntentCodeMax)
-          .optional(),
-        workflowCode: zod
-          .string()
-          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMin)
-          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemWorkflowCodeMax)
+          .min(createDomainPackDraftRequestWorkflowsItemIntentCodeMin)
+          .max(createDomainPackDraftRequestWorkflowsItemIntentCodeMax)
           .optional(),
         isPrimary: zod.boolean().optional(),
         routeConditionJson: zod
           .string()
-          .min(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMin)
-          .max(createDomainPackDraftRequestIntentWorkflowBindingsItemRouteConditionJsonMax)
+          .min(createDomainPackDraftRequestWorkflowsItemRouteConditionJsonMin)
+          .max(createDomainPackDraftRequestWorkflowsItemRouteConditionJsonMax)
           .optional(),
       }),
     )
-    .min(createDomainPackDraftRequestIntentWorkflowBindingsMin)
-    .max(createDomainPackDraftRequestIntentWorkflowBindingsMax)
+    .min(createDomainPackDraftRequestWorkflowsMin)
+    .max(createDomainPackDraftRequestWorkflowsMax)
     .optional(),
 });
 

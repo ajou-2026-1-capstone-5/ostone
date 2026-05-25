@@ -24,6 +24,16 @@ public class WorkflowDefinition {
   @Column(name = "domain_pack_version_id", nullable = false, updatable = false)
   private Long domainPackVersionId;
 
+  @Column(name = "intent_definition_id", nullable = false, updatable = false)
+  private Long intentDefinitionId;
+
+  @Column(name = "is_primary", nullable = false)
+  private Boolean isPrimary;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "route_condition_json", columnDefinition = "jsonb", nullable = false)
+  private String routeConditionJson;
+
   @Column(name = "workflow_code", nullable = false)
   private String workflowCode;
 
@@ -81,11 +91,15 @@ public class WorkflowDefinition {
       String initialState,
       String terminalStatesJson,
       String evidenceJson,
-      String metaJson) {
+      String metaJson,
+      Long intentDefinitionId,
+      Boolean isPrimary,
+      String routeConditionJson) {
     Objects.requireNonNull(domainPackVersionId, "domainPackVersionId must not be null");
     Objects.requireNonNull(workflowCode, "workflowCode must not be null");
     Objects.requireNonNull(name, "name must not be null");
     Objects.requireNonNull(graphJson, "graphJson must not be null");
+    Objects.requireNonNull(intentDefinitionId, "intentDefinitionId must not be null");
 
     WorkflowDefinition entity = new WorkflowDefinition();
     entity.domainPackVersionId = domainPackVersionId;
@@ -97,11 +111,14 @@ public class WorkflowDefinition {
     entity.terminalStatesJson = terminalStatesJson != null ? terminalStatesJson : "[]";
     entity.evidenceJson = evidenceJson != null ? evidenceJson : "[]";
     entity.metaJson = metaJson != null ? metaJson : "{}";
+    entity.intentDefinitionId = intentDefinitionId;
+    entity.isPrimary = isPrimary != null ? isPrimary : true;
+    entity.routeConditionJson = routeConditionJson != null ? routeConditionJson : "{}";
     return entity;
   }
 
   public static WorkflowDefinition copyToVersion(
-      WorkflowDefinition source, Long domainPackVersionId) {
+      WorkflowDefinition source, Long domainPackVersionId, Long newIntentDefinitionId) {
     return create(
         domainPackVersionId,
         source.workflowCode,
@@ -111,7 +128,10 @@ public class WorkflowDefinition {
         source.initialState,
         source.terminalStatesJson,
         source.evidenceJson,
-        source.metaJson);
+        source.metaJson,
+        newIntentDefinitionId,
+        source.isPrimary,
+        source.routeConditionJson);
   }
 
   public void updateGraph(
@@ -139,6 +159,18 @@ public class WorkflowDefinition {
 
   public Long getDomainPackVersionId() {
     return domainPackVersionId;
+  }
+
+  public Long getIntentDefinitionId() {
+    return intentDefinitionId;
+  }
+
+  public Boolean getIsPrimary() {
+    return isPrimary;
+  }
+
+  public String getRouteConditionJson() {
+    return routeConditionJson;
   }
 
   public String getWorkflowCode() {

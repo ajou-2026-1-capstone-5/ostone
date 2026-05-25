@@ -402,11 +402,9 @@ def test_build_candidate_structure() -> None:
     wf_draft = candidate["workflowDraft"]
     assert len(wf_draft["workflows"]) == 1
     assert wf_draft["workflows"][0]["workflowCode"] == "WORKFLOW_0"
+    assert wf_draft["workflows"][0]["intentCode"] == "INTENT_0"
     assert len(wf_draft["policies"]) == 1
     assert wf_draft["policies"][0]["policyCode"] == "default_policy"
-    assert len(wf_draft["intentWorkflowBindings"]) == 1
-    assert wf_draft["intentWorkflowBindings"][0]["intentCode"] == "INTENT_0"
-    assert wf_draft["intentWorkflowBindings"][0]["workflowCode"] == "WORKFLOW_0"
 
 
 def test_build_candidate_raises_when_workspace_id_missing() -> None:
@@ -446,12 +444,10 @@ def test_build_workflow_draft_single_cluster() -> None:
 
     assert len(draft["workflows"]) == 1
     assert len(draft["policies"]) == 1
-    assert len(draft["intentWorkflowBindings"]) == 1
     assert draft["workflows"][0]["workflowCode"] == "WORKFLOW_0"
-    assert draft["intentWorkflowBindings"][0]["intentCode"] == "INTENT_0"
-    assert draft["intentWorkflowBindings"][0]["workflowCode"] == "WORKFLOW_0"
-    assert draft["intentWorkflowBindings"][0]["isPrimary"] is True
-    assert draft["intentWorkflowBindings"][0]["routeConditionJson"] == "{}"
+    assert draft["workflows"][0]["intentCode"] == "INTENT_0"
+    assert draft["workflows"][0]["isPrimary"] is True
+    assert draft["workflows"][0]["routeConditionJson"] == "{}"
     assert draft["slots"] == []
     assert draft["risks"] == []
     assert draft["intentSlotBindings"] == []
@@ -460,7 +456,6 @@ def test_build_workflow_draft_single_cluster() -> None:
 def test_build_workflow_draft_empty_clusters() -> None:
     draft, _ = _build_workflow_draft([])
     assert draft["workflows"] == []
-    assert draft["intentWorkflowBindings"] == []
     assert len(draft["policies"]) == 1
 
 
@@ -471,12 +466,10 @@ def test_build_workflow_draft_intent_workflow_1to1_mapping() -> None:
     ]
     draft, _ = _build_workflow_draft(clusters)
 
-    intent_codes = {b["intentCode"] for b in draft["intentWorkflowBindings"]}
     workflow_codes = {w["workflowCode"] for w in draft["workflows"]}
-    bound_workflow_codes = {b["workflowCode"] for b in draft["intentWorkflowBindings"]}
-    assert intent_codes == {"INTENT_0", "INTENT_1"}
+    intent_codes_in_workflows = {w["intentCode"] for w in draft["workflows"]}
     assert workflow_codes == {"WORKFLOW_0", "WORKFLOW_1"}
-    assert bound_workflow_codes == workflow_codes
+    assert intent_codes_in_workflows == {"INTENT_0", "INTENT_1"}
 
 
 def test_build_workflow_draft_default_policy_is_dummy() -> None:

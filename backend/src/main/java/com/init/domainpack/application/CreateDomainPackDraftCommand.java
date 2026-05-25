@@ -13,8 +13,7 @@ public record CreateDomainPackDraftCommand(
     List<IntentSlotBindingDraft> intentSlotBindings,
     List<PolicyDraft> policies,
     List<RiskDraft> risks,
-    List<WorkflowDraft> workflows,
-    List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
+    List<WorkflowDraft> workflows) {
 
   public record SlotDraft(
       String slotCode,
@@ -62,8 +61,8 @@ public record CreateDomainPackDraftCommand(
       String initialState,
       String terminalStatesJson,
       String evidenceJson,
-      String metaJson) {}
-
-  public record IntentWorkflowBindingDraft(
-      String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
+      String metaJson,
+      String intentCode,
+      Boolean isPrimary,
+      String routeConditionJson) {}
 }

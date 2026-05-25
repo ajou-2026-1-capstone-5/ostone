@@ -16,7 +16,6 @@ export const PipelineWorkflowDraftCallbackResponse = zod.object({
   addedRiskCount: zod.number().optional(),
   addedWorkflowCount: zod.number().optional(),
   addedIntentSlotBindingCount: zod.number().optional(),
-  addedIntentWorkflowBindingCount: zod.number().optional(),
   sourcePipelineJobId: zod.number().optional(),
 });
 
