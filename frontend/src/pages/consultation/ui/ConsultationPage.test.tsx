@@ -567,7 +567,9 @@ describe("ConsultationPage", () => {
       });
     }
 
-    expect(screen.queryByText("임시 메시지 없는 에코")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("임시 메시지 없는 에코")).not.toBeInTheDocument();
+    });
   });
 
   it("shows error toast when ending session fails", async () => {

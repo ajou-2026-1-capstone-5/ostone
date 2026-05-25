@@ -159,10 +159,11 @@ describe("ChatPanel", () => {
     const textarea = screen.getByPlaceholderText("메시지를 입력하세요...");
     fireEvent.change(textarea, { target: { value: "안녕하세요" } });
 
-    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
-    Object.defineProperty(event, "isComposing", { value: true });
-
-    fireEvent(textarea, event);
+    fireEvent.keyDown(textarea, {
+      key: "Enter",
+      isComposing: true,
+      nativeEvent: { isComposing: true },
+    });
 
     expect(onSendMessage).not.toHaveBeenCalled();
   });
