@@ -67,30 +67,11 @@
   font-size: 11px;
 }
 
-.masonry {
+.list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: 10px;
-  grid-auto-flow: row dense;
-  column-gap: var(--s-3);
-  /* row-gap must equal the ROW_GAP_PX constant in WorkflowCard.tsx so that
-     the cards' computed grid-row span matches the actual rendered height —
-     and it gives the same-column cards a clear seam instead of butting up
-     against each other. */
-  row-gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 8px;
   align-items: start;
-}
-
-@media (max-width: 1080px) {
-  .masonry {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 720px) {
-  .masonry {
-    grid-template-columns: 1fr;
-  }
 }
 
 .pagination {

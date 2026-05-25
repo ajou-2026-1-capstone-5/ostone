@@ -88,7 +88,7 @@ describe("WorkflowListView", () => {
     fireEvent.click(screen.getByTestId("wl-settings-toggle"));
     fireEvent.click(screen.getByTestId("wl-settings-sortField-name"));
     fireEvent.click(screen.getByTestId("wl-settings-sortDir-desc"));
-    const masonry = screen.getByTestId("wl-masonry");
+    const masonry = screen.getByTestId("wl-list");
     const cards = masonry.querySelectorAll<HTMLElement>('[data-testid^="wl-card-"]');
     expect(cards[0].dataset.testid).toBe("wl-card-20");
   });
@@ -145,7 +145,7 @@ describe("WorkflowListView", () => {
         <WorkflowListView entries={[]} onOpen={vi.fn()} testIdPrefix="wl" />
       </MemoryRouter>,
     );
-    expect(screen.getByTestId("wl-masonry")).toBeInTheDocument();
+    expect(screen.getByTestId("wl-list")).toBeInTheDocument();
     expect(screen.queryByTestId("wl-pagination")).not.toBeInTheDocument();
   });
 });
