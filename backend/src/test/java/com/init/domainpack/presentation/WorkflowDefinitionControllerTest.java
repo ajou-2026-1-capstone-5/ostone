@@ -93,9 +93,7 @@ class WorkflowDefinitionControllerTest {
   void should_intentDefinitionId전달_when_쿼리파라미터지정() throws Exception {
     given(listUseCase.execute(any())).willReturn(List.of());
 
-    mockMvc
-        .perform(get(BASE_URL + "?intentDefinitionId=500"))
-        .andExpect(status().isOk());
+    mockMvc.perform(get(BASE_URL + "?intentDefinitionId=500")).andExpect(status().isOk());
 
     ArgumentCaptor<GetWorkflowDefinitionListQuery> captor =
         ArgumentCaptor.forClass(GetWorkflowDefinitionListQuery.class);
