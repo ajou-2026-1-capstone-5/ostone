@@ -2,7 +2,6 @@ package com.init.pipelinejob.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentSlotBindingDraft;
-import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentWorkflowBindingDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.PolicyDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.RiskDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.SlotDraft;
@@ -57,7 +56,6 @@ public class PipelineWorkflowDraftCallbackController {
                 toRiskDrafts(request.risks()),
                 toWorkflowDrafts(request.workflows()),
                 toIntentSlotBindingDrafts(request.intentSlotBindings()),
-                toIntentWorkflowBindingDrafts(request.intentWorkflowBindings()),
                 request.finalCallback() == null || Boolean.TRUE.equals(request.finalCallback()),
                 objectMapper
                     .valueToTree(WebhookRequestHeaders.extractMasked(httpServletRequest))
@@ -78,7 +76,6 @@ public class PipelineWorkflowDraftCallbackController {
                 result.addedRiskCount(),
                 result.addedWorkflowCount(),
                 result.addedIntentSlotBindingCount(),
-                result.addedIntentWorkflowBindingCount(),
                 result.sourcePipelineJobId()));
   }
 
@@ -144,7 +141,10 @@ public class PipelineWorkflowDraftCallbackController {
                     workflow.description(),
                     workflow.graphJson(),
                     workflow.evidenceJson(),
-                    workflow.metaJson()))
+                    workflow.metaJson(),
+                    workflow.intentCode(),
+                    workflow.isPrimary(),
+                    workflow.routeConditionJson()))
         .toList();
   }
 
@@ -160,19 +160,6 @@ public class PipelineWorkflowDraftCallbackController {
                     binding.collectionOrder(),
                     binding.promptHint(),
                     binding.conditionJson()))
-        .toList();
-  }
-
-  private List<IntentWorkflowBindingDraft> toIntentWorkflowBindingDrafts(
-      List<PipelineWorkflowDraftCallbackRequest.IntentWorkflowBindingDraftRequest> bindings) {
-    return safeList(bindings).stream()
-        .map(
-            binding ->
-                new IntentWorkflowBindingDraft(
-                    binding.intentCode(),
-                    binding.workflowCode(),
-                    binding.isPrimary(),
-                    binding.routeConditionJson()))
         .toList();
   }
 

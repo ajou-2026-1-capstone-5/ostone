@@ -7,5 +7,4 @@ public record AddWorkflowDraftToVersionResult(
     int addedPolicyCount,
     int addedRiskCount,
     int addedWorkflowCount,
-    int addedIntentSlotBindingCount,
-    int addedIntentWorkflowBindingCount) {}
+    int addedIntentSlotBindingCount) {}

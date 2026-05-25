@@ -5,5 +5,4 @@ public record AddWorkflowDraftPortResult(
     int addedPolicyCount,
     int addedRiskCount,
     int addedWorkflowCount,
-    int addedIntentSlotBindingCount,
-    int addedIntentWorkflowBindingCount) {}
+    int addedIntentSlotBindingCount) {}

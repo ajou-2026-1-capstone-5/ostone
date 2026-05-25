@@ -430,14 +430,8 @@ class CreateDomainPackDraftControllerTest {
             {
               "workflowCode": "refund_flow",
               "name": "환불 플로우",
-              "graphJson": "{\\"nodes\\":[]}"
-            }
-          ],
-          "intentWorkflowBindings": [
-            {
-              "intentCode": "refund_request",
-              "workflowCode": "refund_flow",
-              "isPrimary": true
+              "graphJson": "{\\"nodes\\":[]}",
+              "intentCode": "refund_request"
             }
           ]
         }

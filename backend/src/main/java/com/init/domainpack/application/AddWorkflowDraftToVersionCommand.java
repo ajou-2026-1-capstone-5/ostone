@@ -9,8 +9,7 @@ public record AddWorkflowDraftToVersionCommand(
     List<PolicyDraft> policies,
     List<RiskDraft> risks,
     List<WorkflowDraft> workflows,
-    List<IntentSlotBindingDraft> intentSlotBindings,
-    List<IntentWorkflowBindingDraft> intentWorkflowBindings) {
+    List<IntentSlotBindingDraft> intentSlotBindings) {
 
   public AddWorkflowDraftToVersionCommand {
     domainPackVersionId = Objects.requireNonNull(domainPackVersionId, "domainPackVersionId");
@@ -19,7 +18,6 @@ public record AddWorkflowDraftToVersionCommand(
     risks = immutableCopy(risks);
     workflows = immutableCopy(workflows);
     intentSlotBindings = immutableCopy(intentSlotBindings);
-    intentWorkflowBindings = immutableCopy(intentWorkflowBindings);
   }
 
   private static <T> List<T> immutableCopy(List<T> values) {
@@ -62,7 +60,10 @@ public record AddWorkflowDraftToVersionCommand(
       String description,
       String graphJson,
       String evidenceJson,
-      String metaJson) {}
+      String metaJson,
+      String intentCode,
+      Boolean isPrimary,
+      String routeConditionJson) {}
 
   public record IntentSlotBindingDraft(
       String intentCode,
@@ -71,7 +72,4 @@ public record AddWorkflowDraftToVersionCommand(
       Integer collectionOrder,
       String promptHint,
       String conditionJson) {}
-
-  public record IntentWorkflowBindingDraft(
-      String intentCode, String workflowCode, Boolean isPrimary, String routeConditionJson) {}
 }

@@ -124,6 +124,9 @@ class JpaWorkflowDefinitionRepositoryTest {
         "start",
         "[\"done\"]",
         "[]",
+        "{}",
+        1L,
+        true,
         "{}");
   }
 }

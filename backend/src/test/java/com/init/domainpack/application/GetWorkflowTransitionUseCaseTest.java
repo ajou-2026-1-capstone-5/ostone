@@ -236,7 +236,18 @@ class GetWorkflowTransitionUseCaseTest {
   private WorkflowDefinition createWorkflow(Long id, String graphJson) {
     WorkflowDefinition wf =
         WorkflowDefinition.create(
-            VERSION_ID, "wf_refund", "환불 플로우", null, graphJson, "start", "[\"end\"]", null, null);
+            VERSION_ID,
+            "wf_refund",
+            "환불 플로우",
+            null,
+            graphJson,
+            "start",
+            "[\"end\"]",
+            null,
+            null,
+            1L,
+            true,
+            "{}");
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }

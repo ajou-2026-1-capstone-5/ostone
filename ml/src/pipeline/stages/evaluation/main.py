@@ -119,17 +119,12 @@ def _build_development_candidate() -> dict[str, Any]:
                     ),
                     "evidenceJson": "[]",
                     "metaJson": "{}",
-                }
-            ],
-            "intentSlotBindings": [],
-            "intentWorkflowBindings": [
-                {
                     "intentCode": "general_inquiry",
-                    "workflowCode": "default_flow",
                     "isPrimary": True,
                     "routeConditionJson": "{}",
                 }
             ],
+            "intentSlotBindings": [],
         },
         "evaluationSummary": {
             "passed": True,

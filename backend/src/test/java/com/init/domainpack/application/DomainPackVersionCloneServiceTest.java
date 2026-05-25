@@ -15,7 +15,6 @@ import com.init.domainpack.domain.model.DomainPack;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.PolicyDefinition;
 import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.model.SlotDefinition;
@@ -24,7 +23,6 @@ import com.init.domainpack.domain.repository.DomainPackRepository;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -53,7 +51,6 @@ class DomainPackVersionCloneServiceTest {
   @Mock private RiskDefinitionRepository riskRepository;
   @Mock private WorkflowDefinitionRepository workflowRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
 
   private DomainPackVersionCloneService service;
 
@@ -69,7 +66,6 @@ class DomainPackVersionCloneServiceTest {
             riskRepository,
             workflowRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository,
             new ObjectMapper());
   }
 
@@ -86,7 +82,6 @@ class DomainPackVersionCloneServiceTest {
     WorkflowDefinition workflow = workflow(51L, 100L, "refund_flow");
     IntentSlotBinding slotBinding =
         IntentSlotBinding.create(12L, 21L, true, 1, "주문번호", "{\"required\":true}");
-    IntentWorkflowBinding workflowBinding = IntentWorkflowBinding.create(12L, 51L, true, "{}");
 
     given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
         .willReturn(Optional.of(DomainPack.create(1L, "cs", "CS", null, 10L)));
@@ -125,11 +120,7 @@ class DomainPackVersionCloneServiceTest {
         .willAnswer(invocation -> assignWorkflowIds(invocation.getArgument(0)));
     given(intentSlotBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))
         .willReturn(List.of(slotBinding));
-    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(11L, 12L)))
-        .willReturn(List.of(workflowBinding));
     given(intentSlotBindingRepository.saveAllAndFlush(any()))
-        .willAnswer(invocation -> invocation.getArgument(0));
-    given(intentWorkflowBindingRepository.saveAllAndFlush(any()))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     DomainPackVersionCloneResult result =
@@ -149,12 +140,14 @@ class DomainPackVersionCloneServiceTest {
     assertThat(copiedSlotBinding.getIntentDefinitionId()).isEqualTo(112L);
     assertThat(copiedSlotBinding.getSlotDefinitionId()).isEqualTo(121L);
 
-    ArgumentCaptor<Iterable<IntentWorkflowBinding>> workflowBindings =
+    // Workflow는 이제 intent_definition_id FK를 직접 소유하므로
+    // workflowRepository.saveAllAndFlush에서 intent remapping이 적용됐는지 검증한다.
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<WorkflowDefinition>> copiedWorkflows =
         ArgumentCaptor.forClass(Iterable.class);
-    verify(intentWorkflowBindingRepository).saveAllAndFlush(workflowBindings.capture());
-    IntentWorkflowBinding copiedWorkflowBinding = workflowBindings.getValue().iterator().next();
-    assertThat(copiedWorkflowBinding.getIntentDefinitionId()).isEqualTo(112L);
-    assertThat(copiedWorkflowBinding.getWorkflowDefinitionId()).isEqualTo(151L);
+    verify(workflowRepository).saveAllAndFlush(copiedWorkflows.capture());
+    WorkflowDefinition copiedWorkflow = copiedWorkflows.getValue().iterator().next();
+    assertThat(copiedWorkflow.getIntentDefinitionId()).isEqualTo(112L);
   }
 
   @Test
@@ -323,7 +316,8 @@ class DomainPackVersionCloneServiceTest {
 
   private WorkflowDefinition workflow(Long id, Long versionId, String code) {
     WorkflowDefinition workflow =
-        WorkflowDefinition.create(versionId, code, "워크플로우", null, "{}", "start", "[]", "[]", "{}");
+        WorkflowDefinition.create(
+            versionId, code, "워크플로우", null, "{}", "start", "[]", "[]", "{}", 12L, true, "{}");
     ReflectionTestUtils.setField(workflow, "id", id);
     return workflow;
   }

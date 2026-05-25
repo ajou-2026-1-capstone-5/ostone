@@ -515,30 +515,28 @@ create table pack.risk_definition (
 );
 
 create table pack.workflow_definition (
-    id                  bigserial primary key,
+    id                    bigserial primary key,
     domain_pack_version_id bigint not null references pack.domain_pack_version(id) on delete cascade,
-    workflow_code       varchar(100) not null,
-    name                varchar(255) not null,
-    description         text,
-    graph_json          jsonb not null,
-    initial_state       varchar(100),
+    intent_definition_id  bigint not null references pack.intent_definition(id) on delete cascade,
+    workflow_code         varchar(100) not null,
+    name                  varchar(255) not null,
+    description           text,
+    graph_json            jsonb not null,
+    initial_state         varchar(100),
     -- TERMINAL node id array, not TERMINAL node.state values.
-    terminal_states_json jsonb not null default '[]'::jsonb,
-    evidence_json       jsonb not null default '[]'::jsonb,
-    meta_json           jsonb not null default '{}'::jsonb,
-    created_at          timestamptz not null default now(),
-    updated_at          timestamptz not null default now(),
+    terminal_states_json  jsonb not null default '[]'::jsonb,
+    is_primary            boolean not null default true,
+    route_condition_json  jsonb not null default '{}'::jsonb,
+    evidence_json         jsonb not null default '[]'::jsonb,
+    meta_json             jsonb not null default '{}'::jsonb,
+    created_at            timestamptz not null default now(),
+    updated_at            timestamptz not null default now(),
     unique (domain_pack_version_id, workflow_code)
 );
-
-create table pack.intent_workflow_binding (
-    id                  bigserial primary key,
-    intent_definition_id bigint not null references pack.intent_definition(id) on delete cascade,
-    workflow_definition_id bigint not null references pack.workflow_definition(id) on delete cascade,
-    is_primary          boolean not null default true,
-    route_condition_json jsonb not null default '{}'::jsonb,
-    unique (intent_definition_id, workflow_definition_id)
-);
+-- intent_workflow_binding 테이블은 제거됨 (2025-05-25).
+-- workflow_definition.intent_definition_id FK가 직접 1:N 관계를 표현한다.
+-- 하나의 intent는 여러 workflow를 가질 수 있고,
+-- 하나의 workflow는 정확히 하나의 intent에 속한다 (is_primary, route_condition_json으로 라우팅).
 ```
 
 ### 7.5 review
@@ -909,6 +907,9 @@ create index idx_taxonomy_drift_pack
 - `domain_pack_version 1:N policy_definition`
 - `domain_pack_version 1:N risk_definition`
 - `domain_pack_version 1:N workflow_definition`
+- `intent_definition 1:N workflow_definition` (FK: workflow_definition.intent_definition_id)
+  - 하나의 workflow는 정확히 하나의 intent에 속한다
+  - is_primary + route_condition_json으로 동일 intent의 여러 workflow 중 라우팅 결정
 
 ### 9.2 검토 계층
 - `domain_pack_version 1:N review_session`

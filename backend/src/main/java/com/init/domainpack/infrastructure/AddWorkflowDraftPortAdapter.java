@@ -5,7 +5,6 @@ import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
 import com.init.pipelinejob.application.AddWorkflowDraftPort;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentSlotBindingDraft;
-import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentWorkflowBindingDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.PolicyDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.RiskDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.SlotDraft;
@@ -32,8 +31,7 @@ public class AddWorkflowDraftPortAdapter implements AddWorkflowDraftPort {
         result.addedPolicyCount(),
         result.addedRiskCount(),
         result.addedWorkflowCount(),
-        result.addedIntentSlotBindingCount(),
-        result.addedIntentWorkflowBindingCount());
+        result.addedIntentSlotBindingCount());
   }
 
   private AddWorkflowDraftToVersionCommand toInternalCommand(AddWorkflowDraftPortCommand command) {
@@ -43,8 +41,7 @@ public class AddWorkflowDraftPortAdapter implements AddWorkflowDraftPort {
         toPolicyDrafts(command.policies()),
         toRiskDrafts(command.risks()),
         toWorkflowDrafts(command.workflows()),
-        toIntentSlotBindingDrafts(command.intentSlotBindings()),
-        toIntentWorkflowBindingDrafts(command.intentWorkflowBindings()));
+        toIntentSlotBindingDrafts(command.intentSlotBindings()));
   }
 
   private List<AddWorkflowDraftToVersionCommand.SlotDraft> toSlotDrafts(List<SlotDraft> slots) {
@@ -107,7 +104,10 @@ public class AddWorkflowDraftPortAdapter implements AddWorkflowDraftPort {
                     w.description(),
                     w.graphJson(),
                     w.evidenceJson(),
-                    w.metaJson()))
+                    w.metaJson(),
+                    w.intentCode(),
+                    w.isPrimary(),
+                    w.routeConditionJson()))
         .toList();
   }
 
@@ -123,16 +123,6 @@ public class AddWorkflowDraftPortAdapter implements AddWorkflowDraftPort {
                     b.collectionOrder(),
                     b.promptHint(),
                     b.conditionJson()))
-        .toList();
-  }
-
-  private List<AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft>
-      toIntentWorkflowBindingDrafts(List<IntentWorkflowBindingDraft> bindings) {
-    return bindings.stream()
-        .map(
-            b ->
-                new AddWorkflowDraftToVersionCommand.IntentWorkflowBindingDraft(
-                    b.intentCode(), b.workflowCode(), b.isPrimary(), b.routeConditionJson()))
         .toList();
   }
 }

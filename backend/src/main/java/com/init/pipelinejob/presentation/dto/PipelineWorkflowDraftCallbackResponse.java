@@ -10,5 +10,4 @@ public record PipelineWorkflowDraftCallbackResponse(
     Integer addedRiskCount,
     Integer addedWorkflowCount,
     Integer addedIntentSlotBindingCount,
-    Integer addedIntentWorkflowBindingCount,
     Long sourcePipelineJobId) {}

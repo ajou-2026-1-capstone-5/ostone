@@ -20,7 +20,18 @@ class WorkflowDefinitionUpdateGraphTest {
   void setUp() {
     workflow =
         WorkflowDefinition.create(
-            1L, "wf_refund", "환불 워크플로우", "설명", VALID_GRAPH, "start", "[\"end\"]", "[]", "{}");
+            1L,
+            "wf_refund",
+            "환불 워크플로우",
+            "설명",
+            VALID_GRAPH,
+            "start",
+            "[\"end\"]",
+            "[]",
+            "{}",
+            1L,
+            true,
+            "{}");
   }
 
   @Test

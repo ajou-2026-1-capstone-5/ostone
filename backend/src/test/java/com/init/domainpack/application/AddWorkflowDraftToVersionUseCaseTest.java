@@ -26,34 +26,32 @@ class AddWorkflowDraftToVersionUseCaseTest {
         new AddWorkflowDraftToVersionUseCase(domainPackDraftPersistenceService);
     AddWorkflowDraftToVersionCommand command =
         new AddWorkflowDraftToVersionCommand(
-            101L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+            101L, List.of(), List.of(), List.of(), List.of(), List.of());
     AddWorkflowDraftToVersionResult expected =
-        new AddWorkflowDraftToVersionResult(101L, 7L, 0, 0, 0, 0, 0, 0);
+        new AddWorkflowDraftToVersionResult(101L, 7L, 0, 0, 0, 0, 0);
     given(
             domainPackDraftPersistenceService.persistWorkflowDraft(
-                101L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of()))
+                101L, List.of(), List.of(), List.of(), List.of(), List.of()))
         .willReturn(expected);
 
     AddWorkflowDraftToVersionResult result = useCase.execute(command);
 
     assertThat(result).isEqualTo(expected);
     verify(domainPackDraftPersistenceService)
-        .persistWorkflowDraft(
-            101L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        .persistWorkflowDraft(101L, List.of(), List.of(), List.of(), List.of(), List.of());
   }
 
   @Test
   @DisplayName("command 생성 시 null collection은 빈 불변 리스트로 정규화한다")
   void command_nullCollections_normalizedToImmutableEmptyLists() {
     AddWorkflowDraftToVersionCommand command =
-        new AddWorkflowDraftToVersionCommand(101L, null, null, null, null, null, null);
+        new AddWorkflowDraftToVersionCommand(101L, null, null, null, null, null);
 
     assertThat(command.slots()).isEmpty();
     assertThat(command.policies()).isEmpty();
     assertThat(command.risks()).isEmpty();
     assertThat(command.workflows()).isEmpty();
     assertThat(command.intentSlotBindings()).isEmpty();
-    assertThat(command.intentWorkflowBindings()).isEmpty();
     assertThatThrownBy(() -> command.slots().add(null))
         .isInstanceOf(UnsupportedOperationException.class);
   }
@@ -66,7 +64,6 @@ class AddWorkflowDraftToVersionUseCaseTest {
                 new AddWorkflowDraftToVersionCommand(
                     101L,
                     Collections.singletonList(null),
-                    List.of(),
                     List.of(),
                     List.of(),
                     List.of(),

@@ -2,11 +2,9 @@ package com.init.domainpack.infrastructure;
 
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionSummaryRow;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -41,7 +39,6 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final IntentDefinitionRepository intentDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
-  private final IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
   private final EntityManager entityManager;
@@ -50,14 +47,12 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
       WorkflowDefinitionRepository workflowDefinitionRepository,
       IntentDefinitionRepository intentDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      IntentWorkflowBindingRepository intentWorkflowBindingRepository,
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       EntityManager entityManager) {
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
-    this.intentWorkflowBindingRepository = intentWorkflowBindingRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.entityManager = entityManager;
@@ -108,6 +103,9 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
             "start",
             "[\"end_requested\",\"end_rejected\"]",
             "[]",
+            "{}",
+            savedIntent.getId(),
+            true,
             "{}");
     WorkflowDefinition savedWorkflow = workflowDefinitionRepository.save(workflow);
 
@@ -117,10 +115,6 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
             IntentSlotBinding.create(savedIntent.getId(), 123L, true, 2, null, "{}"),
             IntentSlotBinding.create(savedIntent.getId(), 124L, true, 3, null, "{}"),
             IntentSlotBinding.create(savedIntent.getId(), 125L, true, 4, null, "{}")));
-
-    intentWorkflowBindingRepository.saveAll(
-        List.of(
-            IntentWorkflowBinding.create(savedIntent.getId(), savedWorkflow.getId(), true, "{}")));
 
     seedChatMessages(savedWorkflow.getId());
   }

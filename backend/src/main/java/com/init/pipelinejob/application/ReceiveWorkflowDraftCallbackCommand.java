@@ -1,7 +1,6 @@
 package com.init.pipelinejob.application;
 
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentSlotBindingDraft;
-import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentWorkflowBindingDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.PolicyDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.RiskDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.SlotDraft;
@@ -18,7 +17,6 @@ public record ReceiveWorkflowDraftCallbackCommand(
     List<RiskDraft> risks,
     List<WorkflowDraft> workflows,
     List<IntentSlotBindingDraft> intentSlotBindings,
-    List<IntentWorkflowBindingDraft> intentWorkflowBindings,
     boolean finalCallback,
     String requestHeadersJson,
     String requestBodyJson) {}

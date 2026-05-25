@@ -22,7 +22,6 @@ public class AddWorkflowDraftToVersionUseCase {
         command.policies(),
         command.risks(),
         command.workflows(),
-        command.intentSlotBindings(),
-        command.intentWorkflowBindings());
+        command.intentSlotBindings());
   }
 }

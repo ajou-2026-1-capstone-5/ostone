@@ -5,9 +5,16 @@ export interface IntentSlotBindingRequest {
   slotCode: string;
 }
 
-export interface IntentWorkflowBindingRequest {
-  intentCode: string;
+export interface WorkflowDraftRequest {
   workflowCode: string;
+  name: string;
+  description?: string | null;
+  graphJson: string;
+  intentCode: string;
+  isPrimary?: boolean | null;
+  routeConditionJson?: string | null;
+  evidenceJson?: string | null;
+  metaJson?: string | null;
 }
 
 export interface CreateDomainPackDraftRequest {
@@ -16,9 +23,8 @@ export interface CreateDomainPackDraftRequest {
   slots?: unknown[];
   policies?: unknown[];
   risks?: unknown[];
-  workflows?: unknown[];
+  workflows?: WorkflowDraftRequest[];
   intentSlotBindings?: IntentSlotBindingRequest[];
-  intentWorkflowBindings?: IntentWorkflowBindingRequest[];
   sourcePipelineJobId?: number | null;
 }
 

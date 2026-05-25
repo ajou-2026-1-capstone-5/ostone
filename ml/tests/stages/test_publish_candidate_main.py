@@ -78,6 +78,9 @@ def _candidate() -> dict[str, Any]:
                     "graphJson": '{"nodes":[],"edges":[]}',
                     "evidenceJson": "[]",
                     "metaJson": "{}",
+                    "intentCode": "refund_request",
+                    "isPrimary": True,
+                    "routeConditionJson": "{}",
                 }
             ],
             "intentSlotBindings": [
@@ -88,14 +91,6 @@ def _candidate() -> dict[str, Any]:
                     "collectionOrder": 1,
                     "promptHint": "Order ID?",
                     "conditionJson": "{}",
-                }
-            ],
-            "intentWorkflowBindings": [
-                {
-                    "intentCode": "refund_request",
-                    "workflowCode": "refund_flow",
-                    "isPrimary": True,
-                    "routeConditionJson": "{}",
                 }
             ],
         },
@@ -230,19 +225,11 @@ def test_validate_candidate_rejects_unknown_intent_slot_binding_slot() -> None:
         publish.validate_candidate(candidate)
 
 
-def test_validate_candidate_rejects_unknown_intent_workflow_binding_intent() -> None:
+def test_validate_candidate_rejects_workflow_with_unknown_intent_code() -> None:
     candidate = _candidate()
-    candidate["workflowDraft"]["intentWorkflowBindings"][0]["intentCode"] = "unknown_intent"
+    candidate["workflowDraft"]["workflows"][0]["intentCode"] = "unknown_intent"
 
     with pytest.raises(PipelineStageError, match="unknown intentCode"):
-        publish.validate_candidate(candidate)
-
-
-def test_validate_candidate_rejects_unknown_intent_workflow_binding_workflow() -> None:
-    candidate = _candidate()
-    candidate["workflowDraft"]["intentWorkflowBindings"][0]["workflowCode"] = "unknown_workflow"
-
-    with pytest.raises(PipelineStageError, match="unknown workflowCode"):
         publish.validate_candidate(candidate)
 
 

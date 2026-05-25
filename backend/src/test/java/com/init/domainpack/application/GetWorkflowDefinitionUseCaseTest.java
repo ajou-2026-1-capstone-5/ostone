@@ -184,7 +184,18 @@ class GetWorkflowDefinitionUseCaseTest {
   private WorkflowDefinition createWorkflow(Long id, String code, String graphJson) {
     WorkflowDefinition wf =
         WorkflowDefinition.create(
-            VERSION_ID, code, "환불 플로우", null, graphJson, "start", "[\"terminal\"]", null, null);
+            VERSION_ID,
+            code,
+            "환불 플로우",
+            null,
+            graphJson,
+            "start",
+            "[\"terminal\"]",
+            null,
+            null,
+            1L,
+            true,
+            "{}");
     ReflectionTestUtils.setField(wf, "id", id);
     ReflectionTestUtils.setField(wf, "createdAt", OffsetDateTime.parse("2026-04-14T10:00:00Z"));
     ReflectionTestUtils.setField(wf, "updatedAt", OffsetDateTime.parse("2026-04-14T10:00:00Z"));

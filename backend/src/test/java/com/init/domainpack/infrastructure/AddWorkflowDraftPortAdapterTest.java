@@ -9,7 +9,6 @@ import com.init.domainpack.application.AddWorkflowDraftToVersionResult;
 import com.init.domainpack.application.AddWorkflowDraftToVersionUseCase;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentSlotBindingDraft;
-import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.IntentWorkflowBindingDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.PolicyDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.RiskDraft;
 import com.init.pipelinejob.application.AddWorkflowDraftPortCommand.SlotDraft;
@@ -41,9 +40,8 @@ class AddWorkflowDraftPortAdapterTest {
   @DisplayName("execute — useCase 결과를 AddWorkflowDraftPortResult로 변환하여 반환한다")
   void should_mapPortResult_when_useCaseSucceeds() {
     var command =
-        new AddWorkflowDraftPortCommand(
-            42L, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
-    var useCaseResult = new AddWorkflowDraftToVersionResult(42L, 7L, 0, 0, 0, 0, 0, 0);
+        new AddWorkflowDraftPortCommand(42L, List.of(), List.of(), List.of(), List.of(), List.of());
+    var useCaseResult = new AddWorkflowDraftToVersionResult(42L, 7L, 0, 0, 0, 0, 0);
     given(addWorkflowDraftToVersionUseCase.execute(org.mockito.ArgumentMatchers.any()))
         .willReturn(useCaseResult);
 
@@ -54,7 +52,6 @@ class AddWorkflowDraftPortAdapterTest {
     assertThat(result.addedRiskCount()).isZero();
     assertThat(result.addedWorkflowCount()).isZero();
     assertThat(result.addedIntentSlotBindingCount()).isZero();
-    assertThat(result.addedIntentWorkflowBindingCount()).isZero();
   }
 
   @Test
@@ -63,9 +60,8 @@ class AddWorkflowDraftPortAdapterTest {
     var slot = new SlotDraft("SLOT_A", "슬롯A", "설명", "STRING", false, "{}", "{}", "{}");
     var policy = new PolicyDraft("POL_A", "정책A", "설명", "HIGH", "{}", "{}", "{}", "{}");
     var risk = new RiskDraft("RISK_A", "위험A", "설명", "MEDIUM", "{}", "{}", "{}", "{}");
-    var workflow = new WorkflowDraft("WF_A", "워크플로우A", "설명", "{}", "{}", "{}");
+    var workflow = new WorkflowDraft("WF_A", "워크플로우A", "설명", "{}", "{}", "{}", "INT_A", true, null);
     var intentSlot = new IntentSlotBindingDraft("INT_A", "SLOT_A", true, 1, "힌트", null);
-    var intentWorkflow = new IntentWorkflowBindingDraft("INT_A", "WF_A", true, null);
 
     var command =
         new AddWorkflowDraftPortCommand(
@@ -74,10 +70,9 @@ class AddWorkflowDraftPortAdapterTest {
             List.of(policy),
             List.of(risk),
             List.of(workflow),
-            List.of(intentSlot),
-            List.of(intentWorkflow));
+            List.of(intentSlot));
 
-    var useCaseResult = new AddWorkflowDraftToVersionResult(10L, 3L, 1, 1, 1, 1, 1, 1);
+    var useCaseResult = new AddWorkflowDraftToVersionResult(10L, 3L, 1, 1, 1, 1, 1);
     ArgumentCaptor<AddWorkflowDraftToVersionCommand> captor =
         forClass(AddWorkflowDraftToVersionCommand.class);
     given(addWorkflowDraftToVersionUseCase.execute(captor.capture())).willReturn(useCaseResult);
@@ -94,16 +89,14 @@ class AddWorkflowDraftPortAdapterTest {
     assertThat(captured.risks().get(0).riskCode()).isEqualTo("RISK_A");
     assertThat(captured.workflows()).hasSize(1);
     assertThat(captured.workflows().get(0).workflowCode()).isEqualTo("WF_A");
+    assertThat(captured.workflows().get(0).intentCode()).isEqualTo("INT_A");
     assertThat(captured.intentSlotBindings()).hasSize(1);
     assertThat(captured.intentSlotBindings().get(0).intentCode()).isEqualTo("INT_A");
-    assertThat(captured.intentWorkflowBindings()).hasSize(1);
-    assertThat(captured.intentWorkflowBindings().get(0).workflowCode()).isEqualTo("WF_A");
 
     assertThat(result.addedSlotCount()).isEqualTo(1);
     assertThat(result.addedPolicyCount()).isEqualTo(1);
     assertThat(result.addedRiskCount()).isEqualTo(1);
     assertThat(result.addedWorkflowCount()).isEqualTo(1);
     assertThat(result.addedIntentSlotBindingCount()).isEqualTo(1);
-    assertThat(result.addedIntentWorkflowBindingCount()).isEqualTo(1);
   }
 }

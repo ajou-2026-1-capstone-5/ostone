@@ -293,7 +293,10 @@ class GetWorkflowTransitionListUseCaseTest {
             initialState,
             terminalStatesJson,
             evidenceJson,
-            metaJson);
+            metaJson,
+            1L,
+            true,
+            "{}");
     ReflectionTestUtils.setField(wf, "id", id);
     return wf;
   }

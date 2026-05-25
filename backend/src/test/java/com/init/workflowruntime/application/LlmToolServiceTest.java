@@ -14,12 +14,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
-import com.init.domainpack.domain.model.IntentWorkflowBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
-import com.init.domainpack.domain.repository.IntentWorkflowBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -74,7 +72,6 @@ class LlmToolServiceTest {
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private SlotDefinitionRepository slotDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
-  @Mock private IntentWorkflowBindingRepository intentWorkflowBindingRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   @Mock private DecisionLogRepository decisionLogRepository;
@@ -93,7 +90,6 @@ class LlmToolServiceTest {
             intentDefinitionRepository,
             slotDefinitionRepository,
             intentSlotBindingRepository,
-            intentWorkflowBindingRepository,
             workflowDefinitionRepository,
             workflowPolicyRuntimeService,
             decisionLogRepository,
@@ -363,7 +359,6 @@ class LlmToolServiceTest {
     ChatSession session = createSession(1L, 10L, 101L);
     IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
     WorkflowDefinition workflow = createWorkflow(150L, 101L, "refund_flow", "start");
-    IntentWorkflowBinding workflowBinding = createWorkflowBinding(70L, 150L, true);
     WorkflowExecution execution = createExecution(50L, 1L, null, "{\"order_id\":\"A-100\"}");
     SlotDefinition orderSlot = createSlot(11L, 101L, "order_id");
     SlotDefinition refundSlot = createSlot(12L, 101L, "refund_reason");
@@ -373,10 +368,8 @@ class LlmToolServiceTest {
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
         .willReturn(Optional.of(intent));
-    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-        .willReturn(List.of(workflowBinding));
-    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-        .willReturn(Optional.of(workflow));
+    given(workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(70L, 101L))
+        .willReturn(List.of(workflow));
     given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
         .willReturn(Optional.of(execution));
     given(workflowExecutionRepository.save(execution)).willReturn(execution);
@@ -412,10 +405,8 @@ class LlmToolServiceTest {
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
         .willReturn(Optional.of(intent));
-    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-        .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
-    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-        .willReturn(Optional.of(workflow));
+    given(workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(70L, 101L))
+        .willReturn(List.of(workflow));
     given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
         .willReturn(Optional.of(execution));
     given(workflowExecutionRepository.save(execution)).willReturn(execution);
@@ -460,27 +451,7 @@ class LlmToolServiceTest {
   }
 
   @Test
-  @DisplayName("selectIntent: intent workflow binding이 없으면 404 예외")
-  void should_throwNotFound_when_workflowBindingMissing() {
-    // given
-    ChatSession session = createSession(1L, 10L, 101L);
-    IntentDefinition intent = createIntent(70L, 101L, "request_refund", "환불 요청");
-
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
-    given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
-        .willReturn(Optional.of(intent));
-    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-        .willReturn(List.of());
-
-    // when & then
-    assertThatThrownBy(
-            () -> service.selectIntent(new SelectLlmToolIntentCommand(1L, "request_refund")))
-        .isInstanceOf(NotFoundException.class)
-        .hasMessageContaining("Intent workflow binding not found");
-  }
-
-  @Test
-  @DisplayName("selectIntent: binding workflow가 세션 version에 없으면 404 예외")
+  @DisplayName("selectIntent: intent에 해당하는 workflow가 없으면 404 예외")
   void should_throwNotFound_when_workflowMissing() {
     // given
     ChatSession session = createSession(1L, 10L, 101L);
@@ -489,10 +460,8 @@ class LlmToolServiceTest {
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     given(intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(101L, "request_refund"))
         .willReturn(Optional.of(intent));
-    given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-        .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
-    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-        .willReturn(Optional.empty());
+    given(workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(70L, 101L))
+        .willReturn(List.of());
 
     // when & then
     assertThatThrownBy(
@@ -551,14 +520,6 @@ class LlmToolServiceTest {
     return intent;
   }
 
-  private IntentWorkflowBinding createWorkflowBinding(
-      Long intentDefinitionId, Long workflowDefinitionId, Boolean primary) {
-    IntentWorkflowBinding binding =
-        IntentWorkflowBinding.create(intentDefinitionId, workflowDefinitionId, primary, "{}");
-    ReflectionTestUtils.setField(binding, "id", 300L);
-    return binding;
-  }
-
   private WorkflowDefinition createWorkflow(
       Long id, Long versionId, String workflowCode, String initialState) {
     WorkflowDefinition workflow =
@@ -573,6 +534,9 @@ class LlmToolServiceTest {
             initialState,
             "[\"end\"]",
             "[]",
+            "{}",
+            1L,
+            true,
             "{}");
     ReflectionTestUtils.setField(workflow, "id", id);
     return workflow;
@@ -595,10 +559,10 @@ class LlmToolServiceTest {
               intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
                   101L, "request_refund"))
           .willReturn(Optional.of(intent));
-      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
-      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-          .willReturn(Optional.of(workflow));
+      given(
+              workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                  70L, 101L))
+          .willReturn(List.of(workflow));
       given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
           .willReturn(Optional.of(execution));
       given(workflowExecutionRepository.save(execution)).willReturn(execution);
@@ -721,10 +685,10 @@ class LlmToolServiceTest {
               intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
                   101L, "request_refund"))
           .willReturn(Optional.of(intent));
-      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
-      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-          .willReturn(Optional.of(workflow));
+      given(
+              workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                  70L, 101L))
+          .willReturn(List.of(workflow));
       given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
           .willReturn(Optional.of(execution));
       given(workflowExecutionRepository.save(execution)).willReturn(execution);
@@ -1002,10 +966,10 @@ class LlmToolServiceTest {
               intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
                   101L, "request_refund"))
           .willReturn(Optional.of(intent));
-      given(intentWorkflowBindingRepository.findAllByIntentDefinitionIdIn(List.of(70L)))
-          .willReturn(List.of(createWorkflowBinding(70L, 150L, true)));
-      given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
-          .willReturn(Optional.of(workflow));
+      given(
+              workflowDefinitionRepository.findAllByIntentDefinitionIdAndDomainPackVersionId(
+                  70L, 101L))
+          .willReturn(List.of(workflow));
       given(workflowExecutionRepository.findLatestByChatSessionIdForUpdate(1L))
           .willReturn(Optional.of(execution));
       given(workflowExecutionRepository.save(execution))

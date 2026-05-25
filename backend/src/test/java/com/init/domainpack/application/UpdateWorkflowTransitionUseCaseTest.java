@@ -563,7 +563,18 @@ class UpdateWorkflowTransitionUseCaseTest {
                 DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT)));
     WorkflowDefinition workflow =
         WorkflowDefinition.create(
-            VERSION_ID, "wf_refund", "환불 플로우", null, graph, "start", "[\"end_ok\"]", null, null);
+            VERSION_ID,
+            "wf_refund",
+            "환불 플로우",
+            null,
+            graph,
+            "start",
+            "[\"end_ok\"]",
+            null,
+            null,
+            1L,
+            true,
+            "{}");
     ReflectionTestUtils.setField(workflow, "id", WORKFLOW_ID);
     given(workflowRepository.findByIdAndDomainPackVersionIdForUpdate(WORKFLOW_ID, VERSION_ID))
         .willReturn(Optional.of(workflow));

@@ -50,7 +50,6 @@ export * from "./intentDefinitionSummary.zod";
 export * from "./intentDraftRequest.zod";
 export * from "./intentRevisionDraftResponse.zod";
 export * from "./intentSlotBindingDraftRequest.zod";
-export * from "./intentWorkflowBindingDraftRequest.zod";
 export * from "./jsonNode.zod";
 export * from "./loginBody.zod";
 export * from "./loginRequest.zod";

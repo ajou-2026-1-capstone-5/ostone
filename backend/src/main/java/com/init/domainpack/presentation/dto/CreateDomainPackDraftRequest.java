@@ -16,9 +16,7 @@ public record CreateDomainPackDraftRequest(
     @Size(max = 200, message = "policies는 200개 이하여야 합니다.") List<@Valid PolicyDraftRequest> policies,
     @Size(max = 200, message = "risks는 200개 이하여야 합니다.") List<@Valid RiskDraftRequest> risks,
     @Size(max = 200, message = "workflows는 200개 이하여야 합니다.")
-        List<@Valid WorkflowDraftRequest> workflows,
-    @Size(max = 500, message = "intentWorkflowBindings는 500개 이하여야 합니다.")
-        List<@Valid IntentWorkflowBindingDraftRequest> intentWorkflowBindings) {
+        List<@Valid WorkflowDraftRequest> workflows) {
 
   public record IntentDraftRequest(
       @NotBlank(message = "intentCode는 필수입니다.")
@@ -104,15 +102,10 @@ public record CreateDomainPackDraftRequest(
       @Null(message = "terminalStatesJson은 서버에서 자동 추출됩니다. 요청에 포함하지 마십시오.")
           String terminalStatesJson,
       @Size(max = 5000, message = "evidenceJson은 5000자 이하여야 합니다.") String evidenceJson,
-      @Size(max = 5000, message = "metaJson은 5000자 이하여야 합니다.") String metaJson) {}
-
-  public record IntentWorkflowBindingDraftRequest(
+      @Size(max = 5000, message = "metaJson은 5000자 이하여야 합니다.") String metaJson,
       @NotBlank(message = "intentCode는 필수입니다.")
           @Size(max = 100, message = "intentCode는 100자 이하여야 합니다.")
           String intentCode,
-      @NotBlank(message = "workflowCode는 필수입니다.")
-          @Size(max = 100, message = "workflowCode는 100자 이하여야 합니다.")
-          String workflowCode,
       Boolean isPrimary,
       @Size(max = 5000, message = "routeConditionJson은 5000자 이하여야 합니다.")
           String routeConditionJson) {}

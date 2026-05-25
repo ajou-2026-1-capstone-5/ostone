@@ -256,6 +256,28 @@ create table pack.intent_workflow_binding (
     unique (intent_definition_id, workflow_definition_id)
 );
 
+--changeset init:20250525-add-intent-fk-to-workflow-definition
+--comment: Add intent_definition_id FK and routing columns to workflow_definition (1:N migration step 1)
+alter table pack.workflow_definition
+    add column intent_definition_id bigint references pack.intent_definition(id) on delete cascade,
+    add column is_primary           boolean not null default true,
+    add column route_condition_json jsonb   not null default '{}'::jsonb;
+
+--changeset init:20250525-backfill-workflow-intent-fk
+--comment: Backfill intent_definition_id from intent_workflow_binding (1:N migration step 2)
+update pack.workflow_definition w
+set    intent_definition_id  = b.intent_definition_id,
+       is_primary             = b.is_primary,
+       route_condition_json   = b.route_condition_json
+from   pack.intent_workflow_binding b
+where  b.workflow_definition_id = w.id;
+
+--changeset init:20250525-enforce-workflow-intent-fk-and-drop-binding
+--comment: Make intent_definition_id NOT NULL and drop binding table (1:N migration step 3)
+alter table pack.workflow_definition
+    alter column intent_definition_id set not null;
+drop table pack.intent_workflow_binding;
+
 --changeset init:20250403-create-review-schema
 --comment: Create review schema for review workflow
 create schema if not exists review;

@@ -402,21 +402,17 @@ def _process_cluster_entry(
         "graphJson": serialize_graph_json(graph_spec),
         "evidenceJson": evidence_json_str,
         "metaJson": "{}",
-    }
-    binding = {
         "intentCode": f"INTENT_{cluster_id}",
-        "workflowCode": f"WORKFLOW_{cluster_id}",
         "isPrimary": True,
         "routeConditionJson": "{}",
     }
-    return workflow, binding, kw_count, ex_count, mb_count, not evidence_items, signal
+    return workflow, kw_count, ex_count, mb_count, not evidence_items, signal
 
 
 def _build_workflow_draft(
     clusters: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     workflows: list[dict[str, Any]] = []
-    bindings: list[dict[str, Any]] = []
     workflow_count = 0
     identify_count = 0
     payment_count = 0
@@ -430,9 +426,8 @@ def _build_workflow_draft(
         result = _process_cluster_entry(cluster)
         if result is None:
             continue
-        workflow, binding, kw, ex, mb, is_empty, signal = result
+        workflow, kw, ex, mb, is_empty, signal = result
         workflows.append(workflow)
-        bindings.append(binding)
         keyword_total += kw
         exemplar_total += ex
         member_total += mb
@@ -448,7 +443,6 @@ def _build_workflow_draft(
         "risks": [],
         "workflows": workflows,
         "intentSlotBindings": [],
-        "intentWorkflowBindings": bindings,
     }
     workflow_metrics = {
         "workflow_count": workflow_count,
