@@ -1,5 +1,52 @@
 export type DomainPackSection = "intents" | "slots" | "policies" | "risks" | "workflows";
 
+export const SECTION_LABEL: Record<DomainPackSection, string> = {
+  intents: "INTENTS",
+  slots: "SLOTS",
+  policies: "POLICIES",
+  risks: "RISKS",
+  workflows: "WORKFLOWS",
+};
+
+export interface DomainPackCrumbInput {
+  wsId: number;
+  pId: number;
+  vId: number;
+  packName: string;
+  versionNo: number;
+  section?: { label: string; path: DomainPackSection };
+  selectedLabel?: string | null;
+}
+
+export function buildDomainPackCrumbs({
+  wsId,
+  pId,
+  vId,
+  packName,
+  versionNo,
+  section,
+  selectedLabel,
+}: DomainPackCrumbInput): Array<{ label: string; href?: string }> {
+  const crumbs: Array<{ label: string; href?: string }> = [
+    { label: `WS · ${wsId}`, href: `/workspaces/${wsId}/domain-packs` },
+    { label: packName, href: domainPackPath(wsId, pId) },
+    {
+      label: `#${versionNo}`,
+      href: withVersionSearch(domainPackPath(wsId, pId), vId),
+    },
+  ];
+  if (section) {
+    crumbs.push({
+      label: section.label,
+      href: domainPackSectionPath(wsId, pId, vId, section.path),
+    });
+  }
+  if (selectedLabel) {
+    crumbs.push({ label: selectedLabel });
+  }
+  return crumbs;
+}
+
 export function withVersionSearch(path: string, versionId: number | null): string {
   if (versionId === null) return path;
   const separator = path.includes("?") ? "&" : "?";

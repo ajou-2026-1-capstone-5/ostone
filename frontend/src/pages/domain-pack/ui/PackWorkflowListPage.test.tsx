@@ -13,6 +13,10 @@ vi.mock(
   }),
 );
 
+vi.mock("@/features/domain-pack-summary-read", () => ({
+  usePackDetail: () => ({ data: undefined }),
+}));
+
 vi.mock("@/features/workflow-list", () => ({
   WorkflowListView: vi.fn(({ entries, onOpen }) => (
     <div data-testid="workflow-list-view">

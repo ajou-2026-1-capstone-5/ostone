@@ -75,16 +75,24 @@ export function WorkflowRow({
           </Mono>
         </div>
 
-        {previewOpen && (
-          <div className={styles.expanded} data-testid={`${rowTestId}-detail`}>
-            {entry.description && <p className={styles.description}>{entry.description}</p>}
-            {graphSlot && (
-              <div className={styles.graphSlot} data-testid={`${rowTestId}-graph`}>
-                {graphSlot}
+        <div
+          className={styles.expandedWrapper}
+          data-testid={`${rowTestId}-expand`}
+          aria-hidden={!previewOpen}
+        >
+          <div className={styles.expandedInner}>
+            {previewOpen && (
+              <div className={styles.expanded} data-testid={`${rowTestId}-detail`}>
+                {entry.description && <p className={styles.description}>{entry.description}</p>}
+                {graphSlot && (
+                  <div className={styles.graphSlot} data-testid={`${rowTestId}-graph`}>
+                    {graphSlot}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
+        </div>
       </button>
     </article>
   );

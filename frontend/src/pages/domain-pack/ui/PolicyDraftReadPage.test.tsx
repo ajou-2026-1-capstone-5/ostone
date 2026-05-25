@@ -13,6 +13,10 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("@/features/domain-pack-summary-read", () => ({
+  usePackDetail: () => ({ data: undefined }),
+}));
+
 vi.mock("@/features/policy-draft-read/ui", () => ({
   PolicyListPanel: ({ onSelect }: { onSelect: (id: number) => void }) => (
     <button type="button" onClick={() => onSelect(4)}>

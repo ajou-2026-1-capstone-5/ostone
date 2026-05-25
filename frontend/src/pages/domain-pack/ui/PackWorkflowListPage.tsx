@@ -1,16 +1,18 @@
 import { useMemo } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { useListWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type { WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
-import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
+import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { WorkflowListView } from "@/features/workflow-list";
 
 export function PackWorkflowListPage() {
@@ -22,6 +24,11 @@ export function PackWorkflowListPage() {
   const pId = parseRouteId(packId);
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const enabled = wsId !== null && pId !== null && vId !== null;
+
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0).data;
+  const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
 
   const query = useListWorkflows(wsId ?? 0, pId ?? 0, vId ?? 0, undefined, {
     query: { enabled },
@@ -48,7 +55,14 @@ export function PackWorkflowListPage() {
     return <Navigate to="/workspaces" replace />;
   }
 
-  const crumbs = [`WS · ${wsId}`, "Domain Packs", `PACK · ${pId}`, `VER · ${vId}`, "Workflows"];
+  const crumbs: Crumb[] = buildDomainPackCrumbs({
+    wsId,
+    pId,
+    vId,
+    packName,
+    versionNo,
+    section: { label: "WORKFLOWS", path: "workflows" },
+  });
 
   const handleOpen = (entry: WorkspaceWorkflowEntry) => {
     navigate(domainPackSectionPath(wsId, entry.packId, entry.versionId, "workflows", entry.workflowId));
@@ -57,18 +71,6 @@ export function PackWorkflowListPage() {
   return (
     <OstoneShell active="workflows" crumbs={crumbs}>
       <div style={{ padding: "24px", height: "100%", overflow: "auto" }}>
-        <h1
-          style={{
-            fontFamily: "var(--sans)",
-            fontSize: "22px",
-            fontWeight: 500,
-            color: "var(--ink)",
-            letterSpacing: "-0.26px",
-            margin: "0 0 var(--s-4) 0",
-          }}
-        >
-          Workflow
-        </h1>
         {query.isLoading && (
           <div
             data-testid="pack-workflows-loading"

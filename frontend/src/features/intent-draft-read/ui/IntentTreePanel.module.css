@@ -49,10 +49,10 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 16px 18px 17px;
+  padding: 16px 22px 17px;
   margin-bottom: 8px;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-pill-row);
+  border-radius: 40px;
   background: var(--bg-color);
   cursor: pointer;
   color: var(--text-primary);
@@ -162,7 +162,7 @@
 
 .skeletonRow {
   height: 58px;
-  border-radius: var(--radius-pill-row);
+  border-radius: 40px;
   background: var(--bg-secondary);
 }
 

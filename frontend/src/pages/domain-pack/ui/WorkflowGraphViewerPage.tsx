@@ -1,11 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { OstoneShell } from "@/widgets/ostone-shell";
-import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { useGetWorkflowDefinition } from "@/entities/workflow";
 import type { WorkflowGraph } from "@/entities/workflow";
+import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
+import { buildDomainPackCrumbs } from "@/shared/lib/domainPackRoutes";
+import { parseRouteId } from "@/shared/lib/parseRouteId";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
+import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./WorkflowGraphViewerPage.module.css";
 
 export function WorkflowGraphViewerPage() {
@@ -27,6 +30,11 @@ export function WorkflowGraphViewerPage() {
     enabled,
   });
 
+  const packDetail = usePackDetail(wsId ?? 0, pkId ?? 0).data;
+  const packName = packDetail?.name ?? `PACK · ${pkId ?? "?"}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vsId)?.versionNo ?? vsId ?? 0;
+
   const rawGraph = data?.graphJson;
   const graph = useMemo<WorkflowGraph | null>(() => {
     if (!rawGraph) return null;
@@ -47,17 +55,23 @@ export function WorkflowGraphViewerPage() {
     }
   }, [error]);
 
+  const crumbs: Crumb[] =
+    wsId !== null && pkId !== null && vsId !== null
+      ? buildDomainPackCrumbs({
+          wsId,
+          pId: pkId,
+          vId: vsId,
+          packName,
+          versionNo,
+          section: { label: "WORKFLOWS", path: "workflows" },
+          selectedLabel:
+            data?.workflowCode ?? (wfId !== null ? `#${wfId} GRAPH` : "GRAPH"),
+        })
+      : ["Domain Packs", "Workflow Graph"];
+
   if (isLoading) {
     return (
-      <OstoneShell
-        active="domain"
-        crumbs={[
-          `WS \u00b7 ${wsId ?? "-"}`,
-          "Domain Packs",
-          `VER \u00b7 ${vsId ?? "-"}`,
-          "Workflow Graph",
-        ]}
-      >
+      <OstoneShell active="domain" crumbs={crumbs}>
         <div data-testid="loading-state" className={styles.loadingState}>
           워크플로우 데이터를 불러오는 중...
         </div>
@@ -67,15 +81,7 @@ export function WorkflowGraphViewerPage() {
 
   if (error) {
     return (
-      <OstoneShell
-        active="domain"
-        crumbs={[
-          `WS \u00b7 ${wsId ?? "-"}`,
-          "Domain Packs",
-          `VER \u00b7 ${vsId ?? "-"}`,
-          "Workflow Graph",
-        ]}
-      >
+      <OstoneShell active="domain" crumbs={crumbs}>
         <div data-testid="error-state" className={styles.errorState}>
           에러:{" "}
           {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
@@ -86,15 +92,7 @@ export function WorkflowGraphViewerPage() {
 
   if (!graph) {
     return (
-      <OstoneShell
-        active="domain"
-        crumbs={[
-          `WS \u00b7 ${wsId ?? "-"}`,
-          "Domain Packs",
-          `VER \u00b7 ${vsId ?? "-"}`,
-          "Workflow Graph",
-        ]}
-      >
+      <OstoneShell active="domain" crumbs={crumbs}>
         <div data-testid="empty-state" className={styles.emptyState}>
           표시할 워크플로우 그래프가 없습니다.
         </div>
@@ -103,15 +101,7 @@ export function WorkflowGraphViewerPage() {
   }
 
   return (
-    <OstoneShell
-      active="domain"
-      crumbs={[
-        `WS \u00b7 ${wsId ?? "-"}`,
-        "Domain Packs",
-        `VER \u00b7 ${vsId ?? "-"}`,
-        "Workflow Graph",
-      ]}
-    >
+    <OstoneShell active="domain" crumbs={crumbs}>
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <div className={styles.graphContainer}>
           <GraphViewer graph={graph} />

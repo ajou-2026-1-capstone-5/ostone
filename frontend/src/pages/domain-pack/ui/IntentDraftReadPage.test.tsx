@@ -54,7 +54,18 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
+  OstoneShell: ({
+    children,
+    topbarRight,
+  }: {
+    children: React.ReactNode;
+    topbarRight?: React.ReactNode;
+  }) => (
+    <main>
+      {topbarRight}
+      {children}
+    </main>
+  ),
 }));
 
 vi.mock("@/features/domain-pack-summary-read", () => ({

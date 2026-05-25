@@ -25,8 +25,8 @@ export function Pill({ tone, children, className }: PillProps) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: "var(--r-2)",
+        padding: "2px 10px",
+        borderRadius: "var(--r-pill)",
         fontFamily: "var(--mono)",
         fontSize: "10px",
         textTransform: "uppercase",

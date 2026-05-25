@@ -8,6 +8,10 @@ vi.mock("@/entities/workflow", () => ({
   useGetWorkflowDefinition: (...args: unknown[]) => mockUseGetWorkflowDefinition(...args),
 }));
 
+vi.mock("@/features/domain-pack-summary-read", () => ({
+  usePackDetail: () => ({ data: undefined }),
+}));
+
 vi.mock("@/features/update-workflow", () => ({
   InlineWorkflowEditor: vi.fn(({ workflow, onClose }) => (
     <div data-testid="inline-editor">

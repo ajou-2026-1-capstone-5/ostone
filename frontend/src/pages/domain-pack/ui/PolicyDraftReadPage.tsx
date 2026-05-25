@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { PolicyDetailPanel, PolicyListPanel } from "@/features/policy-draft-read/ui";
 import { PolicyEditPanel } from "@/features/update-policy";
 import {
+  buildDomainPackCrumbs,
   domainPackSectionPath,
   shouldReplaceDomainPackChildRoute,
 } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { Pill } from "@/shared/ui/ostone/atoms";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./policy-draft-read-page.module.css";
 
@@ -28,6 +32,11 @@ export function PolicyDraftReadPage() {
   const hasInvalidPolicyId = policyId !== undefined && selectedPolicyId === null;
   const routeKey = `${wsId}:${pId}:${vId}:${selectedPolicyId}`;
 
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0).data;
+  const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
       <OstoneShell active="domain" crumbs={["Domain Packs"]}>
@@ -48,31 +57,27 @@ export function PolicyDraftReadPage() {
     navigate(path);
   };
 
-  const handleBack = () => {
-    setEditingPolicy(null);
-    navigate(domainPackSectionPath(wsId, pId, vId, "policies"), { replace: true });
-  };
-
   const hasSelection = selectedPolicyId !== null;
   const activeEditingPolicyId =
     editingPolicy?.routeKey === routeKey && editingPolicy.policyId === selectedPolicyId
       ? editingPolicy.policyId
       : null;
 
+  const crumbs: Crumb[] = buildDomainPackCrumbs({
+    wsId,
+    pId,
+    vId,
+    packName,
+    versionNo,
+    section: { label: "POLICIES", path: "policies" },
+    selectedLabel: selectedPolicyId !== null ? `#${selectedPolicyId}` : null,
+  });
+
+  const topbarRight = <Pill tone="mute">READ / EDIT</Pill>;
+
   return (
-    <OstoneShell active="policy" crumbs={[`WS · ${wsId}`, "Domain Packs", `VER · ${vId}`]}>
+    <OstoneShell active="policy" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
-        <header className={styles.pageHeader}>
-          <div className={styles.versionMeta}>
-            <span className={styles.versionTitle}>Policy 초안 편집</span>
-            <span className={styles.versionBadge}>READ / EDIT</span>
-          </div>
-        </header>
-        {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={handleBack}>
-            ← 목록
-          </button>
-        )}
         <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
           <div className={styles.listSlot}>
             <PolicyListPanel

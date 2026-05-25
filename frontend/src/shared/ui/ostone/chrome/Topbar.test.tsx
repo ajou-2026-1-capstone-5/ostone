@@ -1,15 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Topbar } from "./Topbar";
+
+function renderTopbar(...args: Parameters<typeof Topbar>) {
+  return render(
+    <MemoryRouter>
+      <Topbar {...args[0]} />
+    </MemoryRouter>,
+  );
+}
 
 describe("Topbar", () => {
   it("renders OSTONE eyebrow", () => {
-    render(<Topbar crumbs={[]} />);
+    renderTopbar({ crumbs: [] });
     expect(screen.getByText("OSTONE")).toBeInTheDocument();
   });
 
   it("renders breadcrumbs with last item bold", () => {
-    const { container } = render(<Topbar crumbs={["CARD-CS", "Domain Packs", "Refund flow"]} />);
+    const { container } = renderTopbar({
+      crumbs: ["CARD-CS", "Domain Packs", "Refund flow"],
+    });
     const crumbs = container.querySelectorAll(".crumb");
     expect(crumbs.length).toBe(3);
 
@@ -18,7 +29,40 @@ describe("Topbar", () => {
   });
 
   it("renders right slot", () => {
-    render(<Topbar crumbs={[]} right={<button type="button">CTA</button>} />);
+    renderTopbar({ crumbs: [], right: <button type="button">CTA</button> });
     expect(screen.getByText("CTA")).toBeInTheDocument();
+  });
+
+  it("crumb with href (non-last) renders as anchor with that href", () => {
+    renderTopbar({
+      crumbs: [
+        { label: "Pack X", href: "/workspaces/1/domain-packs/9" },
+        { label: "INTENTS", href: "/workspaces/1/domain-packs/9/intents?versionId=1" },
+        { label: "current" },
+      ],
+    });
+    const linkA = screen.getByText("Pack X") as HTMLAnchorElement;
+    expect(linkA.tagName).toBe("A");
+    expect(linkA.getAttribute("href")).toBe("/workspaces/1/domain-packs/9");
+
+    const linkB = screen.getByText("INTENTS") as HTMLAnchorElement;
+    expect(linkB.tagName).toBe("A");
+    expect(linkB.getAttribute("href")).toBe(
+      "/workspaces/1/domain-packs/9/intents?versionId=1",
+    );
+
+    const last = screen.getByText("current");
+    expect(last.tagName).not.toBe("A");
+  });
+
+  it("crumb with href on last item renders as span (not clickable)", () => {
+    renderTopbar({
+      crumbs: [
+        { label: "first" },
+        { label: "last", href: "/somewhere" },
+      ],
+    });
+    const last = screen.getByText("last");
+    expect(last.tagName).toBe("SPAN");
   });
 });
