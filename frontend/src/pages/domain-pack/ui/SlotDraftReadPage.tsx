@@ -22,7 +22,9 @@ export function SlotDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const sId = slotId ? parseRouteId(slotId) : null;
 
-  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0).data;
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
+    enabled: wsId !== null && pId !== null,
+  }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =
     packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;

@@ -182,27 +182,34 @@ function EdgeLine({
       />
       {edge.label && (
         <g>
-          <rect
-            x={labelPoint.x - edge.label.length * 3 - 4}
-            y={labelPoint.y - 8}
-            width={edge.label.length * 6 + 8}
-            height={12}
-            rx={2}
-            fill="var(--paper)"
-            stroke="var(--line)"
-            strokeWidth={0.6}
-          />
-          <text
-            x={labelPoint.x}
-            y={labelPoint.y + 1}
-            textAnchor="middle"
-            fontSize={9}
-            fontFamily="var(--mono)"
-            fill="var(--ink-2)"
-            style={{ pointerEvents: "none" }}
-          >
-            {truncate(edge.label, 14)}
-          </text>
+          {(() => {
+            const displayLabel = truncate(edge.label, 14);
+            return (
+              <>
+                <rect
+                  x={labelPoint.x - displayLabel.length * 3 - 4}
+                  y={labelPoint.y - 8}
+                  width={displayLabel.length * 6 + 8}
+                  height={12}
+                  rx={2}
+                  fill="var(--paper)"
+                  stroke="var(--line)"
+                  strokeWidth={0.6}
+                />
+                <text
+                  x={labelPoint.x}
+                  y={labelPoint.y + 1}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fontFamily="var(--mono)"
+                  fill="var(--ink-2)"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {displayLabel}
+                </text>
+              </>
+            );
+          })()}
         </g>
       )}
     </g>

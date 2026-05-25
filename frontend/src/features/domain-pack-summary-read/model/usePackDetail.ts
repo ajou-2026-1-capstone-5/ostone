@@ -8,9 +8,16 @@ import {
 } from "@/shared/api/generated/zod";
 import { unwrapApiResponse } from "@/shared/api";
 
-export function usePackDetail(wsId: number, packId: number) {
+export function usePackDetail(
+  wsId: number,
+  packId: number,
+  options?: { enabled?: boolean },
+) {
   return useGetDomainPack(wsId, packId, {
-    query: { select: (res) => unwrapApiResponse<DomainPackDetailResult>(res) },
+    query: {
+      enabled: options?.enabled,
+      select: (res) => unwrapApiResponse<DomainPackDetailResult>(res),
+    },
   });
 }
 

@@ -52,7 +52,7 @@
   padding: 16px 22px 17px;
   margin-bottom: 8px;
   border: 1px solid var(--glass-border);
-  border-radius: 40px;
+  border-radius: var(--radius-pill-row);
   background: var(--bg-color);
   cursor: pointer;
   color: var(--text-primary);
@@ -162,7 +162,7 @@
 
 .skeletonRow {
   height: 58px;
-  border-radius: 40px;
+  border-radius: var(--radius-pill-row);
   background: var(--bg-secondary);
 }
 

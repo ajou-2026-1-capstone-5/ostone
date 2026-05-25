@@ -25,7 +25,9 @@ export function PackWorkflowListPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const enabled = wsId !== null && pId !== null && vId !== null;
 
-  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0).data;
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
+    enabled: wsId !== null && pId !== null,
+  }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =
     packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
@@ -41,7 +43,7 @@ export function PackWorkflowListPage() {
       .filter((wf): wf is WorkflowDefinitionSummary & { id: number } => typeof wf.id === "number")
       .map<WorkspaceWorkflowEntry>((wf) => ({
         packId: pId!,
-        packName: `pack-${pId}`,
+        packName: packName,
         versionId: vId!,
         workflowId: wf.id,
         workflowCode: wf.workflowCode ?? null,
@@ -49,7 +51,7 @@ export function PackWorkflowListPage() {
         description: wf.description ?? null,
         intentDefinitionId: wf.intentDefinitionId ?? null,
       }));
-  }, [enabled, query.data, pId, vId]);
+  }, [enabled, query.data, packName, pId, vId]);
 
   if (!enabled) {
     return <Navigate to="/workspaces" replace />;

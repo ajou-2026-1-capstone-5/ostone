@@ -32,7 +32,9 @@ export function RiskDraftReadPage() {
   const hasInvalidRiskId = riskId !== undefined && selectedRiskId === null;
   const routeKey = `${wsId}:${pId}:${vId}:${selectedRiskId}`;
 
-  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0).data;
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
+    enabled: wsId !== null && pId !== null,
+  }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =
     packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;

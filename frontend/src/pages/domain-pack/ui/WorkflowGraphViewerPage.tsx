@@ -30,7 +30,9 @@ export function WorkflowGraphViewerPage() {
     enabled,
   });
 
-  const packDetail = usePackDetail(wsId ?? 0, pkId ?? 0).data;
+  const packDetail = usePackDetail(wsId ?? 0, pkId ?? 0, {
+    enabled: wsId !== null && pkId !== null,
+  }).data;
   const packName = packDetail?.name ?? `PACK · ${pkId ?? "?"}`;
   const versionNo =
     packDetail?.versions?.find((v) => v.versionId === vsId)?.versionNo ?? vsId ?? 0;
