@@ -60,7 +60,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent triggering send while composing (e.g. Korean IME)
     if (e.nativeEvent.isComposing) return;
 
     if (e.key === "Enter" && !e.shiftKey) {
@@ -189,7 +188,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.sendBtn} onClick={handleSend} disabled={!input.trim()}>
+        <button
+          className={styles.sendBtn}
+          onClick={handleSend}
+          disabled={!input.trim()}
+          aria-label="메시지 전송"
+          title="메시지 전송"
+        >
           <Send size={18} />
         </button>
       </div>
