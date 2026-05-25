@@ -2,15 +2,40 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import "@testing-library/jest-dom/vitest";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
+import { toast } from "sonner";
 
-const { mockUnsubscribe, mockSubscribe, mockSendTo } = vi.hoisted(() => {
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+interface RealtimeChatMessage {
+  id: string | number;
+  senderRole: string;
+  content?: string | null;
+  createdAt?: string | null;
+  timestamp?: string | null;
+}
+
+const { mockSubscribe, mockSendTo, stompState } = vi.hoisted(() => {
   const mockUnsubscribe = vi.fn();
+  const stompState = {
+    connectionStatus: "CONNECTED" as "CONNECTED" | "DISCONNECTED",
+    latestCallback: null as ((msg: RealtimeChatMessage) => void) | null,
+  };
   return {
     mockUnsubscribe,
-    mockSubscribe: vi.fn(() => mockUnsubscribe),
+    mockSubscribe: vi.fn((_topic: string, callback: (msg: RealtimeChatMessage) => void) => {
+      stompState.latestCallback = callback;
+      return mockUnsubscribe;
+    }),
     mockSendTo: vi.fn(),
+    stompState,
   };
 });
 
@@ -59,7 +84,7 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
 
 vi.mock("@/shared/lib/websocket", () => ({
   useStomp: () => ({
-    connectionStatus: "CONNECTED",
+    connectionStatus: stompState.connectionStatus,
     subscribe: mockSubscribe,
     sendTo: mockSendTo,
     sendMessage: vi.fn(),
@@ -76,7 +101,8 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe("ConsultationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSubscribe.mockReturnValue(mockUnsubscribe);
+    stompState.connectionStatus = "CONNECTED";
+    stompState.latestCallback = null;
     window.alert = vi.fn();
   });
 
@@ -314,5 +340,273 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(screen.getByText("가격 문의")).toBeInTheDocument();
     });
+  });
+
+  it("handles empty startedAt in queue items to set waitMinutes to 0", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 2,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "이영희", handoffReason: "환불 문의" }),
+        startedAt: "",
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("이영희")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/0분 전/)).toBeInTheDocument();
+  });
+
+  it("handles metaJson parse error gracefully by using fallback metadata", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 3,
+        status: "OPEN",
+        channel: "네이버톡톡",
+        metaJson: "{invalid-json}",
+        startedAt: new Date().toISOString(),
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("Unknown")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error toast when loading queue fails", async () => {
+    vi.mocked(consultationApi.getQueue).mockRejectedValueOnce(new Error("Network Error"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("대기열을 불러오지 못했습니다.");
+    });
+  });
+
+  it("shows error toast when loading messages fails", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    vi.mocked(consultationApi.getMessages).mockRejectedValueOnce(new Error("DB Error"));
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) {
+      customerItem.click();
+    }
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("메시지를 불러오지 못했습니다.");
+    });
+  });
+
+  it("clears selectedMessageId if the selected message is no longer in messages list", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "홍길동", handoffReason: "기타 문의" }),
+        startedAt: new Date().toISOString(),
+      }
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+      expect(screen.getByText("홍길동")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+    });
+
+    const messageEl = screen.getByText("환불 문의 드립니다.");
+    fireEvent.click(messageEl);
+
+    await waitFor(() => {
+      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+    });
+
+    vi.mocked(consultationApi.getMessages).mockResolvedValueOnce([]);
+
+    const hongEl = screen.getByText("홍길동").closest("div");
+    if (hongEl) hongEl.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("고객 정보")).toBeInTheDocument();
+      expect(screen.queryByText("가격 문의")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not send message and shows error toast when STOMP is disconnected", async () => {
+    const user = userEvent.setup();
+    stompState.connectionStatus = "DISCONNECTED";
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "보낼 수 없는 메시지");
+    await user.keyboard("{Enter}");
+
+    expect(toast.error).toHaveBeenCalledWith("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+    expect(mockSendTo).not.toHaveBeenCalled();
+    expect(screen.queryByText("보낼 수 없는 메시지")).not.toBeInTheDocument();
+  });
+
+  it("handles incoming non-counselor STOMP message", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalled();
+    });
+
+    expect(stompState.latestCallback).toBeTypeOf("function");
+
+    if (stompState.latestCallback) {
+      stompState.latestCallback({
+        id: 999,
+        senderRole: "CUSTOMER",
+        content: "새로운 고객 메시지",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText("새로운 고객 메시지")).toBeInTheDocument();
+    });
+  });
+
+  it("handles counselor echo and replaces the pending optimistic message", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "임시 답변");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.getByText("임시 답변")).toBeInTheDocument();
+    });
+
+    if (stompState.latestCallback) {
+      stompState.latestCallback({
+        id: 888,
+        senderRole: "COUNSELOR",
+        content: "정식 답변 내용",
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText("정식 답변 내용")).toBeInTheDocument();
+      expect(screen.queryByText("임시 답변")).not.toBeInTheDocument();
+    });
+  });
+
+  it("ignores counselor echo if there are no pending optimistic messages", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalled();
+    });
+
+    if (stompState.latestCallback) {
+      stompState.latestCallback({
+        id: 777,
+        senderRole: "COUNSELOR",
+        content: "임시 메시지 없는 에코",
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    expect(screen.queryByText("임시 메시지 없는 에코")).not.toBeInTheDocument();
+  });
+
+  it("shows error toast when ending session fails", async () => {
+    vi.mocked(consultationApi.updateStatus).mockRejectedValueOnce(new Error("API Error"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("상담 종료"));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("세션 종료 실패");
+    });
+  });
+
+  it("updates active customer's memo when typing in the textarea", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    const textarea = await screen.findByPlaceholderText("상담 메모를 입력하세요...");
+    await user.type(textarea, "고객이 매우 다급함");
+
+    expect(textarea).toHaveValue("고객이 매우 다급함");
   });
 });
