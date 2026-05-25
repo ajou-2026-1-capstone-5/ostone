@@ -5,9 +5,13 @@ import { MemoryRouter } from "react-router-dom";
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
 import { WorkflowListView } from "./WorkflowListView";
 
-vi.mock("./WorkflowGraphMini", () => ({
-  WorkflowGraphMini: () => <div data-testid="graph-mini-stub" />,
-}));
+vi.mock("@/entities/workflow", async () => {
+  const actual = await vi.importActual<typeof import("@/entities/workflow")>("@/entities/workflow");
+  return {
+    ...actual,
+    WorkflowGraphMini: () => <div data-testid="graph-mini-stub" />,
+  };
+});
 
 function makeEntry(
   id: number,
@@ -22,6 +26,7 @@ function makeEntry(
     workflowCode: code,
     name,
     description: `desc-${id}`,
+    intentDefinitionId: null,
   };
 }
 

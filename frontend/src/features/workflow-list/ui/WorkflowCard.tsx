@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "react";
 
-import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
+import { WorkflowGraphMini, type WorkspaceWorkflowEntry } from "@/entities/workflow";
 import { Mono, Pill } from "@/shared/ui/ostone/atoms";
 
-import { WorkflowGraphMini } from "./WorkflowGraphMini";
 import styles from "./workflow-card.module.css";
 
 const ROW_UNIT_PX = 10;

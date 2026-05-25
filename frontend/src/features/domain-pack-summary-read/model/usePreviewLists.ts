@@ -51,7 +51,7 @@ export function useRiskPreview(wsId: number, packId: number, versionId: number |
 }
 
 export function useWorkflowPreview(wsId: number, packId: number, versionId: number | null) {
-  return useListWorkflows(wsId, packId, versionId ?? -1, {
+  return useListWorkflows(wsId, packId, versionId ?? -1, undefined, {
     query: {
       enabled: versionId !== null,
       select: (data) => preview<WorkflowSummary2>(data),

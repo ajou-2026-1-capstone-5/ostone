@@ -193,13 +193,13 @@ describe("useWorkflowPreview", () => {
 
   it("versionId가 null이면 enabled:false로 호출한다", () => {
     useWorkflowPreview(1, 2, null);
-    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as { enabled?: boolean };
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[4]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(false);
   });
 
   it("versionId가 있으면 enabled:true로 호출한다", () => {
     useWorkflowPreview(1, 2, 3);
-    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as { enabled?: boolean };
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[4]?.query as { enabled?: boolean };
     expect(opts?.enabled).toBe(true);
   });
 
@@ -212,7 +212,7 @@ describe("useWorkflowPreview", () => {
 
   it("select 콜백이 5개까지 슬라이스한다", () => {
     useWorkflowPreview(1, 2, 3);
-    const opts = mockedUseListWorkflows.mock.calls[0]?.[3]?.query as {
+    const opts = mockedUseListWorkflows.mock.calls[0]?.[4]?.query as {
       select?: (data: unknown) => unknown;
     };
     const items = Array.from({ length: 10 }, (_, i) => ({ id: i + 1 }));

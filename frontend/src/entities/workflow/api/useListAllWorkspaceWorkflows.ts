@@ -19,6 +19,7 @@ export interface WorkspaceWorkflowEntry {
   workflowCode: string | null;
   name: string;
   description: string | null;
+  intentDefinitionId: number | null;
 }
 
 export interface UseListAllWorkspaceWorkflowsResult {
@@ -78,7 +79,7 @@ export function useListAllWorkspaceWorkflows({
       ] as const,
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         pair.versionId !== null
-          ? listWorkflows(wsId, pair.pack.packId!, pair.versionId, { signal })
+          ? listWorkflows(wsId, pair.pack.packId!, pair.versionId, undefined, { signal })
           : Promise.resolve(undefined as never),
       enabled: enabled && pair.versionId !== null,
     })),
@@ -112,6 +113,7 @@ export function useListAllWorkspaceWorkflows({
         workflowCode: wf.workflowCode ?? null,
         name: wf.name || wf.workflowCode || `wf-${wf.id}`,
         description: wf.description ?? null,
+        intentDefinitionId: wf.intentDefinitionId ?? null,
       });
     });
   });

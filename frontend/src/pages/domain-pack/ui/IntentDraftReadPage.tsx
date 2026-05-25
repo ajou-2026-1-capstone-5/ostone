@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { IntentDetail } from "@/entities/intent";
-import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
+import {
+  IntentDetailPanel,
+  IntentTreePanel,
+  MatchedWorkflowSection,
+} from "@/features/intent-draft-read/ui";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
   IntentRevisionDiffPanel,
@@ -200,6 +204,15 @@ function IntentDetailSlot({
     setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
   }, [iId, vId]);
 
+  const renderMatchedWorkflows = (detail: IntentDetail) => (
+    <MatchedWorkflowSection
+      wsId={wsId}
+      packId={pId}
+      versionId={vId}
+      intentId={detail.id ?? null}
+    />
+  );
+
   if (iId === null) {
     return (
       <div className={styles.detailSlot}>
@@ -211,7 +224,9 @@ function IntentDetailSlot({
   if (controller.isGeneralDraft) {
     return (
       <div className={styles.detailSlot}>
-        <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+        <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId}>
+          {renderMatchedWorkflows}
+        </IntentDetailWithApproval>
       </div>
     );
   }
@@ -245,19 +260,22 @@ function IntentDetailSlot({
       ) : null,
   };
   const renderRevisionEditor = (detail: IntentDetail) => (
-    <IntentRevisionEditForm
-      wsId={wsId}
-      packId={pId}
-      versionId={vId}
-      detail={detail}
-      canEdit={controller.canEditIntent}
-      isSaving={controller.isMutationPending}
-      isEditing={isEditingIntent}
-      showIdleAction={false}
-      onSave={(values) => controller.handleSaveRevision(detail, values)}
-      onDirtyChange={controller.handleDirtyChange}
-      onEditingChange={setEditingIntent}
-    />
+    <>
+      <IntentRevisionEditForm
+        wsId={wsId}
+        packId={pId}
+        versionId={vId}
+        detail={detail}
+        canEdit={controller.canEditIntent}
+        isSaving={controller.isMutationPending}
+        isEditing={isEditingIntent}
+        showIdleAction={false}
+        onSave={(values) => controller.handleSaveRevision(detail, values)}
+        onDirtyChange={controller.handleDirtyChange}
+        onEditingChange={setEditingIntent}
+      />
+      {renderMatchedWorkflows(detail)}
+    </>
   );
 
   if (controller.versionDetail?.lifecycleStatus === "PUBLISHED") {

@@ -132,6 +132,11 @@ class DemoRefundSeedRunnerGuardTest {
       }
 
       @Override
+      public Long getIntentDefinitionId() {
+        return 100L;
+      }
+
+      @Override
       public String getWorkflowCode() {
         return workflowCode;
       }

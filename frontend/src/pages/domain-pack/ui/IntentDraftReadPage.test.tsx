@@ -68,6 +68,9 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
       select intent
     </button>
   ),
+  MatchedWorkflowSection: ({ intentId }: { intentId: number | null }) => (
+    <div data-testid={`matched-workflow-section-stub-${intentId ?? "none"}`} />
+  ),
   IntentDetailPanel: ({
     intentId,
     headerActions,

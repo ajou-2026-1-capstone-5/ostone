@@ -23,7 +23,7 @@ export function PackWorkflowListPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const enabled = wsId !== null && pId !== null && vId !== null;
 
-  const query = useListWorkflows(wsId ?? 0, pId ?? 0, vId ?? 0, {
+  const query = useListWorkflows(wsId ?? 0, pId ?? 0, vId ?? 0, undefined, {
     query: { enabled },
   });
 
@@ -40,6 +40,7 @@ export function PackWorkflowListPage() {
         workflowCode: wf.workflowCode ?? null,
         name: wf.name || wf.workflowCode || `wf-${wf.id}`,
         description: wf.description ?? null,
+        intentDefinitionId: wf.intentDefinitionId ?? null,
       }));
   }, [enabled, query.data, pId, vId]);
 

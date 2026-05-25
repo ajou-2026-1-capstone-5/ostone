@@ -5,9 +5,13 @@ import { MemoryRouter } from "react-router-dom";
 import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
 import { WorkflowCard } from "./WorkflowCard";
 
-vi.mock("./WorkflowGraphMini", () => ({
-  WorkflowGraphMini: () => <div data-testid="graph-mini-stub" />,
-}));
+vi.mock("@/entities/workflow", async () => {
+  const actual = await vi.importActual<typeof import("@/entities/workflow")>("@/entities/workflow");
+  return {
+    ...actual,
+    WorkflowGraphMini: () => <div data-testid="graph-mini-stub" />,
+  };
+});
 
 const ENTRY: WorkspaceWorkflowEntry = {
   packId: 2,
@@ -17,6 +21,7 @@ const ENTRY: WorkspaceWorkflowEntry = {
   workflowCode: "wf.refund",
   name: "환불 워크플로우",
   description: "환불 요청 처리",
+  intentDefinitionId: null,
 };
 
 function setup(overrides: Partial<React.ComponentProps<typeof WorkflowCard>> = {}) {

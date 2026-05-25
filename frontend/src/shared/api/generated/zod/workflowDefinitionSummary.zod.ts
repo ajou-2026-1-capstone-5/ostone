@@ -9,6 +9,7 @@ import { z as zod } from "zod";
 export const WorkflowDefinitionSummary = zod.object({
   id: zod.number().optional(),
   domainPackVersionId: zod.number().optional(),
+  intentDefinitionId: zod.number().optional(),
   workflowCode: zod.string().optional(),
   name: zod.string().optional(),
   description: zod.string().optional(),

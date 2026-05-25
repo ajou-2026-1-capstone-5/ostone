@@ -125,6 +125,7 @@ describe("useListAllWorkspaceWorkflows", () => {
       workflowCode: "refund.standard",
       name: "환불 처리",
       description: "desc-1",
+      intentDefinitionId: null,
     });
 
     const shipping = result.current.entries.find((e) => e.workflowId === 101)!;

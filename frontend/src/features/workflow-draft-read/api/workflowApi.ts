@@ -5,7 +5,7 @@ import {
 
 export const workflowApi = {
   list: async (wsId: number, packId: number, versionId: number) => {
-    const res = await listWorkflows(wsId, packId, versionId);
+    const res = await listWorkflows(wsId, packId, versionId, undefined);
     return res.data;
   },
 

@@ -111,6 +111,11 @@ class DemoRefundSeedRunnerIntegrationTest {
         }
 
         @Override
+        public Long getIntentDefinitionId() {
+          return 100L;
+        }
+
+        @Override
         public String getWorkflowCode() {
           return "refund_request_flow";
         }

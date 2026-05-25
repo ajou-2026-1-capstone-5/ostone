@@ -27,4 +27,10 @@ export type {
   WorkspaceWorkflowEntry,
   UseListAllWorkspaceWorkflowsResult,
 } from "./api/useListAllWorkspaceWorkflows";
+export { useListWorkflowsByIntent } from "./api/useListWorkflowsByIntent";
+export type {
+  UseListWorkflowsByIntentParams,
+  UseListWorkflowsByIntentResult,
+} from "./api/useListWorkflowsByIntent";
 export { GraphRenderer } from "./ui";
+export { WorkflowGraphMini } from "./ui/WorkflowGraphMini";
