@@ -138,11 +138,13 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
 
   useEffect(() => {
     let isMounted = true;
-    Promise.resolve().then(() => {
+    const scheduleConnect = async () => {
+      await Promise.resolve();
       if (isMounted) {
         connect();
       }
-    });
+    };
+    void scheduleConnect();
     return () => {
       isMounted = false;
       disconnect();
