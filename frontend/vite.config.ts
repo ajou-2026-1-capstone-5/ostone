@@ -42,6 +42,8 @@ export default defineConfig({
         "**/*.d.ts",
         "**/generated/**",
         "src/**/index.ts",
+        "**/*.test.*",
+        "**/__tests__/**",
       ],
     },
   },
