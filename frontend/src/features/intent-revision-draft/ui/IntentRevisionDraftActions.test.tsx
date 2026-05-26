@@ -27,8 +27,6 @@ function renderActions(
     summaryError: null,
     isPending: false,
     onRetrySummary: vi.fn(),
-    onApply: vi.fn(),
-    onDiscard: vi.fn(),
   };
 
   render(<IntentRevisionDraftActions {...defaults} {...props} />);
@@ -36,50 +34,27 @@ function renderActions(
 }
 
 describe("IntentRevisionDraftActions", () => {
-  it("변경 요약을 보여주고 확인 후 적용 callback을 호출한다", () => {
-    const { onApply } = renderActions();
+  it("변경 요약과 Domain Pack 화면 안내 문구를 보여준다", () => {
+    renderActions();
 
     expect(screen.getByText("변경된 intent 1개")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("button", { name: "적용" })[0]);
-    expect(
-      screen.getByText("Intent 수정 초안을 적용할까요?"),
-    ).toBeInTheDocument();
-
-    const confirmButtons = screen.getAllByRole("button", { name: "적용" });
-    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
-
-    expect(onApply).toHaveBeenCalledTimes(1);
-  });
-
-  it("취소 확인 dialog에서 discard callback을 호출한다", () => {
-    const { onDiscard } = renderActions();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "취소" })[0]);
-    expect(
-      screen.getByText("Domain Pack 수정을 취소할까요?"),
-    ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /지금까지 이 Draft에 저장한 Domain Pack 수정 내용이 초기화되고/,
+        "수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.",
       ),
     ).toBeInTheDocument();
-
-    const confirmButtons = screen.getAllByRole("button", { name: "취소" });
-    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
-
-    expect(onDiscard).toHaveBeenCalledTimes(1);
-  });
-
-  it("요약 로딩 중에는 적용을 막고 loading 문구를 보여준다", () => {
-    renderActions({ summary: undefined, isSummaryLoading: true });
-
     expect(
-      screen.getByText("변경 요약을 불러오는 중입니다."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "적용" })).toBeDisabled();
+      screen.queryByRole("button", { name: "적용" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "취소" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "삭제" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("요약 조회 실패 시 retry를 제공하고 적용을 막는다", () => {
+  it("변경 요약 조회 실패 시 retry만 제공한다", () => {
     const { onRetrySummary } = renderActions({
       summary: undefined,
       summaryError: "변경 요약을 불러오지 못했습니다.",
@@ -88,24 +63,31 @@ describe("IntentRevisionDraftActions", () => {
     expect(
       screen.getByText("변경 요약을 불러오지 못했습니다."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "적용" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "다시 시도" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(onRetrySummary).toHaveBeenCalledTimes(1);
   });
 
-  it("요약 조회 실패 Error 메시지가 비어 있으면 fallback 문구를 보여준다", () => {
-    renderActions({
-      summary: undefined,
-      summaryError: new Error(""),
-    });
+  it("요약 로딩 중에는 로딩 문구와 안내 문구만 보여준다", () => {
+    renderActions({ summary: undefined, isSummaryLoading: true });
 
     expect(
-      screen.getByText("변경 요약을 불러오지 못했습니다."),
+      screen.getByText("변경 요약을 불러오는 중입니다."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "적용" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("변경된 intent가 없으면 적용을 막는다", () => {
+  it("변경된 intent가 없으면 empty 문구를 보여준다", () => {
     renderActions({
       summary: {
         changedIntents: [],
@@ -115,6 +97,5 @@ describe("IntentRevisionDraftActions", () => {
     });
 
     expect(screen.getByText("변경된 intent가 없습니다.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "적용" })).toBeDisabled();
   });
 });

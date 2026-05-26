@@ -153,13 +153,13 @@ function DomainPackSummaryPageContent({
           },
           { replace: true },
         );
-        toast.success("Draft 버전이 폐기되었습니다.");
+        toast.success("Draft 버전이 삭제되었습니다.");
       },
       onError: (error) => {
         toast.error(
           resolveVersionActionErrorMessage(
             error,
-            "Draft 버전을 폐기하지 못했습니다.",
+            "Draft 버전을 삭제하지 못했습니다.",
           ),
         );
       },

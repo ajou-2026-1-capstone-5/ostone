@@ -79,7 +79,7 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
         apply draft
       </button>
       <button type="button" onClick={() => onDiscardDraft(5)}>
-        discard draft
+        delete draft
       </button>
     </div>
   ),
@@ -316,7 +316,7 @@ describe("DomainPackSummaryPage", () => {
     });
   });
 
-  it("Draft 폐기 버튼 클릭 시 discard mutation을 호출한다", () => {
+  it("Draft 삭제 버튼 클릭 시 discard mutation을 호출한다", () => {
     const mutate = vi.fn();
     vi.mocked(useDiscard).mockReturnValue({
       mutate,
@@ -335,7 +335,7 @@ describe("DomainPackSummaryPage", () => {
     );
 
     renderPage("/workspaces/1/domain-packs/2?versionId=5");
-    fireEvent.click(screen.getByRole("button", { name: "discard draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "delete draft" }));
 
     expect(mutate).toHaveBeenCalledWith({
       workspaceId: 1,

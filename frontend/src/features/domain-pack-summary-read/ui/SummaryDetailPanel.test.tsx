@@ -236,7 +236,7 @@ describe("SummaryDetailPanel", () => {
     expect(deployButton).toBeDisabled();
   });
 
-  it("DRAFT 버전에 apply/discard action이 있으면 적용/폐기 버튼을 표시한다", () => {
+  it("DRAFT 버전에 apply/discard action이 있으면 적용/삭제 버튼을 표시한다", () => {
     renderSummaryDetailPanel(
       <SummaryDetailPanel
         query={makeQuery({ data: stubDetail })}
@@ -248,7 +248,7 @@ describe("SummaryDetailPanel", () => {
     );
 
     expect(screen.getByRole("button", { name: "적용" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "폐기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "배포" }),
     ).not.toBeInTheDocument();
@@ -272,7 +272,7 @@ describe("SummaryDetailPanel", () => {
     expect(onApplyDraft).toHaveBeenCalledWith(3);
   });
 
-  it("Draft 폐기 확인 시 현재 versionId를 전달한다", () => {
+  it("Draft 삭제 확인 시 현재 versionId를 전달한다", () => {
     const onDiscardDraft = vi.fn();
 
     renderSummaryDetailPanel(
@@ -284,8 +284,14 @@ describe("SummaryDetailPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "폐기" }));
-    fireEvent.click(screen.getByRole("button", { name: "폐기하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    expect(screen.getByText("Draft 버전을 삭제할까요?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "삭제하면 이 Draft 버전과 저장된 수정 내용이 모두 삭제됩니다.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
 
     expect(onDiscardDraft).toHaveBeenCalledWith(3);
   });

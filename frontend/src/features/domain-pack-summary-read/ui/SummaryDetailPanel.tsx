@@ -183,7 +183,7 @@ export function SummaryDetailPanel({
                 if (canDiscardDraft) setDiscardDialogOpen(true);
               }}
             >
-              {isDiscarding ? "폐기 중..." : "폐기"}
+              {isDiscarding ? "삭제 중..." : "삭제"}
             </button>
             <button
               type="button"
@@ -309,10 +309,10 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            Draft 버전을 폐기할까요?
+            Draft 버전을 삭제할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            폐기하면 이 Draft 버전과 편집된 변경 내역이 삭제됩니다.
+            삭제하면 이 Draft 버전과 저장된 수정 내용이 모두 삭제됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
@@ -333,10 +333,10 @@ export function SummaryDetailPanel({
               {isDiscarding ? (
                 <>
                   <Spinner />
-                  폐기 중...
+                  삭제 중...
                 </>
               ) : (
-                "폐기하기"
+                "삭제하기"
               )}
             </Button>
           </AlertDialogFooter>

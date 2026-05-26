@@ -187,21 +187,14 @@ vi.mock("@/features/intent-revision-draft", () => ({
   IntentRevisionDiffPanel: () => <div>revision diff</div>,
   IntentRevisionRecoveryBanner: () => <div>recovery banner</div>,
   IntentRevisionDraftActions: ({
-    onApply,
-    onDiscard,
     onRetrySummary,
   }: {
-    onApply: () => void;
-    onDiscard: () => void;
     onRetrySummary: () => void;
   }) => (
     <div>
-      <button type="button" onClick={onApply}>
-        apply revision
-      </button>
-      <button type="button" onClick={onDiscard}>
-        discard revision
-      </button>
+      <span>
+        수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.
+      </span>
       <button type="button" onClick={onRetrySummary}>
         retry summary
       </button>
@@ -452,52 +445,6 @@ describe("IntentDraftReadPage", () => {
     );
   });
 
-  it("revision draft 적용 후 선택 intent code를 새 버전 intent id로 복원한다", async () => {
-    mocks.versionData = {
-      versionId: 6,
-      lifecycleStatus: "DRAFT",
-      summaryJson: '{"draftSource":"INTENT_REVISION"}',
-    };
-    mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
-    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
-
-    fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
-
-    await waitFor(() =>
-      expect(mocks.activateVersion).toHaveBeenCalledWith(1, 7, 6),
-    );
-    await waitFor(() => {
-      expect(mocks.packRefetch).toHaveBeenCalled();
-      expect(mocks.versionRefetch).toHaveBeenCalled();
-    });
-    await waitFor(() =>
-      expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/intents/50?versionId=9",
-        { replace: true },
-      ),
-    );
-  });
-
-  it("적용 후 intent code 조회가 실패하면 새 버전 root로 이동한다", async () => {
-    mocks.versionData = {
-      versionId: 6,
-      lifecycleStatus: "DRAFT",
-      summaryJson: '{"draftSource":"INTENT_REVISION"}',
-    };
-    mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
-    mocks.listIntents.mockRejectedValue(new Error("list failed"));
-    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
-
-    fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
-
-    await waitFor(() =>
-      expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/intents?versionId=9",
-        { replace: true },
-      ),
-    );
-  });
-
   it("revision draft 상태에서는 기존 draft intent를 PATCH하고 현재 화면을 새로고침한다", async () => {
     mocks.versionData = {
       versionId: 6,
@@ -522,67 +469,26 @@ describe("IntentDraftReadPage", () => {
     expect(screen.getByText("revision diff")).toBeInTheDocument();
   });
 
-  it("dirty 상태에서 적용을 누르면 guard 확인 전까지 적용하지 않는다", async () => {
+  it("revision draft 상태에서는 적용/삭제 안내만 보여준다", async () => {
     mocks.versionData = {
       versionId: 6,
       lifecycleStatus: "DRAFT",
       summaryJson: '{"draftSource":"INTENT_REVISION"}',
     };
-    mocks.activateVersion.mockResolvedValue({ activatedVersionId: 9 });
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
-    fireEvent.click(screen.getByRole("button", { name: "수정" }));
-    fireEvent.click(screen.getByRole("button", { name: "mark dirty" }));
-    fireEvent.click(screen.getByRole("button", { name: "apply revision" }));
-
-    expect(screen.getByText("저장하지 않고 이동할까요?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "apply revision" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "discard revision" }),
+    ).not.toBeInTheDocument();
     expect(mocks.activateVersion).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "이동" }));
-    await waitFor(() =>
-      expect(mocks.activateVersion).toHaveBeenCalledWith(1, 7, 6),
-    );
-  });
-
-  it("revision draft 취소 후 운영 버전으로 돌아간다", async () => {
-    mocks.versionData = {
-      versionId: 6,
-      lifecycleStatus: "DRAFT",
-      summaryJson: '{"draftSource":"INTENT_REVISION"}',
-    };
-    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
-
-    fireEvent.click(screen.getByRole("button", { name: "discard revision" }));
-
-    await waitFor(() =>
-      expect(mocks.discardDraft).toHaveBeenCalledWith(1, 7, 6),
-    );
-    await waitFor(() =>
-      expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/intents/50?versionId=3",
-        { replace: true },
-      ),
-    );
-  });
-
-  it("intent 미선택 상태에서 revision draft를 취소해도 삭제된 draft URL을 history에 남기지 않는다", async () => {
-    mocks.versionData = {
-      versionId: 6,
-      lifecycleStatus: "DRAFT",
-      summaryJson: '{"draftSource":"INTENT_REVISION"}',
-    };
-    renderPage("/workspaces/1/domain-packs/7/intents?versionId=6");
-
-    fireEvent.click(screen.getByRole("button", { name: "discard revision" }));
-
-    await waitFor(() =>
-      expect(mocks.discardDraft).toHaveBeenCalledWith(1, 7, 6),
-    );
-    await waitFor(() =>
-      expect(mocks.navigate).toHaveBeenCalledWith(
-        "/workspaces/1/domain-packs/7/intents?versionId=3",
-        { replace: true },
-      ),
-    );
+    expect(mocks.discardDraft).not.toHaveBeenCalled();
   });
 });

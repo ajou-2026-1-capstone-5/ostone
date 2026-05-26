@@ -120,8 +120,6 @@ function IntentDraftReadContent({
           }
           isPending={controller.isMutationPending}
           onRetrySummary={controller.retrySummary}
-          onApply={controller.handleApplyRevisionDraftAction}
-          onDiscard={controller.handleDiscardRevisionDraftAction}
         />
       )}
     </div>
