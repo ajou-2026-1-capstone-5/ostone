@@ -33,7 +33,7 @@ export function PolicyDraftReadPage() {
   const routeKey = `${wsId}:${pId}:${vId}:${selectedPolicyId}`;
 
   const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
-    enabled: wsId !== null && pId !== null,
+    enabled: wsId !== null && pId !== null && vId !== null && !hasInvalidPolicyId,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =

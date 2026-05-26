@@ -33,7 +33,7 @@ export function RiskDraftReadPage() {
   const routeKey = `${wsId}:${pId}:${vId}:${selectedRiskId}`;
 
   const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
-    enabled: wsId !== null && pId !== null,
+    enabled: wsId !== null && pId !== null && vId !== null && !hasInvalidRiskId,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =

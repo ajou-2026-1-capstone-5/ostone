@@ -52,7 +52,7 @@ export function WorkflowDraftReadPage() {
   const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
 
   const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
-    enabled: wsId !== null && pId !== null,
+    enabled: wsId !== null && pId !== null && vId !== null && wfId !== null,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
   const versionNo =
