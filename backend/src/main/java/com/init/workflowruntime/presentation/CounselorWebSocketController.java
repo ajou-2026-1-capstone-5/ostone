@@ -39,7 +39,7 @@ public class CounselorWebSocketController {
       throw new BadRequestException("INVALID_PRINCIPAL", "Counselor id must be numeric");
     }
     return counselorService.sendCounselorMessage(
-        request.getSessionId(), request.getContent(), counselorId);
+        request.getSessionId(), request.getContent(), counselorId, request.isNote());
   }
 
   @MessageExceptionHandler

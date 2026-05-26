@@ -2,12 +2,14 @@ package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.SendChatMessageCommand;
@@ -90,6 +92,33 @@ class ChatWebSocketServiceTest {
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
+  }
+
+  @Test
+  @DisplayName("saveAndBroadcast: 세션 소유자가 다른 사용자 → SESSION_ACCESS_DENIED")
+  void should_throwBadRequest_when_userDoesNotOwnSession() {
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
+    ReflectionTestUtils.setField(session, "startedBy", 99L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    BadRequestException ex =
+        catchThrowableOfType(
+            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")),
+            BadRequestException.class);
+    assertThat(ex.getCode()).isEqualTo("SESSION_ACCESS_DENIED");
+  }
+
+  @Test
+  @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → SESSION_NOT_OPEN_OR_ACTIVE")
+  void should_throwBadRequest_when_sessionCompleted() {
+    ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    BadRequestException ex =
+        catchThrowableOfType(
+            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")),
+            BadRequestException.class);
+    assertThat(ex.getCode()).isEqualTo("SESSION_NOT_OPEN_OR_ACTIVE");
   }
 
   @Test

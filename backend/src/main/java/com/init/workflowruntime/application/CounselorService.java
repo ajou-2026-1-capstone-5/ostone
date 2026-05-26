@@ -103,7 +103,7 @@ public class CounselorService {
 
   @Transactional
   public ChatMessageResponse sendCounselorMessage(
-      Long sessionId, String content, Long counselorId) {
+      Long sessionId, String content, Long counselorId, boolean isNote) {
     validateCounselorId(counselorId);
 
     ChatSession session =
@@ -132,7 +132,8 @@ public class CounselorService {
             .map(msg -> msg.getSeqNo() + 1)
             .orElse(1);
 
-    ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, "COUNSELOR", "TEXT", content);
+    String senderRole = isNote ? "NOTE" : "COUNSELOR";
+    ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, senderRole, "TEXT", content);
     ChatMessage savedMessage = chatMessageRepository.save(message);
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);

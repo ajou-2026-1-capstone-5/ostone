@@ -137,6 +137,7 @@ public class ChatSession {
           "reopen() requires status RESOLVED but was " + this.status);
     }
     this.status = ChatSessionStatus.OPEN;
+    this.assignedCounselorId = null;
     this.endedAt = null;
   }
 
@@ -174,6 +175,7 @@ public class ChatSession {
       throw new InvalidSessionStateException("closeSession() requires status not COMPLETED");
     }
     this.status = ChatSessionStatus.COMPLETED;
+    this.assignedCounselorId = null;
     if (this.startedAt == null) {
       this.startedAt = OffsetDateTime.now();
     }

@@ -41,6 +41,29 @@ class ConsultationServiceTest {
   }
 
   @Test
+  @DisplayName("getActiveQueue: OPEN+ACTIVE 세션 목록을 반환한다")
+  void should_returnActiveQueue_when_called() {
+    ChatSession s1 = createSession(1L, ChatSessionStatus.OPEN);
+    ChatSession s2 = createSession(2L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findByStatusInOrderByStartedAtDesc(any()))
+        .willReturn(List.of(s1, s2));
+
+    List<ChatSessionResponse> result = service.getActiveQueue();
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).getId()).isEqualTo(1L);
+    assertThat(result.get(1).getId()).isEqualTo(2L);
+  }
+
+  @Test
+  @DisplayName("getActiveQueue: 대기 세션 없음 → 빈 목록 반환")
+  void should_returnEmptyList_when_noActiveQueue() {
+    given(chatSessionRepository.findByStatusInOrderByStartedAtDesc(any())).willReturn(List.of());
+
+    assertThat(service.getActiveQueue()).isEmpty();
+  }
+
+  @Test
   @DisplayName("getMessages: 세션 없음 → NotFoundException 발생")
   void should_NotFoundException발생_when_세션없음() {
     // given
@@ -122,7 +145,11 @@ class ConsultationServiceTest {
   // ── helpers ────────────────────────────────────────────────────────────────
 
   private ChatSession createSession(Long id) {
-    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    return createSession(id, ChatSessionStatus.OPEN);
+  }
+
+  private ChatSession createSession(Long id, ChatSessionStatus status) {
+    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

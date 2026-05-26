@@ -4,16 +4,17 @@ import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
-import org.springframework.context.event.EventListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
-@Transactional(readOnly = true)
 public class SessionAssignedEventListener {
+
+  private static final Logger log = LoggerFactory.getLogger(SessionAssignedEventListener.class);
 
   private final ChatSessionRepository chatSessionRepository;
   private final SimpMessagingTemplate messagingTemplate;
@@ -24,21 +25,18 @@ public class SessionAssignedEventListener {
     this.messagingTemplate = messagingTemplate;
   }
 
-  @EventListener
-  @Transactional
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleSessionAssigned(SessionAssignedEvent event) {
     ChatSession session = chatSessionRepository.findById(event.sessionId()).orElse(null);
-    if (session == null) return;
+    if (session == null) {
+      log.warn(
+          "SessionAssignedEvent: session {} not found, skipping notification", event.sessionId());
+      return;
+    }
 
     ChatSessionResponse response = ChatSessionResponse.from(session);
     String counselorQueue = "/queue/counselor.notifications";
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            messagingTemplate.convertAndSendToUser(
-                String.valueOf(event.counselorId()), counselorQueue, response);
-          }
-        });
+    messagingTemplate.convertAndSendToUser(
+        String.valueOf(event.counselorId()), counselorQueue, response);
   }
 }

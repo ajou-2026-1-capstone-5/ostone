@@ -25,7 +25,7 @@ function isChatMessage(message: unknown): message is ChatMessage {
 }
 
 export function ChatRoom({ sessionId }: ChatRoomProps) {
-  const { connectionStatus, sendMessage, lastMessage } = useStomp<ChatMessage>();
+  const { connectionStatus, sendMessage, subscribe } = useStomp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
@@ -33,14 +33,17 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!isChatMessage(lastMessage)) return;
-    if (lastMessage.sessionId !== sessionId) return;
-
-    setMessages((current) => {
-      if (current.some((message) => message.id === lastMessage.id)) return current;
-      return [...current, lastMessage];
+    if (connectionStatus !== "CONNECTED") return;
+    const unsubscribe = subscribe(`/topic/chat.${sessionId}`, (raw) => {
+      if (!isChatMessage(raw)) return;
+      if (raw.sessionId !== sessionId) return;
+      setMessages((current) => {
+        if (current.some((message) => message.id === raw.id)) return current;
+        return [...current, raw];
+      });
     });
-  }, [lastMessage, sessionId]);
+    return unsubscribe;
+  }, [connectionStatus, sessionId, subscribe]);
 
   return (
     <section className="flex h-full min-h-[520px] flex-col rounded-lg border border-gray-200 bg-white">

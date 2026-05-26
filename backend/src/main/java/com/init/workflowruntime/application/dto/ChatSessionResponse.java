@@ -12,6 +12,8 @@ public class ChatSessionResponse {
   private String channel;
   private String metaJson;
   private OffsetDateTime startedAt;
+  private Long assignedCounselorId;
+  private OffsetDateTime endedAt;
 
   /**
    * ChatSession 엔티티를 ChatSessionResponse DTO로 변환합니다.
@@ -26,6 +28,8 @@ public class ChatSessionResponse {
     resp.channel = session.getChannel();
     resp.metaJson = session.getMetaJson();
     resp.startedAt = session.getStartedAt();
+    resp.assignedCounselorId = session.getAssignedCounselorId();
+    resp.endedAt = session.getEndedAt();
     return resp;
   }
 
@@ -68,5 +72,21 @@ public class ChatSessionResponse {
 
   public void setStartedAt(OffsetDateTime startedAt) {
     this.startedAt = startedAt;
+  }
+
+  public Long getAssignedCounselorId() {
+    return assignedCounselorId;
+  }
+
+  public void setAssignedCounselorId(Long assignedCounselorId) {
+    this.assignedCounselorId = assignedCounselorId;
+  }
+
+  public OffsetDateTime getEndedAt() {
+    return endedAt;
+  }
+
+  public void setEndedAt(OffsetDateTime endedAt) {
+    this.endedAt = endedAt;
   }
 }

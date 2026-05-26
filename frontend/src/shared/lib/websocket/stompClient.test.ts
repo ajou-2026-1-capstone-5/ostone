@@ -18,20 +18,23 @@ describe("createStompClient", () => {
     vi.unstubAllEnvs();
   });
 
-  it("채팅 WebSocket broker URL과 인증 헤더로 STOMP Client를 생성한다", () => {
+  it("채팅 WebSocket broker URL과 기본 설정으로 STOMP Client를 생성하고, beforeConnect로 동적 토큰을 설정한다", () => {
     localStorage.setItem("accessToken", "access-token");
 
-    createStompClient();
+    const client = createStompClient();
 
     expect(MockedClient).toHaveBeenCalledWith(
       expect.objectContaining({
         brokerURL: "ws://localhost:8080/ws/chat",
-        connectHeaders: { Authorization: "Bearer access-token" },
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
       }),
     );
+
+    expect(typeof client.beforeConnect).toBe("function");
+    (client.beforeConnect as () => void)();
+    expect(client.connectHeaders).toEqual({ Authorization: "Bearer access-token" });
   });
 
   it("VITE_WS_URL 환경 변수가 https 프로토콜일 때 wss로 자동 변환하고 trailing slash를 제거한다", () => {

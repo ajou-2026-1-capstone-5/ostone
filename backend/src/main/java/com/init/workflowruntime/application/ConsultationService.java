@@ -10,6 +10,7 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.lang.NonNull;
@@ -31,9 +32,12 @@ public class ConsultationService {
   }
 
   public List<ChatSessionResponse> getActiveQueue() {
-    List<ChatSession> sessions =
-        chatSessionRepository.findByStatusOrderByStartedAtDesc(ChatSessionStatus.OPEN);
-    return sessions.stream().map(ChatSessionResponse::from).collect(Collectors.toList());
+    return chatSessionRepository
+        .findByStatusInOrderByStartedAtDesc(
+            Arrays.asList(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE))
+        .stream()
+        .map(ChatSessionResponse::from)
+        .collect(Collectors.toList());
   }
 
   public List<ChatMessageResponse> getMessages(@NonNull Long sessionId) {
