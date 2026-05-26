@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import type { IntentDetail } from "@/entities/intent";
+import type { IntentDetail, IntentListState } from "@/entities/intent";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import {
   IntentDetailPanel,
   IntentTreePanel,
   MatchedWorkflowSection,
 } from "@/features/intent-draft-read/ui";
-import {
-  useIntentList,
-  type IntentListState,
-} from "@/features/intent-draft-read/model/useIntentList";
+import { useIntentList } from "@/features/intent-draft-read/model/useIntentList";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
   IntentRevisionDiffPanel,

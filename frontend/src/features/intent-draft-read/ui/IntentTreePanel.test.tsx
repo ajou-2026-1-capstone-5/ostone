@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
-import type { IntentListState } from "../model/useIntentList";
+import type { IntentListState } from "@/entities/intent";
 import { IntentTreePanel } from "./IntentTreePanel";
 
 vi.mock("sonner", () => ({

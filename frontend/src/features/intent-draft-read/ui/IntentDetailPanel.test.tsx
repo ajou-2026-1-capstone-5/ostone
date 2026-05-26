@@ -1,12 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
-import type { IntentDetail, IntentSummary } from "@/entities/intent";
+import type {
+  IntentDetail,
+  IntentListState,
+  IntentSummary,
+} from "@/entities/intent";
 import {
   useIntentDetail,
   type IntentDetailState,
 } from "../model/useIntentDetail";
-import type { IntentListState } from "../model/useIntentList";
 import { IntentDetailPanel } from "./IntentDetailPanel";
 
 vi.mock("../model/useIntentDetail", () => ({

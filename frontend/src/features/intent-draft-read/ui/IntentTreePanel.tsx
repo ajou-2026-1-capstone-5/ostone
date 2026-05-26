@@ -1,8 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import type { IntentTreeNode } from "../../../entities/intent";
+import type { IntentListState, IntentTreeNode } from "../../../entities/intent";
 import { buildIntentTree } from "../model/buildIntentTree";
-import type { IntentListState } from "../model/useIntentList";
 import styles from "./IntentTreePanel.module.css";
 
 interface IntentTreePanelProps {

@@ -1,1 +1,6 @@
-export type { IntentDetail, IntentSummary, IntentTreeNode } from "./model/types";
+export type {
+  IntentDetail,
+  IntentListState,
+  IntentSummary,
+  IntentTreeNode,
+} from "./model/types";

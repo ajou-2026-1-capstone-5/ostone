@@ -1,8 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useIntentDetail } from "../model/useIntentDetail";
-import type { IntentListState } from "../model/useIntentList";
-import type { IntentDetail } from "../../../entities/intent";
+import type { IntentDetail, IntentListState } from "../../../entities/intent";
 import styles from "./IntentDetailPanel.module.css";
 
 interface IntentDetailPanelProps {
