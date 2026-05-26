@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.ChatWebSocketService;
 import com.init.workflowruntime.application.dto.ChatMessageRequest;
@@ -70,6 +71,43 @@ class ChatWebSocketControllerTest {
         .isInstanceOf(NotFoundException.class)
         .satisfies(
             e -> assertThat(((NotFoundException) e).getCode()).isEqualTo("SESSION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("sendMessage: principal null → BadRequestException")
+  void should_throwBadRequest_when_principalNull() {
+    ChatMessageRequest request = new ChatMessageRequest();
+    request.setSessionId(1L);
+    request.setContent("Hello");
+
+    assertThatThrownBy(() -> controller.sendMessage(request, "simp-1", null))
+        .isInstanceOf(BadRequestException.class);
+  }
+
+  @Test
+  @DisplayName("sendMessage: principal.getName() null → BadRequestException")
+  void should_throwBadRequest_when_principalNameNull() {
+    ChatMessageRequest request = new ChatMessageRequest();
+    request.setSessionId(1L);
+    request.setContent("Hello");
+
+    Principal principal = () -> null;
+
+    assertThatThrownBy(() -> controller.sendMessage(request, "simp-1", principal))
+        .isInstanceOf(BadRequestException.class);
+  }
+
+  @Test
+  @DisplayName("sendMessage: principal이 숫자가 아닌 경우 → BadRequestException")
+  void should_throwBadRequest_when_principalNotNumeric() {
+    ChatMessageRequest request = new ChatMessageRequest();
+    request.setSessionId(1L);
+    request.setContent("Hello");
+
+    Principal principal = () -> "not-a-number";
+
+    assertThatThrownBy(() -> controller.sendMessage(request, "simp-1", principal))
+        .isInstanceOf(BadRequestException.class);
   }
 
   @Test
