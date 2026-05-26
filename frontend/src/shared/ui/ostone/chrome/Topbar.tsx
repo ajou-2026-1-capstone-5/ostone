@@ -47,10 +47,42 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
           gap: "var(--s-2)",
         }}
       >
-        <span className="t-eyebrow">OSTONE</span>
-        {left && <div style={{ display: "flex", alignItems: "center" }}>{left}</div>}
+        <span
+          className="t-eyebrow"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            height: "20px",
+            fontFamily: "var(--sans)",
+            fontSize: "14px",
+            fontWeight: 540,
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
+            textTransform: "none",
+          }}
+        >
+          CStone
+        </span>
+        {left && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              lineHeight: 1,
+            }}
+          >
+            {left}
+          </div>
+        )}
         {crumbs.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--s-2)",
+              lineHeight: 1,
+            }}
+          >
             {crumbs.map((raw, index) => {
               const crumb = toItem(raw);
               const isLast = index === crumbs.length - 1;
@@ -65,6 +97,10 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
                     style={{
                       color,
                       fontWeight,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      height: "20px",
+                      lineHeight: 1,
                       textDecoration: "none",
                       transition: "color 120ms ease",
                     }}
@@ -72,7 +108,8 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
                       (e.currentTarget as HTMLAnchorElement).style.color = ink;
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.color = color;
+                      (e.currentTarget as HTMLAnchorElement).style.color =
+                        color;
                     }}
                   >
                     {crumb.label}
@@ -81,7 +118,14 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
                   <span
                     className="crumb"
                     data-testid={crumb.testId}
-                    style={{ color, fontWeight }}
+                    style={{
+                      color,
+                      fontWeight,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      height: "20px",
+                      lineHeight: 1,
+                    }}
                   >
                     {crumb.label}
                   </span>
@@ -89,9 +133,27 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
               return (
                 <div
                   key={index}
-                  style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--s-2)",
+                    lineHeight: 1,
+                  }}
                 >
-                  {index > 0 && <span style={{ color: ink2, opacity: 0.4 }}>/</span>}
+                  {index > 0 && (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        height: "20px",
+                        color: ink2,
+                        lineHeight: 1,
+                        opacity: 0.4,
+                      }}
+                    >
+                      /
+                    </span>
+                  )}
                   {labelEl}
                 </div>
               );

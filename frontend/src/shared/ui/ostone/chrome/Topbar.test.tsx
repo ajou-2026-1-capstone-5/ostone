@@ -12,9 +12,9 @@ function renderTopbar(...args: Parameters<typeof Topbar>) {
 }
 
 describe("Topbar", () => {
-  it("renders OSTONE eyebrow", () => {
+  it("renders CStone brand", () => {
     renderTopbar({ crumbs: [] });
-    expect(screen.getByText("OSTONE")).toBeInTheDocument();
+    expect(screen.getByText("CStone")).toBeInTheDocument();
   });
 
   it("renders breadcrumbs with last item bold", () => {
@@ -37,7 +37,10 @@ describe("Topbar", () => {
     renderTopbar({
       crumbs: [
         { label: "Pack X", href: "/workspaces/1/domain-packs/9" },
-        { label: "INTENTS", href: "/workspaces/1/domain-packs/9/intents?versionId=1" },
+        {
+          label: "INTENTS",
+          href: "/workspaces/1/domain-packs/9/intents?versionId=1",
+        },
         { label: "current" },
       ],
     });
@@ -57,10 +60,7 @@ describe("Topbar", () => {
 
   it("crumb with href on last item renders as span (not clickable)", () => {
     renderTopbar({
-      crumbs: [
-        { label: "first" },
-        { label: "last", href: "/somewhere" },
-      ],
+      crumbs: [{ label: "first" }, { label: "last", href: "/somewhere" }],
     });
     const last = screen.getByText("last");
     expect(last.tagName).toBe("SPAN");

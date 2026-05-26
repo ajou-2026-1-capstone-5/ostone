@@ -164,7 +164,7 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.getByTestId("workflow-error")).toBeInTheDocument();
   });
 
-  it("워크플로우 데이터가 로드되면 헤더에 이름/코드/노드수를 표시한다", () => {
+  it("워크플로우 데이터가 로드되면 헤더에 이름과 노드수를 표시한다", () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -186,7 +186,7 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent(
       "환불 처리",
     );
-    expect(screen.getByText("refund.standard")).toBeInTheDocument();
+    expect(screen.queryByText("refund.standard")).not.toBeInTheDocument();
     expect(screen.getByText("2 nodes")).toBeInTheDocument();
     expect(screen.getByTestId("graph-viewer")).toHaveTextContent(
       "graph nodes: 2",

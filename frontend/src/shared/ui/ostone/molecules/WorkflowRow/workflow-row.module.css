@@ -59,12 +59,6 @@
   min-width: 0;
 }
 
-.code {
-  font-size: 11px;
-  color: var(--ink-3);
-  flex-shrink: 0;
-}
-
 .title {
   font-family: var(--sans);
   font-size: 13px;

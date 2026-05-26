@@ -340,11 +340,6 @@ export function WorkflowDraftReadPage() {
                 </p>
               )}
             </div>
-            {workflow?.workflowCode && (
-              <Mono className={styles.workflowCode}>
-                {workflow.workflowCode}
-              </Mono>
-            )}
             {workflow && lifecycleStatus && (
               <Pill tone="signal">{lifecycleStatus}</Pill>
             )}

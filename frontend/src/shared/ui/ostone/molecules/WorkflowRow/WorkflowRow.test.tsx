@@ -18,6 +18,7 @@ describe("WorkflowRow", () => {
     render(<WorkflowRow entry={ENTRY} onOpen={vi.fn()} testIdPrefix="row" />);
     expect(screen.getByText("Pack X")).toBeInTheDocument();
     expect(screen.getByText("워크플로우 이름")).toBeInTheDocument();
+    expect(screen.queryByText("wf.x")).not.toBeInTheDocument();
     expect(screen.queryByTestId("row-7-detail")).not.toBeInTheDocument();
     expect(screen.queryByTestId("row-7-graph")).not.toBeInTheDocument();
   });
@@ -64,7 +65,11 @@ describe("WorkflowRow", () => {
 
   it("description 없으면 description 단락 생략", () => {
     render(
-      <WorkflowRow entry={{ ...ENTRY, description: null }} onOpen={vi.fn()} testIdPrefix="row" />,
+      <WorkflowRow
+        entry={{ ...ENTRY, description: null }}
+        onOpen={vi.fn()}
+        testIdPrefix="row"
+      />,
     );
     fireEvent.mouseEnter(screen.getByTestId("row-7"));
     expect(screen.queryByText("설명")).not.toBeInTheDocument();
@@ -99,14 +104,8 @@ describe("WorkflowRow", () => {
     expect(screen.queryByTestId("row-7-graph")).not.toBeInTheDocument();
   });
 
-  it("workflowCode 없으면 Mono 코드 출력 안 함", () => {
-    render(
-      <WorkflowRow
-        entry={{ ...ENTRY, workflowCode: null }}
-        onOpen={vi.fn()}
-        testIdPrefix="row"
-      />,
-    );
+  it("workflowCode가 있어도 코드 텍스트는 출력하지 않음", () => {
+    render(<WorkflowRow entry={ENTRY} onOpen={vi.fn()} testIdPrefix="row" />);
     expect(screen.queryByText("wf.x")).not.toBeInTheDocument();
   });
 });

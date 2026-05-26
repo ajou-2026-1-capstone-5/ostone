@@ -42,7 +42,9 @@ export function IntentTreePanel({
       <header className={styles.header}>
         <span className={styles.headerTitle}>Intents</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · TREE` : "— · TREE"}
+          {state.status === "ready"
+            ? `${state.data.length} · TREE`
+            : "— · TREE"}
         </span>
       </header>
 
@@ -128,9 +130,9 @@ function IntentTreeRow({
           <span className={styles.code}>{node.intentCode}</span>
           <span className={styles.name}>{node.name}</span>
           <span className={styles.meta}>
-            {marker && <span className={styles.marker}>{marker}</span>}
             <span className={styles.badge}>LV · {node.taxonomyLevel}</span>
             <span className={styles.badge}>{node.status}</span>
+            {marker && <span className={styles.marker}>{marker}</span>}
           </span>
         </div>
       </button>

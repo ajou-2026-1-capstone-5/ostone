@@ -139,6 +139,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
   font-family: "Geist Mono", monospace;
   font-size: 10px;
   letter-spacing: 0.54px;
