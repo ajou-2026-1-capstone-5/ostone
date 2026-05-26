@@ -195,7 +195,7 @@ describe("ConsultationPage", () => {
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
-      expect(mockSubscribe).toHaveBeenCalledWith("/topic/chat.counselor.1", expect.any(Function));
+      expect(mockSubscribe).toHaveBeenCalledWith("/topic/chat.1", expect.any(Function));
     });
   });
 

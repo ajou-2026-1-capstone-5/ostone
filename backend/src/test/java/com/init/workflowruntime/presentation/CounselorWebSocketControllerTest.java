@@ -45,7 +45,8 @@ class CounselorWebSocketControllerTest {
         new ChatMessageResponse(
             10L, 1, "COUNSELOR", "TEXT", "Counselor message", OffsetDateTime.now());
 
-    given(counselorService.sendCounselorMessage(1L, "Counselor message", 42L)).willReturn(expected);
+    given(counselorService.sendCounselorMessage(1L, "Counselor message", 42L, false))
+        .willReturn(expected);
 
     ChatMessageResponse result = controller.sendCounselorMessage(request, principal);
 
@@ -62,7 +63,7 @@ class CounselorWebSocketControllerTest {
 
     Principal principal = () -> "42";
 
-    given(counselorService.sendCounselorMessage(999L, "Hello", 42L))
+    given(counselorService.sendCounselorMessage(999L, "Hello", 42L, false))
         .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
 
     assertThatThrownBy(() -> controller.sendCounselorMessage(request, principal))
@@ -80,7 +81,7 @@ class CounselorWebSocketControllerTest {
 
     Principal principal = () -> "99";
 
-    given(counselorService.sendCounselorMessage(1L, "Hello", 99L))
+    given(counselorService.sendCounselorMessage(1L, "Hello", 99L, false))
         .willThrow(
             new BadRequestException(
                 "SESSION_NOT_ASSIGNED", "Session 1 is not assigned to counselor: 99"));

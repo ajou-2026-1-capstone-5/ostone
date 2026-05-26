@@ -27,7 +27,7 @@ export function MessageList({ messages, loading = false, error = null }: Message
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages]);
 
   if (error) {
     return (

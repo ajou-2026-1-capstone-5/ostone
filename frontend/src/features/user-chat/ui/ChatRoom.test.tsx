@@ -1,14 +1,23 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { ChatRoom } from "./ChatRoom";
 
-const stompState = vi.hoisted(() => ({
-  connectionStatus: "CONNECTED" as "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR",
-  lastMessage: null as unknown,
-  sendMessage: vi.fn(),
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-}));
+const stompState = vi.hoisted(() => {
+  const callbacks = new Map<string, (msg: unknown) => void>();
+  const subscribe = vi.fn((topic: string, cb: (msg: unknown) => void) => {
+    callbacks.set(topic, cb);
+    return () => {};
+  });
+  return {
+    connectionStatus: "CONNECTED" as "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR",
+    sendMessage: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    subscribe,
+    dispatch: (topic: string, msg: unknown) => callbacks.get(topic)?.(msg),
+  };
+});
 
 vi.mock("@/shared/lib/websocket", () => ({
   useStomp: () => stompState,
@@ -17,8 +26,8 @@ vi.mock("@/shared/lib/websocket", () => ({
 describe("ChatRoom", () => {
   beforeEach(() => {
     stompState.connectionStatus = "CONNECTED";
-    stompState.lastMessage = null;
     stompState.sendMessage.mockReset();
+    stompState.subscribe.mockClear();
   });
 
   it("연결 상태와 빈 메시지 상태를 렌더링한다", () => {
@@ -28,19 +37,22 @@ describe("ChatRoom", () => {
     expect(screen.getByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).toBeInTheDocument();
   });
 
-  it("lastMessage가 바뀌면 메시지 목록에 추가한다", () => {
-    const { rerender } = render(<ChatRoom sessionId={7} />);
+  it("STOMP 메시지 수신 시 메시지 목록에 추가한다", async () => {
+    render(<ChatRoom sessionId={7} />);
+
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.7", expect.any(Function));
+    });
 
     act(() => {
-      stompState.lastMessage = {
+      stompState.dispatch("/topic/chat.7", {
         id: "m1",
         sessionId: 7,
         content: "안녕하세요",
         senderType: "BOT",
         createdAt: "2026-05-22T08:00:00Z",
-      };
+      });
     });
-    rerender(<ChatRoom sessionId={7} />);
 
     expect(screen.getByText("안녕하세요")).toBeInTheDocument();
   });

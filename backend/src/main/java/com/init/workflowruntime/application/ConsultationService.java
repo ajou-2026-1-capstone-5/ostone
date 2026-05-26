@@ -31,8 +31,16 @@ public class ConsultationService {
   }
 
   public List<ChatSessionResponse> getActiveQueue() {
-    List<ChatSession> sessions =
+    List<ChatSession> open =
         chatSessionRepository.findByStatusOrderByStartedAtDesc(ChatSessionStatus.OPEN);
+    List<ChatSession> active =
+        chatSessionRepository.findByStatusOrderByStartedAtDesc(ChatSessionStatus.ACTIVE);
+    List<ChatSession> sessions = new java.util.ArrayList<>(open);
+    sessions.addAll(active);
+    sessions.sort(
+        java.util.Comparator.comparing(
+            ChatSession::getStartedAt,
+            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
     return sessions.stream().map(ChatSessionResponse::from).collect(Collectors.toList());
   }
 

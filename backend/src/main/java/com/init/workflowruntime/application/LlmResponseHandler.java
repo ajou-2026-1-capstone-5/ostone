@@ -6,6 +6,8 @@ import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -40,14 +42,24 @@ public class LlmResponseHandler {
   @Transactional
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
-      String llmResponse = llmAssistantService.generateResponse("", event.content());
-
       chatSessionRepository
           .findByIdForUpdate(event.sessionId())
           .orElseThrow(
               () ->
                   new NotFoundException(
                       "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
+
+      List<ChatMessage> allMessages =
+          chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(event.sessionId());
+      int from = Math.max(0, allMessages.size() - 5);
+      List<ChatMessage> recentMessages = allMessages.subList(from, allMessages.size());
+      String conversationContext =
+          recentMessages.stream()
+              .map(m -> m.getSenderRole() + ": " + m.getContent())
+              .collect(Collectors.joining("\n"));
+
+      String llmResponse =
+          llmAssistantService.generateResponse(conversationContext, event.content());
 
       Integer nextSeqNo =
           chatMessageRepository

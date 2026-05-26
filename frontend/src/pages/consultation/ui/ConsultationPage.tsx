@@ -63,8 +63,9 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const { connectionStatus, subscribe, sendTo } = useStomp<RealtimeChatMessage>();
+  const { connectionStatus, subscribe, sendTo } = useStomp();
   const pendingIdsRef = useRef<Set<string>>(new Set());
+  const tempCounterRef = useRef(0);
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
@@ -157,16 +158,27 @@ export const ConsultationPage: React.FC = () => {
   useEffect(() => {
     if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
 
-    const topic = `/topic/chat.counselor.${activeCustomerId}`;
-    const unsubscribe = subscribe(topic, (msg) => {
+    const topic = `/topic/chat.${activeCustomerId}`;
+    const unsubscribe = subscribe(topic, (raw) => {
+      const msg = raw as RealtimeChatMessage;
       if (msg.senderRole === "COUNSELOR") {
         setMessages((prev) => {
           const temps = [...pendingIdsRef.current];
           if (temps.length > 0) {
-            pendingIdsRef.current.delete(temps[0]);
+            const matchIdx = temps.findIndex((id) => {
+              const pending = prev.find((m) => m.id === id);
+              return pending?.content === (msg.content ?? "");
+            });
+            const tempId = matchIdx >= 0 ? temps[matchIdx] : temps[0];
+            pendingIdsRef.current.delete(tempId);
             return prev.map((m) =>
-              m.id === temps[0]
-                ? { id: String(msg.id), senderRole: "COUNSELOR" as const, content: msg.content ?? "", timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? "") }
+              m.id === tempId
+                ? {
+                    id: String(msg.id),
+                    senderRole: "COUNSELOR" as const,
+                    content: msg.content ?? "",
+                    timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
+                  }
                 : m,
             );
           }
@@ -174,15 +186,19 @@ export const ConsultationPage: React.FC = () => {
         });
         return;
       }
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: String(msg.id),
-          senderRole: msg.senderRole as UiChatMessage["senderRole"],
-          content: msg.content ?? "",
-          timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
-        },
-      ]);
+      const msgId = String(msg.id);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msgId)) return prev;
+        return [
+          ...prev,
+          {
+            id: msgId,
+            senderRole: msg.senderRole as UiChatMessage["senderRole"],
+            content: msg.content ?? "",
+            timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
+          },
+        ];
+      });
     });
 
     return () => {
@@ -214,7 +230,7 @@ export const ConsultationPage: React.FC = () => {
       };
 
       const optimisticMsg: UiChatMessage = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${Date.now()}-${++tempCounterRef.current}`,
         senderRole: "COUNSELOR",
         content,
         timestamp: formatTime(new Date().toISOString()),

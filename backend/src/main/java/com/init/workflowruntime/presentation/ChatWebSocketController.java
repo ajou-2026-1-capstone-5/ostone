@@ -1,5 +1,6 @@
 package com.init.workflowruntime.presentation;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.BusinessException;
 import com.init.workflowruntime.application.ChatWebSocketService;
 import com.init.workflowruntime.application.dto.ChatMessageRequest;
@@ -32,6 +33,9 @@ public class ChatWebSocketController {
       @Valid ChatMessageRequest request,
       @Header("simpSessionId") String sessionId,
       Principal principal) {
+    if (principal == null || principal.getName() == null) {
+      throw new BadRequestException("INVALID_PRINCIPAL", "Authentication required");
+    }
     Long userId = Long.parseLong(principal.getName());
     SendChatMessageCommand command =
         new SendChatMessageCommand(request.getSessionId(), request.getContent(), userId, "USER");

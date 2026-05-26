@@ -9,6 +9,8 @@ public class CounselorMessageRequest {
 
   @NotBlank private String content;
 
+  private boolean isNote;
+
   public Long getSessionId() {
     return sessionId;
   }
@@ -23,5 +25,13 @@ public class CounselorMessageRequest {
 
   public void setContent(String content) {
     this.content = content;
+  }
+
+  public boolean isNote() {
+    return isNote;
+  }
+
+  public void setNote(boolean isNote) {
+    this.isNote = isNote;
   }
 }

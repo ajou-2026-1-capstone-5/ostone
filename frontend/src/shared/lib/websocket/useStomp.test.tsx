@@ -31,7 +31,7 @@ vi.mock("./stompClient", () => ({
   createStompClient: () => client as unknown as Client,
 }));
 
-const subscription: StompSubscription = { id: "messages", unsubscribe: vi.fn() };
+const subscription: StompSubscription = { id: "errors", unsubscribe: vi.fn() };
 const dummyFrame = { headers: {}, body: "", command: "CONNECTED" } as unknown as IFrame;
 
 function makeMessage(body: string): IMessage {
@@ -78,23 +78,15 @@ describe("useStomp", () => {
     expect(client.deactivate).toHaveBeenCalledTimes(1);
   });
 
-  it("연결되면 사용자 메시지 큐를 구독하고 수신 메시지를 저장한다", async () => {
-    const { result } = await renderUseStompHelper();
+  it("onConnect 시 서버 에러 큐를 구독한다", async () => {
+    await renderUseStompHelper();
 
     act(() => {
       client.connected = true;
       client.onConnect?.(dummyFrame);
     });
 
-    expect(result.current.connectionStatus).toBe("CONNECTED");
-    expect(client.subscribe).toHaveBeenCalledWith("/user/queue/messages", expect.any(Function));
-
-    const onMessage = client.subscribe.mock.calls[0]?.[1];
-    act(() => {
-      onMessage?.(makeMessage('{"id":"m1","content":"안녕하세요"}'));
-    });
-
-    expect(result.current.lastMessage).toEqual({ id: "m1", content: "안녕하세요" });
+    expect(client.subscribe).toHaveBeenCalledWith("/user/queue/errors", expect.any(Function));
   });
 
   it("연결된 상태에서 채팅 메시지를 publish 한다", async () => {
@@ -110,7 +102,7 @@ describe("useStomp", () => {
     });
 
     expect(client.publish).toHaveBeenCalledWith({
-      destination: "/app/chat.send",
+      destination: "/app/chat.sendMessage",
       body: JSON.stringify({ sessionId: 1, content: "문의합니다" }),
     });
   });
@@ -224,27 +216,25 @@ describe("useStomp", () => {
     expect(client.publish).not.toHaveBeenCalled();
   });
 
-  it("onConnect 내부의 기본 큐(/user/queue/messages) 구독에서 잘못된 JSON 수신 시 무시한다", async () => {
-    const { result } = await renderUseStompHelper();
+  it("onConnect 내부의 에러 큐(/user/queue/errors) 구독에서 잘못된 JSON 수신 시 무시한다", async () => {
+    await renderUseStompHelper();
 
     act(() => {
       client.connected = true;
       client.onConnect?.(dummyFrame);
     });
 
-    const defaultQueueOnMessage = client.subscribe.mock.calls.find(
-      (call) => call[0] === "/user/queue/messages"
+    const errorQueueOnMessage = client.subscribe.mock.calls.find(
+      (call) => call[0] === "/user/queue/errors"
     )?.[1];
 
-    expect(defaultQueueOnMessage).toBeDefined();
+    expect(errorQueueOnMessage).toBeDefined();
 
     expect(() => {
       act(() => {
-        defaultQueueOnMessage?.(makeMessage("invalid-json"));
+        errorQueueOnMessage?.(makeMessage("invalid-json"));
       });
     }).not.toThrow();
-
-    expect(result.current.lastMessage).toBeNull();
   });
 
   it("onDisconnect가 호출되면 DISCONNECTED 상태로 전환한다", async () => {

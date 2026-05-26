@@ -16,13 +16,15 @@ function getWebSocketBaseUrl(): string {
 }
 
 export function createStompClient(): Client {
-  const token = getAccessToken();
-
-  return new Client({
+  const client = new Client({
     brokerURL: `${getWebSocketBaseUrl()}/ws/chat`,
-    connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
   });
+  client.beforeConnect = () => {
+    const token = getAccessToken();
+    client.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  };
+  return client;
 }

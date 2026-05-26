@@ -216,7 +216,8 @@ class CounselorServiceTest {
 
     TransactionSynchronizationManager.initSynchronization();
     try {
-      ChatMessageResponse result = service.sendCounselorMessage(1L, "Hello from counselor", 42L);
+      ChatMessageResponse result =
+          service.sendCounselorMessage(1L, "Hello from counselor", 42L, false);
 
       assertThat(result).isNotNull();
       assertThat(result.content()).isEqualTo("Hello from counselor");
@@ -240,7 +241,7 @@ class CounselorServiceTest {
     ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
-    assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L))
+    assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not assigned to counselor");
   }
@@ -252,7 +253,7 @@ class CounselorServiceTest {
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
 
-    assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L))
+    assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not ACTIVE");
   }
