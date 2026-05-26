@@ -139,14 +139,25 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  @DisplayName("Non-CONNECT command → passes through without validation")
+  @DisplayName("DISCONNECT command → passes through without validation")
   void should_passThrough_when_notConnectCommand() {
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.DISCONNECT);
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
     Message<?> result = interceptor.preSend(message, channel);
 
     assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE without authentication → MissingAuthHeaderException")
+  void should_throwMissingAuthHeader_when_subscribeWithoutAuth() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(MissingAuthHeaderException.class);
   }
 }

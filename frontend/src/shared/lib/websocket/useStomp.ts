@@ -67,16 +67,19 @@ export function useStomp(): UseStompResult {
     };
 
     client.onDisconnect = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "DISCONNECTED";
       setConnectionStatus("DISCONNECTED");
     };
 
     client.onStompError = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 
     client.onWebSocketError = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };

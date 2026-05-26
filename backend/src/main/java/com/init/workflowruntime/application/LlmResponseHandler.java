@@ -6,6 +6,7 @@ import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -49,12 +50,11 @@ public class LlmResponseHandler {
                   new NotFoundException(
                       "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
 
-      List<ChatMessage> allMessages =
-          chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(event.sessionId());
-      int from = Math.max(0, allMessages.size() - 5);
-      List<ChatMessage> recentMessages = allMessages.subList(from, allMessages.size());
+      List<ChatMessage> recentDesc =
+          chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(event.sessionId());
+      Collections.reverse(recentDesc);
       String conversationContext =
-          recentMessages.stream()
+          recentDesc.stream()
               .map(m -> m.getSenderRole() + ": " + m.getContent())
               .collect(Collectors.joining("\n"));
 

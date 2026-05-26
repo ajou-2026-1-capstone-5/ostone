@@ -1,5 +1,6 @@
 package com.init.workflowruntime.domain;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,8 @@ public interface ChatSessionRepository {
   ChatSession save(ChatSession session);
 
   List<ChatSession> findByStatusOrderByStartedAtDesc(ChatSessionStatus status);
+
+  List<ChatSession> findByStatusInOrderByStartedAtDesc(Collection<ChatSessionStatus> statuses);
 
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 

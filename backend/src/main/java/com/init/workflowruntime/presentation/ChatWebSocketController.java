@@ -36,7 +36,12 @@ public class ChatWebSocketController {
     if (principal == null || principal.getName() == null) {
       throw new BadRequestException("INVALID_PRINCIPAL", "Authentication required");
     }
-    Long userId = Long.parseLong(principal.getName());
+    Long userId;
+    try {
+      userId = Long.parseLong(principal.getName());
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("INVALID_PRINCIPAL", "Invalid principal: " + principal.getName());
+    }
     SendChatMessageCommand command =
         new SendChatMessageCommand(request.getSessionId(), request.getContent(), userId, "USER");
     return chatWebSocketService.saveAndBroadcast(command);

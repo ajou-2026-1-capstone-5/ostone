@@ -169,7 +169,8 @@ export const ConsultationPage: React.FC = () => {
               const pending = prev.find((m) => m.id === id);
               return pending?.content === (msg.content ?? "");
             });
-            const tempId = matchIdx >= 0 ? temps[matchIdx] : temps[0];
+            if (matchIdx < 0) return prev;
+            const tempId = temps[matchIdx];
             pendingIdsRef.current.delete(tempId);
             return prev.map((m) =>
               m.id === tempId

@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -9,6 +10,7 @@ public class CounselorMessageRequest {
 
   @NotBlank private String content;
 
+  @JsonProperty("isNote")
   private boolean isNote;
 
   public Long getSessionId() {

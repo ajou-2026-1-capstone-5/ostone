@@ -235,6 +235,29 @@ class CounselorServiceTest {
   }
 
   @Test
+  @DisplayName("sendCounselorMessage: isNote=true → senderRole NOTE")
+  void should_saveNoteRole_when_isNoteTrue() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.empty());
+
+    ChatMessage savedMsg = createMessage(1L, 1, "NOTE", "Hello from counselor");
+    given(chatMessageRepository.save(any())).willReturn(savedMsg);
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      ChatMessageResponse result =
+          service.sendCounselorMessage(1L, "Hello from counselor", 42L, true);
+
+      assertThat(result.senderRole()).isEqualTo("NOTE");
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+  }
+
+  @Test
   @DisplayName("sendCounselorMessage: 배정되지 않은 상담사 → BadRequestException")
   void should_throwBadRequest_when_counselorNotAssignedToSend() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
