@@ -115,9 +115,10 @@ Blueprint 대신 대시보드에서 수동 생성:
 
 #### Frontend 환경변수 (Render Dashboard → Frontend → Environment)
 
-| 변수                | 값                                           | 설명                 |
-| ------------------- | -------------------------------------------- | -------------------- |
-| `VITE_API_BASE_URL` | `https://ostone-backend.onrender.com/api/v1` | Backend API 전체 URL |
+| 변수                | 값                                           | 설명                                      |
+| ------------------- | -------------------------------------------- | ----------------------------------------- |
+| `VITE_API_BASE_URL` | `https://ostone-backend.onrender.com/api/v1` | Backend API 전체 URL                      |
+| `VITE_WS_URL`       | `wss://ostone-backend.onrender.com`          | STOMP WebSocket origin (`/ws/chat` 제외) |
 
 ## 5. GitHub-Render 연결 확인
 
