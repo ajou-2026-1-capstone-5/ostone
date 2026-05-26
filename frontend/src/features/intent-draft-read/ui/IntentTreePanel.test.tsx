@@ -58,10 +58,56 @@ describe("IntentTreePanel", () => {
 
     expect(screen.getByText("2 · TREE")).toBeInTheDocument();
     expect(screen.getByText("수정 중")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /refund/ })).toHaveAttribute("aria-current", "true");
+    const selectedRow = screen.getByRole("button", { name: /refund/ });
+    expect(selectedRow).toHaveAttribute("aria-current", "true");
+    const selectedText = selectedRow.textContent ?? "";
+    expect(selectedText.indexOf("LV · 2")).toBeLessThan(
+      selectedText.indexOf("수정 중"),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: /refund/ }));
+    fireEvent.click(selectedRow);
     expect(onSelect).toHaveBeenCalledWith(2);
+  });
+
+  it("loading 상태에서는 skeleton과 pending meta를 표시한다", () => {
+    mockedUseIntentList.mockReturnValue({
+      status: "loading",
+    });
+
+    render(
+      <IntentTreePanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("— · TREE")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("ready 상태에서 intent가 없으면 empty state를 표시한다", () => {
+    mockedUseIntentList.mockReturnValue({
+      status: "ready",
+      data: [],
+    } as ReturnType<typeof useIntentList>);
+
+    render(
+      <IntentTreePanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("0 · TREE")).toBeInTheDocument();
+    expect(
+      screen.getByText("해당 버전에 등록된 intent 초안이 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("목록 조회 실패 시 toast와 error empty state를 보여준다", () => {
@@ -72,10 +118,38 @@ describe("IntentTreePanel", () => {
     });
 
     render(
-      <IntentTreePanel wsId={1} packId={2} versionId={3} selectedId={null} onSelect={vi.fn()} />,
+      <IntentTreePanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />,
     );
 
     expect(screen.getByText("목록을 불러오지 못했습니다.")).toBeInTheDocument();
     expect(mockedToastError).toHaveBeenCalledWith("목록 실패");
+  });
+
+  it("목록 조회 실패 메시지가 없으면 기본 toast 메시지를 사용한다", () => {
+    mockedUseIntentList.mockReturnValue({
+      status: "error",
+      code: "ERR",
+      message: undefined,
+    } as unknown as ReturnType<typeof useIntentList>);
+
+    render(
+      <IntentTreePanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(mockedToastError).toHaveBeenCalledWith(
+      "목록을 불러오지 못했습니다.",
+    );
   });
 });

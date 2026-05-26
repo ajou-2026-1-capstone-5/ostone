@@ -235,6 +235,7 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.getByTestId("inline-editor")).toHaveTextContent(
       "editing refund.standard",
     );
+    expect(mockCreateRevisionDraft).not.toHaveBeenCalled();
   });
 
   it("PUBLISHED version에서 편집 버튼 클릭 시 draft 생성 후 복제된 workflow로 이동한다", async () => {
@@ -278,6 +279,84 @@ describe("WorkflowDraftReadPage", () => {
       ),
     );
     expect(mockCreateRevisionDraft).toHaveBeenCalledWith(1, 2, 3);
+  });
+
+  it("PUBLISHED version에서 workflowCode가 없으면 draft를 만들지 않고 이유를 알린다", async () => {
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: null,
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "워크플로우 코드를 확인할 수 없어 수정 초안을 만들 수 없습니다.",
+      ),
+    );
+    expect(mockCreateRevisionDraft).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
+  });
+
+  it("수정 초안에서 같은 workflow를 찾지 못하면 draft workflow 목록으로 이동한다", async () => {
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn().mockResolvedValue({
+        data: {
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+            { versionId: 4, versionNo: 2, lifecycleStatus: "DRAFT" },
+          ],
+        },
+      }),
+    });
+    mockCreateRevisionDraft.mockResolvedValue({ draftVersionId: 4 });
+    mockListWorkflows.mockResolvedValue({
+      data: [{ id: 99, workflowCode: "other.flow", name: "다른 처리" }],
+    });
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "수정 초안에서 같은 워크플로우를 찾지 못했습니다.",
+      ),
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/workspaces/1/domain-packs/2/workflows?versionId=4",
+    );
   });
 
   it("기존 DRAFT가 있으면 기존 Draft 이동 dialog를 표시한다", async () => {
@@ -328,6 +407,49 @@ describe("WorkflowDraftReadPage", () => {
     );
   });
 
+  it("기존 DRAFT 충돌 후 draft version을 하나로 특정하지 못하면 안내 toast를 표시한다", async () => {
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn().mockResolvedValue({
+        data: {
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+          ],
+        },
+      }),
+    });
+    mockCreateRevisionDraft.mockRejectedValue(
+      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "exists"),
+    );
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "진행 중인 Draft를 확인할 수 없습니다. Domain Pack 화면에서 상태를 확인해 주세요.",
+      ),
+    );
+    expect(
+      screen.queryByText("진행 중인 Draft가 있습니다"),
+    ).not.toBeInTheDocument();
+  });
+
   it("dirty 상태에서 편집 닫기 시 변경 내역 폐기 확인 dialog를 표시한다", async () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,
@@ -348,6 +470,42 @@ describe("WorkflowDraftReadPage", () => {
       await screen.findByText("변경 내역을 버릴까요?"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "계속 편집" }));
+    expect(screen.queryByText("변경 내역을 버릴까요?")).not.toBeInTheDocument();
+    expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("editor-close"));
+    fireEvent.click(screen.getByRole("button", { name: "변경 내역 버리기" }));
+    expect(screen.queryByTestId("inline-editor")).not.toBeInTheDocument();
+  });
+
+  it("dirty 상태에서 목록 이동을 확정하면 변경 내역을 버리고 workflow 목록으로 이동한다", async () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+    fireEvent.click(screen.getByTestId("editor-dirty"));
+    fireEvent.click(screen.getByRole("button", { name: "목록" }));
+
+    expect(
+      await screen.findByText("변경 내역을 버릴까요?"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "변경 내역 버리기" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2/workflows?versionId=3",
+      ),
+    );
   });
 
   it("intent에서 진입한 workflow는 상단 버튼으로 intent 화면으로 돌아간다", async () => {
