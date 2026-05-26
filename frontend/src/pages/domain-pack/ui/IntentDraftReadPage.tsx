@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { IntentDetail } from "@/entities/intent";
-import { IntentDetailPanel, IntentTreePanel } from "@/features/intent-draft-read/ui";
+import { usePackDetail } from "@/features/domain-pack-summary-read";
+import {
+  IntentDetailPanel,
+  IntentTreePanel,
+  MatchedWorkflowSection,
+} from "@/features/intent-draft-read/ui";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
   IntentRevisionDiffPanel,
@@ -22,9 +27,11 @@ import {
   AlertDialogTitle,
 } from "@/shared/ui/alert-dialog";
 import { Button } from "@/shared/ui/button";
+import { Pill, type PillTone } from "@/shared/ui/ostone/atoms";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
+import { buildDomainPackCrumbs } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
-import { Mono } from "@/shared/ui/ostone/atoms";
 import styles from "./intent-draft-read-page.module.css";
 
 export function IntentDraftReadPage() {
@@ -61,7 +68,10 @@ function IntentDraftReadContent({
   iId: number | null;
 }) {
   const controller = useIntentDraftReadController({ wsId, pId, vId, iId });
-  const hasSelection = iId !== null;
+  const packDetail = usePackDetail(wsId, pId).data;
+  const packName = packDetail?.name ?? `PACK · ${pId}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId;
 
   const versionLabel = getVersionLabel({
     lifecycleStatus: controller.versionDetail?.lifecycleStatus,
@@ -69,24 +79,51 @@ function IntentDraftReadContent({
     isRevisionDraft: controller.isRevisionDraft,
   });
 
-  return (
-    <OstoneShell active="intent" crumbs={[`PACK · ${pId}`, `Version · ${vId}`]}>
-      <div className={styles.pageWrapper}>
-        <IntentDraftHeader
-          controller={controller}
-          versionLabel={versionLabel}
-          wsId={wsId}
-          pId={pId}
-          vId={vId}
+  const summaryState = controller.summaryState;
+
+  const crumbs = useMemo<Crumb[]>(
+    () =>
+      buildDomainPackCrumbs({
+        wsId,
+        pId,
+        vId,
+        packName,
+        versionNo,
+        section: { label: "INTENTS", path: "intents" },
+        selectedLabel: controller.selectedIntentCode,
+      }),
+    [wsId, pId, vId, packName, versionNo, controller.selectedIntentCode],
+  );
+
+  const topbarRight = (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--s-3)",
+      }}
+    >
+      <Pill tone={versionLabelTone(versionLabel)}>{versionLabel}</Pill>
+      {controller.isRevisionDraft && (
+        <IntentRevisionDraftActions
+          summary={summaryState.status === "ready" ? summaryState.data : undefined}
+          isSummaryLoading={summaryState.status === "loading"}
+          summaryError={summaryState.status === "error" ? summaryState.message : null}
+          isPending={controller.isMutationPending}
+          onRetrySummary={controller.retrySummary}
+          onApply={controller.handleApplyRevisionDraftAction}
+          onDiscard={controller.handleDiscardRevisionDraftAction}
         />
-        {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={controller.handleBack}>
-            ← 목록
-          </button>
-        )}
+      )}
+    </div>
+  );
+
+  return (
+    <OstoneShell active="intent" crumbs={crumbs} topbarRight={topbarRight}>
+      <div className={styles.pageWrapper}>
         <IntentDraftTwoPane
           controller={controller}
-          hasSelection={hasSelection}
+          hasSelection={iId !== null}
           wsId={wsId}
           pId={pId}
           vId={vId}
@@ -101,49 +138,6 @@ function IntentDraftReadContent({
 }
 
 type IntentDraftController = ReturnType<typeof useIntentDraftReadController>;
-
-function IntentDraftHeader({
-  controller,
-  versionLabel,
-  wsId,
-  pId,
-  vId,
-}: {
-  controller: IntentDraftController;
-  versionLabel: string;
-  wsId: number;
-  pId: number;
-  vId: number;
-}) {
-  const summaryState = controller.summaryState;
-
-  return (
-    <header className={styles.pageHeader}>
-      <nav className={styles.breadcrumb} aria-label="경로">
-        <Mono>WS · {wsId}</Mono>
-        <span className={styles.breadcrumbSeparator}>/</span>
-        <Mono>PACK · {pId}</Mono>
-        <span className={styles.breadcrumbSeparator}>/</span>
-        <Mono>VER · {vId}</Mono>
-      </nav>
-      <div className={styles.versionMeta}>
-        <span className={styles.versionTitle}>Intent 조회</span>
-        <span className={styles.versionBadge}>{versionLabel}</span>
-        {controller.isRevisionDraft && (
-          <IntentRevisionDraftActions
-            summary={summaryState.status === "ready" ? summaryState.data : undefined}
-            isSummaryLoading={summaryState.status === "loading"}
-            summaryError={summaryState.status === "error" ? summaryState.message : null}
-            isPending={controller.isMutationPending}
-            onRetrySummary={controller.retrySummary}
-            onApply={controller.handleApplyRevisionDraftAction}
-            onDiscard={controller.handleDiscardRevisionDraftAction}
-          />
-        )}
-      </div>
-    </header>
-  );
-}
 
 function IntentDraftTwoPane({
   controller,
@@ -200,6 +194,15 @@ function IntentDetailSlot({
     setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
   }, [iId, vId]);
 
+  const renderMatchedWorkflows = (detail: IntentDetail) => (
+    <MatchedWorkflowSection
+      wsId={wsId}
+      packId={pId}
+      versionId={vId}
+      intentId={detail.id ?? null}
+    />
+  );
+
   if (iId === null) {
     return (
       <div className={styles.detailSlot}>
@@ -211,7 +214,21 @@ function IntentDetailSlot({
   if (controller.isGeneralDraft) {
     return (
       <div className={styles.detailSlot}>
-        <IntentDetailWithApproval key={iId} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+        <IntentDetailWithApproval
+          key={iId}
+          wsId={wsId}
+          pId={pId}
+          vId={vId}
+          iId={iId}
+          afterHeader={(detail) => (
+            <SelectedIntentCodeSync
+              intentCode={detail.intentCode ?? null}
+              onChange={controller.setSelectedIntentCode}
+            />
+          )}
+        >
+          {renderMatchedWorkflows}
+        </IntentDetailWithApproval>
       </div>
     );
   }
@@ -245,19 +262,22 @@ function IntentDetailSlot({
       ) : null,
   };
   const renderRevisionEditor = (detail: IntentDetail) => (
-    <IntentRevisionEditForm
-      wsId={wsId}
-      packId={pId}
-      versionId={vId}
-      detail={detail}
-      canEdit={controller.canEditIntent}
-      isSaving={controller.isMutationPending}
-      isEditing={isEditingIntent}
-      showIdleAction={false}
-      onSave={(values) => controller.handleSaveRevision(detail, values)}
-      onDirtyChange={controller.handleDirtyChange}
-      onEditingChange={setEditingIntent}
-    />
+    <>
+      <IntentRevisionEditForm
+        wsId={wsId}
+        packId={pId}
+        versionId={vId}
+        detail={detail}
+        canEdit={controller.canEditIntent}
+        isSaving={controller.isMutationPending}
+        isEditing={isEditingIntent}
+        showIdleAction={false}
+        onSave={(values) => controller.handleSaveRevision(detail, values)}
+        onDirtyChange={controller.handleDirtyChange}
+        onEditingChange={setEditingIntent}
+      />
+      {renderMatchedWorkflows(detail)}
+    </>
   );
 
   if (controller.versionDetail?.lifecycleStatus === "PUBLISHED") {
@@ -358,6 +378,13 @@ function SelectedIntentCodeSync({
   }, [intentCode, onChange]);
 
   return null;
+}
+
+function versionLabelTone(label: string): PillTone {
+  if (label === "운영 중") return "signal";
+  if (label === "DRAFT" || label === "Intent 수정 검토") return "warn";
+  if (label === "이전 버전") return "mute";
+  return "mute";
 }
 
 function getVersionLabel({

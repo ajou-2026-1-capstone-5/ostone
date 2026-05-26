@@ -7,7 +7,9 @@ import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-v
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { domainPackPath, withVersionSearch } from "@/shared/lib/domainPackRoutes";
 import {
   usePackDetail,
   useVersionDetail,
@@ -101,10 +103,26 @@ function DomainPackSummaryPageContent({
 
   const pack = packQuery.data;
   const currentVersionId = pack?.currentVersionId ?? null;
+  const selectedVersionNo =
+    pack?.versions?.find((v) => v.versionId === selectedVersionId)?.versionNo ?? null;
+
+  const buildSummaryCrumbs = (): Crumb[] => {
+    const items: Crumb[] = [
+      { label: `WS · ${wsId}`, href: `/workspaces/${wsId}/domain-packs` },
+      { label: pack?.name ?? `PACK · ${packId}`, href: domainPackPath(wsId, packId) },
+    ];
+    if (selectedVersionId !== null && selectedVersionNo !== null) {
+      items.push({
+        label: `#${selectedVersionNo}`,
+        href: withVersionSearch(domainPackPath(wsId, packId), selectedVersionId),
+      });
+    }
+    return items;
+  };
 
   if (packQuery.isLoading) {
     return (
-      <OstoneShell active="domain" crumbs={[`PACK \u00b7 ${packId}`]}>
+      <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
         <LoadingSpinner />
       </OstoneShell>
     );
@@ -113,7 +131,7 @@ function DomainPackSummaryPageContent({
   if (packQuery.isError) {
     const is404 = packQuery.error instanceof ApiRequestError && packQuery.error.status === 404;
     return (
-      <OstoneShell active="domain" crumbs={[`PACK \u00b7 ${packId}`]}>
+      <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
         <ErrorState
           message={is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다."}
           onRetry={!is404 ? () => packQuery.refetch() : undefined}
@@ -123,15 +141,10 @@ function DomainPackSummaryPageContent({
   }
 
   return (
-    <OstoneShell active="domain" crumbs={[pack?.name || `PACK \u00b7 ${packId}`]}>
+    <OstoneShell active="domain" crumbs={buildSummaryCrumbs()}>
       <div className={styles.page}>
         <header className={styles.pageHeader}>
           <div>
-            <nav className={styles.breadcrumb} aria-label="경로">
-              <span>WS · {wsId}</span>
-              <span className={styles.breadcrumbSep}>/</span>
-              <span>PACK · {packId}</span>
-            </nav>
             {pack && (
               <div className={styles.packMeta}>
                 <span className={styles.packName}>{pack.name}</span>

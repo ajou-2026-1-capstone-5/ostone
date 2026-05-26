@@ -22,6 +22,7 @@ import type {
 
 import type {
   JsonNode,
+  ListWorkflowsParams,
   UpdateWorkflowRequest,
   WorkflowDefinitionDetail,
   WorkflowDefinitionSummary,
@@ -649,29 +650,52 @@ export type listWorkflowsResponseSuccess = listWorkflowsResponse200 & {
 
 export type listWorkflowsResponse = listWorkflowsResponseSuccess;
 
-export const getListWorkflowsUrl = (workspaceId: number, packId: number, versionId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows`;
+export const getListWorkflowsUrl = (
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  params?: ListWorkflowsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows?${stringifiedParams}`
+    : `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows`;
 };
 
 export const listWorkflows = async (
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
   options?: RequestInit,
 ): Promise<listWorkflowsResponse> => {
-  return customFetch<listWorkflowsResponse>(getListWorkflowsUrl(workspaceId, packId, versionId), {
-    ...options,
-    method: "GET",
-  });
+  return customFetch<listWorkflowsResponse>(
+    getListWorkflowsUrl(workspaceId, packId, versionId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
 export const getListWorkflowsQueryKey = (
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
 ) => {
   return [
     `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/workflows`,
+    ...(params ? [params] : []),
   ] as const;
 };
 
@@ -682,6 +706,7 @@ export const getListWorkflowsQueryOptions = <
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkflows>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
@@ -690,10 +715,10 @@ export const getListWorkflowsQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListWorkflowsQueryKey(workspaceId, packId, versionId);
+    queryOptions?.queryKey ?? getListWorkflowsQueryKey(workspaceId, packId, versionId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkflows>>> = ({ signal }) =>
-    listWorkflows(workspaceId, packId, versionId, { signal, ...requestOptions });
+    listWorkflows(workspaceId, packId, versionId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -715,6 +740,7 @@ export function useListWorkflows<
   workspaceId: number,
   packId: number,
   versionId: number,
+  params: ListWorkflowsParams | undefined,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkflows>>, TError, TData>> &
       Pick<
@@ -736,6 +762,7 @@ export function useListWorkflows<
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkflows>>, TError, TData>> &
       Pick<
@@ -757,6 +784,7 @@ export function useListWorkflows<
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkflows>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
@@ -771,13 +799,20 @@ export function useListWorkflows<
   workspaceId: number,
   packId: number,
   versionId: number,
+  params?: ListWorkflowsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkflows>>, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListWorkflowsQueryOptions(workspaceId, packId, versionId, options);
+  const queryOptions = getListWorkflowsQueryOptions(
+    workspaceId,
+    packId,
+    versionId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

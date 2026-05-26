@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 public record WorkflowDefinitionSummary(
     Long id,
     Long domainPackVersionId,
+    Long intentDefinitionId,
     String workflowCode,
     String name,
     String description,
@@ -18,6 +19,7 @@ public record WorkflowDefinitionSummary(
     return new WorkflowDefinitionSummary(
         row.getId(),
         row.getDomainPackVersionId(),
+        row.getIntentDefinitionId(),
         row.getWorkflowCode(),
         row.getName(),
         row.getDescription(),

@@ -1,11 +1,13 @@
 package com.init.domainpack.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.init.domainpack.application.GetWorkflowDefinitionListQuery;
 import com.init.domainpack.application.GetWorkflowDefinitionListUseCase;
 import com.init.domainpack.application.GetWorkflowDefinitionUseCase;
 import com.init.domainpack.application.GetWorkflowTransitionListUseCase;
@@ -27,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -65,6 +68,7 @@ class WorkflowDefinitionControllerTest {
                 new WorkflowDefinitionSummary(
                     1L,
                     101L,
+                    500L,
                     "refund_flow",
                     "환불 플로우",
                     null,
@@ -77,9 +81,38 @@ class WorkflowDefinitionControllerTest {
         .perform(get(BASE_URL))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].domainPackVersionId").value(101))
+        .andExpect(jsonPath("$[0].intentDefinitionId").value(500))
         .andExpect(jsonPath("$[0].workflowCode").value("refund_flow"))
         .andExpect(jsonPath("$[0].name").value("환불 플로우"))
         .andExpect(jsonPath("$[0].graphJson").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("GET .../workflows?intentDefinitionId=500 → useCase에 intentDefinitionId 전달")
+  @WithLongPrincipal(10L)
+  void should_intentDefinitionId전달_when_쿼리파라미터지정() throws Exception {
+    given(listUseCase.execute(any())).willReturn(List.of());
+
+    mockMvc.perform(get(BASE_URL + "?intentDefinitionId=500")).andExpect(status().isOk());
+
+    ArgumentCaptor<GetWorkflowDefinitionListQuery> captor =
+        ArgumentCaptor.forClass(GetWorkflowDefinitionListQuery.class);
+    org.mockito.Mockito.verify(listUseCase).execute(captor.capture());
+    assertThat(captor.getValue().intentDefinitionId()).isEqualTo(500L);
+  }
+
+  @Test
+  @DisplayName("GET .../workflows (intentDefinitionId 미지정) → useCase에 null 전달")
+  @WithLongPrincipal(10L)
+  void should_null전달_when_intentDefinitionId미지정() throws Exception {
+    given(listUseCase.execute(any())).willReturn(List.of());
+
+    mockMvc.perform(get(BASE_URL)).andExpect(status().isOk());
+
+    ArgumentCaptor<GetWorkflowDefinitionListQuery> captor =
+        ArgumentCaptor.forClass(GetWorkflowDefinitionListQuery.class);
+    org.mockito.Mockito.verify(listUseCase).execute(captor.capture());
+    assertThat(captor.getValue().intentDefinitionId()).isNull();
   }
 
   @Test

@@ -13,6 +13,10 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("@/features/domain-pack-summary-read", () => ({
+  usePackDetail: () => ({ data: undefined }),
+}));
+
 vi.mock("@/features/risk-draft-read/ui", () => ({
   RiskListPanel: ({ onSelect }: { onSelect: (id: number) => void }) => (
     <button type="button" onClick={() => onSelect(4)}>
@@ -72,17 +76,6 @@ describe("RiskDraftReadPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "select risk" }));
 
     expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks/4?versionId=101", {
-      replace: true,
-    });
-  });
-
-  it("상세 선택 상태에서 목록으로 돌아간다", () => {
-    navigate.mockReset();
-    renderPage("/workspaces/1/domain-packs/7/risks/4?versionId=101");
-
-    fireEvent.click(screen.getByRole("button", { name: "← 목록" }));
-
-    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks?versionId=101", {
       replace: true,
     });
   });

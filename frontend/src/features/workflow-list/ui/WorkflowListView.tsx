@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Settings as SettingsIcon, X as XIcon } from "lucide-react";
 
-import type { WorkspaceWorkflowEntry } from "@/entities/workflow";
+import { WorkflowGraphMini, type WorkspaceWorkflowEntry } from "@/entities/workflow";
 import {
   PAGE_SIZE_OPTIONS,
   SORT_DIR_OPTIONS,
@@ -16,8 +16,8 @@ import {
   WorkflowSettingsPanel,
   type WorkflowSettingEntry,
 } from "@/shared/ui/ostone/chrome/WorkflowSettingsPanel";
+import { WorkflowRow } from "@/shared/ui/ostone/molecules/WorkflowRow";
 
-import { WorkflowCard } from "./WorkflowCard";
 import { WorkflowSearchBar } from "./WorkflowSearchBar";
 import styles from "./workflow-list-view.module.css";
 
@@ -170,13 +170,21 @@ export function WorkflowListView({
         <EmptyState message={filterWorkflowId !== null ? "필터 결과 없음" : "워크플로우 없음"} />
       )}
 
-      <div className={styles.masonry} data-testid={`${testIdPrefix}-masonry`}>
+      <div className={styles.list} data-testid={`${testIdPrefix}-list`}>
         {pageEntries.map((entry) => (
-          <WorkflowCard
+          <WorkflowRow
             key={`${entry.packId}-${entry.workflowId}`}
             entry={entry}
             onOpen={() => onOpen(entry)}
-            testIdPrefix={testIdPrefix}
+            testIdPrefix={`${testIdPrefix}-card`}
+            graphSlot={
+              <WorkflowGraphMini
+                workspaceId={null}
+                packId={entry.packId}
+                versionId={entry.versionId}
+                workflowId={entry.workflowId}
+              />
+            }
           />
         ))}
       </div>

@@ -1,10 +1,12 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
-import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
+import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -49,6 +51,13 @@ export function WorkflowDraftReadPage() {
 
   const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
 
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
+    enabled: wsId !== null && pId !== null && vId !== null && wfId !== null,
+  }).data;
+  const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+
   const query = useGetWorkflowDefinition({
     workspaceId: wsId ?? 0,
     packId: pId ?? 0,
@@ -84,7 +93,15 @@ export function WorkflowDraftReadPage() {
     navigate(domainPackSectionPath(wsId, pId, vId, "workflows"), { replace: true });
   };
 
-  const crumbs = [`WS · ${wsId}`, "Domain Packs", `PACK · ${pId}`, `VER · ${vId}`, "Workflows"];
+  const crumbs: Crumb[] = buildDomainPackCrumbs({
+    wsId: wsId!,
+    pId: pId!,
+    vId: vId!,
+    packName,
+    versionNo,
+    section: { label: "WORKFLOWS", path: "workflows" },
+    selectedLabel: workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
+  });
 
   let graphContent: ReactNode;
   if (isEditing) {

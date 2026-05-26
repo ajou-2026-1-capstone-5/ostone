@@ -54,7 +54,18 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
+  OstoneShell: ({
+    children,
+    topbarRight,
+  }: {
+    children: React.ReactNode;
+    topbarRight?: React.ReactNode;
+  }) => (
+    <main>
+      {topbarRight}
+      {children}
+    </main>
+  ),
 }));
 
 vi.mock("@/features/domain-pack-summary-read", () => ({
@@ -67,6 +78,9 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
     <button type="button" onClick={() => onSelect(10)}>
       select intent
     </button>
+  ),
+  MatchedWorkflowSection: ({ intentId }: { intentId: number | null }) => (
+    <div data-testid={`matched-workflow-section-stub-${intentId ?? "none"}`} />
   ),
   IntentDetailPanel: ({
     intentId,

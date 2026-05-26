@@ -7,6 +7,8 @@ public interface WorkflowDefinitionSummaryRow {
 
   Long getDomainPackVersionId();
 
+  Long getIntentDefinitionId();
+
   String getWorkflowCode();
 
   String getName();

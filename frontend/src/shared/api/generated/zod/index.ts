@@ -51,6 +51,7 @@ export * from "./intentDraftRequest.zod";
 export * from "./intentRevisionDraftResponse.zod";
 export * from "./intentSlotBindingDraftRequest.zod";
 export * from "./jsonNode.zod";
+export * from "./listWorkflowsParams.zod";
 export * from "./loginBody.zod";
 export * from "./loginRequest.zod";
 export * from "./loginResponse.zod";

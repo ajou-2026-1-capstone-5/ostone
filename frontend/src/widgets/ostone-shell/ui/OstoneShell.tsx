@@ -1,11 +1,12 @@
 import { type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Sidebar, Topbar, type SidebarActive } from "@/shared/ui/ostone/chrome";
+import type { Crumb, CrumbItem } from "@/shared/ui/ostone/chrome/Topbar";
 import { WorkspaceMarker } from "@/shared/ui/ostone/chrome/WorkspaceMarker";
 
 interface OstoneShellProps {
   active: SidebarActive;
-  crumbs: string[];
+  crumbs: Crumb[];
   topbarRight?: ReactNode;
   sidebarSwitcher?: ReactNode;
   dark?: boolean;
@@ -27,21 +28,31 @@ const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
   domain: "도메인팩 관리",
 };
 
-function resolveDisplayCrumbs(active: SidebarActive, crumbs: string[]): string[] {
-  if (crumbs[0] === "CARD-CS" && crumbs[1] === "실시간 상담") {
+function labelOf(c: Crumb): string {
+  return typeof c === "string" ? c : c.label;
+}
+
+function asItem(c: Crumb): CrumbItem {
+  return typeof c === "string" ? { label: c } : c;
+}
+
+function resolveDisplayCrumbs(active: SidebarActive, crumbs: Crumb[]): Crumb[] {
+  const first = crumbs[0] ? labelOf(crumbs[0]) : null;
+  const second = crumbs[1] ? labelOf(crumbs[1]) : null;
+  if (first === "CARD-CS" && second === "실시간 상담") {
     return ["상담 응대"];
   }
 
-  if (crumbs[0] === "CARD-CS" && crumbs[1] === "Pipeline · Datasets") {
+  if (first === "CARD-CS" && second === "Pipeline · Datasets") {
     return ["상담 로그 수집"];
   }
 
   const topLevelCrumb = TOP_LEVEL_CRUMB_BY_ACTIVE[active];
-  if (crumbs.length === 1 && topLevelCrumb) {
+  if (crumbs.length === 1 && topLevelCrumb && typeof crumbs[0] === "string") {
     return [topLevelCrumb];
   }
 
-  return crumbs;
+  return crumbs.map(asItem);
 }
 
 export function OstoneShell({

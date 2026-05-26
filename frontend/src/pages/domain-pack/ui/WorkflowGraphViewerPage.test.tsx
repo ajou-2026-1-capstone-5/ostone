@@ -6,6 +6,10 @@ import { WorkflowGraphViewerPage } from "./WorkflowGraphViewerPage";
 
 const mockUseGetWorkflowDefinition = vi.hoisted(() => vi.fn());
 
+vi.mock("@/features/domain-pack-summary-read", () => ({
+  usePackDetail: () => ({ data: undefined }),
+}));
+
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal();
   return {

@@ -1,10 +1,14 @@
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SlotListPanel, SlotDetailPanel } from "../../../features/slot-draft-read/ui";
 import {
+  buildDomainPackCrumbs,
   domainPackSectionPath,
   shouldReplaceDomainPackChildRoute,
 } from "../../../shared/lib/domainPackRoutes";
 import { parseRouteId } from "../../../shared/lib/parseRouteId";
+import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { Pill } from "@/shared/ui/ostone/atoms";
+import type { Crumb } from "@/shared/ui/ostone/chrome";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./slot-draft-read-page.module.css";
 
@@ -17,6 +21,13 @@ export function SlotDraftReadPage() {
   const pId = parseRouteId(packId);
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const sId = slotId ? parseRouteId(slotId) : null;
+
+  const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
+    enabled: wsId !== null && pId !== null && vId !== null && (slotId === undefined || sId !== null),
+  }).data;
+  const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
+  const versionNo =
+    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
 
   if (wsId === null || pId === null || vId === null || (slotId !== undefined && sId === null)) {
     return (
@@ -37,33 +48,23 @@ export function SlotDraftReadPage() {
     navigate(path);
   };
 
-  const handleBack = () => {
-    navigate(domainPackSectionPath(wsId, pId, vId, "slots"), { replace: true });
-  };
-
   const hasSelection = sId !== null;
 
+  const crumbs: Crumb[] = buildDomainPackCrumbs({
+    wsId,
+    pId,
+    vId,
+    packName,
+    versionNo,
+    section: { label: "SLOTS", path: "slots" },
+    selectedLabel: sId !== null ? `#${sId}` : null,
+  });
+
+  const topbarRight = <Pill tone="mute">READ ONLY</Pill>;
+
   return (
-    <OstoneShell active="slot" crumbs={[`PACK · ${pId}`, `VER · ${vId}`]}>
+    <OstoneShell active="slot" crumbs={crumbs} topbarRight={topbarRight}>
       <div className={styles.pageWrapper}>
-        <header className={styles.pageHeader}>
-          <nav className={styles.breadcrumb} aria-label="경로">
-            <span>WS · {wsId}</span>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <span>PACK · {pId}</span>
-            <span className={styles.breadcrumbSeparator}>/</span>
-            <span>VER · {vId}</span>
-          </nav>
-          <div className={styles.versionMeta}>
-            <span className={styles.versionTitle}>Slot 초안 조회</span>
-            <span className={styles.versionBadge}>READ ONLY</span>
-          </div>
-        </header>
-        {hasSelection && (
-          <button type="button" className={styles.backButton} onClick={handleBack}>
-            ← 목록
-          </button>
-        )}
         <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
           <div className={styles.listSlot}>
             <SlotListPanel

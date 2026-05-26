@@ -10,7 +10,7 @@ spring:
           temperature: 0.7
   datasource:
     url: jdbc:postgresql://localhost:5432/init
-    username: ${DB_USERNAME:init}
+    username: ${DB_USERNAME:${DB_USER:init}}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:

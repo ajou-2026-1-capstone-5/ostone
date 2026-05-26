@@ -67,7 +67,7 @@ class GetWorkflowDefinitionListUseCaseTest {
     given(
             workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
                 VERSION_ID))
-        .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불 플로우")));
+        .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불 플로우", 100L)));
 
     // when & then
     List<WorkflowDefinitionSummary> result =
@@ -76,8 +76,86 @@ class GetWorkflowDefinitionListUseCaseTest {
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).domainPackVersionId()).isEqualTo(VERSION_ID);
+    assertThat(result.get(0).intentDefinitionId()).isEqualTo(100L);
     assertThat(result.get(0).workflowCode()).isEqualTo("refund_flow");
     assertThat(result.get(0).name()).isEqualTo("환불 플로우");
+  }
+
+  @Test
+  @DisplayName("intentDefinitionId 지정 시 해당 intent에 속한 workflow만 반환")
+  void should_intent별필터링_when_intentDefinitionId지정() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    given(
+            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+                VERSION_ID))
+        .willReturn(
+            List.of(
+                createSummaryRow(1L, "refund_flow", "환불", 100L),
+                createSummaryRow(2L, "delivery_flow", "배송", 200L),
+                createSummaryRow(3L, "refund_partial", "부분환불", 100L)));
+
+    // when
+    List<WorkflowDefinitionSummary> result =
+        useCase.execute(
+            new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID, 100L));
+
+    // then
+    assertThat(result).hasSize(2);
+    assertThat(result).allMatch(s -> s.intentDefinitionId().equals(100L));
+  }
+
+  @Test
+  @DisplayName("intentDefinitionId null 이면 전체 반환")
+  void should_전체반환_when_intentDefinitionId_null() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    given(
+            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+                VERSION_ID))
+        .willReturn(
+            List.of(
+                createSummaryRow(1L, "refund_flow", "환불", 100L),
+                createSummaryRow(2L, "delivery_flow", "배송", 200L)));
+
+    // when
+    List<WorkflowDefinitionSummary> result =
+        useCase.execute(
+            new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID, null));
+
+    // then
+    assertThat(result).hasSize(2);
+  }
+
+  @Test
+  @DisplayName("intentDefinitionId 매칭되는 항목 없으면 빈 목록 반환")
+  void should_빈목록반환_when_intentMatch없음() {
+    // given
+    given(workspaceExistencePort.existsById(WORKSPACE_ID)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    given(domainPackRepository.existsByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID)).willReturn(true);
+    given(domainPackVersionRepository.findById(VERSION_ID))
+        .willReturn(Optional.of(createVersion(VERSION_ID, PACK_ID)));
+    given(
+            workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(
+                VERSION_ID))
+        .willReturn(List.of(createSummaryRow(1L, "refund_flow", "환불", 100L)));
+
+    // when
+    List<WorkflowDefinitionSummary> result =
+        useCase.execute(
+            new GetWorkflowDefinitionListQuery(WORKSPACE_ID, PACK_ID, VERSION_ID, USER_ID, 999L));
+
+    // then
+    assertThat(result).isEmpty();
   }
 
   @Test
@@ -170,6 +248,11 @@ class GetWorkflowDefinitionListUseCaseTest {
   }
 
   private WorkflowDefinitionSummaryRow createSummaryRow(Long id, String code, String name) {
+    return createSummaryRow(id, code, name, 100L);
+  }
+
+  private WorkflowDefinitionSummaryRow createSummaryRow(
+      Long id, String code, String name, Long intentDefinitionId) {
     return new WorkflowDefinitionSummaryRow() {
       @Override
       public Long getId() {
@@ -179,6 +262,11 @@ class GetWorkflowDefinitionListUseCaseTest {
       @Override
       public Long getDomainPackVersionId() {
         return VERSION_ID;
+      }
+
+      @Override
+      public Long getIntentDefinitionId() {
+        return intentDefinitionId;
       }
 
       @Override
