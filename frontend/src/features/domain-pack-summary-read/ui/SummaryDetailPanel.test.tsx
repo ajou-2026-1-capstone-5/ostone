@@ -270,6 +270,38 @@ describe("SummaryDetailPanel", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("DRAFT 버전에서 삭제 callback만 있으면 삭제 버튼만 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: stubDetail })}
+        wsId={1}
+        packId={2}
+        onDiscardDraft={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "적용" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("Draft 처리 중에는 적용/삭제 버튼을 비활성화하고 진행 중 label을 보여준다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: stubDetail })}
+        wsId={1}
+        packId={2}
+        applyingVersionId={3}
+        onApplyDraft={vi.fn()}
+        onDiscardDraft={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "적용 중..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled();
+  });
+
   it("Draft 적용 확인 시 현재 versionId를 전달한다", () => {
     const onApplyDraft = vi.fn();
 

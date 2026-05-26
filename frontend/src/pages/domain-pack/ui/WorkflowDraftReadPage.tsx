@@ -497,5 +497,8 @@ function resolveWorkflowActionErrorMessage(
   if (error instanceof ApiRequestError && error.message) {
     return error.message;
   }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
   return fallback;
 }

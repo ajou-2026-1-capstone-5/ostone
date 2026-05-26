@@ -129,6 +129,58 @@ describe("IntentDetailPanel", () => {
     expect(screen.queryByText("20")).not.toBeInTheDocument();
   });
 
+  it("parent intent 이름이 없으면 intent code를 fallback으로 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+
+    renderPanel({
+      intentListState: readyList([
+        {
+          id: 20,
+          intentCode: "ORDER_STATUS",
+          name: "",
+          parentIntentId: null,
+        },
+      ]),
+    });
+
+    expect(screen.getByText("ORDER_STATUS")).toBeInTheDocument();
+  });
+
+  it("parent intent 목록이 loading/error이면 상태별 fallback을 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+    const { rerender } = render(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={{ status: "loading" }}
+      />,
+    );
+
+    expect(screen.getByText("불러오는 중...")).toBeInTheDocument();
+
+    rerender(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={{
+          status: "error",
+          code: "ERR",
+          message: "목록 실패",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("확인 불가")).toBeInTheDocument();
+  });
+
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
     mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
     const childrenFn = vi.fn((detail) => (

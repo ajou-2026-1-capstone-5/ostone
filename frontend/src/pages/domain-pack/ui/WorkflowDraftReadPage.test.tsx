@@ -497,6 +497,94 @@ describe("WorkflowDraftReadPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("기존 DRAFT 충돌 후 pack refetch가 실패하면 에러를 안내하고 dialog를 열지 않는다", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn().mockRejectedValue(new Error("refetch failed")),
+    });
+    mockCreateRevisionDraft.mockRejectedValue(
+      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "exists"),
+    );
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("refetch failed"),
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to resolve existing workflow draft",
+      expect.any(Error),
+    );
+    expect(
+      screen.queryByText("진행 중인 Draft가 있습니다"),
+    ).not.toBeInTheDocument();
+    consoleError.mockRestore();
+  });
+
+  it("기존 DRAFT 충돌 후 workflow 목록 조회가 실패하면 에러를 안내한다", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn().mockResolvedValue({
+        data: {
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+            { versionId: 5, versionNo: 2, lifecycleStatus: "DRAFT" },
+          ],
+        },
+      }),
+    });
+    mockCreateRevisionDraft.mockRejectedValue(
+      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "exists"),
+    );
+    mockListWorkflows.mockRejectedValue(new Error("workflow list failed"));
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("workflow list failed"),
+    );
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it("dirty 상태에서 편집 닫기 시 변경 내역 폐기 확인 dialog를 표시한다", async () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,

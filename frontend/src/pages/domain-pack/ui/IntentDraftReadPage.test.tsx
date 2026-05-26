@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   discardDraft: vi.fn(),
   listIntents: vi.fn(),
   getVersionDetail: vi.fn(),
+  useIntentList: vi.fn(),
   summaryState: {
     status: "ready",
     data: {
@@ -80,7 +81,7 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
 }));
 
 vi.mock("@/features/intent-draft-read/model/useIntentList", () => ({
-  useIntentList: () => ({ status: "ready", data: [] }),
+  useIntentList: (...args: unknown[]) => mocks.useIntentList(...args),
 }));
 
 vi.mock("@/features/intent-draft-read/ui", () => ({
@@ -293,6 +294,7 @@ describe("IntentDraftReadPage", () => {
     mocks.discardDraft.mockReset();
     mocks.listIntents.mockReset();
     mocks.getVersionDetail.mockReset();
+    mocks.useIntentList.mockReset();
     mocks.packData = {
       packId: 7,
       versions: [
@@ -325,6 +327,7 @@ describe("IntentDraftReadPage", () => {
     mocks.packRefetch.mockResolvedValue({ data: mocks.packData });
     mocks.versionRefetch.mockResolvedValue({ data: mocks.versionData });
     mocks.listIntents.mockResolvedValue([{ id: 50, intentCode: "refund" }]);
+    mocks.useIntentList.mockReturnValue({ status: "ready", data: [] });
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {
@@ -343,6 +346,13 @@ describe("IntentDraftReadPage", () => {
     expect(mocks.navigate).toHaveBeenCalledWith(
       "/workspaces/1/domain-packs/7/intents/10?versionId=3",
     );
+  });
+
+  it("intent 목록 state를 페이지에서 한 번 조회해 tree/detail에 공유한다", () => {
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
+
+    expect(mocks.useIntentList).toHaveBeenCalledTimes(1);
+    expect(mocks.useIntentList).toHaveBeenCalledWith(1, 7, 3, 0);
   });
 
   it("현재 운영 버전에서 첫 저장 시 revision draft를 생성하고 cloned intent로 이동한다", async () => {
