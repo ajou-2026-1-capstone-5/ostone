@@ -119,6 +119,10 @@ export function WorkflowEditForm({
         { wsId, packId, versionId, workflowId, body },
         {
           onSuccess: () => {
+            reset({
+              name: values.name,
+              description: values.description ?? undefined,
+            });
             onDirtyChange?.(false);
             setGraphDirty(false);
             (onSaved ?? onClose)();
@@ -136,6 +140,7 @@ export function WorkflowEditForm({
       onDirtyChange,
       onSaved,
       onClose,
+      reset,
     ],
   );
 

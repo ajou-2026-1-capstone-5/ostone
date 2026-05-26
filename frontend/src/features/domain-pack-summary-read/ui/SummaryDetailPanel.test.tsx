@@ -254,6 +254,22 @@ describe("SummaryDetailPanel", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("DRAFT 버전에서는 제공된 action callback의 버튼만 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: stubDetail })}
+        wsId={1}
+        packId={2}
+        onApplyDraft={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "적용" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "삭제" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("Draft 적용 확인 시 현재 versionId를 전달한다", () => {
     const onApplyDraft = vi.fn();
 

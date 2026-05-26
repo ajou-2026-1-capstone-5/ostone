@@ -152,8 +152,8 @@
 }
 
 .discardButton {
-  background: #ffffff;
-  color: #000000;
+  background: var(--button-bg, var(--bg-color, #ffffff));
+  color: var(--button-text, var(--text-primary, #000000));
 }
 
 .metaGrid {

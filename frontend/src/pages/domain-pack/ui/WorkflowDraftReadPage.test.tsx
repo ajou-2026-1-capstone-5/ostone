@@ -450,6 +450,53 @@ describe("WorkflowDraftReadPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("기존 DRAFT 충돌 후 같은 workflow를 찾지 못하면 이동 dialog를 열지 않는다", async () => {
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn().mockResolvedValue({
+        data: {
+          versions: [
+            { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+            { versionId: 5, versionNo: 2, lifecycleStatus: "DRAFT" },
+          ],
+        },
+      }),
+    });
+    mockCreateRevisionDraft.mockRejectedValue(
+      new ApiRequestError(409, "DOMAIN_PACK_DRAFT_ALREADY_EXISTS", "exists"),
+    );
+    mockListWorkflows.mockResolvedValue({
+      data: [{ id: 55, workflowCode: "other.flow", name: "다른 처리" }],
+    });
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(
+        "기존 Draft에서 같은 워크플로우를 찾지 못했습니다.",
+      ),
+    );
+    expect(
+      screen.queryByText("진행 중인 Draft가 있습니다"),
+    ).not.toBeInTheDocument();
+  });
+
   it("dirty 상태에서 편집 닫기 시 변경 내역 폐기 확인 dialog를 표시한다", async () => {
     mockUseGetWorkflowDefinition.mockReturnValue({
       isLoading: false,

@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useIntentDetail } from "../model/useIntentDetail";
-import { useIntentList, type IntentListState } from "../model/useIntentList";
+import type { IntentListState } from "../model/useIntentList";
 import type { IntentDetail } from "../../../entities/intent";
 import styles from "./IntentDetailPanel.module.css";
 
@@ -10,6 +10,7 @@ interface IntentDetailPanelProps {
   packId: number;
   versionId: number;
   intentId: number | null;
+  intentListState: IntentListState;
   refreshKey?: number;
   headerActions?: (detail: IntentDetail) => ReactNode;
   afterHeader?: (detail: IntentDetail) => ReactNode;
@@ -22,6 +23,7 @@ export function IntentDetailPanel({
   packId,
   versionId,
   intentId,
+  intentListState,
   refreshKey,
   headerActions,
   afterHeader,
@@ -29,7 +31,6 @@ export function IntentDetailPanel({
   children,
 }: IntentDetailPanelProps) {
   const state = useIntentDetail(wsId, packId, versionId, intentId, refreshKey);
-  const intentListState = useIntentList(wsId, packId, versionId, refreshKey);
   const errorCode = state.status === "error" ? state.code : undefined;
   const errorHttpStatus =
     state.status === "error" ? state.httpStatus : undefined;

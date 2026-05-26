@@ -70,7 +70,7 @@ export function WorkflowDraftReadPage() {
   const [pendingClose, setPendingClose] = useState<(() => void) | null>(null);
   const [existingDraftTarget, setExistingDraftTarget] = useState<{
     versionId: number;
-    workflowId: number | null;
+    workflowId: number;
   } | null>(null);
 
   const wsId = parseRouteId(workspaceId);
@@ -178,28 +178,44 @@ export function WorkflowDraftReadPage() {
   };
 
   const resolveExistingDraft = async (workflowCode: string) => {
-    const refetched = await packQuery.refetch();
-    const drafts = (refetched.data?.versions ?? []).filter(
-      (version) =>
-        version.lifecycleStatus === "DRAFT" && version.versionId != null,
-    );
-
-    if (drafts.length !== 1 || drafts[0].versionId == null) {
-      toast.error(
-        "진행 중인 Draft를 확인할 수 없습니다. Domain Pack 화면에서 상태를 확인해 주세요.",
+    try {
+      const refetched = await packQuery.refetch();
+      const drafts = (refetched.data?.versions ?? []).filter(
+        (version) =>
+          version.lifecycleStatus === "DRAFT" && version.versionId != null,
       );
-      return;
-    }
 
-    const draftVersionId = drafts[0].versionId;
-    const draftWorkflowId = await findWorkflowIdByCode(
-      draftVersionId,
-      workflowCode,
-    );
-    setExistingDraftTarget({
-      versionId: draftVersionId,
-      workflowId: draftWorkflowId,
-    });
+      if (drafts.length !== 1 || drafts[0].versionId == null) {
+        toast.error(
+          "진행 중인 Draft를 확인할 수 없습니다. Domain Pack 화면에서 상태를 확인해 주세요.",
+        );
+        return;
+      }
+
+      const draftVersionId = drafts[0].versionId;
+      const draftWorkflowId = await findWorkflowIdByCode(
+        draftVersionId,
+        workflowCode,
+      );
+
+      if (draftWorkflowId == null) {
+        toast.error("기존 Draft에서 같은 워크플로우를 찾지 못했습니다.");
+        return;
+      }
+
+      setExistingDraftTarget({
+        versionId: draftVersionId,
+        workflowId: draftWorkflowId,
+      });
+    } catch (error) {
+      console.error("Failed to resolve existing workflow draft", error);
+      toast.error(
+        resolveWorkflowActionErrorMessage(
+          error,
+          "진행 중인 Draft를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        ),
+      );
+    }
   };
 
   const handleBackToList = () => {

@@ -175,26 +175,30 @@ export function SummaryDetailPanel({
         versionId != null &&
         (onApplyDraft || onDiscardDraft) ? (
           <div className={styles.deployActions}>
-            <button
-              type="button"
-              className={`${styles.deployButton} ${styles.discardButton}`}
-              disabled={!canDiscardDraft}
-              onClick={() => {
-                if (canDiscardDraft) setDiscardDialogOpen(true);
-              }}
-            >
-              {isDiscarding ? "삭제 중..." : "삭제"}
-            </button>
-            <button
-              type="button"
-              className={styles.deployButton}
-              disabled={!canApplyDraft}
-              onClick={() => {
-                if (canApplyDraft) setApplyDialogOpen(true);
-              }}
-            >
-              {isApplying ? "적용 중..." : "적용"}
-            </button>
+            {onDiscardDraft && (
+              <button
+                type="button"
+                className={`${styles.deployButton} ${styles.discardButton}`}
+                disabled={!canDiscardDraft}
+                onClick={() => {
+                  if (canDiscardDraft) setDiscardDialogOpen(true);
+                }}
+              >
+                {isDiscarding ? "삭제 중..." : "삭제"}
+              </button>
+            )}
+            {onApplyDraft && (
+              <button
+                type="button"
+                className={styles.deployButton}
+                disabled={!canApplyDraft}
+                onClick={() => {
+                  if (canApplyDraft) setApplyDialogOpen(true);
+                }}
+              >
+                {isApplying ? "적용 중..." : "적용"}
+              </button>
+            )}
           </div>
         ) : onDeploy && versionId != null ? (
           <div className={styles.deployActions}>

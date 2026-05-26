@@ -7,6 +7,10 @@ import {
   IntentTreePanel,
   MatchedWorkflowSection,
 } from "@/features/intent-draft-read/ui";
+import {
+  useIntentList,
+  type IntentListState,
+} from "@/features/intent-draft-read/model/useIntentList";
 import { IntentDetailWithApproval } from "@/features/approve-intent";
 import {
   IntentRevisionDiffPanel,
@@ -73,6 +77,12 @@ function IntentDraftReadContent({
   iId: number | null;
 }) {
   const controller = useIntentDraftReadController({ wsId, pId, vId, iId });
+  const intentListState = useIntentList(
+    wsId,
+    pId,
+    vId,
+    controller.listRefreshKey,
+  );
   const packDetail = usePackDetail(wsId, pId).data;
   const packName = packDetail?.name ?? `PACK · ${pId}`;
   const versionNo =
@@ -135,6 +145,7 @@ function IntentDraftReadContent({
           pId={pId}
           vId={vId}
           iId={iId}
+          intentListState={intentListState}
         />
       </div>
 
@@ -153,6 +164,7 @@ function IntentDraftTwoPane({
   pId,
   vId,
   iId,
+  intentListState,
 }: {
   controller: IntentDraftController;
   hasSelection: boolean;
@@ -160,6 +172,7 @@ function IntentDraftTwoPane({
   pId: number;
   vId: number;
   iId: number | null;
+  intentListState: IntentListState;
 }) {
   return (
     <div
@@ -167,12 +180,9 @@ function IntentDraftTwoPane({
     >
       <div className={styles.listSlot}>
         <IntentTreePanel
-          wsId={wsId}
-          packId={pId}
-          versionId={vId}
+          intentListState={intentListState}
           selectedId={iId}
           onSelect={controller.handleSelect}
-          refreshKey={controller.listRefreshKey}
           markers={controller.markers}
         />
       </div>
@@ -182,6 +192,7 @@ function IntentDraftTwoPane({
         pId={pId}
         vId={vId}
         iId={iId}
+        intentListState={intentListState}
       />
     </div>
   );
@@ -193,12 +204,14 @@ function IntentDetailSlot({
   pId,
   vId,
   iId,
+  intentListState,
 }: {
   controller: IntentDraftController;
   wsId: number;
   pId: number;
   vId: number;
   iId: number | null;
+  intentListState: IntentListState;
 }) {
   const [editingTarget, setEditingTarget] = useState<{
     intentId: number;
@@ -232,6 +245,7 @@ function IntentDetailSlot({
           packId={pId}
           versionId={vId}
           intentId={null}
+          intentListState={intentListState}
         />
       </div>
     );
@@ -246,6 +260,7 @@ function IntentDetailSlot({
           pId={pId}
           vId={vId}
           iId={iId}
+          intentListState={intentListState}
           afterHeader={(detail) => (
             <SelectedIntentCodeSync
               intentCode={detail.intentCode ?? null}
@@ -265,6 +280,7 @@ function IntentDetailSlot({
     packId: pId,
     versionId: vId,
     intentId: iId,
+    intentListState,
     refreshKey: controller.detailRefreshKey,
     headerActions: (detail: IntentDetail) =>
       controller.canEditIntent && detail.id != null && !isEditingIntent ? (
@@ -317,6 +333,7 @@ function IntentDetailSlot({
           pId={pId}
           vId={vId}
           iId={iId}
+          intentListState={intentListState}
           refreshKey={controller.detailRefreshKey}
           afterHeader={detailSharedProps.afterHeader}
           beforeJsonCards={detailSharedProps.beforeJsonCards}

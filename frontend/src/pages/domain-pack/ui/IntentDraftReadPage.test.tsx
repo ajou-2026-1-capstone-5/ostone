@@ -79,6 +79,10 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
   }),
 }));
 
+vi.mock("@/features/intent-draft-read/model/useIntentList", () => ({
+  useIntentList: () => ({ status: "ready", data: [] }),
+}));
+
 vi.mock("@/features/intent-draft-read/ui", () => ({
   IntentTreePanel: ({ onSelect }: { onSelect: (id: number) => void }) => (
     <button type="button" onClick={() => onSelect(10)}>

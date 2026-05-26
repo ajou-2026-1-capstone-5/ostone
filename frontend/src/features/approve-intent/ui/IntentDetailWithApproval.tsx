@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { IntentDetail } from "@/entities/intent";
+import type { IntentListState } from "@/features/intent-draft-read/model/useIntentList";
 import { IntentDetailPanel } from "../../intent-draft-read/ui";
 import {
   useApproveIntent,
@@ -14,7 +15,11 @@ function normalizeIntentStatus(
   override: IntentApprovalStatus | null,
 ): "DRAFT" | IntentApprovalStatus {
   const effective = override ?? raw;
-  if (effective === "DRAFT" || effective === "PUBLISHED" || effective === "REJECTED") {
+  if (
+    effective === "DRAFT" ||
+    effective === "PUBLISHED" ||
+    effective === "REJECTED"
+  ) {
     return effective as IntentApprovalStatus;
   }
   return "DRAFT";
@@ -25,6 +30,7 @@ export function IntentDetailWithApproval({
   pId,
   vId,
   iId,
+  intentListState,
   refreshKey,
   afterHeader,
   beforeJsonCards,
@@ -35,13 +41,16 @@ export function IntentDetailWithApproval({
   pId: number;
   vId: number;
   iId: number;
+  intentListState: IntentListState;
   refreshKey?: number;
   afterHeader?: (detail: IntentDetail) => ReactNode;
   beforeJsonCards?: (detail: IntentDetail) => ReactNode;
   nonDraftHeaderActions?: (detail: IntentDetail) => ReactNode;
   children?: (detail: IntentDetail) => ReactNode;
 }) {
-  const [approvalState, setApprovalState] = useState(() => createApprovalState(iId));
+  const [approvalState, setApprovalState] = useState(() =>
+    createApprovalState(iId),
+  );
   const currentState =
     approvalState.intentId === iId ? approvalState : createApprovalState(iId);
 
@@ -83,7 +92,8 @@ export function IntentDetailWithApproval({
       return { ...base, dialogAction: action };
     });
   };
-  const combinedRefreshKey = (refreshKey ?? 0) * 1000 + currentState.detailRefreshKey;
+  const combinedRefreshKey =
+    (refreshKey ?? 0) * 1000 + currentState.detailRefreshKey;
 
   return (
     <IntentDetailPanel
@@ -91,9 +101,13 @@ export function IntentDetailWithApproval({
       packId={pId}
       versionId={vId}
       intentId={iId}
+      intentListState={intentListState}
       refreshKey={combinedRefreshKey}
       headerActions={(detail) => {
-        const intentStatus = normalizeIntentStatus(detail.status ?? "DRAFT", currentState.statusOverride);
+        const intentStatus = normalizeIntentStatus(
+          detail.status ?? "DRAFT",
+          currentState.statusOverride,
+        );
         if (intentStatus !== "DRAFT") {
           return nonDraftHeaderActions?.(detail);
         }

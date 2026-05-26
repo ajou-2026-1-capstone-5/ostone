@@ -6,15 +6,11 @@ import {
   useIntentDetail,
   type IntentDetailState,
 } from "../model/useIntentDetail";
-import { useIntentList, type IntentListState } from "../model/useIntentList";
+import type { IntentListState } from "../model/useIntentList";
 import { IntentDetailPanel } from "./IntentDetailPanel";
 
 vi.mock("../model/useIntentDetail", () => ({
   useIntentDetail: vi.fn(),
-}));
-
-vi.mock("../model/useIntentList", () => ({
-  useIntentList: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -22,7 +18,6 @@ vi.mock("sonner", () => ({
 }));
 
 const mockedUseIntentDetail = vi.mocked(useIntentDetail);
-const mockedUseIntentList = vi.mocked(useIntentList);
 
 const stubDetail: IntentDetail = {
   id: 10,
@@ -58,6 +53,7 @@ function renderPanel(
     packId: 2,
     versionId: 3,
     intentId: 10 as number | null,
+    intentListState: emptyIntentListState,
   };
   render(<IntentDetailPanel {...defaults} {...props} />);
 }
@@ -65,8 +61,6 @@ function renderPanel(
 describe("IntentDetailPanel", () => {
   beforeEach(() => {
     mockedUseIntentDetail.mockReset();
-    mockedUseIntentList.mockReset();
-    mockedUseIntentList.mockReturnValue(emptyIntentListState);
     vi.mocked(toast.error).mockReset();
   });
 
@@ -119,8 +113,8 @@ describe("IntentDetailPanel", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({ ...stubDetail, parentIntentId: 20 }),
     );
-    mockedUseIntentList.mockReturnValue(
-      readyList([
+    renderPanel({
+      intentListState: readyList([
         {
           id: 20,
           intentCode: "ORDER_STATUS",
@@ -128,9 +122,7 @@ describe("IntentDetailPanel", () => {
           parentIntentId: null,
         },
       ]),
-    );
-
-    renderPanel();
+    });
 
     expect(screen.getByText("Parent Intent")).toBeInTheDocument();
     expect(screen.getByText("주문 상태 문의")).toBeInTheDocument();

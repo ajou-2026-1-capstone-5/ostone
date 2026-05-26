@@ -2,29 +2,23 @@ import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import type { IntentTreeNode } from "../../../entities/intent";
 import { buildIntentTree } from "../model/buildIntentTree";
-import { useIntentList } from "../model/useIntentList";
+import type { IntentListState } from "../model/useIntentList";
 import styles from "./IntentTreePanel.module.css";
 
 interface IntentTreePanelProps {
-  wsId: number;
-  packId: number;
-  versionId: number;
+  intentListState: IntentListState;
   selectedId: number | null;
   onSelect: (id: number) => void;
-  refreshKey?: number;
   markers?: Record<number, "수정 중" | "수정됨">;
 }
 
 export function IntentTreePanel({
-  wsId,
-  packId,
-  versionId,
+  intentListState,
   selectedId,
   onSelect,
-  refreshKey,
   markers = {},
 }: IntentTreePanelProps) {
-  const state = useIntentList(wsId, packId, versionId, refreshKey);
+  const state = intentListState;
   const errorMessage = state.status === "error" ? state.message : undefined;
   const tree = useMemo(
     () => (state.status === "ready" ? buildIntentTree(state.data) : []),
