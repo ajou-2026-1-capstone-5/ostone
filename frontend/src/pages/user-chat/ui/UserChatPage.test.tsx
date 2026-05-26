@@ -15,10 +15,6 @@ vi.mock("@/features/user-chat", () => ({
   ChatRoom: ({ sessionId }: { sessionId: number }) => <div>ChatRoom session {sessionId}</div>,
 }));
 
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn() },
-}));
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
@@ -37,9 +33,9 @@ describe("UserChatPage", () => {
   it("mount 시 URL의 workspaceId로 채팅 세션을 생성한다", async () => {
     createChatSessionMock.mockResolvedValue({
       id: 7,
-      workspaceId: 42,
-      status: "ACTIVE",
-      createdAt: "2026-05-22T00:00:00Z",
+      status: "OPEN",
+      channel: "WEB",
+      startedAt: "2026-05-22T00:00:00Z",
     });
 
     render(<UserChatPage />);
@@ -51,9 +47,9 @@ describe("UserChatPage", () => {
   it("생성된 session id를 ChatRoom에 전달한다", async () => {
     createChatSessionMock.mockResolvedValue({
       id: 9,
-      workspaceId: 42,
-      status: "ACTIVE",
-      createdAt: "2026-05-22T00:00:00Z",
+      status: "OPEN",
+      channel: "WEB",
+      startedAt: "2026-05-22T00:00:00Z",
     });
 
     render(<UserChatPage />);

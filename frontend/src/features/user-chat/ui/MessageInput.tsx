@@ -28,6 +28,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
         onChange={(event) => setContent(event.target.value)}
         onKeyDown={(event) => {
           if (event.key !== "Enter" || event.shiftKey) return;
+          if (event.nativeEvent.isComposing) return;
           event.preventDefault();
           submit();
         }}

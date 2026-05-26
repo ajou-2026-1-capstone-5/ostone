@@ -3,6 +3,8 @@ package com.init.workflowruntime.interceptor;
 import com.init.auth.application.JwtService;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InvalidTokenException;
+import com.init.workflowruntime.domain.ChatSession;
+import com.init.workflowruntime.domain.ChatSessionRepository;
 import io.jsonwebtoken.Claims;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,15 +14,21 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
-  private final JwtService jwtService;
+  private static final String ROLE_OPERATOR = "OPERATOR";
+  private static final String CHAT_TOPIC_PREFIX = "/topic/chat.";
 
-  public JwtChannelInterceptor(JwtService jwtService) {
+  private final JwtService jwtService;
+  private final ChatSessionRepository chatSessionRepository;
+
+  public JwtChannelInterceptor(JwtService jwtService, ChatSessionRepository chatSessionRepository) {
     this.jwtService = jwtService;
+    this.chatSessionRepository = chatSessionRepository;
   }
 
   @Override
@@ -64,20 +72,71 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
         String destination = accessor.getDestination();
         if (destination != null) {
-          validateSubscribeDestination(destination);
+          validateSubscribeDestination(destination, accessor);
         }
       }
     }
     return message;
   }
 
-  private void validateSubscribeDestination(String destination) {
-    if (destination.startsWith("/topic/chat.")
-        || destination.startsWith("/user/queue/")
-        || destination.startsWith("/queue/")) {
+  private void validateSubscribeDestination(String destination, StompHeaderAccessor accessor) {
+    if (destination.startsWith(CHAT_TOPIC_PREFIX)) {
+      validateChatTopicSubscription(destination, accessor);
+      return;
+    }
+    if (destination.startsWith("/user/queue/") || destination.startsWith("/queue/")) {
       return;
     }
     throw new BadRequestException(
         "INVALID_DESTINATION", "Unauthorized subscription destination: " + destination);
+  }
+
+  private void validateChatTopicSubscription(String destination, StompHeaderAccessor accessor) {
+    Long sessionId = parseChatSessionId(destination);
+    Long userId = parsePrincipalUserId(accessor);
+    String role = sessionRole(accessor);
+
+    if (ROLE_OPERATOR.equals(role)) {
+      return;
+    }
+
+    ChatSession session =
+        chatSessionRepository
+            .findById(sessionId)
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        "SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    if (!userId.equals(session.getStartedBy())) {
+      throw new AccessDeniedException(
+          "User " + userId + " cannot subscribe to chat session " + sessionId);
+    }
+  }
+
+  private Long parseChatSessionId(String destination) {
+    String rawSessionId = destination.substring(CHAT_TOPIC_PREFIX.length());
+    try {
+      return Long.valueOf(rawSessionId);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException(
+          "INVALID_DESTINATION", "Invalid chat topic destination: " + destination, e);
+    }
+  }
+
+  private Long parsePrincipalUserId(StompHeaderAccessor accessor) {
+    try {
+      return Long.valueOf(accessor.getUser().getName());
+    } catch (NumberFormatException e) {
+      throw new AccessDeniedException("Invalid authenticated principal", e);
+    }
+  }
+
+  private String sessionRole(StompHeaderAccessor accessor) {
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    if (sessionAttributes == null) {
+      return null;
+    }
+    Object role = sessionAttributes.get("role");
+    return role instanceof String value ? value : null;
   }
 }

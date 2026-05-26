@@ -10,9 +10,12 @@ export interface ChatMessage {
 
 export interface ChatSession {
   id: number;
-  workspaceId: number;
-  status: "ACTIVE" | "CLOSED";
-  createdAt: string;
+  status: "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
+  channel: string;
+  metaJson?: string;
+  startedAt: string;
+  assignedCounselorId?: number | null;
+  endedAt?: string | null;
 }
 
 export type ConnectionStatus = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR";

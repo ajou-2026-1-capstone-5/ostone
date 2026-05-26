@@ -47,7 +47,7 @@ public class ChatWebSocketService {
                     new NotFoundException(
                         "SESSION_NOT_FOUND", "Session not found: " + command.sessionId()));
 
-    if (session.getStartedBy() != null && !session.getStartedBy().equals(command.userId())) {
+    if ("USER".equals(command.senderRole()) && !command.userId().equals(session.getStartedBy())) {
       throw new BadRequestException(
           "SESSION_ACCESS_DENIED",
           "User " + command.userId() + " does not own session " + command.sessionId());
