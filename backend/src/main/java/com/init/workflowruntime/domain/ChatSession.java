@@ -59,12 +59,23 @@ public class ChatSession {
       ChatSessionStatus status,
       String channel,
       String metaJson) {
+    return create(workspaceId, domainPackVersionId, status, channel, metaJson, null);
+  }
+
+  public static ChatSession create(
+      Long workspaceId,
+      Long domainPackVersionId,
+      ChatSessionStatus status,
+      String channel,
+      String metaJson,
+      Long startedBy) {
     ChatSession session = new ChatSession();
     session.workspaceId = workspaceId;
     session.domainPackVersionId = domainPackVersionId;
     session.status = status;
     session.channel = channel;
     session.metaJson = metaJson != null ? metaJson : "{}";
+    session.startedBy = startedBy;
     return session;
   }
 

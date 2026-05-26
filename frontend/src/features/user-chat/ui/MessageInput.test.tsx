@@ -24,6 +24,19 @@ describe("MessageInput", () => {
     expect(onSend).toHaveBeenCalledWith("배송 문의");
   });
 
+  it("한글 IME 조합 중 Enter 키는 메시지를 전송하지 않는다", () => {
+    const onSend = vi.fn();
+    render(<MessageInput onSend={onSend} />);
+
+    const input = screen.getByLabelText("메시지 입력");
+    fireEvent.change(input, { target: { value: "배송 문의" } });
+    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
+    Object.defineProperty(event, "isComposing", { value: true });
+    fireEvent(input, event);
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
   it("빈 메시지는 전송하지 않는다", () => {
     const onSend = vi.fn();
     render(<MessageInput onSend={onSend} />);

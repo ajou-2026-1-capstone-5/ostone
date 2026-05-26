@@ -24,22 +24,68 @@ function isChatMessage(message: unknown): message is ChatMessage {
   );
 }
 
+interface ChatMessageResponse {
+  id: number;
+  seqNo: number;
+  senderRole: string;
+  messageType: string;
+  content: string;
+  createdAt: string;
+}
+
+function isChatMessageResponse(message: unknown): message is ChatMessageResponse {
+  if (!message || typeof message !== "object") return false;
+
+  const candidate = message as Partial<ChatMessageResponse>;
+  return (
+    typeof candidate.id === "number" &&
+    typeof candidate.seqNo === "number" &&
+    typeof candidate.senderRole === "string" &&
+    typeof candidate.messageType === "string" &&
+    typeof candidate.content === "string" &&
+    typeof candidate.createdAt === "string"
+  );
+}
+
+function toSenderType(senderRole: string): ChatMessage["senderType"] {
+  if (senderRole === "USER" || senderRole === "CUSTOMER") return "USER";
+  if (senderRole === "AGENT" || senderRole === "COUNSELOR") return "AGENT";
+  return "BOT";
+}
+
+function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMessage {
+  return {
+    id: String(message.id),
+    sessionId,
+    content: message.content,
+    senderType: toSenderType(message.senderRole),
+    createdAt: message.createdAt,
+  };
+}
+
 export function ChatRoom({ sessionId }: ChatRoomProps) {
   const { connectionStatus, sendMessage, subscribe } = useStomp();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-  useEffect(() => {
-    setMessages([]);
-  }, [sessionId]);
+  const [messageState, setMessageState] = useState<{
+    sessionId: number;
+    messages: ChatMessage[];
+  }>({ sessionId, messages: [] });
+  const messages = messageState.sessionId === sessionId ? messageState.messages : [];
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED") return;
     const unsubscribe = subscribe(`/topic/chat.${sessionId}`, (raw) => {
-      if (!isChatMessage(raw)) return;
-      if (raw.sessionId !== sessionId) return;
-      setMessages((current) => {
-        if (current.some((message) => message.id === raw.id)) return current;
-        return [...current, raw];
+      const nextMessage = isChatMessageResponse(raw)
+        ? toChatMessage(raw, sessionId)
+        : isChatMessage(raw) && raw.sessionId === sessionId
+          ? raw
+          : null;
+      if (!nextMessage) return;
+      setMessageState((current) => {
+        const currentMessages = current.sessionId === sessionId ? current.messages : [];
+        if (currentMessages.some((message) => message.id === nextMessage.id)) {
+          return { sessionId, messages: currentMessages };
+        }
+        return { sessionId, messages: [...currentMessages, nextMessage] };
       });
     });
     return unsubscribe;

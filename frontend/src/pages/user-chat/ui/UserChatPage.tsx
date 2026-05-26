@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { createChatSession } from "@/entities/chat";
 import type { ChatSession } from "@/entities/chat";
 import { ChatRoom } from "@/features/user-chat";
@@ -10,28 +9,33 @@ export function UserChatPage() {
   useOutletContext<ShellContext>();
   const { workspaceId: raw } = useParams<{ workspaceId: string }>();
   const workspaceId = Number(raw);
-  const [session, setSession] = useState<ChatSession | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [chatState, setChatState] = useState<{
+    workspaceId: number | null;
+    session: ChatSession | null;
+    error: string | null;
+  }>({ workspaceId: null, session: null, error: null });
+  const isInvalidWorkspace = !raw || Number.isNaN(workspaceId);
+  const activeChatState =
+    chatState.workspaceId === workspaceId ? chatState : { session: null, error: null };
 
   useEffect(() => {
-    setError(null);
-    setSession(null);
-
-    if (!raw || Number.isNaN(workspaceId)) {
-      setError("유효하지 않은 워크스페이스입니다.");
-      return;
-    }
+    if (isInvalidWorkspace) return;
 
     let cancelled = false;
 
     (async () => {
       try {
         const nextSession = await createChatSession(workspaceId);
-        if (!cancelled) setSession(nextSession);
+        if (!cancelled) {
+          setChatState({ workspaceId, session: nextSession, error: null });
+        }
       } catch {
         if (!cancelled) {
-          setError("채팅 세션을 시작할 수 없습니다.");
-          toast.error("채팅 세션을 시작할 수 없습니다.");
+          setChatState({
+            workspaceId,
+            session: null,
+            error: "채팅 세션을 시작할 수 없습니다.",
+          });
         }
       }
     })();
@@ -39,13 +43,25 @@ export function UserChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [raw, workspaceId]);
+  }, [isInvalidWorkspace, workspaceId]);
 
-  if (error) {
-    return <div className="flex h-full items-center justify-center p-8 text-sm">{error}</div>;
+  if (isInvalidWorkspace) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-sm">
+        유효하지 않은 워크스페이스입니다.
+      </div>
+    );
   }
 
-  if (!session) {
+  if (activeChatState.error) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-sm">
+        {activeChatState.error}
+      </div>
+    );
+  }
+
+  if (!activeChatState.session) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-sm text-gray-500">
         채팅방을 여는 중입니다...
@@ -55,7 +71,7 @@ export function UserChatPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <ChatRoom sessionId={session.id} />
+      <ChatRoom sessionId={activeChatState.session.id} />
     </div>
   );
 }

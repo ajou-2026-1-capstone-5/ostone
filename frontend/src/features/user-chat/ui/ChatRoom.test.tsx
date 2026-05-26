@@ -46,10 +46,11 @@ describe("ChatRoom", () => {
 
     act(() => {
       stompState.dispatch("/topic/chat.7", {
-        id: "m1",
-        sessionId: 7,
+        id: 1,
+        seqNo: 1,
+        senderRole: "ASSISTANT",
+        messageType: "TEXT",
         content: "안녕하세요",
-        senderType: "BOT",
         createdAt: "2026-05-22T08:00:00Z",
       });
     });

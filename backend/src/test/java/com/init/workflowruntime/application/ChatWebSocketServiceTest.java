@@ -109,6 +109,20 @@ class ChatWebSocketServiceTest {
   }
 
   @Test
+  @DisplayName("saveAndBroadcast: USER 메시지인데 세션 소유자가 없음 → SESSION_ACCESS_DENIED")
+  void should_throwBadRequest_when_userMessageHasNoOwner() {
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
+    ReflectionTestUtils.setField(session, "startedBy", null);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    BadRequestException ex =
+        catchThrowableOfType(
+            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")),
+            BadRequestException.class);
+    assertThat(ex.getCode()).isEqualTo("SESSION_ACCESS_DENIED");
+  }
+
+  @Test
   @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → SESSION_NOT_OPEN_OR_ACTIVE")
   void should_throwBadRequest_when_sessionCompleted() {
     ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
@@ -153,7 +167,7 @@ class ChatWebSocketServiceTest {
   }
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
-    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
+    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}", 1L);
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }
