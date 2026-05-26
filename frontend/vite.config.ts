@@ -35,7 +35,16 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["lcov", "text"],
-      exclude: ["node_modules/", "dist/", "**/*.d.ts", "**/generated/**"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "node_modules/",
+        "dist/",
+        "**/*.d.ts",
+        "**/generated/**",
+        "src/**/index.ts",
+        "**/*.test.*",
+        "**/__tests__/**",
+      ],
     },
   },
 });

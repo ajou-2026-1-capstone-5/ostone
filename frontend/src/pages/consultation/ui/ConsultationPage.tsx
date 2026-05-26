@@ -3,23 +3,27 @@ import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Dot, Mono, Pill, Avatar, Eyebrow, Icon } from "@/shared/ui/ostone/atoms";
+import { useStomp } from "@/shared/lib/websocket";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
 import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
 import type { ChatMessage as UiChatMessage } from "../../../features/consultation/ui/ChatPanel";
-import { CustomerInfoPanel } from "../../../features/consultation/ui/CustomerInfoPanel";
-import { StatusBar } from "../../../features/consultation/ui/StatusBar";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import { CustomerPanel } from "./sections/CustomerPanel";
 import { MessageDetailPanel } from "../../../features/consultation/ui/MessageDetailPanel";
-
-void CustomerInfoPanel;
-void StatusBar;
 
 const formatTime = (isoString: string) => {
   if (!isoString) return "";
   const d = new Date(isoString);
   return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+};
+
+type RealtimeChatMessage = {
+  id: string | number;
+  senderRole: string;
+  content?: string | null;
+  createdAt?: string | null;
+  timestamp?: string | null;
 };
 
 const calcWaitMinutes = (isoString: string) => {
@@ -55,18 +59,12 @@ export const ConsultationPage: React.FC = () => {
   const { setTopbarRight, setCrumbs } = useOutletContext<ShellContext>();
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
-  const activeCustomerIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    activeCustomerIdRef.current = activeCustomerId;
-  }, [activeCustomerId]);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
-  const [categories, setCategories] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-
-  void categories;
-  void setCategories;
+  const { connectionStatus, subscribe, sendTo } = useStomp<RealtimeChatMessage>();
+  const pendingIdsRef = useRef<Set<string>>(new Set());
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
@@ -125,6 +123,8 @@ export const ConsultationPage: React.FC = () => {
       return;
     }
 
+    pendingIdsRef.current.clear();
+
     let cancelled = false;
 
     const loadMessages = async () => {
@@ -148,13 +148,47 @@ export const ConsultationPage: React.FC = () => {
     };
 
     loadMessages();
-    const interval = setInterval(loadMessages, 5000);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
   }, [activeCustomerId]);
+
+  useEffect(() => {
+    if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
+
+    const topic = `/topic/chat.counselor.${activeCustomerId}`;
+    const unsubscribe = subscribe(topic, (msg) => {
+      if (msg.senderRole === "COUNSELOR") {
+        setMessages((prev) => {
+          const temps = [...pendingIdsRef.current];
+          if (temps.length > 0) {
+            pendingIdsRef.current.delete(temps[0]);
+            return prev.map((m) =>
+              m.id === temps[0]
+                ? { id: String(msg.id), senderRole: "COUNSELOR" as const, content: msg.content ?? "", timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? "") }
+                : m,
+            );
+          }
+          return prev;
+        });
+        return;
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: String(msg.id),
+          senderRole: msg.senderRole as UiChatMessage["senderRole"],
+          content: msg.content ?? "",
+          timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
+        },
+      ]);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [connectionStatus, activeCustomerId, subscribe]);
 
   const handleSelectCustomer = (id: string) => {
     setActiveCustomerId(id);
@@ -164,28 +198,35 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async (content: string, isNote: boolean) => {
-    if (!activeCustomerId) return;
-    const targetId = activeCustomerId;
-    try {
-      const newMsg = await consultationApi.sendMessage(Number(targetId), content, isNote);
-      // UX: 메시지 전송 후 선택 해제되어 고객 정보 패널 복원 (의도된 동작)
-      setSelectedMessageId(null);
-      if (activeCustomerIdRef.current === targetId) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: String(newMsg.id),
-            senderRole: newMsg.senderRole as UiChatMessage["senderRole"],
-            content: newMsg.content ?? "",
-            timestamp: formatTime(newMsg.createdAt ?? ""),
-          },
-        ]);
+  const handleSendMessage = useCallback(
+    (content: string, isNote: boolean) => {
+      if (!activeCustomerId) return;
+      if (connectionStatus !== "CONNECTED") {
+        toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+        return;
       }
-    } catch (err) {
-      toast.error("메시지 전송 실패");
-    }
-  };
+      const targetId = activeCustomerId;
+
+      const messagePayload = {
+        sessionId: Number(targetId),
+        content,
+        isNote,
+      };
+
+      const optimisticMsg: UiChatMessage = {
+        id: `temp-${Date.now()}`,
+        senderRole: "COUNSELOR",
+        content,
+        timestamp: formatTime(new Date().toISOString()),
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+      pendingIdsRef.current.add(optimisticMsg.id);
+      setSelectedMessageId(null);
+
+      sendTo("/app/chat.counselor.send", messagePayload);
+    },
+    [activeCustomerId, connectionStatus, sendTo],
+  );
 
   const handleEndSession = async () => {
     if (!activeCustomerId) return;

@@ -4,7 +4,7 @@ import styles from "./chat-panel.module.css";
 
 export interface ChatMessage {
   id: string;
-  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE";
+  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE" | "COUNSELOR" | "ASSISTANT";
   content: string;
   timestamp: string;
 }
@@ -18,12 +18,18 @@ interface ChatPanelProps {
   onSelectMessage: (messageId: string | null) => void;
 }
 
+const roleLabel: Record<string, { avatar: string; label?: string }> = {
+  AGENT: { avatar: "A" },
+  COUNSELOR: { avatar: "C", label: "상담사" },
+  ASSISTANT: { avatar: "A", label: "AI" },
+};
+
 /**
  * 상담 대화 내용을 표시하고 메시지를 전송하는 패널 컴포넌트입니다.
  * 실시간 메시지 렌더링, 전송 시 스크롤 관리, 한글 입력 최적화 등을 처리합니다.
  *
- * @param {ChatPanelProps} props - 메시지 목록 및 전송 핸들러
- * @returns {JSX.Element} 채팅 패널 컴포넌트
+ * @param props - 메시지 목록 및 전송 핸들러
+ * @returns 채팅 패널 컴포넌트
  */
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   customerName,
@@ -54,7 +60,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent triggering send while composing (e.g. Korean IME)
     if (e.nativeEvent.isComposing) return;
 
     if (e.key === "Enter" && !e.shiftKey) {
@@ -109,7 +114,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               </div>
             );
           }
-          const isAgent = msg.senderRole === "AGENT";
+          const isAgent =
+            msg.senderRole === "AGENT" ||
+            msg.senderRole === "COUNSELOR" ||
+            msg.senderRole === "ASSISTANT";
           const isSelected = selectedMessageId === msg.id;
           return (
             <div
@@ -139,7 +147,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? "A" : customerName.charAt(0)}
+                {isAgent ? (roleLabel[msg.senderRole]?.avatar ?? "A") : customerName.charAt(0)}
               </div>
               <div>
                 <div
@@ -148,6 +156,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {msg.content}
                 </div>
                 <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
+                  {roleLabel[msg.senderRole]?.label && (
+                    <span>{roleLabel[msg.senderRole].label} · </span>
+                  )}
                   {msg.timestamp}
                 </div>
               </div>
@@ -177,7 +188,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.sendBtn} onClick={handleSend} disabled={!input.trim()}>
+        <button
+          className={styles.sendBtn}
+          onClick={handleSend}
+          disabled={!input.trim()}
+          aria-label="메시지 전송"
+          title="메시지 전송"
+        >
           <Send size={18} />
         </button>
       </div>
