@@ -47,6 +47,12 @@ public class ChatWebSocketService {
                     new NotFoundException(
                         "SESSION_NOT_FOUND", "Session not found: " + command.sessionId()));
 
+    if (session.getStartedBy() != null && !session.getStartedBy().equals(command.userId())) {
+      throw new BadRequestException(
+          "SESSION_ACCESS_DENIED",
+          "User " + command.userId() + " does not own session " + command.sessionId());
+    }
+
     ChatSessionStatus status = session.getStatus();
     if (status != ChatSessionStatus.OPEN && status != ChatSessionStatus.ACTIVE) {
       throw new BadRequestException(
@@ -72,9 +78,12 @@ public class ChatWebSocketService {
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            messagingTemplate.convertAndSend(destination, response);
-            eventPublisher.publishEvent(
-                new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
+            try {
+              messagingTemplate.convertAndSend(destination, response);
+            } finally {
+              eventPublisher.publishEvent(
+                  new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
+            }
           }
         });
 

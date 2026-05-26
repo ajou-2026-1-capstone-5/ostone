@@ -1,6 +1,7 @@
 package com.init.workflowruntime.interceptor;
 
 import com.init.auth.application.JwtService;
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import java.util.HashMap;
@@ -54,7 +55,29 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       }
       sessionAttrs.put("role", claims.get("role", String.class));
       return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+    } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())
+        || StompCommand.SEND.equals(accessor.getCommand())) {
+      if (accessor.getUser() == null) {
+        throw new MissingAuthHeaderException(
+            "Authentication required for " + accessor.getCommand());
+      }
+      if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+        String destination = accessor.getDestination();
+        if (destination != null) {
+          validateSubscribeDestination(destination);
+        }
+      }
     }
     return message;
+  }
+
+  private void validateSubscribeDestination(String destination) {
+    if (destination.startsWith("/topic/chat.")
+        || destination.startsWith("/user/queue/")
+        || destination.startsWith("/queue/")) {
+      return;
+    }
+    throw new BadRequestException(
+        "INVALID_DESTINATION", "Unauthorized subscription destination: " + destination);
   }
 }

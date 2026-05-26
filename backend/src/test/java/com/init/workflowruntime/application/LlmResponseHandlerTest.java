@@ -73,7 +73,8 @@ class LlmResponseHandlerTest {
   @DisplayName("handleChatMessageReceived: LLM 예외 → fallback 메시지 STOMP push")
   void should_pushFallback_when_llmThrowsException() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
-    given(llmAssistantService.generateResponse("", "안녕하세요"))
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
+    given(llmAssistantService.generateResponse(any(), eq("안녕하세요")))
         .willThrow(new RuntimeException("API timeout"));
 
     handler.handleChatMessageReceived(event);

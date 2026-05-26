@@ -1,44 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Client, IMessage, StompSubscription } from "@stomp/stompjs";
+import type { Client, StompSubscription } from "@stomp/stompjs";
 import { createStompClient } from "./stompClient";
 
 export type ConnectionStatus = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR";
 
-const MESSAGE_QUEUE = "/user/queue/messages";
-const SEND_DESTINATION = "/app/chat.send";
+const SEND_DESTINATION = "/app/chat.sendMessage";
+const ERROR_QUEUE = "/user/queue/errors";
 
-export interface UseStompResult<TLastMessage = unknown> {
+export interface UseStompResult {
   connectionStatus: ConnectionStatus;
   sendMessage: (message: unknown) => void;
-  lastMessage: TLastMessage | null;
   connect: () => void;
   disconnect: () => void;
-  subscribe: (topic: string, cb: (msg: TLastMessage) => void) => () => void;
+  subscribe: (topic: string, cb: (msg: unknown) => void) => () => void;
   sendTo: (destination: string, body: unknown) => void;
 }
 
-function parseMessage<TLastMessage>(message: IMessage): TLastMessage {
-  return JSON.parse(message.body) as TLastMessage;
-}
-
-export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage> {
+export function useStomp(): UseStompResult {
   const clientRef = useRef<Client | null>(null);
-  const subscriptionRef = useRef<StompSubscription | null>(null);
+  const errorSubscriptionRef = useRef<StompSubscription | null>(null);
   const customSubscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
   const connectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("DISCONNECTED");
-  const [lastMessage, setLastMessage] = useState<TLastMessage | null>(null);
 
   useEffect(() => {
     connectionStatusRef.current = connectionStatus;
   }, [connectionStatus]);
 
   const disconnect = useCallback(() => {
-    subscriptionRef.current?.unsubscribe();
-    subscriptionRef.current = null;
+    errorSubscriptionRef.current?.unsubscribe();
+    errorSubscriptionRef.current = null;
     customSubscriptionsRef.current.forEach((sub) => sub.unsubscribe());
     customSubscriptionsRef.current.clear();
     clientRef.current?.deactivate();
+    clientRef.current = null;
     connectionStatusRef.current = "DISCONNECTED";
     setConnectionStatus("DISCONNECTED");
   }, []);
@@ -58,28 +53,33 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
     setConnectionStatus("CONNECTING");
 
     client.onConnect = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "CONNECTED";
       setConnectionStatus("CONNECTED");
-      subscriptionRef.current = client.subscribe(MESSAGE_QUEUE, (message) => {
+      errorSubscriptionRef.current = client.subscribe(ERROR_QUEUE, (message) => {
         try {
-          setLastMessage(parseMessage<TLastMessage>(message));
+          const error = JSON.parse(message.body) as unknown;
+          console.error("WebSocket server error:", error);
         } catch {
-          // Skip malformed messages
+          // ignore malformed error frames
         }
       });
     };
 
     client.onDisconnect = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "DISCONNECTED";
       setConnectionStatus("DISCONNECTED");
     };
 
     client.onStompError = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 
     client.onWebSocketError = () => {
+      if (clientRef.current !== client) return;
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
@@ -98,7 +98,7 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
   }, []);
 
   const subscribe = useCallback(
-    (topic: string, cb: (msg: TLastMessage) => void): (() => void) => {
+    (topic: string, cb: (msg: unknown) => void): (() => void) => {
       const client = clientRef.current;
       if (!client?.connected) {
         return () => {};
@@ -106,7 +106,7 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
 
       const subscription = client.subscribe(topic, (message) => {
         try {
-          cb(parseMessage<TLastMessage>(message));
+          cb(JSON.parse(message.body) as unknown);
         } catch {
           // Skip malformed messages
         }
@@ -151,5 +151,5 @@ export function useStomp<TLastMessage = unknown>(): UseStompResult<TLastMessage>
     };
   }, [connect, disconnect]);
 
-  return { connectionStatus, sendMessage, lastMessage, connect, disconnect, subscribe, sendTo };
+  return { connectionStatus, sendMessage, connect, disconnect, subscribe, sendTo };
 }
