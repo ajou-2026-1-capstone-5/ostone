@@ -21,6 +21,9 @@ public interface ChatSessionRepository {
 
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
+  Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+      Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses);
+
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
 
   Page<ChatSession> findAll(Pageable pageable);

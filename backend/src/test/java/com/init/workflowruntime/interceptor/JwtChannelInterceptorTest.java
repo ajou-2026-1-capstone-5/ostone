@@ -6,9 +6,15 @@ import static org.mockito.BDDMockito.given;
 
 import com.init.auth.application.JwtService;
 import com.init.shared.application.exception.InvalidTokenException;
+import com.init.workflowruntime.domain.ChatSession;
+import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionStatus;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +26,8 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JwtChannelInterceptor")
@@ -27,13 +35,15 @@ class JwtChannelInterceptorTest {
 
   @Mock private JwtService jwtService;
 
+  @Mock private ChatSessionRepository chatSessionRepository;
+
   @Mock private MessageChannel channel;
 
   private JwtChannelInterceptor interceptor;
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(jwtService);
+    interceptor = new JwtChannelInterceptor(jwtService, chatSessionRepository);
   }
 
   @Test
@@ -162,10 +172,11 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  @DisplayName("SUBSCRIBE with auth, valid destination → passes through")
-  void should_passThrough_when_subscribeWithAuthAndValidDestination() {
+  @DisplayName("SUBSCRIBE with OPERATOR auth, chat topic → passes through")
+  void should_passThrough_when_operatorSubscribesChatTopic() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
     accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
@@ -173,6 +184,51 @@ class JwtChannelInterceptorTest {
     Message<?> result = interceptor.preSend(message, channel);
 
     assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with USER auth, owned chat topic → passes through")
+  void should_passThrough_when_userSubscribesOwnedChatTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "USER")));
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 42L)));
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with USER auth, other user's chat topic → AccessDeniedException")
+  void should_throwAccessDenied_when_userSubscribesOtherUsersChatTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "USER")));
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 99L)));
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with USER auth, non numeric chat topic → BadRequestException")
+  void should_throwBadRequest_when_chatTopicSessionIdInvalid() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "USER")));
+    accessor.setDestination("/topic/chat.queue");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(com.init.shared.application.exception.BadRequestException.class);
   }
 
   @Test
@@ -210,5 +266,12 @@ class JwtChannelInterceptorTest {
 
     assertThatThrownBy(() -> interceptor.preSend(message, channel))
         .isInstanceOf(MissingAuthHeaderException.class);
+  }
+
+  private ChatSession createSession(Long id, Long startedBy) {
+    ChatSession session =
+        ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}", startedBy);
+    ReflectionTestUtils.setField(session, "id", id);
+    return session;
   }
 }

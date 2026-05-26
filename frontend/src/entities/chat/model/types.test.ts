@@ -19,13 +19,13 @@ describe("chat model types", () => {
   it("ChatSession과 ConnectionStatus union을 고정한다", () => {
     const session = {
       id: 10,
-      workspaceId: 1,
-      status: "ACTIVE",
-      createdAt: "2026-05-22T00:00:00Z",
+      status: "OPEN",
+      channel: "WEB",
+      startedAt: "2026-05-22T00:00:00Z",
     } satisfies ChatSession;
     const status: ConnectionStatus = "CONNECTED";
 
-    expect(session.status).toBe("ACTIVE");
+    expect(session.status).toBe("OPEN");
     expect(status).toBe("CONNECTED");
   });
 });
