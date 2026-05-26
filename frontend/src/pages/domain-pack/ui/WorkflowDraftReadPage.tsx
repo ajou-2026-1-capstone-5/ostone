@@ -1,5 +1,10 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { toast } from "sonner";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
@@ -58,6 +63,7 @@ export function WorkflowDraftReadPage() {
   const { workspaceId, packId, workflowId } = useParams();
   const [search] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditDirty, setEditDirty] = useState(false);
   const [isCreatingDraft, setCreatingDraft] = useState(false);
@@ -85,6 +91,7 @@ export function WorkflowDraftReadPage() {
   );
   const versionNo = selectedVersion?.versionNo ?? vId ?? 0;
   const lifecycleStatus = selectedVersion?.lifecycleStatus ?? null;
+  const workflowReturnTo = readWorkflowReturnTo(location.state);
 
   const query = useGetWorkflowDefinition({
     workspaceId: wsId ?? 0,
@@ -198,9 +205,12 @@ export function WorkflowDraftReadPage() {
   const handleBackToList = () => {
     guardEditorClose(() => {
       closeEditor();
-      navigate(domainPackSectionPath(wsId, pId, vId, "workflows"), {
-        replace: true,
-      });
+      navigate(
+        workflowReturnTo ?? domainPackSectionPath(wsId, pId, vId, "workflows"),
+        {
+          replace: true,
+        },
+      );
     });
   };
 
@@ -244,7 +254,12 @@ export function WorkflowDraftReadPage() {
         await resolveExistingDraft(workflow.workflowCode);
         return;
       }
-      toast.error("워크플로우 수정 초안 생성에 실패했습니다.");
+      toast.error(
+        resolveWorkflowActionErrorMessage(
+          error,
+          "워크플로우 수정 초안 생성에 실패했습니다.",
+        ),
+      );
     } finally {
       setCreatingDraft(false);
     }
@@ -349,7 +364,7 @@ export function WorkflowDraftReadPage() {
               className={`${styles.headerButton} ${styles.backAction}`}
             >
               <Icon name="chevron" size={14} />
-              목록
+              {workflowReturnTo ? "뒤로" : "목록"}
             </Button>
             {workflow && !isEditing && (
               <Button
@@ -456,4 +471,20 @@ export function WorkflowDraftReadPage() {
       </AlertDialog>
     </OstoneShell>
   );
+}
+
+function readWorkflowReturnTo(state: unknown): string | null {
+  if (typeof state !== "object" || state === null) return null;
+  const value = (state as { workflowReturnTo?: unknown }).workflowReturnTo;
+  return typeof value === "string" && value.startsWith("/") ? value : null;
+}
+
+function resolveWorkflowActionErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (error instanceof ApiRequestError && error.message) {
+    return error.message;
+  }
+  return fallback;
 }

@@ -41,7 +41,9 @@ describe("IntentRevisionDraftActions", () => {
 
     expect(screen.getByText("변경된 intent 1개")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "적용" })[0]);
-    expect(screen.getByText("Intent 수정 초안을 적용할까요?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Intent 수정 초안을 적용할까요?"),
+    ).toBeInTheDocument();
 
     const confirmButtons = screen.getAllByRole("button", { name: "적용" });
     fireEvent.click(confirmButtons[confirmButtons.length - 1]);
@@ -53,7 +55,14 @@ describe("IntentRevisionDraftActions", () => {
     const { onDiscard } = renderActions();
 
     fireEvent.click(screen.getAllByRole("button", { name: "취소" })[0]);
-    expect(screen.getByText("Intent 수정 초안을 취소할까요?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Domain Pack 수정을 취소할까요?"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /지금까지 이 Draft에 저장한 Domain Pack 수정 내용이 초기화되고/,
+      ),
+    ).toBeInTheDocument();
 
     const confirmButtons = screen.getAllByRole("button", { name: "취소" });
     fireEvent.click(confirmButtons[confirmButtons.length - 1]);
@@ -64,7 +73,9 @@ describe("IntentRevisionDraftActions", () => {
   it("요약 로딩 중에는 적용을 막고 loading 문구를 보여준다", () => {
     renderActions({ summary: undefined, isSummaryLoading: true });
 
-    expect(screen.getByText("변경 요약을 불러오는 중입니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("변경 요약을 불러오는 중입니다."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "적용" })).toBeDisabled();
   });
 
@@ -74,7 +85,9 @@ describe("IntentRevisionDraftActions", () => {
       summaryError: "변경 요약을 불러오지 못했습니다.",
     });
 
-    expect(screen.getByText("변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("변경 요약을 불러오지 못했습니다."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "적용" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
@@ -87,7 +100,9 @@ describe("IntentRevisionDraftActions", () => {
       summaryError: new Error(""),
     });
 
-    expect(screen.getByText("변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(
+      screen.getByText("변경 요약을 불러오지 못했습니다."),
+    ).toBeInTheDocument();
   });
 
   it("변경된 intent가 없으면 적용을 막는다", () => {

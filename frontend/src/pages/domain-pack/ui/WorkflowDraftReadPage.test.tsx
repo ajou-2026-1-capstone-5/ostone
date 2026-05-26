@@ -86,9 +86,17 @@ function LocationProbe() {
   );
 }
 
-function renderPage(path: string) {
+function renderPage(path: string, state?: unknown) {
   render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: path.split("?")[0],
+          search: path.includes("?") ? `?${path.split("?")[1]}` : "",
+          state,
+        },
+      ]}
+    >
       <Routes>
         <Route
           path={ROUTE}
@@ -99,6 +107,7 @@ function renderPage(path: string) {
             </>
           }
         />
+        <Route path="*" element={<LocationProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -339,6 +348,66 @@ describe("WorkflowDraftReadPage", () => {
       await screen.findByText("변경 내역을 버릴까요?"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("inline-editor")).toBeInTheDocument();
+  });
+
+  it("intent에서 진입한 workflow는 상단 버튼으로 intent 화면으로 돌아간다", async () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3", {
+      workflowReturnTo: "/workspaces/1/domain-packs/2/intents/30?versionId=3",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "뒤로" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2/intents/30?versionId=3",
+      ),
+    );
+  });
+
+  it("workflow 수정 초안 생성 실패 시 서버 에러 메시지를 표시한다", async () => {
+    mockUsePackDetail.mockReturnValue({
+      data: {
+        name: "CS Pack",
+        versions: [
+          { versionId: 3, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    mockCreateRevisionDraft.mockRejectedValue(
+      new ApiRequestError(
+        400,
+        "DOMAIN_PACK_VERSION_NOT_CURRENT",
+        "현재 운영 버전이 아닙니다.",
+      ),
+    );
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+    fireEvent.click(screen.getByTestId("edit-toggle"));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("현재 운영 버전이 아닙니다."),
+    );
   });
 
   it("편집 모드에서는 상단 보기 버튼을 렌더하지 않는다", () => {

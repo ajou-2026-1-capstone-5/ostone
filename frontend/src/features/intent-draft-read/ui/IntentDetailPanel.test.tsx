@@ -1,11 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
-import { useIntentDetail } from "../model/useIntentDetail";
+import type { IntentDetail, IntentSummary } from "@/entities/intent";
+import {
+  useIntentDetail,
+  type IntentDetailState,
+} from "../model/useIntentDetail";
+import { useIntentList, type IntentListState } from "../model/useIntentList";
 import { IntentDetailPanel } from "./IntentDetailPanel";
 
 vi.mock("../model/useIntentDetail", () => ({
   useIntentDetail: vi.fn(),
+}));
+
+vi.mock("../model/useIntentList", () => ({
+  useIntentList: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -13,8 +22,9 @@ vi.mock("sonner", () => ({
 }));
 
 const mockedUseIntentDetail = vi.mocked(useIntentDetail);
+const mockedUseIntentList = vi.mocked(useIntentList);
 
-const stubDetail = {
+const stubDetail: IntentDetail = {
   id: 10,
   intentCode: "INTENT_001",
   name: "배송 조회 문의",
@@ -30,7 +40,19 @@ const stubDetail = {
   updatedAt: "",
 };
 
-function renderPanel(props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {}) {
+const emptyIntentListState: IntentListState = { status: "ready", data: [] };
+
+function readyDetail(data: IntentDetail): IntentDetailState {
+  return { status: "ready", data };
+}
+
+function readyList(data: IntentSummary[]): IntentListState {
+  return { status: "ready", data };
+}
+
+function renderPanel(
+  props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {},
+) {
   const defaults = {
     wsId: 1,
     packId: 2,
@@ -43,6 +65,8 @@ function renderPanel(props: Partial<React.ComponentProps<typeof IntentDetailPane
 describe("IntentDetailPanel", () => {
   beforeEach(() => {
     mockedUseIntentDetail.mockReset();
+    mockedUseIntentList.mockReset();
+    mockedUseIntentList.mockReturnValue(emptyIntentListState);
     vi.mocked(toast.error).mockReset();
   });
 
@@ -82,7 +106,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("ready 상태에서 children이 없으면 기존 렌더링을 유지한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
+    mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
 
     renderPanel();
 
@@ -91,9 +115,33 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
+  it("parent intent id 대신 parent intent 제목을 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+    mockedUseIntentList.mockReturnValue(
+      readyList([
+        {
+          id: 20,
+          intentCode: "ORDER_STATUS",
+          name: "주문 상태 문의",
+          parentIntentId: null,
+        },
+      ]),
+    );
+
+    renderPanel();
+
+    expect(screen.getByText("Parent Intent")).toBeInTheDocument();
+    expect(screen.getByText("주문 상태 문의")).toBeInTheDocument();
+    expect(screen.queryByText("20")).not.toBeInTheDocument();
+  });
+
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
-    const childrenFn = vi.fn((detail) => <div data-testid="children">{detail.name}</div>);
+    mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
+    const childrenFn = vi.fn((detail) => (
+      <div data-testid="children">{detail.name}</div>
+    ));
 
     renderPanel({ children: childrenFn });
 

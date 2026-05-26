@@ -43,7 +43,12 @@ export function IntentDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const iId = intentId ? parseRouteId(intentId) : null;
 
-  if (wsId === null || pId === null || vId === null || (intentId !== undefined && iId === null)) {
+  if (
+    wsId === null ||
+    pId === null ||
+    vId === null ||
+    (intentId !== undefined && iId === null)
+  ) {
     return (
       <OstoneShell active="domain" crumbs={[]}>
         <div className={styles.invalidParams} role="alert">
@@ -106,9 +111,13 @@ function IntentDraftReadContent({
       <Pill tone={versionLabelTone(versionLabel)}>{versionLabel}</Pill>
       {controller.isRevisionDraft && (
         <IntentRevisionDraftActions
-          summary={summaryState.status === "ready" ? summaryState.data : undefined}
+          summary={
+            summaryState.status === "ready" ? summaryState.data : undefined
+          }
           isSummaryLoading={summaryState.status === "loading"}
-          summaryError={summaryState.status === "error" ? summaryState.message : null}
+          summaryError={
+            summaryState.status === "error" ? summaryState.message : null
+          }
           isPending={controller.isMutationPending}
           onRetrySummary={controller.retrySummary}
           onApply={controller.handleApplyRevisionDraftAction}
@@ -155,7 +164,9 @@ function IntentDraftTwoPane({
   iId: number | null;
 }) {
   return (
-    <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
+    <div
+      className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}
+    >
       <div className={styles.listSlot}>
         <IntentTreePanel
           wsId={wsId}
@@ -167,7 +178,13 @@ function IntentDraftTwoPane({
           markers={controller.markers}
         />
       </div>
-      <IntentDetailSlot controller={controller} wsId={wsId} pId={pId} vId={vId} iId={iId} />
+      <IntentDetailSlot
+        controller={controller}
+        wsId={wsId}
+        pId={pId}
+        vId={vId}
+        iId={iId}
+      />
     </div>
   );
 }
@@ -185,14 +202,20 @@ function IntentDetailSlot({
   vId: number;
   iId: number | null;
 }) {
-  const [editingTarget, setEditingTarget] = useState<{ intentId: number; versionId: number } | null>(
-    null,
-  );
+  const [editingTarget, setEditingTarget] = useState<{
+    intentId: number;
+    versionId: number;
+  } | null>(null);
   const isEditingIntent =
     editingTarget?.intentId === iId && editingTarget.versionId === vId;
-  const setEditingIntent = useCallback((next: boolean) => {
-    setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
-  }, [iId, vId]);
+  const setEditingIntent = useCallback(
+    (next: boolean) => {
+      setEditingTarget(
+        next && iId !== null ? { intentId: iId, versionId: vId } : null,
+      );
+    },
+    [iId, vId],
+  );
 
   const renderMatchedWorkflows = (detail: IntentDetail) => (
     <MatchedWorkflowSection
@@ -206,7 +229,12 @@ function IntentDetailSlot({
   if (iId === null) {
     return (
       <div className={styles.detailSlot}>
-        <IntentDetailPanel wsId={wsId} packId={pId} versionId={vId} intentId={null} />
+        <IntentDetailPanel
+          wsId={wsId}
+          packId={pId}
+          versionId={vId}
+          intentId={null}
+        />
       </div>
     );
   }
@@ -253,7 +281,9 @@ function IntentDetailSlot({
           intentCode={detail.intentCode ?? null}
           onChange={controller.setSelectedIntentCode}
         />
-        {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
+        {controller.recoveryVersionId === vId ? (
+          <IntentRevisionRecoveryBanner />
+        ) : null}
       </>
     ),
     beforeJsonCards: () =>
@@ -302,12 +332,18 @@ function IntentDetailSlot({
 
   return (
     <div className={styles.detailSlot}>
-      <IntentDetailPanel {...detailSharedProps}>{renderRevisionEditor}</IntentDetailPanel>
+      <IntentDetailPanel {...detailSharedProps}>
+        {renderRevisionEditor}
+      </IntentDetailPanel>
     </div>
   );
 }
 
-function PendingNavigationDialog({ controller }: { controller: IntentDraftController }) {
+function PendingNavigationDialog({
+  controller,
+}: {
+  controller: IntentDraftController;
+}) {
   return (
     <AlertDialog
       open={controller.pendingNavigation !== null}
@@ -335,7 +371,11 @@ function PendingNavigationDialog({ controller }: { controller: IntentDraftContro
   );
 }
 
-function ExistingDraftDialog({ controller }: { controller: IntentDraftController }) {
+function ExistingDraftDialog({
+  controller,
+}: {
+  controller: IntentDraftController;
+}) {
   const target = controller.existingDraftTarget;
 
   return (
@@ -346,7 +386,8 @@ function ExistingDraftDialog({ controller }: { controller: IntentDraftController
       <AlertDialogContent size="sm">
         <AlertDialogTitle>진행 중인 초안이 있습니다.</AlertDialogTitle>
         <AlertDialogDescription>
-          저장하지 않고 이동 시 수정 내역은 사라집니다. {getExistingDraftDescription(target)}
+          이미 진행 중인 Draft가 있어 새 수정 초안을 만들 수 없습니다.{" "}
+          {getExistingDraftDescription(target)}
         </AlertDialogDescription>
         <AlertDialogFooter>
           <Button
@@ -356,7 +397,10 @@ function ExistingDraftDialog({ controller }: { controller: IntentDraftController
           >
             취소
           </Button>
-          <Button type="button" onClick={controller.confirmExistingDraftNavigation}>
+          <Button
+            type="button"
+            onClick={controller.confirmExistingDraftNavigation}
+          >
             이동
           </Button>
         </AlertDialogFooter>
@@ -403,8 +447,10 @@ function getVersionLabel({
   return "확인 중";
 }
 
-function getExistingDraftDescription(target: ExistingDraftTarget | null): string {
+function getExistingDraftDescription(
+  target: ExistingDraftTarget | null,
+): string {
   return target?.sourceType === "INTENT_REVISION"
-    ? "기존 Intent 수정 초안으로 이동할까요?"
-    : "기존 초안으로 이동할까요?";
+    ? "기존 Intent 수정 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요."
+    : "기존 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요.";
 }

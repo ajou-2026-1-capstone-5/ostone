@@ -63,11 +63,18 @@ describe("useUpdateWorkflow", () => {
 
   it("성공 시 toast.success를 호출한다", async () => {
     mockedUpdateWorkflow.mockResolvedValue({
-      data: { ...stubDetail, description: undefined, graphJson: "{}", initialState: undefined },
+      data: {
+        ...stubDetail,
+        description: undefined,
+        graphJson: "{}",
+        initialState: undefined,
+      },
       status: 200,
       headers: new Headers(),
     });
-    const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useUpdateWorkflow(), {
+      wrapper: makeWrapper(),
+    });
 
     await act(async () => {
       await result.current.mutateAsync(mutateParams);
@@ -80,14 +87,18 @@ describe("useUpdateWorkflow", () => {
     mockedUpdateWorkflow.mockRejectedValue(
       new ApiRequestError(422, "WORKFLOW_NOT_EDITABLE", "수정 불가"),
     );
-    const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useUpdateWorkflow(), {
+      wrapper: makeWrapper(),
+    });
 
     act(() => {
       result.current.mutate(mutateParams);
     });
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("DRAFT 상태의 버전에서만 수정할 수 있습니다."),
+      expect(toast.error).toHaveBeenCalledWith(
+        "DRAFT 상태의 버전에서만 수정할 수 있습니다.",
+      ),
     );
   });
 
@@ -95,27 +106,58 @@ describe("useUpdateWorkflow", () => {
     mockedUpdateWorkflow.mockRejectedValue(
       new ApiRequestError(422, "WORKFLOW_INVALID_START_NODE", "노드 오류"),
     );
-    const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useUpdateWorkflow(), {
+      wrapper: makeWrapper(),
+    });
 
     act(() => {
       result.current.mutate(mutateParams);
     });
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("START 노드가 정확히 1개여야 합니다."),
+      expect(toast.error).toHaveBeenCalledWith(
+        "START 노드가 정확히 1개여야 합니다.",
+      ),
+    );
+  });
+
+  it("알 수 없는 API 에러 코드는 서버 메시지를 표시한다", async () => {
+    mockedUpdateWorkflow.mockRejectedValue(
+      new ApiRequestError(
+        400,
+        "VALIDATION_ERROR",
+        "transitionId가 유효하지 않습니다.",
+      ),
+    );
+    const { result } = renderHook(() => useUpdateWorkflow(), {
+      wrapper: makeWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate(mutateParams);
+    });
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "transitionId가 유효하지 않습니다.",
+      ),
     );
   });
 
   it("알 수 없는 에러의 경우 기본 에러 메시지를 표시한다", async () => {
     mockedUpdateWorkflow.mockRejectedValue(new Error("unexpected"));
-    const { result } = renderHook(() => useUpdateWorkflow(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useUpdateWorkflow(), {
+      wrapper: makeWrapper(),
+    });
 
     act(() => {
       result.current.mutate(mutateParams);
     });
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("워크플로우 수정에 실패했습니다."),
+      expect(toast.error).toHaveBeenCalledWith(
+        "워크플로우 수정에 실패했습니다.",
+      ),
     );
   });
 });

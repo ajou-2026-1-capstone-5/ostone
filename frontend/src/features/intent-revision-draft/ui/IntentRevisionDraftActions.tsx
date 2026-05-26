@@ -32,8 +32,10 @@ export function IntentRevisionDraftActions({
 }: IntentRevisionDraftActionsProps) {
   const [dialog, setDialog] = useState<"apply" | "discard" | null>(null);
   const changedCount = summary?.changedIntents.length ?? 0;
-  const canApply = changedCount > 0 && !isSummaryLoading && !summaryError && !isPending;
-  const rawErrorMessage = summaryError instanceof Error ? summaryError.message : summaryError;
+  const canApply =
+    changedCount > 0 && !isSummaryLoading && !summaryError && !isPending;
+  const rawErrorMessage =
+    summaryError instanceof Error ? summaryError.message : summaryError;
   const errorMessage = rawErrorMessage || "변경 요약을 불러오지 못했습니다.";
 
   return (
@@ -84,7 +86,10 @@ export function IntentRevisionDraftActions({
         </Button>
       </div>
 
-      <AlertDialog open={dialog === "apply"} onOpenChange={() => setDialog(null)}>
+      <AlertDialog
+        open={dialog === "apply"}
+        onOpenChange={() => setDialog(null)}
+      >
         <AlertDialogContent size="sm" className={styles.dialogContent}>
           <AlertDialogTitle className={styles.dialogTitle}>
             Intent 수정 초안을 적용할까요?
@@ -119,13 +124,17 @@ export function IntentRevisionDraftActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={dialog === "discard"} onOpenChange={() => setDialog(null)}>
+      <AlertDialog
+        open={dialog === "discard"}
+        onOpenChange={() => setDialog(null)}
+      >
         <AlertDialogContent size="sm" className={styles.dialogContent}>
           <AlertDialogTitle className={styles.dialogTitle}>
-            Intent 수정 초안을 취소할까요?
+            Domain Pack 수정을 취소할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.dialogDescription}>
-            이 초안에 저장된 intent 수정 내용이 폐기되고 현재 운영 버전으로 돌아갑니다.
+            지금까지 이 Draft에 저장한 Domain Pack 수정 내용이 초기화되고 현재
+            운영 버전으로 돌아갑니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.dialogButtons}>
             <Button
@@ -173,7 +182,11 @@ function ChangeSummaryPreview({ summary }: { summary: IntentRevisionSummary }) {
           <li key={change.intentId}>
             <span>{change.intentCode}</span>
             <strong>{change.name || "이름 없음"}</strong>
-            <em>{change.fields.map((field) => (field === "name" ? "이름" : "설명")).join(", ")}</em>
+            <em>
+              {change.fields
+                .map((field) => (field === "name" ? "이름" : "설명"))
+                .join(", ")}
+            </em>
           </li>
         ))}
         {rest > 0 && <li>외 {rest}개</li>}
