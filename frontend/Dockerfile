@@ -3,7 +3,9 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_WS_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_WS_URL=${VITE_WS_URL}
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable && pnpm install --frozen-lockfile

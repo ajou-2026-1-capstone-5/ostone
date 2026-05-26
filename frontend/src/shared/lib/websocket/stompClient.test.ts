@@ -60,4 +60,16 @@ describe("createStompClient", () => {
       }),
     );
   });
+
+  it("VITE_WS_URL이 없으면 VITE_API_BASE_URL에서 WebSocket base URL을 유추한다", () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://backend.example.com/api/v1");
+
+    createStompClient();
+
+    expect(MockedClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brokerURL: "wss://backend.example.com/ws/chat",
+      }),
+    );
+  });
 });
