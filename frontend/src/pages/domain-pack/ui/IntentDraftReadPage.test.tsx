@@ -111,6 +111,7 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
     afterHeader,
     beforeJsonCards,
     children,
+    intentListState,
   }: {
     intentId: number | null;
     headerActions?: (detail: {
@@ -157,6 +158,7 @@ vi.mock("@/features/approve-intent", () => ({
     nonDraftHeaderActions,
     children,
     iId,
+    intentListState,
   }: {
     afterHeader?: (detail: {
       id: number;
