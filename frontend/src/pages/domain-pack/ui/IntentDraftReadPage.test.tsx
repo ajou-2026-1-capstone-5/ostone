@@ -15,9 +15,12 @@ const mocks = vi.hoisted(() => ({
   listIntents: vi.fn(),
   getVersionDetail: vi.fn(),
   useIntentList: vi.fn(),
+  useIntentRevisionSummary: vi.fn(),
   intentTreePanelProps: vi.fn(),
   intentDetailPanelProps: vi.fn(),
   intentDetailWithApprovalProps: vi.fn(),
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
   summaryState: {
     status: "ready",
     data: {
@@ -73,6 +76,13 @@ vi.mock("@/widgets/ostone-shell", () => ({
       {children}
     </main>
   ),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: mocks.toastError,
+    success: mocks.toastSuccess,
+  },
 }));
 
 vi.mock("@/features/domain-pack-summary-read", () => ({
@@ -275,7 +285,10 @@ vi.mock("@/features/intent-revision-draft", () => ({
       : { status: "invalid" };
   },
   useIntentRevisionMarkers: () => ({}),
-  useIntentRevisionSummary: () => mocks.summaryState,
+  useIntentRevisionSummary: (params: unknown) => {
+    mocks.useIntentRevisionSummary(params);
+    return mocks.summaryState;
+  },
   useSaveIntentRevisionDraft: () => ({
     saveIntentRevisionDraft: mocks.saveIntentRevisionDraft,
     isPending: false,
@@ -313,9 +326,12 @@ describe("IntentDraftReadPage", () => {
     mocks.listIntents.mockReset();
     mocks.getVersionDetail.mockReset();
     mocks.useIntentList.mockReset();
+    mocks.useIntentRevisionSummary.mockReset();
     mocks.intentTreePanelProps.mockReset();
     mocks.intentDetailPanelProps.mockReset();
     mocks.intentDetailWithApprovalProps.mockReset();
+    mocks.toastError.mockReset();
+    mocks.toastSuccess.mockReset();
     mocks.packData = {
       packId: 7,
       versions: [
@@ -411,6 +427,53 @@ describe("IntentDraftReadPage", () => {
     );
   });
 
+  it("초안 생성 후 intent patch가 실패하면 이동은 유지하고 복구 안내를 남긴다", async () => {
+    mocks.saveIntentRevisionDraft.mockResolvedValue({
+      draftVersionId: 4,
+      clonedIntentId: null,
+      patchSucceeded: false,
+    });
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "save revision" }));
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        "Intent 수정 초안에서 같은 intent를 찾지 못했습니다.",
+      ),
+    );
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/7/intents?versionId=4",
+      { replace: true },
+    );
+    expect(mocks.toastSuccess).not.toHaveBeenCalledWith(
+      "Intent 수정 초안이 생성되었습니다.",
+    );
+  });
+
+  it("운영 버전이 바뀐 상태에서 저장하면 pack을 새로고침하고 안내한다", async () => {
+    mocks.saveIntentRevisionDraft.mockRejectedValue(
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_VERSION_NOT_CURRENT",
+        "version changed",
+      ),
+    );
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "save revision" }));
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        "현재 운영 버전이 변경되었습니다. 최신 버전에서 다시 수정해 주세요.",
+      ),
+    );
+    expect(mocks.packRefetch).toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
   it("이미 진행 중인 초안이 있으면 기존 초안 이동 dialog를 보여준다", async () => {
     mocks.packData = {
       packId: 7,
@@ -447,6 +510,38 @@ describe("IntentDraftReadPage", () => {
         /이미 진행 중인 Draft가 있어 새 수정 초안을 만들 수 없습니다./,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("진행 중인 draft가 하나로 해석되지 않으면 이동 dialog 대신 새로고침 안내를 보여준다", async () => {
+    mocks.packData = {
+      packId: 7,
+      versions: [
+        { versionId: 3, versionNo: 2, lifecycleStatus: "PUBLISHED" },
+        { versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" },
+        { versionId: 6, versionNo: 4, lifecycleStatus: "DRAFT" },
+      ],
+    };
+    mocks.packRefetch.mockResolvedValue({ data: mocks.packData });
+    mocks.saveIntentRevisionDraft.mockRejectedValue(
+      new ApiRequestError(
+        409,
+        "DOMAIN_PACK_DRAFT_ALREADY_EXISTS",
+        "draft exists",
+      ),
+    );
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "save revision" }));
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        "초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.",
+      ),
+    );
+    expect(
+      screen.queryByText("진행 중인 초안이 있습니다."),
+    ).not.toBeInTheDocument();
   });
 
   it("기존 초안 dialog에서 이동을 확정하면 해당 초안의 같은 intent로 이동한다", async () => {
@@ -511,6 +606,75 @@ describe("IntentDraftReadPage", () => {
       }),
     );
     expect(screen.getByText("revision diff")).toBeInTheDocument();
+  });
+
+  it("revision draft PATCH 실패 시 서버 메시지를 안내하고 화면을 새로고침하지 않는다", async () => {
+    mocks.versionData = {
+      versionId: 6,
+      lifecycleStatus: "DRAFT",
+      summaryJson: '{"draftSource":"INTENT_REVISION"}',
+    };
+    mocks.updateDraftIntent.mockRejectedValue(
+      new ApiRequestError(400, "VALIDATION_ERROR", "이름이 너무 깁니다."),
+    );
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "save revision" }));
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith("이름이 너무 깁니다."),
+    );
+    expect(mocks.versionRefetch).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it("dirty 상태에서 intent 이동 시 확인 dialog를 거쳐 이동한다", async () => {
+    mocks.versionData = {
+      versionId: 6,
+      lifecycleStatus: "DRAFT",
+      summaryJson: '{"draftSource":"INTENT_REVISION"}',
+    };
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
+
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "mark dirty" }));
+    fireEvent.click(screen.getByRole("button", { name: "select intent" }));
+
+    expect(
+      await screen.findByText("저장하지 않고 이동할까요?"),
+    ).toBeInTheDocument();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "이동" }));
+
+    await waitFor(() =>
+      expect(mocks.navigate).toHaveBeenCalledWith(
+        "/workspaces/1/domain-packs/7/intents/10?versionId=6",
+        { replace: true },
+      ),
+    );
+  });
+
+  it("summary 재시도를 누르면 refresh key를 올려 summary를 다시 조회한다", async () => {
+    mocks.versionData = {
+      versionId: 6,
+      lifecycleStatus: "DRAFT",
+      summaryJson: '{"draftSource":"INTENT_REVISION"}',
+    };
+    renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
+
+    expect(mocks.useIntentRevisionSummary).toHaveBeenLastCalledWith(
+      expect.objectContaining({ refreshKey: 0 }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "retry summary" }));
+
+    await waitFor(() =>
+      expect(mocks.useIntentRevisionSummary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ refreshKey: 1 }),
+      ),
+    );
   });
 
   it("revision draft 상태에서는 적용/삭제 안내만 보여준다", async () => {

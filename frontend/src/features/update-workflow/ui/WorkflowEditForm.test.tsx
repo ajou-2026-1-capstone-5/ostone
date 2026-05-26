@@ -8,7 +8,19 @@ vi.mock("../api/useUpdateWorkflow", () => ({
 }));
 
 vi.mock("./InteractiveGraphEditor", () => ({
-  InteractiveGraphEditor: () => <div data-testid="graph-editor" />,
+  InteractiveGraphEditor: ({
+    initialEdges,
+    initialNodes,
+  }: {
+    initialEdges: unknown[];
+    initialNodes: unknown[];
+  }) => (
+    <div
+      data-testid="graph-editor"
+      data-edge-count={initialEdges.length}
+      data-node-count={initialNodes.length}
+    />
+  ),
 }));
 
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
@@ -43,14 +55,16 @@ function renderForm({
   onClose = vi.fn(),
   onSaved,
   onDirtyChange,
+  workflow = stubWorkflow,
 }: {
   onClose?: () => void;
   onSaved?: () => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  workflow?: typeof stubWorkflow;
 } = {}) {
   render(
     <WorkflowEditForm
-      workflow={stubWorkflow}
+      workflow={workflow}
       wsId={1}
       packId={2}
       versionId={3}
@@ -97,6 +111,24 @@ describe("WorkflowEditForm", () => {
   it("renders InteractiveGraphEditor", () => {
     renderForm();
     expect(screen.getByTestId("graph-editor")).toBeInTheDocument();
+  });
+
+  it("invalid graphJson이면 빈 그래프로 editor를 초기화한다", () => {
+    renderForm({
+      workflow: {
+        ...stubWorkflow,
+        graphJson: "{invalid json",
+      },
+    });
+
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
+      "data-node-count",
+      "0",
+    );
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
+      "data-edge-count",
+      "0",
+    );
   });
 
   it("calls onClose when cancel button is clicked", () => {
