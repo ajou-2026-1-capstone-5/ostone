@@ -43,8 +43,8 @@ class ConsultationServiceTest {
   @Test
   @DisplayName("getActiveQueue: OPEN+ACTIVE 세션 목록을 반환한다")
   void should_returnActiveQueue_when_called() {
-    ChatSession s1 = createSession(1L);
-    ChatSession s2 = createSession(2L);
+    ChatSession s1 = createSession(1L, ChatSessionStatus.OPEN);
+    ChatSession s2 = createSession(2L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findByStatusInOrderByStartedAtDesc(any()))
         .willReturn(List.of(s1, s2));
 
@@ -145,7 +145,11 @@ class ConsultationServiceTest {
   // ── helpers ────────────────────────────────────────────────────────────────
 
   private ChatSession createSession(Long id) {
-    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    return createSession(id, ChatSessionStatus.OPEN);
+  }
+
+  private ChatSession createSession(Long id, ChatSessionStatus status) {
+    ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

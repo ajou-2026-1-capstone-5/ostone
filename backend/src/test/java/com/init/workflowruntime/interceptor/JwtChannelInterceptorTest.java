@@ -160,4 +160,55 @@ class JwtChannelInterceptorTest {
     assertThatThrownBy(() -> interceptor.preSend(message, channel))
         .isInstanceOf(MissingAuthHeaderException.class);
   }
+
+  @Test
+  @DisplayName("SUBSCRIBE with auth, valid destination → passes through")
+  void should_passThrough_when_subscribeWithAuthAndValidDestination() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with auth, invalid destination → BadRequestException")
+  void should_throwBadRequest_when_subscribeToUnauthorizedDestination() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setDestination("/topic/unauthorized");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(com.init.shared.application.exception.BadRequestException.class);
+  }
+
+  @Test
+  @DisplayName("SEND with authentication → passes through")
+  void should_passThrough_when_sendWithAuth() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    accessor.setUser(() -> "42");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SEND without authentication → MissingAuthHeaderException")
+  void should_throwMissingAuthHeader_when_sendWithoutAuth() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(MissingAuthHeaderException.class);
+  }
 }

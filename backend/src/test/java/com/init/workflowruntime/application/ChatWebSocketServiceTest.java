@@ -93,6 +93,31 @@ class ChatWebSocketServiceTest {
   }
 
   @Test
+  @DisplayName("saveAndBroadcast: 세션 소유자가 다른 사용자 → SESSION_ACCESS_DENIED")
+  void should_throwBadRequest_when_userDoesNotOwnSession() {
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
+    ReflectionTestUtils.setField(session, "startedBy", 99L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(
+            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")))
+        .isInstanceOf(com.init.shared.application.exception.BadRequestException.class)
+        .hasMessageContaining("SESSION_ACCESS_DENIED");
+  }
+
+  @Test
+  @DisplayName("saveAndBroadcast: 세션 상태가 COMPLETED → SESSION_NOT_OPEN_OR_ACTIVE")
+  void should_throwBadRequest_when_sessionCompleted() {
+    ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(
+            () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")))
+        .isInstanceOf(com.init.shared.application.exception.BadRequestException.class)
+        .hasMessageContaining("SESSION_NOT_OPEN_OR_ACTIVE");
+  }
+
+  @Test
   @DisplayName("saveAndBroadcast: 세션 상태가 OPEN → 정상 저장 및 afterCommit broadcast")
   void should_saveAndBroadcast_when_sessionOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
