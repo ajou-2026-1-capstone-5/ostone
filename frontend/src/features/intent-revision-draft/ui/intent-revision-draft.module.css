@@ -7,11 +7,12 @@
 }
 
 .summaryText {
-  font-family: "Geist Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.54px;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  font-family: "Pretendard Variable", sans-serif;
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: -0.14px;
+  color: var(--text-primary);
 }
 
 .actionButtons,

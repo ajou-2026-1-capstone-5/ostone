@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { intentApi } from "../api/intentApi";
 import { mapApiError } from "./mapApiError";
-import type { IntentSummary } from "../../../entities/intent";
+import type { IntentListState, IntentSummary } from "../../../entities/intent";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
-
-export type IntentListState =
-  | { status: "loading" }
-  | { status: "error"; code: string; message: string; httpStatus?: number }
-  | { status: "ready"; data: IntentSummary[] };
 
 export function useIntentList(
   wsId: number,

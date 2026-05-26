@@ -1,30 +1,23 @@
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import type { IntentTreeNode } from "../../../entities/intent";
+import type { IntentListState, IntentTreeNode } from "../../../entities/intent";
 import { buildIntentTree } from "../model/buildIntentTree";
-import { useIntentList } from "../model/useIntentList";
 import styles from "./IntentTreePanel.module.css";
 
 interface IntentTreePanelProps {
-  wsId: number;
-  packId: number;
-  versionId: number;
+  intentListState: IntentListState;
   selectedId: number | null;
   onSelect: (id: number) => void;
-  refreshKey?: number;
   markers?: Record<number, "수정 중" | "수정됨">;
 }
 
 export function IntentTreePanel({
-  wsId,
-  packId,
-  versionId,
+  intentListState,
   selectedId,
   onSelect,
-  refreshKey,
   markers = {},
 }: IntentTreePanelProps) {
-  const state = useIntentList(wsId, packId, versionId, refreshKey);
+  const state = intentListState;
   const errorMessage = state.status === "error" ? state.message : undefined;
   const tree = useMemo(
     () => (state.status === "ready" ? buildIntentTree(state.data) : []),
@@ -42,7 +35,9 @@ export function IntentTreePanel({
       <header className={styles.header}>
         <span className={styles.headerTitle}>Intents</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · TREE` : "— · TREE"}
+          {state.status === "ready"
+            ? `${state.data.length} · TREE`
+            : "— · TREE"}
         </span>
       </header>
 
@@ -128,9 +123,9 @@ function IntentTreeRow({
           <span className={styles.code}>{node.intentCode}</span>
           <span className={styles.name}>{node.name}</span>
           <span className={styles.meta}>
-            {marker && <span className={styles.marker}>{marker}</span>}
             <span className={styles.badge}>LV · {node.taxonomyLevel}</span>
             <span className={styles.badge}>{node.status}</span>
+            {marker && <span className={styles.marker}>{marker}</span>}
           </span>
         </div>
       </button>

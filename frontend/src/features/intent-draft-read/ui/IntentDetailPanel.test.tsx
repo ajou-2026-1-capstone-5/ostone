@@ -1,7 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
-import { useIntentDetail } from "../model/useIntentDetail";
+import type {
+  IntentDetail,
+  IntentListState,
+  IntentSummary,
+} from "@/entities/intent";
+import {
+  useIntentDetail,
+  type IntentDetailState,
+} from "../model/useIntentDetail";
 import { IntentDetailPanel } from "./IntentDetailPanel";
 
 vi.mock("../model/useIntentDetail", () => ({
@@ -14,7 +22,7 @@ vi.mock("sonner", () => ({
 
 const mockedUseIntentDetail = vi.mocked(useIntentDetail);
 
-const stubDetail = {
+const stubDetail: IntentDetail = {
   id: 10,
   intentCode: "INTENT_001",
   name: "배송 조회 문의",
@@ -30,12 +38,25 @@ const stubDetail = {
   updatedAt: "",
 };
 
-function renderPanel(props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {}) {
+const emptyIntentListState: IntentListState = { status: "ready", data: [] };
+
+function readyDetail(data: IntentDetail): IntentDetailState {
+  return { status: "ready", data };
+}
+
+function readyList(data: IntentSummary[]): IntentListState {
+  return { status: "ready", data };
+}
+
+function renderPanel(
+  props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {},
+) {
   const defaults = {
     wsId: 1,
     packId: 2,
     versionId: 3,
     intentId: 10 as number | null,
+    intentListState: emptyIntentListState,
   };
   render(<IntentDetailPanel {...defaults} {...props} />);
 }
@@ -82,7 +103,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("ready 상태에서 children이 없으면 기존 렌더링을 유지한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
+    mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
 
     renderPanel();
 
@@ -91,9 +112,83 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
+  it("parent intent id 대신 parent intent 제목을 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+    renderPanel({
+      intentListState: readyList([
+        {
+          id: 20,
+          intentCode: "ORDER_STATUS",
+          name: "주문 상태 문의",
+          parentIntentId: null,
+        },
+      ]),
+    });
+
+    expect(screen.getByText("Parent Intent")).toBeInTheDocument();
+    expect(screen.getByText("주문 상태 문의")).toBeInTheDocument();
+    expect(screen.queryByText("20")).not.toBeInTheDocument();
+  });
+
+  it("parent intent 이름이 없으면 intent code를 fallback으로 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+
+    renderPanel({
+      intentListState: readyList([
+        {
+          id: 20,
+          intentCode: "ORDER_STATUS",
+          name: "",
+          parentIntentId: null,
+        },
+      ]),
+    });
+
+    expect(screen.getByText("ORDER_STATUS")).toBeInTheDocument();
+  });
+
+  it("parent intent 목록이 loading/error이면 상태별 fallback을 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({ ...stubDetail, parentIntentId: 20 }),
+    );
+    const { rerender } = render(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={{ status: "loading" }}
+      />,
+    );
+
+    expect(screen.getByText("불러오는 중...")).toBeInTheDocument();
+
+    rerender(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={{
+          status: "error",
+          code: "ERR",
+          message: "목록 실패",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("확인 불가")).toBeInTheDocument();
+  });
+
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
-    mockedUseIntentDetail.mockReturnValue({ status: "ready", data: stubDetail as any });
-    const childrenFn = vi.fn((detail) => <div data-testid="children">{detail.name}</div>);
+    mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
+    const childrenFn = vi.fn((detail) => (
+      <div data-testid="children">{detail.name}</div>
+    ));
 
     renderPanel({ children: childrenFn });
 

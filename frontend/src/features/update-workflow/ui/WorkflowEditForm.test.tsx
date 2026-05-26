@@ -8,7 +8,19 @@ vi.mock("../api/useUpdateWorkflow", () => ({
 }));
 
 vi.mock("./InteractiveGraphEditor", () => ({
-  InteractiveGraphEditor: () => <div data-testid="graph-editor" />,
+  InteractiveGraphEditor: ({
+    initialEdges,
+    initialNodes,
+  }: {
+    initialEdges: unknown[];
+    initialNodes: unknown[];
+  }) => (
+    <div
+      data-testid="graph-editor"
+      data-edge-count={initialEdges.length}
+      data-node-count={initialNodes.length}
+    />
+  ),
 }));
 
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
@@ -39,14 +51,26 @@ function makeWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-function renderForm(onClose = vi.fn()) {
+function renderForm({
+  onClose = vi.fn(),
+  onSaved,
+  onDirtyChange,
+  workflow = stubWorkflow,
+}: {
+  onClose?: () => void;
+  onSaved?: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  workflow?: typeof stubWorkflow;
+} = {}) {
   render(
     <WorkflowEditForm
-      workflow={stubWorkflow}
+      workflow={workflow}
       wsId={1}
       packId={2}
       versionId={3}
       onClose={onClose}
+      onSaved={onSaved}
+      onDirtyChange={onDirtyChange}
     />,
     { wrapper: makeWrapper() },
   );
@@ -72,7 +96,9 @@ describe("WorkflowEditForm", () => {
 
   it("renders workflow name and description in form fields", () => {
     renderForm();
-    expect(screen.getByDisplayValue("환불 처리 워크플로우")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("환불 처리 워크플로우"),
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue("표준 환불 처리 절차")).toBeInTheDocument();
   });
 
@@ -85,6 +111,24 @@ describe("WorkflowEditForm", () => {
   it("renders InteractiveGraphEditor", () => {
     renderForm();
     expect(screen.getByTestId("graph-editor")).toBeInTheDocument();
+  });
+
+  it("invalid graphJson이면 빈 그래프로 editor를 초기화한다", () => {
+    renderForm({
+      workflow: {
+        ...stubWorkflow,
+        graphJson: "{invalid json",
+      },
+    });
+
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
+      "data-node-count",
+      "0",
+    );
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
+      "data-edge-count",
+      "0",
+    );
   });
 
   it("calls onClose when cancel button is clicked", () => {
@@ -111,6 +155,23 @@ describe("WorkflowEditForm", () => {
     );
   });
 
+  it("저장 성공 시 form dirty 상태를 reset하고 clean 상태를 알린다", async () => {
+    const onSaved = vi.fn();
+    const onDirtyChange = vi.fn();
+    mutateWorkflow.mockImplementation((_, options) => {
+      options?.onSuccess?.();
+    });
+    renderForm({ onSaved, onDirtyChange });
+    const nameInput = screen.getByDisplayValue("환불 처리 워크플로우");
+    fireEvent.change(nameInput, { target: { value: "수정된 워크플로우" } });
+
+    await waitFor(() => expect(onDirtyChange).toHaveBeenCalledWith(true));
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("disables buttons while mutation is pending", () => {
     mockedUseUpdateWorkflow.mockReturnValue({
       mutate: mutateWorkflow,
@@ -127,7 +188,9 @@ describe("WorkflowEditForm", () => {
     fireEvent.change(nameInput, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => {
-      expect(screen.getByText("워크플로우 이름은 필수입니다.")).toBeInTheDocument();
+      expect(
+        screen.getByText("워크플로우 이름은 필수입니다."),
+      ).toBeInTheDocument();
     });
     expect(mutateWorkflow).not.toHaveBeenCalled();
   });

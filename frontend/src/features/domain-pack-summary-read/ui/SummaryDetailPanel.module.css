@@ -119,6 +119,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 .deployButton {
@@ -148,6 +149,11 @@
   background: transparent;
   color: var(--text-muted);
   border-color: var(--glass-border);
+}
+
+.discardButton {
+  background: var(--button-bg, var(--bg-color, #ffffff));
+  color: var(--button-text, var(--text-primary, #000000));
 }
 
 .metaGrid {

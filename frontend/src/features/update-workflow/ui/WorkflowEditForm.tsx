@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
 import { Button } from "@/shared/ui/button";
-import { workflowEditSchema, type WorkflowEditFormValues } from "../model/schema";
+import {
+  workflowEditSchema,
+  type WorkflowEditFormValues,
+} from "../model/schema";
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
 import { toWorkflowGraph } from "../lib/graphToWorkflow";
@@ -31,6 +34,8 @@ interface WorkflowEditFormProps {
   packId: number;
   versionId: number;
   onClose: () => void;
+  onSaved?: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export function WorkflowEditForm({
@@ -39,24 +44,35 @@ export function WorkflowEditForm({
   packId,
   versionId,
   onClose,
+  onSaved,
+  onDirtyChange,
 }: WorkflowEditFormProps) {
   const { mutate, isPending } = useUpdateWorkflow();
+  const [isGraphDirty, setGraphDirty] = useState(false);
 
   const parsedGraph = useRef(parseGraphJson(workflow.graphJson));
   const initialFlow = useRef(toFlow(parsedGraph.current));
+  const graphStateInitializedRef = useRef(false);
 
   // single source of truth for graph state; ref avoids re-renders on every node change
-  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({ ...initialFlow.current });
+  const graphStateRef = useRef<{ nodes: Node[]; edges: Edge[] }>({
+    ...initialFlow.current,
+  });
 
   const handleGraphStateChange = useCallback((nodes: Node[], edges: Edge[]) => {
     graphStateRef.current = { nodes, edges };
+    if (!graphStateInitializedRef.current) {
+      graphStateInitializedRef.current = true;
+      return;
+    }
+    setGraphDirty(true);
   }, []);
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<WorkflowEditFormValues>({
     resolver: zodResolver(workflowEditSchema),
     defaultValues: {
@@ -71,12 +87,21 @@ export function WorkflowEditForm({
   useEffect(() => {
     const graph = parseGraphJson(workflow.graphJson);
     const flow = toFlow(graph);
-    reset({ name: workflow.name ?? "", description: workflow.description ?? undefined });
+    reset({
+      name: workflow.name ?? "",
+      description: workflow.description ?? undefined,
+    });
     parsedGraph.current = graph;
     initialFlow.current = flow;
     graphStateRef.current = flow;
+    graphStateInitializedRef.current = false;
+    setGraphDirty(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflow.id]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty || isGraphDirty);
+  }, [isDirty, isGraphDirty, onDirtyChange]);
 
   const direction = parsedGraph.current.direction;
   const workflowId = workflow.id!;
@@ -90,9 +115,33 @@ export function WorkflowEditForm({
         graphJson: graph,
         description: values.description ?? undefined,
       } as Parameters<typeof mutate>[0]["body"];
-      mutate({ wsId, packId, versionId, workflowId, body }, { onSuccess: onClose });
+      mutate(
+        { wsId, packId, versionId, workflowId, body },
+        {
+          onSuccess: () => {
+            reset({
+              name: values.name,
+              description: values.description ?? undefined,
+            });
+            onDirtyChange?.(false);
+            setGraphDirty(false);
+            (onSaved ?? onClose)();
+          },
+        },
+      );
     },
-    [direction, mutate, wsId, packId, versionId, workflowId, onClose],
+    [
+      direction,
+      mutate,
+      wsId,
+      packId,
+      versionId,
+      workflowId,
+      onDirtyChange,
+      onSaved,
+      onClose,
+      reset,
+    ],
   );
 
   return (

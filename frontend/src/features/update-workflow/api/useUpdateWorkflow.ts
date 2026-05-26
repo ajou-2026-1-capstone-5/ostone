@@ -14,14 +14,17 @@ interface UpdateWorkflowParams {
 
 const ERROR_MESSAGES: Record<string, string> = {
   WORKFLOW_NOT_EDITABLE: "DRAFT 상태의 버전에서만 수정할 수 있습니다.",
+  GRAPH_JSON_REQUIRED: "그래프 데이터가 필요합니다.",
   GRAPH_JSON_TOO_LARGE: "그래프 데이터가 너무 큽니다.",
+  WORKFLOW_GRAPH_JSON_INVALID: "그래프 데이터 형식이 유효하지 않습니다.",
   WORKFLOW_INVALID_START_NODE: "START 노드가 정확히 1개여야 합니다.",
   WORKFLOW_INVALID_TERMINAL_NODE: "TERMINAL 노드가 최소 1개 필요합니다.",
   WORKFLOW_DANGLING_EDGE: "엣지의 연결 대상 노드가 존재하지 않습니다.",
   WORKFLOW_UNREACHABLE_NODE: "모든 노드가 START에서 도달 가능해야 합니다.",
   WORKFLOW_CYCLE_DETECTED: "그래프에 순환 경로가 있습니다.",
   WORKFLOW_UNLABELED_BRANCH: "DECISION 노드의 모든 분기에 label이 필요합니다.",
-  WORKFLOW_ACTION_NODE_POLICY_REF_MISSING: "ACTION 노드의 policyRef 값이 필요합니다.",
+  WORKFLOW_ACTION_NODE_POLICY_REF_MISSING:
+    "ACTION 노드의 policyRef 값이 필요합니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS:
     "ACTION 노드의 policyRef 형식이 유효하지 않습니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND:
@@ -33,13 +36,32 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function useUpdateWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ wsId, packId, versionId, workflowId, body }: UpdateWorkflowParams) => {
-      const res = await updateWorkflow(wsId, packId, versionId, workflowId, body);
+    mutationFn: async ({
+      wsId,
+      packId,
+      versionId,
+      workflowId,
+      body,
+    }: UpdateWorkflowParams) => {
+      const res = await updateWorkflow(
+        wsId,
+        packId,
+        versionId,
+        workflowId,
+        body,
+      );
       return res.data;
     },
     onSuccess: (_, { wsId, packId, versionId, workflowId }) => {
       queryClient.invalidateQueries({
-        queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
+        queryKey: [
+          "workflows",
+          "detail",
+          wsId,
+          packId,
+          versionId,
+          workflowId,
+        ] as const,
       });
       queryClient.invalidateQueries({
         queryKey: ["workflows", "list", wsId, packId, versionId] as const,
@@ -48,7 +70,10 @@ export function useUpdateWorkflow() {
     },
     onError: (error: unknown) => {
       const code = error instanceof ApiRequestError ? error.code : "";
-      toast.error(ERROR_MESSAGES[code] ?? "워크플로우 수정에 실패했습니다.");
+      const message = error instanceof ApiRequestError ? error.message : "";
+      toast.error(
+        (ERROR_MESSAGES[code] ?? message) || "워크플로우 수정에 실패했습니다.",
+      );
     },
   });
 }
