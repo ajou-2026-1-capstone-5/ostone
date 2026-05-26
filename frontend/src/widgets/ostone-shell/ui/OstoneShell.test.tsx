@@ -27,14 +27,14 @@ describe("OstoneShell", () => {
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
   });
 
-  it("renders Topbar with OSTONE eyebrow", () => {
+  it("renders Topbar with CStone brand", () => {
     render(
       <OstoneShell active="workflows" crumbs={["CARD-CS", "Domain Packs"]}>
         <div>content</div>
       </OstoneShell>,
       { wrapper: Wrapper },
     );
-    expect(screen.getByText("OSTONE")).toBeInTheDocument();
+    expect(screen.getByText("CStone")).toBeInTheDocument();
     expect(screen.getByText("CARD-CS")).toBeInTheDocument();
     expect(screen.getAllByText("Domain Packs")).toHaveLength(2);
   });
@@ -53,7 +53,10 @@ describe("OstoneShell", () => {
 
   it("상세 화면의 여러 breadcrumb는 그대로 유지한다", () => {
     render(
-      <OstoneShell active="workflows" crumbs={["WS · 1", "Domain Packs", "Workflows"]}>
+      <OstoneShell
+        active="workflows"
+        crumbs={["WS · 1", "Domain Packs", "Workflows"]}
+      >
         <div>content</div>
       </OstoneShell>,
       { wrapper: Wrapper },
@@ -85,7 +88,9 @@ describe("OstoneShell", () => {
       "data-collapsed",
       "false",
     );
-    expect(screen.getByLabelText("주요 내비게이션")).toHaveStyle({ width: "200px" });
+    expect(screen.getByLabelText("주요 내비게이션")).toHaveStyle({
+      width: "200px",
+    });
   });
 
   it("sidebar collapsed localStorage 값이 있어도 fixed expanded 상태를 유지한다", () => {
@@ -99,7 +104,9 @@ describe("OstoneShell", () => {
     const nav = screen.getByLabelText("주요 내비게이션");
     expect(nav).toHaveAttribute("data-collapsed", "false");
     expect(screen.queryByLabelText("사이드바 접기")).not.toBeInTheDocument();
-    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe("true");
+    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe(
+      "true",
+    );
   });
 
   it("localStorage에 false가 저장돼 있어도 sidebar 값을 다시 쓰지 않는다", () => {
@@ -114,7 +121,9 @@ describe("OstoneShell", () => {
       "data-collapsed",
       "false",
     );
-    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe("false");
+    expect(window.localStorage.getItem("ostone:sidebar:collapsed")).toBe(
+      "false",
+    );
   });
 
   it("renders dark variant", () => {
