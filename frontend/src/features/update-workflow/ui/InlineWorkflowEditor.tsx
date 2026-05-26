@@ -7,6 +7,8 @@ interface InlineWorkflowEditorProps {
   packId: number;
   versionId: number;
   onClose: () => void;
+  onSaved?: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 /**
@@ -19,6 +21,8 @@ export function InlineWorkflowEditor({
   packId,
   versionId,
   onClose,
+  onSaved,
+  onDirtyChange,
 }: InlineWorkflowEditorProps) {
   return (
     <div
@@ -38,6 +42,8 @@ export function InlineWorkflowEditor({
         packId={packId}
         versionId={versionId}
         onClose={onClose}
+        onSaved={onSaved}
+        onDirtyChange={onDirtyChange}
       />
     </div>
   );

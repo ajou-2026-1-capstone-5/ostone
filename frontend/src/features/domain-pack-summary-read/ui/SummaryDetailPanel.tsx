@@ -22,8 +22,16 @@ interface SummaryDetailPanelProps {
   packId: number;
   currentVersionId?: number | null;
   deployingVersionId?: number | null;
+  applyingVersionId?: number | null;
+  discardingVersionId?: number | null;
   onDeploy?: (versionId: number) => void;
-  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
+  onApplyDraft?: (versionId: number) => void;
+  onDiscardDraft?: (versionId: number) => void;
+  renderSlotEditSheet?: (
+    slotId: number,
+    isOpen: boolean,
+    onClose: () => void,
+  ) => React.ReactNode;
 }
 
 export function SummaryDetailPanel({
@@ -32,22 +40,56 @@ export function SummaryDetailPanel({
   packId,
   currentVersionId = null,
   deployingVersionId = null,
+  applyingVersionId = null,
+  discardingVersionId = null,
   onDeploy,
+  onApplyDraft,
+  onDiscardDraft,
   renderSlotEditSheet,
 }: Readonly<SummaryDetailPanelProps>) {
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
+  const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
+  const [isDiscardDialogOpen, setDiscardDialogOpen] = useState(false);
   const v = query.data;
   const versionId = v?.versionId;
   const isCurrentVersion = versionId != null && versionId === currentVersionId;
   const isDeploying = versionId != null && versionId === deployingVersionId;
+  const isApplying = versionId != null && versionId === applyingVersionId;
+  const isDiscarding = versionId != null && versionId === discardingVersionId;
   const isDraftVersion = v?.lifecycleStatus === "DRAFT";
   const canDeploy =
-    onDeploy != null && versionId != null && !isCurrentVersion && !isDeploying && !isDraftVersion;
+    onDeploy != null &&
+    versionId != null &&
+    !isCurrentVersion &&
+    !isDeploying &&
+    !isDraftVersion;
+  const canApplyDraft =
+    onApplyDraft != null &&
+    versionId != null &&
+    isDraftVersion &&
+    !isApplying &&
+    !isDiscarding;
+  const canDiscardDraft =
+    onDiscardDraft != null &&
+    versionId != null &&
+    isDraftVersion &&
+    !isApplying &&
+    !isDiscarding;
 
   const handleConfirmDeploy = () => {
     if (!canDeploy) return;
     onDeploy(versionId);
     setDeployDialogOpen(false);
+  };
+  const handleConfirmApply = () => {
+    if (!canApplyDraft) return;
+    onApplyDraft(versionId);
+    setApplyDialogOpen(false);
+  };
+  const handleConfirmDiscard = () => {
+    if (!canDiscardDraft) return;
+    onDiscardDraft(versionId);
+    setDiscardDialogOpen(false);
   };
 
   if (!query.isFetching && !query.data && !query.isLoading && !query.isError) {
@@ -62,20 +104,37 @@ export function SummaryDetailPanel({
     return (
       <div className={styles.panel}>
         <div className={styles.skeleton} aria-label="로딩 중">
-          <div className={styles.skeletonBlock} style={{ height: 80 }} aria-hidden />
-          <div className={styles.skeletonBlock} style={{ height: 160 }} aria-hidden />
-          <div className={styles.skeletonBlock} style={{ height: 200 }} aria-hidden />
+          <div
+            className={styles.skeletonBlock}
+            style={{ height: 80 }}
+            aria-hidden
+          />
+          <div
+            className={styles.skeletonBlock}
+            style={{ height: 160 }}
+            aria-hidden
+          />
+          <div
+            className={styles.skeletonBlock}
+            style={{ height: 200 }}
+            aria-hidden
+          />
         </div>
       </div>
     );
   }
 
   if (query.isError) {
-    const is404 = query.error instanceof ApiRequestError && query.error.status === 404;
+    const is404 =
+      query.error instanceof ApiRequestError && query.error.status === 404;
     return (
       <div className={styles.panel}>
         <ErrorState
-          message={is404 ? "버전을 찾을 수 없습니다." : "버전 정보를 불러오지 못했습니다."}
+          message={
+            is404
+              ? "버전을 찾을 수 없습니다."
+              : "버전 정보를 불러오지 못했습니다."
+          }
           onRetry={!is404 ? () => query.refetch() : undefined}
         />
       </div>
@@ -99,16 +158,45 @@ export function SummaryDetailPanel({
                 {v.lifecycleStatus}
               </span>
               {isCurrentVersion && (
-                <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
+                <span className={`${styles.badge} ${styles.badgeOperating}`}>
+                  배포중
+                </span>
               )}
             </div>
           </div>
           <div className={styles.metaGrid}>
             <span className={styles.metaKey}>생성</span>
-            <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
+            <span className={styles.metaValue}>
+              {formatDate(v.createdAt ?? "")}
+            </span>
           </div>
         </div>
-        {onDeploy && versionId != null && (
+        {isDraftVersion &&
+        versionId != null &&
+        (onApplyDraft || onDiscardDraft) ? (
+          <div className={styles.deployActions}>
+            <button
+              type="button"
+              className={`${styles.deployButton} ${styles.discardButton}`}
+              disabled={!canDiscardDraft}
+              onClick={() => {
+                if (canDiscardDraft) setDiscardDialogOpen(true);
+              }}
+            >
+              {isDiscarding ? "폐기 중..." : "폐기"}
+            </button>
+            <button
+              type="button"
+              className={styles.deployButton}
+              disabled={!canApplyDraft}
+              onClick={() => {
+                if (canApplyDraft) setApplyDialogOpen(true);
+              }}
+            >
+              {isApplying ? "적용 중..." : "적용"}
+            </button>
+          </div>
+        ) : onDeploy && versionId != null ? (
           <div className={styles.deployActions}>
             <button
               type="button"
@@ -118,10 +206,14 @@ export function SummaryDetailPanel({
                 if (canDeploy) setDeployDialogOpen(true);
               }}
             >
-              {isCurrentVersion ? "배포중" : isDeploying ? "배포 중..." : "배포"}
+              {isCurrentVersion
+                ? "배포중"
+                : isDeploying
+                  ? "배포 중..."
+                  : "배포"}
             </button>
           </div>
-        )}
+        ) : null}
       </div>
 
       <AlertDialog
@@ -135,7 +227,8 @@ export function SummaryDetailPanel({
             이 버전을 배포할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로 전환됩니다.
+            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로
+            전환됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
@@ -160,6 +253,90 @@ export function SummaryDetailPanel({
                 </>
               ) : (
                 "배포하기"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isApplyDialogOpen}
+        onOpenChange={(next) => {
+          if (!isApplying) setApplyDialogOpen(next);
+        }}
+      >
+        <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
+          <AlertDialogTitle className={styles.approvalDialogTitle}>
+            Draft 버전을 적용할까요?
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.approvalDialogDescription}>
+            적용하면 이 Draft가 운영 가능한 Published 버전으로 전환됩니다.
+          </AlertDialogDescription>
+          <AlertDialogFooter className={styles.approvalDialogFooter}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.approvalDialogCancel}
+              onClick={() => setApplyDialogOpen(false)}
+              disabled={isApplying}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              className={styles.approvalDialogConfirm}
+              onClick={handleConfirmApply}
+              disabled={isApplying}
+            >
+              {isApplying ? (
+                <>
+                  <Spinner />
+                  적용 중...
+                </>
+              ) : (
+                "적용하기"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isDiscardDialogOpen}
+        onOpenChange={(next) => {
+          if (!isDiscarding) setDiscardDialogOpen(next);
+        }}
+      >
+        <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
+          <AlertDialogTitle className={styles.approvalDialogTitle}>
+            Draft 버전을 폐기할까요?
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.approvalDialogDescription}>
+            폐기하면 이 Draft 버전과 편집된 변경 내역이 삭제됩니다.
+          </AlertDialogDescription>
+          <AlertDialogFooter className={styles.approvalDialogFooter}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.approvalDialogCancel}
+              onClick={() => setDiscardDialogOpen(false)}
+              disabled={isDiscarding}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              className={styles.approvalDialogConfirm}
+              onClick={handleConfirmDiscard}
+              disabled={isDiscarding}
+            >
+              {isDiscarding ? (
+                <>
+                  <Spinner />
+                  폐기 중...
+                </>
+              ) : (
+                "폐기하기"
               )}
             </Button>
           </AlertDialogFooter>
