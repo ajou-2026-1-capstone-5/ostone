@@ -113,8 +113,10 @@ function DomainPackSummaryPageContent({
   const activateMutation = useActivate({
     mutation: {
       onSuccess: async (result, variables) => {
-        await Promise.all([packQuery.refetch(), versionQuery.refetch()]);
-        const activatedVersionId = result.data.id ?? variables.versionId;
+        const activatedVersionId = resolveActivatedVersionId(
+          result,
+          variables.versionId,
+        );
         setSearch(
           (prev) => {
             const next = new URLSearchParams(prev);
@@ -123,6 +125,7 @@ function DomainPackSummaryPageContent({
           },
           { replace: true },
         );
+        await Promise.allSettled([packQuery.refetch(), versionQuery.refetch()]);
         toast.success("Draft 버전이 적용되었습니다.");
       },
       onError: (error) => {
@@ -305,4 +308,16 @@ function resolveVersionActionErrorMessage(
     return error.message;
   }
   return fallback;
+}
+
+function resolveActivatedVersionId(result: unknown, fallback: number): number {
+  if (!isRecord(result)) return fallback;
+  if (typeof result.id === "number") return result.id;
+  const data = result.data;
+  if (isRecord(data) && typeof data.id === "number") return data.id;
+  return fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

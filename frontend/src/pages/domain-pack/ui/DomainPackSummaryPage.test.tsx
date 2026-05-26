@@ -162,6 +162,7 @@ describe("DomainPackSummaryPage", () => {
       variables: undefined,
     } as unknown as ReturnType<typeof useDiscard>);
     vi.mocked(toast.error).mockReset();
+    vi.mocked(toast.success).mockReset();
   });
 
   it("유효하지 않은 workspaceId 시 에러 메시지를 표시한다", () => {
@@ -314,6 +315,63 @@ describe("DomainPackSummaryPage", () => {
       packId: 2,
       versionId: 5,
     });
+  });
+
+  it("Draft 적용 성공 후 기존 draft 상세 refetch 실패로 실패 toast를 띄우지 않는다", async () => {
+    const packRefetch = vi.fn().mockRejectedValue(new Error("refetch failed"));
+    const versionRefetch = vi
+      .fn()
+      .mockRejectedValue(new Error("old draft missing"));
+    const mutate = vi.fn((variables) => {
+      void activateOnSuccess?.({ id: 6 }, variables, undefined);
+    });
+    let activateOnSuccess:
+      | ((
+          result: unknown,
+          variables: { workspaceId: number; packId: number; versionId: number },
+          context: unknown,
+        ) => unknown)
+      | undefined;
+    vi.mocked(useActivate).mockImplementation((options) => {
+      activateOnSuccess = options?.mutation?.onSuccess;
+      return {
+        mutate,
+        isPending: false,
+        variables: undefined,
+      } as unknown as ReturnType<typeof useActivate>;
+    });
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+        refetch: packRefetch,
+      }),
+    );
+    vi.mocked(useVersionDetail).mockReturnValue(
+      makePackQuery({
+        data: { versionId: 5, lifecycleStatus: "DRAFT" },
+        refetch: versionRefetch,
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=6",
+      ),
+    );
+    expect(packRefetch).toHaveBeenCalled();
+    expect(versionRefetch).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith("Draft 버전이 적용되었습니다.");
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "Draft 버전을 적용하지 못했습니다.",
+    );
   });
 
   it("Draft 삭제 버튼 클릭 시 discard mutation을 호출한다", () => {
