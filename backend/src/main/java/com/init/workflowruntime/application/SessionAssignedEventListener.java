@@ -29,7 +29,8 @@ public class SessionAssignedEventListener {
   public void handleSessionAssigned(SessionAssignedEvent event) {
     ChatSession session = chatSessionRepository.findById(event.sessionId()).orElse(null);
     if (session == null) {
-      log.warn("SessionAssignedEvent: session {} not found, skipping notification", event.sessionId());
+      log.warn(
+          "SessionAssignedEvent: session {} not found, skipping notification", event.sessionId());
       return;
     }
 

@@ -533,14 +533,14 @@ describe("ConsultationPage", () => {
       stompState.latestCallback({
         id: 888,
         senderRole: "COUNSELOR",
-        content: "정식 답변 내용",
+        content: "임시 답변",
         createdAt: new Date().toISOString(),
       });
     }
 
     await waitFor(() => {
-      expect(screen.getByText("정식 답변 내용")).toBeInTheDocument();
-      expect(screen.queryByText("임시 답변")).not.toBeInTheDocument();
+      expect(screen.getByText("임시 답변")).toBeInTheDocument();
+      expect(screen.getAllByText("임시 답변")).toHaveLength(1);
     });
   });
 

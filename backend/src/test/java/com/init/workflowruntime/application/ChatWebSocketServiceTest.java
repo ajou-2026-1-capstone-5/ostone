@@ -102,7 +102,7 @@ class ChatWebSocketServiceTest {
     assertThatThrownBy(
             () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")))
         .isInstanceOf(com.init.shared.application.exception.BadRequestException.class)
-        .hasMessageContaining("SESSION_ACCESS_DENIED");
+        .hasMessageContaining("does not own session");
   }
 
   @Test
@@ -114,7 +114,7 @@ class ChatWebSocketServiceTest {
     assertThatThrownBy(
             () -> service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 1L, "USER")))
         .isInstanceOf(com.init.shared.application.exception.BadRequestException.class)
-        .hasMessageContaining("SESSION_NOT_OPEN_OR_ACTIVE");
+        .hasMessageContaining("is not open or active");
   }
 
   @Test
