@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   listIntents: vi.fn(),
   getVersionDetail: vi.fn(),
   useIntentList: vi.fn(),
+  intentTreePanelProps: vi.fn(),
+  intentDetailPanelProps: vi.fn(),
+  intentDetailWithApprovalProps: vi.fn(),
   summaryState: {
     status: "ready",
     data: {
@@ -85,11 +88,20 @@ vi.mock("@/features/intent-draft-read/model/useIntentList", () => ({
 }));
 
 vi.mock("@/features/intent-draft-read/ui", () => ({
-  IntentTreePanel: ({ onSelect }: { onSelect: (id: number) => void }) => (
-    <button type="button" onClick={() => onSelect(10)}>
-      select intent
-    </button>
-  ),
+  IntentTreePanel: ({
+    intentListState,
+    onSelect,
+  }: {
+    intentListState: unknown;
+    onSelect: (id: number) => void;
+  }) => {
+    mocks.intentTreePanelProps({ intentListState });
+    return (
+      <button type="button" onClick={() => onSelect(10)}>
+        select intent
+      </button>
+    );
+  },
   MatchedWorkflowSection: ({ intentId }: { intentId: number | null }) => (
     <div data-testid={`matched-workflow-section-stub-${intentId ?? "none"}`} />
   ),
@@ -116,7 +128,9 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
       name: string;
       description: string;
     }) => React.ReactNode;
+    intentListState?: unknown;
   }) => {
+    mocks.intentDetailPanelProps({ intentId, intentListState });
     if (intentId === null) return <div>empty intent detail</div>;
     const detail = {
       id: intentId,
@@ -169,7 +183,9 @@ vi.mock("@/features/approve-intent", () => ({
       description: string;
     }) => React.ReactNode;
     iId: number;
+    intentListState: unknown;
   }) => {
+    mocks.intentDetailWithApprovalProps({ iId, intentListState });
     const detail = {
       id: iId,
       intentCode: "refund",
@@ -295,6 +311,9 @@ describe("IntentDraftReadPage", () => {
     mocks.listIntents.mockReset();
     mocks.getVersionDetail.mockReset();
     mocks.useIntentList.mockReset();
+    mocks.intentTreePanelProps.mockReset();
+    mocks.intentDetailPanelProps.mockReset();
+    mocks.intentDetailWithApprovalProps.mockReset();
     mocks.packData = {
       packId: 7,
       versions: [
@@ -348,11 +367,20 @@ describe("IntentDraftReadPage", () => {
     );
   });
 
-  it("intent 목록 state를 페이지에서 한 번 조회해 tree/detail에 공유한다", () => {
+  it("intent 목록 state를 페이지에서 조회해 tree/detail에 공유한다", () => {
+    const intentListState = { status: "ready", data: [] };
+    mocks.useIntentList.mockReturnValue(intentListState);
+
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=3");
 
-    expect(mocks.useIntentList).toHaveBeenCalledTimes(1);
     expect(mocks.useIntentList).toHaveBeenCalledWith(1, 7, 3, 0);
+    expect(mocks.intentTreePanelProps).toHaveBeenLastCalledWith({
+      intentListState,
+    });
+    expect(mocks.intentDetailWithApprovalProps).toHaveBeenLastCalledWith({
+      iId: 10,
+      intentListState,
+    });
   });
 
   it("현재 운영 버전에서 첫 저장 시 revision draft를 생성하고 cloned intent로 이동한다", async () => {
