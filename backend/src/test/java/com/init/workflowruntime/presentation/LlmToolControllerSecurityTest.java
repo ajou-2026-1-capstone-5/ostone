@@ -1,5 +1,6 @@
 package com.init.workflowruntime.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,17 @@ class LlmToolControllerSecurityTest {
     mockMvc
         .perform(get("/api/v1/llm-tools/sessions/1/context"))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("WebSocket handshake 경로는 HTTP 인증에서 차단하지 않는다")
+  void should_not_return401_when_webSocketHandshakePathIsUnauthenticated() throws Exception {
+    mockMvc
+        .perform(get("/ws/chat"))
+        .andExpect(
+            result ->
+                assertThat(result.getResponse().getStatus())
+                    .isNotEqualTo(HttpServletResponse.SC_UNAUTHORIZED));
   }
 
   @Test
