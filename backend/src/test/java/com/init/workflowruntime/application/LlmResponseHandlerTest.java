@@ -2,6 +2,7 @@ package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
@@ -9,7 +10,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -64,8 +67,15 @@ class LlmResponseHandlerTest {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     ChatSession precheckSession = mockSession();
     ChatSession lockSession = mockSession();
-    given(llmAssistantService.generateWorkflowAwareResponse(1L, "", "안녕하세요"))
-        .willReturn("안녕하세요! 무엇을 도와드릴까요?");
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                argThat(
+                    command ->
+                        command instanceof GenerateWorkflowAwareResponseCommand
+                            && command.sessionId().equals(1L)
+                            && command.conversationContext().isEmpty()
+                            && command.userMessage().equals("안녕하세요"))))
+        .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요! 무엇을 도와드릴까요?"));
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(precheckSession));
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(lockSession));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
@@ -81,7 +91,7 @@ class LlmResponseHandlerTest {
 
     InOrder lockOrder = inOrder(chatSessionRepository, llmAssistantService);
     lockOrder.verify(chatSessionRepository).findById(1L);
-    lockOrder.verify(llmAssistantService).generateWorkflowAwareResponse(1L, "", "안녕하세요");
+    lockOrder.verify(llmAssistantService).generateWorkflowAwareResponse(any());
     lockOrder.verify(chatSessionRepository).findByIdForUpdate(1L);
     verify(chatMessageRepository).save(any(ChatMessage.class));
     verify(chatSessionMetadataService).updateAfterMessage(eq(lockSession), eq(savedMsg));
@@ -97,7 +107,7 @@ class LlmResponseHandlerTest {
   void should_pushFallback_when_llmThrowsException() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
-    given(llmAssistantService.generateWorkflowAwareResponse(eq(1L), any(), eq("안녕하세요")))
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
         .willThrow(new RuntimeException("API timeout"));
 
     handler.handleChatMessageReceived(event);

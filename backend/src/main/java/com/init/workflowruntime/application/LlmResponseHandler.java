@@ -1,6 +1,7 @@
 package com.init.workflowruntime.application;
 
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
@@ -50,23 +51,16 @@ public class LlmResponseHandler {
   @EventListener
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
-      ensureSessionExists(event.sessionId());
-
-      List<ChatMessage> recentDesc =
-          chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(event.sessionId());
-      Collections.reverse(recentDesc);
-      String conversationContext =
-          recentDesc.stream()
-              .map(m -> m.getSenderRole() + ": " + m.getContent())
-              .collect(Collectors.joining("\n"));
+      String conversationContext = loadConversationContext(event.sessionId());
 
       String llmResponse =
-          llmAssistantService.generateWorkflowAwareResponse(
-              event.sessionId(), conversationContext, event.content());
+          llmAssistantService
+              .generateWorkflowAwareResponse(
+                  new GenerateWorkflowAwareResponseCommand(
+                      event.sessionId(), conversationContext, event.content()))
+              .content();
 
-      ChatMessage savedMessage =
-          transactionTemplate.execute(
-              status -> saveAssistantMessage(event.sessionId(), llmResponse));
+      ChatMessage savedMessage = saveAssistantMessage(event.sessionId(), llmResponse);
 
       ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
       String destination = "/topic/chat." + event.sessionId();
@@ -85,31 +79,42 @@ public class LlmResponseHandler {
     }
   }
 
-  private void ensureSessionExists(Long sessionId) {
+  private String loadConversationContext(Long sessionId) {
     chatSessionRepository
         .findById(sessionId)
         .orElseThrow(
             () -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+
+    List<ChatMessage> recentDesc =
+        chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(sessionId);
+    Collections.reverse(recentDesc);
+    return recentDesc.stream()
+        .map(m -> m.getSenderRole() + ": " + m.getContent())
+        .collect(Collectors.joining("\n"));
   }
 
   private ChatMessage saveAssistantMessage(Long sessionId, String llmResponse) {
-    ChatSession session =
-        chatSessionRepository
-            .findByIdForUpdate(sessionId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    return transactionTemplate.execute(
+        status -> {
+          ChatSession session =
+              chatSessionRepository
+              .findByIdForUpdate(sessionId)
+              .orElseThrow(
+                  () ->
+                      new NotFoundException(
+                          "SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
-    Integer nextSeqNo =
-        chatMessageRepository
-            .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
-            .map(msg -> msg.getSeqNo() + 1)
-            .orElse(1);
+          Integer nextSeqNo =
+              chatMessageRepository
+                  .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+                  .map(msg -> msg.getSeqNo() + 1)
+                  .orElse(1);
 
-    ChatMessage savedMessage =
-        chatMessageRepository.save(
-            ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
-    chatSessionMetadataService.updateAfterMessage(session, savedMessage);
-    return savedMessage;
+          ChatMessage savedMessage =
+              chatMessageRepository.save(
+              ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
+          chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+          return savedMessage;
+        });
   }
 }

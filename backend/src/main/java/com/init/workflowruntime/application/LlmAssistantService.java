@@ -5,10 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InternalException;
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.ListLlmToolIntentsCommand;
 import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolIntentResponse;
 import com.init.workflowruntime.application.dto.WorkflowAdvanceResponse;
@@ -18,10 +20,8 @@ import java.util.List;
 import java.util.Set;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true)
 public class LlmAssistantService {
 
   private static final int MAX_ADVANCE_COUNT = 3;
@@ -56,9 +56,11 @@ public class LlmAssistantService {
         .content();
   }
 
-  @Transactional
-  public String generateWorkflowAwareResponse(
-      Long sessionId, String conversationContext, String userMessage) {
+  public GenerateWorkflowAwareResponseResult generateWorkflowAwareResponse(
+      GenerateWorkflowAwareResponseCommand command) {
+    Long sessionId = command.sessionId();
+    String conversationContext = command.conversationContext();
+    String userMessage = command.userMessage();
     LlmToolContextResponse context = getContext(sessionId);
     String responseDirective = null;
 
@@ -83,8 +85,10 @@ public class LlmAssistantService {
       context = getContext(sessionId);
     }
 
-    return generateGroundedResponse(
-        conversationContext, userMessage, context, advanceTrace.responses(), responseDirective);
+    String content =
+        generateGroundedResponse(
+            conversationContext, userMessage, context, advanceTrace.responses(), responseDirective);
+    return new GenerateWorkflowAwareResponseResult(content);
   }
 
   private LlmToolContextResponse getContext(Long sessionId) {
@@ -131,7 +135,12 @@ public class LlmAssistantService {
       return IntentDecision.unselected();
     }
 
-    double confidence = decisionNode.path("confidence").asDouble(1.0);
+    JsonNode confidenceNode = decisionNode.get("confidence");
+    if (confidenceNode == null || !confidenceNode.isNumber()) {
+      return IntentDecision.unselected();
+    }
+
+    double confidence = confidenceNode.asDouble();
     if (confidence < INTENT_CONFIDENCE_THRESHOLD) {
       return IntentDecision.unselected();
     }
