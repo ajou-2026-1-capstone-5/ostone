@@ -21,8 +21,7 @@ class ChatSessionMetadataServiceTest {
   @Test
   @DisplayName("updateAfterMessage: 기존 meta를 보존하고 최근 메시지 필드를 갱신한다")
   void should_preserveExistingMetaAndUpdateLastMessageFields() throws Exception {
-    ChatSession session =
-        createSession("{\"customerName\":\"김민지\",\"handoffReason\":\"환불 문의\"}");
+    ChatSession session = createSession("{\"customerName\":\"김민지\",\"handoffReason\":\"환불 문의\"}");
     ChatMessage message =
         createMessage(1L, 3, "COUNSELOR", "처리 도와드리겠습니다.", "2026-05-27T10:15:30+09:00");
 

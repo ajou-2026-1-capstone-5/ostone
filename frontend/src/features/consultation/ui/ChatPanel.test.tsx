@@ -147,6 +147,7 @@ describe("ChatPanel", () => {
       />,
     );
 
+    expect(screen.getByText("시스템")).toBeInTheDocument();
     expect(screen.getByText("상담이 시작되었습니다")).toBeInTheDocument();
     expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("내부 메모 내용")).toBeInTheDocument();
