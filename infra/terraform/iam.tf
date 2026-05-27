@@ -11,7 +11,7 @@ locals {
     "${aws_s3_bucket.buckets["ml_output"].arn}/*"
   ]
 
-  secrets_resource_arns = length(var.secret_arns) == 0 ? ["arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:ostone/${var.environment}/*"] : var.secret_arns
+  secrets_resource_arns = distinct(concat([aws_secretsmanager_secret.app.arn], var.secret_arns))
 }
 
 data "aws_iam_policy_document" "ecs_tasks_assume_role" {
@@ -155,6 +155,21 @@ resource "aws_iam_instance_profile" "ec2_airflow" {
   }
 }
 
+resource "aws_iam_role" "gpu_ec2_instance" {
+  name                 = "${local.name_prefix}-gpu-ec2-instance-role"
+  assume_role_policy   = data.aws_iam_policy_document.ec2_assume_role.json
+  permissions_boundary = var.permissions_boundary_arn
+
+  tags = {
+    Name = "${local.name_prefix}-gpu-ec2-instance-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "gpu_ec2_instance_ecs" {
+  role       = aws_iam_role.gpu_ec2_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
 data "aws_iam_policy_document" "ec2_airflow" {
   statement {
     sid = "RunGpuTasks"
@@ -175,11 +190,22 @@ data "aws_iam_policy_document" "ec2_airflow" {
       aws_iam_role.ecs_task_execution.arn,
       aws_iam_role.gpu_task.arn
     ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
   }
 
   statement {
-    sid       = "S3FullAccessProjectBuckets"
-    actions   = ["s3:*"]
+    sid = "S3FullAccessProjectBuckets"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:ListBucket"
+    ]
     resources = local.all_bucket_arns
   }
 

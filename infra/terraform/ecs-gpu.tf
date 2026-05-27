@@ -4,7 +4,7 @@ data "aws_ssm_parameter" "ecs_gpu_ami" {
 
 resource "aws_iam_instance_profile" "gpu" {
   name = "${local.name_prefix}-gpu-instance-profile"
-  role = aws_iam_role.gpu_task.name
+  role = aws_iam_role.gpu_ec2_instance.name
 
   tags = {
     Name = "${local.name_prefix}-gpu-instance-profile"
@@ -101,6 +101,7 @@ resource "aws_ecs_capacity_provider" "gpu" {
 resource "aws_cloudwatch_log_group" "gpu" {
   name              = "/ecs/${local.name_prefix}/gpu"
   retention_in_days = 30
+  kms_key_id        = aws_kms_key.observability.arn
 
   tags = local.common_tags
 }
@@ -119,12 +120,6 @@ resource "aws_ecs_task_definition" "gpu" {
       name      = "gpu-worker"
       image     = "${aws_ecr_repository.repos["ml_gpu"].repository_url}:latest"
       essential = true
-      portMappings = [
-        {
-          containerPort = 8081
-          protocol      = "tcp"
-        }
-      ]
       environment = [
         {
           name  = "MODEL_NAME"
@@ -132,7 +127,13 @@ resource "aws_ecs_task_definition" "gpu" {
         },
         {
           name  = "OMLX_BASE_URL"
-          value = "http://localhost:8081/v1"
+          value = var.omlx_base_url
+        }
+      ]
+      secrets = [
+        {
+          name      = "OMLX_API_KEY"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:omlx_api_key::"
         }
       ]
       logConfiguration = {

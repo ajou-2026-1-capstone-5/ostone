@@ -22,7 +22,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.10.5
+          terraform_version: 1.15.4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -34,12 +34,14 @@ jobs:
         id: init
         working-directory: infra/terraform
         run: |
-          terraform init -backend-config=backend.hcl.example
+          terraform init -backend-config=backend.hcl
 
       - name: Terraform Plan
         id: plan
         working-directory: infra/terraform
+        shell: bash
         run: |
+          set -o pipefail
           terraform plan -out=tfplan -no-color 2>&1 | tee plan_output.txt
           if grep -q "No changes." plan_output.txt; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
@@ -63,7 +65,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.10.5
+          terraform_version: 1.15.4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -80,7 +82,7 @@ jobs:
       - name: Terraform Init
         working-directory: infra/terraform
         run: |
-          terraform init -backend-config=backend.hcl.example
+          terraform init -backend-config=backend.hcl
 
       - name: Terraform Apply
         working-directory: infra/terraform

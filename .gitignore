@@ -66,3 +66,7 @@ agent-local-status.sh
 
 # Terraform
 infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/tfplan
+infra/terraform/plan_output.txt

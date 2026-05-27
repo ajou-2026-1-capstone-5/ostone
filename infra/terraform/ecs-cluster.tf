@@ -24,6 +24,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${local.name_prefix}/backend"
   retention_in_days = 30
+  kms_key_id        = aws_kms_key.observability.arn
 
   tags = local.common_tags
 }
@@ -69,22 +70,58 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "DB_NAME"
-          value = "ostone"
+          value = var.db_name
+        },
+        {
+          name  = "AWS_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "CORS_ALLOWED_ORIGINS"
+          value = "https://app.${var.domain_name}"
+        },
+        {
+          name  = "STORAGE_S3_BUCKET"
+          value = aws_s3_bucket.buckets["ml_input"].bucket
+        },
+        {
+          name  = "STORAGE_S3_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "STORAGE_S3_SSE_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "AIRFLOW_API_BASE_URL"
+          value = var.airflow_api_base_url
         }
       ]
 
       secrets = [
         {
           name      = "SPRING_DATASOURCE_USERNAME"
-          valueFrom = "/prod/ostone/app:db_username::"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:db_username::"
         },
         {
           name      = "SPRING_DATASOURCE_PASSWORD"
-          valueFrom = "/prod/ostone/app:db_password::"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:db_password::"
         },
         {
           name      = "JWT_SECRET"
-          valueFrom = "/prod/ostone/app:jwt_secret::"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:jwt_secret::"
+        },
+        {
+          name      = "AIRFLOW_API_USERNAME"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:airflow_api_username::"
+        },
+        {
+          name      = "AIRFLOW_API_PASSWORD"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:airflow_api_password::"
+        },
+        {
+          name      = "AIRFLOW_WEBHOOK_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:airflow_webhook_secret::"
         }
       ]
 

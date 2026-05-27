@@ -3,25 +3,51 @@ name: Production Deploy
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "ml/**"
+      - ".github/workflows/prod-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  backend:
+  paths-filter:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main') &&
-      (contains(github.event.head_commit.modified, 'backend/') ||
-       contains(github.event.head_commit.added, 'backend/') ||
-       contains(github.event.head_commit.modified, 'backend/**') ||
-       contains(github.event.head_commit.added, 'backend/**') ||
-       contains(github.event.head_commit.modified, '.github/workflows/prod-deploy.yml'))
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      gpu: ${{ steps.filter.outputs.gpu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - "backend/**"
+              - ".github/workflows/prod-deploy.yml"
+            frontend:
+              - "frontend/**"
+              - ".github/workflows/prod-deploy.yml"
+            gpu:
+              - "ml/**"
+              - ".github/workflows/prod-deploy.yml"
+
+  backend:
+    needs: paths-filter
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: "temurin"
 
       - name: Build with Gradle
         run: |
@@ -57,30 +83,28 @@ jobs:
             --region ap-northeast-2
 
   frontend:
+    needs: paths-filter
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main') &&
-      (contains(github.event.head_commit.modified, 'frontend/') ||
-       contains(github.event.head_commit.added, 'frontend/') ||
-       contains(github.event.head_commit.modified, 'frontend/**') ||
-       contains(github.event.head_commit.added, 'frontend/**') ||
-       contains(github.event.head_commit.modified, '.github/workflows/prod-deploy.yml'))
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install & Build
+        env:
+          VITE_API_BASE_URL: ${{ vars.PROD_API_BASE_URL }}
+          VITE_WS_URL: ${{ vars.PROD_WS_URL }}
         run: |
+          test -n "$VITE_API_BASE_URL"
           cd frontend
           pnpm install --frozen-lockfile
           pnpm build
@@ -102,3 +126,30 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
           aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+
+  gpu:
+    needs: paths-filter
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.gpu == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push GPU image to ECR
+        env:
+          ECR_REPOSITORY: ostone/ml-gpu
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f ml/Dockerfile.gpu .
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+          docker push --all-tags ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY

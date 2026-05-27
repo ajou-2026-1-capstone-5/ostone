@@ -4,7 +4,7 @@ COPY build/libs/backend-*.jar app.jar
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 USER appuser
 EXPOSE 8080
-ENV JAVA_OPTS="-Xmx512m -XX:MaxMetaspaceSize=256m -XX:+UseG1GC"
+ENV JAVA_OPTS="-Xmx512m -XX:MaxMetaspaceSize=256m -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC"
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV SERVER_PORT=8080
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

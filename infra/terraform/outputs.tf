@@ -53,6 +53,16 @@ output "rds_port" {
   value       = aws_db_instance.postgres.port
 }
 
+output "db_name" {
+  description = "RDS database name."
+  value       = var.db_name
+}
+
+output "db_master_username" {
+  description = "RDS master username for one-time initialization."
+  value       = var.db_master_username
+}
+
 output "ecr_repository_urls" {
   description = "ECR repository URLs by repository key."
   value       = { for key, repo in aws_ecr_repository.repos : key => repo.repository_url }
@@ -69,8 +79,13 @@ output "route53_zone_id" {
 }
 
 output "acm_certificate_arn" {
-  description = "Validated ACM certificate ARN in us-east-1."
-  value       = aws_acm_certificate.main.arn
+  description = "Validated regional ACM certificate ARN for ALB."
+  value       = aws_acm_certificate_validation.regional.certificate_arn
+}
+
+output "cloudfront_acm_certificate_arn" {
+  description = "Validated ACM certificate ARN in us-east-1 for CloudFront."
+  value       = aws_acm_certificate_validation.cloudfront.certificate_arn
 }
 
 output "ecs_task_execution_role_arn" {
@@ -171,4 +186,9 @@ output "gpu_task_definition_arn" {
 output "gpu_instance_profile_name" {
   description = "GPU EC2 instance profile name."
   value       = aws_iam_instance_profile.gpu.name
+}
+
+output "gpu_ec2_instance_role_arn" {
+  description = "GPU EC2 instance role ARN."
+  value       = aws_iam_role.gpu_ec2_instance.arn
 }

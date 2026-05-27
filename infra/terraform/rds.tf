@@ -16,6 +16,11 @@ resource "aws_db_parameter_group" "postgres" {
     value = "200"
   }
 
+  parameter {
+    name  = "rds.force_ssl"
+    value = "1"
+  }
+
   tags = {
     Name = "${local.name_prefix}-postgres16"
   }
@@ -53,7 +58,7 @@ resource "aws_db_instance" "postgres" {
   parameter_group_name   = aws_db_parameter_group.postgres.name
   option_group_name      = aws_db_option_group.postgres.name
 
-  multi_az                  = false
+  multi_az                  = var.rds_multi_az
   publicly_accessible       = false
   backup_retention_period   = var.rds_backup_retention_period
   backup_window             = "18:00-19:00"

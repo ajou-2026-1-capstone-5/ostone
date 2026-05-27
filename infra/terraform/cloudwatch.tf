@@ -3,7 +3,8 @@
 # =============================================================================
 
 resource "aws_sns_topic" "alerts" {
-  name = "${local.name_prefix}-alerts"
+  name              = "${local.name_prefix}-alerts"
+  kms_master_key_id = aws_kms_key.observability.arn
 
   tags = local.common_tags
 }

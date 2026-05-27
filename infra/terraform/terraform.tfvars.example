@@ -7,12 +7,18 @@ db_master_username  = "ostone_admin"
 db_master_password  = "replace-with-secure-master-password"
 app_db_password     = "replace-with-secure-app-password"
 airflow_db_password = "replace-with-secure-airflow-password"
+jwt_secret          = "replace-with-secure-jwt-secret"
+airflow_api_username = "admin"
+airflow_api_password = "replace-with-secure-airflow-api-password"
+airflow_api_base_url = "http://<airflow-private-ip>:8080"
+airflow_webhook_secret = "replace-with-secure-webhook-secret"
+omlx_base_url       = "https://omlx.example.com/v1"
+omlx_api_key        = "replace-with-secure-omlx-api-key"
+sns_email           = "alerts@example.com"
 
 cors_allowed_origins = [
   "https://airflow.example.com",
   "https://app.example.com"
 ]
 
-secret_arns = [
-  "arn:aws:secretsmanager:ap-northeast-2:000000000000:secret:ostone/prod/database-example"
-]
+secret_arns = []

@@ -1,4 +1,6 @@
-# 배포 가이드
+# 배포 가이드 (Legacy Render/Neon)
+
+> 이 문서는 AWS ECS 프로덕션 이전 전의 Render/Neon 무료 티어 운영 가이드다. AWS 이전 작업의 기본 운영 문서는 [`docs/ops/runbook.md`](../../docs/ops/runbook.md)를 사용한다.
 
 ## 1. 개요
 

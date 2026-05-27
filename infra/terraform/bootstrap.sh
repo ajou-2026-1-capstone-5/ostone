@@ -58,5 +58,5 @@ Bootstrap resources are ready.
 For the first local apply, temporarily move main.tf backend configuration out or use a clean bootstrap-only directory with backend-local.tf.
 After bootstrap, initialize the remote backend with:
 
-terraform init -backend-config=backend.hcl.example -migrate-state
+terraform init -backend-config=backend.hcl -migrate-state
 EOF

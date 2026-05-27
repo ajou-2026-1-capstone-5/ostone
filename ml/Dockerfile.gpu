@@ -2,22 +2,27 @@
 FROM nvidia/cuda:12.2-runtime-ubuntu22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip curl ca-certificates \
+    curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
+ENV UV_PYTHON=3.13
 
 # Copy dependency files first for layer caching
 COPY ml/pyproject.toml ml/uv.lock ./
 
 # Install dependencies (no dev group)
-RUN uv sync --frozen --no-dev
+RUN uv sync --python 3.13 --frozen --no-dev
 
 # Copy application code
 COPY ml/src/ ./src/
+
+RUN groupadd --system appgroup && useradd --system --gid appgroup --home-dir /app appuser \
+    && chown -R appuser:appgroup /app
+USER appuser
 
 # AWS credentials via ECS task role
 # Expected env vars: S3_INPUT_BUCKET, S3_INPUT_KEY, S3_OUTPUT_BUCKET, S3_OUTPUT_KEY

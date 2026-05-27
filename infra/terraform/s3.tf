@@ -111,7 +111,7 @@ resource "aws_s3_bucket_versioning" "buckets" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "buckets" {
-  for_each = aws_s3_bucket.buckets
+  for_each = length(var.cors_allowed_origins) == 0 ? {} : aws_s3_bucket.buckets
 
   bucket = each.value.id
 
@@ -156,6 +156,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "buckets" {
 
         content {
           days = expiration.value.expiration_days
+        }
+      }
+
+      dynamic "noncurrent_version_expiration" {
+        for_each = rule.value.expiration_days == null ? [] : [rule.value]
+
+        content {
+          noncurrent_days = noncurrent_version_expiration.value.expiration_days
         }
       }
     }

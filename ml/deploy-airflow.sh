@@ -7,13 +7,18 @@ echo "=== Deploying Airflow (Production) ==="
 : "${RDS_ENDPOINT:?RDS_ENDPOINT is required}"
 : "${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD is required}"
 : "${AIRFLOW_WEBHOOK_SECRET:?AIRFLOW_WEBHOOK_SECRET is required}"
+: "${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY is required}"
+: "${AIRFLOW__API__SECRET_KEY:?AIRFLOW__API__SECRET_KEY is required}"
+: "${AIRFLOW__API_AUTH__JWT_SECRET:?AIRFLOW__API_AUTH__JWT_SECRET is required}"
+: "${AIRFLOW_SIMPLE_ADMIN_PASSWORD:?AIRFLOW_SIMPLE_ADMIN_PASSWORD is required}"
+: "${AIRFLOW_SIMPLE_VIEWER_PASSWORD:?AIRFLOW_SIMPLE_VIEWER_PASSWORD is required}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# docker compose pull (ECR에서 이미지 pull)
-echo "Pulling latest images..."
-docker compose -f docker-compose.airflow.prod.yml pull
+# Build Airflow image from the checked-out production Dockerfile.
+echo "Building Airflow image..."
+docker compose -f docker-compose.airflow.prod.yml build --pull
 
 # airflow-init 실행 (DB 마이그레이션)
 echo "Running Airflow DB init..."

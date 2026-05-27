@@ -25,6 +25,11 @@ variable "vpc_cidr" {
   description = "CIDR block for the production VPC."
   type        = string
   default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrnetmask(var.vpc_cidr))
+    error_message = "vpc_cidr must be a valid CIDR block."
+  }
 }
 
 variable "public_subnet_cidrs" {
@@ -33,8 +38,8 @@ variable "public_subnet_cidrs" {
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 
   validation {
-    condition     = length(var.public_subnet_cidrs) == 2
-    error_message = "Exactly two public subnet CIDR blocks are required."
+    condition     = length(var.public_subnet_cidrs) == 2 && alltrue([for cidr in var.public_subnet_cidrs : can(cidrnetmask(cidr))])
+    error_message = "Exactly two valid public subnet CIDR blocks are required."
   }
 }
 
@@ -44,14 +49,19 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.3.0/24", "10.0.4.0/24"]
 
   validation {
-    condition     = length(var.private_subnet_cidrs) == 2
-    error_message = "Exactly two private subnet CIDR blocks are required."
+    condition     = length(var.private_subnet_cidrs) == 2 && alltrue([for cidr in var.private_subnet_cidrs : can(cidrnetmask(cidr))])
+    error_message = "Exactly two valid private subnet CIDR blocks are required."
   }
 }
 
 variable "admin_cidr" {
   description = "Administrator CIDR block allowed to access Airflow EC2 over SSH."
   type        = string
+
+  validation {
+    condition     = can(cidrnetmask(var.admin_cidr))
+    error_message = "admin_cidr must be a valid CIDR block."
+  }
 }
 
 variable "db_name" {
@@ -114,6 +124,12 @@ variable "rds_backup_retention_period" {
   default     = 7
 }
 
+variable "rds_multi_az" {
+  description = "Whether to enable Multi-AZ failover for the production RDS instance."
+  type        = bool
+  default     = true
+}
+
 variable "s3_bucket_names" {
   description = "Production S3 bucket names."
   type = object({
@@ -131,9 +147,9 @@ variable "s3_bucket_names" {
 }
 
 variable "cors_allowed_origins" {
-  description = "Origins allowed to access S3 buckets from Airflow or operator tools."
+  description = "Origins allowed to access S3 buckets from browser tools. Empty disables S3 CORS."
   type        = list(string)
-  default     = ["*"]
+  default     = []
 }
 
 variable "permissions_boundary_arn" {
@@ -158,7 +174,40 @@ variable "jwt_secret" {
   description = "Secret key for JWT token signing."
   type        = string
   sensitive   = true
-  default     = "CHANGE_ME_IN_PROD"
+}
+
+variable "airflow_api_username" {
+  description = "Backend credential for the production Airflow API."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_api_password" {
+  description = "Backend credential for the production Airflow API."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_api_base_url" {
+  description = "Backend-reachable URL for the production Airflow API."
+  type        = string
+}
+
+variable "airflow_webhook_secret" {
+  description = "Shared secret for Airflow callback webhooks."
+  type        = string
+  sensitive   = true
+}
+
+variable "omlx_base_url" {
+  description = "OpenAI-compatible embedding endpoint used by the GPU worker."
+  type        = string
+}
+
+variable "omlx_api_key" {
+  description = "API key for the OMLX embedding endpoint."
+  type        = string
+  sensitive   = true
 }
 
 variable "sns_email" {

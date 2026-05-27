@@ -8,9 +8,11 @@
 
 ## 배포 (CD)
 
-main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 자동으로 Render에 배포된다.
+AWS 이전 이후에는 main 브랜치 머지 시 GitHub Actions가 CI를 통과한 뒤 ECR/ECS/S3/CloudFront 배포 워크플로우를 실행한다.
 
-자세한 배포 가이드: [`.agent/docs/deployment.md`](.agent/docs/deployment.md)
+AWS 배포 가이드: [`docs/ops/runbook.md`](docs/ops/runbook.md)
+
+Render/Neon 무료 티어 배포 가이드는 이전 전환 참고용으로 [`.agent/docs/deployment.md`](.agent/docs/deployment.md)에 남겨둔다.
 
 ## SonarCloud 정적 분석
 

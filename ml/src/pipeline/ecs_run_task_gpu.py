@@ -4,8 +4,19 @@ import time
 from typing import Any
 
 import boto3
-from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
+
+try:
+    from airflow.models import BaseOperator
+    from airflow.utils.decorators import apply_defaults
+except ModuleNotFoundError:  # pragma: no cover - used only in lightweight local tests
+    import logging
+
+    class BaseOperator:  # type: ignore[no-redef]
+        def __init__(self, **_: Any) -> None:
+            self.log = logging.getLogger(self.__class__.__name__)
+
+    def apply_defaults(func):  # type: ignore[no-redef]
+        return func
 
 
 class EcsGpuRunTaskOperator(BaseOperator):
@@ -24,7 +35,6 @@ class EcsGpuRunTaskOperator(BaseOperator):
         task_timeout: int = 3600,
         asg_poll_attempts: int = 12,
         region_name: str = "ap-northeast-2",
-        aws_conn_id: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -39,7 +49,6 @@ class EcsGpuRunTaskOperator(BaseOperator):
         self.task_timeout = task_timeout
         self.asg_poll_attempts = asg_poll_attempts
         self.region_name = region_name
-        self.aws_conn_id = aws_conn_id
 
     def _get_ecs_client(self):
         return boto3.client("ecs", region_name=self.region_name)
@@ -49,10 +58,14 @@ class EcsGpuRunTaskOperator(BaseOperator):
 
     def _scale_asg(self, desired: int) -> None:
         self.log.info("Setting ASG %s desired=%d", self.asg_name, desired)
-        self._get_asg_client().set_desired_capacity(
-            AutoScalingGroupName=self.asg_name,
-            DesiredCapacity=desired,
-        )
+        try:
+            self._get_asg_client().set_desired_capacity(
+                AutoScalingGroupName=self.asg_name,
+                DesiredCapacity=desired,
+            )
+        except Exception as exc:
+            self.log.exception("Failed to set ASG %s desired capacity to %d", self.asg_name, desired)
+            raise RuntimeError(f"Failed to scale GPU ASG {self.asg_name} to {desired}") from exc
 
     def _wait_for_gpu_instance(self) -> str | None:
         ecs = self._get_ecs_client()
@@ -104,7 +117,7 @@ class EcsGpuRunTaskOperator(BaseOperator):
         self.log.info("RunTask started: %s", task_arn)
         return task_arn
 
-    def _poll_task(self, task_arn: str) -> str:
+    def _poll_task(self, task_arn: str) -> dict[str, Any]:
         ecs = self._get_ecs_client()
         deadline = time.time() + self.task_timeout
         while time.time() < deadline:
@@ -114,25 +127,46 @@ class EcsGpuRunTaskOperator(BaseOperator):
                 status = tasks[0].get("lastStatus", "")
                 self.log.info("Task status: %s", status)
                 if status == "STOPPED":
-                    exit_code = tasks[0].get("containers", [{}])[0].get("exitCode")
-                    self.log.info("Task stopped with exit code: %s", exit_code)
-                    return status
+                    return tasks[0]
             time.sleep(self.poll_interval)
-        return "TIMEOUT"
+        return {"lastStatus": "TIMEOUT", "taskArn": task_arn, "containers": []}
+
+    def _assert_successful_task(self, task: dict[str, Any]) -> str:
+        status = task.get("lastStatus", "")
+        task_arn = task.get("taskArn", "unknown")
+        if status != "STOPPED":
+            raise RuntimeError(f"GPU task ended with status: {status}")
+
+        containers = task.get("containers", [])
+        if not containers:
+            raise RuntimeError(f"GPU task stopped without container details: taskArn={task_arn}")
+
+        for container in containers:
+            name = container.get("name", self.container_name)
+            exit_code = container.get("exitCode")
+            self.log.info("Task %s container %s stopped with exit code: %s", task_arn, name, exit_code)
+            if exit_code != 0:
+                reason = container.get("reason") or container.get("exitCode")
+                raise RuntimeError(
+                    f"GPU task container failed: taskArn={task_arn}, container={name}, exitCode={exit_code}, "
+                    f"reason={reason}"
+                )
+        return status
 
     def execute(self, context: dict[str, Any]) -> dict[str, str]:
         self.log.info("=== ECS GPU RunTask Operator START ===")
         try:
             self._scale_asg(1)
-            self._wait_for_gpu_instance()
+            gpu_instance = self._wait_for_gpu_instance()
+            if not gpu_instance:
+                raise RuntimeError("GPU instance failed to register within timeout")
 
             task_arn = self._run_task()
             if not task_arn:
                 raise RuntimeError("Failed to start GPU task")
 
-            status = self._poll_task(task_arn)
-            if status != "STOPPED":
-                raise RuntimeError(f"GPU task ended with status: {status}")
+            task = self._poll_task(task_arn)
+            status = self._assert_successful_task(task)
 
             self.log.info("GPU task completed successfully")
             return {"taskArn": task_arn, "status": status}

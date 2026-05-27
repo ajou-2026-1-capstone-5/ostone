@@ -17,6 +17,13 @@
   - `AWS_ROLE_ARN`
   - `FRONTEND_S3_BUCKET`
   - `CLOUDFRONT_DISTRIBUTION_ID`
+- [ ] GitHub Actions Variables 확인
+  - `PROD_API_BASE_URL` = `https://api.<domain>/api/v1`
+  - `PROD_WS_URL` = `wss://api.<domain>`
+- [ ] Terraform remote state 준비 확인
+  ```bash
+  AWS_REGION=ap-northeast-2 bash infra/terraform/bootstrap.sh
+  ```
 - [ ] 최신 `main` 브랜치 pull 확인
 
 ## Deploy Steps
@@ -26,7 +33,8 @@
 ```bash
 cd infra/terraform
 cp terraform.tfvars.example terraform.tfvars  # 실제 값 입력
-terraform init
+# Airflow EC2 private URL을 정한 뒤 airflow_api_base_url도 실제 값으로 수정
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
@@ -44,10 +52,15 @@ terraform output api_endpoint
 
 ### 2. RDS init
 
+`init.sql`은 애플리케이션/ Airflow 전용 DB role과 schema 권한을 준비한다. `terraform.tfvars`의 `app_db_password`, `airflow_db_password`, `db_name`과 동일한 값을 `psql -v`로 넘긴다.
+
 ```bash
 psql -h $(terraform -chdir=infra/terraform output -raw rds_address) \
-  -U admin \
-  -d ostone \
+  -U $(terraform -chdir=infra/terraform output -raw db_master_username 2>/dev/null || echo ostone_admin) \
+  -d <db_name> \
+  -v db_name=<db_name> \
+  -v app_db_password='<app_db_password>' \
+  -v airflow_db_password='<airflow_db_password>' \
   -f infra/terraform/scripts/init.sql
 ```
 
@@ -63,6 +76,11 @@ aws ecr get-login-password --region ap-northeast-2 | \
 docker build -f Dockerfile.prod -t ostone/backend:latest .
 docker tag ostone/backend:latest <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/backend:latest
 docker push <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/backend:latest
+aws ecs update-service \
+  --cluster $(terraform -chdir=../infra/terraform output -raw ecs_cluster_name) \
+  --service $(terraform -chdir=../infra/terraform output -raw backend_service_name) \
+  --force-new-deployment \
+  --region ap-northeast-2
 ```
 
 #### Frontend
@@ -70,22 +88,41 @@ docker push <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/backend:latest
 ```bash
 cd frontend
 pnpm install
-pnpm build
+VITE_API_BASE_URL=https://api.<domain>/api/v1 VITE_WS_URL=wss://api.<domain> pnpm build
 aws s3 sync dist/ s3://$(terraform -chdir=../infra/terraform output -raw frontend_bucket_name)/ --delete
 aws cloudfront create-invalidation \
   --distribution-id $(terraform -chdir=../infra/terraform output -raw cloudfront_distribution_id) \
   --paths "/*"
 ```
 
+#### GPU worker
+
+```bash
+aws ecr get-login-password --region ap-northeast-2 | \
+  docker login --password-stdin -u AWS <account>.dkr.ecr.ap-northeast-2.amazonaws.com
+docker build -f ml/Dockerfile.gpu -t ostone/ml-gpu:latest .
+docker tag ostone/ml-gpu:latest <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/ml-gpu:latest
+docker push <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/ml-gpu:latest
+```
+
 ### 4. Airflow EC2 배포
 
-`ml/docker-compose.airflow.prod.yml`은 RDS PostgreSQL을 Airflow 메타데이터 DB로 사용하고, DAG 경로는 `/opt/airflow/src/dags`다. 원격 EC2에는 `AIRFLOW_DB_PASSWORD`, `RDS_ENDPOINT`, `AIRFLOW_WEBHOOK_SECRET` 등 필수 환경 변수를 먼저 설정한다.
+`ml/docker-compose.airflow.prod.yml`은 RDS PostgreSQL을 Airflow 메타데이터 DB로 사용하고, DAG 경로는 `/opt/airflow/src/dags`다. 원격 EC2에는 아래 필수 환경 변수를 먼저 설정한다.
+
+- `AIRFLOW_DB_PASSWORD`
+- `RDS_ENDPOINT`
+- `AIRFLOW_WEBHOOK_SECRET`
+- `AIRFLOW_FERNET_KEY`
+- `AIRFLOW__API__SECRET_KEY`
+- `AIRFLOW__API_AUTH__JWT_SECRET`
+- `AIRFLOW_SIMPLE_ADMIN_PASSWORD`
+- `AIRFLOW_SIMPLE_VIEWER_PASSWORD`
 
 ```bash
 scp -i <key> ml/docker-compose.airflow.prod.yml ec2-user@<airflow-ip>:~
 ssh ec2-user@<airflow-ip> "mkdir -p ml/src"
 rsync -avz ml/src/ ec2-user@<airflow-ip>:~/ml/src/
-ssh ec2-user@<airflow-ip> "docker compose -f docker-compose.airflow.prod.yml up -d"
+ssh ec2-user@<airflow-ip> "bash ml/deploy-airflow.sh"
 ```
 
 ### 5. GitHub Actions CI/CD, 이후 자동 배포
@@ -94,6 +131,7 @@ ssh ec2-user@<airflow-ip> "docker compose -f docker-compose.airflow.prod.yml up 
 
 - Backend 변경 시 Java 21로 `./gradlew bootJar --no-daemon -x checkstyleMain -x checkstyleTest`를 실행하고, `ostone/backend` 이미지를 ECR에 `github.sha`와 `latest` 태그로 push한 뒤 ECS 서비스를 재배포한다.
 - Frontend 변경 시 Node 22와 pnpm으로 빌드하고, `FRONTEND_S3_BUCKET`에 `frontend/dist/`를 sync한 뒤 CloudFront invalidation을 생성한다.
+- ML 변경 시 `ml/Dockerfile.gpu`를 빌드하고 `ostone/ml-gpu` 이미지를 ECR에 `github.sha`와 `latest` 태그로 push한다.
 
 ## Health Check Commands
 
@@ -196,17 +234,16 @@ aws rds restore-db-instance-from-db-snapshot \
 | 항목 | 값 |
 | --- | --- |
 | AWS Region | `ap-northeast-2` |
-| EKS Cluster | `ostone-prod-cluster`, Terraform 리소스는 ECS cluster |
 | ECS Cluster | `ostone-prod-cluster` |
 | ECS Service | `ostone-backend`, Fargate, 0.5 vCPU, 1GB |
 | Backend Task Definition | `ostone-prod-backend-task` |
 | ALB DNS | `api.ostone.io`, Backend Target Group 8080 |
-| RDS | `ostone-prod-postgres`, `db.t4g.medium`, 20GB gp3, PostgreSQL 16 |
-| S3 Frontend | `$(terraform output -raw frontend_bucket_name)`, Terraform default `ostone-prod-frontend`, 기존 표기 `ostone-frontend-prod` 확인 필요 |
+| RDS | `ostone-prod-postgres`, `db.t4g.medium`, 20GB gp3, PostgreSQL 16, Multi-AZ |
+| S3 Frontend | `$(terraform output -raw frontend_bucket_name)`, Terraform default `ostone-prod-frontend` |
 | CloudWatch Dashboard | `ostone-prod` |
 | SNS Alarm Topic | `ostone-prod-alerts` |
 | ECR Repositories | `ostone/backend`, `ostone/airflow`, `ostone/ml-gpu` |
-| GPU Worker | ECS GPU RunTask, `g6.2xlarge`, scale up from 0 |
+| GPU Worker | ECS GPU RunTask, `g6.2xlarge`, scale up from 0, OMLX endpoint configured by `omlx_base_url` |
 | Backend Log Group | `/ecs/ostone-prod/backend` |
 | GPU Log Group | `/ecs/ostone-prod/gpu` |
 
