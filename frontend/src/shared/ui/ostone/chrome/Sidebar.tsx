@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
@@ -7,6 +7,7 @@ import { AccountMenu } from "./AccountMenu";
 export type SidebarActive =
   | "workflows"
   | "consult"
+  | "chat"
   | "upload"
   | "domain"
   | "intent"
@@ -26,6 +27,16 @@ interface TopNavItem {
   icon: IconName;
   label: string;
   getPath: (base: string) => string;
+  external?: boolean;
+}
+
+function getDemoChatPath(base: string): string {
+  const match = /^\/workspaces\/([^/]+)(?:\/.*)?$/.exec(base);
+  if (!match) {
+    return "/workspaces";
+  }
+
+  return `/demo/workspaces/${match[1]}/chat`;
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
@@ -34,6 +45,13 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
     icon: "book",
     label: "Consultation",
     getPath: (base) => `${base}/consultation`,
+  },
+  {
+    key: "chat",
+    icon: "msg",
+    label: "Chat",
+    getPath: getDemoChatPath,
+    external: true,
   },
   {
     key: "upload",
@@ -143,6 +161,7 @@ export function Sidebar({
             activeColor={activeColor}
             defaultColor={defaultColor}
             hoverBg={hoverBg}
+            target={item.external ? "_blank" : undefined}
           />
         ))}
 
@@ -188,6 +207,7 @@ interface SidebarLinkProps {
   defaultColor: string;
   hoverBg: string;
   testId?: string;
+  target?: "_blank";
 }
 
 function SidebarLink({
@@ -199,6 +219,7 @@ function SidebarLink({
   defaultColor,
   hoverBg,
   testId,
+  target,
 }: SidebarLinkProps) {
   const expandedStyle: CSSProperties = {
     height: "40px",
@@ -217,6 +238,45 @@ function SidebarLink({
     letterSpacing: "-0.1px",
   };
 
+  const handleMouseEnter = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!isActive) {
+      e.currentTarget.style.background = hoverBg;
+      e.currentTarget.style.color = activeColor;
+    }
+  };
+
+  const handleMouseLeave = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!isActive) {
+      e.currentTarget.style.background = "transparent";
+      e.currentTarget.style.color = defaultColor;
+    }
+  };
+
+  const content = (
+    <>
+      <Icon name={icon} size={16} />
+      <span>{label}</span>
+    </>
+  );
+
+  if (target === "_blank") {
+    return (
+      <a
+        href={to}
+        title={label}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-active={isActive ? "true" : "false"}
+        data-testid={testId}
+        style={expandedStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {content}
+      </a>
+    );
+  }
+
   return (
     <NavLink
       to={to}
@@ -225,21 +285,10 @@ function SidebarLink({
       data-active={isActive ? "true" : "false"}
       data-testid={testId}
       style={expandedStyle}
-      onMouseEnter={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.background = hoverBg;
-          e.currentTarget.style.color = activeColor;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = defaultColor;
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <Icon name={icon} size={16} />
-      <span>{label}</span>
+      {content}
     </NavLink>
   );
 }

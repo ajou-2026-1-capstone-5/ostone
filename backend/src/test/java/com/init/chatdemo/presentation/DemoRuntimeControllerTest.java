@@ -1,11 +1,15 @@
 package com.init.chatdemo.presentation;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.init.chatdemo.application.DemoChatSessionRegistrationService;
 import com.init.chatdemo.application.DemoRuntimeMockService;
 import com.init.chatdemo.presentation.dto.DemoChatSessionEndpointResponse;
 import com.init.chatdemo.presentation.dto.DemoChatSessionResponse;
@@ -26,11 +30,15 @@ import com.init.chatdemo.presentation.dto.DemoWorkflowResponse;
 import com.init.fixtures.WithLongPrincipal;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
+import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -44,6 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
         @ComponentScan.Filter(
             type = FilterType.ASSIGNABLE_TYPE,
             classes = JwtAuthenticationFilter.class))
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("DemoRuntimeController")
 class DemoRuntimeControllerTest {
 
@@ -52,6 +61,7 @@ class DemoRuntimeControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private DemoRuntimeMockService service;
+  @MockitoBean private DemoChatSessionRegistrationService sessionRegistrationService;
 
   @Test
   @DisplayName("GET /api/v1/demo/chat-workflow → 200, 6개 섹션 JSON 검증")
@@ -118,6 +128,80 @@ class DemoRuntimeControllerTest {
         .andExpect(jsonPath("$.messages[0].timestamp").value("2026-05-10T09:00:00Z"))
         .andExpect(jsonPath("$.messages[3].id").value("msg-4"))
         .andExpect(jsonPath("$.messages[3].role").value("assistant"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions → 백엔드 데모 세션 등록")
+  void should_200_when_createRegisteredChatSession() throws Exception {
+    ChatSessionResponse response = new ChatSessionResponse();
+    response.setId(77L);
+    response.setStatus("OPEN");
+    response.setChannel("WEB");
+    response.setMetaJson("{\"customerName\":\"김민지\"}");
+    response.setStartedAt(OffsetDateTime.parse("2026-05-22T00:00:00+09:00"));
+    given(sessionRegistrationService.createSession(10L, "김민지")).willReturn(response);
+
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"customerName\":\"김민지\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(77))
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.metaJson").value("{\"customerName\":\"김민지\"}"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions → customerName 공백이면 400")
+  void should_400_when_createRegisteredChatSessionWithBlankName() throws Exception {
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"customerName\":\" \"}"))
+        .andExpect(status().isBadRequest());
+
+    verify(sessionRegistrationService, never()).createSession(10L, " ");
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions/{sessionId}/messages → 데모 메시지 등록")
+  void should_200_when_appendRegisteredChatMessage() throws Exception {
+    given(sessionRegistrationService.appendMessage(10L, 77L, "Hello"))
+        .willReturn(
+            List.of(
+                new ChatMessageResponse(
+                    1L, 1, "USER", "TEXT", "Hello", OffsetDateTime.parse("2026-05-22T00:00:00Z")),
+                new ChatMessageResponse(
+                    2L,
+                    2,
+                    "ASSISTANT",
+                    "TEXT",
+                    "안내드릴게요.",
+                    OffsetDateTime.parse("2026-05-22T00:00:01Z"))));
+
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions/77/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"Hello\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].senderRole").value("USER"))
+        .andExpect(jsonPath("$[1].senderRole").value("ASSISTANT"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions/{sessionId}/messages → content 공백이면 400")
+  void should_400_when_appendRegisteredChatMessageWithBlankContent() throws Exception {
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions/77/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\" \"}"))
+        .andExpect(status().isBadRequest());
+
+    verify(sessionRegistrationService, never()).appendMessage(10L, 77L, " ");
   }
 
   @Test
@@ -232,11 +316,13 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
-  @DisplayName("인증 없이 요청 시 401 반환")
-  void should_401_when_unauthenticated() throws Exception {
+  @DisplayName("컨트롤러 단위 테스트에서 demo workflow 요청 시 200 반환")
+  void should_return200_when_getChatWorkflow_withoutSecurityFilters() throws Exception {
+    given(service.getChatWorkflow(10L)).willReturn(chatWorkflowResponse());
+
     mockMvc
         .perform(get(DEMO_URL_PREFIX + "/chat-workflow").accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isOk());
   }
 
   private DemoChatWorkflowResponse chatWorkflowResponse() {

@@ -1,5 +1,5 @@
 const DEFAULT_POST_LOGIN_PATH = "/workspaces";
-const ALLOWED_RETURN_PREFIXES = ["/workspaces"];
+const ALLOWED_RETURN_PREFIXES = ["/workspaces", "/demo/workspaces"];
 
 interface ReturnLocation {
   pathname?: unknown;

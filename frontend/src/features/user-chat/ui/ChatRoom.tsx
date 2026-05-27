@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ChatMessage } from "@/entities/chat";
+import { listChatMessages, type ChatMessage } from "@/entities/chat";
 import { useStomp } from "@/shared/lib/websocket";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { MessageInput } from "./MessageInput";
@@ -63,13 +63,65 @@ function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMes
   };
 }
 
+function compareMessageCreatedAt(a: ChatMessage, b: ChatMessage): number {
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+}
+
+function mergeMessages(currentMessages: ChatMessage[], nextMessages: ChatMessage[]): ChatMessage[] {
+  const byId = new Map<string, ChatMessage>();
+  [...currentMessages, ...nextMessages].forEach((message) => {
+    byId.set(message.id, message);
+  });
+  return Array.from(byId.values()).sort(compareMessageCreatedAt);
+}
+
 export function ChatRoom({ sessionId }: ChatRoomProps) {
   const { connectionStatus, sendMessage, subscribe } = useStomp();
   const [messageState, setMessageState] = useState<{
     sessionId: number;
     messages: ChatMessage[];
-  }>({ sessionId, messages: [] });
-  const messages = messageState.sessionId === sessionId ? messageState.messages : [];
+    loading: boolean;
+    error: string | null;
+  }>({ sessionId, messages: [], loading: true, error: null });
+  const currentMessageState =
+    messageState.sessionId === sessionId
+      ? messageState
+      : { messages: [], loading: true, error: null };
+  const messages = currentMessageState.messages;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const initialMessages = await listChatMessages(sessionId);
+        if (!cancelled) {
+          setMessageState((current) => {
+            const currentMessages = current.sessionId === sessionId ? current.messages : [];
+            return {
+              sessionId,
+              messages: mergeMessages(currentMessages, initialMessages),
+              loading: false,
+              error: null,
+            };
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setMessageState({
+            sessionId,
+            messages: [],
+            loading: false,
+            error: "메시지를 불러오지 못했습니다.",
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED") return;
@@ -83,19 +135,33 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
       setMessageState((current) => {
         const currentMessages = current.sessionId === sessionId ? current.messages : [];
         if (currentMessages.some((message) => message.id === nextMessage.id)) {
-          return { sessionId, messages: currentMessages };
+          return {
+            sessionId,
+            messages: currentMessages,
+            loading: false,
+            error: current.sessionId === sessionId ? current.error : null,
+          };
         }
-        return { sessionId, messages: [...currentMessages, nextMessage] };
+        return {
+          sessionId,
+          messages: mergeMessages(currentMessages, [nextMessage]),
+          loading: false,
+          error: current.sessionId === sessionId ? current.error : null,
+        };
       });
     });
     return unsubscribe;
   }, [connectionStatus, sessionId, subscribe]);
 
   return (
-    <section className="flex h-full min-h-[520px] flex-col rounded-lg border border-gray-200 bg-white">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <ConnectionStatus status={connectionStatus} />
-      <div className="flex-1 border-y border-gray-100">
-        <MessageList messages={messages} />
+      <div className="min-h-0 flex-1 border-y border-gray-100">
+        <MessageList
+          messages={messages}
+          loading={currentMessageState.loading}
+          error={currentMessageState.error}
+        />
       </div>
       <MessageInput
         disabled={connectionStatus !== "CONNECTED"}

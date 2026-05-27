@@ -46,8 +46,8 @@ describe("MessageList", () => {
 
     expect(screen.getByText("배송이 지연됐어요")).not.toBeNull();
     expect(screen.getByText("확인해 드리겠습니다")).not.toBeNull();
-    expect(screen.getByTestId("message-m1").classList.contains("justify-start")).toBe(true);
-    expect(screen.getByTestId("message-m2").classList.contains("justify-end")).toBe(true);
+    expect(screen.getByTestId("message-m1").classList.contains("justify-end")).toBe(true);
+    expect(screen.getByTestId("message-m2").classList.contains("justify-start")).toBe(true);
   });
 
   it("새 메시지가 렌더링되면 하단으로 스크롤한다", () => {

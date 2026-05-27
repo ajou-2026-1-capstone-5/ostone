@@ -1,18 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UserChatPage } from "./UserChatPage";
 
-const { createChatSessionMock, routeState } = vi.hoisted(() => ({
-  createChatSessionMock: vi.fn(),
+const { registerDemoChatSessionMock, sendDemoChatMessageMock, routeState } = vi.hoisted(() => ({
+  registerDemoChatSessionMock: vi.fn(),
+  sendDemoChatMessageMock: vi.fn(),
   routeState: { workspaceId: "42" as string | undefined },
 }));
 
 vi.mock("@/entities/chat", () => ({
-  createChatSession: createChatSessionMock,
-}));
-
-vi.mock("@/features/user-chat", () => ({
-  ChatRoom: ({ sessionId }: { sessionId: number }) => <div>ChatRoom session {sessionId}</div>,
+  registerDemoChatSession: registerDemoChatSessionMock,
+  sendDemoChatMessage: sendDemoChatMessageMock,
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -20,58 +18,113 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useParams: () => routeState,
-    useOutletContext: () => ({ setTopbarRight: vi.fn(), setCrumbs: vi.fn() }),
   };
 });
 
 describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
-    createChatSessionMock.mockReset();
-  });
-
-  it("mount 시 URL의 workspaceId로 채팅 세션을 생성한다", async () => {
-    createChatSessionMock.mockResolvedValue({
-      id: 7,
+    window.localStorage.clear();
+    registerDemoChatSessionMock.mockReset();
+    sendDemoChatMessageMock.mockReset();
+    registerDemoChatSessionMock.mockResolvedValue({
+      id: "77",
       status: "OPEN",
-      channel: "WEB",
       startedAt: "2026-05-22T00:00:00Z",
+      messages: [
+        {
+          id: "backend-greeting-77",
+          sessionId: 77,
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ],
     });
-
-    render(<UserChatPage />);
-
-    expect(screen.getByText("채팅방을 여는 중입니다...")).not.toBeNull();
-    await waitFor(() => expect(createChatSessionMock).toHaveBeenCalledWith(42));
+    sendDemoChatMessageMock.mockResolvedValue([
+      {
+        id: "81",
+        sessionId: 77,
+        content: "Hello",
+        senderType: "USER",
+        createdAt: "2026-05-22T00:00:01Z",
+      },
+      {
+        id: "82",
+        sessionId: 77,
+        content: "LLM 응답입니다.",
+        senderType: "BOT",
+        createdAt: "2026-05-22T00:00:02Z",
+      },
+    ]);
   });
 
-  it("생성된 session id를 ChatRoom에 전달한다", async () => {
-    createChatSessionMock.mockResolvedValue({
-      id: 9,
-      status: "OPEN",
-      channel: "WEB",
-      startedAt: "2026-05-22T00:00:00Z",
-    });
-
+  it("이름 입력 후 URL의 workspaceId와 이름으로 데모 세션을 생성한다", async () => {
     render(<UserChatPage />);
 
-    expect(await screen.findByText("ChatRoom session 9")).not.toBeNull();
+    expect(screen.getByRole("form", { name: "채팅 사용자 이름 입력" })).not.toBeNull();
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    expect(await screen.findByText("김민지 · Session #77")).not.toBeNull();
+    expect(screen.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
+    expect(registerDemoChatSessionMock).toHaveBeenCalledWith(42, "김민지");
   });
 
-  it("세션 생성 실패 시 에러 메시지를 표시한다", async () => {
-    createChatSessionMock.mockRejectedValue(new Error("failed"));
+  it("같은 이름으로 다시 진입하면 저장된 세션 메시지를 유지한다", async () => {
+    const firstRender = render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
 
+    const input = await screen.findByLabelText("메시지 입력");
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+    expect(await screen.findByText("Hello")).not.toBeNull();
+    expect(await screen.findByText("LLM 응답입니다.")).not.toBeNull();
+    expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "77", "Hello");
+
+    firstRender.unmount();
+    registerDemoChatSessionMock.mockClear();
     render(<UserChatPage />);
 
-    expect(await screen.findByText("채팅 세션을 시작할 수 없습니다.")).not.toBeNull();
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    expect(await screen.findByText("Hello")).not.toBeNull();
+    expect(screen.getByText("김민지 · Session #77")).not.toBeNull();
+    expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("메시지 전송 실패 시 optimistic 메시지를 되돌린다", async () => {
+    sendDemoChatMessageMock.mockRejectedValueOnce(new Error("LLM failed"));
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByText("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.")).not.toBeNull();
+    expect(screen.queryByText("Hello")).toBeNull();
+  });
+
+  it("이름이 비어 있으면 세션을 생성하지 않는다", async () => {
+    render(<UserChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    expect(await screen.findByText("이름을 입력해 주세요.")).not.toBeNull();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it("유효하지 않은 workspaceId에서 에러 메시지를 표시한다", async () => {
     routeState.workspaceId = undefined;
-    createChatSessionMock.mockReset();
 
     render(<UserChatPage />);
 
     expect(await screen.findByText("유효하지 않은 워크스페이스입니다.")).not.toBeNull();
-    expect(createChatSessionMock).not.toHaveBeenCalled();
+    expect(window.localStorage.length).toBe(0);
   });
 });

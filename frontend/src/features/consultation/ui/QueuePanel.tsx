@@ -4,7 +4,7 @@ import styles from "./queue-panel.module.css";
 
 export interface QueueCustomer {
   id: string;
-  name: string;
+  name?: string;
   channel: string;
   handoffReason: string;
   waitMinutes: number;
@@ -36,37 +36,45 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
             <p className={styles.emptyText}>대기중인 고객이 없습니다</p>
           </div>
         ) : (
-          customers.map((c) => (
-            <div
-              key={c.id}
-              role="button"
-              tabIndex={0}
-              className={`${styles.queueItem} ${activeCustomerId === c.id ? styles.queueItemActive : ""}`}
-              onClick={() => onSelectCustomer(c.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelectCustomer(c.id);
-                }
-              }}
-            >
+          customers.map((c) => {
+            const displayName = c.name?.trim() || "Unknown";
+            return (
               <div
-                className={`${styles.customerAvatar} ${activeCustomerId === c.id ? styles.customerAvatarActive : ""}`}
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                className={`${styles.queueItem} ${activeCustomerId === c.id ? styles.queueItemActive : ""}`}
+                onClick={() => onSelectCustomer(c.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectCustomer(c.id);
+                  }
+                }}
               >
-                {c.name.charAt(0)}
+                <div
+                  className={`${styles.customerAvatar} ${activeCustomerId === c.id ? styles.customerAvatarActive : ""}`}
+                >
+                  {displayName.charAt(0)}
+                </div>
+                <div className={styles.queueItemInfo}>
+                  <div className={styles.customerName}>{displayName}</div>
+                  <div className={styles.handoffPreview}>{c.handoffReason}</div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 4,
+                  }}
+                >
+                  <span className={styles.waitTime}>{c.waitMinutes}분 전</span>
+                  {c.hasUnread && <span className={styles.unreadDot}></span>}
+                </div>
               </div>
-              <div className={styles.queueItemInfo}>
-                <div className={styles.customerName}>{c.name}</div>
-                <div className={styles.handoffPreview}>{c.handoffReason}</div>
-              </div>
-              <div
-                style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}
-              >
-                <span className={styles.waitTime}>{c.waitMinutes}분 전</span>
-                {c.hasUnread && <span className={styles.unreadDot}></span>}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </aside>
