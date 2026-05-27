@@ -62,9 +62,10 @@ class LlmResponseHandlerTest {
   @DisplayName("handleChatMessageReceived: 정상 응답 → DB 저장 및 STOMP push")
   void should_saveAndPush_when_llmRespondsSuccessfully() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
-    given(llmAssistantService.generateResponse("", "안녕하세요")).willReturn("안녕하세요! 무엇을 도와드릴까요?");
     ChatSession precheckSession = mockSession();
     ChatSession lockSession = mockSession();
+    given(llmAssistantService.generateWorkflowAwareResponse(1L, "", "안녕하세요"))
+        .willReturn("안녕하세요! 무엇을 도와드릴까요?");
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(precheckSession));
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(lockSession));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
@@ -80,7 +81,7 @@ class LlmResponseHandlerTest {
 
     InOrder lockOrder = inOrder(chatSessionRepository, llmAssistantService);
     lockOrder.verify(chatSessionRepository).findById(1L);
-    lockOrder.verify(llmAssistantService).generateResponse("", "안녕하세요");
+    lockOrder.verify(llmAssistantService).generateWorkflowAwareResponse(1L, "", "안녕하세요");
     lockOrder.verify(chatSessionRepository).findByIdForUpdate(1L);
     verify(chatMessageRepository).save(any(ChatMessage.class));
     verify(chatSessionMetadataService).updateAfterMessage(eq(lockSession), eq(savedMsg));
@@ -96,7 +97,7 @@ class LlmResponseHandlerTest {
   void should_pushFallback_when_llmThrowsException() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
-    given(llmAssistantService.generateResponse(any(), eq("안녕하세요")))
+    given(llmAssistantService.generateWorkflowAwareResponse(eq(1L), any(), eq("안녕하세요")))
         .willThrow(new RuntimeException("API timeout"));
 
     handler.handleChatMessageReceived(event);

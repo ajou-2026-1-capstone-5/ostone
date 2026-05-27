@@ -61,7 +61,8 @@ public class LlmResponseHandler {
               .collect(Collectors.joining("\n"));
 
       String llmResponse =
-          llmAssistantService.generateResponse(conversationContext, event.content());
+          llmAssistantService.generateWorkflowAwareResponse(
+              event.sessionId(), conversationContext, event.content());
 
       ChatMessage savedMessage =
           transactionTemplate.execute(
