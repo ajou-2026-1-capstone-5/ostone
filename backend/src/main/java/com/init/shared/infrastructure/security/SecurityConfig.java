@@ -49,6 +49,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/health")
                     .permitAll()
+                    .requestMatchers("/ws/**")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/domain-pack-drafts")
                     .permitAll()
