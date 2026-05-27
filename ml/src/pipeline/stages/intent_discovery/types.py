@@ -48,9 +48,9 @@ class IntentDiscoveryStats:
     avg_workflow_consistency_score: float
 
 
-DEFAULT_KNN_K = 15
+DEFAULT_KNN_K = 20
 DEFAULT_LEIDEN_RESOLUTION = 1.0
-DEFAULT_MIN_CLUSTER_SIZE = 5
+DEFAULT_MIN_CLUSTER_SIZE = 8
 DEFAULT_TFIDF_TOP_KEYWORDS = 8
 DEFAULT_EMBEDDING_BATCH_SIZE = 32
 OUTCOME_LABELS = ("resolved", "escalated", "unknown")

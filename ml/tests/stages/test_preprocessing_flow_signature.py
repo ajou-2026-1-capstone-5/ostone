@@ -12,6 +12,7 @@ from pipeline.stages.preprocessing.flow_signature import (
     detect_exception_flag,
     infer_event,
     infer_outcome,
+    infer_workflow_signal,
     outcome_to_one_hot,
 )
 from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM, Conversation, ConversationTurn
@@ -114,3 +115,24 @@ def test_should_build_signature_with_system_turns() -> None:
     signature = build_signature(conversation)
 
     assert signature.shape == (61,)
+
+
+def test_should_infer_conversation_workflow_signal() -> None:
+    conversation = Conversation(
+        conversation_id="c1",
+        dataset_id="ds1",
+        ended_status="escalated",
+        turns=(
+            ConversationTurn(turn_id="t1", speaker_role="customer", text="주문 환불 요청합니다"),
+            ConversationTurn(turn_id="t2", speaker_role="agent", text="성함과 연락처 확인 부탁드립니다"),
+            ConversationTurn(turn_id="t3", speaker_role="agent", text="담당 부서로 이관하겠습니다"),
+        ),
+    )
+
+    signal = infer_workflow_signal(conversation)
+
+    assert signal == {
+        "requires_payment_check": True,
+        "requires_user_identification": True,
+        "has_escalation_cases": True,
+    }

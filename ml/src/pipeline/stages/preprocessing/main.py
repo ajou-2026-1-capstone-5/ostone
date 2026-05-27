@@ -11,7 +11,7 @@ import numpy as np
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.logging import get_stage_logger
 from pipeline.stages.preprocessing.canonicalize import apply_canonicalization, normalize_speaker_role
-from pipeline.stages.preprocessing.flow_signature import build_signature
+from pipeline.stages.preprocessing.flow_signature import build_signature, infer_workflow_signal
 from pipeline.stages.preprocessing.io import (
     read_ingestion_artifact,
     read_stage_context,
@@ -109,6 +109,7 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
             customer_turn_count=sum(1 for turn in normalized_turns if turn.speaker_role == SPEAKER_ROLE_CUSTOMER),
             pii_mask_count=pii_count,
             filtered=filtered,
+            workflow_signal=infer_workflow_signal(normalized_conversation),
         ),
         pii_count,
         customer_text_is_empty,

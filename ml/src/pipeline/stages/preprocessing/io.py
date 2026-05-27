@@ -243,6 +243,7 @@ def _serialize_processed_conversation(conversation: ProcessedConversation) -> di
         "customer_turn_count": conversation.customer_turn_count,
         "pii_mask_count": conversation.pii_mask_count,
         "filtered": conversation.filtered,
+        "workflow_signal": dict(conversation.workflow_signal),
     }
 
 

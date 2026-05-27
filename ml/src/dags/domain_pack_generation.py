@@ -15,10 +15,12 @@ from pipeline.common.dag_defaults import default_dag_args
 from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.stages.draft_generation.main import run as draft_generation_run
 from pipeline.stages.evaluation.main import run as evaluation_run
+from pipeline.stages.flow_splitting.main import run as flow_splitting_run
 from pipeline.stages.ingestion.main import run as ingestion_run
 from pipeline.stages.intent_discovery.main import run as intent_discovery_run
 from pipeline.stages.preprocessing.main import run as preprocessing_run
 from pipeline.stages.publish_candidate.main import run as publish_candidate_run
+from pipeline.stages.representation.main import run as representation_run
 
 logger = logging.getLogger(__name__)
 
@@ -135,19 +137,35 @@ def domain_pack_generation() -> None:
         )
 
     @task(task_id="intent_discovery")
-    def intent_discovery(preprocessing_result: dict[str, str]) -> dict[str, str]:
+    def intent_discovery(representation_result: dict[str, str]) -> dict[str, str]:
         return _run_stage(
             "intent_discovery",
             intent_discovery_run,
+            representation_result["artifact_manifest_path"],
+        )
+
+    @task(task_id="representation")
+    def representation(preprocessing_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "representation",
+            representation_run,
             preprocessing_result["artifact_manifest_path"],
         )
 
+    @task(task_id="flow_splitting")
+    def flow_splitting(intent_discovery_result: dict[str, str]) -> dict[str, str]:
+        return _run_stage(
+            "flow_splitting",
+            flow_splitting_run,
+            intent_discovery_result["artifact_manifest_path"],
+        )
+
     @task(task_id="draft_generation")
-    def draft_generation(intent_discovery_result: dict[str, str]) -> dict[str, str]:
+    def draft_generation(flow_splitting_result: dict[str, str]) -> dict[str, str]:
         return _run_stage(
             "draft_generation",
             draft_generation_run,
-            intent_discovery_result["artifact_manifest_path"],
+            flow_splitting_result["artifact_manifest_path"],
         )
 
     @task(task_id="evaluation")
@@ -168,12 +186,15 @@ def domain_pack_generation() -> None:
 
     ingestion_task = ingestion()
     preprocessing_task = preprocessing(ingestion_task)
-    intent_discovery_task = intent_discovery(preprocessing_task)
-    draft_generation_task = draft_generation(intent_discovery_task)
+    representation_task = representation(preprocessing_task)
+    intent_discovery_task = intent_discovery(representation_task)
+    flow_splitting_task = flow_splitting(intent_discovery_task)
+    draft_generation_task = draft_generation(flow_splitting_task)
     evaluation_task = evaluation(draft_generation_task)
     publish_candidate_task = publish_candidate(evaluation_task)
 
-    ingestion_task >> preprocessing_task >> intent_discovery_task >> draft_generation_task
+    ingestion_task >> preprocessing_task >> representation_task >> intent_discovery_task >> flow_splitting_task
+    flow_splitting_task >> draft_generation_task
     draft_generation_task >> evaluation_task >> publish_candidate_task
 
 

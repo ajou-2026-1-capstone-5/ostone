@@ -129,6 +129,7 @@ def _build_processed_conversation(payload: object, artifact_path: Path) -> Proce
         customer_turn_count=_required_int(payload, "customer_turn_count", artifact_path),
         pii_mask_count=_required_int(payload, "pii_mask_count", artifact_path),
         filtered=_required_bool(payload, "filtered", artifact_path),
+        workflow_signal=_optional_bool_dict(payload.get("workflow_signal"), artifact_path),
     )
 
 
@@ -176,6 +177,21 @@ def _optional_str(value: object) -> str | None:
     if isinstance(value, str):
         return value
     raise PipelineStageError(f"Optional field must be a string or null, got {type(value).__name__}")
+
+
+def _optional_bool_dict(value: object, artifact_path: Path) -> dict[str, bool]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise PipelineStageError(f"workflow_signal must be an object when present: {artifact_path}")
+    output: dict[str, bool] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise PipelineStageError(f"workflow_signal keys must be strings: {artifact_path}")
+        if not isinstance(item, bool):
+            raise PipelineStageError(f"workflow_signal values must be booleans: {artifact_path}")
+        output[key] = item
+    return output
 
 
 def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:

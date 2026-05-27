@@ -15,6 +15,7 @@ from pipeline.stages.draft_generation.main import (
     _build_slot_draft,
     _build_workflow_draft,
     _derive_pack_identity,
+    _evaluation_inputs,
     _hydrate_case,
     _read_clusters,
     _read_preprocessed_index,
@@ -51,7 +52,15 @@ def _preprocessed_conv(conv_id: str, canonical: str = "text", problem: str = "pr
 def _write_clusters(clusters_dir: Path, clusters: list[dict[str, Any]]) -> None:
     clusters_dir.mkdir(parents=True, exist_ok=True)
     (clusters_dir / "clusters.json").write_text(
-        json.dumps({"schema_version": "1.0", "clusters": clusters}), encoding="utf-8"
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "clusters": clusters,
+                "stats": {"outlier_rate": 0.12},
+                "flow_split_metrics": {"workflowSeparability": 0.9},
+            }
+        ),
+        encoding="utf-8",
     )
 
 
@@ -385,6 +394,9 @@ def test_run_keeps_single_dataset_candidate_when_segment_rows_exist(
     assert "candidates" not in candidate
     assert "consultationId" not in candidate
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws1_dsds1"
+    assert candidate["evaluationInputs"]["outlierRate"] == 0.12
+    assert candidate["evaluationInputs"]["workflowSeparability"] == 0.9
+    assert candidate["evaluationInputs"]["mappingRate"] == 1.0
     assert len(candidate["intentDraft"]["intents"]) == 1
     assert len(candidate["intentDraft"]["intents"][0]["representativeCases"]) == 2
 
@@ -407,6 +419,25 @@ def test_build_candidate_structure() -> None:
     assert wf_draft["workflows"][0]["intentCode"] == "INTENT_0"
     assert len(wf_draft["policies"]) == 1
     assert wf_draft["policies"][0]["policyCode"] == "default_policy"
+
+
+def test_evaluation_inputs_collects_source_quality_metrics() -> None:
+    evaluation_inputs = _evaluation_inputs(
+        {
+            "stats": {"outlier_rate": 0.2},
+            "flow_split_metrics": {"workflowSeparability": 0.75},
+        },
+        {"intent_count": 2},
+        {"workflow_count": 2},
+        {"cluster_with_slot_count": 1},
+    )
+
+    assert evaluation_inputs == {
+        "mappingRate": 1.0,
+        "outlierRate": 0.2,
+        "workflowSeparability": 0.75,
+        "slotCoverage": 0.5,
+    }
 
 
 def test_build_candidate_raises_when_workspace_id_missing() -> None:

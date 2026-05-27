@@ -54,6 +54,7 @@ def test_should_read_preprocessed_artifact(tmp_path: Path) -> None:
     conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
 
     assert [conversation.id for conversation in conversations] == ["c1", "c2"]
+    assert conversations[0].workflow_signal == {"requires_payment_check": True}
     assert flow_signatures.shape == (2, FLOW_SIGNATURE_DIM)
     assert flow_signatures.dtype == np.float32
     first_signature = cast(object, flow_signatures[0])
@@ -186,6 +187,7 @@ def _preprocessed_payload(conversation_id: str, flow_signature: list[float]) -> 
         "customer_turn_count": 1,
         "pii_mask_count": 0,
         "filtered": False,
+        "workflow_signal": {"requires_payment_check": True},
     }
 
 

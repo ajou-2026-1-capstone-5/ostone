@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from pipeline.common.artifacts import write_stage_manifest
@@ -25,7 +27,40 @@ def test_should_write_stage_manifest(tmp_path):
 
     assert manifest_path.exists()
     assert manifest_path.parent == tmp_path / "dev_bootstrap" / "manual__2026-04-15T00:00:00+00:00" / "bootstrap_smoke"
-    assert '"stage_name": "bootstrap_smoke"' in manifest_path.read_text(encoding="utf-8")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stage_name"] == "bootstrap_smoke"
+    assert manifest["schemaVersion"] == "artifact-manifest.v2"
+    assert manifest["stageName"] == "bootstrap_smoke"
+    assert manifest["modelMetadata"]["embeddingModel"] == "BAAI/bge-m3"
+    assert manifest["runtimeProfile"] == "cheap"
+    assert manifest["checksum"]
+
+
+def test_stage_manifest_includes_output_file_checksum(tmp_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+    )
+    stage_context = StageContext(
+        dag_id="dag",
+        run_id="run",
+        stage_name="stage",
+        workspace_id=None,
+        dataset_id=None,
+        pipeline_job_id=None,
+    )
+    output_dir = tmp_path / "dag" / "run" / "stage"
+    output_dir.mkdir(parents=True)
+    artifact = output_dir / "artifact.json"
+    artifact.write_text('{"ok":true}', encoding="utf-8")
+
+    manifest_path = write_stage_manifest(stage_context, runtime_config, {"artifact_path": artifact.name})
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["outputArtifactRefs"][0]["type"] == "artifact_path"
+    assert manifest["outputArtifactRefs"][0]["uri"] == "artifact.json"
+    assert manifest["outputArtifactRefs"][0]["checksum"]
 
 
 def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
@@ -63,6 +98,33 @@ def test_runtime_config_strips_artifact_root_and_backend_base_url(monkeypatch, t
 
     assert runtime_config.artifact_root == tmp_path
     assert runtime_config.backend_base_url == "http://backend:8080"
+
+
+def test_runtime_config_rejects_s3_artifact_store_until_adapter_exists(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("ML_ARTIFACT_STORE", "s3")
+    monkeypatch.setenv("ML_ARTIFACT_BUCKET", "ml-artifacts")
+    monkeypatch.setenv("ML_ARTIFACT_PREFIX", "/domain-pack/runs/")
+    monkeypatch.setenv("EMBEDDING_MODEL_NAME", "custom-embedder")
+    monkeypatch.setenv("LLM_MODEL_NAME", "custom-llm")
+    monkeypatch.setenv("ML_RUNTIME_PROFILE", "balanced")
+    monkeypatch.setenv("GPU_TASK_MODE", "service")
+
+    with pytest.raises(PipelineConfigurationError, match="not implemented"):
+        PipelineRuntimeConfig.from_env()
+
+
+def test_runtime_config_requires_bucket_for_s3_artifact_store(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("ML_ARTIFACT_STORE", "s3")
+    monkeypatch.delenv("ML_ARTIFACT_BUCKET", raising=False)
+
+    with pytest.raises(PipelineConfigurationError, match="ML_ARTIFACT_BUCKET"):
+        PipelineRuntimeConfig.from_env()
 
 
 def test_runtime_config_rejects_missing_backend_base_url(monkeypatch):

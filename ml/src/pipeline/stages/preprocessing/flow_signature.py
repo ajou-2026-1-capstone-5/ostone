@@ -43,6 +43,8 @@ _EVENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     "확인질문": ("맞하신가요", "맞나요", "혹시", "되실까요", "인가요", "확인해", "확인 부탁"),
     "예외처리": ("특별", "예외", "우회", "다르게", "변경 가능", "조치", "해드리겠습니다"),
 }
+_PAYMENT_KEYWORDS = ("결제", "payment", "환불", "refund", "환급", "주문", "order", "카드", "계좌")
+_IDENTIFICATION_KEYWORDS = ("본인인증", "identity", "휴대폰 인증", "성함", "생년월일", "연락처", "고객 이름")
 
 _CUSTOMER_ROLE_ALIASES = frozenset({"customer", "cust", "user", "client", "고객"})
 _AGENT_ROLE_ALIASES = frozenset({"agent", "advisor", "operator", "상담사", "상담원"})
@@ -155,3 +157,16 @@ def build_signature(conv: Conversation) -> np.ndarray:
     if signature.shape != (FLOW_SIGNATURE_DIM,):
         raise RuntimeError(f"Flow signature shape mismatch: expected ({FLOW_SIGNATURE_DIM},), got {signature.shape}")
     return signature
+
+
+def infer_workflow_signal(conv: Conversation) -> dict[str, bool]:
+    """Conversation 단위 workflow 분기 신호를 정적 규칙으로 추출한다."""
+
+    normalized_roles = tuple(normalize_speaker_role(turn.speaker_role) for turn in conv.turns)
+    events = [infer_event(turn.text, normalized_role) for turn, normalized_role in zip(conv.turns, normalized_roles)]
+    text = " ".join(turn.text.casefold() for turn in conv.turns)
+    return {
+        "requires_payment_check": any(keyword.casefold() in text for keyword in _PAYMENT_KEYWORDS),
+        "requires_user_identification": any(keyword.casefold() in text for keyword in _IDENTIFICATION_KEYWORDS),
+        "has_escalation_cases": infer_outcome(conv) == "escalated" or detect_escalation_flag(events) > 0.0,
+    }

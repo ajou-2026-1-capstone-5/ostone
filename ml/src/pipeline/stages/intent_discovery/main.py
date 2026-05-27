@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
+from typing import cast
+
+import numpy as np
 
 from pipeline.common.artifacts import ensure_stage_directory
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
-from pipeline.common.exceptions import PipelineConfigurationError
+from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
 from pipeline.common.logging import get_stage_logger
 from pipeline.stages.intent_discovery.boundary_segments import (
     discover_boundary_segments,
@@ -14,9 +19,14 @@ from pipeline.stages.intent_discovery.boundary_segments import (
 )
 from pipeline.stages.intent_discovery.io import read_preprocessed_artifact, write_clusters_artifact
 from pipeline.stages.preprocessing.io import read_stage_context
+from pipeline.stages.representation.main import (
+    EMBEDDING_INDEX_ARTIFACT,
+    SEMANTIC_EMBEDDINGS_ARTIFACT,
+    representation_stage_dir,
+)
 
 MANIFEST_FILENAME = "manifest.json"
-SUPPORTED_DISCOVERY_MODES = {"boundary_segment", "legacy_embedding"}
+SUPPORTED_DISCOVERY_MODES = {"graph_leiden", "boundary_segment", "legacy_embedding"}
 
 
 def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
@@ -26,13 +36,13 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     mode = _resolve_discovery_mode()
 
     logger.info("Starting intent discovery stage mode=%s", mode)
-    if mode == "legacy_embedding":
+    if mode in {"graph_leiden", "legacy_embedding"}:
         return _run_legacy_embedding(runtime_config, context)
     return _run_boundary_segment(runtime_config, context)
 
 
 def _resolve_discovery_mode() -> str:
-    mode = os.getenv("PIPELINE_INTENT_DISCOVERY_MODE", "boundary_segment").strip().lower()
+    mode = os.getenv("PIPELINE_INTENT_DISCOVERY_MODE", "graph_leiden").strip().lower()
     if mode not in SUPPORTED_DISCOVERY_MODES:
         raise PipelineConfigurationError(f"Unsupported PIPELINE_INTENT_DISCOVERY_MODE: {mode}")
     return mode
@@ -97,7 +107,11 @@ def _run_legacy_embedding(
     logger.info("Loaded %d preprocessed conversations", len(conversations))
 
     texts = [conversation.canonical_text for conversation in conversations]
-    embeddings, success_mask = embed_texts(texts)
+    representation = _load_representation_embeddings(runtime_config, context)
+    if representation is None:
+        embeddings, success_mask = embed_texts(texts, runtime_config=runtime_config)
+    else:
+        embeddings, success_mask = representation
     logger.info("Embedded %d/%d texts", sum(success_mask), len(texts))
 
     success_indices = [index for index, ok in enumerate(success_mask) if ok]
@@ -171,3 +185,34 @@ def _run_legacy_embedding(
     )
     logger.info("Intent discovery legacy embedding stage completed: %s", stats)
     return {"artifact_manifest_path": str((clusters_path.parent / MANIFEST_FILENAME).resolve())}
+
+
+def _load_representation_embeddings(
+    runtime_config: PipelineRuntimeConfig,
+    context: StageContext,
+) -> tuple[np.ndarray, list[bool]] | None:
+    stage_dir = representation_stage_dir(runtime_config, context)
+    embeddings_path = stage_dir / SEMANTIC_EMBEDDINGS_ARTIFACT
+    index_path = stage_dir / EMBEDDING_INDEX_ARTIFACT
+    if not embeddings_path.exists() or not index_path.exists():
+        return None
+    try:
+        embeddings = np.load(embeddings_path)
+        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise PipelineStageError(f"Failed to read representation artifacts: {stage_dir}") from exc
+    if not isinstance(index_payload, list):
+        raise PipelineStageError(f"Embedding index must be a list: {index_path}")
+    success_mask = [_embedding_success(item, index_path) for item in index_payload]
+    if embeddings.shape[0] != len(success_mask):
+        raise PipelineStageError(f"semantic_embeddings row count must match embedding index length: {embeddings_path}")
+    return embeddings.astype(np.float32, copy=False), success_mask
+
+
+def _embedding_success(item: object, path: Path) -> bool:
+    if not isinstance(item, dict):
+        raise PipelineStageError(f"Embedding index rows must be objects: {path}")
+    value = cast(dict[str, object], item).get("embeddingSuccess")
+    if isinstance(value, bool):
+        return value
+    raise PipelineStageError(f"Embedding index row embeddingSuccess must be a boolean: {path}")

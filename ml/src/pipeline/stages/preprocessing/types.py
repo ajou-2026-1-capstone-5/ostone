@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import KW_ONLY, dataclass
+from dataclasses import KW_ONLY, dataclass, field
 
 SPEAKER_ROLE_CUSTOMER = "customer"
 SPEAKER_ROLE_AGENT = "agent"
@@ -42,3 +42,4 @@ class ProcessedConversation:
     customer_turn_count: int
     pii_mask_count: int
     filtered: bool
+    workflow_signal: dict[str, bool] = field(default_factory=dict)

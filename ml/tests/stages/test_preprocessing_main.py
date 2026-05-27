@@ -29,6 +29,7 @@ class OutputConversation(TypedDict):
     customer_problem_text: str
     pii_mask_count: int
     filtered: bool
+    workflow_signal: dict[str, bool]
 
 
 class OutputStats(TypedDict):
@@ -156,6 +157,8 @@ def test_should_process_single_conversation(monkeypatch: pytest.MonkeyPatch, tmp
     assert isinstance(conversation["canonical_text"], str)
     assert isinstance(conversation["customer_problem_text"], str)
     assert conversation["pii_mask_count"] == 2
+    assert conversation["workflow_signal"]["requires_payment_check"] is True
+    assert conversation["workflow_signal"]["requires_user_identification"] is True
     assert conversation["filtered"] is False
 
 

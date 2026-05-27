@@ -71,6 +71,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
 
     cases_per_intent = _resolve_cases_per_intent()
     candidate, metrics = _build_candidate_artifact(
+        clusters_payload,
         clusters,
         preprocessed_index,
         cases_per_intent,
@@ -131,7 +132,12 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
 
 
 def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> dict[str, Any]:
-    clusters_path = _upstream_stage_dir("intent_discovery", runtime_config, stage_context) / DEFAULT_CLUSTERS_ARTIFACT
+    flow_split_path = _upstream_stage_dir("flow_splitting", runtime_config, stage_context) / DEFAULT_CLUSTERS_ARTIFACT
+    clusters_path = (
+        flow_split_path
+        if flow_split_path.exists()
+        else _upstream_stage_dir("intent_discovery", runtime_config, stage_context) / DEFAULT_CLUSTERS_ARTIFACT
+    )
     if not clusters_path.exists():
         raise PipelineStageError(f"clusters.json not found: {clusters_path}")
     try:
@@ -181,6 +187,7 @@ def _upstream_stage_dir(
 
 
 def _build_candidate_artifact(
+    clusters_payload: dict[str, Any],
     clusters: list[Any],
     preprocessed_index: dict[str, dict[str, Any]],
     cases_per_intent: int,
@@ -197,18 +204,65 @@ def _build_candidate_artifact(
             intent_metrics["representative_case_total"] / intent_metrics["intent_count"]
         )
 
-    candidate = _build_candidate(intents, workflow_draft, stage_context)
+    evaluation_inputs = _evaluation_inputs(clusters_payload, intent_metrics, workflow_metrics, slot_metrics)
+    candidate = _build_candidate(intents, workflow_draft, stage_context, evaluation_inputs)
 
     return candidate, {
         "candidate_count": 1,
         "intent_metrics": intent_metrics,
         "workflow_metrics": workflow_metrics,
         "slot_metrics": slot_metrics,
+        "evaluation_inputs": evaluation_inputs,
     }
 
 
 def _flatten_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     return metrics
+
+
+def _evaluation_inputs(
+    clusters_payload: dict[str, Any],
+    intent_metrics: dict[str, Any],
+    workflow_metrics: dict[str, Any],
+    slot_metrics: dict[str, int],
+) -> dict[str, Any]:
+    stats = clusters_payload.get("stats")
+    flow_metrics = clusters_payload.get("flow_split_metrics")
+    return {
+        "mappingRate": _candidate_mapping_rate(intent_metrics, workflow_metrics),
+        "outlierRate": _float_metric(stats, "outlier_rate", "outlierRate"),
+        "workflowSeparability": _float_metric(flow_metrics, "workflowSeparability"),
+        "slotCoverage": _ratio(slot_metrics["cluster_with_slot_count"], intent_metrics["intent_count"]),
+    }
+
+
+def _candidate_mapping_rate(intent_metrics: dict[str, Any], workflow_metrics: dict[str, Any]) -> float:
+    intent_count = _int_metric(intent_metrics, "intent_count")
+    workflow_count = _int_metric(workflow_metrics, "workflow_count")
+    if intent_count <= 0 or workflow_count <= 0:
+        return 0.0
+    return min(intent_count, workflow_count) / max(intent_count, workflow_count)
+
+
+def _ratio(numerator: int, denominator: int) -> float | None:
+    if denominator <= 0:
+        return None
+    return numerator / denominator
+
+
+def _int_metric(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def _float_metric(payload: object, *keys: str) -> float | None:
+    if not isinstance(payload, dict):
+        return None
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+    return None
 
 
 def _resolve_cases_per_intent() -> int:
@@ -360,7 +414,8 @@ def _default_dummy_policy() -> dict[str, Any]:
         "conditionJson": "{}",
         "actionJson": "{}",
         "evidenceJson": "[]",
-        "metaJson": "{}",
+        "metaJson": '{"evidencePolicy":"human_review_required"}',
+        "reviewStatus": "needs_review",
     }
 
 
@@ -525,6 +580,7 @@ def _build_candidate(
     intents: list[dict[str, Any]],
     workflow_draft: dict[str, Any],
     stage_context: StageContext,
+    evaluation_inputs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pack_key, pack_name = _derive_pack_identity(stage_context)
     domain_pack_draft: dict[str, Any] = {
@@ -538,6 +594,7 @@ def _build_candidate(
             "intents": intents,
         },
         "workflowDraft": workflow_draft,
+        "evaluationInputs": evaluation_inputs or {},
     }
 
 

@@ -151,7 +151,10 @@ def _workflow_signal(
         ),
         "has_escalation_cases": any(conversation.ended_status == "escalated" for conversation in members),
     }
-    return {key: values.get(key, False) for key in workflow_signal_keys}
+    return {
+        key: any(conversation.workflow_signal.get(key, False) for conversation in members) or values.get(key, False)
+        for key in workflow_signal_keys
+    }
 
 
 def _suggested_name(cluster_id: int, keywords: tuple[str, ...], _workflow_signal: dict[str, bool]) -> str:
