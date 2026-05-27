@@ -135,6 +135,17 @@ describe("chatApi", () => {
     );
   });
 
+  it("백엔드 데모 채팅 세션 응답에 숫자 id가 없으면 실패한다", async () => {
+    customFetchMock.mockResolvedValue({
+      status: "OPEN",
+      startedAt: "2026-05-22T00:00:00Z",
+    });
+
+    await expect(registerDemoChatSession(2, "김민지")).rejects.toThrow(
+      "Demo chat session response is missing a numeric id.",
+    );
+  });
+
   it("데모 채팅 메시지를 백엔드에 등록한다", async () => {
     customFetchMock.mockResolvedValue([
       {
@@ -179,5 +190,12 @@ describe("chatApi", () => {
         body: JSON.stringify({ content: "Hello" }),
       },
     );
+  });
+
+  it("숫자가 아닌 데모 세션 id로 메시지를 보내지 않는다", async () => {
+    await expect(sendDemoChatMessage(2, "workspace-2-demo-session", "Hello")).rejects.toThrow(
+      "Demo chat session id must be numeric.",
+    );
+    expect(customFetchMock).not.toHaveBeenCalled();
   });
 });

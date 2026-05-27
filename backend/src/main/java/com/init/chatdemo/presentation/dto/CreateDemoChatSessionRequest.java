@@ -1,3 +1,5 @@
 package com.init.chatdemo.presentation.dto;
 
-public record CreateDemoChatSessionRequest(String customerName) {}
+import jakarta.validation.constraints.NotBlank;
+
+public record CreateDemoChatSessionRequest(@NotBlank String customerName) {}

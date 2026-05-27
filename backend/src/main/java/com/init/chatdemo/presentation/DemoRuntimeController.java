@@ -11,6 +11,7 @@ import com.init.chatdemo.presentation.dto.DemoExecutionResponse;
 import com.init.chatdemo.presentation.dto.SendDemoChatMessageRequest;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,7 +55,7 @@ public class DemoRuntimeController {
 
   @PostMapping("/chat-sessions")
   public ResponseEntity<ChatSessionResponse> createChatSession(
-      @PathVariable Long workspaceId, @RequestBody CreateDemoChatSessionRequest request) {
+      @PathVariable Long workspaceId, @Valid @RequestBody CreateDemoChatSessionRequest request) {
     return ResponseEntity.ok(
         sessionRegistrationService.createSession(workspaceId, request.customerName()));
   }
@@ -63,7 +64,7 @@ public class DemoRuntimeController {
   public ResponseEntity<List<ChatMessageResponse>> appendChatMessage(
       @PathVariable Long workspaceId,
       @PathVariable Long sessionId,
-      @RequestBody SendDemoChatMessageRequest request) {
+      @Valid @RequestBody SendDemoChatMessageRequest request) {
     return ResponseEntity.ok(
         sessionRegistrationService.appendMessage(workspaceId, sessionId, request.content()));
   }

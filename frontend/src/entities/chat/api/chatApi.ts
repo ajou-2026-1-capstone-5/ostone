@@ -42,6 +42,13 @@ interface DemoRegisteredChatSessionResponse {
   startedAt?: string;
 }
 
+function requireBackendSessionId(id: number | undefined): number {
+  if (typeof id !== "number" || !Number.isFinite(id)) {
+    throw new Error("Demo chat session response is missing a numeric id.");
+  }
+  return id;
+}
+
 function toSenderType(senderRole: string): ChatMessage["senderType"] {
   if (senderRole === "USER" || senderRole === "CUSTOMER") return "USER";
   if (senderRole === "AGENT" || senderRole === "COUNSELOR") return "AGENT";
@@ -132,16 +139,17 @@ export async function registerDemoChatSession(
       body: JSON.stringify({ customerName }),
     },
   );
+  const sessionId = requireBackendSessionId(response.id);
   const startedAt = response.startedAt ?? new Date().toISOString();
 
   return {
-    id: String(response.id ?? `workspace-${workspaceId}-demo-session`),
+    id: String(sessionId),
     status: response.status ?? "OPEN",
     startedAt,
     messages: [
       {
-        id: `backend-greeting-${response.id ?? Date.now()}`,
-        sessionId: Number(response.id ?? 0),
+        id: `backend-greeting-${sessionId}`,
+        sessionId,
         content: `안녕하세요, ${customerName}님. 무엇을 도와드릴까요?`,
         senderType: "BOT",
         createdAt: startedAt,
@@ -155,6 +163,10 @@ export async function sendDemoChatMessage(
   sessionId: string,
   content: string,
 ): Promise<ChatMessage[]> {
+  const numericSessionId = Number(sessionId);
+  if (!Number.isFinite(numericSessionId)) {
+    throw new Error("Demo chat session id must be numeric.");
+  }
   const messages = await customFetch<ChatMessageResponse[]>(
     `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}/messages`,
     {
@@ -162,5 +174,5 @@ export async function sendDemoChatMessage(
       body: JSON.stringify({ content }),
     },
   );
-  return messages.map((message) => toChatMessage(message, Number(sessionId)));
+  return messages.map((message) => toChatMessage(message, numericSessionId));
 }

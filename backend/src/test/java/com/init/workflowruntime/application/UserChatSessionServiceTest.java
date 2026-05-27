@@ -78,6 +78,31 @@ class UserChatSessionServiceTest {
   }
 
   @Test
+  @DisplayName("current session: 기존 세션의 다른 metaJson 필드를 보존하며 customerName만 갱신한다")
+  void should_preserveExistingMetaJsonFields_when_updateCustomerName() {
+    ChatSession session =
+        createSession(
+            5L,
+            ChatSessionStatus.OPEN,
+            "{\"handoffReason\":\"환불 문의\",\"demo\":true,\"customerName\":\"이전 이름\"}");
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
+        .willReturn(
+            Optional.of(WorkspaceMember.create(WORKSPACE_ID, USER_ID, WorkspaceMemberRole.OWNER)));
+    given(
+            chatSessionRepository
+                .findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+                    any(), any(), any()))
+        .willReturn(Optional.of(session));
+
+    ChatSessionResponse result = service.getOrCreateCurrentSession(command());
+
+    assertThat(result.getMetaJson()).contains("\"customerName\":\"김민지\"");
+    assertThat(result.getMetaJson()).contains("\"handoffReason\":\"환불 문의\"");
+    assertThat(result.getMetaJson()).contains("\"demo\":true");
+    verify(chatSessionRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("current session: 기존 세션이 없으면 현재 PUBLISHED 버전으로 OPEN 세션을 생성한다")
   void should_createOpenSession_when_reusableSessionDoesNotExist() {
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
@@ -153,8 +178,12 @@ class UserChatSessionServiceTest {
   }
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
+    return createSession(id, status, "{}");
+  }
+
+  private ChatSession createSession(Long id, ChatSessionStatus status, String metaJson) {
     ChatSession session =
-        ChatSession.create(WORKSPACE_ID, VERSION_ID, status, "WEB", "{}", USER_ID);
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, status, "WEB", metaJson, USER_ID);
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

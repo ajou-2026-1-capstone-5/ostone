@@ -1,7 +1,9 @@
 package com.init.workflowruntime.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -89,7 +91,7 @@ public class UserChatSessionService {
   }
 
   private ChatSession updateCustomerName(ChatSession session, String customerName) {
-    String nextMetaJson = createMetaJson(customerName);
+    String nextMetaJson = mergeCustomerName(session.getMetaJson(), customerName);
     if (!nextMetaJson.equals(session.getMetaJson())) {
       session.updateMetaJson(nextMetaJson);
     }
@@ -98,10 +100,26 @@ public class UserChatSessionService {
 
   private String createMetaJson(String customerName) {
     try {
-      return objectMapper.writeValueAsString(
-          Map.of("customerName", customerName, "handoffReason", ""));
+      return objectMapper.writeValueAsString(Map.of("customerName", customerName));
     } catch (JsonProcessingException e) {
       throw new BadRequestException("VALIDATION_ERROR", "customerName is invalid", e);
+    }
+  }
+
+  private String mergeCustomerName(String currentMetaJson, String customerName) {
+    try {
+      JsonNode current =
+          currentMetaJson == null || currentMetaJson.isBlank()
+              ? objectMapper.createObjectNode()
+              : objectMapper.readTree(currentMetaJson);
+      ObjectNode next =
+          current != null && current.isObject()
+              ? ((ObjectNode) current).deepCopy()
+              : objectMapper.createObjectNode();
+      next.put("customerName", customerName);
+      return objectMapper.writeValueAsString(next);
+    } catch (JsonProcessingException e) {
+      throw new BadRequestException("VALIDATION_ERROR", "metaJson is invalid", e);
     }
   }
 }

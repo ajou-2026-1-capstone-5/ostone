@@ -63,6 +63,18 @@ function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMes
   };
 }
 
+function compareMessageCreatedAt(a: ChatMessage, b: ChatMessage): number {
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+}
+
+function mergeMessages(currentMessages: ChatMessage[], nextMessages: ChatMessage[]): ChatMessage[] {
+  const byId = new Map<string, ChatMessage>();
+  [...currentMessages, ...nextMessages].forEach((message) => {
+    byId.set(message.id, message);
+  });
+  return Array.from(byId.values()).sort(compareMessageCreatedAt);
+}
+
 export function ChatRoom({ sessionId }: ChatRoomProps) {
   const { connectionStatus, sendMessage, subscribe } = useStomp();
   const [messageState, setMessageState] = useState<{
@@ -84,11 +96,14 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
       try {
         const initialMessages = await listChatMessages(sessionId);
         if (!cancelled) {
-          setMessageState({
-            sessionId,
-            messages: initialMessages,
-            loading: false,
-            error: null,
+          setMessageState((current) => {
+            const currentMessages = current.sessionId === sessionId ? current.messages : [];
+            return {
+              sessionId,
+              messages: mergeMessages(currentMessages, initialMessages),
+              loading: false,
+              error: null,
+            };
           });
         }
       } catch {
@@ -129,7 +144,7 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
         }
         return {
           sessionId,
-          messages: [...currentMessages, nextMessage],
+          messages: mergeMessages(currentMessages, [nextMessage]),
           loading: false,
           error: current.sessionId === sessionId ? current.error : null,
         };

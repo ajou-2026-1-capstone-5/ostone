@@ -31,11 +31,12 @@ interface TopNavItem {
 }
 
 function getDemoChatPath(base: string): string {
-  if (base.startsWith("/workspaces/")) {
-    return base.replace("/workspaces/", "/demo/workspaces/") + "/chat";
+  const match = /^\/workspaces\/([^/]+)(?:\/.*)?$/.exec(base);
+  if (!match) {
+    return "/workspaces";
   }
 
-  return "/demo/workspaces/chat";
+  return `/demo/workspaces/${match[1]}/chat`;
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [

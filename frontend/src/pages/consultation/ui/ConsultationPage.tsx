@@ -60,6 +60,7 @@ export const ConsultationPage: React.FC = () => {
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
+  const [messagesCustomerId, setMessagesCustomerId] = useState<string | null>(null);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -69,7 +70,8 @@ export const ConsultationPage: React.FC = () => {
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
-  const visibleMessages = activeCustomerId ? messages : [];
+  const visibleMessages =
+    activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
 
   useEffect(() => {
@@ -142,6 +144,7 @@ export const ConsultationPage: React.FC = () => {
             timestamp: formatTime(m.createdAt ?? ""),
           })),
         );
+        setMessagesCustomerId(activeCustomerId);
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to load messages:", error);
@@ -164,6 +167,7 @@ export const ConsultationPage: React.FC = () => {
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
       if (msg.senderRole === "COUNSELOR") {
+        setMessagesCustomerId(activeCustomerId);
         setMessages((prev) => {
           const temps = [...pendingIdsRef.current];
           if (temps.length > 0) {
@@ -190,6 +194,7 @@ export const ConsultationPage: React.FC = () => {
         return;
       }
       const msgId = String(msg.id);
+      setMessagesCustomerId(activeCustomerId);
       setMessages((prev) => {
         if (prev.some((m) => m.id === msgId)) return prev;
         return [
@@ -212,6 +217,8 @@ export const ConsultationPage: React.FC = () => {
   const handleSelectCustomer = (id: string) => {
     setActiveCustomerId(id);
     setSelectedMessageId(null);
+    setMessages([]);
+    setMessagesCustomerId(null);
     if (!statuses[id]) {
       setStatuses((prev) => ({ ...prev, [id]: "IN_PROGRESS" }));
     }
@@ -239,6 +246,7 @@ export const ConsultationPage: React.FC = () => {
         timestamp: formatTime(new Date().toISOString()),
       };
       setMessages((prev) => [...prev, optimisticMsg]);
+      setMessagesCustomerId(targetId);
       pendingIdsRef.current.add(optimisticMsg.id);
       setSelectedMessageId(null);
 
@@ -256,6 +264,8 @@ export const ConsultationPage: React.FC = () => {
       loadQueue();
       setActiveCustomerId(null);
       setSelectedMessageId(null);
+      setMessages([]);
+      setMessagesCustomerId(null);
     } catch {
       toast.error("세션 종료 실패");
     }

@@ -97,7 +97,7 @@ class DemoChatSessionRegistrationServiceTest {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", SESSION_ID);
-    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(Optional.empty());
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))

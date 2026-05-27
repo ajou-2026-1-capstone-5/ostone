@@ -1,6 +1,8 @@
 package com.init.chatdemo.presentation;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -151,6 +153,19 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions → customerName 공백이면 400")
+  void should_400_when_createRegisteredChatSessionWithBlankName() throws Exception {
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"customerName\":\" \"}"))
+        .andExpect(status().isBadRequest());
+
+    verify(sessionRegistrationService, never()).createSession(10L, " ");
+  }
+
+  @Test
   @DisplayName("POST /api/v1/demo/chat-sessions/{sessionId}/messages → 데모 메시지 등록")
   void should_200_when_appendRegisteredChatMessage() throws Exception {
     given(sessionRegistrationService.appendMessage(10L, 77L, "Hello"))
@@ -174,6 +189,19 @@ class DemoRuntimeControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].senderRole").value("USER"))
         .andExpect(jsonPath("$[1].senderRole").value("ASSISTANT"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/demo/chat-sessions/{sessionId}/messages → content 공백이면 400")
+  void should_400_when_appendRegisteredChatMessageWithBlankContent() throws Exception {
+    mockMvc
+        .perform(
+            post(DEMO_URL_PREFIX + "/chat-sessions/77/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\" \"}"))
+        .andExpect(status().isBadRequest());
+
+    verify(sessionRegistrationService, never()).appendMessage(10L, 77L, " ");
   }
 
   @Test
@@ -288,8 +316,8 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
-  @DisplayName("인증 없이 demo workflow 요청 시 200 반환")
-  void should_200_when_unauthenticated() throws Exception {
+  @DisplayName("컨트롤러 단위 테스트에서 demo workflow 요청 시 200 반환")
+  void should_return200_when_getChatWorkflow_withoutSecurityFilters() throws Exception {
     given(service.getChatWorkflow(10L)).willReturn(chatWorkflowResponse());
 
     mockMvc

@@ -79,7 +79,7 @@ public class DemoChatSessionRegistrationService {
     String normalizedContent = normalizeMessageContent(content);
     ChatSession session =
         chatSessionRepository
-            .findById(sessionId)
+            .findByIdForUpdate(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));

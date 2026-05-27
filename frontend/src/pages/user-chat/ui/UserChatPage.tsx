@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { registerDemoChatSession, sendDemoChatMessage } from "@/entities/chat";
 import type { ChatMessage, DemoChatSession } from "@/entities/chat";
@@ -74,6 +74,7 @@ export function UserChatPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const nameRequestIdRef = useRef(0);
   const [chatState, setChatState] = useState<{
     workspaceId: number | null;
     customerName: string | null;
@@ -95,13 +96,16 @@ export function UserChatPage() {
       return;
     }
 
+    const requestId = ++nameRequestIdRef.current;
     setNameError(null);
     setCustomerName(nextName);
     setChatState({ workspaceId, customerName: nextName, session: null, error: null });
     try {
       const nextSession = await getOrCreateStoredSession(workspaceId, nextName);
+      if (requestId !== nameRequestIdRef.current) return;
       setChatState({ workspaceId, customerName: nextName, session: nextSession, error: null });
     } catch {
+      if (requestId !== nameRequestIdRef.current) return;
       setChatState({
         workspaceId,
         customerName: nextName,
@@ -162,6 +166,18 @@ export function UserChatPage() {
         };
       });
     } catch {
+      setChatState((current) => {
+        if (current.session?.id !== activeSession.id) return current;
+        const nextSession = {
+          ...current.session,
+          messages: current.session.messages.filter((message) => message.id !== userMessage.id),
+        };
+        writeStoredSession(workspaceId, customerName, nextSession);
+        return {
+          ...current,
+          session: nextSession,
+        };
+      });
       setMessageError("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setIsSending(false);

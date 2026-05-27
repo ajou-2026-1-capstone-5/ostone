@@ -100,4 +100,46 @@ describe("ChatRoom", () => {
     expect(await screen.findByText("이전 메시지")).toBeInTheDocument();
     expect(listChatMessagesMock).toHaveBeenCalledWith(7);
   });
+
+  it("초기 메시지 로딩 중 도착한 STOMP 메시지를 유지한다", async () => {
+    let resolveInitialMessages: (messages: unknown[]) => void = () => {};
+    listChatMessagesMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveInitialMessages = resolve;
+      }),
+    );
+
+    render(<ChatRoom sessionId={7} />);
+
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.7", expect.any(Function));
+    });
+
+    act(() => {
+      stompState.dispatch("/topic/chat.7", {
+        id: 2,
+        seqNo: 2,
+        senderRole: "ASSISTANT",
+        messageType: "TEXT",
+        content: "실시간 메시지",
+        createdAt: "2026-05-22T08:00:02Z",
+      });
+    });
+    expect(screen.getByText("실시간 메시지")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveInitialMessages([
+        {
+          id: "m1",
+          sessionId: 7,
+          senderType: "USER",
+          content: "이전 메시지",
+          createdAt: "2026-05-22T08:00:01Z",
+        },
+      ]);
+    });
+
+    expect(await screen.findByText("이전 메시지")).toBeInTheDocument();
+    expect(screen.getByText("실시간 메시지")).toBeInTheDocument();
+  });
 });

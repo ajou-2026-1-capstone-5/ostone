@@ -95,6 +95,21 @@ describe("UserChatPage", () => {
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 
+  it("메시지 전송 실패 시 optimistic 메시지를 되돌린다", async () => {
+    sendDemoChatMessageMock.mockRejectedValueOnce(new Error("LLM failed"));
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByText("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.")).not.toBeNull();
+    expect(screen.queryByText("Hello")).toBeNull();
+  });
+
   it("이름이 비어 있으면 세션을 생성하지 않는다", async () => {
     render(<UserChatPage />);
 

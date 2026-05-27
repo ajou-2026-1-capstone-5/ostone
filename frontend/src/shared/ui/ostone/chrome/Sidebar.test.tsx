@@ -93,6 +93,12 @@ describe("Sidebar", () => {
     );
   });
 
+  it("workspaceId를 추출할 수 없으면 Chat 링크를 안전한 내부 경로로 보낸다", () => {
+    renderSidebar({ basePath: "/workspaces" });
+
+    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/workspaces");
+  });
+
   it("switcher가 주어지면 렌더링된다", () => {
     renderSidebar({ switcher: <div data-testid="switcher">Switch</div> });
 

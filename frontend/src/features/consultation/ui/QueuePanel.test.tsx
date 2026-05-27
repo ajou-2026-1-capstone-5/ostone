@@ -36,6 +36,18 @@ describe("QueuePanel", () => {
     expect(screen.getByText("카드 오류")).toBeInTheDocument();
   });
 
+  it("고객 이름이 없으면 Unknown을 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[makeCustomer("1", { name: undefined })]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
+  });
+
   it("클릭하면 onSelectCustomer가 호출된다", () => {
     const onSelect = vi.fn();
     render(
