@@ -1,5 +1,6 @@
 import { MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
+import { getChatRolePresentation } from "../lib/chatRoleLabels";
 import styles from "./MessageDetailPanel.module.css";
 
 /* ─── Types ─── */
@@ -113,6 +114,7 @@ export function MessageDetailPanel({
   onClose,
 }: MessageDetailPanelProps) {
   const { slots, policies, risks } = domainPackElements ?? MOCK_DATA;
+  const roleLabel = message ? getChatRolePresentation(message.senderRole).label : "";
 
   if (!message) {
     return (
@@ -129,7 +131,7 @@ export function MessageDetailPanel({
     <aside className={styles.wrapper}>
       <div className={styles.messageHeader}>
         <div className={styles.messageMeta}>
-          <span className={styles.senderRole}>{message.senderRole}</span>
+          <span className={styles.senderRole}>{roleLabel}</span>
           <span className={styles.timestamp}>{message.timestamp}</span>
         </div>
         <p className={styles.messagePreview}>{message.content}</p>

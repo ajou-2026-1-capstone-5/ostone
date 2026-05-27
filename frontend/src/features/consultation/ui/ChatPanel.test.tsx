@@ -148,7 +148,7 @@ describe("ChatPanel", () => {
     );
 
     expect(screen.getByText("상담이 시작되었습니다")).toBeInTheDocument();
-    expect(screen.getByText("📝 내부 메모")).toBeInTheDocument();
+    expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("내부 메모 내용")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("내부 메모 모드"));
@@ -359,5 +359,48 @@ describe("ChatPanel", () => {
     expect(screen.getByText("AI 메시지 내용")).toBeInTheDocument();
     expect(screen.getByText("AI ·")).toBeInTheDocument();
     expect(screen.getByText("A")).toBeInTheDocument();
+  });
+
+  it("USER, AGENT, NOTE, SYSTEM 역할 라벨을 일관되게 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "user-1",
+            senderRole: "USER",
+            content: "고객 메시지",
+            timestamp: "10:01",
+          },
+          {
+            id: "agent-1",
+            senderRole: "AGENT",
+            content: "legacy 상담사 메시지",
+            timestamp: "10:02",
+          },
+          {
+            id: "note-1",
+            senderRole: "NOTE",
+            content: "메모",
+            timestamp: "10:03",
+          },
+          {
+            id: "system-1",
+            senderRole: "SYSTEM",
+            content: "시스템 안내",
+            timestamp: "10:04",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("고객 ·")).toBeInTheDocument();
+    expect(screen.getByText("상담사 ·")).toBeInTheDocument();
+    expect(screen.getByText("내부 메모")).toBeInTheDocument();
+    expect(screen.getByText("시스템 안내")).toBeInTheDocument();
   });
 });

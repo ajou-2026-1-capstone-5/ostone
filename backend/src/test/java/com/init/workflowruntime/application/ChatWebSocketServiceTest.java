@@ -38,6 +38,7 @@ class ChatWebSocketServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
   @Mock private ApplicationEventPublisher eventPublisher;
+  @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   private ChatWebSocketService service;
 
@@ -45,7 +46,11 @@ class ChatWebSocketServiceTest {
   void setUp() {
     service =
         new ChatWebSocketService(
-            chatSessionRepository, chatMessageRepository, messagingTemplate, eventPublisher);
+            chatSessionRepository,
+            chatMessageRepository,
+            messagingTemplate,
+            eventPublisher,
+            chatSessionMetadataService);
   }
 
   @Test
@@ -80,6 +85,7 @@ class ChatWebSocketServiceTest {
       assertThat(result.content()).isEqualTo("Hello");
       assertThat(result.senderRole()).isEqualTo("USER");
       verify(chatMessageRepository).save(any());
+      verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
       // 즉시 전송되지 않음
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
@@ -155,6 +161,7 @@ class ChatWebSocketServiceTest {
       assertThat(result).isNotNull();
       assertThat(result.content()).isEqualTo("Hello");
       verify(chatMessageRepository).save(any());
+      verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
 

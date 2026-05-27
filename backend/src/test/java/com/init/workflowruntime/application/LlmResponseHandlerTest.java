@@ -34,6 +34,7 @@ class LlmResponseHandlerTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
   @Mock private ChatSessionRepository chatSessionRepository;
+  @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   @Captor private ArgumentCaptor<ChatMessageResponse> responseCaptor;
 
@@ -43,7 +44,11 @@ class LlmResponseHandlerTest {
   void setUp() {
     handler =
         new LlmResponseHandler(
-            llmAssistantService, chatMessageRepository, chatSessionRepository, messagingTemplate);
+            llmAssistantService,
+            chatMessageRepository,
+            chatSessionRepository,
+            messagingTemplate,
+            chatSessionMetadataService);
   }
 
   @Test
@@ -62,6 +67,7 @@ class LlmResponseHandlerTest {
     handler.handleChatMessageReceived(event);
 
     verify(chatMessageRepository).save(any(ChatMessage.class));
+    verify(chatSessionMetadataService).updateAfterMessage(any(ChatSession.class), eq(savedMsg));
     verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
 
     ChatMessageResponse pushed = responseCaptor.getValue();

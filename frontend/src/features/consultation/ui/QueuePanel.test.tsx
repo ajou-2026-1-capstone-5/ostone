@@ -68,6 +68,19 @@ describe("QueuePanel", () => {
     expect(screen.getByText("카드 오류")).toBeInTheDocument();
   });
 
+  it("title이 있으면 handoffReason보다 우선 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[makeCustomer("1", { title: "VIP 환불 상담", handoffReason: "카드 오류" })]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("VIP 환불 상담")).toBeInTheDocument();
+    expect(screen.queryByText("카드 오류")).not.toBeInTheDocument();
+  });
+
   it("고객 이름이 없으면 Unknown을 표시한다", () => {
     render(
       <QueuePanel

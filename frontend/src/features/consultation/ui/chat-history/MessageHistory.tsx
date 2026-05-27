@@ -1,6 +1,7 @@
 import { Dot, EmptyState, ErrorState, Eyebrow, Icon, LoadingSpinner, Mono, Pill } from "@/shared/ui/ostone/atoms";
 import type { ChatMessage } from "../../api/consultationApi";
 import { useChatMessages } from "../../api/chatHistoryApi";
+import { getChatRolePresentation, isCounselorLikeRole } from "../../lib/chatRoleLabels";
 import styles from "./MessageHistory.module.css";
 
 interface MessageHistoryProps {
@@ -12,27 +13,23 @@ function formatTimestamp(dateStr?: string): string {
   return new Date(dateStr).toLocaleString("ko-KR");
 }
 
-function getRoleLabel(senderRole?: string): string {
-  if (senderRole === "AGENT" || senderRole === "COUNSELOR") return "상담사";
-  if (senderRole === "CUSTOMER") return "고객";
-  return "시스템";
-}
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "메시지를 불러오지 못했습니다";
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
-  const roleLabel = getRoleLabel(message.senderRole);
-  const isCounselor = roleLabel === "상담사";
-  const isSystem = roleLabel === "시스템";
+  const role = getChatRolePresentation(message.senderRole);
+  const isCounselor = isCounselorLikeRole(message.senderRole);
+  const isSystem = role.tone === "system";
 
   if (isSystem) {
     return (
       <div className={styles.systemRow}>
         <Dot tone="mute" />
-        <Mono className={styles.systemText}>{message.content ?? "내용 없음"}</Mono>
+        <Mono className={styles.systemText}>
+          {role.label} · {message.content ?? "내용 없음"}
+        </Mono>
       </div>
     );
   }
@@ -41,7 +38,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <article className={`${styles.messageRow} ${isCounselor ? styles.counselorRow : styles.customerRow}`}>
       <div className={`${styles.bubble} ${isCounselor ? styles.counselorBubble : styles.customerBubble}`}>
         <div className={styles.metaLine}>
-          <span className={styles.roleLabel}>{roleLabel}</span>
+          <span className={styles.roleLabel}>{role.label}</span>
           <Pill tone={isCounselor ? "signal" : "mute"}>{message.messageType ?? "TEXT"}</Pill>
         </div>
         <p className={styles.content}>{message.content ?? "내용 없음"}</p>

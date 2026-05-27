@@ -33,16 +33,19 @@ public class CounselorService {
   private final ChatMessageRepository chatMessageRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final ApplicationEventPublisher eventPublisher;
+  private final ChatSessionMetadataService chatSessionMetadataService;
 
   public CounselorService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       SimpMessagingTemplate messagingTemplate,
-      ApplicationEventPublisher eventPublisher) {
+      ApplicationEventPublisher eventPublisher,
+      ChatSessionMetadataService chatSessionMetadataService) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.messagingTemplate = messagingTemplate;
     this.eventPublisher = eventPublisher;
+    this.chatSessionMetadataService = chatSessionMetadataService;
   }
 
   @Transactional
@@ -143,6 +146,7 @@ public class CounselorService {
     String senderRole = isNote ? "NOTE" : "COUNSELOR";
     ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, senderRole, "TEXT", content);
     ChatMessage savedMessage = chatMessageRepository.save(message);
+    chatSessionMetadataService.updateAfterMessage(session, savedMessage);
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + sessionId;

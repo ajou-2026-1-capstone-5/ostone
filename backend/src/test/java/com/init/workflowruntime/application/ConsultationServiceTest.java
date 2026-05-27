@@ -43,6 +43,7 @@ class ConsultationServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
   @Mock private ApplicationEventPublisher eventPublisher;
+  @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   private ConsultationService service;
 
@@ -53,7 +54,8 @@ class ConsultationServiceTest {
             chatSessionRepository,
             chatMessageRepository,
             workspaceMemberRepository,
-            eventPublisher);
+            eventPublisher,
+            chatSessionMetadataService);
   }
 
   @Test
@@ -126,7 +128,7 @@ class ConsultationServiceTest {
   void should_생성된메시지반환_when_정상전송() {
     // given
     ChatSession session = createSession(1L);
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
 
@@ -144,6 +146,7 @@ class ConsultationServiceTest {
     assertThat(result.content()).isEqualTo("Hello");
     assertThat(result.senderRole()).isEqualTo("AGENT");
     verify(chatMessageRepository).save(any());
+    verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
   }
 
   @Test

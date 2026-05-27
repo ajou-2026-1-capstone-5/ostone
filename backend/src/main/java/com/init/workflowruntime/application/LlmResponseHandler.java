@@ -4,6 +4,7 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
+import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import java.util.Collections;
@@ -26,16 +27,19 @@ public class LlmResponseHandler {
   private final ChatMessageRepository chatMessageRepository;
   private final ChatSessionRepository chatSessionRepository;
   private final SimpMessagingTemplate messagingTemplate;
+  private final ChatSessionMetadataService chatSessionMetadataService;
 
   public LlmResponseHandler(
       LlmAssistantService llmAssistantService,
       ChatMessageRepository chatMessageRepository,
       ChatSessionRepository chatSessionRepository,
-      SimpMessagingTemplate messagingTemplate) {
+      SimpMessagingTemplate messagingTemplate,
+      ChatSessionMetadataService chatSessionMetadataService) {
     this.llmAssistantService = llmAssistantService;
     this.chatMessageRepository = chatMessageRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.messagingTemplate = messagingTemplate;
+    this.chatSessionMetadataService = chatSessionMetadataService;
   }
 
   @Async
@@ -43,12 +47,13 @@ public class LlmResponseHandler {
   @Transactional
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
-      chatSessionRepository
-          .findByIdForUpdate(event.sessionId())
-          .orElseThrow(
-              () ->
-                  new NotFoundException(
-                      "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
+      ChatSession session =
+          chatSessionRepository
+              .findByIdForUpdate(event.sessionId())
+              .orElseThrow(
+                  () ->
+                      new NotFoundException(
+                          "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
 
       List<ChatMessage> recentDesc =
           chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(event.sessionId());
@@ -70,6 +75,7 @@ public class LlmResponseHandler {
       ChatMessage savedMessage =
           chatMessageRepository.save(
               ChatMessage.create(event.sessionId(), nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
+      chatSessionMetadataService.updateAfterMessage(session, savedMessage);
 
       ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
       String destination = "/topic/chat." + event.sessionId();
