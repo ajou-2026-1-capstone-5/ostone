@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -19,6 +20,8 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.InvalidSessionStateException;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +30,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,8 +48,6 @@ class CounselorServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
   @Mock private ApplicationEventPublisher eventPublisher;
-
-  @Captor private ArgumentCaptor<SessionAssignedEvent> eventCaptor;
 
   private CounselorService service;
 
@@ -72,6 +72,7 @@ class CounselorServiceTest {
     assertThat(result.getAssignedCounselorId()).isEqualTo(42L);
     verify(chatSessionRepository).save(session);
     verify(eventPublisher).publishEvent(any(SessionAssignedEvent.class));
+    verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
   }
 
   @Test
@@ -121,6 +122,7 @@ class CounselorServiceTest {
     assertThat(result.getStatus()).isEqualTo("OPEN");
     assertThat(result.getAssignedCounselorId()).isNull();
     verify(chatSessionRepository).save(session);
+    verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
   }
 
   @Test
@@ -329,5 +331,20 @@ class CounselorServiceTest {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
     ReflectionTestUtils.setField(msg, "id", 1L);
     return msg;
+  }
+
+  private void verifyQueueEventPublished(
+      Long workspaceId, Long sessionId, ConsultationQueueEventType type) {
+    ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher, atLeastOnce()).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getAllValues())
+        .anySatisfy(
+            event -> {
+              assertThat(event).isInstanceOf(ConsultationQueueChangedEvent.class);
+              ConsultationQueueChangedEvent queueEvent = (ConsultationQueueChangedEvent) event;
+              assertThat(queueEvent.workspaceId()).isEqualTo(workspaceId);
+              assertThat(queueEvent.sessionId()).isEqualTo(sessionId);
+              assertThat(queueEvent.type()).isEqualTo(type);
+            });
   }
 }

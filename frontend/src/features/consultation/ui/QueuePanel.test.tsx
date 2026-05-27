@@ -105,4 +105,15 @@ describe("QueuePanel", () => {
     );
     expect(screen.getByText("5분 전")).toBeInTheDocument();
   });
+
+  it("세션 상태 라벨을 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[makeCustomer("11", { statusLabel: "내 상담 진행중" })]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("내 상담 진행중")).toBeInTheDocument();
+  });
 });

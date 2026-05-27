@@ -51,26 +51,6 @@ class ConsultationControllerTest {
   private ConsultationService consultationService;
 
   @Test
-  @DisplayName("GET /api/v1/consultation/queue - 대기열 조회 성공")
-  void should_대기열반환_when_정상조회() throws Exception {
-    // given
-    ChatSessionResponse response = new ChatSessionResponse();
-    response.setId(1L);
-    response.setStatus("OPEN");
-    response.setChannel("카카오톡");
-    response.setStartedAt(OffsetDateTime.now());
-
-    given(consultationService.getActiveQueue()).willReturn(List.of(response));
-
-    // when & then
-    mockMvc
-        .perform(get("/api/v1/consultation/queue"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(1))
-        .andExpect(jsonPath("$[0].channel").value("카카오톡"));
-  }
-
-  @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
   void should_메시지목록반환_when_정상조회() throws Exception {
     // given

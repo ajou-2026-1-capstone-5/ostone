@@ -10,6 +10,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +60,9 @@ public class CounselorService {
     chatSessionRepository.save(session);
 
     eventPublisher.publishEvent(new SessionAssignedEvent(sessionId, counselorId));
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
 
     return CounselorSessionResponse.from(session);
   }
@@ -81,6 +86,9 @@ public class CounselorService {
 
     session.releaseFrom();
     chatSessionRepository.save(session);
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
 
     return CounselorSessionResponse.from(session);
   }

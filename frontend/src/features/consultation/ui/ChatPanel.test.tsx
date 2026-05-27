@@ -43,6 +43,22 @@ describe("ChatPanel", () => {
     expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue("");
   });
 
+  it("세션 상태 라벨을 헤더에 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        sessionStatusLabel="내 상담 진행중"
+      />,
+    );
+
+    expect(screen.getByText("내 상담 진행중")).toBeInTheDocument();
+  });
+
   it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", () => {
     const onSelectMessage = vi.fn();
 

@@ -16,6 +16,8 @@ interface ChatPanelProps {
   onSendMessage: (content: string, isNote: boolean) => void;
   selectedMessageId: string | null;
   onSelectMessage: (messageId: string | null) => void;
+  sessionStatusLabel?: string;
+  disabled?: boolean;
 }
 
 const roleLabel: Record<string, { avatar: string; label?: string }> = {
@@ -38,10 +40,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   selectedMessageId,
   onSelectMessage,
+  sessionStatusLabel,
+  disabled = false,
 }) => {
   const [input, setInput] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const customerInitial = customerName?.trim().charAt(0) || "?";
 
   useEffect(() => {
     if (listRef.current) {
@@ -54,7 +59,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
    * 공백 검사 및 한글 IME 입력 충돌 방지 로직을 포함합니다.
    */
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (disabled || !input.trim()) return;
     onSendMessage(input.trim(), isNoteMode);
     setInput("");
   };
@@ -84,7 +89,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Header */}
       <div className={styles.chatHeader}>
         <div className={styles.chatHeaderInfo}>
-          <div className={styles.chatAvatar}>{customerName.charAt(0)}</div>
+          <div className={styles.chatAvatar}>{customerInitial}</div>
           <div>
             <div className={styles.chatCustomerName}>{customerName}</div>
             <div className={styles.chatChannel}>{channel}</div>
@@ -92,7 +97,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         </div>
         <div className={styles.chatStatus}>
           <span className={styles.statusDot}></span>
-          상담 진행중
+          {sessionStatusLabel ?? "상담 진행중"}
         </div>
       </div>
 
@@ -147,7 +152,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? (roleLabel[msg.senderRole]?.avatar ?? "A") : customerName.charAt(0)}
+                {isAgent ? (roleLabel[msg.senderRole]?.avatar ?? "A") : customerInitial}
               </div>
               <div>
                 <div
@@ -172,6 +177,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         <button
           className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ""}`}
           onClick={() => setIsNoteMode(!isNoteMode)}
+          disabled={disabled}
           title={isNoteMode ? "일반 메시지로 전환" : "내부 메모 모드"}
         >
           <StickyNote size={18} />
@@ -187,11 +193,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={disabled}
         />
         <button
           className={styles.sendBtn}
           onClick={handleSend}
-          disabled={!input.trim()}
+          disabled={disabled || !input.trim()}
           aria-label="메시지 전송"
           title="메시지 전송"
         >

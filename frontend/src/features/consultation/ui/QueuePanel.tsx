@@ -9,6 +9,10 @@ export interface QueueCustomer {
   handoffReason: string;
   waitMinutes: number;
   hasUnread: boolean;
+  status?: string | null;
+  statusLabel?: string;
+  assignedCounselorId?: number | null;
+  startedAt?: string | null;
 }
 
 interface QueuePanelProps {
@@ -60,6 +64,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                 <div className={styles.queueItemInfo}>
                   <div className={styles.customerName}>{displayName}</div>
                   <div className={styles.handoffPreview}>{c.handoffReason}</div>
+                  {c.statusLabel && <div className={styles.sessionStatus}>{c.statusLabel}</div>}
                 </div>
                 <div
                   style={{

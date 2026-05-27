@@ -13,10 +13,13 @@ import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,16 +36,19 @@ public class UserChatSessionService {
   private final DomainPackVersionRepository domainPackVersionRepository;
   private final WorkspaceMemberRepository workspaceMemberRepository;
   private final UserChatSessionConcurrencyGuard concurrencyGuard;
+  private final ApplicationEventPublisher eventPublisher;
 
   public UserChatSessionService(
       ChatSessionRepository chatSessionRepository,
       DomainPackVersionRepository domainPackVersionRepository,
       WorkspaceMemberRepository workspaceMemberRepository,
-      UserChatSessionConcurrencyGuard concurrencyGuard) {
+      UserChatSessionConcurrencyGuard concurrencyGuard,
+      ApplicationEventPublisher eventPublisher) {
     this.chatSessionRepository = chatSessionRepository;
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
     this.concurrencyGuard = concurrencyGuard;
+    this.eventPublisher = eventPublisher;
   }
 
   @Transactional
@@ -87,7 +93,11 @@ public class UserChatSessionService {
             DEFAULT_CHANNEL,
             createMetaJson(customerName),
             userId);
-    return chatSessionRepository.save(session);
+    ChatSession saved = chatSessionRepository.save(session);
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            workspaceId, saved.getId(), ConsultationQueueEventType.SESSION_UPSERTED));
+    return saved;
   }
 
   private ChatSession updateCustomerName(ChatSession session, String customerName) {

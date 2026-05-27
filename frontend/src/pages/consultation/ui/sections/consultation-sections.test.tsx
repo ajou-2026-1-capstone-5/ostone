@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Message, HandoffDivider } from "./Message";
-import { SuggestStrip } from "./SuggestStrip";
 import { Queue } from "./Queue";
 import { DetectedItems } from "./DetectedItems";
 import { WorkflowProgress } from "./WorkflowProgress";
@@ -46,38 +45,6 @@ describe("HandoffDivider", () => {
   it("renders custom time", () => {
     render(<HandoffDivider time="15:30" />);
     expect(screen.getByText("상담사에게 연결됨 · 15:30")).toBeInTheDocument();
-  });
-});
-
-describe("SuggestStrip", () => {
-  it("renders 3 pills", () => {
-    render(<SuggestStrip />);
-    expect(screen.getByText("부분환불 가능합니다")).toBeInTheDocument();
-    expect(screen.getByText("환불 처리 중입니다")).toBeInTheDocument();
-    expect(screen.getByText("카드사 확인이 필요합니다")).toBeInTheDocument();
-  });
-
-  it("calls onSelect with pill text on click", () => {
-    const onSelect = vi.fn();
-    render(<SuggestStrip onSelect={onSelect} />);
-    fireEvent.click(screen.getByText("부분환불 가능합니다"));
-    expect(onSelect).toHaveBeenCalledWith("부분환불 가능합니다");
-  });
-
-  it("calls onSelect with pill text on Enter key", () => {
-    const onSelect = vi.fn();
-    render(<SuggestStrip onSelect={onSelect} />);
-    const pill = screen.getByText("부분환불 가능합니다");
-    fireEvent.keyDown(pill, { key: "Enter" });
-    expect(onSelect).toHaveBeenCalledWith("부분환불 가능합니다");
-  });
-
-  it("calls onSelect with pill text on Space key", () => {
-    const onSelect = vi.fn();
-    render(<SuggestStrip onSelect={onSelect} />);
-    const pill = screen.getByText("환불 처리 중입니다");
-    fireEvent.keyDown(pill, { key: " " });
-    expect(onSelect).toHaveBeenCalledWith("환불 처리 중입니다");
   });
 });
 
