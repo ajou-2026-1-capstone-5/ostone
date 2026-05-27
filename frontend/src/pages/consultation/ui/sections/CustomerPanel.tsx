@@ -13,6 +13,8 @@ interface CustomerPanelProps {
   customer: CustomerInfo | null;
   memo: string;
   onMemoChange: (memo: string) => void;
+  onMemoSave?: () => void;
+  isMemoSaving?: boolean;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -42,7 +44,15 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function CustomerPanel({ customer, memo, onMemoChange }: CustomerPanelProps) {
+export function CustomerPanel({
+  customer,
+  memo,
+  onMemoChange,
+  onMemoSave,
+  isMemoSaving = false,
+}: CustomerPanelProps) {
+  const isMemoSaveDisabled = isMemoSaving || !memo.trim() || !onMemoSave;
+
   if (!customer) {
     return (
       <div
@@ -144,7 +154,7 @@ export function CustomerPanel({ customer, memo, onMemoChange }: CustomerPanelPro
         ))}
       </Section>
 
-      <Section title="납부 메모">
+      <Section title="상담 메모">
         <textarea
           value={memo}
           onChange={(e) => onMemoChange(e.target.value)}
@@ -163,6 +173,25 @@ export function CustomerPanel({ customer, memo, onMemoChange }: CustomerPanelPro
             fontFamily: "inherit",
           }}
         />
+        <button
+          type="button"
+          onClick={onMemoSave}
+          disabled={isMemoSaveDisabled}
+          style={{
+            width: "100%",
+            marginTop: 8,
+            padding: "8px 10px",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--r-2)",
+            background: isMemoSaveDisabled ? "var(--paper-2)" : "var(--ink)",
+            color: isMemoSaveDisabled ? "var(--ink-4)" : "var(--paper)",
+            cursor: isMemoSaveDisabled ? "not-allowed" : "pointer",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          {isMemoSaving ? "저장 중..." : "메모 저장"}
+        </button>
       </Section>
     </div>
   );

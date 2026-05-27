@@ -2,15 +2,21 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { Dot, Mono, Pill, Avatar, Eyebrow, Icon } from "@/shared/ui/ostone/atoms";
+import { Dot, Mono, Avatar } from "@/shared/ui/ostone/atoms";
 import { useStomp } from "@/shared/lib/websocket";
+import { getAuthUser } from "@/shared/lib/auth";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
 import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
 import type { ChatMessage as UiChatMessage } from "../../../features/consultation/ui/ChatPanel";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
+import type {
+  ChatSession,
+  ConsultationQueueEvent,
+} from "../../../features/consultation/api/consultationApi";
 import { CustomerPanel } from "./sections/CustomerPanel";
 import { MessageDetailPanel } from "../../../features/consultation/ui/MessageDetailPanel";
+import styles from "./consultation-page.module.css";
 
 const formatTime = (isoString: string) => {
   if (!isoString) return "";
@@ -26,6 +32,39 @@ type RealtimeChatMessage = {
   timestamp?: string | null;
 };
 
+type MessageLike = {
+  id?: string | number | null;
+  senderRole?: string | null;
+  content?: string | null;
+  createdAt?: string | null;
+  timestamp?: string | null;
+};
+
+const normalizeSenderRole = (senderRole?: string | null): UiChatMessage["senderRole"] => {
+  if (senderRole === "USER") return "CUSTOMER";
+  if (
+    senderRole === "CUSTOMER" ||
+    senderRole === "AGENT" ||
+    senderRole === "SYSTEM" ||
+    senderRole === "NOTE" ||
+    senderRole === "COUNSELOR" ||
+    senderRole === "ASSISTANT"
+  ) {
+    return senderRole;
+  }
+  return "SYSTEM";
+};
+
+const toUiMessage = (message: MessageLike): UiChatMessage => {
+  const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
+  return {
+    id: String(message.id ?? `message-${createdAt}-${message.content ?? ""}`),
+    senderRole: normalizeSenderRole(message.senderRole),
+    content: message.content ?? "",
+    timestamp: formatTime(createdAt),
+  };
+};
+
 const calcWaitMinutes = (isoString: string) => {
   if (!isoString) return 0;
   const d = new Date(isoString);
@@ -33,7 +72,60 @@ const calcWaitMinutes = (isoString: string) => {
   return Math.max(0, Math.floor(diffMs / 60000));
 };
 
-const SUGGESTIONS = ["부분환불 가능합니다", "환불 처리 중입니다", "카드사 확인이 필요합니다"];
+const parseSessionMeta = (metaJson?: string | null) => {
+  let meta = { customerName: "Unknown", handoffReason: "" };
+  try {
+    if (metaJson) meta = JSON.parse(metaJson);
+  } catch (e) {
+    console.error("Failed to parse metaJson", e);
+  }
+  return meta;
+};
+
+const getSessionStatusLabel = (
+  status?: string | null,
+  assignedCounselorId?: number | null,
+  currentCounselorId?: number | null,
+) => {
+  if (status === "COMPLETED") return "상담 종료";
+  if (status === "RESOLVED") return "해결됨";
+  if (assignedCounselorId && assignedCounselorId === currentCounselorId) return "내 상담 진행중";
+  if (assignedCounselorId) return "상담 진행중";
+  if (status === "ACTIVE") return "상담 진행중";
+  if (status === "OPEN") return "대기중";
+  return status ?? "상태 미확인";
+};
+
+const toQueueCustomer = (
+  session: ChatSession,
+  currentCounselorId: number | null,
+  previous?: QueueCustomer,
+): QueueCustomer => {
+  const meta = parseSessionMeta(session.metaJson);
+  const assignedCounselorId = session.assignedCounselorId ?? previous?.assignedCounselorId ?? null;
+  const status = session.status ?? previous?.status ?? null;
+  const startedAt = session.startedAt ?? previous?.startedAt ?? null;
+
+  return {
+    id: String(session.id ?? previous?.id ?? ""),
+    name: meta.customerName?.trim() || previous?.name || "Unknown",
+    channel: session.channel ?? previous?.channel ?? "",
+    handoffReason: meta.handoffReason ?? previous?.handoffReason ?? "",
+    waitMinutes: startedAt ? calcWaitMinutes(startedAt) : (previous?.waitMinutes ?? 0),
+    hasUnread: previous?.hasUnread ?? false,
+    status,
+    statusLabel: getSessionStatusLabel(status, assignedCounselorId, currentCounselorId),
+    assignedCounselorId,
+    startedAt,
+  };
+};
+
+const sortQueueCustomers = (customers: QueueCustomer[]) =>
+  [...customers].sort((a, b) => {
+    const aTime = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+    const bTime = b.startedAt ? new Date(b.startedAt).getTime() : 0;
+    return bTime - aTime;
+  });
 
 const StatusRight = () => (
   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -56,23 +148,47 @@ const StatusRight = () => (
 );
 
 export const ConsultationPage: React.FC = () => {
-  const { setTopbarRight, setCrumbs } = useOutletContext<ShellContext>();
+  const { setTopbarRight, setCrumbs, workspace } = useOutletContext<ShellContext>();
+  const workspaceId = typeof workspace?.id === "number" ? workspace.id : null;
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [messagesCustomerId, setMessagesCustomerId] = useState<string | null>(null);
   const [memos, setMemos] = useState<Record<string, string>>({});
-  const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const { connectionStatus, subscribe, sendTo } = useStomp();
+  const [isSending, setIsSending] = useState(false);
+  const [isQueueLoading, setIsQueueLoading] = useState(false);
+  const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
+  const { connectionStatus, subscribe } = useStomp();
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const tempCounterRef = useRef(0);
+  const activeCustomerIdRef = useRef<string | null>(null);
+  const currentCounselorId = getAuthUser()?.id ?? null;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
+  const activeCustomerInitial = activeCustomerName.charAt(0) || "?";
   const visibleMessages =
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
+  const activeStatusLabel = activeCustomer
+    ? getSessionStatusLabel(activeCustomer.status, activeCustomer.assignedCounselorId, currentCounselorId)
+    : undefined;
+  const isAssignedToCurrentCounselor =
+    !!activeCustomer?.assignedCounselorId &&
+    activeCustomer.assignedCounselorId === currentCounselorId;
+
+  const clearActiveConversation = useCallback(() => {
+    setActiveCustomerId(null);
+    setSelectedMessageId(null);
+    setMessages([]);
+    setMessagesCustomerId(null);
+    pendingIdsRef.current.clear();
+  }, []);
+
+  useEffect(() => {
+    activeCustomerIdRef.current = activeCustomerId;
+  }, [activeCustomerId]);
 
   useEffect(() => {
     setTopbarRight(<StatusRight />);
@@ -84,51 +200,96 @@ export const ConsultationPage: React.FC = () => {
   }, [setTopbarRight, setCrumbs]);
 
   const loadQueue = useCallback(async () => {
+    if (!workspaceId) {
+      setQueue([]);
+      setIsQueueLoading(false);
+      setQueueLoadError(null);
+      clearActiveConversation();
+      return;
+    }
+
+    setIsQueueLoading(true);
+    setQueueLoadError(null);
+
     try {
-      const sessions = await consultationApi.getQueue();
-      const formattedQueue = sessions.map((s) => {
-        let meta = { customerName: "Unknown", handoffReason: "" };
-        try {
-          if (s.metaJson) meta = JSON.parse(s.metaJson);
-        } catch (e) {
-          console.error("Failed to parse metaJson", e);
-        }
-        return {
-          id: String(s.id),
-          name: meta.customerName,
-          channel: s.channel ?? "",
-          handoffReason: meta.handoffReason,
-          waitMinutes: calcWaitMinutes(s.startedAt ?? ""),
-          hasUnread: false,
-        };
-      });
-      setQueue(formattedQueue);
+      const sessions = await consultationApi.getQueue(workspaceId);
+      const formattedQueue = (Array.isArray(sessions) ? sessions : []).map((s) =>
+        toQueueCustomer(s, currentCounselorId),
+      );
+      setQueue(sortQueueCustomers(formattedQueue));
     } catch (error) {
       console.error("Failed to load queue:", error);
+      setQueueLoadError("대기열을 불러오지 못했습니다.");
       toast.error("대기열을 불러오지 못했습니다.");
+    } finally {
+      setIsQueueLoading(false);
     }
-  }, []);
+  }, [clearActiveConversation, currentCounselorId, workspaceId]);
+
+  const handleQueueEvent = useCallback(
+    (raw: unknown) => {
+      const event = raw as Partial<ConsultationQueueEvent>;
+      const session = event.session;
+      if (!event.type || !session?.id) return;
+
+      setQueueLoadError(null);
+      const sessionId = String(session.id);
+      if (event.type === "SESSION_REMOVED") {
+        setQueue((prev) => prev.filter((customer) => customer.id !== sessionId));
+        if (activeCustomerIdRef.current === sessionId) {
+          clearActiveConversation();
+        }
+        return;
+      }
+
+      if (event.type !== "SESSION_UPSERTED") return;
+
+      setQueue((prev) => {
+        const currentIndex = prev.findIndex((customer) => customer.id === sessionId);
+        const previous = currentIndex >= 0 ? prev[currentIndex] : undefined;
+        const nextCustomer = toQueueCustomer(session, currentCounselorId, previous);
+        const next =
+          currentIndex >= 0
+            ? prev.map((customer) => (customer.id === sessionId ? nextCustomer : customer))
+            : [nextCustomer, ...prev];
+        return sortQueueCustomers(next);
+      });
+    },
+    [clearActiveConversation, currentCounselorId],
+  );
 
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => {
-      void loadQueue();
-    }, 0);
-    const interval = window.setInterval(() => {
-      void loadQueue();
-    }, 5000);
+    if (connectionStatus === "CONNECTED") return;
+    void loadQueue();
+  }, [connectionStatus, loadQueue]);
+
+  useEffect(() => {
+    if (connectionStatus !== "CONNECTED" || !workspaceId) return;
+
+    void loadQueue();
+    const unsubscribe = subscribe(
+      `/topic/workspaces.${workspaceId}.consultation.queue`,
+      handleQueueEvent,
+    );
+
     return () => {
-      window.clearTimeout(initialLoad);
-      window.clearInterval(interval);
+      unsubscribe();
     };
-  }, [loadQueue]);
+  }, [connectionStatus, handleQueueEvent, loadQueue, subscribe, workspaceId]);
 
   useEffect(() => {
     if (!activeCustomerId) {
       pendingIdsRef.current.clear();
+      setMessages([]);
+      setMessagesCustomerId(null);
+      setSelectedMessageId(null);
       return;
     }
 
     pendingIdsRef.current.clear();
+    setMessages([]);
+    setMessagesCustomerId(null);
+    setSelectedMessageId(null);
 
     let cancelled = false;
 
@@ -136,14 +297,7 @@ export const ConsultationPage: React.FC = () => {
       try {
         const msgs = await consultationApi.getMessages(Number(activeCustomerId));
         if (cancelled) return;
-        setMessages(
-          msgs.map((m) => ({
-            id: String(m.id),
-            senderRole: m.senderRole as UiChatMessage["senderRole"],
-            content: m.content ?? "",
-            timestamp: formatTime(m.createdAt ?? ""),
-          })),
-        );
+        setMessages(msgs.map(toUiMessage));
         setMessagesCustomerId(activeCustomerId);
       } catch (error) {
         if (!cancelled) {
@@ -178,16 +332,7 @@ export const ConsultationPage: React.FC = () => {
             if (matchIdx < 0) return prev;
             const tempId = temps[matchIdx];
             pendingIdsRef.current.delete(tempId);
-            return prev.map((m) =>
-              m.id === tempId
-                ? {
-                    id: String(msg.id),
-                    senderRole: "COUNSELOR" as const,
-                    content: msg.content ?? "",
-                    timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
-                  }
-                : m,
-            );
+            return prev.map((m) => (m.id === tempId ? toUiMessage(msg) : m));
           }
           return prev;
         });
@@ -197,15 +342,7 @@ export const ConsultationPage: React.FC = () => {
       setMessagesCustomerId(activeCustomerId);
       setMessages((prev) => {
         if (prev.some((m) => m.id === msgId)) return prev;
-        return [
-          ...prev,
-          {
-            id: msgId,
-            senderRole: msg.senderRole as UiChatMessage["senderRole"],
-            content: msg.content ?? "",
-            timestamp: formatTime(msg.createdAt ?? msg.timestamp ?? ""),
-          },
-        ];
+        return [...prev, toUiMessage(msg)];
       });
     });
 
@@ -214,34 +351,42 @@ export const ConsultationPage: React.FC = () => {
     };
   }, [connectionStatus, activeCustomerId, subscribe]);
 
-  const handleSelectCustomer = (id: string) => {
-    setActiveCustomerId(id);
-    setSelectedMessageId(null);
-    setMessages([]);
-    setMessagesCustomerId(null);
-    if (!statuses[id]) {
-      setStatuses((prev) => ({ ...prev, [id]: "IN_PROGRESS" }));
-    }
-  };
+  const handleSelectCustomer = useCallback(
+    async (id: string) => {
+      setActiveCustomerId(id);
+      setSelectedMessageId(null);
+
+      const selected = queue.find((customer) => customer.id === id);
+      if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
+
+      try {
+        const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
+        setQueue((prev) =>
+          sortQueueCustomers(
+            prev.map((customer) =>
+              customer.id === id
+                ? toQueueCustomer(assignedSession, currentCounselorId, customer)
+                : customer,
+            ),
+          ),
+        );
+        toast.success("상담 세션이 배정되었습니다.");
+      } catch (error) {
+        console.error("Failed to assign session:", error);
+        toast.error("상담 세션 배정에 실패했습니다.");
+      }
+    },
+    [currentCounselorId, queue],
+  );
 
   const handleSendMessage = useCallback(
-    (content: string, isNote: boolean) => {
-      if (!activeCustomerId) return;
-      if (connectionStatus !== "CONNECTED") {
-        toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
-        return;
-      }
+    async (content: string, isNote: boolean) => {
+      if (!activeCustomerId || isSending) return;
       const targetId = activeCustomerId;
-
-      const messagePayload = {
-        sessionId: Number(targetId),
-        content,
-        isNote,
-      };
 
       const optimisticMsg: UiChatMessage = {
         id: `temp-${Date.now()}-${++tempCounterRef.current}`,
-        senderRole: "COUNSELOR",
+        senderRole: isNote ? "NOTE" : "AGENT",
         content,
         timestamp: formatTime(new Date().toISOString()),
       };
@@ -250,102 +395,128 @@ export const ConsultationPage: React.FC = () => {
       pendingIdsRef.current.add(optimisticMsg.id);
       setSelectedMessageId(null);
 
-      sendTo("/app/chat.counselor.send", messagePayload);
+      setIsSending(true);
+      try {
+        const savedMessage = await consultationApi.sendMessage(Number(targetId), content, isNote);
+        pendingIdsRef.current.delete(optimisticMsg.id);
+        setMessages((prev) =>
+          prev.map((message) => (message.id === optimisticMsg.id ? toUiMessage(savedMessage) : message)),
+        );
+      } catch (error) {
+        pendingIdsRef.current.delete(optimisticMsg.id);
+        setMessages((prev) => prev.filter((message) => message.id !== optimisticMsg.id));
+        console.error("Failed to send counselor message:", error);
+        toast.error("메시지를 전송하지 못했습니다.");
+      } finally {
+        setIsSending(false);
+      }
     },
-    [activeCustomerId, connectionStatus, sendTo],
+    [activeCustomerId, isSending],
   );
 
   const handleEndSession = async () => {
     if (!activeCustomerId) return;
+    const endedSessionId = activeCustomerId;
     try {
-      await consultationApi.updateStatus(Number(activeCustomerId), "COMPLETED");
-      setStatuses((prev) => ({ ...prev, [activeCustomerId]: "COMPLETED" }));
+      await consultationApi.updateStatus(Number(endedSessionId), "COMPLETED");
       toast.success("상담이 종료되었습니다.");
-      loadQueue();
-      setActiveCustomerId(null);
-      setSelectedMessageId(null);
-      setMessages([]);
-      setMessagesCustomerId(null);
+      setQueue((prev) => prev.filter((customer) => customer.id !== endedSessionId));
+      clearActiveConversation();
     } catch {
       toast.error("세션 종료 실패");
     }
   };
 
+  const handleReleaseAssignment = async () => {
+    if (!activeCustomerId || !currentCounselorId) return;
+    const releasedSessionId = activeCustomerId;
+
+    try {
+      const releasedSession = await consultationApi.releaseSession(
+        Number(releasedSessionId),
+        currentCounselorId,
+      );
+      setQueue((prev) =>
+        sortQueueCustomers(
+          prev.map((customer) =>
+            customer.id === releasedSessionId
+              ? toQueueCustomer(releasedSession, currentCounselorId, customer)
+              : customer,
+          ),
+        ),
+      );
+      toast.success("상담 배정이 해제되었습니다.");
+      clearActiveConversation();
+    } catch (error) {
+      console.error("Failed to release session:", error);
+      toast.error("상담 배정 해제에 실패했습니다.");
+    }
+  };
+
+  const handleSaveMemo = useCallback(async () => {
+    if (!activeCustomerId || isSending) return;
+
+    const memo = (memos[activeCustomerId] ?? "").trim();
+    if (!memo) return;
+
+    setIsSending(true);
+    try {
+      const savedMessage = await consultationApi.sendMessage(Number(activeCustomerId), memo, true);
+      setMessages((prev) => [...prev, toUiMessage(savedMessage)]);
+      setMessagesCustomerId(activeCustomerId);
+      setMemos((prev) => ({ ...prev, [activeCustomerId]: "" }));
+      toast.success("상담 메모가 저장되었습니다.");
+    } catch (error) {
+      console.error("Failed to save memo:", error);
+      toast.error("상담 메모를 저장하지 못했습니다.");
+    } finally {
+      setIsSending(false);
+    }
+  }, [activeCustomerId, isSending, memos]);
+
   return (
-    <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-      <div style={{ width: 268, flexShrink: 0, background: "var(--paper-2)", overflow: "auto" }}>
+    <div className={styles.consultationRoot}>
+      <div className={styles.queuePane}>
         <QueuePanel
           customers={queue}
           activeCustomerId={activeCustomerId}
           onSelectCustomer={handleSelectCustomer}
+          isLoading={isQueueLoading}
+          loadError={queueLoadError}
+          onRetry={loadQueue}
         />
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className={styles.conversationPane}>
         {activeCustomer && (
-          <div
-            style={{ flexShrink: 0, padding: "12px 16px", borderBottom: "1px solid var(--line-2)" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Avatar initial={activeCustomerName.charAt(0)} tone="warn" size={36} />
+          <div className={styles.conversationHeader}>
+            <div className={styles.conversationHeaderTop}>
+              <div className={styles.customerTitle}>
+                <Avatar initial={activeCustomerInitial} tone="warn" size={36} />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                    {activeCustomerName} 고객
-                  </div>
+                  <div className={styles.customerName}>{activeCustomerName} 고객</div>
                   <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
                     {activeCustomer.channel ?? ""} · {activeCustomer.waitMinutes}분 대기 중
                   </Mono>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Eyebrow>AI가 분류한 주제</Eyebrow>
-                <Pill tone="signal">카드 환불 — 부분환불</Pill>
-              </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: 12,
-                marginTop: 8,
-                paddingTop: 8,
-                borderTop: "1px solid var(--line-2)",
-              }}
-            >
+            <div className={styles.conversationActions}>
               <button
-                style={{
-                  fontSize: 12,
-                  color: "var(--ink-3)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  padding: 0,
-                }}
+                className={styles.linkButton}
+                onClick={handleReleaseAssignment}
+                disabled={!isAssignedToCurrentCounselor}
               >
-                다른 상담사에게 넘기기
+                배정 해제
               </button>
-              <button
-                onClick={handleEndSession}
-                style={{
-                  fontSize: 12,
-                  color: "var(--danger)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  padding: 0,
-                }}
-              >
+              <button onClick={handleEndSession} className={styles.dangerButton}>
                 상담 종료
               </button>
             </div>
           </div>
         )}
 
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div className={styles.chatPanelSlot}>
           <ChatPanel
             customerName={activeCustomer ? activeCustomerName : null}
             channel={activeCustomer?.channel || null}
@@ -353,64 +524,37 @@ export const ConsultationPage: React.FC = () => {
             onSendMessage={handleSendMessage}
             selectedMessageId={selectedMessageId}
             onSelectMessage={setSelectedMessageId}
+            sessionStatusLabel={activeStatusLabel}
+            disabled={isSending}
           />
         </div>
-
-        {activeCustomer && (
-          <div
-            style={{
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 16px",
-              borderTop: "1px solid var(--line-2)",
-              background: "var(--paper)",
-            }}
-          >
-            <Icon name="spark" size={14} />
-            <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>추천 답변</Mono>
-            {SUGGESTIONS.map((text) => (
-              <button
-                key={text}
-                style={{
-                  padding: "6px 14px",
-                  fontSize: 12,
-                  background: "var(--paper-3)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--r-pill)",
-                  cursor: "pointer",
-                  color: "var(--ink)",
-                }}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {selectedMessage ? (
-        // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
-        <MessageDetailPanel message={selectedMessage} onClose={() => setSelectedMessageId(null)} />
-      ) : (
-        <CustomerPanel
-          customer={
-            activeCustomer
-              ? {
-                  name: activeCustomerName,
-                  channel: activeCustomer.channel,
-                }
-              : null
-          }
-          memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
-          onMemoChange={(val) => {
-            if (activeCustomerId) {
-              setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+      <div className={styles.detailPane}>
+        {selectedMessage ? (
+          // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
+          <MessageDetailPanel message={selectedMessage} onClose={() => setSelectedMessageId(null)} />
+        ) : (
+          <CustomerPanel
+            customer={
+              activeCustomer
+                ? {
+                    name: activeCustomerName,
+                    channel: activeCustomer.channel,
+                  }
+                : null
             }
-          }}
-        />
-      )}
+            memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
+            onMemoChange={(val) => {
+              if (activeCustomerId) {
+                setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+              }
+            }}
+            onMemoSave={handleSaveMemo}
+            isMemoSaving={isSending}
+          />
+        )}
+      </div>
     </div>
   );
 };

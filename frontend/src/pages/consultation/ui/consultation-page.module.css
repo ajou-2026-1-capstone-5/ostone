@@ -1,20 +1,133 @@
-.pageWrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: calc(100vh - 72px); /* Topbar 높이 제외 */
-  height: calc(100dvh - 72px);
-  overflow: hidden;
-}
-
-.mainArea {
+.consultationRoot {
   display: flex;
   flex: 1;
+  min-width: 0;
+  height: 100%;
   overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-  .mainArea {
-    flex-direction: column;
+.queuePane {
+  width: 268px;
+  min-width: 220px;
+  flex: 0 0 268px;
+  overflow: auto;
+  background: var(--paper-2);
+  border-right: 1px solid var(--line-2);
+}
+
+.conversationPane {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 420px;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.conversationHeader {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--paper);
+}
+
+.conversationHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.customerTitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.customerName {
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversationActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-2);
+}
+
+.linkButton,
+.dangerButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.linkButton {
+  color: var(--ink-3);
+  text-decoration: underline;
+}
+
+.dangerButton {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.linkButton:focus-visible,
+.dangerButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.linkButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  text-decoration: none;
+}
+
+.chatPanelSlot {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detailPane {
+  display: flex;
+  flex: 0 0 320px;
+  min-width: 300px;
+  overflow: hidden;
+  border-left: 1px solid var(--line-2);
+  background: var(--paper);
+}
+
+@media (max-width: 1180px) {
+  .conversationPane {
+    min-width: 0;
   }
+
+  .detailPane {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .queuePane {
+    width: 220px;
+    flex-basis: 220px;
+  }
+
 }

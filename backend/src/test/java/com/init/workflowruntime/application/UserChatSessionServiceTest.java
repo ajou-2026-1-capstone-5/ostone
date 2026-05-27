@@ -16,6 +16,8 @@ import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +46,7 @@ class UserChatSessionServiceTest {
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
   @Mock private UserChatSessionConcurrencyGuard concurrencyGuard;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   private UserChatSessionService service;
 
@@ -53,7 +57,8 @@ class UserChatSessionServiceTest {
             chatSessionRepository,
             domainPackVersionRepository,
             workspaceMemberRepository,
-            concurrencyGuard);
+            concurrencyGuard,
+            eventPublisher);
   }
 
   @Test
@@ -76,6 +81,7 @@ class UserChatSessionServiceTest {
     assertThat(result.getMetaJson()).contains("\"customerName\":\"김민지\"");
     verify(concurrencyGuard).lockCurrentSession(WORKSPACE_ID, USER_ID);
     verify(chatSessionRepository, never()).save(any());
+    verify(eventPublisher, never()).publishEvent(any());
   }
 
   @Test
@@ -176,6 +182,14 @@ class UserChatSessionServiceTest {
     assertThat(saved.getStartedBy()).isEqualTo(USER_ID);
     assertThat(saved.getChannel()).isEqualTo("WEB");
     assertThat(saved.getMetaJson()).contains("\"customerName\":\"김민지\"");
+
+    ArgumentCaptor<ConsultationQueueChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(ConsultationQueueChangedEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(WORKSPACE_ID);
+    assertThat(eventCaptor.getValue().sessionId()).isEqualTo(99L);
+    assertThat(eventCaptor.getValue().type())
+        .isEqualTo(ConsultationQueueEventType.SESSION_UPSERTED);
   }
 
   @Test

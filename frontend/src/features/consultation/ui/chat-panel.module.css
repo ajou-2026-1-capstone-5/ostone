@@ -232,6 +232,11 @@
   color: var(--text-primary);
 }
 
+.noteToggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .noteToggleActive {
   background: rgba(0, 0, 0, 0.08);
   border-color: rgba(0, 0, 0, 0.25);
@@ -266,6 +271,11 @@
 
 .messageInput:focus {
   border-color: var(--primary-color);
+}
+
+.messageInput:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .sendBtn {

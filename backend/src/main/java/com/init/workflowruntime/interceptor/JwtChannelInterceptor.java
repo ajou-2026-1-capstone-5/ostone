@@ -5,6 +5,7 @@ import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InvalidTokenException;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import io.jsonwebtoken.Claims;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,13 +23,20 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
   private static final String ROLE_OPERATOR = "OPERATOR";
   private static final String CHAT_TOPIC_PREFIX = "/topic/chat.";
+  private static final String WORKSPACE_QUEUE_TOPIC_PREFIX = "/topic/workspaces.";
+  private static final String WORKSPACE_QUEUE_TOPIC_SUFFIX = ".consultation.queue";
 
   private final JwtService jwtService;
   private final ChatSessionRepository chatSessionRepository;
+  private final WorkspaceMemberRepository workspaceMemberRepository;
 
-  public JwtChannelInterceptor(JwtService jwtService, ChatSessionRepository chatSessionRepository) {
+  public JwtChannelInterceptor(
+      JwtService jwtService,
+      ChatSessionRepository chatSessionRepository,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.jwtService = jwtService;
     this.chatSessionRepository = chatSessionRepository;
+    this.workspaceMemberRepository = workspaceMemberRepository;
   }
 
   @Override
@@ -105,6 +113,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       validateChatTopicSubscription(destination, accessor);
       return;
     }
+    if (destination.startsWith(WORKSPACE_QUEUE_TOPIC_PREFIX)
+        && destination.endsWith(WORKSPACE_QUEUE_TOPIC_SUFFIX)) {
+      validateWorkspaceQueueSubscription(destination, accessor);
+      return;
+    }
     if (destination.startsWith("/user/queue/") || destination.startsWith("/queue/")) {
       return;
     }
@@ -131,6 +144,35 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     if (!userId.equals(session.getStartedBy())) {
       throw new AccessDeniedException(
           "User " + userId + " cannot subscribe to chat session " + sessionId);
+    }
+  }
+
+  private void validateWorkspaceQueueSubscription(
+      String destination, StompHeaderAccessor accessor) {
+    if (!ROLE_OPERATOR.equals(sessionRole(accessor))) {
+      throw new AccessDeniedException(
+          "Only operators can subscribe to consultation queue topic: " + destination);
+    }
+    Long workspaceId = parseWorkspaceId(destination);
+    Long userId = parsePrincipalUserId(accessor);
+    workspaceMemberRepository
+        .findByWorkspaceIdAndUserId(workspaceId, userId)
+        .orElseThrow(
+            () ->
+                new AccessDeniedException(
+                    "User " + userId + " cannot subscribe to workspace " + workspaceId));
+  }
+
+  private Long parseWorkspaceId(String destination) {
+    String rawWorkspaceId =
+        destination.substring(
+            WORKSPACE_QUEUE_TOPIC_PREFIX.length(),
+            destination.length() - WORKSPACE_QUEUE_TOPIC_SUFFIX.length());
+    try {
+      return Long.valueOf(rawWorkspaceId);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException(
+          "INVALID_DESTINATION", "Invalid workspace queue destination: " + destination, e);
     }
   }
 

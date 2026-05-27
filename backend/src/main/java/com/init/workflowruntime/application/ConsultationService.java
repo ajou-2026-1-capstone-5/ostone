@@ -10,9 +10,14 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,17 +29,25 @@ public class ConsultationService {
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
+  private final WorkspaceMemberRepository workspaceMemberRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public ConsultationService(
-      ChatSessionRepository chatSessionRepository, ChatMessageRepository chatMessageRepository) {
+      ChatSessionRepository chatSessionRepository,
+      ChatMessageRepository chatMessageRepository,
+      WorkspaceMemberRepository workspaceMemberRepository,
+      ApplicationEventPublisher eventPublisher) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
+    this.workspaceMemberRepository = workspaceMemberRepository;
+    this.eventPublisher = eventPublisher;
   }
 
-  public List<ChatSessionResponse> getActiveQueue() {
+  public List<ChatSessionResponse> getActiveQueue(Long workspaceId, Long userId) {
+    validateWorkspaceMembership(workspaceId, userId);
     return chatSessionRepository
-        .findByStatusInOrderByStartedAtDesc(
-            Arrays.asList(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE))
+        .findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
+            workspaceId, Arrays.asList(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE))
         .stream()
         .map(ChatSessionResponse::from)
         .collect(Collectors.toList());
@@ -111,6 +124,23 @@ public class ConsultationService {
       case OPEN -> session.reopen();
     }
 
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, queueEventTypeFor(newStatus)));
+
     return ChatSessionResponse.from(session);
+  }
+
+  private ConsultationQueueEventType queueEventTypeFor(ChatSessionStatus status) {
+    return switch (status) {
+      case OPEN, ACTIVE -> ConsultationQueueEventType.SESSION_UPSERTED;
+      case RESOLVED, COMPLETED -> ConsultationQueueEventType.SESSION_REMOVED;
+    };
+  }
+
+  private void validateWorkspaceMembership(Long workspaceId, Long userId) {
+    workspaceMemberRepository
+        .findByWorkspaceIdAndUserId(workspaceId, userId)
+        .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
   }
 }

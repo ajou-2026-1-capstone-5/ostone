@@ -19,6 +19,9 @@ public interface ChatSessionRepository {
 
   List<ChatSession> findByStatusInOrderByStartedAtDesc(Collection<ChatSessionStatus> statuses);
 
+  List<ChatSession> findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
+      Long workspaceId, Collection<ChatSessionStatus> statuses);
+
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
   Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(

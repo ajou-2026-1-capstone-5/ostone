@@ -33,16 +33,6 @@ public class ConsultationController {
   }
 
   /**
-   * 실시간 상담 대기열 목록을 조회합니다.
-   *
-   * @return 상담 세션 요약 목록 응답
-   */
-  @GetMapping("/queue")
-  public ResponseEntity<List<ChatSessionResponse>> getQueue() {
-    return ResponseEntity.ok(consultationService.getActiveQueue());
-  }
-
-  /**
    * 특정 상담 세션의 전체 메시지 이력을 조회합니다.
    *
    * @param sessionId 조회할 세션 ID

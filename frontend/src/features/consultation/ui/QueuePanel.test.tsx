@@ -18,6 +18,38 @@ describe("QueuePanel", () => {
     expect(screen.getByText("대기중인 고객이 없습니다")).toBeInTheDocument();
   });
 
+  it("로딩 중이면 로딩 상태를 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[makeCustomer("1")]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+        isLoading
+      />,
+    );
+
+    expect(screen.getByText("대기열을 불러오는 중입니다")).toBeInTheDocument();
+    expect(screen.queryByText("고객1")).not.toBeInTheDocument();
+  });
+
+  it("에러가 있으면 재시도 버튼을 표시하고 클릭을 전달한다", () => {
+    const onRetry = vi.fn();
+    render(
+      <QueuePanel
+        customers={[makeCustomer("1")]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+        loadError="대기열을 불러오지 못했습니다."
+        onRetry={onRetry}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("대기열을 불러오지 못했습니다.");
+    fireEvent.click(screen.getByText("다시 시도"));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("고객1")).not.toBeInTheDocument();
+  });
+
   it("대기 고객 수를 헤더에 표시한다", () => {
     const customers = [makeCustomer("1"), makeCustomer("2")];
     render(<QueuePanel customers={customers} activeCustomerId={null} onSelectCustomer={vi.fn()} />);
@@ -104,5 +136,16 @@ describe("QueuePanel", () => {
       />,
     );
     expect(screen.getByText("5분 전")).toBeInTheDocument();
+  });
+
+  it("세션 상태 라벨을 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[makeCustomer("11", { statusLabel: "내 상담 진행중" })]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("내 상담 진행중")).toBeInTheDocument();
   });
 });

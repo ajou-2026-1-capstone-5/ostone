@@ -9,6 +9,9 @@ import com.init.shared.application.exception.InvalidTokenException;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workspace.domain.model.WorkspaceMember;
+import com.init.workspace.domain.model.WorkspaceMemberRole;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -37,13 +40,16 @@ class JwtChannelInterceptorTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
 
+  @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+
   @Mock private MessageChannel channel;
 
   private JwtChannelInterceptor interceptor;
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(jwtService, chatSessionRepository);
+    interceptor =
+        new JwtChannelInterceptor(jwtService, chatSessionRepository, workspaceMemberRepository);
   }
 
   @Test
@@ -184,6 +190,69 @@ class JwtChannelInterceptorTest {
     Message<?> result = interceptor.preSend(message, channel);
 
     assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName(
+      "SUBSCRIBE with OPERATOR auth and workspace membership, queue topic → passes through")
+  void should_passThrough_when_operatorSubscribesWorkspaceQueueTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
+    accessor.setDestination("/topic/workspaces.2.consultation.queue");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
+        .willReturn(Optional.of(WorkspaceMember.create(2L, 42L, WorkspaceMemberRole.OPERATOR)));
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with non-OPERATOR auth, queue topic → AccessDeniedException")
+  void should_throwAccessDenied_when_nonOperatorSubscribesWorkspaceQueueTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "USER")));
+    accessor.setDestination("/topic/workspaces.2.consultation.queue");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName(
+      "SUBSCRIBE with OPERATOR auth but no workspace membership, queue topic → AccessDeniedException")
+  void should_throwAccessDenied_when_operatorSubscribesNonMemberWorkspaceQueueTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
+    accessor.setDestination("/topic/workspaces.2.consultation.queue");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with invalid workspace queue topic → BadRequestException")
+  void should_throwBadRequest_when_workspaceQueueTopicWorkspaceIdInvalid() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
+    accessor.setDestination("/topic/workspaces.bad.consultation.queue");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(com.init.shared.application.exception.BadRequestException.class);
   }
 
   @Test

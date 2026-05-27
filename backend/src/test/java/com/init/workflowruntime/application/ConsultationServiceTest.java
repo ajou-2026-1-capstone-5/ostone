@@ -3,6 +3,7 @@ package com.init.workflowruntime.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -16,14 +17,22 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.model.WorkspaceMember;
+import com.init.workspace.domain.model.WorkspaceMemberRole;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,12 +41,19 @@ class ConsultationServiceTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
+  @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   private ConsultationService service;
 
   @BeforeEach
   void setUp() {
-    service = new ConsultationService(chatSessionRepository, chatMessageRepository);
+    service =
+        new ConsultationService(
+            chatSessionRepository,
+            chatMessageRepository,
+            workspaceMemberRepository,
+            eventPublisher);
   }
 
   @Test
@@ -45,10 +61,12 @@ class ConsultationServiceTest {
   void should_returnActiveQueue_when_called() {
     ChatSession s1 = createSession(1L, ChatSessionStatus.OPEN);
     ChatSession s2 = createSession(2L, ChatSessionStatus.ACTIVE);
-    given(chatSessionRepository.findByStatusInOrderByStartedAtDesc(any()))
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
         .willReturn(List.of(s1, s2));
 
-    List<ChatSessionResponse> result = service.getActiveQueue();
+    List<ChatSessionResponse> result = service.getActiveQueue(1L, 7L);
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getId()).isEqualTo(1L);
@@ -58,9 +76,22 @@ class ConsultationServiceTest {
   @Test
   @DisplayName("getActiveQueue: 대기 세션 없음 → 빈 목록 반환")
   void should_returnEmptyList_when_noActiveQueue() {
-    given(chatSessionRepository.findByStatusInOrderByStartedAtDesc(any())).willReturn(List.of());
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
+        .willReturn(List.of());
 
-    assertThat(service.getActiveQueue()).isEmpty();
+    assertThat(service.getActiveQueue(1L, 7L)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("getActiveQueue: 워크스페이스 멤버가 아니면 거부한다")
+  void should_throwAccessDenied_when_queueRequesterIsNotWorkspaceMember() {
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getActiveQueue(1L, 7L))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
   }
 
   @Test
@@ -128,6 +159,12 @@ class ConsultationServiceTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.getStatus()).isEqualTo("COMPLETED");
+    ArgumentCaptor<ConsultationQueueChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(ConsultationQueueChangedEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(1L);
+    assertThat(eventCaptor.getValue().sessionId()).isEqualTo(1L);
+    assertThat(eventCaptor.getValue().type()).isEqualTo(ConsultationQueueEventType.SESSION_REMOVED);
   }
 
   @Test
