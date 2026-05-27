@@ -187,6 +187,22 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
+  @DisplayName("SUBSCRIBE restores Principal from session userId")
+  void should_restorePrincipalFromSession_when_subscribeWithoutUser() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("userId", 42L, "role", "OPERATOR")));
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+    assertThat(resultAccessor.getUser()).isNotNull();
+    assertThat(resultAccessor.getUser().getName()).isEqualTo("42");
+  }
+
+  @Test
   @DisplayName("SUBSCRIBE with USER auth, owned chat topic → passes through")
   void should_passThrough_when_userSubscribesOwnedChatTopic() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
@@ -255,6 +271,21 @@ class JwtChannelInterceptorTest {
     Message<?> result = interceptor.preSend(message, channel);
 
     assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SEND restores Principal from session userId")
+  void should_restorePrincipalFromSession_when_sendWithoutUser() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("userId", 42L)));
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+    assertThat(resultAccessor.getUser()).isNotNull();
+    assertThat(resultAccessor.getUser().getName()).isEqualTo("42");
   }
 
   @Test

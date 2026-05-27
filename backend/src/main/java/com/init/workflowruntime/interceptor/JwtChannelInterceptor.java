@@ -34,6 +34,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   @Override
   public Message<?> preSend(Message<?> message, MessageChannel channel) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+    boolean headersChanged = false;
 
     if (StompCommand.CONNECT.equals(accessor.getCommand())) {
       String authHeader = accessor.getFirstNativeHeader("Authorization");
@@ -65,6 +66,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())
         || StompCommand.SEND.equals(accessor.getCommand())) {
+      headersChanged = restorePrincipalFromSession(accessor);
       if (accessor.getUser() == null) {
         throw new MissingAuthHeaderException(
             "Authentication required for " + accessor.getCommand());
@@ -76,7 +78,26 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
       }
     }
+    if (headersChanged) {
+      return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+    }
     return message;
+  }
+
+  private boolean restorePrincipalFromSession(StompHeaderAccessor accessor) {
+    if (accessor.getUser() != null) {
+      return false;
+    }
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    if (sessionAttributes == null) {
+      return false;
+    }
+    Object userId = sessionAttributes.get("userId");
+    if (userId == null) {
+      return false;
+    }
+    accessor.setUser(() -> String.valueOf(userId));
+    return true;
   }
 
   private void validateSubscribeDestination(String destination, StompHeaderAccessor accessor) {
