@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetOrCreateCurrentSessionCommand;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
@@ -103,6 +104,42 @@ class UserChatSessionServiceTest {
   }
 
   @Test
+  @DisplayName("current session: metaJson이 비어 있어도 customerName을 채운다")
+  void should_fillCustomerName_when_existingMetaJsonIsBlank() {
+    ChatSession session = createSession(5L, ChatSessionStatus.OPEN, " ");
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
+        .willReturn(
+            Optional.of(WorkspaceMember.create(WORKSPACE_ID, USER_ID, WorkspaceMemberRole.OWNER)));
+    given(
+            chatSessionRepository
+                .findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+                    any(), any(), any()))
+        .willReturn(Optional.of(session));
+
+    ChatSessionResponse result = service.getOrCreateCurrentSession(command());
+
+    assertThat(result.getMetaJson()).contains("\"customerName\":\"김민지\"");
+    verify(chatSessionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("current session: 기존 metaJson이 잘못된 JSON이면 검증 오류를 반환한다")
+  void should_throwBadRequest_when_existingMetaJsonIsInvalid() {
+    ChatSession session = createSession(5L, ChatSessionStatus.OPEN, "{invalid");
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
+        .willReturn(
+            Optional.of(WorkspaceMember.create(WORKSPACE_ID, USER_ID, WorkspaceMemberRole.OWNER)));
+    given(
+            chatSessionRepository
+                .findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+                    any(), any(), any()))
+        .willReturn(Optional.of(session));
+
+    assertThatThrownBy(() -> service.getOrCreateCurrentSession(command()))
+        .isInstanceOf(BadRequestException.class);
+  }
+
+  @Test
   @DisplayName("current session: 기존 세션이 없으면 현재 PUBLISHED 버전으로 OPEN 세션을 생성한다")
   void should_createOpenSession_when_reusableSessionDoesNotExist() {
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
@@ -152,6 +189,17 @@ class UserChatSessionServiceTest {
 
     verify(concurrencyGuard, never()).lockCurrentSession(any(), any());
     verify(chatSessionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("current session command: customerName은 trim되고 공백은 거부한다")
+  void should_trimAndValidateCustomerName_when_createCommand() {
+    GetOrCreateCurrentSessionCommand command =
+        new GetOrCreateCurrentSessionCommand(WORKSPACE_ID, USER_ID, " 김민지 ");
+
+    assertThat(command.customerName()).isEqualTo("김민지");
+    assertThatThrownBy(() -> new GetOrCreateCurrentSessionCommand(WORKSPACE_ID, USER_ID, " "))
+        .isInstanceOf(BadRequestException.class);
   }
 
   @Test

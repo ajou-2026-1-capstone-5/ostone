@@ -1,6 +1,7 @@
 package com.init.chatdemo.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -8,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
@@ -120,5 +123,53 @@ class DemoChatSessionRegistrationServiceTest {
         .containsExactly(1, 2);
     assertThat(messageCaptor.getAllValues().get(1).getContent()).isEqualTo("LLM 응답입니다.");
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
+  }
+
+  @Test
+  @DisplayName("데모 메시지 컨텍스트는 최근 메시지를 시간순으로 정렬해 LLM에 전달한다")
+  void should_sendConversationContextInAscendingOrder_when_appendMessage() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.of(ChatMessage.create(SESSION_ID, 3, "ASSISTANT", "TEXT", "최근 답변")));
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(
+            List.of(
+                ChatMessage.create(SESSION_ID, 3, "ASSISTANT", "TEXT", "최근 답변"),
+                ChatMessage.create(SESSION_ID, 2, "USER", "TEXT", "이전 질문")));
+    given(llmAssistantService.generateResponse("USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문"))
+        .willReturn("다음 답변");
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    List<ChatMessageResponse> responses =
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 다음 질문 ");
+
+    assertThat(responses).hasSize(2);
+    assertThat(responses.get(0).seqNo()).isEqualTo(4);
+    assertThat(responses.get(1).seqNo()).isEqualTo(5);
+    verify(llmAssistantService).generateResponse("USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문");
+  }
+
+  @Test
+  @DisplayName("데모 세션 생성 시 운영 중인 domain pack version이 없으면 404를 반환한다")
+  void should_throwNotFound_when_currentPublishedVersionMissing() {
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.createSession(WORKSPACE_ID, "김민지"))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("workspaceId=2");
+  }
+
+  @Test
+  @DisplayName("데모 사용자 이름과 메시지가 비어 있으면 검증 오류를 반환한다")
+  void should_throwBadRequest_when_blankInputs() {
+    assertThatThrownBy(() -> service.createSession(WORKSPACE_ID, " "))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.appendMessage(WORKSPACE_ID, SESSION_ID, " "))
+        .isInstanceOf(BadRequestException.class);
   }
 }

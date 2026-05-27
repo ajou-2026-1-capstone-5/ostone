@@ -52,4 +52,12 @@ class ChatSessionTest {
 
     assertThatThrownBy(session::closeSession).isInstanceOf(InvalidSessionStateException.class);
   }
+
+  @Test
+  @DisplayName("create: metaJson이 null이면 빈 JSON 객체로 초기화한다")
+  void should_defaultMetaJson_when_createWithNullMetaJson() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", null);
+
+    assertThat(session.getMetaJson()).isEqualTo("{}");
+  }
 }
