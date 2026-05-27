@@ -12,6 +12,7 @@ import type { ChatMessage as UiChatMessage } from "../../../features/consultatio
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import type {
   ChatSession,
+  ConsultationMetrics,
   ConsultationQueueEvent,
 } from "../../../features/consultation/api/consultationApi";
 import { CustomerPanel } from "./sections/CustomerPanel";
@@ -127,7 +128,23 @@ const sortQueueCustomers = (customers: QueueCustomer[]) =>
     return bTime - aTime;
   });
 
-const StatusRight = () => (
+const formatAverageFirstResponse = (seconds?: number | null) => {
+  if (seconds == null) return "--";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes > 0 ? `${minutes}분 ${remainingSeconds}초` : `${remainingSeconds}초`;
+};
+
+const formatHandledTodayCount = (count?: number | null) => {
+  return count == null ? "--" : `${count}건`;
+};
+
+type StatusRightProps = {
+  averageFirstResponseSeconds?: number | null;
+  handledTodayCount?: number | null;
+};
+
+const StatusRight = ({ averageFirstResponseSeconds, handledTodayCount }: StatusRightProps) => (
   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <Dot tone="signal" />
@@ -136,13 +153,16 @@ const StatusRight = () => (
     <div style={{ width: 1, height: 16, background: "var(--line)" }} />
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>평균 첫응답</Mono>
-      <span style={{ fontSize: 14, fontWeight: 700 }}>2분</span>
-      <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>14초</Mono>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>
+        {formatAverageFirstResponse(averageFirstResponseSeconds)}
+      </span>
     </div>
     <div style={{ width: 1, height: 16, background: "var(--line)" }} />
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>오늘 처리</Mono>
-      <span style={{ fontSize: 14, fontWeight: 700 }}>14건</span>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>
+        {formatHandledTodayCount(handledTodayCount)}
+      </span>
     </div>
   </div>
 );
@@ -154,6 +174,7 @@ export const ConsultationPage: React.FC = () => {
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [messagesCustomerId, setMessagesCustomerId] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<ConsultationMetrics | null>(null);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -163,11 +184,13 @@ export const ConsultationPage: React.FC = () => {
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
+  const metricsErrorToastShownRef = useRef(false);
   const currentCounselorId = getAuthUser()?.id ?? null;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
   const activeCustomerInitial = activeCustomerName.charAt(0) || "?";
+  const activeMetrics = metrics?.workspaceId === workspaceId ? metrics : null;
   const visibleMessages =
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
@@ -191,13 +214,52 @@ export const ConsultationPage: React.FC = () => {
   }, [activeCustomerId]);
 
   useEffect(() => {
-    setTopbarRight(<StatusRight />);
-    setCrumbs(["CARD-CS", "실시간 상담"]);
+    setTopbarRight(
+      <StatusRight
+        averageFirstResponseSeconds={activeMetrics?.averageFirstResponseSeconds ?? null}
+        handledTodayCount={activeMetrics?.handledTodayCount ?? null}
+      />,
+    );
     return () => {
       setTopbarRight(undefined);
+    };
+  }, [setTopbarRight, activeMetrics]);
+
+  useEffect(() => {
+    setCrumbs(["CARD-CS", "실시간 상담"]);
+    return () => {
       setCrumbs([]);
     };
-  }, [setTopbarRight, setCrumbs]);
+  }, [setCrumbs]);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
+
+    let cancelled = false;
+    metricsErrorToastShownRef.current = false;
+
+    consultationApi
+      .getMetrics(workspaceId)
+      .then((data) => {
+        if (cancelled) return;
+        setMetrics(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Failed to load consultation metrics:", error);
+        setMetrics(null);
+        if (!metricsErrorToastShownRef.current) {
+          metricsErrorToastShownRef.current = true;
+          toast.error("상담 지표를 불러오지 못했습니다.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
 
   const loadQueue = useCallback(async () => {
     if (!workspaceId) {
