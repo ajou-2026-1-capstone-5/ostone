@@ -3,7 +3,6 @@ package com.init.workflowruntime.infrastructure.persistence;
 import com.init.workflowruntime.domain.ConsultationMetricsRepository;
 import com.init.workflowruntime.domain.ConsultationMetricsSessionFact;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -16,7 +15,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JpaConsultationMetricsRepository implements ConsultationMetricsRepository {
 
-  @PersistenceContext private EntityManager entityManager;
+  private final EntityManager entityManager;
+
+  public JpaConsultationMetricsRepository(EntityManager entityManager) {
+    this.entityManager = entityManager;
+  }
 
   @Override
   public List<ConsultationMetricsSessionFact> findSessionFacts(
