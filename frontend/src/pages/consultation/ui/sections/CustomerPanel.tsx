@@ -51,6 +51,8 @@ export function CustomerPanel({
   onMemoSave,
   isMemoSaving = false,
 }: CustomerPanelProps) {
+  const isMemoSaveDisabled = isMemoSaving || !memo.trim() || !onMemoSave;
+
   if (!customer) {
     return (
       <div
@@ -174,16 +176,16 @@ export function CustomerPanel({
         <button
           type="button"
           onClick={onMemoSave}
-          disabled={isMemoSaving || !memo.trim() || !onMemoSave}
+          disabled={isMemoSaveDisabled}
           style={{
             width: "100%",
             marginTop: 8,
             padding: "8px 10px",
             border: "1px solid var(--line)",
             borderRadius: "var(--r-2)",
-            background: isMemoSaving || !memo.trim() ? "var(--paper-2)" : "var(--ink)",
-            color: isMemoSaving || !memo.trim() ? "var(--ink-4)" : "var(--paper)",
-            cursor: isMemoSaving || !memo.trim() ? "not-allowed" : "pointer",
+            background: isMemoSaveDisabled ? "var(--paper-2)" : "var(--ink)",
+            color: isMemoSaveDisabled ? "var(--ink-4)" : "var(--paper)",
+            cursor: isMemoSaveDisabled ? "not-allowed" : "pointer",
             fontSize: 12,
             fontWeight: 700,
           }}

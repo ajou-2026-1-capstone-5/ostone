@@ -20,7 +20,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
@@ -49,16 +48,12 @@ class WorkspaceConsultationQueueControllerTest {
 
     given(consultationService.getActiveQueue(2L, 7L)).willReturn(List.of(response));
 
-    SecurityContextHolder.getContext()
-        .setAuthentication(new TestingAuthenticationToken(7L, null, Collections.emptyList()));
-    try {
-      mockMvc
-          .perform(get("/api/v1/workspaces/2/consultation/queue"))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$[0].id").value(1))
-          .andExpect(jsonPath("$[0].channel").value("카카오톡"));
-    } finally {
-      SecurityContextHolder.clearContext();
-    }
+    mockMvc
+        .perform(
+            get("/api/v1/workspaces/2/consultation/queue")
+                .principal(new TestingAuthenticationToken(7L, null, Collections.emptyList())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1))
+        .andExpect(jsonPath("$[0].channel").value("카카오톡"));
   }
 }

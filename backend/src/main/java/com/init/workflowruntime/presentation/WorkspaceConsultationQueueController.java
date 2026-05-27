@@ -6,7 +6,6 @@ import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,11 +24,7 @@ public class WorkspaceConsultationQueueController {
   @GetMapping("/queue")
   public ResponseEntity<List<ChatSessionResponse>> getQueue(
       @PathVariable Long workspaceId, Authentication authentication) {
-    Authentication effectiveAuthentication =
-        authentication != null
-            ? authentication
-            : SecurityContextHolder.getContext().getAuthentication();
-    Long userId = AuthenticationUtils.getUserId(effectiveAuthentication);
+    Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(consultationService.getActiveQueue(workspaceId, userId));
   }
 }

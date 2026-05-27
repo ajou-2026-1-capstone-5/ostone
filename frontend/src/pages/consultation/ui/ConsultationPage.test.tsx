@@ -544,13 +544,22 @@ describe("ConsultationPage", () => {
     });
   });
 
-  it("shows error toast when loading queue fails", async () => {
+  it("shows queue load error state and retries the snapshot request", async () => {
     vi.mocked(consultationApi.getQueue).mockRejectedValueOnce(new Error("Network Error"));
+    const user = userEvent.setup();
 
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("대기열을 불러오지 못했습니다.");
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("대기열을 불러오지 못했습니다.");
+
+    await user.click(screen.getByText("다시 시도"));
+
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("김민지")).toBeInTheDocument();
     });
   });
 

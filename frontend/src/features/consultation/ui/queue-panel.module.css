@@ -150,7 +150,41 @@
   margin-bottom: 12px;
 }
 
+.loadingIcon {
+  color: rgba(0, 0, 0, 0.35);
+  margin-bottom: 12px;
+  animation: queueSpin 900ms linear infinite;
+}
+
 .emptyText {
   font-size: 0.85rem;
   letter-spacing: normal;
+}
+
+.retryButton {
+  margin-top: 14px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 540;
+}
+
+.retryButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
+@keyframes queueSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

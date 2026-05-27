@@ -157,6 +157,8 @@ export const ConsultationPage: React.FC = () => {
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isQueueLoading, setIsQueueLoading] = useState(false);
+  const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
   const { connectionStatus, subscribe } = useStomp();
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const tempCounterRef = useRef(0);
@@ -200,9 +202,14 @@ export const ConsultationPage: React.FC = () => {
   const loadQueue = useCallback(async () => {
     if (!workspaceId) {
       setQueue([]);
+      setIsQueueLoading(false);
+      setQueueLoadError(null);
       clearActiveConversation();
       return;
     }
+
+    setIsQueueLoading(true);
+    setQueueLoadError(null);
 
     try {
       const sessions = await consultationApi.getQueue(workspaceId);
@@ -212,7 +219,10 @@ export const ConsultationPage: React.FC = () => {
       setQueue(sortQueueCustomers(formattedQueue));
     } catch (error) {
       console.error("Failed to load queue:", error);
+      setQueueLoadError("대기열을 불러오지 못했습니다.");
       toast.error("대기열을 불러오지 못했습니다.");
+    } finally {
+      setIsQueueLoading(false);
     }
   }, [clearActiveConversation, currentCounselorId, workspaceId]);
 
@@ -222,6 +232,7 @@ export const ConsultationPage: React.FC = () => {
       const session = event.session;
       if (!event.type || !session?.id) return;
 
+      setQueueLoadError(null);
       const sessionId = String(session.id);
       if (event.type === "SESSION_REMOVED") {
         setQueue((prev) => prev.filter((customer) => customer.id !== sessionId));
@@ -341,31 +352,29 @@ export const ConsultationPage: React.FC = () => {
   }, [connectionStatus, activeCustomerId, subscribe]);
 
   const handleSelectCustomer = useCallback(
-    (id: string) => {
+    async (id: string) => {
       setActiveCustomerId(id);
       setSelectedMessageId(null);
 
       const selected = queue.find((customer) => customer.id === id);
       if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
 
-      consultationApi
-        .assignSession(Number(id), currentCounselorId)
-        .then((assignedSession) => {
-          setQueue((prev) =>
-            sortQueueCustomers(
-              prev.map((customer) =>
-                customer.id === id
-                  ? toQueueCustomer(assignedSession, currentCounselorId, customer)
-                  : customer,
-              ),
+      try {
+        const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
+        setQueue((prev) =>
+          sortQueueCustomers(
+            prev.map((customer) =>
+              customer.id === id
+                ? toQueueCustomer(assignedSession, currentCounselorId, customer)
+                : customer,
             ),
-          );
-          toast.success("상담 세션이 배정되었습니다.");
-        })
-        .catch((error) => {
-          console.error("Failed to assign session:", error);
-          toast.error("상담 세션 배정에 실패했습니다.");
-        });
+          ),
+        );
+        toast.success("상담 세션이 배정되었습니다.");
+      } catch (error) {
+        console.error("Failed to assign session:", error);
+        toast.error("상담 세션 배정에 실패했습니다.");
+      }
     },
     [currentCounselorId, queue],
   );
@@ -472,6 +481,9 @@ export const ConsultationPage: React.FC = () => {
           customers={queue}
           activeCustomerId={activeCustomerId}
           onSelectCustomer={handleSelectCustomer}
+          isLoading={isQueueLoading}
+          loadError={queueLoadError}
+          onRetry={loadQueue}
         />
       </div>
 
