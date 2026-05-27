@@ -25,5 +25,5 @@ RUN groupadd --system appgroup && useradd --system --gid appgroup --home-dir /ap
 USER appuser
 
 # AWS credentials via ECS task role
-# Expected env vars: S3_INPUT_BUCKET, S3_INPUT_KEY, S3_OUTPUT_BUCKET, S3_OUTPUT_KEY
+# Expected env vars: S3_INPUT_BUCKET, S3_INPUT_KEY, S3_OUTPUT_BUCKET, S3_OUTPUT_KEY, S3_EXPECTED_BUCKET_OWNER
 ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_gpu_worker"]

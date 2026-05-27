@@ -128,6 +128,10 @@ resource "aws_ecs_task_definition" "gpu" {
         {
           name  = "OMLX_BASE_URL"
           value = var.omlx_base_url
+        },
+        {
+          name  = "S3_EXPECTED_BUCKET_OWNER"
+          value = data.aws_caller_identity.current.account_id
         }
       ]
       secrets = [
