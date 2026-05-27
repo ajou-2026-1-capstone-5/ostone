@@ -23,6 +23,7 @@ export function Queue({
     <div>
       {items.map((item) => {
         const isActive = item.id === activeId;
+        const displayName = item.name?.trim() || "Unknown";
         return (
           <div
             key={item.id}
@@ -44,9 +45,9 @@ export function Queue({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <Avatar initial={item.name.charAt(0)} size={28} />
+              <Avatar initial={displayName.charAt(0)} size={28} />
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-                {item.name}
+                {displayName}
               </span>
               <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{item.channel}</Mono>
               <Mono style={{ fontSize: 10, color: "var(--ink-3)", marginLeft: "auto" }}>

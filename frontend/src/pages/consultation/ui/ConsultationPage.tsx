@@ -68,7 +68,9 @@ export const ConsultationPage: React.FC = () => {
   const tempCounterRef = useRef(0);
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
-  const selectedMessage = messages.find((m) => m.id === selectedMessageId) || null;
+  const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
+  const visibleMessages = activeCustomerId ? messages : [];
+  const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
 
   useEffect(() => {
     setTopbarRight(<StatusRight />);
@@ -78,13 +80,6 @@ export const ConsultationPage: React.FC = () => {
       setCrumbs([]);
     };
   }, [setTopbarRight, setCrumbs]);
-
-  // Sync selectedMessageId with messages list (e.g., after polling refresh)
-  useEffect(() => {
-    if (selectedMessageId && !messages.some((m) => m.id === selectedMessageId)) {
-      setSelectedMessageId(null);
-    }
-  }, [messages, selectedMessageId]);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -113,14 +108,21 @@ export const ConsultationPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadQueue();
-    const interval = setInterval(loadQueue, 5000);
-    return () => clearInterval(interval);
+    const initialLoad = window.setTimeout(() => {
+      void loadQueue();
+    }, 0);
+    const interval = window.setInterval(() => {
+      void loadQueue();
+    }, 5000);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(interval);
+    };
   }, [loadQueue]);
 
   useEffect(() => {
     if (!activeCustomerId) {
-      setMessages([]);
+      pendingIdsRef.current.clear();
       return;
     }
 
@@ -254,7 +256,7 @@ export const ConsultationPage: React.FC = () => {
       loadQueue();
       setActiveCustomerId(null);
       setSelectedMessageId(null);
-    } catch (err) {
+    } catch {
       toast.error("세션 종료 실패");
     }
   };
@@ -276,10 +278,10 @@ export const ConsultationPage: React.FC = () => {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Avatar initial={activeCustomer.name.charAt(0)} tone="warn" size={36} />
+                <Avatar initial={activeCustomerName.charAt(0)} tone="warn" size={36} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                    {activeCustomer.name} 고객
+                    {activeCustomerName} 고객
                   </div>
                   <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
                     {activeCustomer.channel ?? ""} · {activeCustomer.waitMinutes}분 대기 중
@@ -335,9 +337,9 @@ export const ConsultationPage: React.FC = () => {
 
         <div style={{ flex: 1, overflow: "auto" }}>
           <ChatPanel
-            customerName={activeCustomer?.name || null}
+            customerName={activeCustomer ? activeCustomerName : null}
             channel={activeCustomer?.channel || null}
-            messages={messages}
+            messages={visibleMessages}
             onSendMessage={handleSendMessage}
             selectedMessageId={selectedMessageId}
             onSelectMessage={setSelectedMessageId}
@@ -386,7 +388,7 @@ export const ConsultationPage: React.FC = () => {
           customer={
             activeCustomer
               ? {
-                  name: activeCustomer.name,
+                  name: activeCustomerName,
                   channel: activeCustomer.channel,
                 }
               : null

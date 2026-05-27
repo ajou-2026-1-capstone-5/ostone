@@ -15,6 +15,14 @@ describe("resolvePostLoginDestination", () => {
     ).toBe("/workspaces/1/upload?tab=logs");
   });
 
+  it("allows demo workspace chat paths", () => {
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: "/demo/workspaces/1/chat", search: "?preview=true" },
+      }),
+    ).toBe("/demo/workspaces/1/chat?preview=true");
+  });
+
   it("falls back for auth routes", () => {
     expect(resolvePostLoginDestination({ from: { pathname: "/login" } })).toBe("/workspaces");
     expect(resolvePostLoginDestination({ from: { pathname: "/signup" } })).toBe("/workspaces");

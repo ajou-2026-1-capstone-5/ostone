@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,10 +24,12 @@ public class UserChatSessionController {
 
   @GetMapping("/current")
   public ResponseEntity<ChatSessionResponse> getCurrentSession(
-      @PathVariable Long workspaceId, Authentication authentication) {
+      @PathVariable Long workspaceId,
+      @RequestParam String customerName,
+      Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(
         userChatSessionService.getOrCreateCurrentSession(
-            new GetOrCreateCurrentSessionCommand(workspaceId, userId)));
+            new GetOrCreateCurrentSessionCommand(workspaceId, userId, customerName)));
   }
 }

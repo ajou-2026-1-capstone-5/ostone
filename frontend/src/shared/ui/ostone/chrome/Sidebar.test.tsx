@@ -24,9 +24,11 @@ describe("Sidebar", () => {
     expect(nav).toHaveAttribute("data-collapsed", "false");
     expect(nav).toHaveStyle({ width: "200px" });
     expect(screen.getByTitle("Consultation")).toBeInTheDocument();
+    expect(screen.getByTitle("Chat")).toBeInTheDocument();
     expect(screen.getByTitle("Uploads")).toBeInTheDocument();
     expect(screen.getByTitle("Domain Packs")).toBeInTheDocument();
     expect(screen.getByText("Consultation")).toBeInTheDocument();
+    expect(screen.getByText("Chat")).toBeInTheDocument();
     expect(screen.getByText("Uploads")).toBeInTheDocument();
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
   });
@@ -79,6 +81,12 @@ describe("Sidebar", () => {
       "href",
       "/workspaces/7/consultation",
     );
+    expect(screen.getByTitle("Chat")).toHaveAttribute(
+      "href",
+      "/demo/workspaces/7/chat",
+    );
+    expect(screen.getByTitle("Chat")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTitle("Chat")).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByTitle("Domain Packs")).toHaveAttribute(
       "href",
       "/workspaces/7/domain-packs",

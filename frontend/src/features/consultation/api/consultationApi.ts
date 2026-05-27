@@ -11,9 +11,16 @@ import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/gene
 export type ChatSession = ChatSessionResponse;
 export type ChatMessage = ChatMessageResponse;
 
+function unwrapData<T>(response: T | { data: T }): T {
+  if (response && typeof response === "object" && "data" in response) {
+    return (response as { data: T }).data;
+  }
+  return response as T;
+}
+
 export const consultationApi = {
   getQueue: async (): Promise<ChatSession[]> => {
-    return (await getQueue()).data;
+    return unwrapData(await getQueue());
   },
 
   getSessions: async (params?: {
@@ -27,7 +34,12 @@ export const consultationApi = {
     if (params?.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     const url = `/api/v1/consultation/sessions${query ? `?${query}` : ""}`;
-    return (await customFetch<{ data: ChatSession[]; status: number; headers: Headers }>(url, { method: "GET" })).data;
+    return unwrapData(
+      await customFetch<ChatSession[] | { data: ChatSession[]; status: number; headers: Headers }>(
+        url,
+        { method: "GET" },
+      ),
+    );
   },
 
   getMessages: async (
@@ -35,14 +47,19 @@ export const consultationApi = {
     params?: { page?: number; size?: number },
   ): Promise<ChatMessage[]> => {
     if (!params) {
-      return (await getMessages(sessionId)).data;
+      return unwrapData(await getMessages(sessionId));
     }
     const searchParams = new URLSearchParams();
     if (params.page !== undefined) searchParams.set("page", String(params.page));
     if (params.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     const url = `${getGetMessagesUrl(sessionId)}${query ? `?${query}` : ""}`;
-    return (await customFetch<{ data: ChatMessage[]; status: number; headers: Headers }>(url, { method: "GET" })).data;
+    return unwrapData(
+      await customFetch<ChatMessage[] | { data: ChatMessage[]; status: number; headers: Headers }>(
+        url,
+        { method: "GET" },
+      ),
+    );
   },
 
   sendMessage: async (
@@ -50,10 +67,10 @@ export const consultationApi = {
     content: string,
     isNote: boolean = false,
   ): Promise<ChatMessage> => {
-    return (await sendMessage(sessionId, { content, isNote })).data;
+    return unwrapData(await sendMessage(sessionId, { content, isNote }));
   },
 
   updateStatus: async (sessionId: number, status: string): Promise<ChatSession> => {
-    return (await updateStatus(sessionId, { status })).data;
+    return unwrapData(await updateStatus(sessionId, { status }));
   },
 };

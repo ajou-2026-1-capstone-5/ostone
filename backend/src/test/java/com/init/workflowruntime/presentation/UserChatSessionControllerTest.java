@@ -46,7 +46,7 @@ class UserChatSessionControllerTest {
 
     given(
             userChatSessionService.getOrCreateCurrentSession(
-                new GetOrCreateCurrentSessionCommand(10L, 7L)))
+                new GetOrCreateCurrentSessionCommand(10L, 7L, "김민지")))
         .willReturn(response);
 
     UsernamePasswordAuthenticationToken authentication =
@@ -54,7 +54,10 @@ class UserChatSessionControllerTest {
             7L, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")));
 
     mockMvc
-        .perform(get("/api/v1/workspaces/10/chat/sessions/current").principal(authentication))
+        .perform(
+            get("/api/v1/workspaces/10/chat/sessions/current")
+                .param("customerName", "김민지")
+                .principal(authentication))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(33))
         .andExpect(jsonPath("$.status").value("OPEN"))

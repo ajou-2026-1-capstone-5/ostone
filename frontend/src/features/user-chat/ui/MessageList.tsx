@@ -31,15 +31,15 @@ export function MessageList({ messages, loading = false, error = null }: Message
 
   if (error) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center overflow-y-auto bg-white p-6 text-sm text-black">
-        <div className="rounded-lg border border-black px-4 py-3">{error}</div>
+      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-black">
+        <div className="rounded-lg border border-black px-5 py-4">{error}</div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center overflow-y-auto bg-white p-6 text-sm text-gray-500">
+      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-gray-500">
         <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
         메시지를 불러오는 중입니다...
       </div>
@@ -48,32 +48,41 @@ export function MessageList({ messages, loading = false, error = null }: Message
 
   if (messages.length === 0) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center overflow-y-auto bg-white p-6 text-sm text-gray-500">
+      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-gray-500">
         아직 메시지가 없습니다. 첫 메시지를 보내보세요!
       </div>
     );
   }
 
   return (
-    <div className="min-h-[400px] overflow-y-auto bg-white p-4">
-      <div className="flex flex-col gap-4">
+    <div className="h-full min-h-0 overflow-y-auto bg-white px-6 py-5">
+      <div className="flex flex-col gap-5">
         {messages.map((message) => {
           const isUser = message.senderType === "USER";
           return (
             <div
               key={message.id}
               data-testid={`message-${message.id}`}
-              className={`flex ${isUser ? "justify-start" : "justify-end"}`}
+              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
             >
-              <div className={`max-w-[72%] ${isUser ? "text-left" : "text-right"}`}>
-                <div className="mb-1 flex items-baseline gap-2 text-xs text-gray-500">
+              <div className={`max-w-[72%] ${isUser ? "text-right" : "text-left"}`}>
+                <div
+                  className={`flex items-baseline gap-2 text-xs text-gray-500 ${
+                    isUser ? "justify-end" : "justify-start"
+                  }`}
+                  style={{ marginBottom: 6 }}
+                >
                   <span>{resolveSenderName(message)}</span>
                   <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
                 </div>
                 <div
-                  className={`rounded-lg p-3 text-sm leading-6 ${
+                  className={`text-sm leading-6 ${
                     isUser ? "bg-gray-100 text-black" : "bg-black text-white"
                   }`}
+                  style={{
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                  }}
                 >
                   {message.content}
                 </div>

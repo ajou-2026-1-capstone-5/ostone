@@ -3,21 +3,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { ChatRoom } from "./ChatRoom";
 
-const stompState = vi.hoisted(() => {
+const { stompState, listChatMessagesMock } = vi.hoisted(() => {
   const callbacks = new Map<string, (msg: unknown) => void>();
   const subscribe = vi.fn((topic: string, cb: (msg: unknown) => void) => {
     callbacks.set(topic, cb);
     return () => {};
   });
   return {
-    connectionStatus: "CONNECTED" as "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR",
-    sendMessage: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    subscribe,
-    dispatch: (topic: string, msg: unknown) => callbacks.get(topic)?.(msg),
+    listChatMessagesMock: vi.fn(),
+    stompState: {
+      connectionStatus: "CONNECTED" as "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR",
+      sendMessage: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      subscribe,
+      dispatch: (topic: string, msg: unknown) => callbacks.get(topic)?.(msg),
+    },
   };
 });
+
+vi.mock("@/entities/chat", () => ({
+  listChatMessages: listChatMessagesMock,
+}));
 
 vi.mock("@/shared/lib/websocket", () => ({
   useStomp: () => stompState,
@@ -28,13 +35,15 @@ describe("ChatRoom", () => {
     stompState.connectionStatus = "CONNECTED";
     stompState.sendMessage.mockReset();
     stompState.subscribe.mockClear();
+    listChatMessagesMock.mockReset();
+    listChatMessagesMock.mockResolvedValue([]);
   });
 
-  it("연결 상태와 빈 메시지 상태를 렌더링한다", () => {
+  it("연결 상태와 빈 메시지 상태를 렌더링한다", async () => {
     render(<ChatRoom sessionId={7} />);
 
     expect(screen.getByText("연결됨")).toBeInTheDocument();
-    expect(screen.getByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).toBeInTheDocument();
+    expect(await screen.findByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).toBeInTheDocument();
   });
 
   it("STOMP 메시지 수신 시 메시지 목록에 추가한다", async () => {
@@ -73,5 +82,22 @@ describe("ChatRoom", () => {
     render(<ChatRoom sessionId={7} />);
 
     expect(screen.getByLabelText("메시지 입력")).toBeDisabled();
+  });
+
+  it("초기 메시지를 불러와 렌더링한다", async () => {
+    listChatMessagesMock.mockResolvedValue([
+      {
+        id: "m1",
+        sessionId: 7,
+        senderType: "BOT",
+        content: "이전 메시지",
+        createdAt: "2026-05-22T08:00:00Z",
+      },
+    ]);
+
+    render(<ChatRoom sessionId={7} />);
+
+    expect(await screen.findByText("이전 메시지")).toBeInTheDocument();
+    expect(listChatMessagesMock).toHaveBeenCalledWith(7);
   });
 });
