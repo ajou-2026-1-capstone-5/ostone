@@ -11,6 +11,7 @@ jwt_secret          = "replace-with-secure-jwt-secret"
 airflow_api_username = "admin"
 airflow_api_password = "replace-with-secure-airflow-api-password"
 airflow_api_base_url = "http://<airflow-private-ip>:8080"
+airflow_api_allow_insecure_http = true
 airflow_webhook_secret = "replace-with-secure-webhook-secret"
 omlx_base_url       = "https://omlx.example.com/v1"
 omlx_api_key        = "replace-with-secure-omlx-api-key"

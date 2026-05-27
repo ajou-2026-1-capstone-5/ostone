@@ -20,6 +20,21 @@
 - [ ] GitHub Actions Variables 확인
   - `PROD_API_BASE_URL` = `https://api.<domain>/api/v1`
   - `PROD_WS_URL` = `wss://api.<domain>`
+  - `PROD_DOMAIN_NAME`
+  - `PROD_ADMIN_CIDR`
+  - `PROD_AIRFLOW_API_BASE_URL`
+  - `PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP` = `true` only when Airflow API is private HTTP
+  - `PROD_OMLX_BASE_URL`
+  - `PROD_SNS_EMAIL`
+- [ ] GitHub Actions Terraform Secrets 확인
+  - `PROD_DB_MASTER_PASSWORD`
+  - `PROD_APP_DB_PASSWORD`
+  - `PROD_AIRFLOW_DB_PASSWORD`
+  - `PROD_JWT_SECRET`
+  - `PROD_AIRFLOW_API_USERNAME`
+  - `PROD_AIRFLOW_API_PASSWORD`
+  - `PROD_AIRFLOW_WEBHOOK_SECRET`
+  - `PROD_OMLX_API_KEY`
 - [ ] Terraform remote state 준비 확인
   ```bash
   AWS_REGION=ap-northeast-2 bash infra/terraform/bootstrap.sh
@@ -34,6 +49,7 @@
 cd infra/terraform
 cp terraform.tfvars.example terraform.tfvars  # 실제 값 입력
 # Airflow EC2 private URL을 정한 뒤 airflow_api_base_url도 실제 값으로 수정
+# private HTTP를 쓰는 경우 airflow_api_allow_insecure_http = true
 terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
@@ -117,10 +133,11 @@ docker push <account>.dkr.ecr.ap-northeast-2.amazonaws.com/ostone/ml-gpu:latest
 - `AIRFLOW__API_AUTH__JWT_SECRET`
 - `AIRFLOW_SIMPLE_ADMIN_PASSWORD`
 - `AIRFLOW_SIMPLE_VIEWER_PASSWORD`
+- `PIPELINE_BACKEND_BASE_URL` = `https://api.<domain>`
 
 ```bash
-scp -i <key> ml/docker-compose.airflow.prod.yml ec2-user@<airflow-ip>:~
-ssh ec2-user@<airflow-ip> "mkdir -p ml/src"
+ssh ec2-user@<airflow-ip> "mkdir -p ~/ml"
+rsync -avz ml/docker-compose.airflow.prod.yml ml/deploy-airflow.sh ml/airflow ec2-user@<airflow-ip>:~/ml/
 rsync -avz ml/src/ ec2-user@<airflow-ip>:~/ml/src/
 ssh ec2-user@<airflow-ip> "bash ml/deploy-airflow.sh"
 ```
@@ -129,7 +146,7 @@ ssh ec2-user@<airflow-ip> "bash ml/deploy-airflow.sh"
 
 `main` 브랜치 push 시 `.github/workflows/prod-deploy.yml`이 실행된다.
 
-- Backend 변경 시 Java 21로 `./gradlew bootJar --no-daemon -x checkstyleMain -x checkstyleTest`를 실행하고, `ostone/backend` 이미지를 ECR에 `github.sha`와 `latest` 태그로 push한 뒤 ECS 서비스를 재배포한다.
+- Backend 변경 시 Java 21로 `./gradlew bootJar --no-daemon -x checkstyleMain -x checkstyleTest`를 실행하고, `ostone/backend` 이미지를 ECR에 `github.sha`와 `latest` 태그로 push한 뒤 새 ECS task definition revision을 등록해 서비스를 재배포한다.
 - Frontend 변경 시 Node 22와 pnpm으로 빌드하고, `FRONTEND_S3_BUCKET`에 `frontend/dist/`를 sync한 뒤 CloudFront invalidation을 생성한다.
 - ML 변경 시 `ml/Dockerfile.gpu`를 빌드하고 `ostone/ml-gpu` 이미지를 ECR에 `github.sha`와 `latest` 태그로 push한다.
 

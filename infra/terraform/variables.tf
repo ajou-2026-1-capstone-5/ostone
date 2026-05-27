@@ -193,6 +193,12 @@ variable "airflow_api_base_url" {
   type        = string
 }
 
+variable "airflow_api_allow_insecure_http" {
+  description = "Allow the backend to call Airflow over HTTP, intended only for private VPC addresses."
+  type        = bool
+  default     = false
+}
+
 variable "airflow_webhook_secret" {
   description = "Shared secret for Airflow callback webhooks."
   type        = string

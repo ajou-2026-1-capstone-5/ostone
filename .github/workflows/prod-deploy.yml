@@ -68,17 +68,53 @@ jobs:
         env:
           ECR_REPOSITORY: ostone/backend
           IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile.prod backend/
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
-          docker push --all-tags ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY
+          docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" -f backend/Dockerfile.prod backend/
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
 
       - name: Deploy to Amazon ECS
+        env:
+          ECR_REPOSITORY: ostone/backend
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          TASK_DEF_ARN="$(aws ecs describe-services \
+            --cluster ostone-prod-cluster \
+            --services ostone-backend \
+            --region ap-northeast-2 \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF_ARN" \
+            --region ap-northeast-2 \
+            --query 'taskDefinition' > task-definition.json
+          jq --arg image "$IMAGE_URI" '
+            .containerDefinitions |= map(
+              if .name == "app-backend" then .image = $image else . end
+            )
+            | del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ' task-definition.json > new-task-definition.json
+          NEW_TASK_DEF_ARN="$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-definition.json \
+            --region ap-northeast-2 \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
           aws ecs update-service \
             --cluster ostone-prod-cluster \
             --service ostone-backend \
+            --task-definition "$NEW_TASK_DEF_ARN" \
             --force-new-deployment \
             --region ap-northeast-2
 
@@ -119,13 +155,13 @@ jobs:
         env:
           FRONTEND_BUCKET: ${{ secrets.FRONTEND_S3_BUCKET }}
         run: |
-          aws s3 sync frontend/dist/ s3://$FRONTEND_BUCKET/ --delete
+          aws s3 sync frontend/dist/ "s3://$FRONTEND_BUCKET/" --delete
 
       - name: Invalidate CloudFront
         env:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
-          aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+          aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
 
   gpu:
     needs: paths-filter
@@ -148,8 +184,9 @@ jobs:
         env:
           ECR_REPOSITORY: ostone/ml-gpu
           IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t $ECR_REPOSITORY:$IMAGE_TAG -f ml/Dockerfile.gpu .
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
-          docker push --all-tags ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY
+          docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" -f ml/Dockerfile.gpu .
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
