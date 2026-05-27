@@ -59,6 +59,33 @@ describe("ChatPanel", () => {
     expect(screen.getByText("내 상담 진행중")).toBeInTheDocument();
   });
 
+  it("disabled 상태에서는 입력 컨트롤을 비활성화하고 전송하지 않는다", () => {
+    const onSendMessage = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={onSendMessage}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        disabled
+      />,
+    );
+
+    const noteToggle = screen.getByTitle("내부 메모 모드");
+    const input = screen.getByPlaceholderText("메시지를 입력하세요...");
+    const sendButton = screen.getByLabelText("메시지 전송");
+
+    expect(noteToggle).toBeDisabled();
+    expect(input).toBeDisabled();
+    expect(sendButton).toBeDisabled();
+
+    fireEvent.click(sendButton);
+    expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
   it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", () => {
     const onSelectMessage = vi.fn();
 

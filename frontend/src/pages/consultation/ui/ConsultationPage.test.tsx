@@ -148,6 +148,7 @@ describe("ConsultationPage", () => {
     shellContext.workspace = { id: 2, name: "QA Alpha" };
     window.alert = vi.fn();
     window.localStorage.clear();
+    saveTestUser(7);
   });
 
   it("renders 3-pane structure with QueuePanel, ChatPanel, and CustomerPanel", async () => {
@@ -367,7 +368,7 @@ describe("ConsultationPage", () => {
     });
   });
 
-  it("sends messages through consultation API and adds an optimistic message", async () => {
+  it("sends messages through counselor STOMP endpoint and adds an optimistic message", async () => {
     const user = userEvent.setup();
     render(<ConsultationPage />, { wrapper: Wrapper });
 
@@ -383,9 +384,13 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(consultationApi.sendMessage).toHaveBeenCalledWith(1, "처리 도와드리겠습니다.", false);
+      expect(mockSendTo).toHaveBeenCalledWith("/app/chat.counselor.send", {
+        sessionId: 1,
+        content: "처리 도와드리겠습니다.",
+        isNote: false,
+      });
     });
-    expect(mockSendTo).not.toHaveBeenCalled();
+    expect(consultationApi.sendMessage).not.toHaveBeenCalled();
     expect(screen.getByText("처리 도와드리겠습니다.")).toBeInTheDocument();
   });
 
@@ -635,7 +640,7 @@ describe("ConsultationPage", () => {
     });
   });
 
-  it("keeps counselor sends available when STOMP is disconnected", async () => {
+  it("does not send message and shows error toast when STOMP is disconnected", async () => {
     const user = userEvent.setup();
     stompState.connectionStatus = "DISCONNECTED";
 
@@ -652,11 +657,10 @@ describe("ConsultationPage", () => {
     await user.type(input, "보낼 수 없는 메시지");
     await user.keyboard("{Enter}");
 
-    await waitFor(() => {
-      expect(consultationApi.sendMessage).toHaveBeenCalledWith(1, "보낼 수 없는 메시지", false);
-    });
+    expect(toast.error).toHaveBeenCalledWith("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
     expect(mockSendTo).not.toHaveBeenCalled();
-    expect(screen.getByText("보낼 수 없는 메시지")).toBeInTheDocument();
+    expect(consultationApi.sendMessage).not.toHaveBeenCalled();
+    expect(screen.queryByText("보낼 수 없는 메시지")).not.toBeInTheDocument();
   });
 
   it("handles incoming non-counselor STOMP message", async () => {
@@ -807,8 +811,13 @@ describe("ConsultationPage", () => {
     await user.click(screen.getByText("메모 저장"));
 
     await waitFor(() => {
-      expect(consultationApi.sendMessage).toHaveBeenCalledWith(1, "카드사 확인 필요", true);
+      expect(mockSendTo).toHaveBeenCalledWith("/app/chat.counselor.send", {
+        sessionId: 1,
+        content: "카드사 확인 필요",
+        isNote: true,
+      });
     });
+    expect(consultationApi.sendMessage).not.toHaveBeenCalled();
     expect(screen.getByText("카드사 확인 필요")).toBeInTheDocument();
   });
 });
