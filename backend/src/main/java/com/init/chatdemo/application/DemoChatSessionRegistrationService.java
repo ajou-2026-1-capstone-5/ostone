@@ -14,8 +14,6 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -136,9 +134,8 @@ public class DemoChatSessionRegistrationService {
 
   private String createConversationContext(Long sessionId) {
     List<ChatMessage> recentDesc =
-        new ArrayList<>(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(sessionId));
-    Collections.reverse(recentDesc);
-    return recentDesc.stream()
+        chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(sessionId);
+    return recentDesc.reversed().stream()
         .map(message -> message.getSenderRole() + ": " + message.getContent())
         .collect(Collectors.joining("\n"));
   }
