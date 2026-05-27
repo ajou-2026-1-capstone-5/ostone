@@ -4,7 +4,7 @@ import styles from "./queue-panel.module.css";
 
 export interface QueueCustomer {
   id: string;
-  name: string;
+  name?: string;
   channel: string;
   handoffReason: string;
   waitMinutes: number;
@@ -53,7 +53,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
               <div
                 className={`${styles.customerAvatar} ${activeCustomerId === c.id ? styles.customerAvatarActive : ""}`}
               >
-                {c.name.charAt(0)}
+                {c.name?.charAt(0)}
               </div>
               <div className={styles.queueItemInfo}>
                 <div className={styles.customerName}>{c.name}</div>

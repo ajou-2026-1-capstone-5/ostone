@@ -118,6 +118,13 @@ public class ChatSession {
     return metaJson;
   }
 
+  public void updateMetaJson(String metaJson) {
+    if (metaJson == null || metaJson.isBlank()) {
+      throw new InvalidSessionStateException("metaJson must not be blank");
+    }
+    this.metaJson = metaJson;
+  }
+
   public OffsetDateTime getStartedAt() {
     return startedAt;
   }

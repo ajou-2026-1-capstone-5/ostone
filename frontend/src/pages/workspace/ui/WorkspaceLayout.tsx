@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
 import type { ShellContext, SidebarActive } from "@/shared/ui/ostone/chrome";
 
@@ -28,9 +28,6 @@ export function WorkspaceLayout() {
   const basePath = parsedWorkspaceId
     ? `/workspaces/${parsedWorkspaceId}`
     : "/workspaces";
-  const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(parsedWorkspaceId !== null);
-  const [error, setError] = useState("");
   const [topbarRight, setTopbarRight] = useState<ReactNode>(null);
   const [crumbs, setCrumbs] = useState<string[]>([]);
   const active = getActiveFromPath(location.pathname);
@@ -43,22 +40,14 @@ export function WorkspaceLayout() {
   } = useGetWorkspace(parsedWorkspaceId ?? 0, {
     query: { enabled: parsedWorkspaceId !== null },
   });
-
-  useEffect(() => {
-    if (fetchedWorkspace) {
-      setWorkspace(fetchedWorkspace as unknown as WorkspaceResponse);
-      setError("");
-    } else if (parsedWorkspaceId !== null && fetchError) {
-      setError(mapWorkspaceActionError(fetchError));
-      setWorkspace(null);
-    }
-  }, [fetchedWorkspace, fetchError, parsedWorkspaceId]);
-
-  useEffect(() => {
-    if (!isFetchingWorkspace && parsedWorkspaceId !== null) {
-      setIsLoading(false);
-    }
-  }, [isFetchingWorkspace, parsedWorkspaceId]);
+  const workspace = fetchedWorkspace
+    ? (fetchedWorkspace as unknown as WorkspaceResponse)
+    : null;
+  const error =
+    parsedWorkspaceId !== null && fetchError
+      ? mapWorkspaceActionError(fetchError)
+      : "";
+  const isLoading = parsedWorkspaceId !== null && isFetchingWorkspace;
 
   const defaultCrumbs = useMemo(
     () => (workspace?.name ? [workspace.name] : []),

@@ -36,6 +36,7 @@ class UserChatSessionServiceTest {
   private static final Long WORKSPACE_ID = 10L;
   private static final Long USER_ID = 7L;
   private static final Long VERSION_ID = 101L;
+  private static final String CUSTOMER_NAME = "김민지";
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
@@ -71,6 +72,7 @@ class UserChatSessionServiceTest {
 
     assertThat(result.getId()).isEqualTo(5L);
     assertThat(result.getStatus()).isEqualTo("OPEN");
+    assertThat(result.getMetaJson()).contains("\"customerName\":\"김민지\"");
     verify(concurrencyGuard).lockCurrentSession(WORKSPACE_ID, USER_ID);
     verify(chatSessionRepository, never()).save(any());
   }
@@ -111,6 +113,7 @@ class UserChatSessionServiceTest {
     assertThat(saved.getDomainPackVersionId()).isEqualTo(VERSION_ID);
     assertThat(saved.getStartedBy()).isEqualTo(USER_ID);
     assertThat(saved.getChannel()).isEqualTo("WEB");
+    assertThat(saved.getMetaJson()).contains("\"customerName\":\"김민지\"");
   }
 
   @Test
@@ -157,6 +160,6 @@ class UserChatSessionServiceTest {
   }
 
   private GetOrCreateCurrentSessionCommand command() {
-    return new GetOrCreateCurrentSessionCommand(WORKSPACE_ID, USER_ID);
+    return new GetOrCreateCurrentSessionCommand(WORKSPACE_ID, USER_ID, CUSTOMER_NAME);
   }
 }

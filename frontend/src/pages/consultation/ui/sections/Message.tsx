@@ -12,6 +12,7 @@ export interface MessageProps {
 
 export function Message({ variant, name, time, text }: MessageProps) {
   const isRight = variant === "bot" || variant === "agent";
+  const displayName = name?.trim() || "Unknown";
 
   let avatarInitial: string;
   let avatarTone: AvatarTone;
@@ -19,7 +20,7 @@ export function Message({ variant, name, time, text }: MessageProps) {
   let bodyBorder: string | undefined;
 
   if (variant === "customer") {
-    avatarInitial = name.charAt(0);
+    avatarInitial = displayName.charAt(0);
     avatarTone = "warn";
     bodyBg = "var(--paper-2)";
     bodyBorder = undefined;
@@ -57,7 +58,9 @@ export function Message({ variant, name, time, text }: MessageProps) {
             justifyContent: isRight ? "flex-end" : "flex-start",
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{name}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>
+            {displayName}
+          </span>
           <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{time}</Mono>
         </div>
         <div

@@ -64,10 +64,13 @@ export function App() {
             path="consultation/:sessionId"
             element={<ConsultationPage />}
           />
-          <Route path="chat" element={<UserChatPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
+        <Route
+          path="/demo/workspaces/:workspaceId/chat"
+          element={<UserChatPage />}
+        />
         <Route
           path="/upload"
           element={
