@@ -120,6 +120,25 @@ describe("UserChatPage", () => {
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 
+  it("백엔드에 저장된 상담사 메시지를 동기화해 화면에 표시한다", async () => {
+    listDemoChatMessagesMock.mockResolvedValueOnce([
+      {
+        id: "91",
+        sessionId: 77,
+        content: "저장된 상담사 답변입니다.",
+        senderType: "AGENT",
+        createdAt: "2026-05-22T00:00:03Z",
+      },
+    ]);
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    expect(await screen.findByText("저장된 상담사 답변입니다.")).not.toBeNull();
+    expect(listDemoChatMessagesMock).toHaveBeenCalledWith(42, "77");
+  });
+
   it("메시지 전송 실패 시 optimistic 메시지를 되돌린다", async () => {
     sendDemoChatMessageMock.mockRejectedValueOnce(new Error("LLM failed"));
 

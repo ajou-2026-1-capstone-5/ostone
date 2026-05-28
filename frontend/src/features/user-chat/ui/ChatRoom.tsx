@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { listChatMessages, type ChatMessage } from "@/entities/chat";
+import {
+  isChatMessageResponse,
+  mergeMessages,
+  toChatMessage,
+} from "@/entities/chat/lib/chatMessageSync";
 import { useStomp } from "@/shared/lib/websocket";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { MessageInput } from "./MessageInput";
@@ -22,57 +27,6 @@ function isChatMessage(message: unknown): message is ChatMessage {
       candidate.senderType === "BOT" ||
       candidate.senderType === "AGENT")
   );
-}
-
-interface ChatMessageResponse {
-  id: number;
-  seqNo: number;
-  senderRole: string;
-  messageType: string;
-  content: string;
-  createdAt: string;
-}
-
-function isChatMessageResponse(message: unknown): message is ChatMessageResponse {
-  if (!message || typeof message !== "object") return false;
-
-  const candidate = message as Partial<ChatMessageResponse>;
-  return (
-    typeof candidate.id === "number" &&
-    typeof candidate.seqNo === "number" &&
-    typeof candidate.senderRole === "string" &&
-    typeof candidate.messageType === "string" &&
-    typeof candidate.content === "string" &&
-    typeof candidate.createdAt === "string"
-  );
-}
-
-function toSenderType(senderRole: string): ChatMessage["senderType"] {
-  if (senderRole === "USER" || senderRole === "CUSTOMER") return "USER";
-  if (senderRole === "AGENT" || senderRole === "COUNSELOR") return "AGENT";
-  return "BOT";
-}
-
-function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMessage {
-  return {
-    id: String(message.id),
-    sessionId,
-    content: message.content,
-    senderType: toSenderType(message.senderRole),
-    createdAt: message.createdAt,
-  };
-}
-
-function compareMessageCreatedAt(a: ChatMessage, b: ChatMessage): number {
-  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-}
-
-function mergeMessages(currentMessages: ChatMessage[], nextMessages: ChatMessage[]): ChatMessage[] {
-  const byId = new Map<string, ChatMessage>();
-  [...currentMessages, ...nextMessages].forEach((message) => {
-    byId.set(message.id, message);
-  });
-  return Array.from(byId.values()).sort(compareMessageCreatedAt);
 }
 
 export function ChatRoom({ sessionId }: ChatRoomProps) {

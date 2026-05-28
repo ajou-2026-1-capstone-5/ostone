@@ -6,6 +6,14 @@ import {
   sendDemoChatMessage,
 } from "@/entities/chat";
 import type { ChatMessage, DemoChatSession } from "@/entities/chat";
+import {
+  isRealtimeChatMessage,
+  mergeMessages,
+  mergePersistedMessages,
+  toRealtimeChatMessage,
+  tryParseDemoSessionId,
+  withCustomerNames,
+} from "@/entities/chat/lib/chatMessageSync";
 import { ApiRequestError } from "@/shared/api";
 import { useStomp } from "@/shared/lib/websocket";
 import { ChatConversationScreen } from "./ChatConversationScreen";
@@ -43,7 +51,7 @@ function isDemoChatSession(value: unknown): value is DemoChatSession {
 }
 
 function isBackendRegisteredSession(session: DemoChatSession): boolean {
-  return Number.isFinite(Number(session.id));
+  return tryParseDemoSessionId(session.id) != null;
 }
 
 function readStoredSession(workspaceId: number, customerName: string): DemoChatSession | null {
@@ -68,78 +76,6 @@ function writeStoredSession(
   if (typeof window === "undefined") return;
 
   window.localStorage.setItem(createStorageKey(workspaceId, customerName), JSON.stringify(session));
-}
-
-interface RealtimeChatMessage {
-  id: number | string;
-  senderRole: string;
-  content: string;
-  createdAt: string;
-}
-
-function isRealtimeChatMessage(message: unknown): message is RealtimeChatMessage {
-  if (!message || typeof message !== "object") return false;
-
-  const candidate = message as Partial<RealtimeChatMessage>;
-  return (
-    (typeof candidate.id === "number" || typeof candidate.id === "string") &&
-    typeof candidate.senderRole === "string" &&
-    typeof candidate.content === "string" &&
-    typeof candidate.createdAt === "string"
-  );
-}
-
-function toSenderType(senderRole: string): ChatMessage["senderType"] {
-  if (senderRole === "USER" || senderRole === "CUSTOMER") return "USER";
-  if (senderRole === "AGENT" || senderRole === "COUNSELOR") return "AGENT";
-  return "BOT";
-}
-
-function toRealtimeChatMessage(
-  message: RealtimeChatMessage,
-  sessionId: number,
-  customerName: string,
-): ChatMessage {
-  const senderType = toSenderType(message.senderRole);
-  return {
-    id: String(message.id),
-    sessionId,
-    content: message.content,
-    senderType,
-    senderName: senderType === "USER" ? customerName : undefined,
-    createdAt: message.createdAt,
-  };
-}
-
-function compareMessageCreatedAt(a: ChatMessage, b: ChatMessage): number {
-  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-}
-
-function mergeMessages(currentMessages: ChatMessage[], nextMessages: ChatMessage[]): ChatMessage[] {
-  const byId = new Map<string, ChatMessage>();
-  [...currentMessages, ...nextMessages].forEach((message) => {
-    byId.set(message.id, message);
-  });
-  return Array.from(byId.values()).sort(compareMessageCreatedAt);
-}
-
-function withCustomerNames(messages: ChatMessage[], customerName: string): ChatMessage[] {
-  return messages.map((message) =>
-    message.senderType === "USER" ? { ...message, senderName: customerName } : message,
-  );
-}
-
-function getNumericSessionId(sessionId: string): number | null {
-  const numericSessionId = Number(sessionId);
-  return Number.isFinite(numericSessionId) ? numericSessionId : null;
-}
-
-function mergePersistedMessages(
-  currentMessages: ChatMessage[],
-  persistedMessages: ChatMessage[],
-): ChatMessage[] {
-  const optimisticMessages = currentMessages.filter((message) => message.id.startsWith("local-"));
-  return mergeMessages(optimisticMessages, persistedMessages);
 }
 
 async function getOrCreateStoredSession(
@@ -285,7 +221,7 @@ export function UserChatPage() {
 
   useEffect(() => {
     if (!activeSessionId || !customerName) return;
-    const numericSessionId = getNumericSessionId(activeSessionId);
+    const numericSessionId = tryParseDemoSessionId(activeSessionId);
     if (numericSessionId == null) return;
 
     let cancelled = false;
@@ -327,7 +263,7 @@ export function UserChatPage() {
 
   useEffect(() => {
     if (!activeSessionId || !customerName || connectionStatus !== "CONNECTED") return;
-    const numericSessionId = getNumericSessionId(activeSessionId);
+    const numericSessionId = tryParseDemoSessionId(activeSessionId);
     if (numericSessionId == null) return;
 
     return subscribe(`/topic/chat.${numericSessionId}`, (raw) => {

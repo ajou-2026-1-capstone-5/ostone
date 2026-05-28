@@ -162,7 +162,7 @@ describe("chatApi", () => {
       },
     ]);
 
-    await expect(sendDemoChatMessage(2, "77", "Hello")).resolves.toEqual([
+    await expect(sendDemoChatMessage(2, " 77 ", "Hello")).resolves.toEqual([
       {
         id: "81",
         sessionId: 77,
@@ -218,6 +218,16 @@ describe("chatApi", () => {
 
   it("숫자가 아닌 데모 세션 id로 메시지를 보내지 않는다", async () => {
     await expect(sendDemoChatMessage(2, "workspace-2-demo-session", "Hello")).rejects.toThrow(
+      "Demo chat session id must be numeric.",
+    );
+    expect(customFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("정수 문자열이 아닌 데모 세션 id로 메시지를 조회하지 않는다", async () => {
+    await expect(listDemoChatMessages(2, "1e2")).rejects.toThrow(
+      "Demo chat session id must be numeric.",
+    );
+    await expect(listDemoChatMessages(2, "77.5")).rejects.toThrow(
       "Demo chat session id must be numeric.",
     );
     expect(customFetchMock).not.toHaveBeenCalled();

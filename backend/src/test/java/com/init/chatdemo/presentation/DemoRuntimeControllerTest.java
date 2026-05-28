@@ -1,5 +1,6 @@
 package com.init.chatdemo.presentation;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.init.chatdemo.application.DemoChatSessionRegistrationService;
 import com.init.chatdemo.application.DemoRuntimeMockService;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesCommand;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.chatdemo.presentation.dto.DemoChatSessionEndpointResponse;
 import com.init.chatdemo.presentation.dto.DemoChatSessionResponse;
 import com.init.chatdemo.presentation.dto.DemoChatWorkflowResponse;
@@ -194,16 +197,17 @@ class DemoRuntimeControllerTest {
   @Test
   @DisplayName("GET /api/v1/demo/chat-sessions/{sessionId}/messages → 데모 메시지 목록 조회")
   void should_200_when_listRegisteredChatMessages() throws Exception {
-    given(sessionRegistrationService.listMessages(10L, 77L))
+    given(sessionRegistrationService.listMessages(any(ListDemoChatMessagesCommand.class)))
         .willReturn(
-            List.of(
-                new ChatMessageResponse(
-                    1L,
-                    1,
-                    "COUNSELOR",
-                    "TEXT",
-                    "상담사 답변입니다.",
-                    OffsetDateTime.parse("2026-05-22T00:00:00Z"))));
+            new ListDemoChatMessagesResult(
+                List.of(
+                    new ChatMessageResponse(
+                        1L,
+                        1,
+                        "COUNSELOR",
+                        "TEXT",
+                        "상담사 답변입니다.",
+                        OffsetDateTime.parse("2026-05-22T00:00:00Z")))));
 
     mockMvc
         .perform(get(DEMO_URL_PREFIX + "/chat-sessions/77/messages"))

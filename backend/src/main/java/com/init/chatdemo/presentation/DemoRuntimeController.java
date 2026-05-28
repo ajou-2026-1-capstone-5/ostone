@@ -2,6 +2,8 @@ package com.init.chatdemo.presentation;
 
 import com.init.chatdemo.application.DemoChatSessionRegistrationService;
 import com.init.chatdemo.application.DemoRuntimeMockService;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesCommand;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.chatdemo.presentation.dto.CreateDemoChatSessionRequest;
 import com.init.chatdemo.presentation.dto.DemoChatSessionEndpointResponse;
 import com.init.chatdemo.presentation.dto.DemoChatWorkflowResponse;
@@ -72,7 +74,10 @@ public class DemoRuntimeController {
   @GetMapping("/chat-sessions/{sessionId}/messages")
   public ResponseEntity<List<ChatMessageResponse>> listChatMessages(
       @PathVariable Long workspaceId, @PathVariable Long sessionId) {
-    return ResponseEntity.ok(sessionRegistrationService.listMessages(workspaceId, sessionId));
+    ListDemoChatMessagesResult result =
+        sessionRegistrationService.listMessages(
+            new ListDemoChatMessagesCommand(workspaceId, sessionId));
+    return ResponseEntity.ok(result.getMessages());
   }
 
   @GetMapping("/workflow-executions/{executionId}")

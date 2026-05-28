@@ -2,6 +2,8 @@ package com.init.chatdemo.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesCommand;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -17,6 +19,8 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Transactional(readOnly = true)
 public class DemoChatSessionRegistrationService {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(DemoChatSessionRegistrationService.class);
   private static final String DEFAULT_CHANNEL = "WEB";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -113,19 +119,22 @@ public class DemoChatSessionRegistrationService {
     return responses;
   }
 
-  public List<ChatMessageResponse> listMessages(Long workspaceId, Long sessionId) {
+  public ListDemoChatMessagesResult listMessages(ListDemoChatMessagesCommand command) {
     ChatSession session =
         chatSessionRepository
-            .findById(sessionId)
+            .findById(command.getSessionId())
             .orElseThrow(
                 () ->
-                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
-    if (!workspaceId.equals(session.getWorkspaceId())) {
-      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId);
+                    new NotFoundException(
+                        "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId()));
+    if (!command.getWorkspaceId().equals(session.getWorkspaceId())) {
+      throw new NotFoundException(
+          "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId());
     }
-    return chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(sessionId).stream()
-        .map(ChatMessageResponse::from)
-        .toList();
+    return new ListDemoChatMessagesResult(
+        chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(command.getSessionId()).stream()
+            .map(ChatMessageResponse::from)
+            .toList());
   }
 
   private String normalizeCustomerName(String customerName) {
@@ -169,15 +178,23 @@ public class DemoChatSessionRegistrationService {
             responses.forEach(
                 response -> messagingTemplate.convertAndSend("/topic/chat." + sessionId, response));
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-      broadcast.run();
+      runBroadcast(sessionId, broadcast);
       return;
     }
     TransactionSynchronizationManager.registerSynchronization(
         new TransactionSynchronization() {
           @Override
           public void afterCommit() {
-            broadcast.run();
+            runBroadcast(sessionId, broadcast);
           }
         });
+  }
+
+  private void runBroadcast(Long sessionId, Runnable broadcast) {
+    try {
+      broadcast.run();
+    } catch (RuntimeException e) {
+      log.warn("Demo chat broadcast failed. sessionId={}", sessionId, e);
+    }
   }
 }
