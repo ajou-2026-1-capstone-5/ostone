@@ -2,6 +2,7 @@ package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
@@ -9,12 +10,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,9 +66,17 @@ class LlmResponseHandlerTest {
   @DisplayName("handleChatMessageReceived: 정상 응답 → DB 저장 및 STOMP push")
   void should_saveAndPush_when_llmRespondsSuccessfully() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
-    given(llmAssistantService.generateResponse("", "안녕하세요")).willReturn("안녕하세요! 무엇을 도와드릴까요?");
     ChatSession precheckSession = mockSession();
     ChatSession lockSession = mockSession();
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                argThat(
+                    command ->
+                        command instanceof GenerateWorkflowAwareResponseCommand
+                            && command.sessionId().equals(1L)
+                            && command.conversationContext().isEmpty()
+                            && command.userMessage().equals("안녕하세요"))))
+        .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요! 무엇을 도와드릴까요?"));
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(precheckSession));
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(lockSession));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
@@ -80,7 +92,7 @@ class LlmResponseHandlerTest {
 
     InOrder lockOrder = inOrder(chatSessionRepository, llmAssistantService);
     lockOrder.verify(chatSessionRepository).findById(1L);
-    lockOrder.verify(llmAssistantService).generateResponse("", "안녕하세요");
+    lockOrder.verify(llmAssistantService).generateWorkflowAwareResponse(any());
     lockOrder.verify(chatSessionRepository).findByIdForUpdate(1L);
     verify(chatMessageRepository).save(any(ChatMessage.class));
     verify(chatSessionMetadataService).updateAfterMessage(eq(lockSession), eq(savedMsg));
@@ -96,13 +108,40 @@ class LlmResponseHandlerTest {
   void should_pushFallback_when_llmThrowsException() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
-    given(llmAssistantService.generateResponse(any(), eq("안녕하세요")))
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
         .willThrow(new RuntimeException("API timeout"));
 
     handler.handleChatMessageReceived(event);
 
     verify(chatSessionRepository, never()).findByIdForUpdate(1L);
     verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
+
+    ChatMessageResponse pushed = responseCaptor.getValue();
+    assertThat(pushed.senderRole()).isEqualTo("SYSTEM");
+    assertThat(pushed.messageType()).isEqualTo("ERROR");
+    assertThat(pushed.content()).contains("LLM_ERROR");
+  }
+
+  @Test
+  @DisplayName("handleChatMessageReceived: 저장 트랜잭션이 null 반환 → fallback 메시지 STOMP push")
+  void should_pushFallback_when_saveTransactionReturnsNull() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
+        .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요! 무엇을 도와드릴까요?"));
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L)).willReturn(List.of());
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.empty());
+    given(transactionManager.getTransaction(any(TransactionDefinition.class)))
+        .willReturn(new SimpleTransactionStatus());
+    given(chatMessageRepository.save(any(ChatMessage.class))).willReturn(null);
+
+    handler.handleChatMessageReceived(event);
+
+    verify(chatMessageRepository).save(any(ChatMessage.class));
+    verify(chatSessionMetadataService, never()).updateAfterMessage(any(), any());
     verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
 
     ChatMessageResponse pushed = responseCaptor.getValue();
