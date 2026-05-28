@@ -1,9 +1,11 @@
 package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
@@ -86,7 +88,7 @@ class WorkflowAssistantToolsTest {
     IntentClassificationCommand command =
         new IntentClassificationCommand(1L, "환불하고 싶어요", "USER: 안녕하세요");
     given(intentClassificationService.classify(command))
-        .willThrow(new IllegalStateException("raw intent list leaked"));
+        .willThrow(new IllegalArgumentException("raw intent list leaked"));
 
     IntentClassificationResult result = tools.classifyIntent(toolContext);
 
@@ -123,7 +125,7 @@ class WorkflowAssistantToolsTest {
   void should_returnRedactedErrorState_when_startWorkflowFails() {
     ToolContext toolContext = toolContext();
     given(stateService.startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request")))
-        .willThrow(new IllegalStateException("workflow graph leaked"));
+        .willThrow(new BadRequestException("WORKFLOW_INVALID", "workflow graph leaked"));
 
     AssistantConversationState result = tools.startWorkflow("refund_request", toolContext);
 
@@ -155,7 +157,7 @@ class WorkflowAssistantToolsTest {
   void should_returnRedactedErrorState_when_updateSlotFails() {
     ToolContext toolContext = toolContext();
     given(stateService.updateSlot(new UpdateAssistantSlotCommand(1L, "order_id", "A-100")))
-        .willThrow(new IllegalStateException("slotValues leaked"));
+        .willThrow(new BadRequestException("SLOT_INVALID", "slotValues leaked"));
 
     AssistantConversationState result = tools.updateSlot("order_id", "A-100", toolContext);
 
@@ -168,12 +170,24 @@ class WorkflowAssistantToolsTest {
   void should_returnRedactedErrorState_when_toolFails() {
     ToolContext toolContext = toolContext();
     given(stateService.inspect(new InspectAssistantConversationCommand(1L)))
-        .willThrow(new IllegalStateException("policySnapshot leaked"));
+        .willThrow(new BadRequestException("STATE_INVALID", "policySnapshot leaked"));
 
     AssistantConversationState result = tools.inspectConversation(toolContext);
 
     assertThat(result.nextAction().type()).isEqualTo("ERROR");
     assertThat(result.nextAction().message()).doesNotContain("policySnapshot");
+  }
+
+  @Test
+  @DisplayName("예상하지 못한 런타임 예외는 도구 응답으로 삼키지 않는다")
+  void should_propagateUnexpectedRuntimeException() {
+    ToolContext toolContext = toolContext();
+    given(stateService.inspect(new InspectAssistantConversationCommand(1L)))
+        .willThrow(new IllegalStateException("programming error"));
+
+    assertThatThrownBy(() -> tools.inspectConversation(toolContext))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("programming error");
   }
 
   @Test

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.InternalException;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
 import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
@@ -199,6 +200,29 @@ class WorkflowAssistantStateServiceTest {
   }
 
   @Test
+  @DisplayName("inspect: actionType이 없으면 redacted ERROR 상태를 반환한다")
+  void should_returnErrorState_when_actionTypeMissing() {
+    AssistantConversationState result =
+        inspectWithoutRuntimeMetadata(
+            advanceResponse("collect_order", "collect_order", null, null, List.of()));
+
+    assertThat(result.conversationStatus()).isEqualTo("ERROR");
+    assertThat(result.nextAction().type()).isEqualTo("ERROR");
+  }
+
+  @Test
+  @DisplayName("inspect: advance 응답이 null이면 내부 예외로 처리한다")
+  void should_throwInternalException_when_advanceReturnsNull() {
+    LlmToolContextResponse context = context(10L);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L)).willReturn(null);
+
+    assertThatThrownBy(this::inspect)
+        .isInstanceOf(InternalException.class)
+        .hasMessageContaining("Workflow advance returned null response");
+  }
+
+  @Test
   @DisplayName("inspect: ADVANCE가 반복되면 WAIT 상태에서 멈춘다")
   void should_stopAutoAdvanceAndReturnWait_when_transitionRepeats() {
     LlmToolContextResponse context = context(10L);
@@ -222,7 +246,7 @@ class WorkflowAssistantStateServiceTest {
   void should_returnFallbackSlotQuestion_when_slotMetadataMissing() {
     AssistantConversationState result =
         inspectWithoutRuntimeMetadata(
-            advanceResponse("collect_order", "collect_order", "ASK_SLOT", null, List.of()));
+            advanceResponse("collect_order", "collect_order", "ASK_SLOT", null, null));
 
     assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
     assertThat(result.nextAction().slotCode()).isNull();

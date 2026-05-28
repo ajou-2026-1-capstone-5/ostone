@@ -126,6 +126,10 @@ public class WorkflowAssistantStateService {
     Set<String> seenTransitions = new HashSet<>();
     for (int i = 0; i < MAX_AUTO_ADVANCE_COUNT; i++) {
       latest = workflowRuntimeService.advance(sessionId);
+      if (latest == null) {
+        throw new InternalException(
+            "WORKFLOW_ADVANCE_EMPTY", "Workflow advance returned null response: " + sessionId);
+      }
       String transitionKey = transitionKey(latest);
       if (!seenTransitions.add(transitionKey) || !ACTION_ADVANCE.equals(latest.actionType())) {
         return latest;
@@ -142,6 +146,9 @@ public class WorkflowAssistantStateService {
 
     AssistantWorkflowView workflow =
         new AssistantWorkflowView(context.executionStatus(), currentStep(context));
+    if (!hasText(advanceResponse.actionType())) {
+      return AssistantConversationState.error("일시적으로 대화 상태를 확인할 수 없습니다.");
+    }
     return switch (advanceResponse.actionType()) {
       case ACTION_ASK_SLOT -> askSlotState(context, workflow, advanceResponse);
       case ACTION_ANSWER ->
@@ -184,10 +191,8 @@ public class WorkflowAssistantStateService {
       LlmToolContextResponse context,
       AssistantWorkflowView workflow,
       WorkflowAdvanceResponse advanceResponse) {
-    String slotCode =
-        advanceResponse.missingSlotCodes().isEmpty()
-            ? null
-            : advanceResponse.missingSlotCodes().get(0);
+    List<String> missingSlotCodes = missingSlotCodes(advanceResponse);
+    String slotCode = missingSlotCodes.isEmpty() ? null : missingSlotCodes.get(0);
     LlmToolSlotResponse slot = findSlot(context, slotCode);
     String question = slotQuestion(slot, slotCode);
     return state(
@@ -264,6 +269,12 @@ public class WorkflowAssistantStateService {
       }
     }
     return null;
+  }
+
+  private List<String> missingSlotCodes(WorkflowAdvanceResponse advanceResponse) {
+    return advanceResponse.missingSlotCodes() == null
+        ? List.of()
+        : advanceResponse.missingSlotCodes();
   }
 
   private JsonNode readJson(String json, Long workflowId) {

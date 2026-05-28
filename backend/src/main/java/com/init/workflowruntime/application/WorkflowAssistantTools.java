@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import com.init.shared.application.exception.BusinessException;
 import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
@@ -40,7 +41,7 @@ public class WorkflowAssistantTools {
       return stateService
           .inspect(new InspectAssistantConversationCommand(sessionId(toolContext)))
           .state();
-    } catch (RuntimeException e) {
+    } catch (BusinessException | IllegalArgumentException e) {
       logToolFailure("inspect_conversation", e);
       return AssistantConversationState.error("일시적으로 대화 상태를 확인할 수 없습니다.");
     }
@@ -57,7 +58,7 @@ public class WorkflowAssistantTools {
               sessionId(toolContext),
               textContext(toolContext, LATEST_USER_MESSAGE),
               textContext(toolContext, CONVERSATION_CONTEXT)));
-    } catch (RuntimeException e) {
+    } catch (BusinessException | IllegalArgumentException e) {
       logToolFailure("classify_intent", e);
       return IntentClassificationResult.unknown("요청하신 업무를 정확히 확인하지 못했습니다. 어떤 업무인지 조금 더 자세히 알려주세요.");
     }
@@ -75,7 +76,7 @@ public class WorkflowAssistantTools {
       return stateService
           .startWorkflow(new StartAssistantWorkflowCommand(sessionId(toolContext), intentCode))
           .state();
-    } catch (RuntimeException e) {
+    } catch (BusinessException | IllegalArgumentException e) {
       logToolFailure("start_workflow", e);
       return AssistantConversationState.error("요청하신 업무를 시작할 수 없습니다. 다시 한 번 문의 내용을 알려주세요.");
     }
@@ -95,7 +96,7 @@ public class WorkflowAssistantTools {
       return stateService
           .updateSlot(new UpdateAssistantSlotCommand(sessionId(toolContext), slotCode, value))
           .state();
-    } catch (RuntimeException e) {
+    } catch (BusinessException | IllegalArgumentException e) {
       logToolFailure("update_slot", e);
       return AssistantConversationState.error("입력해주신 정보를 저장할 수 없습니다. 필요한 정보를 다시 확인해 주세요.");
     }
