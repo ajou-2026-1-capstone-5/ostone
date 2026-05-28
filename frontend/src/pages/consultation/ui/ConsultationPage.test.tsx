@@ -103,6 +103,19 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         assignedCounselorId: null,
       }),
     ),
+    getMetrics: vi.fn(() =>
+      Promise.resolve({
+        workspaceId: 2,
+        periodStart: "2026-05-27T00:00:00+09:00",
+        periodEnd: "2026-05-28T00:00:00+09:00",
+        averageFirstResponseSeconds: 134,
+        averageLlmFirstResponseSeconds: 3,
+        averageHumanFirstResponseSeconds: 420,
+        handledTodayCount: 14,
+        llmHandledTodayCount: 9,
+        humanHandledTodayCount: 5,
+      }),
+    ),
     sendMessage: vi.fn((_sessionId: number, content: string, isNote = false) =>
       Promise.resolve({
         id: 200,
@@ -150,6 +163,101 @@ describe("ConsultationPage", () => {
     window.localStorage.clear();
   });
 
+  const getLatestTopbarNode = () => {
+    const node = [...shellContext.setTopbarRight.mock.calls]
+      .reverse()
+      .find(([value]) => value !== undefined)?.[0];
+    if (!node) {
+      throw new Error("Topbar node was not set");
+    }
+    return node as React.ReactElement<{
+      metricsViewState?: "loading" | "error" | "empty" | "ready";
+      averageFirstResponseSeconds?: number | null;
+      handledTodayCount?: number | null;
+    }>;
+  };
+
+  const renderLatestTopbar = () => {
+    const node = getLatestTopbarNode();
+    return render(<>{node}</>);
+  };
+
+  it("loads consultation metrics and renders the topbar values", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(consultationApi.getMetrics).toHaveBeenCalledWith(2);
+    });
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.averageFirstResponseSeconds).toBe(134);
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getByText("2분 14초")).toBeInTheDocument();
+    expect(topbar.getByText("14건")).toBeInTheDocument();
+    topbar.unmount();
+  });
+
+  it("renders metric loading state while the request is pending", async () => {
+    vi.mocked(consultationApi.getMetrics).mockImplementationOnce(() => new Promise(() => {}));
+
+    const { unmount } = render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("loading");
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getAllByText("로딩중")).toHaveLength(2);
+    topbar.unmount();
+    unmount();
+  });
+
+  it("renders metric fallbacks when average value is null", async () => {
+    vi.mocked(consultationApi.getMetrics).mockResolvedValueOnce({
+      workspaceId: 2,
+      periodStart: "2026-05-27T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      averageFirstResponseSeconds: null,
+      averageLlmFirstResponseSeconds: null,
+      averageHumanFirstResponseSeconds: null,
+      handledTodayCount: 0,
+      llmHandledTodayCount: 0,
+      humanHandledTodayCount: 0,
+    });
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(consultationApi.getMetrics).toHaveBeenCalledWith(2);
+    });
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.handledTodayCount).toBe(0);
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getByText("--")).toBeInTheDocument();
+    expect(topbar.getByText("0건")).toBeInTheDocument();
+    topbar.unmount();
+  });
+
+  it("renders metric error state and shows a toast once when metrics fail", async () => {
+    vi.mocked(consultationApi.getMetrics).mockRejectedValueOnce(new Error("Metrics failed"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("상담 지표를 불러오지 못했습니다.");
+    });
+    expect(toast.error).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("error");
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getAllByText("오류")).toHaveLength(2);
+    topbar.unmount();
+  });
+
   it("renders 3-pane structure with QueuePanel, ChatPanel, and CustomerPanel", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
@@ -181,6 +289,14 @@ describe("ConsultationPage", () => {
       expect.stringContaining("consultation.queue"),
       expect.any(Function),
     );
+    expect(consultationApi.getMetrics).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("empty");
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getAllByText("--")).toHaveLength(2);
+    topbar.unmount();
   });
 
   it("updates queue items from workspace queue upsert events", async () => {

@@ -19,6 +19,18 @@ export interface ConsultationQueueEvent {
   occurredAt?: string;
 }
 
+export interface ConsultationMetrics {
+  workspaceId: number;
+  periodStart: string;
+  periodEnd: string;
+  averageFirstResponseSeconds: number | null;
+  averageLlmFirstResponseSeconds: number | null;
+  averageHumanFirstResponseSeconds: number | null;
+  handledTodayCount: number;
+  llmHandledTodayCount: number;
+  humanHandledTodayCount: number;
+}
+
 type SessionListResponse =
   | ChatSession[]
   | { data?: ChatSession[] | { content?: ChatSession[] }; content?: ChatSession[] };
@@ -95,5 +107,13 @@ export const consultationApi = {
       { method: "POST" },
     );
     return unwrapApiResponse<ChatSession>(response);
+  },
+
+  getMetrics: async (workspaceId: number): Promise<ConsultationMetrics> => {
+    const response = await customFetch<ConsultationMetrics | { data?: ConsultationMetrics }>(
+      `/api/v1/workspaces/${workspaceId}/consultation/metrics`,
+      { method: "GET" },
+    );
+    return unwrapApiResponse<ConsultationMetrics>(response);
   },
 };

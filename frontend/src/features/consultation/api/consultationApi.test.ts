@@ -298,4 +298,31 @@ describe("consultationApi", () => {
     );
     expect(result).toEqual(stubSession);
   });
+
+  it("getMetrics가 워크스페이스 상담 지표를 반환한다", async () => {
+    const stubMetrics = {
+      workspaceId: 2,
+      periodStart: "2026-05-27T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      averageFirstResponseSeconds: 134,
+      averageLlmFirstResponseSeconds: 3,
+      averageHumanFirstResponseSeconds: 420,
+      handledTodayCount: 14,
+      llmHandledTodayCount: 9,
+      humanHandledTodayCount: 5,
+    };
+    mockedCustomFetch.mockResolvedValue({
+      data: stubMetrics,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getMetrics(2);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/consultation/metrics",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubMetrics);
+  });
 });
