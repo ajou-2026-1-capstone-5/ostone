@@ -259,6 +259,52 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubMessages);
   });
 
+  it("getMessages가 params와 함께 호출되면 plain array 응답도 반환한다", async () => {
+    const stubMessages: ChatMessageResponse[] = [
+      {
+        id: 1,
+        seqNo: 1,
+        senderRole: "AGENT",
+        messageType: "TEXT",
+        content: "plain",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    mockedCustomFetch.mockResolvedValue(stubMessages);
+
+    const result = await consultationApi.getMessages(1, { page: 0, size: 10 });
+
+    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=0&size=10",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubMessages);
+  });
+
+  it("getMessages가 params와 함께 호출되면 paged content 응답도 반환한다", async () => {
+    const stubMessages: ChatMessageResponse[] = [
+      {
+        id: 1,
+        seqNo: 1,
+        senderRole: "AGENT",
+        messageType: "TEXT",
+        content: "content",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    mockedCustomFetch.mockResolvedValue({ content: stubMessages, page: 0, size: 10 });
+
+    const result = await consultationApi.getMessages(1, { page: 0, size: 10 });
+
+    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=0&size=10",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubMessages);
+  });
+
   it("assignSession이 상담사 ID와 함께 assign API를 호출한다", async () => {
     const stubSession = {
       id: 1,

@@ -35,8 +35,18 @@ type SessionListResponse =
   | ChatSession[]
   | { data?: ChatSession[] | { content?: ChatSession[] }; content?: ChatSession[] };
 
+type MessageListResponse =
+  | ChatMessage[]
+  | { data?: ChatMessage[] | { content?: ChatMessage[] }; content?: ChatMessage[] };
+
 function unwrapSessionList(response: SessionListResponse): ChatSession[] {
   const unwrapped = unwrapApiResponse<ChatSession[] | { content?: ChatSession[] }>(response);
+  if (Array.isArray(unwrapped)) return unwrapped;
+  return unwrapped?.content ?? [];
+}
+
+function unwrapMessageList(response: MessageListResponse): ChatMessage[] {
+  const unwrapped = unwrapApiResponse<ChatMessage[] | { content?: ChatMessage[] }>(response);
   if (Array.isArray(unwrapped)) return unwrapped;
   return unwrapped?.content ?? [];
 }
@@ -77,8 +87,8 @@ export const consultationApi = {
     if (params.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     const url = `${getGetMessagesUrl(sessionId)}${query ? `?${query}` : ""}`;
-    const response = await customFetch<ChatMessage[] | { data?: ChatMessage[] }>(url, { method: "GET" });
-    return unwrapApiResponse<ChatMessage[]>(response) ?? [];
+    const response = await customFetch<MessageListResponse>(url, { method: "GET" });
+    return unwrapMessageList(response);
   },
 
   sendMessage: async (

@@ -103,8 +103,11 @@ const toQueueCustomer = (
   previous?: QueueCustomer,
 ): QueueCustomer => {
   const meta = parseSessionMeta(session.metaJson);
-  const assignedCounselorId = session.assignedCounselorId ?? previous?.assignedCounselorId ?? null;
-  const status = session.status ?? previous?.status ?? null;
+  const assignedCounselorId =
+    session.assignedCounselorId !== undefined
+      ? session.assignedCounselorId
+      : (previous?.assignedCounselorId ?? null);
+  const status = session.status !== undefined ? session.status : (previous?.status ?? null);
   const startedAt = session.startedAt ?? previous?.startedAt ?? null;
 
   return {
@@ -206,10 +209,9 @@ export const ConsultationPage: React.FC = () => {
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [memos, setMemos] = useState<Record<string, string>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [isSending, setIsSending] = useState(false);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
-  const { connectionStatus, subscribe } = useStomp();
+  const { connectionStatus, subscribe, sendTo } = useStomp();
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
@@ -432,7 +434,7 @@ export const ConsultationPage: React.FC = () => {
     const topic = `/topic/chat.${activeCustomerId}`;
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
-      if (msg.senderRole === "COUNSELOR") {
+      if (msg.senderRole === "COUNSELOR" || msg.senderRole === "NOTE") {
         setMessagesCustomerId(activeCustomerId);
         setMessages((prev) => {
           const temps = [...pendingIdsRef.current];
@@ -483,8 +485,7 @@ export const ConsultationPage: React.FC = () => {
           ),
         );
         toast.success("상담 세션이 배정되었습니다.");
-      } catch (error) {
-        console.error("Failed to assign session:", error);
+      } catch {
         toast.error("상담 세션 배정에 실패했습니다.");
       }
     },
@@ -492,13 +493,17 @@ export const ConsultationPage: React.FC = () => {
   );
 
   const handleSendMessage = useCallback(
-    async (content: string, isNote: boolean) => {
-      if (!activeCustomerId || isSending) return;
+    (content: string, isNote: boolean) => {
+      if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
+      if (connectionStatus !== "CONNECTED") {
+        toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
       const targetId = activeCustomerId;
 
       const optimisticMsg: UiChatMessage = {
         id: `temp-${Date.now()}-${++tempCounterRef.current}`,
-        senderRole: isNote ? "NOTE" : "AGENT",
+        senderRole: isNote ? "NOTE" : "COUNSELOR",
         content,
         timestamp: formatTime(new Date().toISOString()),
       };
@@ -507,27 +512,17 @@ export const ConsultationPage: React.FC = () => {
       pendingIdsRef.current.add(optimisticMsg.id);
       setSelectedMessageId(null);
 
-      setIsSending(true);
-      try {
-        const savedMessage = await consultationApi.sendMessage(Number(targetId), content, isNote);
-        pendingIdsRef.current.delete(optimisticMsg.id);
-        setMessages((prev) =>
-          prev.map((message) => (message.id === optimisticMsg.id ? toUiMessage(savedMessage) : message)),
-        );
-      } catch (error) {
-        pendingIdsRef.current.delete(optimisticMsg.id);
-        setMessages((prev) => prev.filter((message) => message.id !== optimisticMsg.id));
-        console.error("Failed to send counselor message:", error);
-        toast.error("메시지를 전송하지 못했습니다.");
-      } finally {
-        setIsSending(false);
-      }
+      sendTo("/app/chat.counselor.send", {
+        sessionId: Number(targetId),
+        content,
+        isNote,
+      });
     },
-    [activeCustomerId, isSending],
+    [activeCustomerId, connectionStatus, isAssignedToCurrentCounselor, sendTo],
   );
 
   const handleEndSession = async () => {
-    if (!activeCustomerId) return;
+    if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
     const endedSessionId = activeCustomerId;
     try {
       await consultationApi.updateStatus(Number(endedSessionId), "COMPLETED");
@@ -540,7 +535,7 @@ export const ConsultationPage: React.FC = () => {
   };
 
   const handleReleaseAssignment = async () => {
-    if (!activeCustomerId || !currentCounselorId) return;
+    if (!activeCustomerId || !currentCounselorId || !isAssignedToCurrentCounselor) return;
     const releasedSessionId = activeCustomerId;
 
     try {
@@ -565,26 +560,30 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
-  const handleSaveMemo = useCallback(async () => {
-    if (!activeCustomerId || isSending) return;
+  const handleSaveMemo = useCallback(() => {
+    if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
 
+    const requestCustomerId = activeCustomerId;
     const memo = (memos[activeCustomerId] ?? "").trim();
     if (!memo) return;
 
-    setIsSending(true);
-    try {
-      const savedMessage = await consultationApi.sendMessage(Number(activeCustomerId), memo, true);
-      setMessages((prev) => [...prev, toUiMessage(savedMessage)]);
-      setMessagesCustomerId(activeCustomerId);
-      setMemos((prev) => ({ ...prev, [activeCustomerId]: "" }));
-      toast.success("상담 메모가 저장되었습니다.");
-    } catch (error) {
-      console.error("Failed to save memo:", error);
-      toast.error("상담 메모를 저장하지 못했습니다.");
-    } finally {
-      setIsSending(false);
+    if (connectionStatus !== "CONNECTED") {
+      toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+      return;
     }
-  }, [activeCustomerId, isSending, memos]);
+
+    if (activeCustomerIdRef.current === requestCustomerId) {
+      handleSendMessage(memo, true);
+      setMemos((prev) => ({ ...prev, [requestCustomerId]: "" }));
+      toast.success("상담 메모 저장 요청을 전송했습니다.");
+    }
+  }, [
+    activeCustomerId,
+    connectionStatus,
+    handleSendMessage,
+    isAssignedToCurrentCounselor,
+    memos,
+  ]);
 
   return (
     <div className={styles.consultationRoot}>
@@ -621,7 +620,11 @@ export const ConsultationPage: React.FC = () => {
               >
                 배정 해제
               </button>
-              <button onClick={handleEndSession} className={styles.dangerButton}>
+              <button
+                onClick={handleEndSession}
+                className={styles.dangerButton}
+                disabled={!isAssignedToCurrentCounselor}
+              >
                 상담 종료
               </button>
             </div>
@@ -637,7 +640,7 @@ export const ConsultationPage: React.FC = () => {
             selectedMessageId={selectedMessageId}
             onSelectMessage={setSelectedMessageId}
             sessionStatusLabel={activeStatusLabel}
-            disabled={isSending}
+            disabled={!isAssignedToCurrentCounselor}
           />
         </div>
       </div>
@@ -662,8 +665,7 @@ export const ConsultationPage: React.FC = () => {
                 setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
               }
             }}
-            onMemoSave={handleSaveMemo}
-            isMemoSaving={isSending}
+            onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
           />
         )}
       </div>
