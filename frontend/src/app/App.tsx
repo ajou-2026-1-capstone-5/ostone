@@ -34,10 +34,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordResetInitPage />} />
-        <Route
-          path="/password-reset/complete"
-          element={<PasswordResetCompletePage />}
-        />
+        <Route path="/password-reset/complete" element={<PasswordResetCompletePage />} />
         <Route
           path="/workspaces"
           element={
@@ -60,17 +57,11 @@ export function App() {
           <Route path="consultation/history" element={<ChatHistoryPage />} />
           <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
           <Route path="consultation" element={<ConsultationPage />} />
-          <Route
-            path="consultation/:sessionId"
-            element={<ConsultationPage />}
-          />
+          <Route path="consultation/:sessionId" element={<ConsultationPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
-        <Route
-          path="/demo/workspaces/:workspaceId/chat"
-          element={<UserChatPage />}
-        />
+        <Route path="/demo/workspaces/:workspaceId/chat" element={<UserChatPage />} />
         <Route
           path="/upload"
           element={

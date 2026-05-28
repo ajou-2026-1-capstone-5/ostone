@@ -35,9 +35,7 @@ export function IntentTreePanel({
       <header className={styles.header}>
         <span className={styles.headerTitle}>Intents</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready"
-            ? `${state.data.length} · TREE`
-            : "— · TREE"}
+          {state.status === "ready" ? `${state.data.length} · TREE` : "— · TREE"}
         </span>
       </header>
 

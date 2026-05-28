@@ -1,4 +1,13 @@
-import { Dot, EmptyState, ErrorState, Eyebrow, Icon, LoadingSpinner, Mono, Pill } from "@/shared/ui/ostone/atoms";
+import {
+  Dot,
+  EmptyState,
+  ErrorState,
+  Eyebrow,
+  Icon,
+  LoadingSpinner,
+  Mono,
+  Pill,
+} from "@/shared/ui/ostone/atoms";
 import type { ChatMessage } from "../../api/consultationApi";
 import { useChatMessages } from "../../api/chatHistoryApi";
 import { getChatRolePresentation, isCounselorLikeRole } from "../../lib/chatRoleLabels";
@@ -35,8 +44,12 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   }
 
   return (
-    <article className={`${styles.messageRow} ${isCounselor ? styles.counselorRow : styles.customerRow}`}>
-      <div className={`${styles.bubble} ${isCounselor ? styles.counselorBubble : styles.customerBubble}`}>
+    <article
+      className={`${styles.messageRow} ${isCounselor ? styles.counselorRow : styles.customerRow}`}
+    >
+      <div
+        className={`${styles.bubble} ${isCounselor ? styles.counselorBubble : styles.customerBubble}`}
+      >
         <div className={styles.metaLine}>
           <span className={styles.roleLabel}>{role.label}</span>
           <Pill tone={isCounselor ? "signal" : "mute"}>{message.messageType ?? "TEXT"}</Pill>
@@ -50,7 +63,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 export function MessageHistory({ sessionId }: MessageHistoryProps) {
   const activeSessionId = sessionId ?? "";
-  const { data: messages = [], isLoading, isError, error, refetch } = useChatMessages(activeSessionId);
+  const {
+    data: messages = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useChatMessages(activeSessionId);
 
   if (!activeSessionId) {
     return (

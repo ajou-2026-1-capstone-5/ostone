@@ -35,13 +35,7 @@ export function MatchedWorkflowSection({
 
   const openWorkflow = (entry: WorkspaceWorkflowEntry) => {
     navigate(
-      domainPackSectionPath(
-        wsId,
-        entry.packId,
-        entry.versionId,
-        "workflows",
-        entry.workflowId,
-      ),
+      domainPackSectionPath(wsId, entry.packId, entry.versionId, "workflows", entry.workflowId),
       {
         state: { workflowReturnTo: `${location.pathname}${location.search}` },
       },
@@ -60,43 +54,29 @@ export function MatchedWorkflowSection({
         <h2 id="matched-workflow-section-title" className={styles.title}>
           매칭된 워크플로우
         </h2>
-        <Mono className={styles.count}>
-          {loading ? "loading…" : `${entries.length} ITEMS`}
-        </Mono>
+        <Mono className={styles.count}>{loading ? "loading…" : `${entries.length} ITEMS`}</Mono>
       </header>
 
       {loading && (
-        <div
-          className={styles.placeholder}
-          data-testid="matched-workflow-section-loading"
-        >
+        <div className={styles.placeholder} data-testid="matched-workflow-section-loading">
           <Mono>워크플로우 조회 중…</Mono>
         </div>
       )}
 
       {!loading && error && (
-        <div
-          className={styles.placeholder}
-          data-testid="matched-workflow-section-error"
-        >
+        <div className={styles.placeholder} data-testid="matched-workflow-section-error">
           <Mono>{error}</Mono>
         </div>
       )}
 
       {!loading && !error && entries.length === 0 && (
-        <div
-          className={styles.placeholder}
-          data-testid="matched-workflow-section-empty"
-        >
+        <div className={styles.placeholder} data-testid="matched-workflow-section-empty">
           <Mono>이 인텐트에 매칭된 워크플로우가 없습니다.</Mono>
         </div>
       )}
 
       {!loading && !error && entries.length > 0 && (
-        <div
-          className={styles.list}
-          data-testid="matched-workflow-section-list"
-        >
+        <div className={styles.list} data-testid="matched-workflow-section-list">
           {entries.map((entry) => (
             <WorkflowRow
               key={entry.workflowId}

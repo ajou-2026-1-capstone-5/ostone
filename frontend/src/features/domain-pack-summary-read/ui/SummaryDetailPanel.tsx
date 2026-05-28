@@ -27,11 +27,7 @@ interface SummaryDetailPanelProps {
   onDeploy?: (versionId: number) => void;
   onApplyDraft?: (versionId: number) => void;
   onDiscardDraft?: (versionId: number) => void;
-  renderSlotEditSheet?: (
-    slotId: number,
-    isOpen: boolean,
-    onClose: () => void,
-  ) => React.ReactNode;
+  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
 export function SummaryDetailPanel({
@@ -58,23 +54,11 @@ export function SummaryDetailPanel({
   const isDiscarding = versionId != null && versionId === discardingVersionId;
   const isDraftVersion = v?.lifecycleStatus === "DRAFT";
   const canDeploy =
-    onDeploy != null &&
-    versionId != null &&
-    !isCurrentVersion &&
-    !isDeploying &&
-    !isDraftVersion;
+    onDeploy != null && versionId != null && !isCurrentVersion && !isDeploying && !isDraftVersion;
   const canApplyDraft =
-    onApplyDraft != null &&
-    versionId != null &&
-    isDraftVersion &&
-    !isApplying &&
-    !isDiscarding;
+    onApplyDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
   const canDiscardDraft =
-    onDiscardDraft != null &&
-    versionId != null &&
-    isDraftVersion &&
-    !isApplying &&
-    !isDiscarding;
+    onDiscardDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
 
   const handleConfirmDeploy = () => {
     if (!canDeploy) return;
@@ -104,37 +88,20 @@ export function SummaryDetailPanel({
     return (
       <div className={styles.panel}>
         <div className={styles.skeleton} aria-label="로딩 중">
-          <div
-            className={styles.skeletonBlock}
-            style={{ height: 80 }}
-            aria-hidden
-          />
-          <div
-            className={styles.skeletonBlock}
-            style={{ height: 160 }}
-            aria-hidden
-          />
-          <div
-            className={styles.skeletonBlock}
-            style={{ height: 200 }}
-            aria-hidden
-          />
+          <div className={styles.skeletonBlock} style={{ height: 80 }} aria-hidden />
+          <div className={styles.skeletonBlock} style={{ height: 160 }} aria-hidden />
+          <div className={styles.skeletonBlock} style={{ height: 200 }} aria-hidden />
         </div>
       </div>
     );
   }
 
   if (query.isError) {
-    const is404 =
-      query.error instanceof ApiRequestError && query.error.status === 404;
+    const is404 = query.error instanceof ApiRequestError && query.error.status === 404;
     return (
       <div className={styles.panel}>
         <ErrorState
-          message={
-            is404
-              ? "버전을 찾을 수 없습니다."
-              : "버전 정보를 불러오지 못했습니다."
-          }
+          message={is404 ? "버전을 찾을 수 없습니다." : "버전 정보를 불러오지 못했습니다."}
           onRetry={!is404 ? () => query.refetch() : undefined}
         />
       </div>
@@ -158,22 +125,16 @@ export function SummaryDetailPanel({
                 {v.lifecycleStatus}
               </span>
               {isCurrentVersion && (
-                <span className={`${styles.badge} ${styles.badgeOperating}`}>
-                  배포중
-                </span>
+                <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
               )}
             </div>
           </div>
           <div className={styles.metaGrid}>
             <span className={styles.metaKey}>생성</span>
-            <span className={styles.metaValue}>
-              {formatDate(v.createdAt ?? "")}
-            </span>
+            <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
           </div>
         </div>
-        {isDraftVersion &&
-        versionId != null &&
-        (onApplyDraft || onDiscardDraft) ? (
+        {isDraftVersion && versionId != null && (onApplyDraft || onDiscardDraft) ? (
           <div className={styles.deployActions}>
             {onDiscardDraft && (
               <button
@@ -210,11 +171,7 @@ export function SummaryDetailPanel({
                 if (canDeploy) setDeployDialogOpen(true);
               }}
             >
-              {isCurrentVersion
-                ? "배포중"
-                : isDeploying
-                  ? "배포 중..."
-                  : "배포"}
+              {isCurrentVersion ? "배포중" : isDeploying ? "배포 중..." : "배포"}
             </button>
           </div>
         ) : null}
@@ -231,8 +188,7 @@ export function SummaryDetailPanel({
             이 버전을 배포할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로
-            전환됩니다.
+            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로 전환됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button

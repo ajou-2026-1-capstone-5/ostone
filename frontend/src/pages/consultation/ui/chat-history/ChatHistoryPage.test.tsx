@@ -1,8 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useChatMessages, useChatSessions } from "../../../../features/consultation/api/chatHistoryApi";
-import type { ChatMessage, ChatSession } from "../../../../features/consultation/api/consultationApi";
+import {
+  useChatMessages,
+  useChatSessions,
+} from "../../../../features/consultation/api/chatHistoryApi";
+import type {
+  ChatMessage,
+  ChatSession,
+} from "../../../../features/consultation/api/consultationApi";
 import { ChatHistoryPage } from "./ChatHistoryPage";
 
 vi.mock("../../../../features/consultation/api/chatHistoryApi", () => ({
@@ -23,23 +29,25 @@ type MockChatMessagesResult = Pick<
   "data" | "isLoading" | "isError" | "error" | "refetch"
 >;
 
-const makeSessionsResult = (overrides?: Partial<MockChatSessionsResult>) => ({
-  data: [makeSession(7)],
-  isLoading: false,
-  isError: false,
-  error: null,
-  refetch: vi.fn(),
-  ...overrides,
-}) as ReturnType<typeof useChatSessions>;
+const makeSessionsResult = (overrides?: Partial<MockChatSessionsResult>) =>
+  ({
+    data: [makeSession(7)],
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    ...overrides,
+  }) as ReturnType<typeof useChatSessions>;
 
-const makeMessagesResult = (overrides?: Partial<MockChatMessagesResult>) => ({
-  data: [],
-  isLoading: false,
-  isError: false,
-  error: null,
-  refetch: vi.fn(),
-  ...overrides,
-}) as ReturnType<typeof useChatMessages>;
+const makeMessagesResult = (overrides?: Partial<MockChatMessagesResult>) =>
+  ({
+    data: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    ...overrides,
+  }) as ReturnType<typeof useChatMessages>;
 
 function makeSession(id: number): ChatSession {
   return {
@@ -68,7 +76,10 @@ function renderPage(path = "/workspaces/workspace-1/consultation/history") {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/workspaces/:workspaceId/consultation/history" element={<ChatHistoryPage />} />
-        <Route path="/workspaces/:workspaceId/consultation/history/:sessionId" element={<ChatHistoryPage />} />
+        <Route
+          path="/workspaces/:workspaceId/consultation/history/:sessionId"
+          element={<ChatHistoryPage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -107,12 +118,16 @@ describe("ChatHistoryPage", () => {
     expect(screen.getByText("고객")).toBeTruthy();
     expect(screen.getByText("환불 문의 드립니다")).toBeTruthy();
     expect(screen.getByText("TEXT")).toBeTruthy();
-    expect(screen.getByText(new Date("2026-05-22T09:10:00+09:00").toLocaleString("ko-KR"))).toBeTruthy();
+    expect(
+      screen.getByText(new Date("2026-05-22T09:10:00+09:00").toLocaleString("ko-KR")),
+    ).toBeTruthy();
   });
 
   it("상담사 메시지는 상담사 역할로 표시한다", () => {
     mockedUseChatMessages.mockReturnValue(
-      makeMessagesResult({ data: [makeMessage({ senderRole: "AGENT", content: "처리해드리겠습니다" })] }),
+      makeMessagesResult({
+        data: [makeMessage({ senderRole: "AGENT", content: "처리해드리겠습니다" })],
+      }),
     );
 
     renderPage();

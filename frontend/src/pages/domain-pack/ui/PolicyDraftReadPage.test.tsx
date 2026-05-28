@@ -78,10 +78,9 @@ describe("PolicyDraftReadPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "select policy" }));
 
-    expect(navigate).toHaveBeenCalledWith(
-      "/workspaces/1/domain-packs/7/policies/4?versionId=101",
-      { replace: true },
-    );
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/policies/4?versionId=101", {
+      replace: true,
+    });
   });
 
   it("잘못된 URL 파라미터면 alert를 표시한다", () => {

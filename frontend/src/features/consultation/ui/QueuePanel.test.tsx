@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueuePanel } from "./QueuePanel";
 
-const makeCustomer = (id: string, extra?: Partial<Parameters<typeof QueuePanel>[0]["customers"][0]>) => ({
+const makeCustomer = (
+  id: string,
+  extra?: Partial<Parameters<typeof QueuePanel>[0]["customers"][0]>,
+) => ({
   id,
   name: `고객${id}`,
   channel: "CHAT",
@@ -96,7 +99,11 @@ describe("QueuePanel", () => {
   it("클릭하면 onSelectCustomer가 호출된다", () => {
     const onSelect = vi.fn();
     render(
-      <QueuePanel customers={[makeCustomer("42")]} activeCustomerId={null} onSelectCustomer={onSelect} />,
+      <QueuePanel
+        customers={[makeCustomer("42")]}
+        activeCustomerId={null}
+        onSelectCustomer={onSelect}
+      />,
     );
     fireEvent.click(screen.getByRole("button"));
     expect(onSelect).toHaveBeenCalledWith("42");
@@ -105,7 +112,11 @@ describe("QueuePanel", () => {
   it("Enter 키로 onSelectCustomer가 호출된다", () => {
     const onSelect = vi.fn();
     render(
-      <QueuePanel customers={[makeCustomer("5")]} activeCustomerId={null} onSelectCustomer={onSelect} />,
+      <QueuePanel
+        customers={[makeCustomer("5")]}
+        activeCustomerId={null}
+        onSelectCustomer={onSelect}
+      />,
     );
     fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
     expect(onSelect).toHaveBeenCalledWith("5");
@@ -114,7 +125,11 @@ describe("QueuePanel", () => {
   it("스페이스 키로 onSelectCustomer가 호출된다", () => {
     const onSelect = vi.fn();
     render(
-      <QueuePanel customers={[makeCustomer("7")]} activeCustomerId={null} onSelectCustomer={onSelect} />,
+      <QueuePanel
+        customers={[makeCustomer("7")]}
+        activeCustomerId={null}
+        onSelectCustomer={onSelect}
+      />,
     );
     fireEvent.keyDown(screen.getByRole("button"), { key: " " });
     expect(onSelect).toHaveBeenCalledWith("7");
@@ -123,7 +138,11 @@ describe("QueuePanel", () => {
   it("다른 키는 onSelectCustomer를 호출하지 않는다", () => {
     const onSelect = vi.fn();
     render(
-      <QueuePanel customers={[makeCustomer("8")]} activeCustomerId={null} onSelectCustomer={onSelect} />,
+      <QueuePanel
+        customers={[makeCustomer("8")]}
+        activeCustomerId={null}
+        onSelectCustomer={onSelect}
+      />,
     );
     fireEvent.keyDown(screen.getByRole("button"), { key: "Tab" });
     expect(onSelect).not.toHaveBeenCalled();

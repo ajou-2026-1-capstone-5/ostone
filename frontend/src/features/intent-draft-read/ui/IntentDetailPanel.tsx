@@ -31,15 +31,11 @@ export function IntentDetailPanel({
 }: IntentDetailPanelProps) {
   const state = useIntentDetail(wsId, packId, versionId, intentId, refreshKey);
   const errorCode = state.status === "error" ? state.code : undefined;
-  const errorHttpStatus =
-    state.status === "error" ? state.httpStatus : undefined;
+  const errorHttpStatus = state.status === "error" ? state.httpStatus : undefined;
   const errorMessage = state.status === "error" ? state.message : undefined;
   const parentIntentLabel =
     state.status === "ready"
-      ? resolveParentIntentLabel(
-          state.data.parentIntentId ?? null,
-          intentListState,
-        )
+      ? resolveParentIntentLabel(state.data.parentIntentId ?? null, intentListState)
       : "—";
 
   useEffect(() => {
@@ -52,16 +48,7 @@ export function IntentDetailPanel({
     toast.error(message, {
       id: `intent-detail-error-${wsId}-${packId}-${versionId}-${intentId ?? "none"}-${errorCode ?? errorHttpStatus ?? "unknown"}`,
     });
-  }, [
-    state.status,
-    wsId,
-    packId,
-    versionId,
-    intentId,
-    errorCode,
-    errorHttpStatus,
-    errorMessage,
-  ]);
+  }, [state.status, wsId, packId, versionId, intentId, errorCode, errorHttpStatus, errorMessage]);
 
   if (state.status === "idle") {
     return (
@@ -106,11 +93,7 @@ export function IntentDetailPanel({
           />
           <InfoCard
             label="Taxonomy Level"
-            value={
-              <span className={styles.value}>
-                LV {state.data.taxonomyLevel}
-              </span>
-            }
+            value={<span className={styles.value}>LV {state.data.taxonomyLevel}</span>}
           />
           <InfoCard
             label="Parent Intent"
@@ -118,36 +101,20 @@ export function IntentDetailPanel({
           />
           <InfoCard
             label="Created At"
-            value={
-              <span className={styles.value}>
-                {formatDate(state.data.createdAt ?? "")}
-              </span>
-            }
+            value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
         </div>
         {beforeJsonCards?.(state.data)}
-        <section
-          className={styles.resourceSection}
-          aria-labelledby="intent-resource-section-title"
-        >
+        <section className={styles.resourceSection} aria-labelledby="intent-resource-section-title">
           <div className={styles.resourceSectionHeader}>
-            <h2
-              id="intent-resource-section-title"
-              className={styles.resourceSectionTitle}
-            >
+            <h2 id="intent-resource-section-title" className={styles.resourceSectionTitle}>
               내부 리소스
             </h2>
             <span className={styles.resourceSectionMeta}>JSON FIELDS</span>
           </div>
           <div className={styles.resourceGrid}>
-            <JsonCard
-              label="Source Cluster Ref"
-              value={state.data.sourceClusterRef ?? ""}
-            />
-            <JsonCard
-              label="Entry Condition"
-              value={state.data.entryConditionJson ?? ""}
-            />
+            <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
+            <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
             <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
             <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
           </div>
@@ -170,13 +137,7 @@ function resolveParentIntentLabel(
   return parent?.name || parent?.intentCode || "확인 불가";
 }
 
-function DetailHeader({
-  detail,
-  actions,
-}: {
-  detail: IntentDetail;
-  actions?: ReactNode;
-}) {
+function DetailHeader({ detail, actions }: { detail: IntentDetail; actions?: ReactNode }) {
   return (
     <header className={styles.header}>
       <div className={styles.headerTop}>
@@ -185,12 +146,8 @@ function DetailHeader({
       </div>
       <div className={styles.headerText}>
         <span className={styles.name}>{detail.name ?? ""}</span>
-        {detail.description && (
-          <span className={styles.description}>{detail.description}</span>
-        )}
-        <span className={styles.updatedAt}>
-          UPDATED · {formatDate(detail.updatedAt ?? "")}
-        </span>
+        {detail.description && <span className={styles.description}>{detail.description}</span>}
+        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
     </header>
   );

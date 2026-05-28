@@ -1,15 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
-import type {
-  IntentDetail,
-  IntentListState,
-  IntentSummary,
-} from "@/entities/intent";
-import {
-  useIntentDetail,
-  type IntentDetailState,
-} from "../model/useIntentDetail";
+import type { IntentDetail, IntentListState, IntentSummary } from "@/entities/intent";
+import { useIntentDetail, type IntentDetailState } from "../model/useIntentDetail";
 import { IntentDetailPanel } from "./IntentDetailPanel";
 
 vi.mock("../model/useIntentDetail", () => ({
@@ -48,9 +41,7 @@ function readyList(data: IntentSummary[]): IntentListState {
   return { status: "ready", data };
 }
 
-function renderPanel(
-  props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {},
-) {
+function renderPanel(props: Partial<React.ComponentProps<typeof IntentDetailPanel>> = {}) {
   const defaults = {
     wsId: 1,
     packId: 2,
@@ -113,9 +104,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("parent intent id 대신 parent intent 제목을 표시한다", () => {
-    mockedUseIntentDetail.mockReturnValue(
-      readyDetail({ ...stubDetail, parentIntentId: 20 }),
-    );
+    mockedUseIntentDetail.mockReturnValue(readyDetail({ ...stubDetail, parentIntentId: 20 }));
     renderPanel({
       intentListState: readyList([
         {
@@ -133,9 +122,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("parent intent 이름이 없으면 intent code를 fallback으로 표시한다", () => {
-    mockedUseIntentDetail.mockReturnValue(
-      readyDetail({ ...stubDetail, parentIntentId: 20 }),
-    );
+    mockedUseIntentDetail.mockReturnValue(readyDetail({ ...stubDetail, parentIntentId: 20 }));
 
     renderPanel({
       intentListState: readyList([
@@ -152,9 +139,7 @@ describe("IntentDetailPanel", () => {
   });
 
   it("parent intent 목록이 loading/error이면 상태별 fallback을 표시한다", () => {
-    mockedUseIntentDetail.mockReturnValue(
-      readyDetail({ ...stubDetail, parentIntentId: 20 }),
-    );
+    mockedUseIntentDetail.mockReturnValue(readyDetail({ ...stubDetail, parentIntentId: 20 }));
     const { rerender } = render(
       <IntentDetailPanel
         wsId={1}
@@ -186,9 +171,7 @@ describe("IntentDetailPanel", () => {
 
   it("ready 상태에서 children render-prop을 호출하고 detail.data를 전달한다", () => {
     mockedUseIntentDetail.mockReturnValue(readyDetail(stubDetail));
-    const childrenFn = vi.fn((detail) => (
-      <div data-testid="children">{detail.name}</div>
-    ));
+    const childrenFn = vi.fn((detail) => <div data-testid="children">{detail.name}</div>);
 
     renderPanel({ children: childrenFn });
 

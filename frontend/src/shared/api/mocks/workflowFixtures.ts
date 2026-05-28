@@ -295,7 +295,7 @@ function workflowSummary(wf: MockWorkflow) {
     name: wf.name,
     description: wf.description,
     initialState: "start",
-    terminalStatesJson: "[\"end\"]",
+    terminalStatesJson: '["end"]',
     createdAt: NOW,
     updatedAt: NOW,
   };
@@ -309,7 +309,7 @@ function workflowDetail(wf: MockWorkflow) {
     description: wf.description,
     graphJson: wf.graphJson,
     initialState: "start",
-    terminalStatesJson: "[\"end\"]",
+    terminalStatesJson: '["end"]',
     evidenceJson: "[]",
     metaJson: "{}",
     createdAt: NOW,

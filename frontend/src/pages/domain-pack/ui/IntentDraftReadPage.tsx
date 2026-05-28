@@ -44,12 +44,7 @@ export function IntentDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const iId = intentId ? parseRouteId(intentId) : null;
 
-  if (
-    wsId === null ||
-    pId === null ||
-    vId === null ||
-    (intentId !== undefined && iId === null)
-  ) {
+  if (wsId === null || pId === null || vId === null || (intentId !== undefined && iId === null)) {
     return (
       <OstoneShell active="domain" crumbs={[]}>
         <div className={styles.invalidParams} role="alert">
@@ -74,16 +69,10 @@ function IntentDraftReadContent({
   iId: number | null;
 }) {
   const controller = useIntentDraftReadController({ wsId, pId, vId, iId });
-  const intentListState = useIntentList(
-    wsId,
-    pId,
-    vId,
-    controller.listRefreshKey,
-  );
+  const intentListState = useIntentList(wsId, pId, vId, controller.listRefreshKey);
   const packDetail = usePackDetail(wsId, pId).data;
   const packName = packDetail?.name ?? `PACK · ${pId}`;
-  const versionNo =
-    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId;
+  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId;
 
   const versionLabel = getVersionLabel({
     lifecycleStatus: controller.versionDetail?.lifecycleStatus,
@@ -118,13 +107,9 @@ function IntentDraftReadContent({
       <Pill tone={versionLabelTone(versionLabel)}>{versionLabel}</Pill>
       {controller.isRevisionDraft && (
         <IntentRevisionDraftActions
-          summary={
-            summaryState.status === "ready" ? summaryState.data : undefined
-          }
+          summary={summaryState.status === "ready" ? summaryState.data : undefined}
           isSummaryLoading={summaryState.status === "loading"}
-          summaryError={
-            summaryState.status === "error" ? summaryState.message : null
-          }
+          summaryError={summaryState.status === "error" ? summaryState.message : null}
           isPending={controller.isMutationPending}
           onRetrySummary={controller.retrySummary}
         />
@@ -172,9 +157,7 @@ function IntentDraftTwoPane({
   intentListState: IntentListState;
 }) {
   return (
-    <div
-      className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}
-    >
+    <div className={`${styles.twoPane} ${hasSelection ? styles.hasSelection : ""}`}>
       <div className={styles.listSlot}>
         <IntentTreePanel
           intentListState={intentListState}
@@ -214,24 +197,16 @@ function IntentDetailSlot({
     intentId: number;
     versionId: number;
   } | null>(null);
-  const isEditingIntent =
-    editingTarget?.intentId === iId && editingTarget.versionId === vId;
+  const isEditingIntent = editingTarget?.intentId === iId && editingTarget.versionId === vId;
   const setEditingIntent = useCallback(
     (next: boolean) => {
-      setEditingTarget(
-        next && iId !== null ? { intentId: iId, versionId: vId } : null,
-      );
+      setEditingTarget(next && iId !== null ? { intentId: iId, versionId: vId } : null);
     },
     [iId, vId],
   );
 
   const renderMatchedWorkflows = (detail: IntentDetail) => (
-    <MatchedWorkflowSection
-      wsId={wsId}
-      packId={pId}
-      versionId={vId}
-      intentId={detail.id ?? null}
-    />
+    <MatchedWorkflowSection wsId={wsId} packId={pId} versionId={vId} intentId={detail.id ?? null} />
   );
 
   if (iId === null) {
@@ -292,9 +267,7 @@ function IntentDetailSlot({
           intentCode={detail.intentCode ?? null}
           onChange={controller.setSelectedIntentCode}
         />
-        {controller.recoveryVersionId === vId ? (
-          <IntentRevisionRecoveryBanner />
-        ) : null}
+        {controller.recoveryVersionId === vId ? <IntentRevisionRecoveryBanner /> : null}
       </>
     ),
     beforeJsonCards: () =>
@@ -344,18 +317,12 @@ function IntentDetailSlot({
 
   return (
     <div className={styles.detailSlot}>
-      <IntentDetailPanel {...detailSharedProps}>
-        {renderRevisionEditor}
-      </IntentDetailPanel>
+      <IntentDetailPanel {...detailSharedProps}>{renderRevisionEditor}</IntentDetailPanel>
     </div>
   );
 }
 
-function PendingNavigationDialog({
-  controller,
-}: {
-  controller: IntentDraftController;
-}) {
+function PendingNavigationDialog({ controller }: { controller: IntentDraftController }) {
   return (
     <AlertDialog
       open={controller.pendingNavigation !== null}
@@ -383,11 +350,7 @@ function PendingNavigationDialog({
   );
 }
 
-function ExistingDraftDialog({
-  controller,
-}: {
-  controller: IntentDraftController;
-}) {
+function ExistingDraftDialog({ controller }: { controller: IntentDraftController }) {
   const target = controller.existingDraftTarget;
 
   return (
@@ -409,10 +372,7 @@ function ExistingDraftDialog({
           >
             취소
           </Button>
-          <Button
-            type="button"
-            onClick={controller.confirmExistingDraftNavigation}
-          >
+          <Button type="button" onClick={controller.confirmExistingDraftNavigation}>
             이동
           </Button>
         </AlertDialogFooter>
@@ -459,9 +419,7 @@ function getVersionLabel({
   return "확인 중";
 }
 
-function getExistingDraftDescription(
-  target: ExistingDraftTarget | null,
-): string {
+function getExistingDraftDescription(target: ExistingDraftTarget | null): string {
   return target?.sourceType === "INTENT_REVISION"
     ? "기존 Intent 수정 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요."
     : "기존 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요.";

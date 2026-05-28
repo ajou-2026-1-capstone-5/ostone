@@ -29,8 +29,7 @@ export function PackWorkflowListPage() {
     enabled: wsId !== null && pId !== null && vId !== null,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const versionNo =
-    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
 
   const query = useListWorkflows(wsId ?? 0, pId ?? 0, vId ?? 0, undefined, {
     query: { enabled },
@@ -67,7 +66,9 @@ export function PackWorkflowListPage() {
   });
 
   const handleOpen = (entry: WorkspaceWorkflowEntry) => {
-    navigate(domainPackSectionPath(wsId, entry.packId, entry.versionId, "workflows", entry.workflowId));
+    navigate(
+      domainPackSectionPath(wsId, entry.packId, entry.versionId, "workflows", entry.workflowId),
+    );
   };
 
   return (

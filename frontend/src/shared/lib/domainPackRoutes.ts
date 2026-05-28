@@ -65,7 +65,10 @@ export function domainPackSectionPath(
   childId?: number,
 ): string {
   const childPath = childId === undefined ? "" : `/${childId}`;
-  return withVersionSearch(`${domainPackPath(workspaceId, packId)}/${section}${childPath}`, versionId);
+  return withVersionSearch(
+    `${domainPackPath(workspaceId, packId)}/${section}${childPath}`,
+    versionId,
+  );
 }
 
 export function shouldReplaceDomainPackChildRoute(currentChildId: number | null): boolean {
@@ -84,5 +87,8 @@ export function domainPackSectionPathFromBase(
   childId?: number,
 ): string {
   const childPath = childId === undefined ? "" : `/${childId}`;
-  return withVersionSearch(`${domainPackPathFromBase(basePath, packId)}/${section}${childPath}`, versionId);
+  return withVersionSearch(
+    `${domainPackPathFromBase(basePath, packId)}/${section}${childPath}`,
+    versionId,
+  );
 }

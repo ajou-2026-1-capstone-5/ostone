@@ -3,6 +3,19 @@ import { useParams } from "react-router-dom";
 import { registerDemoChatSession, sendDemoChatMessage } from "@/entities/chat";
 import type { ChatMessage, DemoChatSession } from "@/entities/chat";
 import { ConnectionStatus, MessageInput, MessageList } from "@/features/user-chat";
+import { ApiRequestError } from "@/shared/api";
+
+function resolveSessionStartErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.code === "DOMAIN_PACK_CURRENT_VERSION_NOT_FOUND" || error.status === 404) {
+      return "이 워크스페이스에는 운영 중인 도메인 팩 버전이 없습니다. 관리자에게 문의해 주세요.";
+    }
+    if (error.status === 401 || error.status === 403) {
+      return "채팅을 시작할 권한이 없습니다. 다시 로그인 후 시도해 주세요.";
+    }
+  }
+  return "채팅 세션을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+}
 
 const DEMO_SESSION_STORAGE_PREFIX = "ostone:demo-chat-session";
 
@@ -48,10 +61,7 @@ function writeStoredSession(
 ): void {
   if (typeof window === "undefined") return;
 
-  window.localStorage.setItem(
-    createStorageKey(workspaceId, customerName),
-    JSON.stringify(session),
-  );
+  window.localStorage.setItem(createStorageKey(workspaceId, customerName), JSON.stringify(session));
 }
 
 async function getOrCreateStoredSession(
@@ -104,15 +114,24 @@ export function UserChatPage() {
       const nextSession = await getOrCreateStoredSession(workspaceId, nextName);
       if (requestId !== nameRequestIdRef.current) return;
       setChatState({ workspaceId, customerName: nextName, session: nextSession, error: null });
-    } catch {
+    } catch (error) {
+      console.error("Failed to start demo chat session", error);
       if (requestId !== nameRequestIdRef.current) return;
       setChatState({
         workspaceId,
         customerName: nextName,
         session: null,
-        error: "채팅 세션을 시작할 수 없습니다.",
+        error: resolveSessionStartErrorMessage(error),
       });
     }
+  };
+
+  const handleResetToNameForm = () => {
+    nameRequestIdRef.current += 1;
+    setCustomerName(null);
+    setDraftName("");
+    setNameError(null);
+    setChatState({ workspaceId: null, customerName: null, session: null, error: null });
   };
 
   const handleSendMessage = async (content: string) => {
@@ -226,8 +245,21 @@ export function UserChatPage() {
 
   if (activeChatState.error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white p-8 text-sm text-black">
-        {activeChatState.error}
+      <div
+        className="flex min-h-screen items-center justify-center bg-white p-8 text-black"
+        role="alert"
+      >
+        <div className="w-full max-w-[420px]">
+          <h1 className="text-[20px] font-medium text-black">채팅을 시작할 수 없습니다</h1>
+          <p className="mt-3 text-sm leading-relaxed text-gray-700">{activeChatState.error}</p>
+          <button
+            type="button"
+            onClick={handleResetToNameForm}
+            className="mt-6 h-12 w-full rounded-full bg-black px-5 text-sm text-white"
+          >
+            다시 시도
+          </button>
+        </div>
       </div>
     );
   }

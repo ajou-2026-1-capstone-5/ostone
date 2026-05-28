@@ -4,13 +4,7 @@ import { useParams } from "react-router-dom";
 import { useGetWorkflowDefinition } from "../api/useGetWorkflowDefinition";
 
 import { layoutDag, type LayoutNode } from "./lib/dagLayout";
-import {
-  buildEdgePath,
-  edgeLabelPoint,
-  nodeAnchor,
-  NODE_HEIGHT,
-  NODE_WIDTH,
-} from "./lib/edgePath";
+import { buildEdgePath, edgeLabelPoint, nodeAnchor, NODE_HEIGHT, NODE_WIDTH } from "./lib/edgePath";
 import { safeParseGraph, type GraphNodeType, type ParsedEdge } from "./lib/parseGraph";
 
 interface WorkflowGraphMiniProps {
@@ -26,13 +20,7 @@ function truncate(label: string, max = 10): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
 
-function NodeShape({
-  node,
-  showLabel,
-}: {
-  node: LayoutNode;
-  showLabel: boolean;
-}) {
+function NodeShape({ node, showLabel }: { node: LayoutNode; showLabel: boolean }) {
   const stroke = "var(--ink)";
   const paper = "var(--paper)";
   const ink = "var(--ink)";

@@ -18,10 +18,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   };
 
   return (
-    <div
-      className="flex gap-3 border-t border-gray-200 bg-white"
-      style={{ padding: "14px 16px" }}
-    >
+    <div className="flex gap-3 border-t border-gray-200 bg-white" style={{ padding: "14px 16px" }}>
       <input
         aria-label="메시지 입력"
         className="flex-1 rounded-full border border-gray-300 bg-white text-sm text-black outline-none transition focus:border-black focus:ring-3 focus:ring-black/10 disabled:pointer-events-none disabled:bg-gray-100 disabled:text-gray-500"

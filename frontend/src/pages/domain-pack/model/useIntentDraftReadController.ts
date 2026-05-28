@@ -2,15 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import type {
-  DomainPackDetail,
-  DomainPackVersionDetail,
-} from "@/entities/domain-pack";
+import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domain-pack";
 import type { IntentDetail } from "@/entities/intent";
-import {
-  usePackDetail,
-  useVersionDetail,
-} from "@/features/domain-pack-summary-read";
+import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import {
   domainPackSectionPath,
   shouldReplaceDomainPackChildRoute,
@@ -57,19 +51,10 @@ export function useIntentDraftReadController({
   iId,
 }: IntentDraftReadControllerParams) {
   const navigate = useNavigate();
-  const packQuery = usePackDetail(
-    wsId,
-    pId,
-  ) as UseQueryResult<DomainPackDetail>;
-  const versionQuery = useVersionDetail(
-    wsId,
-    pId,
-    vId,
-  ) as UseQueryResult<DomainPackVersionDetail>;
-  const { saveIntentRevisionDraft, isPending: isCreatingRevision } =
-    useSaveIntentRevisionDraft();
-  const { updateDraftIntent, isPending: isUpdatingDraft } =
-    useUpdateDraftIntent();
+  const packQuery = usePackDetail(wsId, pId) as UseQueryResult<DomainPackDetail>;
+  const versionQuery = useVersionDetail(wsId, pId, vId) as UseQueryResult<DomainPackVersionDetail>;
+  const { saveIntentRevisionDraft, isPending: isCreatingRevision } = useSaveIntentRevisionDraft();
+  const { updateDraftIntent, isPending: isUpdatingDraft } = useUpdateDraftIntent();
   const [detailRefreshKey, setDetailRefreshKey] = useState(0);
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [summaryRefreshKey, setSummaryRefreshKey] = useState(0);
@@ -78,33 +63,20 @@ export function useIntentDraftReadController({
     isDirty: false,
     intentId: null,
   });
-  const [pendingNavigation, setPendingNavigation] = useState<
-    (() => void) | null
-  >(null);
-  const [existingDraftTarget, setExistingDraftTarget] =
-    useState<ExistingDraftTarget | null>(null);
-  const [recoveryVersionId, setRecoveryVersionId] = useState<number | null>(
-    null,
-  );
-  const [selectedIntentCode, setSelectedIntentCode] = useState<string | null>(
-    null,
-  );
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const [existingDraftTarget, setExistingDraftTarget] = useState<ExistingDraftTarget | null>(null);
+  const [recoveryVersionId, setRecoveryVersionId] = useState<number | null>(null);
+  const [selectedIntentCode, setSelectedIntentCode] = useState<string | null>(null);
 
-  const currentPublishedVersion = useCurrentPublishedVersion(
-    packQuery.data?.versions,
-  );
+  const currentPublishedVersion = useCurrentPublishedVersion(packQuery.data?.versions);
   const versionDetail = versionQuery.data;
-  const revisionSource = parseIntentRevisionDraftSource(
-    versionDetail?.summaryJson,
-  );
+  const revisionSource = parseIntentRevisionDraftSource(versionDetail?.summaryJson);
   const isRevisionDraft =
-    versionDetail?.lifecycleStatus === "DRAFT" &&
-    revisionSource?.type === "INTENT_REVISION";
+    versionDetail?.lifecycleStatus === "DRAFT" && revisionSource?.type === "INTENT_REVISION";
   const isCurrentPublished =
     versionDetail?.lifecycleStatus === "PUBLISHED" &&
     currentPublishedVersion?.versionId === versionDetail.versionId;
-  const isGeneralDraft =
-    versionDetail?.lifecycleStatus === "DRAFT" && !isRevisionDraft;
+  const isGeneralDraft = versionDetail?.lifecycleStatus === "DRAFT" && !isRevisionDraft;
   const canEditIntent = isCurrentPublished || isRevisionDraft;
 
   const summaryState = useIntentRevisionSummary({
@@ -124,28 +96,15 @@ export function useIntentDraftReadController({
   const resetDirty = useCallback(() => {
     setDirtyState({ isDirty: false, intentId: null });
   }, []);
-  const handleDirtyChange = useCallback(
-    (isDirty: boolean, intentId: number | null) => {
-      setDirtyState({ isDirty, intentId });
-    },
-    [],
-  );
+  const handleDirtyChange = useCallback((isDirty: boolean, intentId: number | null) => {
+    setDirtyState({ isDirty, intentId });
+  }, []);
 
   useBeforeUnloadGuard(dirtyState.isDirty);
 
   const navigateToIntentRoute = useCallback(
-    (
-      versionId: number,
-      intentId: number | null,
-      options?: IntentRouteNavigationOptions,
-    ) => {
-      const path = domainPackSectionPath(
-        wsId,
-        pId,
-        versionId,
-        "intents",
-        intentId ?? undefined,
-      );
+    (versionId: number, intentId: number | null, options?: IntentRouteNavigationOptions) => {
+      const path = domainPackSectionPath(wsId, pId, versionId, "intents", intentId ?? undefined);
       if (options?.replace ?? shouldReplaceDomainPackChildRoute(iId)) {
         navigate(path, { replace: true });
         return;
@@ -166,14 +125,8 @@ export function useIntentDraftReadController({
       }
 
       try {
-        const intents = await intentRevisionDraftApi.listIntents(
-          wsId,
-          pId,
-          versionId,
-        );
-        const target = intents.find(
-          (intent) => intent.intentCode === intentCode,
-        );
+        const intents = await intentRevisionDraftApi.listIntents(wsId, pId, versionId);
+        const target = intents.find((intent) => intent.intentCode === intentCode);
         navigateToIntentRoute(versionId, target?.id ?? null, options);
       } catch {
         navigateToIntentRoute(versionId, null, options);
@@ -249,8 +202,7 @@ export function useIntentDraftReadController({
     handleDirtyChange,
     isCurrentPublished,
     isGeneralDraft,
-    isMutationPending:
-      isCreatingRevision || isUpdatingDraft || versionActionPending,
+    isMutationPending: isCreatingRevision || isUpdatingDraft || versionActionPending,
     isRevisionDraft,
     listRefreshKey,
     markers,
@@ -270,8 +222,7 @@ export function useIntentDraftReadController({
       const target = existingDraftTarget;
       setExistingDraftTarget(null);
       resetDirty();
-      if (target)
-        void navigateToIntentCode(target.versionId, target.intentCode);
+      if (target) void navigateToIntentCode(target.versionId, target.intentCode);
     },
     confirmPendingNavigation: () => {
       const next = pendingNavigation;
@@ -286,9 +237,7 @@ export function useIntentDraftReadController({
       guardNavigation(() => navigateToIntentRoute(vId, null));
     },
     handleDiscardRevisionDraftAction: () => {
-      guardNavigation(
-        () => void handleDiscardRevisionDraft(selectedIntentCode),
-      );
+      guardNavigation(() => void handleDiscardRevisionDraft(selectedIntentCode));
     },
     handleSaveRevision,
     handleSelect: (id: number) => {
@@ -298,24 +247,14 @@ export function useIntentDraftReadController({
   };
 }
 
-function useCurrentPublishedVersion(
-  versions: DomainPackDetail["versions"] | undefined,
-) {
+function useCurrentPublishedVersion(versions: DomainPackDetail["versions"] | undefined) {
   return useMemo(() => {
     return (versions ?? [])
-      .filter(
-        (version) =>
-          version.lifecycleStatus === "PUBLISHED" && version.versionId != null,
-      )
-      .reduce<NonNullable<DomainPackDetail["versions"]>[number] | null>(
-        (current, version) => {
-          if (!current) return version;
-          return (version.versionNo ?? 0) > (current.versionNo ?? 0)
-            ? version
-            : current;
-        },
-        null,
-      );
+      .filter((version) => version.lifecycleStatus === "PUBLISHED" && version.versionId != null)
+      .reduce<NonNullable<DomainPackDetail["versions"]>[number] | null>((current, version) => {
+        if (!current) return version;
+        return (version.versionNo ?? 0) > (current.versionNo ?? 0) ? version : current;
+      }, null);
   }, [versions]);
 }
 
@@ -351,9 +290,7 @@ function useResolveExistingDraftTarget({
         const resolution = resolveSingleExistingDraft(refetched.data?.versions);
 
         if (resolution.status === "invalid") {
-          toast.error(
-            "초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.",
-          );
+          toast.error("초안 상태를 확인할 수 없습니다. 목록을 새로고침해 주세요.");
           return false;
         }
 
@@ -369,9 +306,7 @@ function useResolveExistingDraftTarget({
         });
         return true;
       } catch {
-        toast.error(
-          "진행 중인 초안을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        );
+        toast.error("진행 중인 초안을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return false;
       }
     },
@@ -400,12 +335,8 @@ function useSaveRevisionHandler({
   isCurrentPublished: boolean;
   isRevisionDraft: boolean;
   packQuery: UseQueryResult<DomainPackDetail>;
-  saveIntentRevisionDraft: ReturnType<
-    typeof useSaveIntentRevisionDraft
-  >["saveIntentRevisionDraft"];
-  updateDraftIntent: ReturnType<
-    typeof useUpdateDraftIntent
-  >["updateDraftIntent"];
+  saveIntentRevisionDraft: ReturnType<typeof useSaveIntentRevisionDraft>["saveIntentRevisionDraft"];
+  updateDraftIntent: ReturnType<typeof useUpdateDraftIntent>["updateDraftIntent"];
   resetDirty: () => void;
   refreshIntentViews: () => void;
   navigateToIntentRoute: (versionId: number, intentId: number | null) => void;
@@ -413,10 +344,7 @@ function useSaveRevisionHandler({
   setRecoveryVersionId: (versionId: number | null) => void;
 }) {
   return useCallback(
-    async (
-      detail: IntentDetail,
-      values: UpdateDraftIntentBody,
-    ): Promise<boolean> => {
+    async (detail: IntentDetail, values: UpdateDraftIntentBody): Promise<boolean> => {
       if (detail.id == null || !detail.intentCode) return false;
 
       if (isCurrentPublished) {
@@ -450,12 +378,7 @@ function useSaveRevisionHandler({
         toast.success("Intent 수정 내용이 저장되었습니다.");
         return true;
       } catch (error) {
-        toast.error(
-          resolveApiErrorMessage(
-            error,
-            "Intent 수정 내용 저장에 실패했습니다.",
-          ),
-        );
+        toast.error(resolveApiErrorMessage(error, "Intent 수정 내용 저장에 실패했습니다."));
         return false;
       }
     },
@@ -496,9 +419,7 @@ async function savePublishedIntentRevision({
   detail: IntentDetail;
   values: UpdateDraftIntentBody;
   packQuery: UseQueryResult<DomainPackDetail>;
-  saveIntentRevisionDraft: ReturnType<
-    typeof useSaveIntentRevisionDraft
-  >["saveIntentRevisionDraft"];
+  saveIntentRevisionDraft: ReturnType<typeof useSaveIntentRevisionDraft>["saveIntentRevisionDraft"];
   resetDirty: () => void;
   navigateToIntentRoute: (versionId: number, intentId: number | null) => void;
   resolveExistingDraftTarget: (intentCode: string) => Promise<boolean>;
@@ -529,28 +450,18 @@ async function savePublishedIntentRevision({
     }
     return true;
   } catch (error) {
-    if (
-      error instanceof ApiRequestError &&
-      error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS"
-    ) {
+    if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {
       await resolveExistingDraftTarget(detail.intentCode!);
       return false;
     }
 
-    if (
-      error instanceof ApiRequestError &&
-      error.code === "DOMAIN_PACK_VERSION_NOT_CURRENT"
-    ) {
+    if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_VERSION_NOT_CURRENT") {
       await packQuery.refetch();
-      toast.error(
-        "현재 운영 버전이 변경되었습니다. 최신 버전에서 다시 수정해 주세요.",
-      );
+      toast.error("현재 운영 버전이 변경되었습니다. 최신 버전에서 다시 수정해 주세요.");
       return false;
     }
 
-    toast.error(
-      resolveApiErrorMessage(error, "Intent 수정 내용 저장에 실패했습니다."),
-    );
+    toast.error(resolveApiErrorMessage(error, "Intent 수정 내용 저장에 실패했습니다."));
     return false;
   }
 }
@@ -582,17 +493,12 @@ function useApplyRevisionDraftHandler({
 }) {
   return useCallback(
     async (intentCode?: string | null) => {
-      const summary =
-        summaryState.status === "ready" ? summaryState.data : null;
+      const summary = summaryState.status === "ready" ? summaryState.data : null;
       if (!summary || summary.changedIntents.length === 0) return;
 
       setVersionActionPending(true);
       try {
-        const activated = await intentRevisionDraftApi.activateVersion(
-          wsId,
-          pId,
-          vId,
-        );
+        const activated = await intentRevisionDraftApi.activateVersion(wsId, pId, vId);
         await Promise.all([packQuery.refetch(), versionQuery.refetch()]);
         refreshIntentViews();
         toast.success("Intent 수정 초안이 적용되었습니다.");
@@ -600,12 +506,7 @@ function useApplyRevisionDraftHandler({
           replace: true,
         });
       } catch (error) {
-        toast.error(
-          resolveApiErrorMessage(
-            error,
-            "Intent 수정 초안 적용에 실패했습니다.",
-          ),
-        );
+        toast.error(resolveApiErrorMessage(error, "Intent 수정 초안 적용에 실패했습니다."));
       } finally {
         setVersionActionPending(false);
       }
@@ -667,12 +568,7 @@ function useDiscardRevisionDraftHandler({
           });
         }
       } catch (error) {
-        toast.error(
-          resolveApiErrorMessage(
-            error,
-            "Intent 수정 초안 취소에 실패했습니다.",
-          ),
-        );
+        toast.error(resolveApiErrorMessage(error, "Intent 수정 초안 취소에 실패했습니다."));
       } finally {
         setVersionActionPending(false);
       }

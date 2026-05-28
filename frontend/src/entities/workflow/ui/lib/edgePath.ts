@@ -8,11 +8,7 @@ export interface EdgePoint {
 export const NODE_WIDTH = 56;
 export const NODE_HEIGHT = 26;
 
-export function nodeAnchor(
-  type: GraphNodeType,
-  center: EdgePoint,
-  toward: EdgePoint,
-): EdgePoint {
+export function nodeAnchor(type: GraphNodeType, center: EdgePoint, toward: EdgePoint): EdgePoint {
   const dx = toward.x - center.x;
   const dy = toward.y - center.y;
   const len = Math.hypot(dx, dy);

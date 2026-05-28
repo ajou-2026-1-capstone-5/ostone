@@ -15,14 +15,15 @@ type MockChatSessionsResult = Pick<
   "data" | "isLoading" | "isError" | "error" | "refetch"
 >;
 
-const makeQueryResult = (overrides?: Partial<MockChatSessionsResult>) => ({
-  data: [],
-  isLoading: false,
-  isError: false,
-  error: null,
-  refetch: vi.fn(),
-  ...overrides,
-}) as ReturnType<typeof useChatSessions>;
+const makeQueryResult = (overrides?: Partial<MockChatSessionsResult>) =>
+  ({
+    data: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    ...overrides,
+  }) as ReturnType<typeof useChatSessions>;
 
 const makeSession = (id: number, meta?: Record<string, unknown>): ChatSession => ({
   id,
@@ -102,7 +103,9 @@ describe("SessionList", () => {
     );
 
     expect(screen.getByText("카카오톡")).toBeTruthy();
-    expect(screen.getByText(new Date("2026-05-22T09:00:00+09:00").toLocaleDateString("ko-KR"))).toBeTruthy();
+    expect(
+      screen.getByText(new Date("2026-05-22T09:00:00+09:00").toLocaleDateString("ko-KR")),
+    ).toBeTruthy();
     expect(screen.getByText("메시지 3개")).toBeTruthy();
     expect(screen.getByText("배송 상태를 확인해주세요")).toBeTruthy();
   });
@@ -134,7 +137,9 @@ describe("SessionList", () => {
     const onSelect = vi.fn();
     mockedUseChatSessions.mockReturnValue(makeQueryResult({ data: [makeSession(7)] }));
 
-    render(<SessionList workspaceId="workspace-1" selectedSessionId={null} onSelectSession={onSelect} />);
+    render(
+      <SessionList workspaceId="workspace-1" selectedSessionId={null} onSelectSession={onSelect} />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 

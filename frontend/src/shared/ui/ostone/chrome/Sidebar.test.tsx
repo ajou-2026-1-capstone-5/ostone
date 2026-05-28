@@ -77,20 +77,11 @@ describe("Sidebar", () => {
   it("basePath prop을 지정하면 링크에 반영된다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
-    expect(screen.getByTitle("Consultation")).toHaveAttribute(
-      "href",
-      "/workspaces/7/consultation",
-    );
-    expect(screen.getByTitle("Chat")).toHaveAttribute(
-      "href",
-      "/demo/workspaces/7/chat",
-    );
+    expect(screen.getByTitle("Consultation")).toHaveAttribute("href", "/workspaces/7/consultation");
+    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/demo/workspaces/7/chat");
     expect(screen.getByTitle("Chat")).toHaveAttribute("target", "_blank");
     expect(screen.getByTitle("Chat")).toHaveAttribute("rel", "noopener noreferrer");
-    expect(screen.getByTitle("Domain Packs")).toHaveAttribute(
-      "href",
-      "/workspaces/7/domain-packs",
-    );
+    expect(screen.getByTitle("Domain Packs")).toHaveAttribute("href", "/workspaces/7/domain-packs");
   });
 
   it("workspaceId를 추출할 수 없으면 Chat 링크를 안전한 내부 경로로 보낸다", () => {

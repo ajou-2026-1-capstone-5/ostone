@@ -108,8 +108,7 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
                       (e.currentTarget as HTMLAnchorElement).style.color = ink;
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.color =
-                        color;
+                      (e.currentTarget as HTMLAnchorElement).style.color = color;
                     }}
                   >
                     {crumb.label}

@@ -43,7 +43,9 @@ describe("ChatRoom", () => {
     render(<ChatRoom sessionId={7} />);
 
     expect(screen.getByText("연결됨")).toBeInTheDocument();
-    expect(await screen.findByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).toBeInTheDocument();
+    expect(
+      await screen.findByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!"),
+    ).toBeInTheDocument();
   });
 
   it("STOMP 메시지 수신 시 메시지 목록에 추가한다", async () => {

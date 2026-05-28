@@ -20,8 +20,7 @@ export function IntentRevisionDraftActions({
 }: IntentRevisionDraftActionsProps) {
   const changedCount = summary?.changedIntents.length ?? 0;
   const hasSummaryError = summaryError != null;
-  const rawErrorMessage =
-    summaryError instanceof Error ? summaryError.message : summaryError;
+  const rawErrorMessage = summaryError instanceof Error ? summaryError.message : summaryError;
   const errorMessage = rawErrorMessage ?? "변경 요약을 불러오지 못했습니다.";
 
   return (

@@ -23,11 +23,11 @@ export function SlotDraftReadPage() {
   const sId = slotId ? parseRouteId(slotId) : null;
 
   const packDetail = usePackDetail(wsId ?? 0, pId ?? 0, {
-    enabled: wsId !== null && pId !== null && vId !== null && (slotId === undefined || sId !== null),
+    enabled:
+      wsId !== null && pId !== null && vId !== null && (slotId === undefined || sId !== null),
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const versionNo =
-    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
 
   if (wsId === null || pId === null || vId === null || (slotId !== undefined && sId === null)) {
     return (

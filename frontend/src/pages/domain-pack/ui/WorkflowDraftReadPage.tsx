@@ -1,18 +1,10 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
 import { intentRevisionDraftApi } from "@/features/intent-revision-draft";
-import {
-  buildDomainPackCrumbs,
-  domainPackSectionPath,
-} from "@/shared/lib/domainPackRoutes";
+import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { Pill, Mono, Icon } from "@/shared/ui/ostone/atoms";
@@ -78,17 +70,14 @@ export function WorkflowDraftReadPage() {
   const vId = parseRouteId(search.get("versionId") ?? undefined);
   const wfId = workflowId ? parseRouteId(workflowId) : null;
 
-  const enabled =
-    wsId !== null && pId !== null && vId !== null && wfId !== null;
+  const enabled = wsId !== null && pId !== null && vId !== null && wfId !== null;
 
   const packQuery = usePackDetail(wsId ?? 0, pId ?? 0, {
     enabled: wsId !== null && pId !== null && vId !== null && wfId !== null,
   });
   const packDetail = packQuery.data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const selectedVersion = packDetail?.versions?.find(
-    (v) => v.versionId === vId,
-  );
+  const selectedVersion = packDetail?.versions?.find((v) => v.versionId === vId);
   const versionNo = selectedVersion?.versionNo ?? vId ?? 0;
   const lifecycleStatus = selectedVersion?.lifecycleStatus ?? null;
   const workflowReturnTo = readWorkflowReturnTo(location.state);
@@ -148,32 +137,17 @@ export function WorkflowDraftReadPage() {
     setPendingClose(() => next);
   };
 
-  const navigateToWorkflow = (
-    versionId: number,
-    targetWorkflowId: number | null,
-  ) => {
+  const navigateToWorkflow = (versionId: number, targetWorkflowId: number | null) => {
     navigate(
-      domainPackSectionPath(
-        wsId,
-        pId,
-        versionId,
-        "workflows",
-        targetWorkflowId ?? undefined,
-      ),
+      domainPackSectionPath(wsId, pId, versionId, "workflows", targetWorkflowId ?? undefined),
       { replace: true },
     );
   };
 
-  const findWorkflowIdByCode = async (
-    versionId: number,
-    workflowCode: string,
-  ) => {
+  const findWorkflowIdByCode = async (versionId: number, workflowCode: string) => {
     const response = await listWorkflows(wsId, pId, versionId);
-    const workflows = (unwrapApiResponse(response) ??
-      []) as WorkflowDefinitionSummary[];
-    const target = workflows.find(
-      (entry) => entry.workflowCode === workflowCode,
-    );
+    const workflows = (unwrapApiResponse(response) ?? []) as WorkflowDefinitionSummary[];
+    const target = workflows.find((entry) => entry.workflowCode === workflowCode);
     return typeof target?.id === "number" ? target.id : null;
   };
 
@@ -181,8 +155,7 @@ export function WorkflowDraftReadPage() {
     try {
       const refetched = await packQuery.refetch();
       const drafts = (refetched.data?.versions ?? []).filter(
-        (version) =>
-          version.lifecycleStatus === "DRAFT" && version.versionId != null,
+        (version) => version.lifecycleStatus === "DRAFT" && version.versionId != null,
       );
 
       if (drafts.length !== 1 || drafts[0].versionId == null) {
@@ -193,10 +166,7 @@ export function WorkflowDraftReadPage() {
       }
 
       const draftVersionId = drafts[0].versionId;
-      const draftWorkflowId = await findWorkflowIdByCode(
-        draftVersionId,
-        workflowCode,
-      );
+      const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflowCode);
 
       if (draftWorkflowId == null) {
         toast.error("기존 Draft에서 같은 워크플로우를 찾지 못했습니다.");
@@ -221,12 +191,9 @@ export function WorkflowDraftReadPage() {
   const handleBackToList = () => {
     guardEditorClose(() => {
       closeEditor();
-      navigate(
-        workflowReturnTo ?? domainPackSectionPath(wsId, pId, vId, "workflows"),
-        {
-          replace: true,
-        },
-      );
+      navigate(workflowReturnTo ?? domainPackSectionPath(wsId, pId, vId, "workflows"), {
+        replace: true,
+      });
     });
   };
 
@@ -238,21 +205,15 @@ export function WorkflowDraftReadPage() {
     }
 
     if (!workflow.workflowCode) {
-      toast.error(
-        "워크플로우 코드를 확인할 수 없어 수정 초안을 만들 수 없습니다.",
-      );
+      toast.error("워크플로우 코드를 확인할 수 없어 수정 초안을 만들 수 없습니다.");
       return;
     }
 
     setCreatingDraft(true);
     try {
-      const { draftVersionId } =
-        await intentRevisionDraftApi.createRevisionDraft(wsId, pId, vId);
+      const { draftVersionId } = await intentRevisionDraftApi.createRevisionDraft(wsId, pId, vId);
       await packQuery.refetch();
-      const draftWorkflowId = await findWorkflowIdByCode(
-        draftVersionId,
-        workflow.workflowCode,
-      );
+      const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflow.workflowCode);
       if (draftWorkflowId === null) {
         toast.error("수정 초안에서 같은 워크플로우를 찾지 못했습니다.");
         navigateToWorkflow(draftVersionId, null);
@@ -263,18 +224,12 @@ export function WorkflowDraftReadPage() {
       setEditDirty(false);
       toast.success("워크플로우 수정 초안이 생성되었습니다.");
     } catch (error) {
-      if (
-        error instanceof ApiRequestError &&
-        error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS"
-      ) {
+      if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {
         await resolveExistingDraft(workflow.workflowCode);
         return;
       }
       toast.error(
-        resolveWorkflowActionErrorMessage(
-          error,
-          "워크플로우 수정 초안 생성에 실패했습니다.",
-        ),
+        resolveWorkflowActionErrorMessage(error, "워크플로우 수정 초안 생성에 실패했습니다."),
       );
     } finally {
       setCreatingDraft(false);
@@ -303,8 +258,7 @@ export function WorkflowDraftReadPage() {
     packName,
     versionNo,
     section: { label: "WORKFLOWS", path: "workflows" },
-    selectedLabel:
-      workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
+    selectedLabel: workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
   });
 
   let graphContent: ReactNode;
@@ -322,10 +276,7 @@ export function WorkflowDraftReadPage() {
     );
   } else if (graph) {
     graphContent = (
-      <div
-        data-testid="workflow-graph-viewer"
-        style={{ width: "100%", height: "100%" }}
-      >
+      <div data-testid="workflow-graph-viewer" style={{ width: "100%", height: "100%" }}>
         <GraphViewer graph={graph} />
       </div>
     );
@@ -343,26 +294,16 @@ export function WorkflowDraftReadPage() {
         <div className={styles.detailHeader}>
           <div className={styles.titleGroup}>
             <div className={styles.titleStack}>
-              <h2
-                data-testid="workflow-detail-title"
-                className={styles.detailTitle}
-              >
-                {workflow?.name ||
-                  (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
+              <h2 data-testid="workflow-detail-title" className={styles.detailTitle}>
+                {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
               </h2>
               {workflow?.description && (
-                <p className={styles.detailDescription}>
-                  {workflow.description}
-                </p>
+                <p className={styles.detailDescription}>{workflow.description}</p>
               )}
             </div>
-            {workflow && lifecycleStatus && (
-              <Pill tone="signal">{lifecycleStatus}</Pill>
-            )}
+            {workflow && lifecycleStatus && <Pill tone="signal">{lifecycleStatus}</Pill>}
             {workflow && isEditing && <Pill tone="ink">EDITING</Pill>}
-            {workflow && (
-              <Mono className={styles.nodeCount}>{nodeCount} nodes</Mono>
-            )}
+            {workflow && <Mono className={styles.nodeCount}>{nodeCount} nodes</Mono>}
           </div>
 
           <div className={styles.headerActions}>
@@ -393,15 +334,9 @@ export function WorkflowDraftReadPage() {
           </div>
         </div>
 
-        <div
-          className={styles.canvasFrame}
-          data-editing={isEditing ? "true" : "false"}
-        >
+        <div className={styles.canvasFrame} data-editing={isEditing ? "true" : "false"}>
           {!enabled && (
-            <div
-              data-testid="workflow-select-empty"
-              className={styles.centerState}
-            >
+            <div data-testid="workflow-select-empty" className={styles.centerState}>
               좌측 사이드바에서 워크플로우를 선택하세요.
             </div>
           )}
@@ -422,11 +357,7 @@ export function WorkflowDraftReadPage() {
             </div>
           )}
 
-          {enabled &&
-            !query.isLoading &&
-            !query.isError &&
-            workflow &&
-            graphContent}
+          {enabled && !query.isLoading && !query.isError && workflow && graphContent}
         </div>
       </div>
       <AlertDialog
@@ -441,11 +372,7 @@ export function WorkflowDraftReadPage() {
             저장하지 않고 이동하면 현재 편집 중인 변경 내역이 버려집니다.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPendingClose(null)}
-            >
+            <Button type="button" variant="outline" onClick={() => setPendingClose(null)}>
               계속 편집
             </Button>
             <Button type="button" onClick={confirmPendingClose}>
@@ -463,15 +390,11 @@ export function WorkflowDraftReadPage() {
         <AlertDialogContent size="sm">
           <AlertDialogTitle>진행 중인 Draft가 있습니다</AlertDialogTitle>
           <AlertDialogDescription>
-            새 Draft를 만들 수 없습니다. 기존 Draft에서 계속 편집하거나, Domain
-            Pack 화면에서 Draft를 적용 또는 폐기한 뒤 다시 시도하세요.
+            새 Draft를 만들 수 없습니다. 기존 Draft에서 계속 편집하거나, Domain Pack 화면에서
+            Draft를 적용 또는 폐기한 뒤 다시 시도하세요.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setExistingDraftTarget(null)}
-            >
+            <Button type="button" variant="outline" onClick={() => setExistingDraftTarget(null)}>
               취소
             </Button>
             <Button type="button" onClick={confirmExistingDraftNavigation}>
@@ -490,10 +413,7 @@ function readWorkflowReturnTo(state: unknown): string | null {
   return typeof value === "string" && value.startsWith("/") ? value : null;
 }
 
-function resolveWorkflowActionErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
+function resolveWorkflowActionErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiRequestError && error.message) {
     return error.message;
   }

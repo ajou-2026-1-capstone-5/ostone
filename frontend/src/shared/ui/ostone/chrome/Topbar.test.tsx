@@ -75,9 +75,7 @@ describe("Topbar", () => {
 
     const linkB = screen.getByText("INTENTS") as HTMLAnchorElement;
     expect(linkB.tagName).toBe("A");
-    expect(linkB.getAttribute("href")).toBe(
-      "/workspaces/1/domain-packs/9/intents?versionId=1",
-    );
+    expect(linkB.getAttribute("href")).toBe("/workspaces/1/domain-packs/9/intents?versionId=1");
 
     const last = screen.getByText("current");
     expect(last.tagName).not.toBe("A");

@@ -65,9 +65,7 @@ describe("IntentTreePanel", () => {
     const selectedRow = screen.getByRole("button", { name: /refund/ });
     expect(selectedRow).toHaveAttribute("aria-current", "true");
     const selectedText = selectedRow.textContent ?? "";
-    expect(selectedText.indexOf("LV · 2")).toBeLessThan(
-      selectedText.indexOf("수정 중"),
-    );
+    expect(selectedText.indexOf("LV · 2")).toBeLessThan(selectedText.indexOf("수정 중"));
 
     fireEvent.click(selectedRow);
     expect(onSelect).toHaveBeenCalledWith(2);
@@ -84,9 +82,7 @@ describe("IntentTreePanel", () => {
     renderPanel({ status: "ready", data: [] });
 
     expect(screen.getByText("0 · TREE")).toBeInTheDocument();
-    expect(
-      screen.getByText("해당 버전에 등록된 intent 초안이 없습니다."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("해당 버전에 등록된 intent 초안이 없습니다.")).toBeInTheDocument();
   });
 
   it("목록 조회 실패 시 toast와 error empty state를 보여준다", () => {
@@ -107,8 +103,6 @@ describe("IntentTreePanel", () => {
       message: undefined,
     } as unknown as IntentListState);
 
-    expect(mockedToastError).toHaveBeenCalledWith(
-      "목록을 불러오지 못했습니다.",
-    );
+    expect(mockedToastError).toHaveBeenCalledWith("목록을 불러오지 못했습니다.");
   });
 });
