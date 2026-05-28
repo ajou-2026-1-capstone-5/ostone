@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
-import { Eyebrow, Mono, Pill } from "@/shared/ui/ostone/atoms";
+import { Pill } from "@/shared/ui/ostone/atoms";
+import { InfoCard } from "./InfoCard";
+import { InfoRow } from "./InfoRow";
+import { ProgressStepper, type ProgressStepperStep } from "./ProgressStepper";
 
 interface CustomerInfo {
   name: string;
@@ -17,32 +19,12 @@ interface CustomerPanelProps {
   isMemoSaving?: boolean;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div style={{ padding: "16px", borderBottom: "1px solid var(--line-2)" }}>
-      <div style={{ marginBottom: 12 }}>
-        <Eyebrow>{title}</Eyebrow>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "4px 0",
-      }}
-    >
-      <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>{label}</Mono>
-      <span style={{ fontSize: 12, color: "var(--ink)" }}>{value}</span>
-    </div>
-  );
-}
+const STEPS: ProgressStepperStep[] = [
+  { label: "접수", value: "05-03", state: "done" },
+  { label: "확인 완료", value: "05-04", state: "done" },
+  { label: "처리", value: "진행중", state: "active" },
+  { label: "완료", value: "예정", state: "todo" },
+];
 
 export function CustomerPanel({
   customer,
@@ -56,6 +38,7 @@ export function CustomerPanel({
   if (!customer) {
     return (
       <div
+        data-testid="customer-panel-empty"
         style={{
           width: 320,
           flexShrink: 0,
@@ -64,109 +47,82 @@ export function CustomerPanel({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          padding: 16,
         }}
       >
-        <Mono style={{ fontSize: 12, color: "var(--ink-3)" }}>
+        <span
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 11,
+            color: "var(--ink-3)",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
           고객을 선택하면 정보가 표시됩니다
-        </Mono>
+        </span>
       </div>
     );
   }
 
   return (
     <div
+      data-testid="customer-panel"
       style={{
         width: 320,
         flexShrink: 0,
         background: "var(--paper-2)",
         overflow: "auto",
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
       }}
     >
-      <Section title="고객 정보">
-        <Row label="이름" value={customer.name} />
-        <Row label="채널" value={customer.channel} />
-        <Row label="회원 등급" value={customer.membershipTier || "일반"} />
-        <Row label="연락처" value={customer.contact || "010-****-1234"} />
-        <Row label="이메일" value={customer.email || "mi***@example.com"} />
-      </Section>
+      <InfoCard title="고객 정보" meta={customer.channel || undefined}>
+        <InfoRow label="이름" value={customer.name} />
+        <InfoRow label="채널" value={customer.channel} />
+        <InfoRow
+          label="회원 등급"
+          value={customer.membershipTier || "일반"}
+          tone={customer.membershipTier ? "signal" : "default"}
+        />
+        <InfoRow label="연락처" value={customer.contact || "010-****-1234"} />
+        <InfoRow label="이메일" value={customer.email || "mi***@example.com"} />
+      </InfoCard>
 
-      <Section title="문의 관련 주문">
-        <Row label="주문 ID" value="#ORD-2024-08921" />
-        <Row label="주문일" value="2024-05-03" />
-        <Row label="결제금액" value="89,000원" />
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "4px 0",
-          }}
-        >
-          <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>주문 상태</Mono>
-          <Pill tone="signal">배송 완료</Pill>
-        </div>
-      </Section>
+      <InfoCard title="문의 관련 주문" meta="#ORD-2024-08921">
+        <InfoRow label="주문일" value="2024-05-03" />
+        <InfoRow label="결제금액" value="89,000원" />
+        <InfoRow label="상태" tone="signal" value={<Pill tone="signal">배송 완료</Pill>} />
+      </InfoCard>
 
-      <Section title="처리 단계">
-        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 0" }}>
-          {[
-            { label: "접수", done: true },
-            { label: "확인 중", done: true },
-            { label: "처리 중", done: true, active: true },
-            { label: "완료", done: false },
-          ].map((step, i, arr) => (
-            <div key={step.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: step.active ? 700 : 400,
-                  color: step.done ? "var(--signal)" : "var(--ink-4)",
-                  fontFamily: "var(--mono)",
-                }}
-              >
-                {step.label}
-              </span>
-              {i < arr.length - 1 && (
-                <span style={{ color: step.done ? "var(--signal)" : "var(--ink-4)", fontSize: 10 }}>
-                  →
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </Section>
+      <InfoCard title="처리 단계" meta="3 of 4">
+        <ProgressStepper steps={STEPS} />
+      </InfoCard>
 
-      <Section title="확인된 정보">
-        {[
-          { field: "카드번호", value: "5432 **** **** 8912" },
-          { field: "환불 요청액", value: "45,000원" },
-          { field: "환불 사유", value: "부분 환불 요청" },
-          { field: "처리 기한", value: "2024-05-10" },
-        ].map((item) => (
-          <div key={item.field} style={{ padding: "4px 0" }}>
-            <Mono
-              style={{ fontSize: 10, color: "var(--ink-3)", display: "block", marginBottom: 2 }}
-            >
-              {item.field}
-            </Mono>
-            <span style={{ fontSize: 12, color: "var(--ink)" }}>{item.value}</span>
-          </div>
-        ))}
-      </Section>
+      <InfoCard title="확인된 정보" meta="자동 발췌">
+        <InfoRow label="카드번호" value="5432 **** **** 8912" />
+        <InfoRow label="환불 요청액" value="45,000원" tone="warn" />
+        <InfoRow label="환불 사유" value="부분 환불 요청" />
+        <InfoRow label="처리 기한" value="2024-05-10" tone="danger" />
+      </InfoCard>
 
-      <Section title="상담 메모">
+      <InfoCard title="상담 메모" meta="private">
         <textarea
+          data-testid="customer-memo-textarea"
           value={memo}
           onChange={(e) => onMemoChange(e.target.value)}
           placeholder="상담 메모를 입력하세요..."
+          aria-label="상담 메모 입력"
           style={{
             width: "100%",
-            minHeight: 80,
-            padding: 8,
-            fontSize: 12,
+            minHeight: 84,
+            padding: 10,
+            fontSize: 12.5,
             lineHeight: 1.5,
             border: "1px solid var(--line)",
-            borderRadius: "var(--r-2)",
+            borderRadius: "var(--r-3)",
             background: "var(--paper)",
             color: "var(--ink)",
             resize: "vertical",
@@ -175,24 +131,27 @@ export function CustomerPanel({
         />
         <button
           type="button"
+          data-testid="customer-memo-save"
           onClick={onMemoSave}
           disabled={isMemoSaveDisabled}
           style={{
             width: "100%",
-            marginTop: 8,
-            padding: "8px 10px",
-            border: "1px solid var(--line)",
-            borderRadius: "var(--r-2)",
+            marginTop: 10,
+            height: 36,
+            padding: "0 14px",
+            border: isMemoSaveDisabled ? "1px solid var(--line)" : "1px solid var(--ink)",
+            borderRadius: "var(--r-3)",
             background: isMemoSaveDisabled ? "var(--paper-2)" : "var(--ink)",
             color: isMemoSaveDisabled ? "var(--ink-4)" : "var(--paper)",
             cursor: isMemoSaveDisabled ? "not-allowed" : "pointer",
-            fontSize: 12,
-            fontWeight: 700,
+            fontSize: 12.5,
+            fontWeight: 600,
+            letterSpacing: "-0.1px",
           }}
         >
           {isMemoSaving ? "저장 중..." : "메모 저장"}
         </button>
-      </Section>
+      </InfoCard>
     </div>
   );
 }

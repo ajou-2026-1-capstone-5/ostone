@@ -22,6 +22,17 @@ function resolveSenderName(message: ChatMessage): string {
   return "봇";
 }
 
+const STATE_CONTAINER_BASE = {
+  height: "100%",
+  minHeight: 0,
+  overflowY: "auto" as const,
+  background: "var(--paper-2)",
+  padding: "32px 24px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 export function MessageList({ messages, loading = false, error = null }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -31,61 +42,123 @@ export function MessageList({ messages, loading = false, error = null }: Message
 
   if (error) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-black">
-        <div className="rounded-lg border border-black px-5 py-4">{error}</div>
+      <div style={STATE_CONTAINER_BASE} data-testid="message-list-error">
+        <div
+          style={{
+            padding: "12px 18px",
+            borderRadius: 8,
+            border: "1px solid var(--danger)",
+            background: "var(--danger-bg)",
+            color: "var(--danger)",
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          {error}
+        </div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-gray-500">
-        <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
-        메시지를 불러오는 중입니다...
+      <div
+        style={{ ...STATE_CONTAINER_BASE, color: "var(--ink-3)" }}
+        data-testid="message-list-loading"
+      >
+        <Loader2 className="animate-spin" aria-hidden="true" size={14} style={{ marginRight: 8 }} />
+        <span style={{ fontSize: 13 }}>메시지를 불러오는 중입니다...</span>
       </div>
     );
   }
 
   if (messages.length === 0) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto bg-white p-8 text-sm text-gray-500">
-        아직 메시지가 없습니다. 첫 메시지를 보내보세요!
+      <div
+        style={{ ...STATE_CONTAINER_BASE, color: "var(--ink-3)" }}
+        data-testid="message-list-empty"
+      >
+        <span style={{ fontSize: 13 }}>아직 메시지가 없습니다. 첫 메시지를 보내보세요!</span>
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto bg-white px-6 py-5">
-      <div className="flex flex-col gap-5">
+    <div
+      style={{
+        height: "100%",
+        minHeight: 0,
+        overflowY: "auto",
+        background: "var(--paper-2)",
+        padding: "18px 20px",
+      }}
+      data-testid="message-list"
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {messages.map((message) => {
           const isUser = message.senderType === "USER";
+          const sender = isUser ? "user" : "bot";
           return (
             <div
               key={message.id}
               data-testid={`message-${message.id}`}
-              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+              data-sender={sender}
+              style={{
+                maxWidth: "72%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                alignSelf: isUser ? "flex-end" : "flex-start",
+                alignItems: isUser ? "flex-end" : "flex-start",
+              }}
             >
-              <div className={`max-w-[72%] ${isUser ? "text-right" : "text-left"}`}>
-                <div
-                  className={`flex items-baseline gap-2 text-xs text-gray-500 ${
-                    isUser ? "justify-end" : "justify-start"
-                  }`}
-                  style={{ marginBottom: 6 }}
-                >
-                  <span>{resolveSenderName(message)}</span>
-                  <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
-                </div>
-                <div
-                  className={`text-sm leading-6 ${
-                    isUser ? "bg-gray-100 text-black" : "bg-black text-white"
-                  }`}
-                  style={{
-                    borderRadius: 8,
-                    padding: "10px 14px",
-                  }}
-                >
-                  {message.content}
-                </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontFamily: "var(--mono)",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--ink-3)",
+                }}
+              >
+                {isUser ? (
+                  <>
+                    <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
+                    <span>{resolveSenderName(message)}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{resolveSenderName(message)}</span>
+                    <time dateTime={message.createdAt}>{formatMessageTime(message.createdAt)}</time>
+                  </>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  fontSize: 13.5,
+                  lineHeight: 1.55,
+                  letterSpacing: "-0.12px",
+                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
+                  ...(isUser
+                    ? {
+                        background: "var(--paper)",
+                        color: "var(--ink)",
+                        border: "1px solid var(--line)",
+                        borderBottomRightRadius: 4,
+                      }
+                    : {
+                        background: "var(--ink)",
+                        color: "var(--paper)",
+                        borderBottomLeftRadius: 4,
+                      }),
+                }}
+              >
+                {message.content}
               </div>
             </div>
           );

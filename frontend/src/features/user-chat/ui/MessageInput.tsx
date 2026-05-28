@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Paperclip, Send } from "lucide-react";
 
 export interface MessageInputProps {
   onSend: (content: string) => void;
@@ -17,16 +17,61 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
     setContent("");
   };
 
+  const isSendDisabled = disabled || content.trim().length === 0;
+
   return (
-    <div className="flex gap-3 border-t border-gray-200 bg-white" style={{ padding: "14px 16px" }}>
+    <form
+      data-testid="message-input"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+      style={{
+        background: "var(--paper)",
+        borderTop: "1px solid var(--line-2)",
+        padding: "12px 20px 14px",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <button
+        type="button"
+        aria-label="파일 첨부"
+        title="파일 첨부 (예정)"
+        disabled
+        data-testid="message-attach"
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 999,
+          background: "var(--paper-2)",
+          color: "var(--ink-3)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid var(--line-2)",
+          cursor: "not-allowed",
+        }}
+      >
+        <Paperclip size={16} aria-hidden="true" />
+      </button>
       <input
         aria-label="메시지 입력"
-        className="flex-1 rounded-full border border-gray-300 bg-white text-sm text-black outline-none transition focus:border-black focus:ring-3 focus:ring-black/10 disabled:pointer-events-none disabled:bg-gray-100 disabled:text-gray-500"
         disabled={disabled}
         placeholder="메시지를 입력하세요"
         style={{
-          minHeight: 48,
+          flex: 1,
+          height: 42,
           padding: "0 18px",
+          borderRadius: 28,
+          border: "1px solid var(--line)",
+          background: disabled ? "var(--paper-2)" : "var(--paper)",
+          color: disabled ? "var(--ink-3)" : "var(--ink)",
+          fontSize: 13.5,
+          fontWeight: 460,
+          fontFamily: "inherit",
+          letterSpacing: "-0.12px",
         }}
         value={content}
         onChange={(event) => setContent(event.target.value)}
@@ -40,16 +85,24 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
       <button
         type="button"
         aria-label="메시지 보내기"
-        className="inline-flex items-center justify-center rounded-full bg-black text-white outline-none transition hover:bg-gray-900 focus:ring-3 focus:ring-black/15 disabled:pointer-events-none disabled:bg-gray-300 disabled:text-white"
-        disabled={disabled}
+        disabled={isSendDisabled}
         style={{
-          height: 48,
-          width: 48,
+          width: 42,
+          height: 42,
+          borderRadius: 999,
+          background: isSendDisabled ? "var(--paper-3)" : "var(--ink)",
+          color: isSendDisabled ? "var(--ink-4)" : "var(--paper)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "none",
+          cursor: isSendDisabled ? "not-allowed" : "pointer",
+          transition: "background 160ms ease, color 160ms ease",
         }}
         onClick={submit}
       >
-        <Send className="size-4" aria-hidden="true" />
+        <Send size={16} aria-hidden="true" />
       </button>
-    </div>
+    </form>
   );
 }

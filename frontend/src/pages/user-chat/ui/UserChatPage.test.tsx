@@ -67,7 +67,9 @@ describe("UserChatPage", () => {
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
     fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
 
-    expect(await screen.findByText("김민지 · Session #77")).not.toBeNull();
+    const eyebrow = await screen.findByTestId("chat-header-eyebrow");
+    expect(eyebrow).toHaveTextContent("Session #77");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
     expect(screen.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
     expect(registerDemoChatSessionMock).toHaveBeenCalledWith(42, "김민지");
   });
@@ -92,7 +94,8 @@ describe("UserChatPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
 
     expect(await screen.findByText("Hello")).not.toBeNull();
-    expect(screen.getByText("김민지 · Session #77")).not.toBeNull();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 

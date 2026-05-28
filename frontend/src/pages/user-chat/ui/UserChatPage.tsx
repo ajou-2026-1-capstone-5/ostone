@@ -2,8 +2,9 @@ import { type FormEvent, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { registerDemoChatSession, sendDemoChatMessage } from "@/entities/chat";
 import type { ChatMessage, DemoChatSession } from "@/entities/chat";
-import { ConnectionStatus, MessageInput, MessageList } from "@/features/user-chat";
 import { ApiRequestError } from "@/shared/api";
+import { ChatConversationScreen } from "./ChatConversationScreen";
+import { ChatEntryScreen } from "./ChatEntryScreen";
 
 function resolveSessionStartErrorMessage(error: unknown): string {
   if (error instanceof ApiRequestError) {
@@ -213,33 +214,13 @@ export function UserChatPage() {
 
   if (!customerName) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white p-8 text-black">
-        <form
-          onSubmit={handleNameSubmit}
-          className="w-full max-w-[360px]"
-          aria-label="채팅 사용자 이름 입력"
-        >
-          <h1 className="text-[22px] font-medium text-black">사용자 채팅</h1>
-          <label className="mt-6 block text-sm text-black" htmlFor="chat-customer-name">
-            이름
-          </label>
-          <input
-            id="chat-customer-name"
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
-            className="mt-2 h-12 w-full rounded-full border border-gray-300 bg-white px-5 text-sm text-black outline-none focus:border-black focus:ring-2 focus:ring-black/10"
-            placeholder="이름을 입력하세요"
-            autoComplete="name"
-          />
-          {nameError && <p className="mt-2 text-xs text-red-600">{nameError}</p>}
-          <button
-            type="submit"
-            className="mt-5 h-12 w-full rounded-full bg-black px-5 text-sm text-white"
-          >
-            채팅 시작
-          </button>
-        </form>
-      </div>
+      <ChatEntryScreen
+        draftName={draftName}
+        nameError={nameError}
+        workspaceId={workspaceId}
+        onDraftChange={setDraftName}
+        onSubmit={handleNameSubmit}
+      />
     );
   }
 
@@ -273,43 +254,14 @@ export function UserChatPage() {
   }
 
   return (
-    <div
-      className="flex h-screen min-h-0 flex-col overflow-hidden bg-white"
-      style={{ padding: "20px 24px 24px" }}
-    >
-      <header
-        className="flex shrink-0 items-center justify-between border-b border-gray-200"
-        style={{ padding: "0 0 16px" }}
-      >
-        <div>
-          <h1 className="text-[18px] font-medium text-black">사용자 채팅</h1>
-          <p className="mt-1 text-xs text-gray-500">
-            {customerName} · Session #{activeChatState.session.id}
-          </p>
-        </div>
-        <span className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
-          {activeChatState.session.status}
-        </span>
-      </header>
-      <div className="min-h-0 flex-1" style={{ paddingTop: 16 }}>
-        <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-          <ConnectionStatus status="CONNECTED" />
-          <div className="min-h-0 flex-1 border-y border-gray-100">
-            <MessageList messages={activeChatState.session.messages} />
-          </div>
-          {messageError && (
-            <div className="border-t border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
-              {messageError}
-            </div>
-          )}
-          <MessageInput
-            onSend={(content) => {
-              void handleSendMessage(content);
-            }}
-            disabled={isSending}
-          />
-        </section>
-      </div>
-    </div>
+    <ChatConversationScreen
+      session={activeChatState.session}
+      customerName={customerName}
+      isSending={isSending}
+      messageError={messageError}
+      onSend={(content) => {
+        void handleSendMessage(content);
+      }}
+    />
   );
 }

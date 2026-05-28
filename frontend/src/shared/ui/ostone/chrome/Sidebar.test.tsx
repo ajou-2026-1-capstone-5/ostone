@@ -105,4 +105,31 @@ describe("Sidebar", () => {
     fireEvent.mouseLeave(link);
     expect(link.style.background).toBe("transparent");
   });
+
+  it("redesign: active 링크는 fontWeight 600, idle은 460 으로 그려진다", () => {
+    renderSidebar({ active: "consult" });
+
+    const activeLink = screen.getByTitle("Consultation") as HTMLElement;
+    const idleLink = screen.getByTitle("Uploads") as HTMLElement;
+
+    expect(activeLink.style.fontWeight).toBe("600");
+    expect(idleLink.style.fontWeight).toBe("460");
+  });
+
+  it("redesign: 모든 링크는 13.5px / letter-spacing -0.18px / Pretendard 변수 폰트를 사용한다", () => {
+    renderSidebar({ active: "consult" });
+
+    const link = screen.getByTitle("Consultation") as HTMLElement;
+    expect(link.style.fontSize).toBe("13.5px");
+    expect(link.style.letterSpacing).toBe("-0.18px");
+    expect(link.style.fontFamily).toBe("var(--font-sans)");
+  });
+
+  it("redesign: TOP_NAV 항목마다 sidebar-link-{key} data-testid를 노출한다", () => {
+    renderSidebar({ active: "consult" });
+
+    expect(screen.getByTestId("sidebar-link-consult")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-chat")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-upload")).toBeInTheDocument();
+  });
 });
