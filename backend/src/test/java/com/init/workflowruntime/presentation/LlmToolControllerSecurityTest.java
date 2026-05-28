@@ -81,7 +81,7 @@ class LlmToolControllerSecurityTest {
     given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
         .willReturn(
             new LlmToolWorkflowResponse(
-                1L, 10L, 101L, null, null, null, null, null, null, null, null, null, null));
+                1L, 10L, 42L, 101L, null, null, null, null, null, null, null, null, null, null));
 
     mockMvc.perform(get("/api/v1/llm-tools/sessions/1/workflow")).andExpect(status().isOk());
   }

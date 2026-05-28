@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public record LlmToolWorkflowResponse(
     Long sessionId,
     Long workspaceId,
+    Long domainPackId,
     Long domainPackVersionId,
     Long executionId,
     String executionStatus,

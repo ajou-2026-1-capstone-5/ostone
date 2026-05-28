@@ -64,6 +64,7 @@ class LlmToolControllerTest {
             new LlmToolWorkflowResponse(
                 1L,
                 10L,
+                42L,
                 101L,
                 50L,
                 "RUNNING",
@@ -108,7 +109,7 @@ class LlmToolControllerTest {
     given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
         .willReturn(
             new LlmToolWorkflowResponse(
-                1L, 10L, 101L, null, null, null, null, null, null, null, null, null, null));
+                1L, 10L, 42L, 101L, null, null, null, null, null, null, null, null, null, null));
 
     // when & then
     mockMvc

@@ -11,6 +11,7 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -63,6 +64,7 @@ public class LlmToolService {
   private final SlotDefinitionRepository slotDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
+  private final DomainPackVersionRepository domainPackVersionRepository;
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   private final DecisionLogRepository decisionLogRepository;
   private final WorkflowExecutionStepRepository workflowExecutionStepRepository;
@@ -75,6 +77,7 @@ public class LlmToolService {
       SlotDefinitionRepository slotDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
+      DomainPackVersionRepository domainPackVersionRepository,
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
       DecisionLogRepository decisionLogRepository,
       WorkflowExecutionStepRepository workflowExecutionStepRepository,
@@ -85,6 +88,7 @@ public class LlmToolService {
     this.slotDefinitionRepository = slotDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
+    this.domainPackVersionRepository = domainPackVersionRepository;
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
     this.decisionLogRepository = decisionLogRepository;
     this.workflowExecutionStepRepository = workflowExecutionStepRepository;
@@ -120,10 +124,19 @@ public class LlmToolService {
           "JSON_PARSE_FAILED", "Stored terminalStatesJson must be a JSON array");
     }
 
+    Long domainPackId =
+        session.getDomainPackVersionId() == null
+            ? null
+            : domainPackVersionRepository
+                .findById(session.getDomainPackVersionId())
+                .map(version -> version.getDomainPackId())
+                .orElse(null);
+
     LlmToolWorkflowResponse response =
         new LlmToolWorkflowResponse(
             session.getId(),
             session.getWorkspaceId(),
+            domainPackId,
             session.getDomainPackVersionId(),
             executionId,
             executionStatus,
