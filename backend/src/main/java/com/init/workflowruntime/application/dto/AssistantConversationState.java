@@ -8,6 +8,10 @@ public record AssistantConversationState(
     AssistantNextAction nextAction,
     List<String> allowedTools) {
 
+  public AssistantConversationState {
+    allowedTools = allowedTools == null ? List.of() : List.copyOf(allowedTools);
+  }
+
   public static AssistantConversationState needIntent() {
     return new AssistantConversationState(
         "NEED_INTENT",
