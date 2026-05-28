@@ -44,6 +44,7 @@ public class WorkflowAssistantStateService {
   private static final String ACTION_HANDOFF = "HANDOFF";
   private static final String ACTION_WAIT = "WAIT";
   private static final String ACTION_WAIT_CONDITION = "WAIT_CONDITION";
+  private static final String DEFAULT_CURRENT_STEP = "현재 단계";
 
   private final LlmToolService llmToolService;
   private final WorkflowRuntimeService workflowRuntimeService;
@@ -156,14 +157,14 @@ public class WorkflowAssistantStateService {
               "IN_WORKFLOW",
               workflow,
               new AssistantNextAction(
-                  "ANSWER", null, null, null, "고객의 요청에 대해 backend가 허용한 범위에서만 간결하게 답변하세요."),
+                  ACTION_ANSWER, null, null, null, "고객의 요청에 대해 backend가 허용한 범위에서만 간결하게 답변하세요."),
               List.of());
       case ACTION_HANDOFF ->
           state(
               "HANDOFF_REQUIRED",
               workflow,
               new AssistantNextAction(
-                  "HANDOFF",
+                  ACTION_HANDOFF,
                   null,
                   null,
                   "이 요청은 상담원 확인이 필요합니다.",
@@ -171,17 +172,21 @@ public class WorkflowAssistantStateService {
               List.of());
       case ACTION_COMPLETED ->
           state(
-              "COMPLETED",
+              ACTION_COMPLETED,
               workflow,
               new AssistantNextAction(
-                  "COMPLETED", null, null, "요청 처리가 완료되었습니다.", "완료 사실만 간단히 안내하세요."),
+                  ACTION_COMPLETED, null, null, "요청 처리가 완료되었습니다.", "완료 사실만 간단히 안내하세요."),
               List.of());
       case ACTION_WAIT, ACTION_WAIT_CONDITION, ACTION_ADVANCE ->
           state(
               "WAITING",
               workflow,
               new AssistantNextAction(
-                  "WAIT", null, "요청 내용을 조금 더 자세히 알려주시겠어요?", null, "추가 입력이 필요하므로 간단히 확인 질문을 하세요."),
+                  ACTION_WAIT,
+                  null,
+                  "요청 내용을 조금 더 자세히 알려주시겠어요?",
+                  null,
+                  "추가 입력이 필요하므로 간단히 확인 질문을 하세요."),
               List.of());
       default -> AssistantConversationState.error("일시적으로 대화 상태를 확인할 수 없습니다.");
     };
@@ -239,7 +244,7 @@ public class WorkflowAssistantStateService {
   private String currentStep(LlmToolContextResponse context) {
     WorkflowExecution execution = findExecution(context.sessionId());
     if (execution == null || execution.getWorkflowDefinitionId() == null) {
-      return "현재 단계";
+      return DEFAULT_CURRENT_STEP;
     }
     ChatSession session = findSession(context.sessionId());
     WorkflowDefinition workflow =
@@ -248,13 +253,13 @@ public class WorkflowAssistantStateService {
                 execution.getWorkflowDefinitionId(), session.getDomainPackVersionId())
             .orElse(null);
     if (workflow == null) {
-      return "현재 단계";
+      return DEFAULT_CURRENT_STEP;
     }
     String nodeLabel = nodeLabel(workflow, context.currentState());
     if (hasText(nodeLabel)) {
       return nodeLabel;
     }
-    return hasText(workflow.getName()) ? workflow.getName() : "현재 단계";
+    return hasText(workflow.getName()) ? workflow.getName() : DEFAULT_CURRENT_STEP;
   }
 
   private String nodeLabel(WorkflowDefinition workflow, String currentState) {

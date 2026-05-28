@@ -13,6 +13,14 @@ public class LlmAssistantService {
   private static final String SESSION_ID = "sessionId";
   private static final String LATEST_USER_MESSAGE = "latestUserMessage";
   private static final String CONVERSATION_CONTEXT = "conversationContext";
+  private static final String WORKFLOW_AWARE_USER_PROMPT =
+      """
+      Recent conversation:
+      {context}
+
+      Latest user message:
+      {message}
+      """;
 
   private final ChatClient chatClient;
   private final WorkflowAssistantTools workflowAssistantTools;
@@ -43,14 +51,7 @@ public class LlmAssistantService {
             .toolContext(toolContext(command))
             .user(
                 u ->
-                    u.text(
-                            """
-                            Recent conversation:
-                            {context}
-
-                            Latest user message:
-                            {message}
-                            """)
+                    u.text(WORKFLOW_AWARE_USER_PROMPT)
                         .param("context", nullToEmpty(command.conversationContext()))
                         .param("message", nullToEmpty(command.userMessage())))
             .call()
