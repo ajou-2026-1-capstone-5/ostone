@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
@@ -43,7 +44,7 @@ class IntentClassificationServiceTest {
                 intent("refund_request", "환불 요청", "고객이 환불을 요청함", "PUBLISHED"),
                 intent("change_address", "배송지 변경", "고객이 배송지를 변경함", "PUBLISHED")));
 
-    IntentClassificationResult result = service.classify(1L, "환불하고 싶어요", "");
+    IntentClassificationResult result = service.classify(command("환불하고 싶어요", ""));
 
     assertThat(result.status()).isEqualTo("CONFIDENT");
     assertThat(result.intentCode()).isEqualTo("refund_request");
@@ -60,7 +61,7 @@ class IntentClassificationServiceTest {
                 intent("change_address", "배송지 변경", "고객이 배송지를 변경함", "PUBLISHED"),
                 intent("change_order", "주문 변경", "고객이 주문 내용을 변경함", "PUBLISHED")));
 
-    IntentClassificationResult result = service.classify(1L, "변경하고 싶어요", "");
+    IntentClassificationResult result = service.classify(command("변경하고 싶어요", ""));
 
     assertThat(result.status()).isEqualTo("AMBIGUOUS");
     assertThat(result.candidates()).hasSize(2);
@@ -77,16 +78,38 @@ class IntentClassificationServiceTest {
                 intent("legacy_refund", "레거시 환불", "고객이 환불을 요청함", "REJECTED"),
                 intent("change_address", "배송지 변경", "고객이 배송지를 변경함", "PUBLISHED")));
 
-    IntentClassificationResult result = service.classify(1L, "환불하고 싶어요", "");
+    IntentClassificationResult result = service.classify(command("환불하고 싶어요", ""));
 
     assertThat(result.status()).isEqualTo("UNKNOWN");
     assertThat(result.candidates()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("classify: intent code 토큰은 더 높은 가중치를 적용한다")
+  void should_applyHigherWeightToIntentCodeTokens() {
+    givenSession();
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(
+            List.of(
+                intent("refund_request", "기타", "기타", "PUBLISHED"),
+                intent("refund", "환불", "환불", "PUBLISHED")));
+
+    IntentClassificationResult result = service.classify(command("refund request", ""));
+
+    assertThat(result.status()).isEqualTo("CONFIDENT");
+    assertThat(result.intentCode()).isEqualTo("refund_request");
+    assertThat(result.confidence()).isEqualTo(0.95);
   }
 
   private void givenSession() {
     ChatSession session = ChatSession.create(10L, 101L, ChatSessionStatus.OPEN, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", 1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+  }
+
+  private IntentClassificationCommand command(
+      String latestUserMessage, String conversationContext) {
+    return new IntentClassificationCommand(1L, latestUserMessage, conversationContext);
   }
 
   private IntentDefinition intent(String code, String name, String description, String status) {

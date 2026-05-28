@@ -15,6 +15,9 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
+import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
+import com.init.workflowruntime.application.command.UpdateAssistantSlotCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
@@ -66,7 +69,7 @@ class WorkflowAssistantStateServiceTest {
   void should_returnNeedIntent_when_workflowNotSelected() {
     given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context(null));
 
-    AssistantConversationState result = service.inspect(1L);
+    AssistantConversationState result = inspect();
 
     assertThat(result.nextAction().type()).isEqualTo("NEED_INTENT");
     assertThat(result.allowedTools()).containsExactly("classify_intent");
@@ -85,7 +88,7 @@ class WorkflowAssistantStateServiceTest {
             advanceResponse(
                 "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
 
-    AssistantConversationState result = service.inspect(1L);
+    AssistantConversationState result = inspect();
 
     assertThat(result.workflow().currentStep()).isEqualTo("주문 확인");
     assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
@@ -116,7 +119,7 @@ class WorkflowAssistantStateServiceTest {
                 "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")),
             advanceResponse("collect_order", "answer", "ANSWER", "edge-answer", List.of()));
 
-    AssistantConversationState result = service.updateSlot(1L, "order_id", "A-100");
+    AssistantConversationState result = updateSlot("order_id", "A-100");
 
     assertThat(result.nextAction().type()).isEqualTo("ANSWER");
     verify(llmToolService)
@@ -140,7 +143,7 @@ class WorkflowAssistantStateServiceTest {
         .willReturn(
             advanceResponse("collect_order", "handoff", "HANDOFF", "edge-handoff", List.of()));
 
-    AssistantConversationState result = service.startWorkflow(1L, " refund_request ");
+    AssistantConversationState result = startWorkflow(" refund_request ");
 
     assertThat(result.conversationStatus()).isEqualTo("HANDOFF_REQUIRED");
     assertThat(result.nextAction().type()).isEqualTo("HANDOFF");
@@ -155,7 +158,7 @@ class WorkflowAssistantStateServiceTest {
   @Test
   @DisplayName("startWorkflow: 빈 intentCode는 거부한다")
   void should_rejectBlankIntentCode() {
-    assertThatThrownBy(() -> service.startWorkflow(1L, " "))
+    assertThatThrownBy(() -> startWorkflow(" "))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("intentCode is required");
   }
@@ -208,7 +211,7 @@ class WorkflowAssistantStateServiceTest {
     given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
 
-    AssistantConversationState result = service.inspect(1L);
+    AssistantConversationState result = inspect();
 
     assertThat(result.conversationStatus()).isEqualTo("WAITING");
     assertThat(result.nextAction().type()).isEqualTo("WAIT");
@@ -238,7 +241,7 @@ class WorkflowAssistantStateServiceTest {
             advanceResponse(
                 "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
 
-    assertThatThrownBy(() -> service.updateSlot(1L, "customer_name", "김초기"))
+    assertThatThrownBy(() -> updateSlot("customer_name", "김초기"))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("Slot is not currently requested");
 
@@ -248,10 +251,10 @@ class WorkflowAssistantStateServiceTest {
   @Test
   @DisplayName("updateSlot: 빈 slotCode나 value는 거부한다")
   void should_rejectBlankSlotInput() {
-    assertThatThrownBy(() -> service.updateSlot(1L, " ", "A-100"))
+    assertThatThrownBy(() -> updateSlot(" ", "A-100"))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("slotCode is required");
-    assertThatThrownBy(() -> service.updateSlot(1L, "order_id", " "))
+    assertThatThrownBy(() -> updateSlot("order_id", " "))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("slot value is required");
   }
@@ -266,7 +269,7 @@ class WorkflowAssistantStateServiceTest {
     given(workflowRuntimeService.advance(1L))
         .willReturn(advanceResponse("collect_order", "answer", "ANSWER", "edge-answer", List.of()));
 
-    assertThatThrownBy(() -> service.updateSlot(1L, "order_id", "A-100"))
+    assertThatThrownBy(() -> updateSlot("order_id", "A-100"))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("No slot is currently requested");
 
@@ -281,7 +284,19 @@ class WorkflowAssistantStateServiceTest {
     given(workflowRuntimeService.advance(1L)).willReturn(advanceResponse);
     given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
         .willReturn(Optional.empty());
-    return service.inspect(1L);
+    return inspect();
+  }
+
+  private AssistantConversationState inspect() {
+    return service.inspect(new InspectAssistantConversationCommand(1L)).state();
+  }
+
+  private AssistantConversationState startWorkflow(String intentCode) {
+    return service.startWorkflow(new StartAssistantWorkflowCommand(1L, intentCode)).state();
+  }
+
+  private AssistantConversationState updateSlot(String slotCode, String value) {
+    return service.updateSlot(new UpdateAssistantSlotCommand(1L, slotCode, value)).state();
   }
 
   private void givenRuntimeMetadata() {

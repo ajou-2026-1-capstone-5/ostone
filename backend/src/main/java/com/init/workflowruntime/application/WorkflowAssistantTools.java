@@ -1,5 +1,9 @@
 package com.init.workflowruntime.application;
 
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
+import com.init.workflowruntime.application.command.IntentClassificationCommand;
+import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
+import com.init.workflowruntime.application.command.UpdateAssistantSlotCommand;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
 import org.slf4j.Logger;
@@ -33,9 +37,11 @@ public class WorkflowAssistantTools {
           "Inspect the current conversation and return the next allowed assistant action.")
   public AssistantConversationState inspectConversation(ToolContext toolContext) {
     try {
-      return stateService.inspect(sessionId(toolContext));
+      return stateService
+          .inspect(new InspectAssistantConversationCommand(sessionId(toolContext)))
+          .state();
     } catch (RuntimeException e) {
-      log.warn("Workflow assistant inspect_conversation failed: {}", e.getMessage());
+      logToolFailure("inspect_conversation", e);
       return AssistantConversationState.error("일시적으로 대화 상태를 확인할 수 없습니다.");
     }
   }
@@ -47,11 +53,12 @@ public class WorkflowAssistantTools {
   public IntentClassificationResult classifyIntent(ToolContext toolContext) {
     try {
       return intentClassificationService.classify(
-          sessionId(toolContext),
-          textContext(toolContext, LATEST_USER_MESSAGE),
-          textContext(toolContext, CONVERSATION_CONTEXT));
+          new IntentClassificationCommand(
+              sessionId(toolContext),
+              textContext(toolContext, LATEST_USER_MESSAGE),
+              textContext(toolContext, CONVERSATION_CONTEXT)));
     } catch (RuntimeException e) {
-      log.warn("Workflow assistant classify_intent failed: {}", e.getMessage());
+      logToolFailure("classify_intent", e);
       return IntentClassificationResult.unknown("요청하신 업무를 정확히 확인하지 못했습니다. 어떤 업무인지 조금 더 자세히 알려주세요.");
     }
   }
@@ -65,9 +72,11 @@ public class WorkflowAssistantTools {
           String intentCode,
       ToolContext toolContext) {
     try {
-      return stateService.startWorkflow(sessionId(toolContext), intentCode);
+      return stateService
+          .startWorkflow(new StartAssistantWorkflowCommand(sessionId(toolContext), intentCode))
+          .state();
     } catch (RuntimeException e) {
-      log.warn("Workflow assistant start_workflow failed: {}", e.getMessage());
+      logToolFailure("start_workflow", e);
       return AssistantConversationState.error("요청하신 업무를 시작할 수 없습니다. 다시 한 번 문의 내용을 알려주세요.");
     }
   }
@@ -83,11 +92,18 @@ public class WorkflowAssistantTools {
       @ToolParam(required = true, description = "User-provided slot value") String value,
       ToolContext toolContext) {
     try {
-      return stateService.updateSlot(sessionId(toolContext), slotCode, value);
+      return stateService
+          .updateSlot(new UpdateAssistantSlotCommand(sessionId(toolContext), slotCode, value))
+          .state();
     } catch (RuntimeException e) {
-      log.warn("Workflow assistant update_slot failed: {}", e.getMessage());
+      logToolFailure("update_slot", e);
       return AssistantConversationState.error("입력해주신 정보를 저장할 수 없습니다. 필요한 정보를 다시 확인해 주세요.");
     }
+  }
+
+  private void logToolFailure(String toolName, RuntimeException e) {
+    log.warn("Workflow assistant {} failed: {}", toolName, e.getClass().getSimpleName());
+    log.debug("Workflow assistant {} failure detail", toolName, e);
   }
 
   private Long sessionId(ToolContext toolContext) {

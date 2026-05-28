@@ -10,8 +10,12 @@ import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GetLlmToolContextCommand;
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
 import com.init.workflowruntime.application.command.SelectLlmToolIntentCommand;
+import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
+import com.init.workflowruntime.application.command.UpdateAssistantSlotCommand;
 import com.init.workflowruntime.application.command.UpsertLlmToolSlotValueCommand;
+import com.init.workflowruntime.application.dto.AssistantConversationResult;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.AssistantNextAction;
 import com.init.workflowruntime.application.dto.AssistantWorkflowView;
@@ -64,28 +68,25 @@ public class WorkflowAssistantStateService {
   }
 
   @Transactional
-  public AssistantConversationState inspect(Long sessionId) {
-    LlmToolContextResponse context = getContext(sessionId);
-    if (!hasSelectedWorkflow(context)) {
-      return AssistantConversationState.needIntent();
-    }
-
-    WorkflowAdvanceResponse advanceResponse = autoAdvance(sessionId);
-    context = getContext(sessionId);
-    return toAssistantState(context, advanceResponse);
+  public AssistantConversationResult inspect(InspectAssistantConversationCommand command) {
+    return AssistantConversationResult.of(inspectState(command.sessionId()));
   }
 
   @Transactional
-  public AssistantConversationState startWorkflow(Long sessionId, String intentCode) {
+  public AssistantConversationResult startWorkflow(StartAssistantWorkflowCommand command) {
+    String intentCode = command.intentCode();
     if (!hasText(intentCode)) {
       throw new BadRequestException("INTENT_CODE_REQUIRED", "intentCode is required");
     }
-    llmToolService.selectIntent(new SelectLlmToolIntentCommand(sessionId, intentCode.trim()));
-    return inspect(sessionId);
+    llmToolService.selectIntent(
+        new SelectLlmToolIntentCommand(command.sessionId(), intentCode.trim()));
+    return AssistantConversationResult.of(inspectState(command.sessionId()));
   }
 
   @Transactional
-  public AssistantConversationState updateSlot(Long sessionId, String slotCode, String value) {
+  public AssistantConversationResult updateSlot(UpdateAssistantSlotCommand command) {
+    String slotCode = command.slotCode();
+    String value = command.value();
     if (!hasText(slotCode)) {
       throw new BadRequestException("SLOT_CODE_REQUIRED", "slotCode is required");
     }
@@ -93,7 +94,7 @@ public class WorkflowAssistantStateService {
       throw new BadRequestException("SLOT_VALUE_REQUIRED", "slot value is required");
     }
 
-    AssistantConversationState currentState = inspect(sessionId);
+    AssistantConversationState currentState = inspectState(command.sessionId());
     AssistantNextAction nextAction = currentState.nextAction();
     if (nextAction == null || !ACTION_ASK_SLOT.equals(nextAction.type())) {
       throw new BadRequestException("SLOT_NOT_REQUESTED", "No slot is currently requested");
@@ -105,8 +106,19 @@ public class WorkflowAssistantStateService {
 
     llmToolService.upsertSlotValue(
         new UpsertLlmToolSlotValueCommand(
-            sessionId, slotCode.trim(), TextNode.valueOf(value.trim())));
-    return inspect(sessionId);
+            command.sessionId(), slotCode.trim(), TextNode.valueOf(value.trim())));
+    return AssistantConversationResult.of(inspectState(command.sessionId()));
+  }
+
+  private AssistantConversationState inspectState(Long sessionId) {
+    LlmToolContextResponse context = getContext(sessionId);
+    if (!hasSelectedWorkflow(context)) {
+      return AssistantConversationState.needIntent();
+    }
+
+    WorkflowAdvanceResponse advanceResponse = autoAdvance(sessionId);
+    context = getContext(sessionId);
+    return toAssistantState(context, advanceResponse);
   }
 
   private WorkflowAdvanceResponse autoAdvance(Long sessionId) {

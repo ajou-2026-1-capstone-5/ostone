@@ -3,6 +3,7 @@ package com.init.workflowruntime.application;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentCandidate;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
 import com.init.workflowruntime.domain.ChatSession;
@@ -33,11 +34,13 @@ public class IntentClassificationService {
     this.intentDefinitionRepository = intentDefinitionRepository;
   }
 
-  public IntentClassificationResult classify(
-      Long sessionId, String latestUserMessage, String conversationContext) {
-    ChatSession session = findSession(sessionId);
+  public IntentClassificationResult classify(IntentClassificationCommand command) {
+    ChatSession session = findSession(command.sessionId());
     String query =
-        normalize(nullToEmpty(latestUserMessage) + "\n" + nullToEmpty(conversationContext));
+        normalize(
+            nullToEmpty(command.latestUserMessage())
+                + "\n"
+                + nullToEmpty(command.conversationContext()));
 
     List<ScoredIntent> scoredIntents =
         intentDefinitionRepository
@@ -77,10 +80,15 @@ public class IntentClassificationService {
       score += 3.0;
     }
 
-    for (String token :
-        tokens(intent.getIntentCode() + " " + intent.getName() + " " + intent.getDescription())) {
+    for (String token : tokens(intent.getIntentCode())) {
       if (query.contains(token)) {
-        score += token.contains("_") ? 2.0 : 1.0;
+        score += 2.0;
+      }
+    }
+
+    for (String token : tokens(intent.getName() + " " + intent.getDescription())) {
+      if (query.contains(token)) {
+        score += 1.0;
       }
     }
 

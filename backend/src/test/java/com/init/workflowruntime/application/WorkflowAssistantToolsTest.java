@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.init.workflowruntime.application.command.InspectAssistantConversationCommand;
+import com.init.workflowruntime.application.command.IntentClassificationCommand;
+import com.init.workflowruntime.application.command.StartAssistantWorkflowCommand;
+import com.init.workflowruntime.application.command.UpdateAssistantSlotCommand;
+import com.init.workflowruntime.application.dto.AssistantConversationResult;
 import com.init.workflowruntime.application.dto.AssistantConversationState;
 import com.init.workflowruntime.application.dto.AssistantNextAction;
 import com.init.workflowruntime.application.dto.AssistantWorkflowView;
@@ -36,45 +41,51 @@ class WorkflowAssistantToolsTest {
   @DisplayName("inspectConversation: ToolContext의 sessionId로 상태를 조회한다")
   void should_inspectWithSessionIdFromToolContext() {
     ToolContext toolContext = toolContext();
-    given(stateService.inspect(1L)).willReturn(AssistantConversationState.needIntent());
+    given(stateService.inspect(new InspectAssistantConversationCommand(1L)))
+        .willReturn(AssistantConversationResult.of(AssistantConversationState.needIntent()));
 
     AssistantConversationState result = tools.inspectConversation(toolContext);
 
     assertThat(result.nextAction().type()).isEqualTo("NEED_INTENT");
-    verify(stateService).inspect(1L);
+    verify(stateService).inspect(new InspectAssistantConversationCommand(1L));
   }
 
   @Test
   @DisplayName("classifyIntent: ToolContext의 최신 발화와 대화 맥락으로 분류한다")
   void should_classifyWithMessagesFromToolContext() {
     ToolContext toolContext = toolContext();
-    given(intentClassificationService.classify(1L, "환불하고 싶어요", "USER: 안녕하세요"))
+    IntentClassificationCommand command =
+        new IntentClassificationCommand(1L, "환불하고 싶어요", "USER: 안녕하세요");
+    given(intentClassificationService.classify(command))
         .willReturn(IntentClassificationResult.unknown("확인이 필요합니다."));
 
     IntentClassificationResult result = tools.classifyIntent(toolContext);
 
     assertThat(result.status()).isEqualTo("UNKNOWN");
-    verify(intentClassificationService).classify(1L, "환불하고 싶어요", "USER: 안녕하세요");
+    verify(intentClassificationService).classify(command);
   }
 
   @Test
   @DisplayName("classifyIntent: message/context가 없으면 빈 문자열로 분류한다")
   void should_classifyWithEmptyText_when_textContextMissing() {
     ToolContext toolContext = new ToolContext(Map.of("sessionId", 1L));
-    given(intentClassificationService.classify(1L, "", ""))
+    IntentClassificationCommand command = new IntentClassificationCommand(1L, "", "");
+    given(intentClassificationService.classify(command))
         .willReturn(IntentClassificationResult.unknown("확인이 필요합니다."));
 
     IntentClassificationResult result = tools.classifyIntent(toolContext);
 
     assertThat(result.status()).isEqualTo("UNKNOWN");
-    verify(intentClassificationService).classify(1L, "", "");
+    verify(intentClassificationService).classify(command);
   }
 
   @Test
   @DisplayName("classifyIntent 실패: 내부 예외 메시지 대신 UNKNOWN을 반환한다")
   void should_returnUnknownIntent_when_classifyFails() {
     ToolContext toolContext = toolContext();
-    given(intentClassificationService.classify(1L, "환불하고 싶어요", "USER: 안녕하세요"))
+    IntentClassificationCommand command =
+        new IntentClassificationCommand(1L, "환불하고 싶어요", "USER: 안녕하세요");
+    given(intentClassificationService.classify(command))
         .willThrow(new IllegalStateException("raw intent list leaked"));
 
     IntentClassificationResult result = tools.classifyIntent(toolContext);
@@ -98,19 +109,20 @@ class WorkflowAssistantToolsTest {
             new AssistantWorkflowView("COMPLETED", "완료"),
             new AssistantNextAction("COMPLETED", null, null, "완료되었습니다.", "완료 안내"),
             List.of());
-    given(stateService.startWorkflow(1L, "refund_request")).willReturn(expected);
+    given(stateService.startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request")))
+        .willReturn(AssistantConversationResult.of(expected));
 
     AssistantConversationState result = tools.startWorkflow("refund_request", toolContext);
 
     assertThat(result).isSameAs(expected);
-    verify(stateService).startWorkflow(1L, "refund_request");
+    verify(stateService).startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request"));
   }
 
   @Test
   @DisplayName("startWorkflow 실패: 내부 예외 메시지 대신 redacted ERROR 상태를 반환한다")
   void should_returnRedactedErrorState_when_startWorkflowFails() {
     ToolContext toolContext = toolContext();
-    given(stateService.startWorkflow(1L, "refund_request"))
+    given(stateService.startWorkflow(new StartAssistantWorkflowCommand(1L, "refund_request")))
         .willThrow(new IllegalStateException("workflow graph leaked"));
 
     AssistantConversationState result = tools.startWorkflow("refund_request", toolContext);
@@ -129,19 +141,20 @@ class WorkflowAssistantToolsTest {
             new AssistantWorkflowView("RUNNING", "답변"),
             new AssistantNextAction("ANSWER", null, null, null, "답변 안내"),
             List.of());
-    given(stateService.updateSlot(1L, "order_id", "A-100")).willReturn(expected);
+    given(stateService.updateSlot(new UpdateAssistantSlotCommand(1L, "order_id", "A-100")))
+        .willReturn(AssistantConversationResult.of(expected));
 
     AssistantConversationState result = tools.updateSlot("order_id", "A-100", toolContext);
 
     assertThat(result).isSameAs(expected);
-    verify(stateService).updateSlot(1L, "order_id", "A-100");
+    verify(stateService).updateSlot(new UpdateAssistantSlotCommand(1L, "order_id", "A-100"));
   }
 
   @Test
   @DisplayName("updateSlot 실패: 내부 예외 메시지 대신 redacted ERROR 상태를 반환한다")
   void should_returnRedactedErrorState_when_updateSlotFails() {
     ToolContext toolContext = toolContext();
-    given(stateService.updateSlot(1L, "order_id", "A-100"))
+    given(stateService.updateSlot(new UpdateAssistantSlotCommand(1L, "order_id", "A-100")))
         .willThrow(new IllegalStateException("slotValues leaked"));
 
     AssistantConversationState result = tools.updateSlot("order_id", "A-100", toolContext);
@@ -154,7 +167,8 @@ class WorkflowAssistantToolsTest {
   @DisplayName("tool 실패: 내부 예외 메시지 대신 redacted ERROR 상태를 반환한다")
   void should_returnRedactedErrorState_when_toolFails() {
     ToolContext toolContext = toolContext();
-    given(stateService.inspect(1L)).willThrow(new IllegalStateException("policySnapshot leaked"));
+    given(stateService.inspect(new InspectAssistantConversationCommand(1L)))
+        .willThrow(new IllegalStateException("policySnapshot leaked"));
 
     AssistantConversationState result = tools.inspectConversation(toolContext);
 
