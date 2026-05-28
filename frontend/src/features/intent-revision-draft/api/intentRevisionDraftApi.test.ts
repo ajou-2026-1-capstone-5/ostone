@@ -125,6 +125,13 @@ describe("intentRevisionDraftApi", () => {
     expect(mockedGetIntent).toHaveBeenCalledWith(1, 2, 3, 1);
   });
 
+  it("list 응답이 직접 배열이면 그대로 반환한다", async () => {
+    const intents = [{ id: 1, intentCode: "refund" }];
+    mockedListIntents.mockResolvedValue(intents as never);
+
+    await expect(intentRevisionDraftApi.listIntents(1, 2, 3)).resolves.toEqual(intents);
+  });
+
   it("draft intent update와 discard는 generated endpoint를 호출한다", async () => {
     mockedUpdate.mockResolvedValue({ data: { id: 7, intentCode: "refund" } } as never);
     mockedDiscard.mockResolvedValue(undefined as never);

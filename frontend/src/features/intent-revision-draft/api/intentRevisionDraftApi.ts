@@ -12,7 +12,10 @@ import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import type { IntentDetail, IntentSummary } from "@/entities/intent";
 import type { UpdateDraftIntentRequest } from "@/shared/api/generated/zod";
 
-export type UpdateDraftIntentBody = Pick<UpdateDraftIntentRequest, "name" | "description">;
+export interface UpdateDraftIntentBody {
+  name: UpdateDraftIntentRequest["name"];
+  description: UpdateDraftIntentRequest["description"];
+}
 
 interface RevisionDraftResponse {
   versionId?: number;
@@ -104,7 +107,9 @@ export const intentRevisionDraftApi = {
     versionId: number,
     options?: { signal?: AbortSignal },
   ): Promise<IntentSummary[]> {
-    return selectApiData<IntentSummary[]>(await listIntents(workspaceId, packId, versionId, options)) ?? [];
+    const response = await listIntents(workspaceId, packId, versionId, options);
+    if (Array.isArray(response)) return response as IntentSummary[];
+    return selectApiData<IntentSummary[]>(response) ?? [];
   },
 
   async getIntent(

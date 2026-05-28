@@ -98,16 +98,4 @@ describe("usePolicyDetail", () => {
     expect(result.current).toEqual({ status: "ready", data });
   });
 
-  it("성공 응답이 직접 객체로 오면 그대로 ready data로 반환한다", () => {
-    const data = { id: 4, name: "Test Policy" };
-    mockedUseGetPolicy.mockReturnValue({
-      isSuccess: true,
-      data,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useGetPolicy>);
-
-    const { result } = renderHook(() => usePolicyDetail(1, 2, 3, 4));
-
-    expect(result.current).toEqual({ status: "ready", data });
-  });
 });

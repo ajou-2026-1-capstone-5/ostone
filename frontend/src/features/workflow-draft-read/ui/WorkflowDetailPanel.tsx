@@ -63,13 +63,28 @@ export function WorkflowDetailPanel({
     refetch: refetchTransitions,
   } = useTransitionList(wsId, packId, versionId, workflowId);
 
-  const { data: policyList } = useListPolicies<PolicySummary[]>(wsId, packId, versionId, {
+  const {
+    data: policyList,
+    isLoading: policyLoading,
+    isError: policyError,
+    error: policyErr,
+  } = useListPolicies<PolicySummary[]>(wsId, packId, versionId, {
     query: {
       queryKey: policyQueryKeys.list(wsId, packId, versionId),
       select: selectApiList<PolicySummary>,
       enabled: workflowId != null,
     },
   });
+
+  const policyErrorMessage =
+    policyErr instanceof ApiRequestError
+      ? policyErr.message
+      : "정책 목록을 불러오지 못했습니다.";
+
+  useEffect(() => {
+    if (!policyError) return;
+    toast.error(policyErrorMessage);
+  }, [policyError, policyErrorMessage]);
 
   const policyByCode = useMemo(
     () =>
@@ -204,6 +219,19 @@ export function WorkflowDetailPanel({
               onPaneClick={() => setSelectedEdgeId(null)}
             />
           </ErrorBoundary>
+          {policyLoading && (
+            <div className={styles.policyStatus} role="status">
+              정책 목록을 불러오는 중입니다.
+            </div>
+          )}
+          {policyError && (
+            <div className={styles.policyStatus} role="alert">
+              정책 목록을 불러오지 못했습니다.
+            </div>
+          )}
+          {!policyLoading && !policyError && (policyList ?? []).length === 0 && (
+            <div className={styles.policyStatus}>참조할 정책이 없습니다.</div>
+          )}
           {selectedEdgeId !== null && selectedTransition !== null && (
             <TransitionPopover
               transition={selectedTransition}
