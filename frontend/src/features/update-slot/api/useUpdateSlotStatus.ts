@@ -6,6 +6,7 @@ import type {
   SlotDefinitionSummary,
   UpdateSlotStatusRequest,
 } from "@/shared/api/generated/zod";
+import { selectApiData, slotQueryKeys } from "@/shared/api";
 import { SLOT_ERROR_MESSAGES } from "./messages";
 
 interface UpdateSlotStatusParams {
@@ -30,11 +31,11 @@ export function useUpdateSlotStatus() {
       status,
     }: UpdateSlotStatusParams) => {
       const res = await updateSlotStatus(workspaceId, packId, versionId, slotId, { status });
-      return res.data;
+      return selectApiData(res);
     },
     onMutate: async ({ workspaceId, packId, versionId, slotId, status }) => {
-      const detailKey = ["slots", "detail", workspaceId, packId, versionId, slotId] as const;
-      const listKey = ["slots", "list", workspaceId, packId, versionId] as const;
+      const detailKey = slotQueryKeys.detail(workspaceId, packId, versionId, slotId);
+      const listKey = slotQueryKeys.list(workspaceId, packId, versionId);
 
       const previousDetail = queryClient.getQueryData<SlotDefinitionResponse>(detailKey);
       const previousList = queryClient.getQueryData<SlotDefinitionSummary[]>(listKey);
@@ -57,10 +58,10 @@ export function useUpdateSlotStatus() {
     },
     onSuccess: (_, { workspaceId, packId, versionId, slotId }) => {
       queryClient.invalidateQueries({
-        queryKey: ["slots", "detail", workspaceId, packId, versionId, slotId] as const,
+        queryKey: slotQueryKeys.detail(workspaceId, packId, versionId, slotId),
       });
       queryClient.invalidateQueries({
-        queryKey: ["slots", "list", workspaceId, packId, versionId] as const,
+        queryKey: slotQueryKeys.list(workspaceId, packId, versionId),
       });
     },
   });

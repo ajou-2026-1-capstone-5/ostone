@@ -1,19 +1,17 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { listRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { useListRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 import { ApiRequestError } from "@/shared/api";
 import { useRiskList } from "./useRiskList";
 
 vi.mock(
   "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller",
   () => ({
-    listRisks: vi.fn(),
+    useListRisks: vi.fn(),
   }),
 );
 
-const mockedListRisks = vi.mocked(listRisks);
+const mockedUseListRisks = vi.mocked(useListRisks);
 
 const stubRisk = {
   id: 1,
@@ -27,84 +25,93 @@ const stubRisk = {
   updatedAt: "",
 };
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+function mockListQuery(overrides: Partial<ReturnType<typeof useListRisks>> = {}) {
+  const result = {
+    isLoading: false,
+    isError: false,
+    error: null,
+    data: [stubRisk],
+    refetch: vi.fn().mockResolvedValue({}),
+    ...overrides,
+  };
+  mockedUseListRisks.mockReturnValue(result as unknown as ReturnType<typeof useListRisks>);
+  return result;
 }
 
 describe("useRiskList", () => {
   beforeEach(() => {
-    mockedListRisks.mockReset();
+    mockedUseListRisks.mockReset();
   });
 
   it("초기 상태는 loading이다", () => {
-    mockedListRisks.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
+    mockListQuery({ isLoading: true, data: undefined });
+    const { result } = renderHook(() => useRiskList(1, 2, 3));
     expect(result.current.status).toBe("loading");
   });
 
   it("성공 시 ready 상태와 위험요소 목록을 반환한다", async () => {
-    mockedListRisks.mockResolvedValue({
-      data: [stubRisk as any],
-      status: 200,
-      headers: new Headers(),
-    });
-    const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
+    mockListQuery({ data: [stubRisk] });
+    const { result } = renderHook(() => useRiskList(1, 2, 3));
 
-    await waitFor(() => expect(result.current.status).toBe("ready"));
-
+    expect(result.current.status).toBe("ready");
     if (result.current.status === "ready") {
       expect(result.current.data).toEqual([stubRisk]);
     }
+    expect(mockedUseListRisks).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      expect.objectContaining({
+        query: expect.objectContaining({ queryKey: ["risk", "list", 1, 2, 3] }),
+      }),
+    );
   });
 
   it("목록이 비어 있으면 empty 상태를 반환한다", async () => {
-    mockedListRisks.mockResolvedValue({ data: [], status: 200, headers: new Headers() });
-    const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
+    mockListQuery({ data: [] });
+    const { result } = renderHook(() => useRiskList(1, 2, 3));
 
-    await waitFor(() => expect(result.current.status).toBe("empty"));
+    expect(result.current.status).toBe("empty");
   });
 
-  it("retryKey가 증가한 뒤 versionId가 바뀌어도 새 목록 조회를 한 번만 호출한다", async () => {
-    mockedListRisks.mockResolvedValue({
-      data: [stubRisk as any],
-      status: 200,
-      headers: new Headers(),
-    });
+  it("retryKey가 증가하면 refetch를 호출하고 versionId 변경 시 새 queryKey를 넘긴다", async () => {
+    const refetch = vi.fn().mockResolvedValue({});
+    mockListQuery({ data: [stubRisk], refetch });
 
     const { result, rerender } = renderHook(
       ({ retryKey, versionId }) => useRiskList(1, 2, versionId, retryKey),
       {
-        wrapper: makeWrapper(),
         initialProps: { retryKey: 0, versionId: 3 },
       },
     );
 
-    await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(mockedListRisks).toHaveBeenCalledTimes(1);
-    expect(mockedListRisks).toHaveBeenLastCalledWith(1, 2, 3);
+    expect(result.current.status).toBe("ready");
 
     rerender({ retryKey: 1, versionId: 3 });
 
-    await waitFor(() => expect(mockedListRisks).toHaveBeenCalledTimes(2));
-    expect(mockedListRisks).toHaveBeenLastCalledWith(1, 2, 3);
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
 
     rerender({ retryKey: 1, versionId: 4 });
 
-    await waitFor(() => expect(mockedListRisks).toHaveBeenCalledTimes(3));
-    expect(mockedListRisks).toHaveBeenLastCalledWith(1, 2, 4);
+    expect(mockedUseListRisks).toHaveBeenLastCalledWith(
+      1,
+      2,
+      4,
+      expect.objectContaining({
+        query: expect.objectContaining({ queryKey: ["risk", "list", 1, 2, 4] }),
+      }),
+    );
   });
 
   it("ApiRequestError를 error 상태로 변환한다", async () => {
-    mockedListRisks.mockRejectedValue(new ApiRequestError(403, "FORBIDDEN", "접근 금지"));
-    const { result } = renderHook(() => useRiskList(1, 2, 3), { wrapper: makeWrapper() });
+    mockListQuery({
+      isError: true,
+      error: new ApiRequestError(403, "FORBIDDEN", "접근 금지"),
+      data: undefined,
+    });
+    const { result } = renderHook(() => useRiskList(1, 2, 3));
 
-    await waitFor(() => expect(result.current.status).toBe("error"));
-
+    expect(result.current.status).toBe("error");
     if (result.current.status === "error") {
       expect(result.current.httpStatus).toBe(403);
       expect(result.current.code).toBe("FORBIDDEN");

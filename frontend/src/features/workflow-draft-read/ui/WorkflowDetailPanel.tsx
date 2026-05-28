@@ -1,12 +1,11 @@
 import { Suspense, lazy, useState, useEffect, useId, useMemo, type KeyboardEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { useTransitionList } from "../model/useTransitionList";
 import { parseTerminalStates } from "../model/parseTerminalStates";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, policyQueryKeys, selectApiList } from "@/shared/api";
 import type { WorkflowDetail } from "@/entities/workflow";
-import { listPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 import type { PolicySummary } from "@/entities/policy";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { TransitionPopover } from "./TransitionPopover";
@@ -64,10 +63,12 @@ export function WorkflowDetailPanel({
     refetch: refetchTransitions,
   } = useTransitionList(wsId, packId, versionId, workflowId);
 
-  const { data: policyList } = useQuery({
-    queryKey: ["policies", "list", wsId, packId, versionId] as const,
-    queryFn: () => listPolicies(wsId, packId, versionId).then((r) => r.data ?? []),
-    enabled: workflowId != null,
+  const { data: policyList } = useListPolicies<PolicySummary[]>(wsId, packId, versionId, {
+    query: {
+      queryKey: policyQueryKeys.list(wsId, packId, versionId),
+      select: selectApiList<PolicySummary>,
+      enabled: workflowId != null,
+    },
   });
 
   const policyByCode = useMemo(

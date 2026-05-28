@@ -3,7 +3,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { getDomainPack } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import type { DomainPackDetailResult, WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import { domainPackQueryKeys, selectApiData, selectApiList, workflowQueryKeys } from "@/shared/api";
 
 import type { WorkspaceWorkflowEntry } from "./useListAllWorkspaceWorkflows";
 
@@ -53,20 +53,18 @@ export function useListWorkflowsByIntent({
     intentDefinitionId > 0;
 
   const packQuery = useQuery({
-    queryKey: ["workflows-by-intent", "pack-name", workspaceId ?? 0, packId ?? 0] as const,
+    queryKey: domainPackQueryKeys.detail(workspaceId ?? 0, packId ?? 0),
     queryFn: async ({ signal }) => getDomainPack(workspaceId!, packId!, { signal }),
     enabled,
   });
 
   const workflowsQuery: UseQueryResult<WorkflowDefinitionSummary[]> = useQuery({
-    queryKey: [
-      "workflows-by-intent",
-      "list",
+    queryKey: workflowQueryKeys.listByIntent(
       workspaceId ?? 0,
       packId ?? 0,
       versionId ?? 0,
       intentDefinitionId ?? 0,
-    ] as const,
+    ),
     queryFn: async ({ signal }) => {
       const res = await listWorkflows(
         workspaceId!,
@@ -75,13 +73,13 @@ export function useListWorkflowsByIntent({
         { intentDefinitionId: intentDefinitionId! },
         { signal },
       );
-      return (unwrapApiResponse(res) ?? []) as WorkflowDefinitionSummary[];
+      return selectApiList<WorkflowDefinitionSummary>(res);
     },
     enabled,
   });
 
   const packName =
-    unwrapApiResponse<DomainPackDetailResult>(packQuery.data)?.name ?? `pack-${packId ?? "?"}`;
+    selectApiData<DomainPackDetailResult>(packQuery.data)?.name ?? `pack-${packId ?? "?"}`;
 
   const entries: WorkspaceWorkflowEntry[] = (workflowsQuery.data ?? [])
     .map((wf) => toEntry(wf, packId ?? 0, packName, versionId ?? 0))

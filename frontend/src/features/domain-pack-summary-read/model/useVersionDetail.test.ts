@@ -31,9 +31,18 @@ describe("useVersionDetail", () => {
     } as any);
     const { result } = renderHook(() => useVersionDetail(1, 2, null), { wrapper: makeWrapper() });
     expect(result.current.fetchStatus).toBe("idle");
-    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(1, 2, -1, {
-      query: { enabled: false, select: expect.any(Function) },
-    });
+    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(
+      1,
+      2,
+      -1,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: false,
+          queryKey: ["domain-packs", "version", 1, 2, -1],
+          select: expect.any(Function),
+        }),
+      }),
+    );
   });
 
   it("versionId가 있으면 상세 API를 호출한다", async () => {
@@ -54,8 +63,17 @@ describe("useVersionDetail", () => {
     } as any);
     const { result } = renderHook(() => useVersionDetail(1, 2, 3), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.data).toEqual(data));
-    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(1, 2, 3, {
-      query: { enabled: true, select: expect.any(Function) },
-    });
+    expect(mockedUseGetDomainPackVersion).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: true,
+          queryKey: ["domain-packs", "version", 1, 2, 3],
+          select: expect.any(Function),
+        }),
+      }),
+    );
   });
 });

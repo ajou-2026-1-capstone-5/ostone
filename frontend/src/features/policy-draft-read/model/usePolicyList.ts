@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
+import { policyQueryKeys, selectApiList } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { PolicySummary } from "@/entities/policy";
 
@@ -14,7 +15,12 @@ export function usePolicyList(
   versionId: number,
   retryKey = 0,
 ): PolicyListState {
-  const query = useListPolicies(workspaceId, packId, versionId, {});
+  const query = useListPolicies<PolicySummary[]>(workspaceId, packId, versionId, {
+    query: {
+      queryKey: policyQueryKeys.list(workspaceId, packId, versionId),
+      select: selectApiList<PolicySummary>,
+    },
+  });
 
   const { refetch } = query;
 
@@ -32,14 +38,5 @@ export function usePolicyList(
     return mapApiError(query.error);
   }
 
-  const payload = query.data as { data?: PolicySummary[] } | PolicySummary[] | undefined;
-  const list = Array.isArray(payload) ? payload : payload?.data;
-  if (!Array.isArray(list)) {
-    return {
-      status: "error",
-      code: "UNEXPECTED_RESPONSE",
-      message: "Invalid policy list response shape",
-    };
-  }
-  return { status: "ready", data: list as PolicySummary[] };
+  return { status: "ready", data: query.data ?? [] };
 }

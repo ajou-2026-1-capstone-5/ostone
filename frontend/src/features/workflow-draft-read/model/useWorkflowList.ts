@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import type { WorkflowSummary } from "@/entities/workflow";
-import { workflowApi } from "../api/workflowApi";
+import { useListWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { selectApiList, workflowQueryKeys } from "@/shared/api";
 
 export function useWorkflowList(wsId: number, packId: number, versionId: number) {
-  return useQuery<WorkflowSummary[]>({
-    queryKey: ["workflows", "list", wsId, packId, versionId] as const,
-    queryFn: () => workflowApi.list(wsId, packId, versionId),
+  return useListWorkflows<WorkflowSummary[]>(wsId, packId, versionId, undefined, {
+    query: {
+      queryKey: workflowQueryKeys.list(wsId, packId, versionId),
+      select: selectApiList<WorkflowSummary>,
+    },
   });
 }

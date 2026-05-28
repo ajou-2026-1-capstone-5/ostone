@@ -15,6 +15,7 @@ import type {
   SignupResponse,
   TokenRefreshResponse,
 } from "@/shared/api/generated/zod";
+import { requireApiData } from "@/shared/api";
 
 export type {
   LoginRequest,
@@ -25,11 +26,13 @@ export type {
 };
 
 export async function loginApi(data: LoginRequest): Promise<LoginResponse> {
-  return login(data) as unknown as Promise<LoginResponse>;
+  const response = await login(data);
+  return requireApiData<LoginResponse>(response, "로그인 응답을 확인할 수 없습니다.");
 }
 
 export async function signupApi(data: SignupRequest): Promise<SignupResponse> {
-  return signup(data) as unknown as Promise<SignupResponse>;
+  const response = await signup(data);
+  return requireApiData<SignupResponse>(response, "회원가입 응답을 확인할 수 없습니다.");
 }
 
 export async function logoutApi(refreshToken: string): Promise<void> {
@@ -37,11 +40,16 @@ export async function logoutApi(refreshToken: string): Promise<void> {
 }
 
 export async function refreshTokenApi(refreshToken: string): Promise<TokenRefreshResponse> {
-  return refresh({ refreshToken }) as unknown as Promise<TokenRefreshResponse>;
+  const response = await refresh({ refreshToken });
+  return requireApiData<TokenRefreshResponse>(response, "토큰 갱신 응답을 확인할 수 없습니다.");
 }
 
 export async function passwordResetInitApi(email: string): Promise<PasswordResetInitResponse> {
-  return passwordResetInit({ email }) as unknown as Promise<PasswordResetInitResponse>;
+  const response = await passwordResetInit({ email });
+  return requireApiData<PasswordResetInitResponse>(
+    response,
+    "비밀번호 재설정 응답을 확인할 수 없습니다.",
+  );
 }
 
 export async function passwordResetCompleteApi(data: PasswordResetCompleteRequest): Promise<void> {

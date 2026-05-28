@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGetPolicy } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
-import { unwrapApiResponse } from "@/shared/api";
+import { policyQueryKeys, requireApiData } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { PolicyDefinition } from "@/entities/policy";
 
@@ -17,8 +17,14 @@ export function usePolicyDetail(
   policyId: number | null,
   retryKey = 0,
 ): PolicyDetailState {
-  const query = useGetPolicy(workspaceId, packId, versionId, policyId ?? -1, {
-    query: { enabled: policyId !== null },
+  const safePolicyId = policyId ?? -1;
+  const query = useGetPolicy<PolicyDefinition>(workspaceId, packId, versionId, safePolicyId, {
+    query: {
+      enabled: policyId !== null,
+      queryKey: policyQueryKeys.detail(workspaceId, packId, versionId, safePolicyId),
+      select: (response) =>
+        requireApiData<PolicyDefinition>(response, "Policy 상세 응답을 확인할 수 없습니다."),
+    },
   });
 
   const { refetch } = query;
@@ -45,5 +51,5 @@ export function usePolicyDetail(
     return { status: "loading" };
   }
 
-  return { status: "ready", data: unwrapApiResponse<PolicyDefinition>(query.data) };
+  return { status: "ready", data: query.data };
 }

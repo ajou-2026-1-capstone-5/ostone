@@ -21,7 +21,14 @@ describe("usePolicyList", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useListPolicies>);
     renderHook(() => usePolicyList(1, 2, 3));
-    expect(mockedUseListPolicies).toHaveBeenCalledWith(1, 2, 3, {});
+    expect(mockedUseListPolicies).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      expect.objectContaining({
+        query: expect.objectContaining({ queryKey: ["policies", "list", 1, 2, 3] }),
+      }),
+    );
   });
 
   it("loading 상태를 반환한다", () => {
@@ -49,13 +56,13 @@ describe("usePolicyList", () => {
   });
 
   it("성공 상태를 반환한다", () => {
-    const data = { data: [{ id: 1, name: "Policy 1" }] };
+    const data = [{ id: 1, name: "Policy 1" }];
     mockedUseListPolicies.mockReturnValue({
       isSuccess: true,
       data,
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useListPolicies>);
     const { result } = renderHook(() => usePolicyList(1, 2, 3));
-    expect(result.current).toEqual({ status: "ready", data: data.data });
+    expect(result.current).toEqual({ status: "ready", data });
   });
 });

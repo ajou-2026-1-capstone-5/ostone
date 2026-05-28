@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updatePolicy } from "@/shared/api/generated/endpoints/update-policy-controller/update-policy-controller";
 import type { PolicyDefinitionSummary, UpdatePolicyRequest } from "@/shared/api/generated/zod";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, policyQueryKeys, selectApiData } from "@/shared/api";
 import { POLICY_ERROR_MESSAGES } from "./messages";
 
 interface UpdatePolicyParams {
@@ -19,15 +19,16 @@ export function useUpdatePolicy() {
   return useMutation({
     mutationFn: async ({ workspaceId, packId, versionId, policyId, body }: UpdatePolicyParams) => {
       const res = await updatePolicy(workspaceId, packId, versionId, policyId, body);
-      return res.data;
+      return selectApiData(res);
     },
     onSuccess: (updatedPolicy, { workspaceId, packId, versionId, policyId }) => {
+      if (!updatedPolicy) return;
       queryClient.setQueryData(
-        ["policies", "detail", workspaceId, packId, versionId, policyId] as const,
+        policyQueryKeys.detail(workspaceId, packId, versionId, policyId),
         updatedPolicy,
       );
       queryClient.setQueryData<PolicyDefinitionSummary[]>(
-        ["policies", "list", workspaceId, packId, versionId] as const,
+        policyQueryKeys.list(workspaceId, packId, versionId),
         (old) =>
           old?.map((item) =>
             item.id === policyId

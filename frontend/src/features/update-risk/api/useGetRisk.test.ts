@@ -1,19 +1,16 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGetRisk } from "./useGetRisk";
+import { useGetRisk as useGeneratedGetRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
 
 vi.mock(
   "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller",
   () => ({
-    getRisk: vi.fn(),
+    useGetRisk: vi.fn(),
   }),
 );
 
-import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
-
-const mockedGetRisk = vi.mocked(getRisk);
+const mockedUseGeneratedGetRisk = vi.mocked(useGeneratedGetRisk);
 
 const stubRisk = {
   id: 4,
@@ -31,22 +28,16 @@ const stubRisk = {
   updatedAt: "",
 };
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-}
-
 describe("useGetRisk", () => {
   beforeEach(() => {
-    mockedGetRisk.mockReset();
+    mockedUseGeneratedGetRisk.mockReset();
   });
 
   it("enabled 상태면 위험요소 상세를 조회한다", async () => {
-    mockedGetRisk.mockResolvedValue({ data: stubRisk as any, status: 200, headers: new Headers() });
+    mockedUseGeneratedGetRisk.mockReturnValue({
+      data: stubRisk,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useGeneratedGetRisk>);
 
     const { result } = renderHook(
       () =>
@@ -57,10 +48,20 @@ describe("useGetRisk", () => {
           riskId: 4,
           enabled: true,
         }),
-      { wrapper: makeWrapper() },
     );
 
-    await waitFor(() => expect(result.current.data).toEqual(stubRisk));
-    expect(mockedGetRisk).toHaveBeenCalledWith(1, 2, 3, 4);
+    expect(result.current.data).toEqual(stubRisk);
+    expect(mockedUseGeneratedGetRisk).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      4,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: true,
+          queryKey: ["risk", "detail", 1, 2, 3, 4],
+        }),
+      }),
+    );
   });
 });

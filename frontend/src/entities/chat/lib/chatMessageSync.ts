@@ -3,12 +3,12 @@ import type { ChatMessage } from "../model/types";
 const DEMO_SESSION_ID_PATTERN = /^\d+$/;
 
 export interface ChatMessageResponse {
-  id: number;
-  seqNo: number;
-  senderRole: string;
-  messageType: string;
-  content: string;
-  createdAt: string;
+  id?: number;
+  seqNo?: number;
+  senderRole?: string;
+  messageType?: string;
+  content?: string;
+  createdAt?: string;
 }
 
 export interface RealtimeChatMessage {
@@ -75,11 +75,11 @@ export function toSenderType(senderRole: string): ChatMessage["senderType"] {
 
 export function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMessage {
   return {
-    id: String(message.id),
+    id: String(message.id ?? crypto.randomUUID()),
     sessionId,
-    content: message.content,
-    senderType: toSenderType(message.senderRole),
-    createdAt: message.createdAt,
+    content: message.content ?? "",
+    senderType: toSenderType(message.senderRole ?? "BOT"),
+    createdAt: message.createdAt ?? new Date().toISOString(),
   };
 }
 

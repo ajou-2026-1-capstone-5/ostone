@@ -6,7 +6,7 @@ import type {
   RiskDefinitionSummary,
   UpdateRiskStatusRequest,
 } from "@/shared/api/generated/zod";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, riskQueryKeys, selectApiData } from "@/shared/api";
 import { RISK_ERROR_MESSAGES } from "./messages";
 
 interface UpdateRiskStatusParams {
@@ -32,11 +32,11 @@ export function useUpdateRiskStatus() {
       status,
     }: UpdateRiskStatusParams) => {
       const res = await updateRiskStatus(workspaceId, packId, versionId, riskId, { status });
-      return res.data;
+      return selectApiData(res);
     },
     onMutate: async ({ workspaceId, packId, versionId, riskId, status }) => {
-      const detailKey = ["risk", "detail", workspaceId, packId, versionId, riskId] as const;
-      const listKey = ["risk", "list", workspaceId, packId, versionId] as const;
+      const detailKey = riskQueryKeys.detail(workspaceId, packId, versionId, riskId);
+      const listKey = riskQueryKeys.list(workspaceId, packId, versionId);
 
       await queryClient.cancelQueries({ queryKey: detailKey });
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -67,12 +67,13 @@ export function useUpdateRiskStatus() {
       toast.error(RISK_ERROR_MESSAGES.STATUS_FAILED);
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
+      if (!updatedRisk) return;
       queryClient.setQueryData(
-        ["risk", "detail", workspaceId, packId, versionId, riskId] as const,
+        riskQueryKeys.detail(workspaceId, packId, versionId, riskId),
         updatedRisk,
       );
       queryClient.setQueryData<RiskDefinitionSummary[]>(
-        ["risk", "list", workspaceId, packId, versionId] as const,
+        riskQueryKeys.list(workspaceId, packId, versionId),
         (old) =>
           old?.map((item) =>
             item.id === riskId

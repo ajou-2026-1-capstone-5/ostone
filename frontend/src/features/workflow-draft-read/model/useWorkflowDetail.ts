@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import type { WorkflowDetail } from "@/entities/workflow";
-import { workflowApi } from "../api/workflowApi";
+import { useGetWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { requireApiData, workflowQueryKeys } from "@/shared/api";
 
 export function useWorkflowDetail(
   wsId: number,
@@ -8,9 +8,13 @@ export function useWorkflowDetail(
   versionId: number,
   workflowId: number | null,
 ) {
-  return useQuery<WorkflowDetail>({
-    queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
-    queryFn: () => workflowApi.detail(wsId, packId, versionId, workflowId!),
-    enabled: workflowId != null,
+  const safeWorkflowId = workflowId ?? -1;
+  return useGetWorkflow<WorkflowDetail>(wsId, packId, versionId, safeWorkflowId, {
+    query: {
+      queryKey: workflowQueryKeys.detail(wsId, packId, versionId, safeWorkflowId),
+      select: (response) =>
+        requireApiData<WorkflowDetail>(response, "Workflow 상세 응답을 확인할 수 없습니다."),
+      enabled: workflowId != null,
+    },
   });
 }
