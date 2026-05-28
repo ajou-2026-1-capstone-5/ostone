@@ -32,6 +32,7 @@ export default defineConfig({
     environment: "jsdom",
     testTimeout: 10000,
     hookTimeout: 10000,
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       provider: "v8",
       reporter: ["lcov", "text"],
