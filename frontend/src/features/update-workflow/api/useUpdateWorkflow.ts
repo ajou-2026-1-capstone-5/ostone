@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import type { UpdateWorkflowRequest } from "@/shared/api/generated/zod";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, selectApiData, workflowQueryKeys } from "@/shared/api";
 
 interface UpdateWorkflowParams {
   wsId: number;
@@ -37,14 +37,14 @@ export function useUpdateWorkflow() {
   return useMutation({
     mutationFn: async ({ wsId, packId, versionId, workflowId, body }: UpdateWorkflowParams) => {
       const res = await updateWorkflow(wsId, packId, versionId, workflowId, body);
-      return res.data;
+      return selectApiData(res);
     },
     onSuccess: (_, { wsId, packId, versionId, workflowId }) => {
       queryClient.invalidateQueries({
-        queryKey: ["workflows", "detail", wsId, packId, versionId, workflowId] as const,
+        queryKey: workflowQueryKeys.detail(wsId, packId, versionId, workflowId),
       });
       queryClient.invalidateQueries({
-        queryKey: ["workflows", "list", wsId, packId, versionId] as const,
+        queryKey: workflowQueryKeys.list(wsId, packId, versionId),
       });
       toast.success("워크플로우가 수정되었습니다.");
     },

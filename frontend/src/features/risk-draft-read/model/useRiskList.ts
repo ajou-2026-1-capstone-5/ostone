@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { listRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { useListRisks } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { riskQueryKeys, selectApiList } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { RiskDefinitionSummary } from "@/shared/api/generated/zod";
 
@@ -16,14 +16,10 @@ export function useRiskList(
   versionId: number,
   retryKey = 0,
 ): RiskListState {
-  const query = useQuery({
-    queryKey: ["risk", "list", workspaceId, packId, versionId],
-    queryFn: async () => {
-      const res = (await listRisks(workspaceId, packId, versionId)) as
-        | { data?: RiskDefinitionSummary[] }
-        | RiskDefinitionSummary[];
-      if (Array.isArray(res)) return res;
-      return res?.data ?? [];
+  const query = useListRisks<RiskDefinitionSummary[]>(workspaceId, packId, versionId, {
+    query: {
+      queryKey: riskQueryKeys.list(workspaceId, packId, versionId),
+      select: selectApiList<RiskDefinitionSummary>,
     },
   });
 

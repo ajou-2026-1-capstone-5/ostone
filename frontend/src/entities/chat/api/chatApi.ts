@@ -1,13 +1,18 @@
 import { customFetch } from "@/shared/api/mutator";
+import { selectApiData, selectApiList } from "@/shared/api";
+import { getMessages } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
+import { getChatWorkflow } from "@/shared/api/generated/endpoints/demo-runtime-controller/demo-runtime-controller";
 import type { ChatMessage, ChatSession } from "@/entities/chat/model/types";
 
+// OpenAPI 미생성 endpoint: current chat session, demo session create/send는 수동 호출로 유지한다.
+
 interface ChatMessageResponse {
-  id: number;
-  seqNo: number;
-  senderRole: string;
-  messageType: string;
-  content: string;
-  createdAt: string;
+  id?: number;
+  seqNo?: number;
+  senderRole?: string;
+  messageType?: string;
+  content?: string;
+  createdAt?: string;
 }
 
 interface DemoChatWorkflowResponse {
@@ -57,11 +62,11 @@ function toSenderType(senderRole: string): ChatMessage["senderType"] {
 
 function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMessage {
   return {
-    id: String(message.id),
+    id: String(message.id ?? crypto.randomUUID()),
     sessionId,
-    content: message.content,
-    senderType: toSenderType(message.senderRole),
-    createdAt: message.createdAt,
+    content: message.content ?? "",
+    senderType: toSenderType(message.senderRole ?? "BOT"),
+    createdAt: message.createdAt ?? new Date().toISOString(),
   };
 }
 
@@ -98,10 +103,7 @@ export function createChatSession(workspaceId: number, customerName: string): Pr
 }
 
 export async function listChatMessages(sessionId: number): Promise<ChatMessage[]> {
-  const messages = await customFetch<ChatMessageResponse[]>(
-    `/api/v1/consultation/sessions/${sessionId}/messages`,
-    { method: "GET" },
-  );
+  const messages = selectApiList<ChatMessageResponse>(await getMessages(sessionId));
   return messages.map((message) => toChatMessage(message, sessionId));
 }
 
@@ -109,10 +111,7 @@ export async function createDemoChatSession(
   workspaceId: number,
   customerName: string,
 ): Promise<DemoChatSession> {
-  const response = await customFetch<DemoChatWorkflowResponse>(
-    `/api/v1/workspaces/${workspaceId}/demo/chat-workflow`,
-    { method: "GET" },
-  );
+  const response = selectApiData<DemoChatWorkflowResponse>(await getChatWorkflow(workspaceId)) ?? {};
   const chatSession = response.chatSession;
 
   return {

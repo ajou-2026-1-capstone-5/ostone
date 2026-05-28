@@ -21,9 +21,16 @@ describe("usePackDetail", () => {
       typeof useGetDomainPack
     >);
     usePackDetail(1, 2);
-    expect(mockedUseGetDomainPack).toHaveBeenCalledWith(1, 2, {
-      query: { select: expect.any(Function) },
-    });
+    expect(mockedUseGetDomainPack).toHaveBeenCalledWith(
+      1,
+      2,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          queryKey: ["domain-packs", "detail", 1, 2],
+          select: expect.any(Function),
+        }),
+      }),
+    );
   });
 
   it("결과를 그대로 반환한다", () => {

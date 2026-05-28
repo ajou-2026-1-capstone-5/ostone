@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { intentApi } from "../api/intentApi";
+import { useEffect, useRef } from "react";
+import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
+import { intentQueryKeys, selectApiList } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { IntentListState, IntentSummary } from "../../../entities/intent";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 
 export function useIntentList(
   wsId: number,
@@ -10,42 +10,24 @@ export function useIntentList(
   versionId: number,
   refreshKey?: number,
 ): IntentListState {
-  const requestKey = `${wsId}:${packId}:${versionId}:${refreshKey ?? 0}`;
-  const [state, setState] = useState<{
-    requestKey: string;
-    value: IntentListState;
-  }>({
-    requestKey,
-    value: { status: "loading" },
+  const query = useListIntents<IntentSummary[]>(wsId, packId, versionId, {
+    query: {
+      queryKey: intentQueryKeys.list(wsId, packId, versionId),
+      select: selectApiList<IntentSummary>,
+    },
   });
 
+  const handledRefreshKeyRef = useRef(0);
+  const { refetch } = query;
+
   useEffect(() => {
-    let cancelled = false;
+    const key = refreshKey ?? 0;
+    if (key === 0 || key === handledRefreshKeyRef.current) return;
+    handledRefreshKeyRef.current = key;
+    refetch().catch(() => undefined);
+  }, [refetch, refreshKey]);
 
-    intentApi
-      .list(wsId, packId, versionId)
-      .then((data) => {
-        if (!cancelled) {
-          const list = unwrapApiResponse<IntentSummary[]>(data) ?? [];
-          setState({
-            requestKey,
-            value: { status: "ready", data: list },
-          });
-        }
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          setState({
-            requestKey,
-            value: mapApiError(e),
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [packId, requestKey, versionId, wsId]);
-
-  return state.requestKey === requestKey ? state.value : { status: "loading" };
+  if (query.isLoading) return { status: "loading" };
+  if (query.isError) return mapApiError(query.error);
+  return { status: "ready", data: query.data ?? [] };
 }

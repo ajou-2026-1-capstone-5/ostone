@@ -4,7 +4,7 @@ import {
   listDomainPacks,
 } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import { domainPackQueryKeys, selectApiData, selectApiList, workflowQueryKeys } from "@/shared/api";
 import type {
   DomainPackDetailResult,
   DomainPackSummaryResult,
@@ -45,18 +45,18 @@ export function useListAllWorkspaceWorkflows({
   const wsId = workspaceId ?? 0;
 
   const packsQuery = useQuery({
-    queryKey: ["workspace-workflows", "packs", wsId] as const,
+    queryKey: domainPackQueryKeys.list(wsId),
     queryFn: async ({ signal }) => listDomainPacks(wsId, { signal }),
     enabled,
   });
 
-  const packs = (unwrapApiResponse<DomainPackSummaryResult[]>(packsQuery.data) ?? []).filter(
+  const packs = selectApiList<DomainPackSummaryResult>(packsQuery.data).filter(
     (p): p is DomainPackSummaryResult & { packId: number } => typeof p.packId === "number",
   );
 
   const detailQueries = useQueries({
     queries: packs.map((pack) => ({
-      queryKey: ["workspace-workflows", "pack-detail", wsId, pack.packId] as const,
+      queryKey: domainPackQueryKeys.detail(wsId, pack.packId),
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         getDomainPack(wsId, pack.packId, { signal }),
       enabled,
@@ -64,19 +64,13 @@ export function useListAllWorkspaceWorkflows({
   });
 
   const packVersionPairs = packs.map((pack, idx) => {
-    const detail = unwrapApiResponse<DomainPackDetailResult>(detailQueries[idx]?.data);
+    const detail = selectApiData<DomainPackDetailResult>(detailQueries[idx]?.data);
     return { pack, versionId: pickLatestVersionId(detail) };
   });
 
   const workflowQueries = useQueries({
     queries: packVersionPairs.map((pair) => ({
-      queryKey: [
-        "workspace-workflows",
-        "workflows",
-        wsId,
-        pair.pack.packId,
-        pair.versionId ?? 0,
-      ] as const,
+      queryKey: workflowQueryKeys.list(wsId, pair.pack.packId, pair.versionId ?? 0),
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         pair.versionId !== null
           ? listWorkflows(wsId, pair.pack.packId!, pair.versionId, undefined, { signal })
@@ -102,7 +96,7 @@ export function useListAllWorkspaceWorkflows({
   const entries: WorkspaceWorkflowEntry[] = [];
   packVersionPairs.forEach((pair, idx) => {
     if (pair.versionId === null) return;
-    const wfList = unwrapApiResponse<WorkflowDefinitionSummary[]>(workflowQueries[idx]?.data) ?? [];
+    const wfList = selectApiList<WorkflowDefinitionSummary>(workflowQueries[idx]?.data);
     wfList.forEach((wf) => {
       if (typeof wf.id !== "number") return;
       entries.push({

@@ -7,17 +7,29 @@ import {
   sendDemoChatMessage,
 } from "./chatApi";
 
-const { customFetchMock } = vi.hoisted(() => ({
+const { customFetchMock, getMessagesMock, getChatWorkflowMock } = vi.hoisted(() => ({
   customFetchMock: vi.fn(),
+  getMessagesMock: vi.fn(),
+  getChatWorkflowMock: vi.fn(),
 }));
 
 vi.mock("@/shared/api/mutator", () => ({
   customFetch: customFetchMock,
 }));
 
+vi.mock("@/shared/api/generated/endpoints/consultation-controller/consultation-controller", () => ({
+  getMessages: getMessagesMock,
+}));
+
+vi.mock("@/shared/api/generated/endpoints/demo-runtime-controller/demo-runtime-controller", () => ({
+  getChatWorkflow: getChatWorkflowMock,
+}));
+
 describe("chatApi", () => {
   beforeEach(() => {
     customFetchMock.mockReset();
+    getMessagesMock.mockReset();
+    getChatWorkflowMock.mockReset();
   });
 
   it("workspaceId로 현재 사용자 채팅 세션을 조회하거나 생성한다", async () => {
@@ -38,16 +50,18 @@ describe("chatApi", () => {
   });
 
   it("세션 메시지를 채팅 UI 모델로 변환한다", async () => {
-    customFetchMock.mockResolvedValue([
-      {
-        id: 21,
-        seqNo: 1,
-        senderRole: "ASSISTANT",
-        messageType: "TEXT",
-        content: "안녕하세요",
-        createdAt: "2026-05-22T00:00:00Z",
-      },
-    ]);
+    getMessagesMock.mockResolvedValue({
+      data: [
+        {
+          id: 21,
+          seqNo: 1,
+          senderRole: "ASSISTANT",
+          messageType: "TEXT",
+          content: "안녕하세요",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ],
+    });
 
     await expect(listChatMessages(7)).resolves.toEqual([
       {
@@ -59,13 +73,12 @@ describe("chatApi", () => {
       },
     ]);
 
-    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/consultation/sessions/7/messages", {
-      method: "GET",
-    });
+    expect(getMessagesMock).toHaveBeenCalledWith(7);
+    expect(customFetchMock).not.toHaveBeenCalled();
   });
 
   it("데모 채팅 워크플로우를 채팅 UI 모델로 변환한다", async () => {
-    customFetchMock.mockResolvedValue({
+    getChatWorkflowMock.mockResolvedValue({
       chatSession: {
         id: "session-2",
         status: "completed",
@@ -97,9 +110,8 @@ describe("chatApi", () => {
       ],
     });
 
-    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/2/demo/chat-workflow", {
-      method: "GET",
-    });
+    expect(getChatWorkflowMock).toHaveBeenCalledWith(2);
+    expect(customFetchMock).not.toHaveBeenCalled();
   });
 
   it("백엔드에 데모 채팅 세션을 등록한다", async () => {

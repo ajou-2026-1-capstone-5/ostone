@@ -5,8 +5,10 @@ import {
   getGetMessagesUrl,
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { customFetch } from "@/shared/api/mutator";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import { requireApiData, selectApiData } from "@/shared/api";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
+
+// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics, sessions list, assign/release는 수동 호출로 유지한다.
 
 export type ChatSession = ChatSessionResponse & {
   assignedCounselorId?: number | null;
@@ -40,13 +42,13 @@ type MessageListResponse =
   | { data?: ChatMessage[] | { content?: ChatMessage[] }; content?: ChatMessage[] };
 
 function unwrapSessionList(response: SessionListResponse): ChatSession[] {
-  const unwrapped = unwrapApiResponse<ChatSession[] | { content?: ChatSession[] }>(response);
+  const unwrapped = selectApiData<ChatSession[] | { content?: ChatSession[] }>(response);
   if (Array.isArray(unwrapped)) return unwrapped;
   return unwrapped?.content ?? [];
 }
 
 function unwrapMessageList(response: MessageListResponse): ChatMessage[] {
-  const unwrapped = unwrapApiResponse<ChatMessage[] | { content?: ChatMessage[] }>(response);
+  const unwrapped = selectApiData<ChatMessage[] | { content?: ChatMessage[] }>(response);
   if (Array.isArray(unwrapped)) return unwrapped;
   return unwrapped?.content ?? [];
 }
@@ -57,7 +59,7 @@ export const consultationApi = {
       `/api/v1/workspaces/${workspaceId}/consultation/queue`,
       { method: "GET" },
     );
-    return unwrapApiResponse<ChatSession[]>(response) ?? [];
+    return selectApiData<ChatSession[]>(response) ?? [];
   },
 
   getSessions: async (params?: {
@@ -80,7 +82,7 @@ export const consultationApi = {
     params?: { page?: number; size?: number },
   ): Promise<ChatMessage[]> => {
     if (!params) {
-      return unwrapApiResponse<ChatMessage[]>(await getMessages(sessionId)) ?? [];
+      return selectApiData<ChatMessage[]>(await getMessages(sessionId)) ?? [];
     }
     const searchParams = new URLSearchParams();
     if (params.page !== undefined) searchParams.set("page", String(params.page));
@@ -96,11 +98,17 @@ export const consultationApi = {
     content: string,
     isNote: boolean = false,
   ): Promise<ChatMessage> => {
-    return unwrapApiResponse<ChatMessage>(await sendMessage(sessionId, { content, isNote }));
+    return requireApiData<ChatMessage>(
+      await sendMessage(sessionId, { content, isNote }),
+      "메시지 전송 응답을 확인할 수 없습니다.",
+    );
   },
 
   updateStatus: async (sessionId: number, status: string): Promise<ChatSession> => {
-    return unwrapApiResponse<ChatSession>(await updateStatus(sessionId, { status }));
+    return requireApiData<ChatSession>(
+      await updateStatus(sessionId, { status }),
+      "상담 상태 변경 응답을 확인할 수 없습니다.",
+    );
   },
 
   assignSession: async (sessionId: number, counselorId: number): Promise<ChatSession> => {
@@ -108,7 +116,7 @@ export const consultationApi = {
       `/api/v1/consultation/sessions/${sessionId}/assign?counselorId=${counselorId}`,
       { method: "POST" },
     );
-    return unwrapApiResponse<ChatSession>(response);
+    return requireApiData<ChatSession>(response, "상담 배정 응답을 확인할 수 없습니다.");
   },
 
   releaseSession: async (sessionId: number, counselorId: number): Promise<ChatSession> => {
@@ -116,7 +124,7 @@ export const consultationApi = {
       `/api/v1/consultation/sessions/${sessionId}/release?counselorId=${counselorId}`,
       { method: "POST" },
     );
-    return unwrapApiResponse<ChatSession>(response);
+    return requireApiData<ChatSession>(response, "상담 배정 해제 응답을 확인할 수 없습니다.");
   },
 
   getMetrics: async (workspaceId: number): Promise<ConsultationMetrics> => {
@@ -124,6 +132,6 @@ export const consultationApi = {
       `/api/v1/workspaces/${workspaceId}/consultation/metrics`,
       { method: "GET" },
     );
-    return unwrapApiResponse<ConsultationMetrics>(response);
+    return requireApiData<ConsultationMetrics>(response, "상담 지표 응답을 확인할 수 없습니다.");
   },
 };
