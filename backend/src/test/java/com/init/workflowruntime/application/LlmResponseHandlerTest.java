@@ -63,8 +63,10 @@ class LlmResponseHandlerTest {
   void should_saveAndPush_when_llmRespondsSuccessfully() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(llmAssistantService.generateResponse("", "안녕하세요")).willReturn("안녕하세요! 무엇을 도와드릴까요?");
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
-    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
+    ChatSession precheckSession = mockSession();
+    ChatSession lockSession = mockSession();
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(precheckSession));
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(lockSession));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
     given(transactionManager.getTransaction(any(TransactionDefinition.class)))
@@ -81,7 +83,7 @@ class LlmResponseHandlerTest {
     lockOrder.verify(llmAssistantService).generateResponse("", "안녕하세요");
     lockOrder.verify(chatSessionRepository).findByIdForUpdate(1L);
     verify(chatMessageRepository).save(any(ChatMessage.class));
-    verify(chatSessionMetadataService).updateAfterMessage(any(ChatSession.class), eq(savedMsg));
+    verify(chatSessionMetadataService).updateAfterMessage(eq(lockSession), eq(savedMsg));
     verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
 
     ChatMessageResponse pushed = responseCaptor.getValue();
