@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workflowruntime.domain.ConsultationMetricsRepository;
 import com.init.workflowruntime.domain.ConsultationMetricsSessionFact;
@@ -75,7 +76,8 @@ class ConsultationMetricsServiceTest {
                     true,
                     true)));
 
-    ConsultationMetricsResponse response = service.getWorkspaceMetrics(WORKSPACE_ID, USER_ID);
+    ConsultationMetricsResponse response =
+        service.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(WORKSPACE_ID, USER_ID));
 
     assertThat(response.workspaceId()).isEqualTo(WORKSPACE_ID);
     assertThat(response.periodStart()).isEqualTo(periodStart());
@@ -99,7 +101,8 @@ class ConsultationMetricsServiceTest {
                 fact(1L, null, null, null, null, false, true, false),
                 fact(2L, base, null, null, null, false, false, false)));
 
-    ConsultationMetricsResponse response = service.getWorkspaceMetrics(WORKSPACE_ID, USER_ID);
+    ConsultationMetricsResponse response =
+        service.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(WORKSPACE_ID, USER_ID));
 
     assertThat(response.averageFirstResponseSeconds()).isNull();
     assertThat(response.averageLlmFirstResponseSeconds()).isNull();
@@ -115,7 +118,9 @@ class ConsultationMetricsServiceTest {
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
         .willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.getWorkspaceMetrics(WORKSPACE_ID, USER_ID))
+    assertThatThrownBy(
+            () ->
+                service.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(WORKSPACE_ID, USER_ID)))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
     verify(consultationMetricsRepository, never())
         .findSessionFacts(WORKSPACE_ID, periodStart(), periodEnd());

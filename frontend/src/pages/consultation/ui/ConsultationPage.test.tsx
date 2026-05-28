@@ -171,6 +171,7 @@ describe("ConsultationPage", () => {
       throw new Error("Topbar node was not set");
     }
     return node as React.ReactElement<{
+      metricsViewState?: "loading" | "error" | "empty" | "ready";
       averageFirstResponseSeconds?: number | null;
       handledTodayCount?: number | null;
     }>;
@@ -195,6 +196,20 @@ describe("ConsultationPage", () => {
     expect(topbar.getByText("2분 14초")).toBeInTheDocument();
     expect(topbar.getByText("14건")).toBeInTheDocument();
     topbar.unmount();
+  });
+
+  it("renders metric loading state while the request is pending", async () => {
+    vi.mocked(consultationApi.getMetrics).mockImplementationOnce(() => new Promise(() => {}));
+
+    const { unmount } = render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("loading");
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getAllByText("로딩중")).toHaveLength(2);
+    topbar.unmount();
+    unmount();
   });
 
   it("renders metric fallbacks when average value is null", async () => {
@@ -225,7 +240,7 @@ describe("ConsultationPage", () => {
     topbar.unmount();
   });
 
-  it("keeps metric fallbacks and shows a toast once when metrics fail", async () => {
+  it("renders metric error state and shows a toast once when metrics fail", async () => {
     vi.mocked(consultationApi.getMetrics).mockRejectedValueOnce(new Error("Metrics failed"));
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -233,9 +248,13 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("상담 지표를 불러오지 못했습니다.");
     });
+    expect(toast.error).toHaveBeenCalledTimes(1);
 
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("error");
+    });
     const topbar = renderLatestTopbar();
-    expect(topbar.getAllByText("--")).toHaveLength(2);
+    expect(topbar.getAllByText("오류")).toHaveLength(2);
     topbar.unmount();
   });
 
@@ -270,6 +289,14 @@ describe("ConsultationPage", () => {
       expect.stringContaining("consultation.queue"),
       expect.any(Function),
     );
+    expect(consultationApi.getMetrics).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(getLatestTopbarNode().props.metricsViewState).toBe("empty");
+    });
+    const topbar = renderLatestTopbar();
+    expect(topbar.getAllByText("--")).toHaveLength(2);
+    topbar.unmount();
   });
 
   it("updates queue items from workspace queue upsert events", async () => {

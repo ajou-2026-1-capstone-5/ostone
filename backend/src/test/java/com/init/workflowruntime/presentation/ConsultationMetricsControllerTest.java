@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.ConsultationMetricsService;
+import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import java.time.OffsetDateTime;
@@ -41,7 +42,7 @@ class ConsultationMetricsControllerTest {
   @Test
   @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/metrics - 멤버 조회 성공")
   void should_returnMetrics_when_workspaceMemberRequests() throws Exception {
-    given(consultationMetricsService.getWorkspaceMetrics(2L, 7L))
+    given(consultationMetricsService.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(2L, 7L)))
         .willReturn(
             new ConsultationMetricsResponse(
                 2L,
@@ -69,7 +70,7 @@ class ConsultationMetricsControllerTest {
   @Test
   @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/metrics - 멤버 아님")
   void should_returnForbidden_when_userIsNotWorkspaceMember() throws Exception {
-    given(consultationMetricsService.getWorkspaceMetrics(2L, 7L))
+    given(consultationMetricsService.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(2L, 7L)))
         .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
 
     mockMvc
@@ -81,7 +82,7 @@ class ConsultationMetricsControllerTest {
   @Test
   @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/metrics - 데이터 없음")
   void should_returnEmptyMetrics_when_workspaceHasNoData() throws Exception {
-    given(consultationMetricsService.getWorkspaceMetrics(2L, 7L))
+    given(consultationMetricsService.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(2L, 7L)))
         .willReturn(
             new ConsultationMetricsResponse(
                 2L,

@@ -2,6 +2,7 @@ package com.init.workflowruntime.presentation;
 
 import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.ConsultationMetricsService;
+import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,8 @@ public class ConsultationMetricsController {
   public ResponseEntity<ConsultationMetricsResponse> getMetrics(
       @PathVariable Long workspaceId, Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
-    return ResponseEntity.ok(consultationMetricsService.getWorkspaceMetrics(workspaceId, userId));
+    return ResponseEntity.ok(
+        consultationMetricsService.getWorkspaceMetrics(
+            new GetWorkspaceMetricsCommand(workspaceId, userId)));
   }
 }

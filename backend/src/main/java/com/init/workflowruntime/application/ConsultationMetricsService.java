@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workflowruntime.domain.ConsultationMetricsRepository;
 import com.init.workflowruntime.domain.ConsultationMetricsSessionFact;
@@ -34,7 +35,9 @@ public class ConsultationMetricsService {
     this.clock = clock;
   }
 
-  public ConsultationMetricsResponse getWorkspaceMetrics(Long workspaceId, Long userId) {
+  public ConsultationMetricsResponse getWorkspaceMetrics(GetWorkspaceMetricsCommand command) {
+    Long workspaceId = command.workspaceId();
+    Long userId = command.userId();
     validateWorkspaceMembership(workspaceId, userId);
 
     LocalDate today = LocalDate.now(clock.withZone(METRIC_ZONE));
