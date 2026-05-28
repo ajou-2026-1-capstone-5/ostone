@@ -109,7 +109,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
         cursor: "pointer",
         textAlign: "left",
         color: "var(--ink)",
-        fontFamily: "var(--sans)",
+        fontFamily: "var(--font-sans)",
         fontSize: "13px",
         transition: "background 160ms ease",
       }}
@@ -169,7 +169,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <span
                   style={{
-                    fontFamily: "var(--sans)",
+                    fontFamily: "var(--font-sans)",
                     fontSize: "12px",
                     fontWeight: 500,
                     color: "var(--ink)",
@@ -200,7 +200,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
                 border: "none",
                 borderRadius: "var(--r-1)",
                 cursor: "pointer",
-                fontFamily: "var(--sans)",
+                fontFamily: "var(--font-sans)",
                 fontSize: "12px",
                 color: "var(--ink)",
                 textAlign: "left",
@@ -233,7 +233,7 @@ export function AccountMenu({ collapsed }: AccountMenuProps) {
                 border: "none",
                 borderRadius: "var(--r-1)",
                 cursor: "pointer",
-                fontFamily: "var(--sans)",
+                fontFamily: "var(--font-sans)",
                 fontSize: "12px",
                 color: "var(--ink)",
                 textAlign: "left",

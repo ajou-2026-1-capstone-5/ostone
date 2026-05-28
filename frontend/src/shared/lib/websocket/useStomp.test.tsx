@@ -1,6 +1,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { IMessage, StompSubscription, IFrame, frameCallbackType, wsErrorCallbackType, Client } from "@stomp/stompjs";
+import type {
+  IMessage,
+  StompSubscription,
+  IFrame,
+  frameCallbackType,
+  wsErrorCallbackType,
+  Client,
+} from "@stomp/stompjs";
 import { useStomp } from "./useStomp";
 
 interface MockClient {
@@ -142,7 +149,7 @@ describe("useStomp", () => {
     expect(topicCallback).toHaveBeenCalledWith({ content: "hello" });
 
     act(() => {
-      onMessage?.(makeMessage('invalid-json'));
+      onMessage?.(makeMessage("invalid-json"));
     });
     expect(topicCallback).toHaveBeenCalledTimes(1);
 
@@ -225,7 +232,7 @@ describe("useStomp", () => {
     });
 
     const errorQueueOnMessage = client.subscribe.mock.calls.find(
-      (call) => call[0] === "/user/queue/errors"
+      (call) => call[0] === "/user/queue/errors",
     )?.[1];
 
     expect(errorQueueOnMessage).toBeDefined();

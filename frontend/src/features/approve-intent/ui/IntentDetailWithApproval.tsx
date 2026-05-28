@@ -14,11 +14,7 @@ function normalizeIntentStatus(
   override: IntentApprovalStatus | null,
 ): "DRAFT" | IntentApprovalStatus {
   const effective = override ?? raw;
-  if (
-    effective === "DRAFT" ||
-    effective === "PUBLISHED" ||
-    effective === "REJECTED"
-  ) {
+  if (effective === "DRAFT" || effective === "PUBLISHED" || effective === "REJECTED") {
     return effective as IntentApprovalStatus;
   }
   return "DRAFT";
@@ -47,11 +43,8 @@ export function IntentDetailWithApproval({
   nonDraftHeaderActions?: (detail: IntentDetail) => ReactNode;
   children?: (detail: IntentDetail) => ReactNode;
 }) {
-  const [approvalState, setApprovalState] = useState(() =>
-    createApprovalState(iId),
-  );
-  const currentState =
-    approvalState.intentId === iId ? approvalState : createApprovalState(iId);
+  const [approvalState, setApprovalState] = useState(() => createApprovalState(iId));
+  const currentState = approvalState.intentId === iId ? approvalState : createApprovalState(iId);
 
   const mutation = useApproveIntent({
     wsId,
@@ -91,8 +84,7 @@ export function IntentDetailWithApproval({
       return { ...base, dialogAction: action };
     });
   };
-  const combinedRefreshKey =
-    (refreshKey ?? 0) * 1000 + currentState.detailRefreshKey;
+  const combinedRefreshKey = (refreshKey ?? 0) * 1000 + currentState.detailRefreshKey;
 
   return (
     <IntentDetailPanel

@@ -67,7 +67,9 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
             const cardContent = (
               <>
                 <div className={styles.cardTopRow}>
-                  <span className={operating ? styles.statusBadgeOperating : styles.statusBadgeIdle}>
+                  <span
+                    className={operating ? styles.statusBadgeOperating : styles.statusBadgeIdle}
+                  >
                     {operating ? "운영중" : "비운영"}
                   </span>
                   <span className={styles.versionText}>{buildVersionLabel(pack)}</span>
@@ -146,7 +148,10 @@ export function DomainPackListPage() {
   if (query.isError) {
     return (
       <div className={styles.errorPanel} data-testid="domain-packs-error">
-        <ErrorState message="도메인 팩 목록을 불러오지 못했습니다." onRetry={() => query.refetch()} />
+        <ErrorState
+          message="도메인 팩 목록을 불러오지 못했습니다."
+          onRetry={() => query.refetch()}
+        />
       </div>
     );
   }

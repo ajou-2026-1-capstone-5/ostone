@@ -39,13 +39,9 @@ vi.mock("@/shared/ui/spinner", () => ({
 }));
 
 vi.mock("@/shared/ui/button", () => ({
-  Button: ({
-    children,
-    onClick,
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-  }) => <button onClick={onClick}>{children}</button>,
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
 }));
 
 import { useGetWorkflow } from "../api/useGetWorkflow";

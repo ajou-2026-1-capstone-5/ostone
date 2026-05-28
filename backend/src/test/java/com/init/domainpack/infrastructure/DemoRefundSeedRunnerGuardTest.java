@@ -1,5 +1,6 @@
 package com.init.domainpack.infrastructure;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -7,6 +8,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -117,6 +121,61 @@ class DemoRefundSeedRunnerGuardTest {
     verify(intentSlotBindingRepository).saveAll(any());
     verify(chatSessionRepository).save(any(ChatSession.class));
     verify(chatMessageRepository, times(5)).save(any(ChatMessage.class));
+  }
+
+  @Test
+  @DisplayName("seed된 graph_json은 모든 노드에 description 필드를 포함한다")
+  void shouldSeedGraphJsonWithEnrichedDescriptions() throws Exception {
+    given(workflowDefinitionRepository.findAllByDomainPackVersionIdOrderByWorkflowCodeAsc(101L))
+        .willReturn(List.of());
+    given(intentDefinitionRepository.save(any(IntentDefinition.class)))
+        .willAnswer(
+            invocation -> {
+              IntentDefinition intent = invocation.getArgument(0);
+              ReflectionTestUtils.setField(intent, "id", 111L);
+              return intent;
+            });
+    ArgumentCaptor<WorkflowDefinition> workflowCaptor =
+        ArgumentCaptor.forClass(WorkflowDefinition.class);
+    given(workflowDefinitionRepository.save(workflowCaptor.capture()))
+        .willAnswer(
+            invocation -> {
+              WorkflowDefinition workflow = invocation.getArgument(0);
+              ReflectionTestUtils.setField(workflow, "id", 153L);
+              return workflow;
+            });
+    given(chatSessionRepository.save(any(ChatSession.class)))
+        .willAnswer(
+            invocation -> {
+              ChatSession session = invocation.getArgument(0);
+              ReflectionTestUtils.setField(session, "id", 1L);
+              return session;
+            });
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(
+            invocation -> {
+              ChatMessage message = invocation.getArgument(0);
+              ReflectionTestUtils.setField(message, "id", 10L);
+              return message;
+            });
+    when(entityManager.createNativeQuery(any(String.class))).thenReturn(query);
+    when(query.setParameter(any(String.class), any())).thenReturn(query);
+
+    runner.run(new DefaultApplicationArguments());
+
+    WorkflowDefinition savedWorkflow = workflowCaptor.getValue();
+    JsonNode root = new ObjectMapper().readTree(savedWorkflow.getGraphJson());
+    JsonNode nodes = root.path("nodes");
+    assertThat(nodes.isArray()).isTrue();
+    assertThat(nodes).isNotEmpty();
+    for (JsonNode node : nodes) {
+      assertThat(node.hasNonNull("description"))
+          .as("node %s must include description", node.path("id").asText())
+          .isTrue();
+      assertThat(node.path("description").asText())
+          .as("description must be non-blank for node %s", node.path("id").asText())
+          .isNotBlank();
+    }
   }
 
   private WorkflowDefinitionSummaryRow existingWorkflow(String workflowCode) {

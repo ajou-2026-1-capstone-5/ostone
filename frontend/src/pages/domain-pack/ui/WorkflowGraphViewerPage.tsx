@@ -34,8 +34,7 @@ export function WorkflowGraphViewerPage() {
     enabled: wsId !== null && pkId !== null,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pkId ?? "?"}`;
-  const versionNo =
-    packDetail?.versions?.find((v) => v.versionId === vsId)?.versionNo ?? vsId ?? 0;
+  const versionNo = packDetail?.versions?.find((v) => v.versionId === vsId)?.versionNo ?? vsId ?? 0;
 
   const rawGraph = data?.graphJson;
   const graph = useMemo<WorkflowGraph | null>(() => {
@@ -66,8 +65,7 @@ export function WorkflowGraphViewerPage() {
           packName,
           versionNo,
           section: { label: "WORKFLOWS", path: "workflows" },
-          selectedLabel:
-            data?.workflowCode ?? (wfId !== null ? `#${wfId} GRAPH` : "GRAPH"),
+          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId} GRAPH` : "GRAPH"),
         })
       : ["Domain Packs", "Workflow Graph"];
 

@@ -60,19 +60,13 @@ describe("useConnectedSides", () => {
   });
 
   it("같은 side의 중복 엣지가 있어도 한 번만 반환한다", () => {
-    testEdges = [
-      edge("e1", "n1", "right", "n2", "left"),
-      edge("e2", "n1", "right", "n3", "top"),
-    ];
+    testEdges = [edge("e1", "n1", "right", "n2", "left"), edge("e2", "n1", "right", "n3", "top")];
     const result = useConnectedSides("n1");
     expect(result.sources.filter((s) => s === "right")).toHaveLength(1);
   });
 
   it("여러 방향의 source와 target 엣지를 모두 수집한다", () => {
-    testEdges = [
-      edge("e1", "n1", "right", "n2", "left"),
-      edge("e2", "n3", "bottom", "n1", "top"),
-    ];
+    testEdges = [edge("e1", "n1", "right", "n2", "left"), edge("e2", "n3", "bottom", "n1", "top")];
     const result = useConnectedSides("n1");
     expect(result.sources).toContain("right");
     expect(result.targets).toContain("top");

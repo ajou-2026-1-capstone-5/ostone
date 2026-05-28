@@ -58,9 +58,7 @@ export function Message({ variant, name, time, text }: MessageProps) {
             justifyContent: isRight ? "flex-end" : "flex-start",
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>
-            {displayName}
-          </span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{displayName}</span>
           <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{time}</Mono>
         </div>
         <div

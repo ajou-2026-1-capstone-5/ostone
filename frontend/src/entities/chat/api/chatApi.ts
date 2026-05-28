@@ -87,10 +87,7 @@ function toDemoChatMessage(
   };
 }
 
-export function createChatSession(
-  workspaceId: number,
-  customerName: string,
-): Promise<ChatSession> {
+export function createChatSession(workspaceId: number, customerName: string): Promise<ChatSession> {
   const params = new URLSearchParams({ customerName });
   return customFetch<ChatSession>(
     `/api/v1/workspaces/${workspaceId}/chat/sessions/current?${params.toString()}`,

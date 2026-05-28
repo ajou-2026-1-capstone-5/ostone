@@ -1,9 +1,4 @@
-import {
-  useState,
-  type FocusEvent,
-  type MouseEvent,
-  type ReactNode,
-} from "react";
+import { useState, type FocusEvent, type MouseEvent, type ReactNode } from "react";
 
 import { Mono, Pill } from "@/shared/ui/ostone/atoms";
 
@@ -86,18 +81,10 @@ export function WorkflowRow({
         >
           <div className={styles.expandedInner}>
             {previewOpen && (
-              <div
-                className={styles.expanded}
-                data-testid={`${rowTestId}-detail`}
-              >
-                {entry.description && (
-                  <p className={styles.description}>{entry.description}</p>
-                )}
+              <div className={styles.expanded} data-testid={`${rowTestId}-detail`}>
+                {entry.description && <p className={styles.description}>{entry.description}</p>}
                 {graphSlot && (
-                  <div
-                    className={styles.graphSlot}
-                    data-testid={`${rowTestId}-graph`}
-                  >
+                  <div className={styles.graphSlot} data-testid={`${rowTestId}-graph`}>
                     {graphSlot}
                   </div>
                 )}

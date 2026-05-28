@@ -77,20 +77,11 @@ describe("Sidebar", () => {
   it("basePath prop을 지정하면 링크에 반영된다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
-    expect(screen.getByTitle("Consultation")).toHaveAttribute(
-      "href",
-      "/workspaces/7/consultation",
-    );
-    expect(screen.getByTitle("Chat")).toHaveAttribute(
-      "href",
-      "/demo/workspaces/7/chat",
-    );
+    expect(screen.getByTitle("Consultation")).toHaveAttribute("href", "/workspaces/7/consultation");
+    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/demo/workspaces/7/chat");
     expect(screen.getByTitle("Chat")).toHaveAttribute("target", "_blank");
     expect(screen.getByTitle("Chat")).toHaveAttribute("rel", "noopener noreferrer");
-    expect(screen.getByTitle("Domain Packs")).toHaveAttribute(
-      "href",
-      "/workspaces/7/domain-packs",
-    );
+    expect(screen.getByTitle("Domain Packs")).toHaveAttribute("href", "/workspaces/7/domain-packs");
   });
 
   it("workspaceId를 추출할 수 없으면 Chat 링크를 안전한 내부 경로로 보낸다", () => {
@@ -113,5 +104,32 @@ describe("Sidebar", () => {
     expect(link.style.background).toBe("var(--paper-3)");
     fireEvent.mouseLeave(link);
     expect(link.style.background).toBe("transparent");
+  });
+
+  it("redesign: active 링크는 fontWeight 540, idle은 450 으로 그려진다", () => {
+    renderSidebar({ active: "consult" });
+
+    const activeLink = screen.getByTitle("Consultation") as HTMLElement;
+    const idleLink = screen.getByTitle("Uploads") as HTMLElement;
+
+    expect(activeLink.style.fontWeight).toBe("540");
+    expect(idleLink.style.fontWeight).toBe("450");
+  });
+
+  it("redesign: 모든 링크는 13.5px / letter-spacing -0.18px / Pretendard 변수 폰트를 사용한다", () => {
+    renderSidebar({ active: "consult" });
+
+    const link = screen.getByTitle("Consultation") as HTMLElement;
+    expect(link.style.fontSize).toBe("13.5px");
+    expect(link.style.letterSpacing).toBe("-0.18px");
+    expect(link.style.fontFamily).toBe("var(--font-sans)");
+  });
+
+  it("redesign: TOP_NAV 항목마다 sidebar-link-{key} data-testid를 노출한다", () => {
+    renderSidebar({ active: "consult" });
+
+    expect(screen.getByTestId("sidebar-link-consult")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-chat")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-upload")).toBeInTheDocument();
   });
 });

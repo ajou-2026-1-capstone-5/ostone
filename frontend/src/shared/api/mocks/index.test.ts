@@ -53,7 +53,9 @@ describe("isMockEnabled", () => {
 describe("resolveMock", () => {
   it("mock 비활성이면 null", () => {
     setLocation("");
-    expect(resolveMock("/workspaces/1/domain-packs/1/versions/1/intents", { method: "GET" })).toBeNull();
+    expect(
+      resolveMock("/workspaces/1/domain-packs/1/versions/1/intents", { method: "GET" }),
+    ).toBeNull();
   });
 
   it("mock 활성이고 GET 매칭이면 데이터 반환", () => {

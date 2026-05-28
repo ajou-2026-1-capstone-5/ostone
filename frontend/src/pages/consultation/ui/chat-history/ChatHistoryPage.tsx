@@ -9,7 +9,10 @@ interface ChatHistoryPageProps {
 }
 
 export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPageProps) {
-  const { workspaceId: workspaceIdParam, sessionId: sessionIdParam } = useParams<{ workspaceId: string; sessionId: string }>();
+  const { workspaceId: workspaceIdParam, sessionId: sessionIdParam } = useParams<{
+    workspaceId: string;
+    sessionId: string;
+  }>();
   const workspaceId = workspaceIdProp ?? workspaceIdParam ?? "";
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionIdParam ?? null);
 

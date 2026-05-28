@@ -218,14 +218,14 @@ public class DemoRefundRequestSeedRunner implements ApplicationRunner {
         {
           "direction": "top-to-bottom",
           "nodes": [
-            {"id": "start", "type": "START", "label": "시작"},
-            {"id": "n1", "type": "ACTION", "label": "환불 금액 확인", "policyRef": "refund_amount_check"},
-            {"id": "n2", "type": "DECISION", "label": "환불 가능?"},
-            {"id": "n3", "type": "ACTION", "label": "반품 기한 확인", "policyRef": "return_deadline_check"},
-            {"id": "n4", "type": "DECISION", "label": "기한 내?"},
-            {"id": "n5", "type": "ACTION", "label": "고액 환불 알림", "policyRef": "high_value_alert"},
-            {"id": "end_requested", "type": "TERMINAL", "label": "환불 접수 완료", "state": "refund_requested"},
-            {"id": "end_rejected", "type": "TERMINAL", "label": "환불 불가", "state": "rejected"}
+            {"id": "start", "type": "START", "label": "시작", "description": "환불 요청 워크플로우의 진입점."},
+            {"id": "n1", "type": "ACTION", "label": "환불 금액 확인", "description": "주문 데이터를 조회해 환불 가능 금액과 결제 채널을 검증합니다.", "policyRef": "refund_amount_check", "iconHint": "Wallet"},
+            {"id": "n2", "type": "DECISION", "label": "환불 가능?", "description": "환불 정책 기준을 충족하는지 판단합니다."},
+            {"id": "n3", "type": "ACTION", "label": "반품 기한 확인", "description": "구매일 기준 14일 이내인지 검증합니다.", "policyRef": "return_deadline_check", "iconHint": "CalendarClock"},
+            {"id": "n4", "type": "DECISION", "label": "기한 내?", "description": "반품 가능 기한 안에 들어오는지 분기합니다."},
+            {"id": "n5", "type": "ACTION", "label": "고액 환불 알림", "description": "고액 환불 임계치 초과 시 매니저에게 자동 알림을 전송합니다.", "policyRef": "high_value_alert", "iconHint": "BellRing"},
+            {"id": "end_requested", "type": "TERMINAL", "label": "환불 접수 완료", "description": "환불 요청이 성공적으로 접수되었습니다.", "state": "refund_requested"},
+            {"id": "end_rejected", "type": "TERMINAL", "label": "환불 불가", "description": "환불 조건 불충족으로 요청이 거절되었습니다.", "state": "rejected"}
           ],
           "edges": [
             {"id": "e1", "from": "start", "to": "n1"},

@@ -96,9 +96,7 @@ describe("WorkflowEditForm", () => {
 
   it("renders workflow name and description in form fields", () => {
     renderForm();
-    expect(
-      screen.getByDisplayValue("환불 처리 워크플로우"),
-    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("환불 처리 워크플로우")).toBeInTheDocument();
     expect(screen.getByDisplayValue("표준 환불 처리 절차")).toBeInTheDocument();
   });
 
@@ -121,14 +119,8 @@ describe("WorkflowEditForm", () => {
       },
     });
 
-    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
-      "data-node-count",
-      "0",
-    );
-    expect(screen.getByTestId("graph-editor")).toHaveAttribute(
-      "data-edge-count",
-      "0",
-    );
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute("data-node-count", "0");
+    expect(screen.getByTestId("graph-editor")).toHaveAttribute("data-edge-count", "0");
   });
 
   it("calls onClose when cancel button is clicked", () => {
@@ -188,9 +180,7 @@ describe("WorkflowEditForm", () => {
     fireEvent.change(nameInput, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => {
-      expect(
-        screen.getByText("워크플로우 이름은 필수입니다."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("워크플로우 이름은 필수입니다.")).toBeInTheDocument();
     });
     expect(mutateWorkflow).not.toHaveBeenCalled();
   });

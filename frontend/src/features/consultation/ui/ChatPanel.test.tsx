@@ -20,7 +20,6 @@ describe("ChatPanel", () => {
     expect(screen.queryByPlaceholderText("메시지를 입력하세요...")).not.toBeInTheDocument();
   });
 
-
   it("일반 메시지를 전송하면 입력값이 비워진다", () => {
     const onSendMessage = vi.fn();
 

@@ -42,7 +42,7 @@ const rowStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "var(--s-2)",
-  fontFamily: "var(--sans)",
+  fontFamily: "var(--font-sans)",
   fontSize: "13px",
   fontWeight: 500,
   color: "var(--ink)",
@@ -70,7 +70,7 @@ function chipStyle(active: boolean): CSSProperties {
     color: active ? "var(--paper)" : "var(--ink)",
     fontSize: "12px",
     fontWeight: 500,
-    fontFamily: "var(--sans)",
+    fontFamily: "var(--font-sans)",
     cursor: "pointer",
     lineHeight: 1.2,
   };

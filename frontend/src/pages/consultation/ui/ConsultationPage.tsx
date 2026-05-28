@@ -210,6 +210,7 @@ export const ConsultationPage: React.FC = () => {
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
   const metricsErrorToastShownRef = useRef(false);
+  const queueErrorToastShownRef = useRef(false);
   const currentCounselorId = getAuthUser()?.id ?? null;
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
@@ -227,7 +228,11 @@ export const ConsultationPage: React.FC = () => {
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
   const activeStatusLabel = activeCustomer
-    ? getSessionStatusLabel(activeCustomer.status, activeCustomer.assignedCounselorId, currentCounselorId)
+    ? getSessionStatusLabel(
+        activeCustomer.status,
+        activeCustomer.assignedCounselorId,
+        currentCounselorId,
+      )
     : undefined;
   const isAssignedToCurrentCounselor =
     !!activeCustomer?.assignedCounselorId &&
@@ -307,32 +312,47 @@ export const ConsultationPage: React.FC = () => {
     };
   }, [workspaceId]);
 
-  const loadQueue = useCallback(async () => {
-    if (!workspaceId) {
-      setQueue([]);
-      setIsQueueLoading(false);
+  const loadQueue = useCallback(
+    async (isManualRetry = false) => {
+      if (!workspaceId) {
+        setQueue([]);
+        setIsQueueLoading(false);
+        setQueueLoadError(null);
+        clearActiveConversation();
+        return;
+      }
+
+      if (isManualRetry) {
+        queueErrorToastShownRef.current = false;
+      }
+
+      setIsQueueLoading(true);
       setQueueLoadError(null);
-      clearActiveConversation();
-      return;
-    }
 
-    setIsQueueLoading(true);
-    setQueueLoadError(null);
+      try {
+        const sessions = await consultationApi.getQueue(workspaceId);
+        const formattedQueue = (Array.isArray(sessions) ? sessions : []).map((s) =>
+          toQueueCustomer(s, currentCounselorId),
+        );
+        setQueue(sortQueueCustomers(formattedQueue));
+        queueErrorToastShownRef.current = false;
+      } catch (error) {
+        console.error("Failed to load queue:", error);
+        setQueueLoadError("대기열을 불러오지 못했습니다.");
+        if (!queueErrorToastShownRef.current) {
+          queueErrorToastShownRef.current = true;
+          toast.error("대기열을 불러오지 못했습니다.");
+        }
+      } finally {
+        setIsQueueLoading(false);
+      }
+    },
+    [clearActiveConversation, currentCounselorId, workspaceId],
+  );
 
-    try {
-      const sessions = await consultationApi.getQueue(workspaceId);
-      const formattedQueue = (Array.isArray(sessions) ? sessions : []).map((s) =>
-        toQueueCustomer(s, currentCounselorId),
-      );
-      setQueue(sortQueueCustomers(formattedQueue));
-    } catch (error) {
-      console.error("Failed to load queue:", error);
-      setQueueLoadError("대기열을 불러오지 못했습니다.");
-      toast.error("대기열을 불러오지 못했습니다.");
-    } finally {
-      setIsQueueLoading(false);
-    }
-  }, [clearActiveConversation, currentCounselorId, workspaceId]);
+  const handleQueueRetry = useCallback(() => {
+    void loadQueue(true);
+  }, [loadQueue]);
 
   const handleQueueEvent = useCallback(
     (raw: unknown) => {
@@ -367,14 +387,13 @@ export const ConsultationPage: React.FC = () => {
   );
 
   useEffect(() => {
-    if (connectionStatus === "CONNECTED") return;
+    queueErrorToastShownRef.current = false;
     void loadQueue();
-  }, [connectionStatus, loadQueue]);
+  }, [loadQueue]);
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED" || !workspaceId) return;
 
-    void loadQueue();
     const unsubscribe = subscribe(
       `/topic/workspaces.${workspaceId}.consultation.queue`,
       handleQueueEvent,
@@ -383,7 +402,7 @@ export const ConsultationPage: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [connectionStatus, handleQueueEvent, loadQueue, subscribe, workspaceId]);
+  }, [connectionStatus, handleQueueEvent, subscribe, workspaceId]);
 
   useEffect(() => {
     if (!activeCustomerId) {
@@ -576,13 +595,7 @@ export const ConsultationPage: React.FC = () => {
       setMemos((prev) => ({ ...prev, [requestCustomerId]: "" }));
       toast.success("상담 메모 저장 요청을 전송했습니다.");
     }
-  }, [
-    activeCustomerId,
-    connectionStatus,
-    handleSendMessage,
-    isAssignedToCurrentCounselor,
-    memos,
-  ]);
+  }, [activeCustomerId, connectionStatus, handleSendMessage, isAssignedToCurrentCounselor, memos]);
 
   return (
     <div className={styles.consultationRoot}>
@@ -593,7 +606,7 @@ export const ConsultationPage: React.FC = () => {
           onSelectCustomer={handleSelectCustomer}
           isLoading={isQueueLoading}
           loadError={queueLoadError}
-          onRetry={loadQueue}
+          onRetry={handleQueueRetry}
         />
       </div>
 
@@ -647,7 +660,10 @@ export const ConsultationPage: React.FC = () => {
       <div className={styles.detailPane}>
         {selectedMessage ? (
           // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
-          <MessageDetailPanel message={selectedMessage} onClose={() => setSelectedMessageId(null)} />
+          <MessageDetailPanel
+            message={selectedMessage}
+            onClose={() => setSelectedMessageId(null)}
+          />
         ) : (
           <CustomerPanel
             customer={

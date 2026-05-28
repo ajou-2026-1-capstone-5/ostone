@@ -15,7 +15,13 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function SessionList({ workspaceId, selectedSessionId, onSelectSession }: SessionListProps) {
-  const { data: sessions = [], isLoading, isError, error, refetch } = useChatSessions({
+  const {
+    data: sessions = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useChatSessions({
     workspaceId,
     status: "completed",
   });

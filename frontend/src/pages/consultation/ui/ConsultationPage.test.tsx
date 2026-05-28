@@ -684,6 +684,47 @@ describe("ConsultationPage", () => {
     });
   });
 
+  it("loads queue only once on initial mount and does not spam toast errors", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const errorToasts = vi
+      .mocked(toast.error)
+      .mock.calls.filter(([message]) => message === "대기열을 불러오지 못했습니다.");
+    expect(errorToasts).toHaveLength(0);
+  });
+
+  it("deduplicates queue error toast across multiple failed loads", async () => {
+    vi.mocked(consultationApi.getQueue)
+      .mockRejectedValueOnce(new Error("Network Error"))
+      .mockRejectedValueOnce(new Error("Network Error"));
+    const user = userEvent.setup();
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("대기열을 불러오지 못했습니다.");
+    });
+
+    let queueErrorToasts = vi
+      .mocked(toast.error)
+      .mock.calls.filter(([message]) => message === "대기열을 불러오지 못했습니다.");
+    expect(queueErrorToasts).toHaveLength(1);
+
+    await user.click(screen.getByText("다시 시도"));
+
+    await waitFor(() => {
+      queueErrorToasts = vi
+        .mocked(toast.error)
+        .mock.calls.filter(([message]) => message === "대기열을 불러오지 못했습니다.");
+      expect(queueErrorToasts).toHaveLength(2);
+    });
+  });
+
   it("shows error toast when loading messages fails", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 

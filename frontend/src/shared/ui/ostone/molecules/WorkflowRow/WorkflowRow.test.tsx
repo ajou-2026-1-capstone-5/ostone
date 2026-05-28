@@ -65,11 +65,7 @@ describe("WorkflowRow", () => {
 
   it("description 없으면 description 단락 생략", () => {
     render(
-      <WorkflowRow
-        entry={{ ...ENTRY, description: null }}
-        onOpen={vi.fn()}
-        testIdPrefix="row"
-      />,
+      <WorkflowRow entry={{ ...ENTRY, description: null }} onOpen={vi.fn()} testIdPrefix="row" />,
     );
     fireEvent.mouseEnter(screen.getByTestId("row-7"));
     expect(screen.queryByText("설명")).not.toBeInTheDocument();

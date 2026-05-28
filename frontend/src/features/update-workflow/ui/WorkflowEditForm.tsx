@@ -3,10 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Node, Edge } from "@xyflow/react";
 import { Button } from "@/shared/ui/button";
-import {
-  workflowEditSchema,
-  type WorkflowEditFormValues,
-} from "../model/schema";
+import { workflowEditSchema, type WorkflowEditFormValues } from "../model/schema";
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
 import { toWorkflowGraph } from "../lib/graphToWorkflow";

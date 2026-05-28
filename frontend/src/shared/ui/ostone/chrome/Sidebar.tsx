@@ -71,6 +71,7 @@ function deriveSidebarColors(dark: boolean) {
     borderColor: dark ? "var(--dark-line)" : "var(--line)",
     defaultColor: dark ? "var(--dark-ink-3)" : "var(--ink-3)",
     hoverBg: dark ? "var(--dark-bg-2)" : "var(--paper-3)",
+    activeBg: dark ? "var(--dark-bg-2)" : "var(--paper-3)",
     activeColor: dark ? "var(--dark-ink)" : "var(--ink)",
   };
 }
@@ -92,7 +93,7 @@ export function Sidebar({
   basePath = "/workspaces",
   switcher,
 }: SidebarProps) {
-  const { containerBg, borderColor, defaultColor, hoverBg, activeColor } =
+  const { containerBg, borderColor, defaultColor, hoverBg, activeBg, activeColor } =
     deriveSidebarColors(dark);
 
   return (
@@ -161,6 +162,8 @@ export function Sidebar({
             activeColor={activeColor}
             defaultColor={defaultColor}
             hoverBg={hoverBg}
+            activeBg={activeBg}
+            testId={`sidebar-link-${item.key}`}
             target={item.external ? "_blank" : undefined}
           />
         ))}
@@ -173,6 +176,7 @@ export function Sidebar({
           activeColor={activeColor}
           defaultColor={defaultColor}
           hoverBg={hoverBg}
+          activeBg={activeBg}
           testId="sidebar-domain-link"
         />
       </div>
@@ -206,8 +210,38 @@ interface SidebarLinkProps {
   activeColor: string;
   defaultColor: string;
   hoverBg: string;
+  activeBg: string;
   testId?: string;
   target?: "_blank";
+}
+
+function buildLinkStyle({
+  isActive,
+  activeColor,
+  defaultColor,
+  activeBg,
+}: {
+  isActive: boolean;
+  activeColor: string;
+  defaultColor: string;
+  activeBg: string;
+}): CSSProperties {
+  return {
+    height: "40px",
+    padding: "0 var(--s-3)",
+    display: "flex",
+    alignItems: "center",
+    gap: "var(--s-2)",
+    color: isActive ? activeColor : defaultColor,
+    background: isActive ? activeBg : "transparent",
+    borderLeft: `3px solid ${isActive ? "var(--signal)" : "transparent"}`,
+    textDecoration: "none",
+    transition: "background 160ms ease, color 160ms ease",
+    fontFamily: "var(--font-sans)",
+    fontSize: "13.5px",
+    fontWeight: isActive ? 540 : 450,
+    letterSpacing: "-0.18px",
+  };
 }
 
 function SidebarLink({
@@ -218,25 +252,16 @@ function SidebarLink({
   activeColor,
   defaultColor,
   hoverBg,
+  activeBg,
   testId,
   target,
 }: SidebarLinkProps) {
-  const expandedStyle: CSSProperties = {
-    height: "40px",
-    padding: "0 var(--s-3)",
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--s-2)",
-    color: isActive ? activeColor : defaultColor,
-    background: isActive ? hoverBg : "transparent",
-    borderLeft: `3px solid ${isActive ? "var(--signal)" : "transparent"}`,
-    textDecoration: "none",
-    transition: "background 160ms ease, color 160ms ease",
-    fontFamily: "var(--sans)",
-    fontSize: "14px",
-    fontWeight: isActive ? 500 : 400,
-    letterSpacing: "-0.1px",
-  };
+  const expandedStyle: CSSProperties = buildLinkStyle({
+    isActive,
+    activeColor,
+    defaultColor,
+    activeBg,
+  });
 
   const handleMouseEnter = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!isActive) {

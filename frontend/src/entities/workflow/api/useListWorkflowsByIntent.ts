@@ -2,10 +2,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
 import { getDomainPack } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
 import { listWorkflows } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
-import type {
-  DomainPackDetailResult,
-  WorkflowDefinitionSummary,
-} from "@/shared/api/generated/zod";
+import type { DomainPackDetailResult, WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 
 import type { WorkspaceWorkflowEntry } from "./useListAllWorkspaceWorkflows";

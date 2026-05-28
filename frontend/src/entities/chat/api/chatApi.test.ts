@@ -59,10 +59,9 @@ describe("chatApi", () => {
       },
     ]);
 
-    expect(customFetchMock).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/7/messages",
-      { method: "GET" },
-    );
+    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/consultation/sessions/7/messages", {
+      method: "GET",
+    });
   });
 
   it("데모 채팅 워크플로우를 채팅 UI 모델로 변환한다", async () => {
@@ -98,10 +97,9 @@ describe("chatApi", () => {
       ],
     });
 
-    expect(customFetchMock).toHaveBeenCalledWith(
-      "/api/v1/workspaces/2/demo/chat-workflow",
-      { method: "GET" },
-    );
+    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/2/demo/chat-workflow", {
+      method: "GET",
+    });
   });
 
   it("백엔드에 데모 채팅 세션을 등록한다", async () => {
@@ -126,13 +124,10 @@ describe("chatApi", () => {
       ],
     });
 
-    expect(customFetchMock).toHaveBeenCalledWith(
-      "/api/v1/workspaces/2/demo/chat-sessions",
-      {
-        method: "POST",
-        body: JSON.stringify({ customerName: "김민지" }),
-      },
-    );
+    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/2/demo/chat-sessions", {
+      method: "POST",
+      body: JSON.stringify({ customerName: "김민지" }),
+    });
   });
 
   it("백엔드 데모 채팅 세션 응답에 숫자 id가 없으면 실패한다", async () => {

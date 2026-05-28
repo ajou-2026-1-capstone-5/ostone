@@ -97,34 +97,31 @@ export function useStomp(): UseStompResult {
     });
   }, []);
 
-  const subscribe = useCallback(
-    (topic: string, cb: (msg: unknown) => void): (() => void) => {
-      const client = clientRef.current;
-      if (!client?.connected) {
-        return () => {};
+  const subscribe = useCallback((topic: string, cb: (msg: unknown) => void): (() => void) => {
+    const client = clientRef.current;
+    if (!client?.connected) {
+      return () => {};
+    }
+
+    const subscription = client.subscribe(topic, (message) => {
+      try {
+        cb(JSON.parse(message.body) as unknown);
+      } catch {
+        // Skip malformed messages
       }
+    });
+    const prev = customSubscriptionsRef.current.get(topic);
+    prev?.unsubscribe();
+    customSubscriptionsRef.current.set(topic, subscription);
 
-      const subscription = client.subscribe(topic, (message) => {
-        try {
-          cb(JSON.parse(message.body) as unknown);
-        } catch {
-          // Skip malformed messages
-        }
-      });
-      const prev = customSubscriptionsRef.current.get(topic);
-      prev?.unsubscribe();
-      customSubscriptionsRef.current.set(topic, subscription);
-
-      return () => {
-        subscription.unsubscribe();
-        const current = customSubscriptionsRef.current.get(topic);
-        if (current === subscription) {
-          customSubscriptionsRef.current.delete(topic);
-        }
-      };
-    },
-    [],
-  );
+    return () => {
+      subscription.unsubscribe();
+      const current = customSubscriptionsRef.current.get(topic);
+      if (current === subscription) {
+        customSubscriptionsRef.current.delete(topic);
+      }
+    };
+  }, []);
 
   const sendTo = useCallback((destination: string, body: unknown) => {
     const client = clientRef.current;

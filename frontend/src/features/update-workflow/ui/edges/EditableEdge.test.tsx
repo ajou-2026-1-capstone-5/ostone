@@ -76,7 +76,9 @@ describe("EditableEdge", () => {
     fireEvent.change(input, { target: { value: "변경후" } });
     fireEvent.blur(input);
     expect(setEdgesMock).toHaveBeenCalledTimes(1);
-    const updater = setEdgesMock.mock.calls[0][0] as (eds: { id: string; label: string }[]) => { id: string; label: string }[];
+    const updater = setEdgesMock.mock.calls[0][0] as (
+      eds: { id: string; label: string }[],
+    ) => { id: string; label: string }[];
     const result = updater([
       { id: "e1", label: "변경전" },
       { id: "e2", label: "다른것" },

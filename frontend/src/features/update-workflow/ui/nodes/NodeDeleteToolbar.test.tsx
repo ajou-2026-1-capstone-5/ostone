@@ -3,13 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { NodeDeleteToolbar } from "./NodeDeleteToolbar";
 
 vi.mock("@xyflow/react", () => ({
-  NodeToolbar: ({
-    isVisible,
-    children,
-  }: {
-    isVisible?: boolean;
-    children: React.ReactNode;
-  }) => (isVisible ? <div data-testid="toolbar">{children}</div> : null),
+  NodeToolbar: ({ isVisible, children }: { isVisible?: boolean; children: React.ReactNode }) =>
+    isVisible ? <div data-testid="toolbar">{children}</div> : null,
   Position: { Top: "top" },
 }));
 

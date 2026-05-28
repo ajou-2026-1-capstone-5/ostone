@@ -58,9 +58,9 @@ export const UploadPage: React.FC = () => {
             marginTop: 8,
           }}
         >
-          업로드한 데이터셋 1개당 도메인 팩 초안 1개를 생성하고, 여러 상담에서 추출한 intent,
-          slot, policy, risk, workflow를 그 안에 모읍니다. 파이프라인은 6단계로 구성되며 각
-          단계의 진행 상황을 실시간으로 모니터링할 수 있습니다.
+          업로드한 데이터셋 1개당 도메인 팩 초안 1개를 생성하고, 여러 상담에서 추출한 intent, slot,
+          policy, risk, workflow를 그 안에 모읍니다. 파이프라인은 6단계로 구성되며 각 단계의 진행
+          상황을 실시간으로 모니터링할 수 있습니다.
         </p>
       </div>
 

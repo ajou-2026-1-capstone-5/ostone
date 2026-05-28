@@ -36,8 +36,7 @@ export function PolicyDraftReadPage() {
     enabled: wsId !== null && pId !== null && vId !== null && !hasInvalidPolicyId,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pId ?? "?"}`;
-  const versionNo =
-    packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
+  const versionNo = packDetail?.versions?.find((v) => v.versionId === vId)?.versionNo ?? vId ?? 0;
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
