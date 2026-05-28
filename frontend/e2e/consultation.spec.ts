@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { installAuth } from "./support/generated-api-auth";
 import { installConsultationApiMocks } from "./support/generated-api-mocks";
+import { installMockStomp } from "./support/mock-stomp";
 
 test.describe("Consultation screen", () => {
   let seen: string[];
@@ -9,6 +10,7 @@ test.describe("Consultation screen", () => {
   test.beforeEach(async ({ page }) => {
     seen = [];
     await installAuth(page);
+    await installMockStomp(page);
     await installConsultationApiMocks(page, seen);
   });
 
@@ -29,6 +31,20 @@ test.describe("Consultation screen", () => {
         expect(seen).toContain("GET /workspaces/1/consultation/queue");
         expect(seen).toContain("GET /consultation/sessions/601/messages");
         expect(seen).toContain("PATCH /consultation/sessions/601/status");
+      });
+    });
+
+    test.describe("When an operator sends a counselor message", () => {
+      test("Then the chat renders the optimistic counselor message", async ({ page }) => {
+        await page.goto("/workspaces/1/consultation");
+        await expect(page.getByText("김민지")).toBeVisible();
+
+        await page.getByText("김민지").click();
+        await expect(page.getByText("generated 상담 메시지")).toBeVisible();
+        await page.getByPlaceholder("메시지를 입력하세요...").fill("상담사 확인했습니다");
+        await page.getByRole("button", { name: "메시지 전송" }).click();
+
+        await expect(page.getByText("상담사 확인했습니다")).toBeVisible();
       });
     });
   });

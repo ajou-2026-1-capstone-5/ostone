@@ -8,7 +8,7 @@ function encodeBase64Url(value: unknown): string {
     .replace(/=+$/g, "");
 }
 
-function makeJwt(): string {
+export function makeJwt(): string {
   const header = encodeBase64Url({ alg: "none", typ: "JWT" });
   const payload = encodeBase64Url({ exp: Math.floor(Date.now() / 1000) + 60 * 60 });
   return `${header}.${payload}.e2e`;
