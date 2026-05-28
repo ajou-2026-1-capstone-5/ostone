@@ -68,8 +68,6 @@ public class SecurityConfig {
                     .hasRole("OPERATOR")
                     .requestMatchers("/api/v1/workflow-runtime/**")
                     .hasRole("OPERATOR")
-                    .requestMatchers("/api/v1/llm-tools/**")
-                    .hasRole("OPERATOR")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
