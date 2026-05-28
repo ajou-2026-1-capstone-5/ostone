@@ -180,6 +180,9 @@
 
 /* System Message */
 .systemMessage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   text-align: center;
   font-size: 0.78rem;
   color: var(--text-secondary);
@@ -191,6 +194,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+}
+
+.systemLabel {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .internalNote {

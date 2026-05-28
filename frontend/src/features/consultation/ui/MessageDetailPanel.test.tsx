@@ -38,7 +38,8 @@ describe("MessageDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByText("CUSTOMER")).toBeInTheDocument();
+    expect(screen.getByText("고객")).toBeInTheDocument();
+    expect(screen.queryByText("CUSTOMER")).not.toBeInTheDocument();
     expect(screen.getByText("테스트 메시지입니다")).toBeInTheDocument();
     expect(screen.getByText("14:30")).toBeInTheDocument();
   });

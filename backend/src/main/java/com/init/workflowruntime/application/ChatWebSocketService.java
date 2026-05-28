@@ -25,16 +25,19 @@ public class ChatWebSocketService {
   private final ChatMessageRepository chatMessageRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final ApplicationEventPublisher eventPublisher;
+  private final ChatSessionMetadataService chatSessionMetadataService;
 
   public ChatWebSocketService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       SimpMessagingTemplate messagingTemplate,
-      ApplicationEventPublisher eventPublisher) {
+      ApplicationEventPublisher eventPublisher,
+      ChatSessionMetadataService chatSessionMetadataService) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.messagingTemplate = messagingTemplate;
     this.eventPublisher = eventPublisher;
+    this.chatSessionMetadataService = chatSessionMetadataService;
   }
 
   @Transactional
@@ -69,9 +72,10 @@ public class ChatWebSocketService {
     ChatMessage message =
         ChatMessage.create(
             command.sessionId(), nextSeqNo, command.senderRole(), "TEXT", command.content());
-    chatMessageRepository.save(message);
+    ChatMessage savedMessage = chatMessageRepository.save(message);
+    chatSessionMetadataService.updateAfterMessage(session, savedMessage);
 
-    ChatMessageResponse response = ChatMessageResponse.from(message);
+    ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + command.sessionId();
 
     TransactionSynchronizationManager.registerSynchronization(

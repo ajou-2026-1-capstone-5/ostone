@@ -1,10 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, StickyNote, MessageSquare } from "lucide-react";
+import {
+  getChatRolePresentation,
+  isCounselorLikeRole,
+  type ChatSenderRole,
+} from "../lib/chatRoleLabels";
 import styles from "./chat-panel.module.css";
 
 export interface ChatMessage {
   id: string;
-  senderRole: "CUSTOMER" | "AGENT" | "SYSTEM" | "NOTE" | "COUNSELOR" | "ASSISTANT";
+  senderRole: ChatSenderRole;
   content: string;
   timestamp: string;
 }
@@ -19,12 +24,6 @@ interface ChatPanelProps {
   sessionStatusLabel?: string;
   disabled?: boolean;
 }
-
-const roleLabel: Record<string, { avatar: string; label?: string }> = {
-  AGENT: { avatar: "A" },
-  COUNSELOR: { avatar: "C", label: "상담사" },
-  ASSISTANT: { avatar: "A", label: "AI" },
-};
 
 /**
  * 상담 대화 내용을 표시하고 메시지를 전송하는 패널 컴포넌트입니다.
@@ -105,24 +104,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       <div className={styles.messageList} ref={listRef}>
         {messages.map((msg) => {
           if (msg.senderRole === "SYSTEM") {
+            const role = getChatRolePresentation(msg.senderRole);
             return (
               <div key={msg.id} className={styles.systemMessage}>
-                {msg.content}
+                <span className={styles.systemLabel}>{role.label}</span>
+                <span>{msg.content}</span>
               </div>
             );
           }
           if (msg.senderRole === "NOTE") {
+            const role = getChatRolePresentation(msg.senderRole);
             return (
               <div key={msg.id} className={styles.internalNote}>
-                <div className={styles.noteLabel}>📝 내부 메모</div>
+                <div className={styles.noteLabel}>{role.label}</div>
                 {msg.content}
               </div>
             );
           }
-          const isAgent =
-            msg.senderRole === "AGENT" ||
-            msg.senderRole === "COUNSELOR" ||
-            msg.senderRole === "ASSISTANT";
+          const role = getChatRolePresentation(msg.senderRole);
+          const isAgent = isCounselorLikeRole(msg.senderRole);
           const isSelected = selectedMessageId === msg.id;
           return (
             <div
@@ -152,7 +152,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
               >
-                {isAgent ? (roleLabel[msg.senderRole]?.avatar ?? "A") : customerInitial}
+                {isAgent ? role.avatar : customerInitial}
               </div>
               <div>
                 <div
@@ -161,9 +161,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {msg.content}
                 </div>
                 <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
-                  {roleLabel[msg.senderRole]?.label && (
-                    <span>{roleLabel[msg.senderRole].label} · </span>
-                  )}
+                  <span>{role.label} · </span>
                   {msg.timestamp}
                 </div>
               </div>

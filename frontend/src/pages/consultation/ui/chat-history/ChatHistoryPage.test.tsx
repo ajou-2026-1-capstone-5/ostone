@@ -122,6 +122,25 @@ describe("ChatHistoryPage", () => {
     expect(screen.getByText("처리해드리겠습니다")).toBeTruthy();
   });
 
+  it("AI와 내부 메모 역할을 한국어 라벨로 표시한다", () => {
+    mockedUseChatMessages.mockReturnValue(
+      makeMessagesResult({
+        data: [
+          makeMessage({ id: 12, senderRole: "ASSISTANT", content: "AI 안내입니다" }),
+          makeMessage({ id: 13, senderRole: "NOTE", content: "내부 공유 메모" }),
+        ],
+      }),
+    );
+
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
+
+    expect(screen.getByText("AI")).toBeTruthy();
+    expect(screen.getByText("내부 메모")).toBeTruthy();
+    expect(screen.getByText("AI 안내입니다")).toBeTruthy();
+    expect(screen.getByText("내부 공유 메모")).toBeTruthy();
+  });
+
   it("선택한 세션에 메시지가 없으면 빈 상태를 표시한다", () => {
     mockedUseChatMessages.mockReturnValue(makeMessagesResult({ data: [] }));
 

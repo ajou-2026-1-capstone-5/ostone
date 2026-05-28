@@ -48,6 +48,7 @@ class CounselorServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
   @Mock private ApplicationEventPublisher eventPublisher;
+  @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   private CounselorService service;
 
@@ -55,7 +56,11 @@ class CounselorServiceTest {
   void setUp() {
     service =
         new CounselorService(
-            chatSessionRepository, chatMessageRepository, messagingTemplate, eventPublisher);
+            chatSessionRepository,
+            chatMessageRepository,
+            messagingTemplate,
+            eventPublisher,
+            chatSessionMetadataService);
   }
 
   // ── assignSession ─────────────────────────────────────────────────────────
@@ -225,6 +230,7 @@ class CounselorServiceTest {
       assertThat(result.content()).isEqualTo("Hello from counselor");
       assertThat(result.senderRole()).isEqualTo("COUNSELOR");
       verify(chatMessageRepository).save(any());
+      verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
 
@@ -254,6 +260,7 @@ class CounselorServiceTest {
           service.sendCounselorMessage(1L, "Hello from counselor", 42L, true);
 
       assertThat(result.senderRole()).isEqualTo("NOTE");
+      verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }

@@ -31,16 +31,19 @@ public class ConsultationService {
   private final ChatMessageRepository chatMessageRepository;
   private final WorkspaceMemberRepository workspaceMemberRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final ChatSessionMetadataService chatSessionMetadataService;
 
   public ConsultationService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       WorkspaceMemberRepository workspaceMemberRepository,
-      ApplicationEventPublisher eventPublisher) {
+      ApplicationEventPublisher eventPublisher,
+      ChatSessionMetadataService chatSessionMetadataService) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
     this.eventPublisher = eventPublisher;
+    this.chatSessionMetadataService = chatSessionMetadataService;
   }
 
   public List<ChatSessionResponse> getActiveQueue(Long workspaceId, Long userId) {
@@ -76,7 +79,7 @@ public class ConsultationService {
       @NonNull Long sessionId, @NonNull SendMessageRequest request) {
     ChatSession session =
         chatSessionRepository
-            .findById(sessionId)
+            .findByIdForUpdate(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
@@ -96,9 +99,10 @@ public class ConsultationService {
 
     ChatMessage newMessage =
         ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
-    chatMessageRepository.save(newMessage);
+    ChatMessage savedMessage = chatMessageRepository.save(newMessage);
+    chatSessionMetadataService.updateAfterMessage(session, savedMessage);
 
-    return ChatMessageResponse.from(newMessage);
+    return ChatMessageResponse.from(savedMessage);
   }
 
   @Transactional

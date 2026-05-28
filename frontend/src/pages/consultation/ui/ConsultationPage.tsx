@@ -9,6 +9,7 @@ import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
 import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
 import type { ChatMessage as UiChatMessage } from "../../../features/consultation/ui/ChatPanel";
+import { normalizeChatSenderRole } from "../../../features/consultation/lib/chatRoleLabels";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import type {
   ChatSession,
@@ -41,26 +42,17 @@ type MessageLike = {
   timestamp?: string | null;
 };
 
-const normalizeSenderRole = (senderRole?: string | null): UiChatMessage["senderRole"] => {
-  if (senderRole === "USER") return "CUSTOMER";
-  if (
-    senderRole === "CUSTOMER" ||
-    senderRole === "AGENT" ||
-    senderRole === "SYSTEM" ||
-    senderRole === "NOTE" ||
-    senderRole === "COUNSELOR" ||
-    senderRole === "ASSISTANT"
-  ) {
-    return senderRole;
-  }
-  return "SYSTEM";
+type SessionMeta = {
+  customerName?: string;
+  handoffReason?: string;
+  title?: string;
 };
 
 const toUiMessage = (message: MessageLike): UiChatMessage => {
   const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
   return {
     id: String(message.id ?? `message-${createdAt}-${message.content ?? ""}`),
-    senderRole: normalizeSenderRole(message.senderRole),
+    senderRole: normalizeChatSenderRole(message.senderRole),
     content: message.content ?? "",
     timestamp: formatTime(createdAt),
   };
@@ -73,14 +65,15 @@ const calcWaitMinutes = (isoString: string) => {
   return Math.max(0, Math.floor(diffMs / 60000));
 };
 
-const parseSessionMeta = (metaJson?: string | null) => {
-  let meta = { customerName: "Unknown", handoffReason: "" };
+const parseSessionMeta = (metaJson?: string | null): SessionMeta => {
   try {
-    if (metaJson) meta = JSON.parse(metaJson);
+    if (!metaJson) return {};
+    const meta = JSON.parse(metaJson) as SessionMeta;
+    return meta && typeof meta === "object" ? meta : {};
   } catch (e) {
     console.error("Failed to parse metaJson", e);
+    return {};
   }
-  return meta;
 };
 
 const getSessionStatusLabel = (
@@ -113,6 +106,7 @@ const toQueueCustomer = (
   return {
     id: String(session.id ?? previous?.id ?? ""),
     name: meta.customerName?.trim() || previous?.name || "Unknown",
+    title: meta.title?.trim() || previous?.title || "",
     channel: session.channel ?? previous?.channel ?? "",
     handoffReason: meta.handoffReason ?? previous?.handoffReason ?? "",
     waitMinutes: startedAt ? calcWaitMinutes(startedAt) : (previous?.waitMinutes ?? 0),
@@ -434,7 +428,12 @@ export const ConsultationPage: React.FC = () => {
     const topic = `/topic/chat.${activeCustomerId}`;
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
-      if (msg.senderRole === "COUNSELOR" || msg.senderRole === "NOTE") {
+      const normalizedRole = normalizeChatSenderRole(msg.senderRole);
+      if (
+        normalizedRole === "COUNSELOR" ||
+        normalizedRole === "AGENT" ||
+        normalizedRole === "NOTE"
+      ) {
         setMessagesCustomerId(activeCustomerId);
         setMessages((prev) => {
           const temps = [...pendingIdsRef.current];

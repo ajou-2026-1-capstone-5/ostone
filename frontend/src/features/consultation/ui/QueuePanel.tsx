@@ -5,6 +5,7 @@ import styles from "./queue-panel.module.css";
 export interface QueueCustomer {
   id: string;
   name?: string;
+  title?: string;
   channel: string;
   handoffReason: string;
   waitMinutes: number;
@@ -67,6 +68,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
 
     return customers.map((c) => {
       const displayName = c.name?.trim() || "Unknown";
+      const subject = c.title?.trim() || c.handoffReason;
       return (
         <div
           key={c.id}
@@ -88,7 +90,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           </div>
           <div className={styles.queueItemInfo}>
             <div className={styles.customerName}>{displayName}</div>
-            <div className={styles.handoffPreview}>{c.handoffReason}</div>
+            <div className={styles.handoffPreview}>{subject}</div>
             {c.statusLabel && <div className={styles.sessionStatus}>{c.statusLabel}</div>}
           </div>
           <div

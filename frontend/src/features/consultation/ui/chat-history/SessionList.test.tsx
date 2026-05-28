@@ -101,11 +101,23 @@ describe("SessionList", () => {
       <SessionList workspaceId="workspace-1" selectedSessionId={null} onSelectSession={vi.fn()} />,
     );
 
-    expect(screen.getByText("채널")).toBeTruthy();
     expect(screen.getByText("카카오톡")).toBeTruthy();
     expect(screen.getByText(new Date("2026-05-22T09:00:00+09:00").toLocaleDateString("ko-KR"))).toBeTruthy();
     expect(screen.getByText("메시지 3개")).toBeTruthy();
     expect(screen.getByText("배송 상태를 확인해주세요")).toBeTruthy();
+  });
+
+  it("세션 카드 제목은 meta title을 우선 표시한다", () => {
+    mockedUseChatSessions.mockReturnValue(
+      makeQueryResult({ data: [makeSession(7, { title: "VIP 환불 상담" })] }),
+    );
+
+    render(
+      <SessionList workspaceId="workspace-1" selectedSessionId={null} onSelectSession={vi.fn()} />,
+    );
+
+    expect(screen.getByText("VIP 환불 상담")).toBeTruthy();
+    expect(screen.getByText("카카오톡")).toBeTruthy();
   });
 
   it("선택된 세션은 aria-pressed로 활성 상태를 드러낸다", () => {
