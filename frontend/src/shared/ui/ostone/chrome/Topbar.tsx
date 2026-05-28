@@ -53,7 +53,7 @@ export function Topbar({ crumbs, right, left, dark = false }: TopbarProps) {
             display: "inline-flex",
             alignItems: "center",
             height: "20px",
-            fontFamily: "var(--sans)",
+            fontFamily: "var(--font-sans)",
             fontSize: "14px",
             fontWeight: 540,
             lineHeight: 1,

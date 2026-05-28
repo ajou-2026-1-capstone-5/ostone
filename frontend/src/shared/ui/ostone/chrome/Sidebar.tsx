@@ -239,7 +239,7 @@ function buildLinkStyle({
     transition: "background 160ms ease, color 160ms ease",
     fontFamily: "var(--font-sans)",
     fontSize: "13.5px",
-    fontWeight: isActive ? 600 : 460,
+    fontWeight: isActive ? 540 : 450,
     letterSpacing: "-0.18px",
   };
 }

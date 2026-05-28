@@ -36,7 +36,7 @@ export function ChatHeader({ customerName, sessionId, status }: ChatHeaderProps)
             alignItems: "center",
             justifyContent: "center",
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 540,
           }}
         >
           {initial}
@@ -47,7 +47,7 @@ export function ChatHeader({ customerName, sessionId, status }: ChatHeaderProps)
             style={{
               fontFamily: "var(--mono)",
               fontSize: 10.5,
-              fontWeight: 500,
+              fontWeight: 480,
               color: "var(--ink-3)",
               textTransform: "uppercase",
               letterSpacing: "0.1em",
@@ -80,7 +80,7 @@ export function ChatHeader({ customerName, sessionId, status }: ChatHeaderProps)
           borderRadius: 999,
           fontFamily: "var(--mono)",
           fontSize: 10.5,
-          fontWeight: 600,
+          fontWeight: 540,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           background: isOpen ? "var(--signal-bg)" : "var(--paper-3)",

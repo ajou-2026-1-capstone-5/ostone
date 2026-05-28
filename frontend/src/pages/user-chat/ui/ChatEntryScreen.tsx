@@ -214,6 +214,8 @@ export function ChatEntryScreen({
               onChange={(event) => onDraftChange(event.target.value)}
               placeholder="예: 김민지"
               autoComplete="name"
+              aria-invalid={Boolean(nameError)}
+              aria-describedby={nameError ? "chat-name-error" : undefined}
               style={{
                 width: "100%",
                 height: 48,
@@ -229,6 +231,7 @@ export function ChatEntryScreen({
             />
             {nameError && (
               <p
+                id="chat-name-error"
                 role="alert"
                 data-testid="chat-name-error"
                 style={{
@@ -253,7 +256,7 @@ export function ChatEntryScreen({
               background: "var(--ink)",
               color: "var(--paper)",
               fontSize: 14,
-              fontWeight: 600,
+              fontWeight: 540,
               letterSpacing: "-0.1px",
               cursor: "pointer",
               fontFamily: "inherit",

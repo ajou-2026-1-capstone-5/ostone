@@ -47,11 +47,11 @@ export function ProgressStepper({ steps }: ProgressStepperProps) {
         padding: 0,
       }}
     >
-      {steps.map((step) => {
+      {steps.map((step, index) => {
         const isActive = step.state === "active";
         return (
           <li
-            key={step.label}
+            key={`${step.label}-${index}`}
             data-state={step.state}
             aria-current={isActive ? "step" : undefined}
             style={{
