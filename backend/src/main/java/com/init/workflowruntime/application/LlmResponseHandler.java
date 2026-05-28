@@ -94,27 +94,35 @@ public class LlmResponseHandler {
   }
 
   private ChatMessage saveAssistantMessage(Long sessionId, String llmResponse) {
-    return transactionTemplate.execute(
-        status -> {
-          ChatSession session =
-              chatSessionRepository
-              .findByIdForUpdate(sessionId)
-              .orElseThrow(
-                  () ->
-                      new NotFoundException(
-                          "SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    ChatMessage savedMessage =
+        transactionTemplate.execute(
+            status -> {
+              ChatSession session =
+                  chatSessionRepository
+                      .findByIdForUpdate(sessionId)
+                      .orElseThrow(
+                          () ->
+                              new NotFoundException(
+                                  "SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
-          Integer nextSeqNo =
-              chatMessageRepository
-                  .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
-                  .map(msg -> msg.getSeqNo() + 1)
-                  .orElse(1);
+              Integer nextSeqNo =
+                  chatMessageRepository
+                      .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+                      .map(msg -> msg.getSeqNo() + 1)
+                      .orElse(1);
 
-          ChatMessage savedMessage =
-              chatMessageRepository.save(
-              ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
-          chatSessionMetadataService.updateAfterMessage(session, savedMessage);
-          return savedMessage;
-        });
+              ChatMessage saved =
+                  chatMessageRepository.save(
+                      ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
+              if (saved != null) {
+                chatSessionMetadataService.updateAfterMessage(session, saved);
+              }
+              return saved;
+            });
+    if (savedMessage == null) {
+      throw new IllegalStateException(
+          "Assistant message save transaction returned null for session: " + sessionId);
+    }
+    return savedMessage;
   }
 }

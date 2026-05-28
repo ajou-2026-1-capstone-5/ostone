@@ -18,6 +18,7 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -114,6 +115,33 @@ class LlmResponseHandlerTest {
 
     verify(chatSessionRepository, never()).findByIdForUpdate(1L);
     verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
+
+    ChatMessageResponse pushed = responseCaptor.getValue();
+    assertThat(pushed.senderRole()).isEqualTo("SYSTEM");
+    assertThat(pushed.messageType()).isEqualTo("ERROR");
+    assertThat(pushed.content()).contains("LLM_ERROR");
+  }
+
+  @Test
+  @DisplayName("handleChatMessageReceived: 저장 트랜잭션이 null 반환 → fallback 메시지 STOMP push")
+  void should_pushFallback_when_saveTransactionReturnsNull() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
+        .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요! 무엇을 도와드릴까요?"));
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L)).willReturn(List.of());
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.empty());
+    given(transactionManager.getTransaction(any(TransactionDefinition.class)))
+        .willReturn(new SimpleTransactionStatus());
+    given(chatMessageRepository.save(any(ChatMessage.class))).willReturn(null);
+
+    handler.handleChatMessageReceived(event);
+
+    verify(chatMessageRepository).save(any(ChatMessage.class));
+    verify(chatSessionMetadataService, never()).updateAfterMessage(any(), any());
     verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
 
     ChatMessageResponse pushed = responseCaptor.getValue();
