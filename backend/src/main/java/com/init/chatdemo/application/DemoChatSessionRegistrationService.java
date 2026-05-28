@@ -2,6 +2,8 @@ package com.init.chatdemo.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesCommand;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -17,13 +19,20 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @Transactional(readOnly = true)
 public class DemoChatSessionRegistrationService {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(DemoChatSessionRegistrationService.class);
   private static final String DEFAULT_CHANNEL = "WEB";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -31,16 +40,19 @@ public class DemoChatSessionRegistrationService {
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
   private final LlmAssistantService llmAssistantService;
+  private final SimpMessagingTemplate messagingTemplate;
 
   public DemoChatSessionRegistrationService(
       DomainPackVersionRepository domainPackVersionRepository,
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
-      LlmAssistantService llmAssistantService) {
+      LlmAssistantService llmAssistantService,
+      SimpMessagingTemplate messagingTemplate) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.llmAssistantService = llmAssistantService;
+    this.messagingTemplate = messagingTemplate;
   }
 
   @Transactional
@@ -101,8 +113,28 @@ public class DemoChatSessionRegistrationService {
         chatMessageRepository.save(
             ChatMessage.create(sessionId, nextSeqNo + 1, "ASSISTANT", "TEXT", assistantContent));
 
-    return List.of(
-        ChatMessageResponse.from(userMessage), ChatMessageResponse.from(assistantMessage));
+    List<ChatMessageResponse> responses =
+        List.of(ChatMessageResponse.from(userMessage), ChatMessageResponse.from(assistantMessage));
+    broadcastAfterCommit(sessionId, responses);
+    return responses;
+  }
+
+  public ListDemoChatMessagesResult listMessages(ListDemoChatMessagesCommand command) {
+    ChatSession session =
+        chatSessionRepository
+            .findById(command.getSessionId())
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId()));
+    if (!command.getWorkspaceId().equals(session.getWorkspaceId())) {
+      throw new NotFoundException(
+          "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId());
+    }
+    return new ListDemoChatMessagesResult(
+        chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(command.getSessionId()).stream()
+            .map(ChatMessageResponse::from)
+            .toList());
   }
 
   private String normalizeCustomerName(String customerName) {
@@ -138,5 +170,31 @@ public class DemoChatSessionRegistrationService {
     return recentDesc.reversed().stream()
         .map(message -> message.getSenderRole() + ": " + message.getContent())
         .collect(Collectors.joining("\n"));
+  }
+
+  private void broadcastAfterCommit(Long sessionId, List<ChatMessageResponse> responses) {
+    Runnable broadcast =
+        () ->
+            responses.forEach(
+                response -> messagingTemplate.convertAndSend("/topic/chat." + sessionId, response));
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      runBroadcast(sessionId, broadcast);
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            runBroadcast(sessionId, broadcast);
+          }
+        });
+  }
+
+  private void runBroadcast(Long sessionId, Runnable broadcast) {
+    try {
+      broadcast.run();
+    } catch (RuntimeException e) {
+      log.warn("Demo chat broadcast failed. sessionId={}", sessionId, e);
+    }
   }
 }

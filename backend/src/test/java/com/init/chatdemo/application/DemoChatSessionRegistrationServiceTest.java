@@ -1,12 +1,18 @@
 package com.init.chatdemo.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.init.chatdemo.application.dto.ListDemoChatMessagesCommand;
+import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
@@ -28,7 +34,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DemoChatSessionRegistrationService")
@@ -42,6 +51,7 @@ class DemoChatSessionRegistrationServiceTest {
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private LlmAssistantService llmAssistantService;
+  @Mock private SimpMessagingTemplate messagingTemplate;
 
   private DemoChatSessionRegistrationService service;
 
@@ -52,7 +62,8 @@ class DemoChatSessionRegistrationServiceTest {
             domainPackVersionRepository,
             chatSessionRepository,
             chatMessageRepository,
-            llmAssistantService);
+            llmAssistantService,
+            messagingTemplate);
   }
 
   @Test
@@ -123,6 +134,43 @@ class DemoChatSessionRegistrationServiceTest {
         .containsExactly(1, 2);
     assertThat(messageCaptor.getAllValues().get(1).getContent()).isEqualTo("LLM 응답입니다.");
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
+  @DisplayName("데모 세션 메시지를 runtime.chat_message에서 시간순으로 조회한다")
+  void should_listRegisteredMessages_when_listMessages() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    ChatMessage greeting = ChatMessage.create(SESSION_ID, 1, "ASSISTANT", "TEXT", "안녕하세요");
+    ReflectionTestUtils.setField(greeting, "id", 1L);
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(SESSION_ID))
+        .willReturn(List.of(greeting));
+
+    ListDemoChatMessagesResult result =
+        service.listMessages(new ListDemoChatMessagesCommand(WORKSPACE_ID, SESSION_ID));
+
+    List<ChatMessageResponse> responses = result.getMessages();
+    assertThat(responses).hasSize(1);
+    assertThat(responses.get(0).senderRole()).isEqualTo("ASSISTANT");
+    assertThat(responses.get(0).content()).isEqualTo("안녕하세요");
+  }
+
+  @Test
+  @DisplayName("다른 워크스페이스의 데모 세션 메시지는 조회하지 않는다")
+  void should_throwNotFound_when_listMessagesWorkspaceMismatch() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID + 1, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(
+            () -> service.listMessages(new ListDemoChatMessagesCommand(WORKSPACE_ID, SESSION_ID)))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found: 77");
   }
 
   @Test
@@ -171,5 +219,43 @@ class DemoChatSessionRegistrationServiceTest {
         .isInstanceOf(BadRequestException.class);
     assertThatThrownBy(() -> service.appendMessage(WORKSPACE_ID, SESSION_ID, " "))
         .isInstanceOf(BadRequestException.class);
+  }
+
+  @Test
+  @DisplayName("트랜잭션 커밋 후 WebSocket 브로드캐스트 실패는 API 응답을 깨지 않는다")
+  void should_swallowBroadcastError_afterCommit() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.empty());
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(List.of());
+    given(llmAssistantService.generateResponse("", "Hello")).willReturn("LLM 응답입니다.");
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    doThrow(new RuntimeException("broker unavailable"))
+        .when(messagingTemplate)
+        .convertAndSend(eq("/topic/chat.77"), any(ChatMessageResponse.class));
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      List<ChatMessageResponse> responses =
+          service.appendMessage(WORKSPACE_ID, SESSION_ID, "Hello");
+
+      assertThat(responses).hasSize(2);
+      verify(messagingTemplate, never())
+          .convertAndSend(eq("/topic/chat.77"), any(ChatMessageResponse.class));
+      assertThatCode(
+              () ->
+                  TransactionSynchronizationManager.getSynchronizations().stream()
+                      .forEach(TransactionSynchronization::afterCommit))
+          .doesNotThrowAnyException();
+      verify(messagingTemplate)
+          .convertAndSend(eq("/topic/chat.77"), any(ChatMessageResponse.class));
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
   }
 }

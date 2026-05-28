@@ -2,6 +2,7 @@ export {
   createChatSession,
   createDemoChatSession,
   listChatMessages,
+  listDemoChatMessages,
   registerDemoChatSession,
   sendDemoChatMessage,
 } from "@/entities/chat/api/chatApi";

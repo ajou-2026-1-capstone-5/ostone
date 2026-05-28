@@ -1,8 +1,21 @@
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { registerDemoChatSession, sendDemoChatMessage } from "@/entities/chat";
+import {
+  listDemoChatMessages,
+  registerDemoChatSession,
+  sendDemoChatMessage,
+} from "@/entities/chat";
 import type { ChatMessage, DemoChatSession } from "@/entities/chat";
+import {
+  isRealtimeChatMessage,
+  mergeMessages,
+  mergePersistedMessages,
+  toRealtimeChatMessage,
+  tryParseDemoSessionId,
+  withCustomerNames,
+} from "@/entities/chat/lib/chatMessageSync";
 import { ApiRequestError } from "@/shared/api";
+import { useStomp } from "@/shared/lib/websocket";
 import { ChatConversationScreen } from "./ChatConversationScreen";
 import { ChatEntryScreen } from "./ChatEntryScreen";
 
@@ -38,7 +51,7 @@ function isDemoChatSession(value: unknown): value is DemoChatSession {
 }
 
 function isBackendRegisteredSession(session: DemoChatSession): boolean {
-  return Number.isFinite(Number(session.id));
+  return tryParseDemoSessionId(session.id) != null;
 }
 
 function readStoredSession(workspaceId: number, customerName: string): DemoChatSession | null {
@@ -80,6 +93,7 @@ async function getOrCreateStoredSession(
 export function UserChatPage() {
   const { workspaceId: raw } = useParams<{ workspaceId: string }>();
   const workspaceId = Number(raw);
+  const { connectionStatus, subscribe } = useStomp();
   const [draftName, setDraftName] = useState("");
   const [customerName, setCustomerName] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -97,6 +111,7 @@ export function UserChatPage() {
     chatState.workspaceId === workspaceId && chatState.customerName === customerName
       ? chatState
       : { session: null, error: null };
+  const activeSessionId = activeChatState.session?.id ?? null;
 
   const handleNameSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -203,6 +218,74 @@ export function UserChatPage() {
       setIsSending(false);
     }
   };
+
+  useEffect(() => {
+    if (!activeSessionId || !customerName) return;
+    const numericSessionId = tryParseDemoSessionId(activeSessionId);
+    if (numericSessionId == null) return;
+
+    let cancelled = false;
+
+    const syncMessages = async () => {
+      try {
+        const persistedMessages = await listDemoChatMessages(workspaceId, activeSessionId);
+        if (cancelled) return;
+        const namedMessages = withCustomerNames(persistedMessages, customerName);
+        setChatState((current) => {
+          if (current.session?.id !== activeSessionId || current.customerName !== customerName) {
+            return current;
+          }
+          const nextSession = {
+            ...current.session,
+            messages: mergePersistedMessages(current.session.messages, namedMessages),
+          };
+          writeStoredSession(workspaceId, customerName, nextSession);
+          return {
+            ...current,
+            session: nextSession,
+          };
+        });
+      } catch {
+        // Demo chat remains usable through the send response even if background sync fails.
+      }
+    };
+
+    void syncMessages();
+    const intervalId = window.setInterval(() => {
+      void syncMessages();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeSessionId, customerName, workspaceId]);
+
+  useEffect(() => {
+    if (!activeSessionId || !customerName || connectionStatus !== "CONNECTED") return;
+    const numericSessionId = tryParseDemoSessionId(activeSessionId);
+    if (numericSessionId == null) return;
+
+    return subscribe(`/topic/chat.${numericSessionId}`, (raw) => {
+      if (!isRealtimeChatMessage(raw)) return;
+
+      const nextMessage = toRealtimeChatMessage(raw, numericSessionId, customerName);
+      setChatState((current) => {
+        if (current.session?.id !== activeSessionId || current.customerName !== customerName) {
+          return current;
+        }
+        const nextSession = {
+          ...current.session,
+          messages: mergeMessages(current.session.messages, [nextMessage]),
+        };
+        writeStoredSession(workspaceId, customerName, nextSession);
+        return {
+          ...current,
+          session: nextSession,
+        };
+      });
+    });
+  }, [activeSessionId, connectionStatus, customerName, subscribe, workspaceId]);
 
   if (isInvalidWorkspace) {
     return (
