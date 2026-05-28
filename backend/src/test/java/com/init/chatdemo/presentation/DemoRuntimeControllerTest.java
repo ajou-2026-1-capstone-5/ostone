@@ -192,6 +192,27 @@ class DemoRuntimeControllerTest {
   }
 
   @Test
+  @DisplayName("GET /api/v1/demo/chat-sessions/{sessionId}/messages → 데모 메시지 목록 조회")
+  void should_200_when_listRegisteredChatMessages() throws Exception {
+    given(sessionRegistrationService.listMessages(10L, 77L))
+        .willReturn(
+            List.of(
+                new ChatMessageResponse(
+                    1L,
+                    1,
+                    "COUNSELOR",
+                    "TEXT",
+                    "상담사 답변입니다.",
+                    OffsetDateTime.parse("2026-05-22T00:00:00Z"))));
+
+    mockMvc
+        .perform(get(DEMO_URL_PREFIX + "/chat-sessions/77/messages"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].senderRole").value("COUNSELOR"))
+        .andExpect(jsonPath("$[0].content").value("상담사 답변입니다."));
+  }
+
+  @Test
   @DisplayName("POST /api/v1/demo/chat-sessions/{sessionId}/messages → content 공백이면 400")
   void should_400_when_appendRegisteredChatMessageWithBlankContent() throws Exception {
     mockMvc

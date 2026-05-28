@@ -3,6 +3,7 @@ import {
   createChatSession,
   createDemoChatSession,
   listChatMessages,
+  listDemoChatMessages,
   registerDemoChatSession,
   sendDemoChatMessage,
 } from "./chatApi";
@@ -184,6 +185,34 @@ describe("chatApi", () => {
         method: "POST",
         body: JSON.stringify({ content: "Hello" }),
       },
+    );
+  });
+
+  it("백엔드 데모 채팅 메시지를 조회한다", async () => {
+    customFetchMock.mockResolvedValue([
+      {
+        id: 91,
+        seqNo: 4,
+        senderRole: "COUNSELOR",
+        messageType: "TEXT",
+        content: "상담사 답변입니다.",
+        createdAt: "2026-05-22T00:00:03Z",
+      },
+    ]);
+
+    await expect(listDemoChatMessages(2, "77")).resolves.toEqual([
+      {
+        id: "91",
+        sessionId: 77,
+        senderType: "AGENT",
+        content: "상담사 답변입니다.",
+        createdAt: "2026-05-22T00:00:03Z",
+      },
+    ]);
+
+    expect(customFetchMock).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/demo/chat-sessions/77/messages",
+      { method: "GET" },
     );
   });
 

@@ -69,6 +69,12 @@ public class DemoRuntimeController {
         sessionRegistrationService.appendMessage(workspaceId, sessionId, request.content()));
   }
 
+  @GetMapping("/chat-sessions/{sessionId}/messages")
+  public ResponseEntity<List<ChatMessageResponse>> listChatMessages(
+      @PathVariable Long workspaceId, @PathVariable Long sessionId) {
+    return ResponseEntity.ok(sessionRegistrationService.listMessages(workspaceId, sessionId));
+  }
+
   @GetMapping("/workflow-executions/{executionId}")
   public ResponseEntity<DemoExecutionResponse> getWorkflowExecution(
       @PathVariable Long workspaceId, @PathVariable String executionId) {

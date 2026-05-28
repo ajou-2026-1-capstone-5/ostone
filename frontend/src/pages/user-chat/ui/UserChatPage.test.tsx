@@ -1,17 +1,33 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import { UserChatPage } from "./UserChatPage";
 
-const { registerDemoChatSessionMock, sendDemoChatMessageMock, routeState } = vi.hoisted(() => ({
+const {
+  listDemoChatMessagesMock,
+  registerDemoChatSessionMock,
+  sendDemoChatMessageMock,
+  routeState,
+  stompState,
+} = vi.hoisted(() => ({
+  listDemoChatMessagesMock: vi.fn(),
   registerDemoChatSessionMock: vi.fn(),
   sendDemoChatMessageMock: vi.fn(),
   routeState: { workspaceId: "42" as string | undefined },
+  stompState: {
+    connectionStatus: "DISCONNECTED",
+    subscribe: vi.fn(),
+  },
 }));
 
 vi.mock("@/entities/chat", () => ({
+  listDemoChatMessages: listDemoChatMessagesMock,
   registerDemoChatSession: registerDemoChatSessionMock,
   sendDemoChatMessage: sendDemoChatMessageMock,
+}));
+
+vi.mock("@/shared/lib/websocket", () => ({
+  useStomp: () => stompState,
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -26,6 +42,11 @@ describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
     window.localStorage.clear();
+    stompState.connectionStatus = "DISCONNECTED";
+    stompState.subscribe.mockReset();
+    stompState.subscribe.mockReturnValue(() => {});
+    listDemoChatMessagesMock.mockReset();
+    listDemoChatMessagesMock.mockRejectedValue(new Error("sync unavailable"));
     registerDemoChatSessionMock.mockReset();
     sendDemoChatMessageMock.mockReset();
     registerDemoChatSessionMock.mockResolvedValue({
@@ -114,6 +135,34 @@ describe("UserChatPage", () => {
       await screen.findByText("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     ).not.toBeNull();
     expect(screen.queryByText("Hello")).toBeNull();
+  });
+
+  it("상담사 WebSocket 메시지를 고객 화면에 반영한다", async () => {
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+
+    await screen.findByTestId("chat-header-eyebrow");
+
+    expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+
+    act(() => {
+      topicHandler?.({
+        id: 91,
+        senderRole: "COUNSELOR",
+        content: "상담사 답변입니다.",
+        createdAt: "2026-05-22T00:00:03Z",
+      });
+    });
+
+    expect(await screen.findByText("상담사 답변입니다.")).not.toBeNull();
   });
 
   it("이름이 비어 있으면 세션을 생성하지 않는다", async () => {

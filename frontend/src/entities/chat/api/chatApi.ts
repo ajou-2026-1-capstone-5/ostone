@@ -173,3 +173,18 @@ export async function sendDemoChatMessage(
   );
   return messages.map((message) => toChatMessage(message, numericSessionId));
 }
+
+export async function listDemoChatMessages(
+  workspaceId: number,
+  sessionId: string,
+): Promise<ChatMessage[]> {
+  const numericSessionId = Number(sessionId);
+  if (!Number.isFinite(numericSessionId)) {
+    throw new Error("Demo chat session id must be numeric.");
+  }
+  const messages = await customFetch<ChatMessageResponse[]>(
+    `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}/messages`,
+    { method: "GET" },
+  );
+  return messages.map((message) => toChatMessage(message, numericSessionId));
+}

@@ -17,8 +17,11 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @Transactional(readOnly = true)
@@ -31,16 +34,19 @@ public class DemoChatSessionRegistrationService {
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
   private final LlmAssistantService llmAssistantService;
+  private final SimpMessagingTemplate messagingTemplate;
 
   public DemoChatSessionRegistrationService(
       DomainPackVersionRepository domainPackVersionRepository,
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
-      LlmAssistantService llmAssistantService) {
+      LlmAssistantService llmAssistantService,
+      SimpMessagingTemplate messagingTemplate) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.llmAssistantService = llmAssistantService;
+    this.messagingTemplate = messagingTemplate;
   }
 
   @Transactional
@@ -101,8 +107,25 @@ public class DemoChatSessionRegistrationService {
         chatMessageRepository.save(
             ChatMessage.create(sessionId, nextSeqNo + 1, "ASSISTANT", "TEXT", assistantContent));
 
-    return List.of(
-        ChatMessageResponse.from(userMessage), ChatMessageResponse.from(assistantMessage));
+    List<ChatMessageResponse> responses =
+        List.of(ChatMessageResponse.from(userMessage), ChatMessageResponse.from(assistantMessage));
+    broadcastAfterCommit(sessionId, responses);
+    return responses;
+  }
+
+  public List<ChatMessageResponse> listMessages(Long workspaceId, Long sessionId) {
+    ChatSession session =
+        chatSessionRepository
+            .findById(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    if (!workspaceId.equals(session.getWorkspaceId())) {
+      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId);
+    }
+    return chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(sessionId).stream()
+        .map(ChatMessageResponse::from)
+        .toList();
   }
 
   private String normalizeCustomerName(String customerName) {
@@ -138,5 +161,23 @@ public class DemoChatSessionRegistrationService {
     return recentDesc.reversed().stream()
         .map(message -> message.getSenderRole() + ": " + message.getContent())
         .collect(Collectors.joining("\n"));
+  }
+
+  private void broadcastAfterCommit(Long sessionId, List<ChatMessageResponse> responses) {
+    Runnable broadcast =
+        () ->
+            responses.forEach(
+                response -> messagingTemplate.convertAndSend("/topic/chat." + sessionId, response));
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      broadcast.run();
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            broadcast.run();
+          }
+        });
   }
 }

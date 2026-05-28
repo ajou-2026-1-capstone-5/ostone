@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +43,7 @@ class DemoChatSessionRegistrationServiceTest {
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private LlmAssistantService llmAssistantService;
+  @Mock private SimpMessagingTemplate messagingTemplate;
 
   private DemoChatSessionRegistrationService service;
 
@@ -52,7 +54,8 @@ class DemoChatSessionRegistrationServiceTest {
             domainPackVersionRepository,
             chatSessionRepository,
             chatMessageRepository,
-            llmAssistantService);
+            llmAssistantService,
+            messagingTemplate);
   }
 
   @Test
@@ -123,6 +126,27 @@ class DemoChatSessionRegistrationServiceTest {
         .containsExactly(1, 2);
     assertThat(messageCaptor.getAllValues().get(1).getContent()).isEqualTo("LLM 응답입니다.");
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
+  @DisplayName("데모 세션 메시지를 runtime.chat_message에서 시간순으로 조회한다")
+  void should_listRegisteredMessages_when_listMessages() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    ChatMessage greeting = ChatMessage.create(SESSION_ID, 1, "ASSISTANT", "TEXT", "안녕하세요");
+    ReflectionTestUtils.setField(greeting, "id", 1L);
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(SESSION_ID))
+        .willReturn(List.of(greeting));
+
+    List<ChatMessageResponse> responses = service.listMessages(WORKSPACE_ID, SESSION_ID);
+
+    assertThat(responses).hasSize(1);
+    assertThat(responses.get(0).senderRole()).isEqualTo("ASSISTANT");
+    assertThat(responses.get(0).content()).isEqualTo("안녕하세요");
   }
 
   @Test
