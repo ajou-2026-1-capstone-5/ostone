@@ -106,14 +106,14 @@ describe("Sidebar", () => {
     expect(link.style.background).toBe("transparent");
   });
 
-  it("redesign: active 링크는 fontWeight 600, idle은 460 으로 그려진다", () => {
+  it("redesign: active 링크는 fontWeight 540, idle은 450 으로 그려진다", () => {
     renderSidebar({ active: "consult" });
 
     const activeLink = screen.getByTitle("Consultation") as HTMLElement;
     const idleLink = screen.getByTitle("Uploads") as HTMLElement;
 
-    expect(activeLink.style.fontWeight).toBe("600");
-    expect(idleLink.style.fontWeight).toBe("460");
+    expect(activeLink.style.fontWeight).toBe("540");
+    expect(idleLink.style.fontWeight).toBe("450");
   });
 
   it("redesign: 모든 링크는 13.5px / letter-spacing -0.18px / Pretendard 변수 폰트를 사용한다", () => {
