@@ -76,4 +76,29 @@ class LlmAssistantServiceTest {
         .containsEntry("conversationContext", "USER: 환불하고 싶어요")
         .containsEntry("latestUserMessage", "주문 취소했어요");
   }
+
+  @Test
+  @DisplayName("generateWorkflowAwareResponse: null 메시지는 빈 문자열로 ToolContext에 넣는다")
+  void should_putEmptyTextInToolContext_when_messagesAreNull() {
+    given(chatClient.prompt()).willReturn(promptSpec);
+    given(promptSpec.tools(workflowAssistantTools)).willReturn(promptSpec);
+    given(promptSpec.toolContext(anyMap())).willReturn(promptSpec);
+    given(promptSpec.user(any(Consumer.class))).willReturn(promptSpec);
+    given(promptSpec.call()).willReturn(callSpec);
+    given(callSpec.content()).willReturn("문의 내용을 알려주시겠어요?");
+
+    String result =
+        service
+            .generateWorkflowAwareResponse(new GenerateWorkflowAwareResponseCommand(7L, null, null))
+            .content();
+
+    assertThat(result).isEqualTo("문의 내용을 알려주시겠어요?");
+
+    ArgumentCaptor<Map<String, Object>> contextCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(promptSpec).toolContext(contextCaptor.capture());
+    assertThat(contextCaptor.getValue())
+        .containsEntry("sessionId", 7L)
+        .containsEntry("conversationContext", "")
+        .containsEntry("latestUserMessage", "");
+  }
 }

@@ -130,6 +130,133 @@ class WorkflowAssistantStateServiceTest {
   }
 
   @Test
+  @DisplayName("startWorkflow: intent 선택 후 안정된 다음 action까지 진행한다")
+  void should_startWorkflowAndReturnStableState() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse("collect_order", "handoff", "HANDOFF", "edge-handoff", List.of()));
+
+    AssistantConversationState result = service.startWorkflow(1L, " refund_request ");
+
+    assertThat(result.conversationStatus()).isEqualTo("HANDOFF_REQUIRED");
+    assertThat(result.nextAction().type()).isEqualTo("HANDOFF");
+    verify(llmToolService)
+        .selectIntent(
+            argThat(
+                command ->
+                    command.sessionId().equals(1L)
+                        && command.intentCode().equals("refund_request")));
+  }
+
+  @Test
+  @DisplayName("startWorkflow: 빈 intentCode는 거부한다")
+  void should_rejectBlankIntentCode() {
+    assertThatThrownBy(() -> service.startWorkflow(1L, " "))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("intentCode is required");
+  }
+
+  @Test
+  @DisplayName("inspect: COMPLETED action을 assistant-facing 완료 상태로 반환한다")
+  void should_returnCompletedState() {
+    AssistantConversationState result =
+        inspectWithoutRuntimeMetadata(
+            advanceResponse("answer", "done", "COMPLETED", "edge-complete", List.of()));
+
+    assertThat(result.conversationStatus()).isEqualTo("COMPLETED");
+    assertThat(result.nextAction().type()).isEqualTo("COMPLETED");
+    assertThat(result.nextAction().message()).isEqualTo("요청 처리가 완료되었습니다.");
+  }
+
+  @Test
+  @DisplayName("inspect: WAIT_CONDITION action을 대기 상태로 반환한다")
+  void should_returnWaitState() {
+    AssistantConversationState result =
+        inspectWithoutRuntimeMetadata(
+            advanceResponse("collect_order", "collect_order", "WAIT_CONDITION", null, List.of()));
+
+    assertThat(result.conversationStatus()).isEqualTo("WAITING");
+    assertThat(result.nextAction().type()).isEqualTo("WAIT");
+    assertThat(result.nextAction().question()).contains("조금 더 자세히");
+  }
+
+  @Test
+  @DisplayName("inspect: 알 수 없는 action은 redacted ERROR 상태로 반환한다")
+  void should_returnErrorState_when_unknownActionReturned() {
+    AssistantConversationState result =
+        inspectWithoutRuntimeMetadata(
+            advanceResponse("collect_order", "collect_order", "UNKNOWN_ACTION", null, List.of()));
+
+    assertThat(result.conversationStatus()).isEqualTo("ERROR");
+    assertThat(result.nextAction().type()).isEqualTo("ERROR");
+  }
+
+  @Test
+  @DisplayName("inspect: ADVANCE가 반복되면 WAIT 상태에서 멈춘다")
+  void should_stopAutoAdvanceAndReturnWait_when_transitionRepeats() {
+    LlmToolContextResponse context = context(10L);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse("collect_order", "collect_order", "ADVANCE", "edge-loop", List.of()),
+            advanceResponse("collect_order", "collect_order", "ADVANCE", "edge-loop", List.of()));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.empty());
+
+    AssistantConversationState result = service.inspect(1L);
+
+    assertThat(result.conversationStatus()).isEqualTo("WAITING");
+    assertThat(result.nextAction().type()).isEqualTo("WAIT");
+  }
+
+  @Test
+  @DisplayName("inspect: slot 메타데이터가 없으면 기본 질문을 만든다")
+  void should_returnFallbackSlotQuestion_when_slotMetadataMissing() {
+    AssistantConversationState result =
+        inspectWithoutRuntimeMetadata(
+            advanceResponse("collect_order", "collect_order", "ASK_SLOT", null, List.of()));
+
+    assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
+    assertThat(result.nextAction().slotCode()).isNull();
+    assertThat(result.nextAction().question()).isEqualTo("필요한 정보를 알려주시겠어요?");
+  }
+
+  @Test
+  @DisplayName("updateSlot: 현재 요청된 slot과 다른 slot은 저장하지 않는다")
+  void should_rejectDifferentRequestedSlot() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
+
+    assertThatThrownBy(() -> service.updateSlot(1L, "customer_name", "김초기"))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("Slot is not currently requested");
+
+    verify(llmToolService, never()).upsertSlotValue(any());
+  }
+
+  @Test
+  @DisplayName("updateSlot: 빈 slotCode나 value는 거부한다")
+  void should_rejectBlankSlotInput() {
+    assertThatThrownBy(() -> service.updateSlot(1L, " ", "A-100"))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("slotCode is required");
+    assertThatThrownBy(() -> service.updateSlot(1L, "order_id", " "))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("slot value is required");
+  }
+
+  @Test
   @DisplayName("updateSlot: 현재 요청되지 않은 slot은 거부한다")
   void should_rejectOutOfTurnSlot() {
     LlmToolContextResponse context = context(10L);
@@ -144,6 +271,17 @@ class WorkflowAssistantStateServiceTest {
         .hasMessageContaining("No slot is currently requested");
 
     verify(llmToolService, never()).upsertSlotValue(any());
+  }
+
+  private AssistantConversationState inspectWithoutRuntimeMetadata(
+      WorkflowAdvanceResponse advanceResponse) {
+    LlmToolContextResponse context = context(10L);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
+        .willReturn(context, context);
+    given(workflowRuntimeService.advance(1L)).willReturn(advanceResponse);
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.empty());
+    return service.inspect(1L);
   }
 
   private void givenRuntimeMetadata() {
