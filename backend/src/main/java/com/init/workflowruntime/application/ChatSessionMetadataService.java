@@ -1,16 +1,20 @@
 package com.init.workflowruntime.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatSession;
 import java.time.OffsetDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ChatSessionMetadataService {
 
+  private static final Logger log = LoggerFactory.getLogger(ChatSessionMetadataService.class);
   private static final int TITLE_MAX_LENGTH = 40;
   private static final int PREVIEW_MAX_LENGTH = 80;
 
@@ -39,8 +43,8 @@ public class ChatSessionMetadataService {
       if (node != null && node.isObject()) {
         return (ObjectNode) node;
       }
-    } catch (Exception ignored) {
-      // Invalid legacy metadata should not block chat message persistence.
+    } catch (JsonProcessingException e) {
+      log.warn("Invalid legacy chat session metaJson; fallback to empty object", e);
     }
     return objectMapper.createObjectNode();
   }

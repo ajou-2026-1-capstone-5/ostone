@@ -843,6 +843,40 @@ describe("ConsultationPage", () => {
     });
   });
 
+  it("handles legacy AGENT echo and replaces the pending optimistic message", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "레거시 답변");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.getByText("레거시 답변")).toBeInTheDocument();
+    });
+
+    if (stompState.latestCallback) {
+      stompState.latestCallback({
+        id: 889,
+        senderRole: "AGENT",
+        content: "레거시 답변",
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText("레거시 답변")).toBeInTheDocument();
+      expect(screen.getAllByText("레거시 답변")).toHaveLength(1);
+    });
+  });
+
   it("ignores counselor echo if there are no pending optimistic messages", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 

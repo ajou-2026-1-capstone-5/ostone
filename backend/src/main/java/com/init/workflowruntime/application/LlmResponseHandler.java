@@ -16,7 +16,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 public class LlmResponseHandler {
@@ -28,32 +29,28 @@ public class LlmResponseHandler {
   private final ChatSessionRepository chatSessionRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final ChatSessionMetadataService chatSessionMetadataService;
+  private final TransactionTemplate transactionTemplate;
 
   public LlmResponseHandler(
       LlmAssistantService llmAssistantService,
       ChatMessageRepository chatMessageRepository,
       ChatSessionRepository chatSessionRepository,
       SimpMessagingTemplate messagingTemplate,
-      ChatSessionMetadataService chatSessionMetadataService) {
+      ChatSessionMetadataService chatSessionMetadataService,
+      PlatformTransactionManager transactionManager) {
     this.llmAssistantService = llmAssistantService;
     this.chatMessageRepository = chatMessageRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.messagingTemplate = messagingTemplate;
     this.chatSessionMetadataService = chatSessionMetadataService;
+    this.transactionTemplate = new TransactionTemplate(transactionManager);
   }
 
   @Async
   @EventListener
-  @Transactional
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
-      ChatSession session =
-          chatSessionRepository
-              .findByIdForUpdate(event.sessionId())
-              .orElseThrow(
-                  () ->
-                      new NotFoundException(
-                          "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
+      ensureSessionExists(event.sessionId());
 
       List<ChatMessage> recentDesc =
           chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(event.sessionId());
@@ -66,16 +63,9 @@ public class LlmResponseHandler {
       String llmResponse =
           llmAssistantService.generateResponse(conversationContext, event.content());
 
-      Integer nextSeqNo =
-          chatMessageRepository
-              .findTopByChatSessionIdOrderBySeqNoDesc(event.sessionId())
-              .map(msg -> msg.getSeqNo() + 1)
-              .orElse(1);
-
       ChatMessage savedMessage =
-          chatMessageRepository.save(
-              ChatMessage.create(event.sessionId(), nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
-      chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+          transactionTemplate.execute(
+              status -> saveAssistantMessage(event.sessionId(), llmResponse));
 
       ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
       String destination = "/topic/chat." + event.sessionId();
@@ -92,5 +82,33 @@ public class LlmResponseHandler {
           ChatMessageResponse.error("LLM_ERROR", "죄송합니다. 일시적인 오류가 발생했습니다.");
       messagingTemplate.convertAndSend("/topic/chat." + event.sessionId(), errorResponse);
     }
+  }
+
+  private void ensureSessionExists(Long sessionId) {
+    chatSessionRepository
+        .findById(sessionId)
+        .orElseThrow(
+            () -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+  }
+
+  private ChatMessage saveAssistantMessage(Long sessionId, String llmResponse) {
+    ChatSession session =
+        chatSessionRepository
+            .findByIdForUpdate(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+
+    Integer nextSeqNo =
+        chatMessageRepository
+            .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+            .map(msg -> msg.getSeqNo() + 1)
+            .orElse(1);
+
+    ChatMessage savedMessage =
+        chatMessageRepository.save(
+            ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
+    chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+    return savedMessage;
   }
 }

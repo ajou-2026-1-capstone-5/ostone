@@ -260,6 +260,7 @@ class CounselorServiceTest {
           service.sendCounselorMessage(1L, "Hello from counselor", 42L, true);
 
       assertThat(result.senderRole()).isEqualTo("NOTE");
+      verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }

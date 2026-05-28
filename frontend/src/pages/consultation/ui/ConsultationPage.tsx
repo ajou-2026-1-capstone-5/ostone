@@ -428,7 +428,12 @@ export const ConsultationPage: React.FC = () => {
     const topic = `/topic/chat.${activeCustomerId}`;
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
-      if (msg.senderRole === "COUNSELOR" || msg.senderRole === "NOTE") {
+      const normalizedRole = normalizeChatSenderRole(msg.senderRole);
+      if (
+        normalizedRole === "COUNSELOR" ||
+        normalizedRole === "AGENT" ||
+        normalizedRole === "NOTE"
+      ) {
         setMessagesCustomerId(activeCustomerId);
         setMessages((prev) => {
           const temps = [...pendingIdsRef.current];
