@@ -27,7 +27,7 @@ const ROLE_PRESENTATION: Record<ChatSenderRole, ChatRolePresentation> = {
 };
 
 export function normalizeChatSenderRole(senderRole?: string | null): ChatSenderRole {
-  if (senderRole && senderRole in ROLE_PRESENTATION) {
+  if (senderRole && Object.prototype.hasOwnProperty.call(ROLE_PRESENTATION, senderRole)) {
     return senderRole as ChatSenderRole;
   }
   return "SYSTEM";

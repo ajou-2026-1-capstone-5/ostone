@@ -10,8 +10,10 @@ import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class ChatSessionMetadataService {
 
   private static final Logger log = LoggerFactory.getLogger(ChatSessionMetadataService.class);
@@ -24,6 +26,7 @@ public class ChatSessionMetadataService {
     this.objectMapper = objectMapper;
   }
 
+  @Transactional
   public void updateAfterMessage(ChatSession session, ChatMessage message) {
     ObjectNode meta = parseMeta(session.getMetaJson());
     ensureTitle(meta, session, message);

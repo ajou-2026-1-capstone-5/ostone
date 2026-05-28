@@ -113,9 +113,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             );
           }
           if (msg.senderRole === "NOTE") {
+            const role = getChatRolePresentation(msg.senderRole);
             return (
               <div key={msg.id} className={styles.internalNote}>
-                <div className={styles.noteLabel}>내부 메모</div>
+                <div className={styles.noteLabel}>{role.label}</div>
                 {msg.content}
               </div>
             );
