@@ -46,7 +46,11 @@ services:
       AIRFLOW_API_CONNECT_TIMEOUT: ${AIRFLOW_API_CONNECT_TIMEOUT:-3s}
       AIRFLOW_API_READ_TIMEOUT: ${AIRFLOW_API_READ_TIMEOUT:-10s}
       AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:-domain_pack_generation}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+      # AI provider (OpenAI 호환: Gemini 기본 / OpenAI 전환 가능)
+      AI_API_KEY: ${AI_API_KEY:-${GEMINI_API_KEY:?AI_API_KEY 또는 GEMINI_API_KEY 가 필요합니다}}
+      AI_BASE_URL: ${AI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gemini-2.5-flash-lite}
+      AI_CHAT_TEMPERATURE: ${AI_CHAT_TEMPERATURE:-0.7}
 
     ports:
       - "8080:8080"
