@@ -414,7 +414,7 @@ function evidenceItemToLine(item: unknown, index: number): EvidenceLine | null {
 }
 
 function splitTurnPrefix(value: string): EvidenceLine | null {
-  const match = value.match(/^([A-Za-z][A-Za-z0-9_-]{1,24})\s*:\s*(.+)$/);
+  const match = value.match(/^(\p{L}[\p{L}\p{N}_-]{1,24})\s*:\s*(.+)$/u);
   if (!match) return null;
   return { turn: normalizeTurnLabel(match[1]) ?? match[1], text: match[2].trim() };
 }

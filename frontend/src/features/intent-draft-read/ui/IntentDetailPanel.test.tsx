@@ -194,7 +194,12 @@ describe("IntentDetailPanel", () => {
           source: "boundary_segment_v1",
         }),
         evidenceJson: JSON.stringify({
-          sampleSegmentTexts: ["최근 이용내역을 확인하고 싶어요", "customer: 해외 결제 내역이 보여요"],
+          sampleSegmentTexts: [
+            "최근 이용내역을 확인하고 싶어요",
+            "customer: 해외 결제 내역이 보여요",
+            "고객: 환불 가능한가요",
+            "상담사: 주문번호를 알려주세요",
+          ],
           sampleIntentPhrases: ["이용내역 문의"],
         }),
       }),
@@ -214,6 +219,9 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("최근 이용내역을 확인하고 싶어요")).toBeInTheDocument();
     expect(screen.getByText("상담자")).toBeInTheDocument();
     expect(screen.getByText("해외 결제 내역이 보여요")).toBeInTheDocument();
+    expect(screen.getByText("환불 가능한가요")).toBeInTheDocument();
+    expect(screen.getByText("상담사")).toBeInTheDocument();
+    expect(screen.getByText("주문번호를 알려주세요")).toBeInTheDocument();
   });
 
   it("JSON 탭에서는 기존 JSON 필드를 그대로 확인할 수 있다", () => {
