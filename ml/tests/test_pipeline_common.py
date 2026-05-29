@@ -32,7 +32,7 @@ def test_should_write_stage_manifest(tmp_path):
     assert manifest["schemaVersion"] == "artifact-manifest.v2"
     assert manifest["stageName"] == "bootstrap_smoke"
     assert manifest["modelMetadata"]["embeddingModel"] == "BAAI/bge-m3"
-    assert manifest["runtimeProfile"] == "cheap"
+    assert manifest["runtimeProfile"] == "balanced"
     assert manifest["checksum"]
 
 
@@ -100,7 +100,7 @@ def test_runtime_config_strips_artifact_root_and_backend_base_url(monkeypatch, t
     assert runtime_config.backend_base_url == "http://backend:8080"
 
 
-def test_runtime_config_rejects_s3_artifact_store_until_adapter_exists(monkeypatch, tmp_path):
+def test_runtime_config_accepts_s3_artifact_store(monkeypatch, tmp_path):
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
     monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
@@ -112,8 +112,51 @@ def test_runtime_config_rejects_s3_artifact_store_until_adapter_exists(monkeypat
     monkeypatch.setenv("ML_RUNTIME_PROFILE", "balanced")
     monkeypatch.setenv("GPU_TASK_MODE", "service")
 
-    with pytest.raises(PipelineConfigurationError, match="not implemented"):
-        PipelineRuntimeConfig.from_env()
+    runtime_config = PipelineRuntimeConfig.from_env()
+
+    assert runtime_config.artifact_store == "s3"
+    assert runtime_config.artifact_bucket == "ml-artifacts"
+    assert runtime_config.artifact_prefix == "domain-pack/runs"
+    assert runtime_config.embedding_model_name == "custom-embedder"
+    assert runtime_config.llm_model_name == "custom-llm"
+    assert runtime_config.gpu_task_mode == "service"
+
+
+def test_stage_manifest_mirrors_stage_directory_to_s3(monkeypatch, tmp_path):
+    uploaded: list[tuple[str, str, str, dict | None]] = []
+
+    class FakeS3Client:
+        def upload_file(self, filename, bucket, key, ExtraArgs=None):
+            uploaded.append((filename, bucket, key, ExtraArgs))
+
+    monkeypatch.setattr("pipeline.common.artifacts.boto3.client", lambda _name: FakeS3Client())
+    monkeypatch.setenv("S3_EXPECTED_BUCKET_OWNER", "123456789012")
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+        artifact_store="s3",
+        artifact_bucket="ml-artifacts",
+        artifact_prefix="/domain-pack/runs/",
+    )
+    stage_context = StageContext(
+        dag_id="dag",
+        run_id="run",
+        stage_name="stage",
+        workspace_id=None,
+        dataset_id=None,
+        pipeline_job_id=None,
+    )
+    output_dir = tmp_path / "dag" / "run" / "stage"
+    output_dir.mkdir(parents=True)
+    (output_dir / "artifact.json").write_text('{"ok":true}', encoding="utf-8")
+
+    write_stage_manifest(stage_context, runtime_config, {"artifact_path": "artifact.json"})
+
+    keys = {item[2] for item in uploaded}
+    assert keys == {"domain-pack/runs/dag/run/stage/artifact.json", "domain-pack/runs/dag/run/stage/manifest.json"}
+    assert {item[1] for item in uploaded} == {"ml-artifacts"}
+    assert all(item[3] == {"ExpectedBucketOwner": "123456789012"} for item in uploaded)
 
 
 def test_runtime_config_requires_bucket_for_s3_artifact_store(monkeypatch, tmp_path):
@@ -132,6 +175,37 @@ def test_runtime_config_rejects_missing_backend_base_url(monkeypatch):
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
 
     with pytest.raises(PipelineConfigurationError, match="PIPELINE_BACKEND_BASE_URL"):
+        PipelineRuntimeConfig.from_env()
+
+
+def test_runtime_config_accepts_only_flag_embedding_runtime_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("ML_EMBEDDING_RUNTIME", " flag_embedding ")
+
+    runtime_config = PipelineRuntimeConfig.from_env()
+
+    assert runtime_config.embedding_runtime == "flag_embedding"
+
+
+def test_runtime_config_rejects_unknown_embedding_runtime(tmp_path):
+    with pytest.raises(PipelineConfigurationError, match="Only ML_EMBEDDING_RUNTIME=flag_embedding"):
+        PipelineRuntimeConfig(
+            artifact_root=tmp_path,
+            backend_base_url="http://backend:8080",
+            callback_enabled=False,
+            embedding_runtime="external_api",
+        )
+
+
+def test_runtime_config_rejects_removed_embedding_runtime_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
+    monkeypatch.setenv("ML_EMBEDDING_RUNTIME", "hash")
+
+    with pytest.raises(PipelineConfigurationError, match="no longer supports alternate runtimes"):
         PipelineRuntimeConfig.from_env()
 
 

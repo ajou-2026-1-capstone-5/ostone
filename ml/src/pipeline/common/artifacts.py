@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+import boto3
 
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
@@ -56,6 +59,7 @@ def write_stage_manifest(
         "payload": payload,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _mirror_stage_directory_to_s3(stage_context, runtime_config, artifact_dir)
     return manifest_path
 
 
@@ -126,3 +130,33 @@ def _record_count(payload: dict[str, Any]) -> int | None:
             if isinstance(value, int) and not isinstance(value, bool):
                 return value
     return None
+
+
+def _mirror_stage_directory_to_s3(
+    stage_context: StageContext,
+    runtime_config: PipelineRuntimeConfig,
+    artifact_dir: Path,
+) -> None:
+    if runtime_config.artifact_store != "s3":
+        return
+    if not runtime_config.artifact_bucket:
+        return
+
+    prefix_parts = [
+        runtime_config.artifact_prefix,
+        stage_context.dag_id,
+        stage_context.run_id,
+        stage_context.stage_name,
+    ]
+    prefix = "/".join(part.strip("/") for part in prefix_parts if part)
+    s3 = boto3.client("s3")
+    expected_owner = os.getenv("S3_EXPECTED_BUCKET_OWNER", "").strip()
+    extra_args = {"ExpectedBucketOwner": expected_owner} if expected_owner else None
+    for path in artifact_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        key = f"{prefix}/{path.relative_to(artifact_dir).as_posix()}"
+        if extra_args:
+            s3.upload_file(str(path), runtime_config.artifact_bucket, key, ExtraArgs=extra_args)
+        else:
+            s3.upload_file(str(path), runtime_config.artifact_bucket, key)
