@@ -69,6 +69,7 @@ def test_build_intents_full_hydration() -> None:
             "suggested_name": "환불 문의",
             "suggested_description": "환불 관련 클러스터",
             "exemplar_conv_ids": ["c1", "c2", "c3"],
+            "keywords": ["환불", "취소"],
         }
     ]
     index = {
@@ -90,6 +91,7 @@ def test_build_intents_full_hydration() -> None:
     assert intents[0]["representativeCases"][0]["canonicalText"] == "환불 요청합니다"
     assert intents[0]["representativeCases"][0]["customerProblemText"] == "환불"
     assert intents[0]["representativeCases"][0]["endedStatus"] == "resolved"
+    assert json.loads(intents[0]["sourceClusterRef"])["keywords"] == ["환불", "취소"]
 
 
 def test_build_intents_partial_hydration() -> None:

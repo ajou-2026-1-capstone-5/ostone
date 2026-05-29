@@ -257,6 +257,7 @@ def _build_intents(
                         "clusterSize": cluster.get("cluster_size"),
                         "source": cluster.get("source"),
                         "canonicalIntent": cluster.get("canonical_intent") or cluster.get("suggested_name"),
+                        "keywords": _string_list(cluster.get("keywords"), limit=8),
                         "segmentIds": _string_list(cluster.get("segment_ids"), limit=100),
                     }
                 ),
