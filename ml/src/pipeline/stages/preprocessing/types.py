@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import KW_ONLY, dataclass, field
+from typing import Any
 
 SPEAKER_ROLE_CUSTOMER = "customer"
 SPEAKER_ROLE_AGENT = "agent"
@@ -23,6 +24,7 @@ class Conversation:
     dataset_id: str
     channel: str | None = None
     ended_status: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
     _: KW_ONLY
     turns: tuple[ConversationTurn, ...]
 
@@ -33,6 +35,7 @@ class ProcessedConversation:
     dataset_id: str
     channel: str | None = None
     ended_status: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
     _: KW_ONLY
     canonical_text: str
     customer_problem_text: str
@@ -43,3 +46,4 @@ class ProcessedConversation:
     pii_mask_count: int
     filtered: bool
     workflow_signal: dict[str, bool] = field(default_factory=dict)
+    flow_events: tuple[str, ...] = ()

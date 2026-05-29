@@ -46,6 +46,7 @@ class IngestionConversationPayload(TypedDict):
     turns: list[IngestionTurnPayload]
     channel: NotRequired[str | None]
     ended_status: NotRequired[str | None]
+    metadata: NotRequired[dict[str, object]]
 
 
 class JsonObject(TypedDict, total=False):
@@ -54,6 +55,7 @@ class JsonObject(TypedDict, total=False):
     generated_at: str
     source_manifest: str
     conversations: list[dict[str, object]]
+    issueCaselets: list[dict[str, object]]
     stats: dict[str, object]
 
 
@@ -106,6 +108,7 @@ def write_preprocessed_artifact(
     runtime_config: PipelineRuntimeConfig,
     processed: Sequence[ProcessedConversation],
     stats: dict[str, object],
+    issue_caselets: Sequence[dict[str, object]] | None = None,
 ) -> dict[str, str]:
     output_dir = ensure_stage_directory(stage_context, runtime_config)
 
@@ -116,6 +119,7 @@ def write_preprocessed_artifact(
         "generated_at": _utc_now_isoformat(),
         "source_manifest": _resolve_source_manifest(stats),
         "conversations": [_serialize_processed_conversation(conversation) for conversation in processed],
+        "issueCaselets": [dict(caselet) for caselet in issue_caselets or ()],
         "stats": stats,
     }
 
@@ -209,6 +213,7 @@ def _build_conversation(payload: IngestionConversationPayload) -> Conversation:
         dataset_id=str(payload["dataset_id"]),
         channel=_optional_str(payload.get("channel")),
         ended_status=_optional_str(payload.get("ended_status")),
+        metadata=_metadata_dict(payload.get("metadata")),
         turns=turns,
     )
 
@@ -229,12 +234,23 @@ def _optional_str(value: object) -> str | None:
     return str(value)
 
 
+def _metadata_dict(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items() if _metadata_value_allowed(item)}
+
+
+def _metadata_value_allowed(value: object) -> bool:
+    return value is None or isinstance(value, str | int | float | bool)
+
+
 def _serialize_processed_conversation(conversation: ProcessedConversation) -> dict[str, object]:
     return {
         "id": conversation.id,
         "dataset_id": conversation.dataset_id,
         "channel": conversation.channel,
         "ended_status": conversation.ended_status,
+        "metadata": _metadata_dict(conversation.metadata),
         "canonical_text": conversation.canonical_text,
         "customer_problem_text": conversation.customer_problem_text,
         "flow_signature": [float(value) for value in conversation.flow_signature],
@@ -244,6 +260,7 @@ def _serialize_processed_conversation(conversation: ProcessedConversation) -> di
         "pii_mask_count": conversation.pii_mask_count,
         "filtered": conversation.filtered,
         "workflow_signal": dict(conversation.workflow_signal),
+        "flow_events": list(conversation.flow_events),
     }
 
 

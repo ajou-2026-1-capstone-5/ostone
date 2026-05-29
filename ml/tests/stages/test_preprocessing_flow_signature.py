@@ -11,6 +11,7 @@ from pipeline.stages.preprocessing.flow_signature import (
     detect_escalation_flag,
     detect_exception_flag,
     infer_event,
+    infer_event_detail,
     infer_outcome,
     infer_workflow_signal,
     outcome_to_one_hot,
@@ -31,6 +32,17 @@ def test_should_infer_events_with_default_fallback() -> None:
     assert infer_event("불편해서 환불 요청", "customer") == "불만표현"
     assert infer_event("처리 완료", "agent") in ("해결", "확인질문")
     assert infer_event("아무 키워드 없음", "agent") == "확인질문"
+
+
+def test_should_return_role_aware_event_detail() -> None:
+    detail = infer_event_detail("성함과 생년월일 말씀 부탁드립니다", "agent")
+    fallback = infer_event_detail("궁금합니다", "customer")
+
+    assert detail["event"] == "추가정보요청"
+    assert detail["level2"] == "slot_collection"
+    assert detail["confidence"] == 0.85
+    assert fallback["event"] == "확인질문"
+    assert fallback["level2"] == "customer_question"
 
 
 def test_should_compute_normalized_event_histogram() -> None:

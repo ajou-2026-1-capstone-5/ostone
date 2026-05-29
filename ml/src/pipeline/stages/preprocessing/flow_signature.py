@@ -43,8 +43,8 @@ _EVENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     "확인질문": ("맞하신가요", "맞나요", "혹시", "되실까요", "인가요", "확인해", "확인 부탁"),
     "예외처리": ("특별", "예외", "우회", "다르게", "변경 가능", "조치", "해드리겠습니다"),
 }
-_PAYMENT_KEYWORDS = ("결제", "payment", "환불", "refund", "환급", "주문", "order", "카드", "계좌")
-_IDENTIFICATION_KEYWORDS = ("본인인증", "identity", "휴대폰 인증", "성함", "생년월일", "연락처", "고객 이름")
+_PAYMENT_KEYWORDS = ("결제", "payment", "환불", "refund", "환급", "주문", "order", "계좌")
+_IDENTIFICATION_KEYWORDS = ("본인인증", "identity", "인증", "성함", "생년월일", "연락처", "이름")
 
 _CUSTOMER_ROLE_ALIASES = frozenset({"customer", "cust", "user", "client", "고객"})
 _AGENT_ROLE_ALIASES = frozenset({"agent", "advisor", "operator", "상담사", "상담원"})
@@ -67,14 +67,47 @@ def normalize_speaker_role(speaker_role: str) -> str:
     return SPEAKER_ROLE_SYSTEM
 
 
-def infer_event(turn_text: str, _speaker_role: str) -> str:
+def infer_event(turn_text: str, speaker_role: str) -> str:
     """정적 키워드 규칙으로 이벤트 라벨을 추론한다."""
 
+    return str(infer_event_detail(turn_text, speaker_role)["event"])
+
+
+def infer_event_detail(turn_text: str, speaker_role: str) -> dict[str, object]:
+    """도메인 비의존 level1 event와 보조 level2 act를 함께 반환한다."""
+
     normalized_text = turn_text.strip()
+    normalized_role = normalize_speaker_role(speaker_role)
     for label, keywords in _EVENT_KEYWORDS.items():
         if any(keyword in normalized_text for keyword in keywords):
-            return label
-    return "확인질문"
+            return {
+                "event": label,
+                "level1": label,
+                "level2": _level2_event(label, normalized_role),
+                "confidence": 0.85,
+            }
+    return {
+        "event": "확인질문",
+        "level1": "확인질문",
+        "level2": "customer_question" if normalized_role == SPEAKER_ROLE_CUSTOMER else "agent_clarification",
+        "confidence": 0.45,
+    }
+
+
+def _level2_event(label: str, normalized_role: str) -> str:
+    if label == "이관":
+        return "handoff"
+    if label == "해결":
+        return "resolution_notice" if normalized_role == SPEAKER_ROLE_AGENT else "resolution_confirmation"
+    if label == "불만표현":
+        return "customer_problem"
+    if label == "추가정보요청":
+        return "slot_collection" if normalized_role == SPEAKER_ROLE_AGENT else "information_provided"
+    if label == "정책안내":
+        return "policy_explanation"
+    if label == "예외처리":
+        return "exception_handling"
+    return "customer_question" if normalized_role == SPEAKER_ROLE_CUSTOMER else "agent_clarification"
 
 
 def compute_event_histogram(events: Sequence[str]) -> np.ndarray:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false, reportAny=false
 import json
+import os
 from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import Path
@@ -42,9 +43,22 @@ def read_preprocessed_artifact(
     except json.JSONDecodeError as exc:
         raise PipelineStageError(f"Invalid preprocessed artifact JSON: {artifact_path}") from exc
 
-    conversations = _build_processed_conversations(payload, artifact_path)
+    conversations = _build_analysis_units(payload, artifact_path)
     flow_signatures = np.asarray([conversation.flow_signature for conversation in conversations], dtype=np.float32)
     return conversations, flow_signatures.reshape((len(conversations), FLOW_SIGNATURE_DIM))
+
+
+def _build_analysis_units(payload: object, artifact_path: Path) -> list[ProcessedConversation]:
+    analysis_unit = os.getenv("PIPELINE_ANALYSIS_UNIT", "caselet").strip().lower()
+    if analysis_unit == "caselet":
+        caselets = _build_caselet_conversations(payload, artifact_path)
+        if caselets is not None:
+            return caselets
+    return [
+        conversation
+        for conversation in _build_processed_conversations(payload, artifact_path)
+        if not conversation.filtered
+    ]
 
 
 def write_clusters_artifact(
@@ -55,12 +69,13 @@ def write_clusters_artifact(
     stats: IntentDiscoveryStats,
     embeddings: np.ndarray,
     extra_manifest_payload: Mapping[str, object] | None = None,
+    extra_output_payload: Mapping[str, object] | None = None,
 ) -> Path:
     output_dir = ensure_stage_directory(context, runtime_config)
     clusters_path = output_dir / DEFAULT_CLUSTER_ARTIFACT
     embeddings_path = output_dir / DEFAULT_EMBEDDING_ARTIFACT
 
-    output = {
+    output: dict[str, object] = {
         "schema_version": "1.0",
         "stage": "intent_discovery",
         "clusters": [_serialize_cluster(cluster) for cluster in clusters],
@@ -68,6 +83,8 @@ def write_clusters_artifact(
         "stats": _serialize_stats(stats),
         "embeddings_path": embeddings_path.name,
     }
+    if extra_output_payload is not None:
+        output.update(extra_output_payload)
 
     _ = clusters_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
     np.save(embeddings_path, embeddings.astype(np.float32, copy=False))
@@ -121,6 +138,7 @@ def _build_processed_conversation(payload: object, artifact_path: Path) -> Proce
         dataset_id=_required_str(payload, "dataset_id", artifact_path),
         channel=_optional_str(payload.get("channel")),
         ended_status=_optional_str(payload.get("ended_status")),
+        metadata=_optional_metadata(payload.get("metadata")),
         canonical_text=_required_str(payload, "canonical_text", artifact_path),
         customer_problem_text=_required_str(payload, "customer_problem_text", artifact_path),
         flow_signature=flow_signature,
@@ -130,6 +148,69 @@ def _build_processed_conversation(payload: object, artifact_path: Path) -> Proce
         pii_mask_count=_required_int(payload, "pii_mask_count", artifact_path),
         filtered=_required_bool(payload, "filtered", artifact_path),
         workflow_signal=_optional_bool_dict(payload.get("workflow_signal"), artifact_path),
+        flow_events=_optional_str_tuple(payload.get("flow_events"), artifact_path),
+    )
+
+
+def _build_caselet_conversations(payload: object, artifact_path: Path) -> list[ProcessedConversation] | None:
+    if not _is_json_object(payload):
+        raise PipelineStageError(f"Preprocessed artifact must be a JSON object: {artifact_path}")
+    caselet_payload = payload.get("issueCaselets")
+    if caselet_payload is None:
+        return None
+    if not _is_object_list(caselet_payload):
+        raise PipelineStageError(f"Preprocessed artifact issueCaselets must be a list: {artifact_path}")
+    output: list[ProcessedConversation] = []
+    for item in caselet_payload:
+        if not _is_json_object(item):
+            raise PipelineStageError(f"Issue caselet must be a JSON object: {artifact_path}")
+        if item.get("filtered") is True:
+            continue
+        output.append(_build_caselet_conversation(item, artifact_path))
+    return output
+
+
+def _build_caselet_conversation(payload: object, artifact_path: Path) -> ProcessedConversation:
+    if not _is_json_object(payload):
+        raise PipelineStageError(f"Issue caselet must be a JSON object: {artifact_path}")
+    flow_signature = _build_flow_signature(payload.get("flowSignature"), artifact_path)
+    flow_signature_dim = _required_int(payload, "flowSignatureDim", artifact_path)
+    if flow_signature_dim != len(flow_signature):
+        raise PipelineStageError(
+            f"flowSignatureDim ({flow_signature_dim}) must match "
+            f"flowSignature length ({len(flow_signature)}): {artifact_path}"
+        )
+    source_conversation_id = _required_str(payload, "conversationId", artifact_path)
+    turn_start = _required_int(payload, "turnStart", artifact_path)
+    turn_end = _required_int(payload, "turnEnd", artifact_path)
+    metadata = {
+        "sourceConversationId": source_conversation_id,
+        "turnStart": turn_start,
+        "turnEnd": turn_end,
+        "analysisUnit": "caselet",
+        "sourceQualityFlags": _optional_str_tuple(payload.get("sourceQualityFlags"), artifact_path),
+        "qualityScore": _optional_float(payload.get("qualityScore")),
+        "qualityTier": _optional_str(payload.get("qualityTier")),
+        "filtered": _required_bool(payload, "filtered", artifact_path),
+        "evidenceTurnIds": _optional_str_tuple(payload.get("evidenceTurnIds"), artifact_path),
+        "actionObjectFrame": _optional_object(payload.get("actionObjectFrame"), artifact_path),
+    }
+    return ProcessedConversation(
+        id=_required_str(payload, "caseletId", artifact_path),
+        dataset_id=_required_str(payload, "datasetId", artifact_path),
+        channel=None,
+        ended_status=_optional_str(payload.get("outcome")),
+        metadata=metadata,
+        canonical_text=_required_str(payload, "canonicalText", artifact_path),
+        customer_problem_text=_required_str(payload, "customerIssueText", artifact_path),
+        flow_signature=flow_signature,
+        flow_signature_dim=flow_signature_dim,
+        turn_count=max(1, turn_end - turn_start + 1),
+        customer_turn_count=1,
+        pii_mask_count=_required_int(payload, "piiMaskCount", artifact_path),
+        filtered=_required_bool(payload, "filtered", artifact_path),
+        workflow_signal=_optional_bool_dict(payload.get("workflowSignal"), artifact_path),
+        flow_events=_optional_str_tuple(payload.get("flowEvents"), artifact_path),
     )
 
 
@@ -192,6 +273,46 @@ def _optional_bool_dict(value: object, artifact_path: Path) -> dict[str, bool]:
             raise PipelineStageError(f"workflow_signal values must be booleans: {artifact_path}")
         output[key] = item
     return output
+
+
+def _optional_str_tuple(value: object, artifact_path: Path) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise PipelineStageError(f"flow_events must be a list when present: {artifact_path}")
+    output: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            raise PipelineStageError(f"flow_events values must be strings: {artifact_path}")
+        if item:
+            output.append(item)
+    return tuple(output)
+
+
+def _optional_float(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _optional_metadata(value: object) -> dict[str, object]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {str(key): item for key, item in value.items() if _metadata_value_allowed(item)}
+
+
+def _metadata_value_allowed(value: object) -> bool:
+    return value is None or isinstance(value, str | int | float | bool)
+
+
+def _optional_object(value: object, artifact_path: Path) -> dict[str, object]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise PipelineStageError(f"Optional object field must be an object: {artifact_path}")
+    return {str(key): item for key, item in value.items() if _metadata_value_allowed(item)}
 
 
 def _serialize_cluster(cluster: ClusterResult) -> dict[str, object]:

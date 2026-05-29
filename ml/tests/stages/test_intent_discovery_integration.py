@@ -2,52 +2,35 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
 from pipeline.stages.preprocessing.canonicalize import apply_canonicalization
 from pipeline.stages.preprocessing.flow_signature import build_signature
+from pipeline.stages.preprocessing.io import IngestionConversationPayload, _build_conversation
 from pipeline.stages.preprocessing.types import (
     SPEAKER_ROLE_CUSTOMER,
     Conversation,
-    ConversationTurn,
     ProcessedConversation,
 )
 
-_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "raw-training"
+_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "parsed-training"
 
 
-def _load_raw_conversations(source_dir: Path) -> list[Conversation]:
+def _load_parsed_conversations(source_dir: Path) -> list[Conversation]:
     conversations: list[Conversation] = []
     for json_path in sorted(source_dir.glob("*.json")):
         raw = json.loads(json_path.read_text(encoding="utf-8"))
         for item in raw:
-            turns: list[ConversationTurn] = []
-            for line in item.get("consulting_content", "").strip().split("\n"):
-                line = line.strip()
-                if not line:
-                    continue
-                if ":" not in line:
-                    continue
-                speaker, _, text = line.partition(":")
-                turn_id = f"{json_path.stem}_t{len(turns)}"
-                turns.append(
-                    ConversationTurn(
-                        turn_id=turn_id,
-                        speaker_role="agent" if "상담사" in speaker else "customer",
-                        text=text.strip(),
-                    )
-                )
-            if not turns:
+            if not isinstance(item, dict):
                 continue
-            conversations.append(
-                Conversation(
-                    conversation_id=f"{json_path.stem}_{item.get('source_id', '0')}",
-                    dataset_id=json_path.stem,
-                    channel="chat",
-                    turns=tuple(turns),
-                )
-            )
+            payload = {
+                "id": str(item.get("source_id") or json_path.stem),
+                "dataset_id": json_path.stem,
+                "turns": item.get("turns", []),
+            }
+            conversations.append(_build_conversation(cast(IngestionConversationPayload, payload)))
     return conversations
 
 
@@ -77,8 +60,8 @@ def _preprocess_conversations(conversations: list[Conversation]) -> list[Process
     return processed
 
 
-def test_raw_training_ingests_and_preprocesses() -> None:
-    conversations = _load_raw_conversations(_FIXTURES_DIR)
+def test_parsed_training_ingests_and_preprocesses() -> None:
+    conversations = _load_parsed_conversations(_FIXTURES_DIR)
     assert len(conversations) >= 2, f"최소 2개 conversation 필요, 실제: {len(conversations)}"
 
     processed = _preprocess_conversations(conversations)
@@ -88,7 +71,7 @@ def test_raw_training_ingests_and_preprocesses() -> None:
         assert p.flow_signature_dim > 0
 
 
-def test_raw_training_runs_clustering() -> None:
+def test_parsed_training_runs_clustering() -> None:
     from pipeline.stages.intent_discovery.cluster_analysis import build_cluster_results
     from pipeline.stages.intent_discovery.clustering import (
         build_knn_graph,
@@ -99,7 +82,7 @@ def test_raw_training_runs_clustering() -> None:
     )
     from pipeline.stages.intent_discovery.evaluation import interpretability_score
 
-    conversations = _load_raw_conversations(_FIXTURES_DIR)
+    conversations = _load_parsed_conversations(_FIXTURES_DIR)
     processed = _preprocess_conversations(conversations)
 
     rng = np.random.RandomState(42)
