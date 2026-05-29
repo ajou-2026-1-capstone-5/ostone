@@ -115,6 +115,16 @@ public class LlmToolService {
                   workflowDefinitionId, session.getDomainPackVersionId())
               .orElse(null);
     }
+    if (definition == null && session.getDomainPackVersionId() != null) {
+      List<WorkflowDefinition> candidates =
+          workflowDefinitionRepository.findAllByDomainPackVersionId(
+              session.getDomainPackVersionId());
+      if (!candidates.isEmpty()) {
+        definition = candidates.get(0);
+        workflowDefinitionId = definition.getId();
+        executionStatus = "PENDING";
+      }
+    }
 
     JsonNode graphJson = definition != null ? readJsonNode(definition.getGraphJson(), null) : null;
     JsonNode terminalStates =
