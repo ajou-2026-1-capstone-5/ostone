@@ -134,7 +134,6 @@ describe("SummaryDetailPanel", () => {
 
     expect(screen.getByText("v1")).toBeInTheDocument();
     expect(screen.getByText("DRAFT")).toBeInTheDocument();
-    expect(screen.getByText("Summary JSON")).toBeInTheDocument();
     expect(screen.getByTestId("summary-json-card")).toHaveTextContent('{"key":"val"}');
     expect(screen.getByTestId("component-count-grid")).toBeInTheDocument();
     expect(screen.queryByText("승인 준비 상태")).not.toBeInTheDocument();

@@ -3,12 +3,63 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { SummaryJsonCard } from "./SummaryJsonCard";
 
 describe("SummaryJsonCard", () => {
-  it("유효한 JSON 객체는 key-value 형태로 렌더링한다", () => {
-    render(<SummaryJsonCard summaryJson='{"intent":"greeting","count":3}' />);
+  it("알려진 요약 필드는 사용자가 읽기 좋은 섹션으로 렌더링한다", () => {
+    render(
+      <SummaryJsonCard summaryJson='{"topic":"환불 자동화 팩","generation":{"source":"pipeline","clusterCount":12},"quality":{"mappingRate":0.82,"outlierRate":0.07,"workflowSeparability":0.76},"review":{"needsReviewCount":3,"topIssues":["워크플로우 미매핑"]}}' />,
+    );
+
+    expect(screen.getByText("도메인팩 정보")).toBeInTheDocument();
+    expect(screen.getByText("topic")).toBeInTheDocument();
+    expect(screen.getByText("환불 자동화 팩")).toBeInTheDocument();
+    expect(screen.getByText("생성 출처")).toBeInTheDocument();
+    expect(screen.getByText("pipeline")).toBeInTheDocument();
+    expect(screen.getByText("클러스터")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("검토 필요")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("품질 지표")).toBeInTheDocument();
+    expect(screen.getByText("매핑률")).toBeInTheDocument();
+    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(screen.getByText("이탈률")).toBeInTheDocument();
+    expect(screen.getByText("7%")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 분리도")).toBeInTheDocument();
+    expect(screen.getByText("76%")).toBeInTheDocument();
+    expect(screen.getByText("검토 포인트")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 미매핑")).toBeInTheDocument();
+  });
+
+  it("카드 제목으로 도메인팩 정보를 렌더링한다", () => {
+    render(<SummaryJsonCard summaryJson='{"generation":{"source":"pipeline"}}' />);
+    expect(screen.getByText("도메인팩 정보")).toBeInTheDocument();
+  });
+
+  it("알려지지 않은 JSON 객체는 요약 화면에 노출하지 않고 전체 JSON에서 확인한다", () => {
+    const json = '{"intent":"greeting","count":3}';
+    render(<SummaryJsonCard summaryJson={json} />);
+    expect(screen.getByText("내용 없음")).toBeInTheDocument();
+    expect(screen.queryByText("기타 메타데이터")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
     expect(screen.getByText("intent")).toBeInTheDocument();
     expect(screen.getByText("greeting")).toBeInTheDocument();
     expect(screen.getByText("count")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("전체 JSON 화면에서는 객체 값을 보기 좋은 코드 블록으로 렌더링한다", () => {
+    render(<SummaryJsonCard summaryJson='{"nested":{"a":1}}' />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("nested")).toBeInTheDocument();
+    expect(screen.getByText(/"a": 1/)).toBeInTheDocument();
+  });
+
+  it("draftSource는 내부 타입 대신 변경 기준 버전만 렌더링한다", () => {
+    render(
+      <SummaryJsonCard summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2,"reason":"환불 인텐트 세분화"}}' />,
+    );
+
+    expect(screen.getByText("변경 기준")).toBeInTheDocument();
+    expect(screen.getByText("v2")).toBeInTheDocument();
+    expect(screen.queryByText(/INTENT_REVISION/)).not.toBeInTheDocument();
   });
 
   it("빈 JSON 객체는 '내용 없음'을 표시한다", () => {
@@ -22,28 +73,19 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("{bad}")).toBeInTheDocument();
   });
 
-  it("Raw JSON 버튼 클릭 시 원문 JSON을 표시한다", () => {
+  it("전체 JSON 버튼 클릭 시 전체 JSON 필드를 카드로 표시한다", () => {
     const json = '{"key":"val"}';
     render(<SummaryJsonCard summaryJson={json} />);
-    fireEvent.click(screen.getByRole("button", { name: "Raw JSON" }));
-    expect(screen.getByText(json)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("key")).toBeInTheDocument();
+    expect(screen.getByText("val")).toBeInTheDocument();
   });
 
   it("카드 버튼으로 다시 카드 모드로 전환한다", () => {
-    render(<SummaryJsonCard summaryJson='{"k":"v"}' />);
-    fireEvent.click(screen.getByRole("button", { name: "Raw JSON" }));
-    fireEvent.click(screen.getByRole("button", { name: "카드" }));
-    expect(screen.getByText("k")).toBeInTheDocument();
-    expect(screen.getByText("v")).toBeInTheDocument();
-  });
-
-  it("객체 값은 JSON 문자열로 렌더링한다", () => {
-    render(<SummaryJsonCard summaryJson='{"nested":{"a":1}}' />);
-    expect(screen.getByText('{"a":1}')).toBeInTheDocument();
-  });
-
-  it("null 값은 'null' 문자열로 렌더링한다", () => {
-    render(<SummaryJsonCard summaryJson='{"key":null}' />);
-    expect(screen.getByText("null")).toBeInTheDocument();
+    render(<SummaryJsonCard summaryJson='{"generation":{"source":"pipeline"}}' />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    fireEvent.click(screen.getByRole("button", { name: "요약" }));
+    expect(screen.getByText("생성 출처")).toBeInTheDocument();
+    expect(screen.getByText("pipeline")).toBeInTheDocument();
   });
 });

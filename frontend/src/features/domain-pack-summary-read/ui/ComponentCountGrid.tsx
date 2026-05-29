@@ -7,7 +7,6 @@ import {
   useIntentPreview,
   useSlotPreview,
   usePolicyPreview,
-  useRiskPreview,
   useWorkflowPreview,
 } from "../model/usePreviewLists";
 import styles from "./ComponentCountGrid.module.css";
@@ -19,7 +18,6 @@ interface ComponentCountGridProps {
   intentCount: number;
   slotCount: number;
   policyCount: number;
-  riskCount: number;
   workflowCount: number;
   renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => ReactNode;
 }
@@ -31,7 +29,6 @@ export function ComponentCountGrid({
   intentCount,
   slotCount,
   policyCount,
-  riskCount,
   workflowCount,
   renderSlotEditSheet,
 }: ComponentCountGridProps) {
@@ -41,7 +38,6 @@ export function ComponentCountGrid({
   const intentPreview = useIntentPreview(wsId, packId, versionId);
   const slotPreview = useSlotPreview(wsId, packId, versionId);
   const policyPreview = usePolicyPreview(wsId, packId, versionId);
-  const riskPreview = useRiskPreview(wsId, packId, versionId);
   const workflowPreview = useWorkflowPreview(wsId, packId, versionId);
 
   useEffect(() => {
@@ -55,10 +51,6 @@ export function ComponentCountGrid({
   useEffect(() => {
     if (policyPreview.isError) toast.error("Policy 미리보기 로드 실패");
   }, [policyPreview.isError]);
-
-  useEffect(() => {
-    if (riskPreview.isError) toast.error("Risk 미리보기 로드 실패");
-  }, [riskPreview.isError]);
 
   useEffect(() => {
     if (workflowPreview.isError) toast.error("Workflow 미리보기 로드 실패");
@@ -93,14 +85,6 @@ export function ComponentCountGrid({
           onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
           previewNames={policyPreview.data?.map((p) => p.name) as string[]}
           isLoadingPreview={policyPreview.isLoading}
-        />
-        <CountCard
-          label="Risk"
-          count={riskCount}
-          disabled={false}
-          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "risks"))}
-          previewNames={riskPreview.data?.map((r) => r.name) as string[]}
-          isLoadingPreview={riskPreview.isLoading}
         />
         <CountCard
           label="Workflow"
