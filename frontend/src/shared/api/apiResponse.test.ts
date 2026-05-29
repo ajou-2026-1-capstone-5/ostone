@@ -26,4 +26,8 @@ describe("apiResponse selectors", () => {
   it("required payload가 없으면 에러를 던진다", () => {
     expect(() => requireApiData(undefined, "missing")).toThrow("missing");
   });
+
+  it("data envelope에 payload가 없으면 에러를 던진다", () => {
+    expect(() => requireApiData({ data: undefined }, "missing")).toThrow("missing");
+  });
 });

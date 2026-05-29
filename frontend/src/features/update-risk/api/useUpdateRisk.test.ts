@@ -74,6 +74,26 @@ describe("useUpdateRisk", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("위험요소가 수정되었습니다."));
   });
 
+  it("수정 응답 data가 없으면 성공 처리하지 않고 실패 메시지를 표시한다", async () => {
+    mockedUpdateRisk.mockResolvedValue({
+      data: undefined,
+      status: 200,
+      headers: new Headers(),
+    } as Awaited<ReturnType<typeof updateRisk>>);
+    const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.mutate({
+        ...params,
+        body: { name: "새 위험요소", riskLevel: "HIGH" },
+      });
+    });
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(RISK_ERROR_MESSAGES.UPDATE_FAILED));
+    expect(result.current.isError).toBe(true);
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it("RISK_NOT_EDITABLE 에러 시 전용 안내 메시지를 표시한다", async () => {
     mockedUpdateRisk.mockRejectedValue(new ApiRequestError(400, "RISK_NOT_EDITABLE", "수정 불가"));
     const { result } = renderHook(() => useUpdateRisk(), { wrapper: makeWrapper() });

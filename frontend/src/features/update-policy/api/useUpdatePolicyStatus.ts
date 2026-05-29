@@ -6,7 +6,7 @@ import type {
   PolicyDefinitionSummary,
   UpdatePolicyStatusRequest,
 } from "@/shared/api/generated/zod";
-import { ApiRequestError, policyQueryKeys, selectApiData } from "@/shared/api";
+import { ApiRequestError, policyQueryKeys, requireApiData } from "@/shared/api";
 import { POLICY_ERROR_MESSAGES } from "./messages";
 
 interface UpdatePolicyStatusParams {
@@ -32,7 +32,10 @@ export function useUpdatePolicyStatus() {
       status,
     }: UpdatePolicyStatusParams) => {
       const res = await updatePolicyStatus(workspaceId, packId, versionId, policyId, { status });
-      return selectApiData(res);
+      return requireApiData<PolicyDefinitionResponse>(
+        res,
+        "정책 상태 변경 응답을 확인할 수 없습니다.",
+      );
     },
     onMutate: async ({ workspaceId, packId, versionId, policyId, status }) => {
       const detailKey = policyQueryKeys.detail(workspaceId, packId, versionId, policyId);
@@ -73,7 +76,6 @@ export function useUpdatePolicyStatus() {
       toast.error(POLICY_ERROR_MESSAGES.STATUS_FAILED);
     },
     onSuccess: (updatedPolicy, { workspaceId, packId, versionId, policyId }) => {
-      if (!updatedPolicy) return;
       queryClient.setQueryData(
         policyQueryKeys.detail(workspaceId, packId, versionId, policyId),
         updatedPolicy,

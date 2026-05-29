@@ -1,8 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateRisk } from "@/shared/api/generated/endpoints/update-risk-controller/update-risk-controller";
-import type { RiskDefinitionSummary, UpdateRiskRequest } from "@/shared/api/generated/zod";
-import { ApiRequestError, riskQueryKeys, selectApiData } from "@/shared/api";
+import type {
+  RiskDefinitionResponse,
+  RiskDefinitionSummary,
+  UpdateRiskRequest,
+} from "@/shared/api/generated/zod";
+import { ApiRequestError, requireApiData, riskQueryKeys } from "@/shared/api";
 import { RISK_ERROR_MESSAGES } from "./messages";
 
 interface UpdateRiskParams {
@@ -19,10 +23,12 @@ export function useUpdateRisk() {
   return useMutation({
     mutationFn: async ({ workspaceId, packId, versionId, riskId, body }: UpdateRiskParams) => {
       const res = await updateRisk(workspaceId, packId, versionId, riskId, body);
-      return selectApiData(res);
+      return requireApiData<RiskDefinitionResponse>(
+        res,
+        "위험요소 수정 응답을 확인할 수 없습니다.",
+      );
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      if (!updatedRisk) return;
       queryClient.setQueryData(
         riskQueryKeys.detail(workspaceId, packId, versionId, riskId),
         updatedRisk,

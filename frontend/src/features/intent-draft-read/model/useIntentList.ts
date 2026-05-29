@@ -17,7 +17,7 @@ export function useIntentList(
     },
   });
 
-  const handledRefreshKeyRef = useRef(0);
+  const handledRefreshKeyRef = useRef(refreshKey ?? 0);
   const { refetch } = query;
 
   useEffect(() => {

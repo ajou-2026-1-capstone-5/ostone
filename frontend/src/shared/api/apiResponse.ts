@@ -9,6 +9,15 @@ export function selectApiList<T>(response: T[] | { data?: T[] } | undefined): T[
 }
 
 export function requireApiData<T>(response: T | { data?: T } | undefined, message: string): T {
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    (response as { data?: T }).data === undefined
+  ) {
+    throw new Error(message);
+  }
+
   const data = selectApiData<T>(response);
   if (data === undefined) {
     throw new Error(message);

@@ -38,6 +38,8 @@ describe("chatMessageSync", () => {
     };
 
     expect(isChatMessageResponse(response)).toBe(true);
+    expect(isChatMessageResponse({ id: 92, content: "부분 응답" })).toBe(true);
+    expect(isChatMessageResponse({})).toBe(false);
     expect(isChatMessageResponse({ ...response, seqNo: "4" })).toBe(false);
     expect(toChatMessage(response, 77)).toEqual({
       id: "91",
@@ -45,6 +47,24 @@ describe("chatMessageSync", () => {
       senderType: "AGENT",
       content: "상담사 답변입니다.",
       createdAt: "2026-05-22T00:00:03Z",
+    });
+  });
+
+  it("백엔드 메시지 id와 시간이 없으면 안정적인 fallback으로 변환한다", () => {
+    expect(toChatMessage({ seqNo: 4, content: "동일 메시지" }, 77)).toEqual({
+      id: "srv-77-seq-4",
+      sessionId: 77,
+      senderType: "BOT",
+      content: "동일 메시지",
+      createdAt: "1970-01-01T00:00:00.000Z",
+    });
+
+    expect(toChatMessage({ senderRole: "COUNSELOR", content: "상담사 답변" }, 77)).toEqual({
+      id: "srv-77-1970-01-01T00:00:00.000Z-COUNSELOR-상담사 답변",
+      sessionId: 77,
+      senderType: "AGENT",
+      content: "상담사 답변",
+      createdAt: "1970-01-01T00:00:00.000Z",
     });
   });
 
@@ -127,7 +147,7 @@ describe("chatMessageSync", () => {
     ]);
   });
 
-  it("저장 메시지는 optimistic 메시지만 유지한 뒤 백엔드 메시지와 병합한다", () => {
+  it("저장 메시지는 optimistic/greeting 메시지를 유지한 뒤 백엔드 메시지와 병합한다", () => {
     const currentMessages: ChatMessage[] = [
       {
         id: "local-user-1",
@@ -135,6 +155,13 @@ describe("chatMessageSync", () => {
         senderType: "USER",
         content: "전송 중",
         createdAt: "2026-05-22T00:00:01Z",
+      },
+      {
+        id: "backend-greeting-77",
+        sessionId: 77,
+        senderType: "BOT",
+        content: "안녕하세요",
+        createdAt: "2026-05-22T00:00:00Z",
       },
       {
         id: "old-1",
@@ -158,6 +185,7 @@ describe("chatMessageSync", () => {
     );
 
     expect(mergePersistedMessages(currentMessages, persistedMessages)).toEqual([
+      currentMessages[1],
       currentMessages[0],
       {
         ...persistedMessages[0],

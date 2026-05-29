@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useIntentList } from "./useIntentList";
 import { ApiRequestError } from "../../../shared/api";
@@ -63,6 +63,19 @@ describe("useIntentList", () => {
         query: expect.objectContaining({ queryKey: ["intents", "list", 1, 2, 3] }),
       }),
     );
+  });
+
+  it("초기 refreshKey는 중복 refetch하지 않고 이후 변경만 refetch한다", async () => {
+    const query = mockListQuery({ data: [stubIntent] });
+    const { rerender } = renderHook(({ refreshKey }) => useIntentList(1, 2, 3, refreshKey), {
+      initialProps: { refreshKey: 1 },
+    });
+
+    expect(query.refetch).not.toHaveBeenCalled();
+
+    rerender({ refreshKey: 2 });
+
+    await waitFor(() => expect(query.refetch).toHaveBeenCalledTimes(1));
   });
 
   it("빈 배열 응답도 ready 상태로 처리한다", async () => {

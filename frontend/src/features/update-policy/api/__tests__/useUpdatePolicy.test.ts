@@ -208,6 +208,37 @@ describe("useUpdatePolicyStatus", () => {
     expect(queryClient.getQueryData<PolicySummary[]>(listKey)?.[0]?.status).toBe("ACTIVE");
   });
 
+  it("상태 변경 응답 data가 없으면 rollback 후 실패 메시지를 표시한다", async () => {
+    mockedUpdatePolicyStatus.mockResolvedValue({
+      data: undefined,
+      status: 200,
+      headers: new Headers(),
+    } as Awaited<ReturnType<typeof updatePolicyStatus>>);
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    const listKey = policyKeys.list(params.workspaceId, params.packId, params.versionId);
+    const detailKey = policyKeys.detail(
+      params.workspaceId,
+      params.packId,
+      params.versionId,
+      params.policyId,
+    );
+    queryClient.setQueryData<PolicyDefinition>(detailKey, stubPolicy);
+    queryClient.setQueryData<PolicySummary[]>(listKey, [stubPolicy]);
+
+    const { result } = renderHook(() => useUpdatePolicyStatus(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ ...params, status: "INACTIVE" });
+    });
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(POLICY_ERROR_MESSAGES.STATUS_FAILED),
+    );
+    expect(result.current.isError).toBe(true);
+    expect(queryClient.getQueryData<PolicyDefinition>(detailKey)?.status).toBe("ACTIVE");
+    expect(queryClient.getQueryData<PolicySummary[]>(listKey)?.[0]?.status).toBe("ACTIVE");
+  });
+
   it("POLICY_NOT_EDITABLE 오류 시 전용 메시지를 표시한다", async () => {
     mockedUpdatePolicyStatus.mockRejectedValue(
       new ApiRequestError(400, "POLICY_NOT_EDITABLE", "수정 불가"),
