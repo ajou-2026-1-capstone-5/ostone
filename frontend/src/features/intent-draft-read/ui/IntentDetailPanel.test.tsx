@@ -246,6 +246,71 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText((content) => content.includes("sampleSegmentTexts"))).toBeInTheDocument();
   });
 
+  it("sampleIntentPhrases fallback과 배열형 evidence를 대표 문장으로 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          sampleIntentPhrases: ["사용자: 배송 위치를 확인하고 싶어요"],
+        }),
+      }),
+    );
+
+    const { rerender } = render(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={emptyIntentListState}
+      />,
+    );
+
+    expect(screen.getByText("상담자")).toBeInTheDocument();
+    expect(screen.getByText("배송 위치를 확인하고 싶어요")).toBeInTheDocument();
+
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify([{ role: "agent", text: "운송장 번호를 확인해 주세요" }]),
+      }),
+    );
+
+    rerender(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={emptyIntentListState}
+      />,
+    );
+
+    expect(screen.getByText("상담사")).toBeInTheDocument();
+    expect(screen.getByText("운송장 번호를 확인해 주세요")).toBeInTheDocument();
+  });
+
+  it("JSON 탭에서 JSON 타입별 메타 정보를 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        sourceClusterRef: JSON.stringify(10),
+        entryConditionJson: JSON.stringify("ready"),
+        evidenceJson: "",
+        metaJson: JSON.stringify(["a", "b"]),
+      }),
+    );
+
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: "JSON" }));
+
+    expect(screen.getByText("VALUE")).toBeInTheDocument();
+    expect(screen.getByText("STRING")).toBeInTheDocument();
+    expect(screen.getByText("EMPTY")).toBeInTheDocument();
+    expect(screen.getByText("2 ITEMS")).toBeInTheDocument();
+  });
+
   it("cluster/evidence JSON을 해석할 수 없으면 요약 화면에서 빈 상태를 표시한다", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({

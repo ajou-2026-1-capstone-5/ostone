@@ -319,6 +319,15 @@ interface EvidenceLine {
   text: string;
 }
 
+const CUSTOMER_TURN_LABELS = new Set(["customer", "client", "user", "고객", "사용자"]);
+const AGENT_TURN_LABELS = new Set([
+  "agent",
+  "assistant",
+  "counselor",
+  "consultant",
+  "상담사",
+]);
+
 function buildClusterScope(raw: string): ClusterScopeView {
   const parsed = parseJson(raw);
   if (!isRecord(parsed)) return { items: [], keywords: [] };
@@ -414,18 +423,26 @@ function evidenceItemToLine(item: unknown, index: number): EvidenceLine | null {
 }
 
 function splitTurnPrefix(value: string): EvidenceLine | null {
-  const match = value.match(/^(\p{L}[\p{L}\p{N}_-]{1,24})\s*:\s*(.+)$/u);
-  if (!match) return null;
-  return { turn: normalizeTurnLabel(match[1]) ?? match[1], text: match[2].trim() };
+  const separatorIndex = value.indexOf(":");
+  if (separatorIndex <= 0) return null;
+
+  const prefix = value.slice(0, separatorIndex).trim();
+  const text = value.slice(separatorIndex + 1).trim();
+  if (!text || !isSupportedTurnPrefix(prefix)) return null;
+
+  return { turn: normalizeTurnLabel(prefix) ?? prefix, text };
+}
+
+function isSupportedTurnPrefix(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return CUSTOMER_TURN_LABELS.has(normalized) || AGENT_TURN_LABELS.has(normalized);
 }
 
 function normalizeTurnLabel(value: string | null): string | null {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
-  if (["customer", "client", "user", "고객", "사용자"].includes(normalized)) return "상담자";
-  if (["agent", "assistant", "counselor", "consultant", "상담사"].includes(normalized)) {
-    return "상담사";
-  }
+  if (CUSTOMER_TURN_LABELS.has(normalized)) return "상담자";
+  if (AGENT_TURN_LABELS.has(normalized)) return "상담사";
   return value.trim();
 }
 
