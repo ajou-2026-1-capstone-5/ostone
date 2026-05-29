@@ -290,6 +290,22 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("운송장 번호를 확인해 주세요")).toBeInTheDocument();
   });
 
+  it("지원하지 않는 prefix가 있는 문장은 speaker로 분리하지 않는다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          sampleSegmentTexts: ["order_id: 12345 확인 요청"],
+        }),
+      }),
+    );
+
+    renderPanel();
+
+    expect(screen.getByText("참고 1")).toBeInTheDocument();
+    expect(screen.getByText("order_id: 12345 확인 요청")).toBeInTheDocument();
+  });
+
   it("JSON 탭에서 JSON 타입별 메타 정보를 표시한다", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({
