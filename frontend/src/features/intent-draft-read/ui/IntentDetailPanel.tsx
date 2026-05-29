@@ -1,4 +1,12 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  BracesIcon,
+  FileTextIcon,
+  GitBranchIcon,
+  HashIcon,
+  LayersIcon,
+  MessageSquareIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useIntentDetail } from "../model/useIntentDetail";
 import type { IntentDetail, IntentListState } from "../../../entities/intent";
@@ -106,18 +114,7 @@ export function IntentDetailPanel({
         </div>
         {beforeJsonCards?.(state.data)}
         <section className={styles.resourceSection} aria-labelledby="intent-resource-section-title">
-          <div className={styles.resourceSectionHeader}>
-            <h2 id="intent-resource-section-title" className={styles.resourceSectionTitle}>
-              내부 리소스
-            </h2>
-            <span className={styles.resourceSectionMeta}>JSON FIELDS</span>
-          </div>
-          <div className={styles.resourceGrid}>
-            <JsonCard label="Source Cluster Ref" value={state.data.sourceClusterRef ?? ""} />
-            <JsonCard label="Entry Condition" value={state.data.entryConditionJson ?? ""} />
-            <JsonCard label="Evidence" value={state.data.evidenceJson ?? ""} />
-            <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
-          </div>
+          <IntentResourceSection detail={state.data} />
         </section>
       </div>
       {children?.(state.data)}
@@ -162,6 +159,129 @@ function InfoCard({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function IntentResourceSection({ detail }: { detail: IntentDetail }) {
+  const [mode, setMode] = useState<"summary" | "json">("summary");
+
+  return (
+    <>
+      <div className={styles.resourceSectionHeader}>
+        <h2 id="intent-resource-section-title" className={styles.resourceSectionTitle}>
+          내부 리소스
+        </h2>
+        <div className={styles.resourceToggleGroup} role="group" aria-label="내부 리소스 보기">
+          <button
+            type="button"
+            aria-pressed={mode === "summary"}
+            className={`${styles.resourceToggleButton} ${mode === "summary" ? styles.resourceToggleButtonActive : ""}`}
+            onClick={() => setMode("summary")}
+          >
+            요약
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "json"}
+            className={`${styles.resourceToggleButton} ${mode === "json" ? styles.resourceToggleButtonActive : ""}`}
+            onClick={() => setMode("json")}
+          >
+            JSON
+          </button>
+        </div>
+      </div>
+
+      {mode === "summary" ? (
+        <div className={styles.resourceSummary}>
+          <ClusterScope sourceClusterRef={detail.sourceClusterRef ?? ""} />
+          <EvidenceReference evidenceJson={detail.evidenceJson ?? ""} />
+        </div>
+      ) : (
+        <div className={styles.resourceGrid}>
+          <JsonCard label="Source Cluster Ref" value={detail.sourceClusterRef ?? ""} />
+          <JsonCard label="Entry Condition" value={detail.entryConditionJson ?? ""} />
+          <JsonCard label="Evidence" value={detail.evidenceJson ?? ""} />
+          <JsonCard label="Meta" value={detail.metaJson ?? ""} />
+        </div>
+      )}
+    </>
+  );
+}
+
+function ClusterScope({ sourceClusterRef }: { sourceClusterRef: string }) {
+  const scope = useMemo(() => buildClusterScope(sourceClusterRef), [sourceClusterRef]);
+  const hasContent = scope.items.length > 0 || scope.keywords.length > 0;
+
+  return (
+    <section className={styles.summaryBlock} aria-labelledby="intent-cluster-scope-title">
+      <div className={styles.summaryBlockHeader}>
+        <span className={styles.summaryBlockIcon} aria-hidden="true">
+          <LayersIcon size={16} />
+        </span>
+        <h3 id="intent-cluster-scope-title" className={styles.summaryBlockTitle}>
+          관련 키워드
+        </h3>
+      </div>
+      {hasContent ? (
+        <div className={styles.scopePanel}>
+          {scope.items.length > 0 && (
+            <ul className={styles.scopeList}>
+              {scope.items.map((item, index) => (
+                <li key={`${item.label}-${item.value}-${index}`} className={styles.scopeItem}>
+                  <span className={styles.scopeIcon} aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <span className={styles.scopeItemText}>
+                    <span className={styles.scopeLabel}>{item.label}</span>
+                    <span className={styles.scopeValue}>{item.value}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {scope.keywords.length > 0 && (
+            <div className={styles.keywordGroup} aria-label="keywords">
+              {scope.keywords.map((keyword, index) => (
+                <span key={`${keyword}-${index}`} className={styles.keywordChip}>
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <span className={styles.summaryEmpty}>관련 키워드 정보가 없습니다.</span>
+      )}
+    </section>
+  );
+}
+
+function EvidenceReference({ evidenceJson }: { evidenceJson: string }) {
+  const lines = useMemo(() => buildEvidenceLines(evidenceJson), [evidenceJson]);
+
+  return (
+    <section className={styles.summaryBlock} aria-labelledby="intent-evidence-title">
+      <div className={styles.summaryBlockHeader}>
+        <span className={styles.summaryBlockIcon} aria-hidden="true">
+          <MessageSquareIcon size={16} />
+        </span>
+        <h3 id="intent-evidence-title" className={styles.summaryBlockTitle}>
+          대표 문장
+        </h3>
+      </div>
+      {lines.length > 0 ? (
+        <ul className={styles.evidenceList}>
+          {lines.map((line, index) => (
+            <li key={`${line.turn}-${line.text}-${index}`} className={styles.evidenceItem}>
+              <span className={styles.evidenceTurn}>{line.turn}</span>
+              <span className={styles.evidenceText}>{line.text}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className={styles.summaryEmpty}>대표 문장이 없습니다.</span>
+      )}
+    </section>
+  );
+}
+
 function JsonCard({ label, value }: { label: string; value: string }) {
   const formatted = formatJsonForDisplay(value);
   const meta = describeJson(value);
@@ -179,6 +299,186 @@ function JsonCard({ label, value }: { label: string; value: string }) {
       </div>
     </section>
   );
+}
+
+type JsonRecord = Record<string, unknown>;
+
+interface ClusterScopeItem {
+  label: string;
+  value: string;
+  icon: ReactNode;
+}
+
+interface ClusterScopeView {
+  items: ClusterScopeItem[];
+  keywords: string[];
+}
+
+interface EvidenceLine {
+  turn: string;
+  text: string;
+}
+
+const CUSTOMER_TURN_LABELS = new Set(["customer", "client", "user", "고객", "사용자"]);
+const AGENT_TURN_LABELS = new Set([
+  "agent",
+  "assistant",
+  "counselor",
+  "consultant",
+  "상담사",
+]);
+
+function buildClusterScope(raw: string): ClusterScopeView {
+  const parsed = parseJson(raw);
+  if (!isRecord(parsed)) return { items: [], keywords: [] };
+
+  const items: ClusterScopeItem[] = [];
+  const clusterId = readPrimitive(parsed.clusterId);
+  const clusterSize = readPrimitive(parsed.clusterSize);
+  const canonicalIntent = readString(parsed.canonicalIntent);
+  const keywords = readStringArray(parsed.keywords).slice(0, 8);
+  const segmentIds = Array.isArray(parsed.segmentIds) ? parsed.segmentIds : [];
+  const source = readString(parsed.source);
+
+  if (clusterId) {
+    items.push({
+      label: "Cluster",
+      value: `#${clusterId}`,
+      icon: <HashIcon size={16} />,
+    });
+  }
+  if (clusterSize) {
+    items.push({
+      label: "Cases",
+      value: `${clusterSize}건`,
+      icon: <FileTextIcon size={16} />,
+    });
+  }
+  if (canonicalIntent) {
+    items.push({
+      label: "Intent",
+      value: canonicalIntent,
+      icon: <LayersIcon size={16} />,
+    });
+  }
+  if (segmentIds.length > 0) {
+    items.push({
+      label: "Segments",
+      value: `${segmentIds.length}개`,
+      icon: <GitBranchIcon size={16} />,
+    });
+  }
+  if (source) {
+    items.push({
+      label: "Source",
+      value: source,
+      icon: <BracesIcon size={16} />,
+    });
+  }
+
+  return { items, keywords };
+}
+
+function buildEvidenceLines(raw: string): EvidenceLine[] {
+  const parsed = parseJson(raw);
+  const sourceItems = resolveEvidenceSourceItems(parsed);
+
+  return sourceItems
+    .map((item, index) => evidenceItemToLine(item, index))
+    .filter((line): line is EvidenceLine => line !== null)
+    .slice(0, 5);
+}
+
+function resolveEvidenceSourceItems(parsed: unknown): unknown[] {
+  if (isRecord(parsed)) {
+    const segmentTexts = Array.isArray(parsed.sampleSegmentTexts) ? parsed.sampleSegmentTexts : [];
+    if (segmentTexts.length > 0) return segmentTexts;
+
+    const intentPhrases = Array.isArray(parsed.sampleIntentPhrases) ? parsed.sampleIntentPhrases : [];
+    if (intentPhrases.length > 0) return intentPhrases;
+  }
+
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function evidenceItemToLine(item: unknown, index: number): EvidenceLine | null {
+  if (typeof item === "string") {
+    const text = item.trim();
+    if (!text) return null;
+    const prefixed = splitTurnPrefix(text);
+    if (prefixed) return prefixed;
+    return { turn: `참고 ${index + 1}`, text };
+  }
+
+  if (!isRecord(item)) return null;
+  const text =
+    readString(item.text) ??
+    readString(item.message) ??
+    readString(item.canonicalText) ??
+    readString(item.customerProblemText);
+  if (!text) return null;
+
+  const turn = readString(item.turn) ?? readString(item.role) ?? readString(item.speaker);
+  return { turn: normalizeTurnLabel(turn) ?? `참고 ${index + 1}`, text };
+}
+
+function splitTurnPrefix(value: string): EvidenceLine | null {
+  const separatorIndex = value.indexOf(":");
+  if (separatorIndex <= 0) return null;
+
+  const prefix = value.slice(0, separatorIndex).trim();
+  const text = value.slice(separatorIndex + 1).trim();
+  if (!text || !isSupportedTurnPrefix(prefix)) return null;
+
+  return { turn: normalizeTurnLabel(prefix) ?? prefix, text };
+}
+
+function isSupportedTurnPrefix(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return CUSTOMER_TURN_LABELS.has(normalized) || AGENT_TURN_LABELS.has(normalized);
+}
+
+function normalizeTurnLabel(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (CUSTOMER_TURN_LABELS.has(normalized)) return "상담자";
+  if (AGENT_TURN_LABELS.has(normalized)) return "상담사";
+  return value.trim();
+}
+
+function parseJson(raw: string): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function readPrimitive(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value.toLocaleString("ko-KR");
+  return null;
+}
+
+function readString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => readString(item))
+    .filter((item): item is string => item !== null);
 }
 
 function formatJsonForDisplay(raw: string): string {
