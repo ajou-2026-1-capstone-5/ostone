@@ -1,5 +1,4 @@
 import { customFetch } from "@/shared/api/mutator";
-import { ApiRequestError } from "@/shared/api";
 
 export interface LlmToolWorkflowPayload {
   sessionId: number | null;
@@ -27,6 +26,8 @@ export function isMatchedWorkflow(
 }
 
 export async function getCurrentWorkflow(sessionId: number): Promise<MatchedWorkflow | null> {
+  // 매칭 워크플로우 바는 보조 정보 패널이다. 서버 오류(5xx)·네트워크 실패·미매칭(404/400)
+  // 어느 경우든 "표시할 워크플로우 없음"으로 degrade하여 null을 반환하고, 패널만 조용히 숨긴다.
   try {
     const payload = await customFetch<LlmToolWorkflowPayload>(
       `/api/v1/consultation/sessions/${sessionId}/matched-workflow`,
@@ -34,9 +35,7 @@ export async function getCurrentWorkflow(sessionId: number): Promise<MatchedWork
     );
     return isMatchedWorkflow(payload) ? payload : null;
   } catch (error) {
-    if (error instanceof ApiRequestError && (error.status === 404 || error.status === 400)) {
-      return null;
-    }
-    throw error;
+    console.warn("matched-workflow 조회 실패 — 바를 숨깁니다.", error);
+    return null;
   }
 }
