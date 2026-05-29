@@ -1211,5 +1211,36 @@ class LlmToolServiceTest {
           .satisfies(
               ex -> assertThat(((InternalException) ex).getCode()).isEqualTo("JSON_PARSE_FAILED"));
     }
+
+    @Test
+    @DisplayName("execution에 묶인 workflow가 없어도 버전의 첫 workflow로 fallback하고 status를 PENDING으로 채운다")
+    void fallsBackToFirstWorkflowWhenNoneBound() {
+      // given
+      ChatSession session = createSession(1L, 10L, 101L);
+      WorkflowDefinition fallback = createWorkflow(88L, 101L, "refund_fallback", "start");
+      ReflectionTestUtils.setField(fallback, "name", "기본 워크플로우");
+
+      given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+      given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+          .willReturn(Optional.empty());
+      given(workflowDefinitionRepository.findAllByDomainPackVersionId(101L))
+          .willReturn(List.of(fallback));
+      DomainPackVersion packVersion = mock(DomainPackVersion.class);
+      given(packVersion.getDomainPackId()).willReturn(42L);
+      given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(packVersion));
+
+      // when
+      LlmToolWorkflowResponse result =
+          service.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L));
+
+      // then
+      assertThat(result.executionId()).isNull();
+      assertThat(result.executionStatus()).isEqualTo("PENDING");
+      assertThat(result.workflowDefinitionId()).isEqualTo(88L);
+      assertThat(result.workflowCode()).isEqualTo("refund_fallback");
+      assertThat(result.workflowName()).isEqualTo("기본 워크플로우");
+      assertThat(result.graphJson()).isNotNull();
+      assertThat(result.graphJson().isNull()).isFalse();
+    }
   }
 }
