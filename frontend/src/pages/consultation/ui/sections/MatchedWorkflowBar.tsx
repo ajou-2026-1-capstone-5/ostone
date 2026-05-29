@@ -89,6 +89,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
         disabled={!canNavigate}
         data-testid="matched-workflow-bar-open"
       >
+        <span className={styles.label}>workflow</span>
         <span className={styles.title} data-testid="matched-workflow-bar-title">
           {title}
         </span>
@@ -107,10 +108,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
                 )}
               </div>
               {workflow.workflowDescription && (
-                <p
-                  className={styles.description}
-                  data-testid="matched-workflow-bar-description"
-                >
+                <p className={styles.description} data-testid="matched-workflow-bar-description">
                   {workflow.workflowDescription}
                 </p>
               )}
