@@ -256,16 +256,21 @@ export const ConsultationPage: React.FC = () => {
     pendingIdsRef.current.clear();
   }, []);
 
-  const loadMatchedWorkflow = useCallback(async (sessionId: number) => {
-    try {
-      const workflow = await getCurrentWorkflow(sessionId);
-      return workflow;
-    } catch (error) {
-      console.error("Failed to load matched workflow:", error);
-      toast.error("워크플로우 정보를 불러오지 못했습니다.");
-      return null;
-    }
-  }, []);
+  const loadMatchedWorkflow = useCallback(
+    async (sessionId: number, options: { silent?: boolean } = {}) => {
+      try {
+        const workflow = await getCurrentWorkflow(sessionId);
+        return workflow;
+      } catch (error) {
+        console.error("Failed to load matched workflow:", error);
+        if (!options.silent) {
+          toast.error("워크플로우 정보를 불러오지 못했습니다.");
+        }
+        return null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     activeCustomerIdRef.current = activeCustomerId;
@@ -506,7 +511,7 @@ export const ConsultationPage: React.FC = () => {
         }
         workflowRefetchTimerRef.current = setTimeout(() => {
           workflowRefetchTimerRef.current = null;
-          void loadMatchedWorkflow(sessionIdForFetch).then((workflow) => {
+          void loadMatchedWorkflow(sessionIdForFetch, { silent: true }).then((workflow) => {
             if (activeCustomerIdRef.current === String(sessionIdForFetch)) {
               setMatchedWorkflow(workflow);
             }

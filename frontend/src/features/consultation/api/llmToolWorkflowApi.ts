@@ -29,7 +29,7 @@ export function isMatchedWorkflow(
 export async function getCurrentWorkflow(sessionId: number): Promise<MatchedWorkflow | null> {
   try {
     const payload = await customFetch<LlmToolWorkflowPayload>(
-      `/api/v1/llm-tools/sessions/${sessionId}/workflow`,
+      `/api/v1/consultation/sessions/${sessionId}/matched-workflow`,
       { method: "GET" },
     );
     return isMatchedWorkflow(payload) ? payload : null;

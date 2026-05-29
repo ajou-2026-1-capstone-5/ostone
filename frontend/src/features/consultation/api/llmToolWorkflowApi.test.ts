@@ -32,9 +32,12 @@ describe("llmToolWorkflowApi", () => {
 
       const result = await getCurrentWorkflow(7);
 
-      expect(mockedFetch).toHaveBeenCalledWith("/api/v1/llm-tools/sessions/7/workflow", {
-        method: "GET",
-      });
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "/api/v1/consultation/sessions/7/matched-workflow",
+        {
+          method: "GET",
+        },
+      );
       expect(result).not.toBeNull();
       expect(result?.domainPackId).toBe(5);
       expect(result?.workflowDefinitionId).toBe(88);
