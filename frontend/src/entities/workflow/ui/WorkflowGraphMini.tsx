@@ -53,5 +53,15 @@ export function WorkflowGraphMini({
   }
 
   const graphJson = (query.data as { graphJson?: unknown }).graphJson;
+  if (graphJson == null) {
+    return (
+      <span
+        data-testid={`workflow-graph-mini-error-${workflowId}`}
+        style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--danger)" }}
+      >
+        graph unavailable
+      </span>
+    );
+  }
   return <WorkflowGraphMiniSvg workflowId={workflowId} graphJson={graphJson} />;
 }

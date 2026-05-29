@@ -82,6 +82,7 @@ class LlmToolControllerTest {
         .perform(get("/api/v1/llm-tools/sessions/1/workflow"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.domainPackId").value(42))
         .andExpect(jsonPath("$.executionId").value(50))
         .andExpect(jsonPath("$.workflowCode").value("refund_v1"))
         .andExpect(jsonPath("$.currentState").value("collect_slots"))
@@ -116,6 +117,7 @@ class LlmToolControllerTest {
         .perform(get("/api/v1/llm-tools/sessions/1/workflow"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.domainPackId").value(42))
         .andExpect(jsonPath("$.executionId").doesNotExist())
         .andExpect(jsonPath("$.workflowCode").doesNotExist());
   }

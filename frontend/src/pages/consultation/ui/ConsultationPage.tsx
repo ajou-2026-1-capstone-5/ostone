@@ -262,6 +262,7 @@ export const ConsultationPage: React.FC = () => {
       return workflow;
     } catch (error) {
       console.error("Failed to load matched workflow:", error);
+      toast.error("워크플로우 정보를 불러오지 못했습니다.");
       return null;
     }
   }, []);
@@ -544,6 +545,10 @@ export const ConsultationPage: React.FC = () => {
 
     return () => {
       unsubscribe();
+      if (workflowRefetchTimerRef.current) {
+        clearTimeout(workflowRefetchTimerRef.current);
+        workflowRefetchTimerRef.current = null;
+      }
     };
   }, [connectionStatus, activeCustomerId, subscribe, loadMatchedWorkflow]);
 

@@ -19,6 +19,7 @@ describe("llmToolWorkflowApi", () => {
       mockedFetch.mockResolvedValueOnce({
         sessionId: 7,
         workspaceId: 3,
+        domainPackId: 5,
         domainPackVersionId: 12,
         executionId: 41,
         executionStatus: "RUNNING",
@@ -35,6 +36,7 @@ describe("llmToolWorkflowApi", () => {
         method: "GET",
       });
       expect(result).not.toBeNull();
+      expect(result?.domainPackId).toBe(5);
       expect(result?.workflowDefinitionId).toBe(88);
       expect(result?.executionStatus).toBe("RUNNING");
     });
@@ -91,6 +93,7 @@ describe("llmToolWorkflowApi", () => {
         isMatchedWorkflow({
           sessionId: 1,
           workspaceId: 1,
+          domainPackId: null,
           domainPackVersionId: null,
           executionId: null,
           executionStatus: null,
@@ -108,6 +111,7 @@ describe("llmToolWorkflowApi", () => {
         isMatchedWorkflow({
           sessionId: 1,
           workspaceId: 1,
+          domainPackId: 1,
           domainPackVersionId: 1,
           executionId: 1,
           executionStatus: "RUNNING",
