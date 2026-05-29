@@ -79,10 +79,20 @@ describe("llmToolWorkflowApi", () => {
       expect(result).toBeNull();
     });
 
-    it("rethrows non-404/400 errors", async () => {
+    it("returns null on 5xx ApiRequestError (bar degrades silently)", async () => {
       mockedFetch.mockRejectedValueOnce(new ApiRequestError(500, "INTERNAL", "boom"));
 
-      await expect(getCurrentWorkflow(7)).rejects.toThrow("boom");
+      const result = await getCurrentWorkflow(7);
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null on network/non-ApiRequestError failures", async () => {
+      mockedFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      const result = await getCurrentWorkflow(7);
+
+      expect(result).toBeNull();
     });
   });
 
