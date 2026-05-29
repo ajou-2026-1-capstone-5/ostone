@@ -14,7 +14,6 @@ vi.mock("../model/usePreviewLists", () => ({
   useIntentPreview: vi.fn(),
   useSlotPreview: vi.fn(),
   usePolicyPreview: vi.fn(),
-  useRiskPreview: vi.fn(),
   useWorkflowPreview: vi.fn(),
 }));
 
@@ -34,7 +33,6 @@ const defaultProps = {
   intentCount: 2,
   slotCount: 3,
   policyCount: 1,
-  riskCount: 0,
   workflowCount: 4,
 };
 
@@ -49,7 +47,6 @@ describe("ComponentCountGrid", () => {
     vi.mocked(previewLists.useIntentPreview).mockReturnValue(makeHook());
     vi.mocked(previewLists.useSlotPreview).mockReturnValue(makeHook());
     vi.mocked(previewLists.usePolicyPreview).mockReturnValue(makeHook());
-    vi.mocked(previewLists.useRiskPreview).mockReturnValue(makeHook());
     vi.mocked(previewLists.useWorkflowPreview).mockReturnValue(makeHook());
   });
 
@@ -61,16 +58,13 @@ describe("ComponentCountGrid", () => {
     expect(screen.getByText("4")).toBeInTheDocument();
   });
 
-  it("Intent, Policy, Risk 카드 클릭 시 상세 목록으로 이동한다", () => {
+  it("Intent, Policy 카드 클릭 시 상세 목록으로 이동한다", () => {
     render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
     fireEvent.click(screen.getByRole("button", { name: /Intent/ }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/intents?versionId=3");
 
     fireEvent.click(screen.getByRole("button", { name: /Policy/ }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/policies?versionId=3");
-
-    fireEvent.click(screen.getByRole("button", { name: /Risk/ }));
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/risks?versionId=3");
   });
 
   it("Slot 카드 클릭 시 SlotEditSheet를 연다", () => {

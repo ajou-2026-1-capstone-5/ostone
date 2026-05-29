@@ -303,10 +303,7 @@ export function SummaryDetailPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      <div>
-        <div className={styles.sectionTitle}>Summary JSON</div>
-        <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
-      </div>
+      <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
 
       <div>
         <div className={styles.sectionTitle}>구성요소</div>
@@ -318,7 +315,6 @@ export function SummaryDetailPanel({
             intentCount={v.intentCount ?? 0}
             slotCount={v.slotCount ?? 0}
             policyCount={v.policyCount ?? 0}
-            riskCount={v.riskCount ?? 0}
             workflowCount={v.workflowCount ?? 0}
             renderSlotEditSheet={renderSlotEditSheet}
           />

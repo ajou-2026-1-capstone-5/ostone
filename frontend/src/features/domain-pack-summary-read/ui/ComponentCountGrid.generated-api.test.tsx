@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   toastError: vi.fn(),
   useListIntents: vi.fn(),
   useListPolicies: vi.fn(),
-  useListRisks: vi.fn(),
   useListSlots: vi.fn(),
   useListWorkflows: vi.fn(),
 }));
@@ -38,13 +37,6 @@ vi.mock(
   "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller",
   () => ({
     useListPolicies: mocks.useListPolicies,
-  }),
-);
-
-vi.mock(
-  "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller",
-  () => ({
-    useListRisks: mocks.useListRisks,
   }),
 );
 
@@ -86,7 +78,6 @@ function renderGrid() {
       intentCount={6}
       slotCount={1}
       policyCount={1}
-      riskCount={1}
       workflowCount={1}
       renderSlotEditSheet={(slotId, isOpen) =>
         isOpen ? <div role="dialog">slot edit {slotId}</div> : null
@@ -115,9 +106,6 @@ describe("ComponentCountGrid generated API integration", () => {
     mocks.useListPolicies.mockImplementation((...args: unknown[]) =>
       makeGeneratedPreview({ data: [{ id: 21, name: "환불 정책" }] }, getOptions(args, 3)),
     );
-    mocks.useListRisks.mockImplementation((...args: unknown[]) =>
-      makeGeneratedPreview({ data: [{ id: 31, name: "사기 위험" }] }, getOptions(args, 3)),
-    );
     mocks.useListWorkflows.mockImplementation((...args: unknown[]) =>
       makeGeneratedPreview({ data: [{ id: 41, name: "환불 처리" }] }, getOptions(args, 4)),
     );
@@ -131,7 +119,6 @@ describe("ComponentCountGrid generated API integration", () => {
     expect(screen.queryByText("intent-6")).not.toBeInTheDocument();
     expect(screen.getByText("배송 주소")).toBeInTheDocument();
     expect(screen.getByText("환불 정책")).toBeInTheDocument();
-    expect(screen.getByText("사기 위험")).toBeInTheDocument();
     expect(screen.getByText("환불 처리")).toBeInTheDocument();
   });
 
