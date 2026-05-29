@@ -17,7 +17,12 @@ import type {
   ConsultationQueueEvent,
 } from "../../../features/consultation/api/consultationApi";
 import { CustomerPanel } from "./sections/CustomerPanel";
+import { MatchedWorkflowBar, MatchedWorkflowBarSkeleton } from "./sections/MatchedWorkflowBar";
 import { MessageDetailPanel } from "../../../features/consultation/ui/MessageDetailPanel";
+import {
+  getCurrentWorkflow,
+  type MatchedWorkflow,
+} from "../../../features/consultation/api/llmToolWorkflowApi";
 import styles from "./consultation-page.module.css";
 
 const formatTime = (isoString: string) => {
@@ -205,6 +210,9 @@ export const ConsultationPage: React.FC = () => {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
+  const [matchedWorkflow, setMatchedWorkflow] = useState<MatchedWorkflow | null>(null);
+  const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
+  const workflowRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { connectionStatus, subscribe, sendTo } = useStomp();
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const tempCounterRef = useRef(0);
@@ -243,8 +251,26 @@ export const ConsultationPage: React.FC = () => {
     setSelectedMessageId(null);
     setMessages([]);
     setMessagesCustomerId(null);
+    setMatchedWorkflow(null);
+    setIsMatchedWorkflowLoading(false);
     pendingIdsRef.current.clear();
   }, []);
+
+  const loadMatchedWorkflow = useCallback(
+    async (sessionId: number, options: { silent?: boolean } = {}) => {
+      try {
+        const workflow = await getCurrentWorkflow(sessionId);
+        return workflow;
+      } catch (error) {
+        console.error("Failed to load matched workflow:", error);
+        if (!options.silent) {
+          toast.error("워크플로우 정보를 불러오지 못했습니다.");
+        }
+        return null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     activeCustomerIdRef.current = activeCustomerId;
@@ -406,6 +432,36 @@ export const ConsultationPage: React.FC = () => {
 
   useEffect(() => {
     if (!activeCustomerId) {
+      setMatchedWorkflow(null);
+      setIsMatchedWorkflowLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setMatchedWorkflow(null);
+    setIsMatchedWorkflowLoading(true);
+    void loadMatchedWorkflow(Number(activeCustomerId)).then((workflow) => {
+      if (cancelled) return;
+      setMatchedWorkflow(workflow);
+      setIsMatchedWorkflowLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCustomerId, loadMatchedWorkflow]);
+
+  useEffect(() => {
+    return () => {
+      if (workflowRefetchTimerRef.current) {
+        clearTimeout(workflowRefetchTimerRef.current);
+        workflowRefetchTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeCustomerId) {
       pendingIdsRef.current.clear();
       setMessages([]);
       setMessagesCustomerId(null);
@@ -445,9 +501,23 @@ export const ConsultationPage: React.FC = () => {
     if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
 
     const topic = `/topic/chat.${activeCustomerId}`;
+    const sessionIdForFetch = Number(activeCustomerId);
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
       const normalizedRole = normalizeChatSenderRole(msg.senderRole);
+      if (normalizedRole === "ASSISTANT" || normalizedRole === "SYSTEM") {
+        if (workflowRefetchTimerRef.current) {
+          clearTimeout(workflowRefetchTimerRef.current);
+        }
+        workflowRefetchTimerRef.current = setTimeout(() => {
+          workflowRefetchTimerRef.current = null;
+          void loadMatchedWorkflow(sessionIdForFetch, { silent: true }).then((workflow) => {
+            if (activeCustomerIdRef.current === String(sessionIdForFetch)) {
+              setMatchedWorkflow(workflow);
+            }
+          });
+        }, 300);
+      }
       if (
         normalizedRole === "COUNSELOR" ||
         normalizedRole === "AGENT" ||
@@ -480,8 +550,12 @@ export const ConsultationPage: React.FC = () => {
 
     return () => {
       unsubscribe();
+      if (workflowRefetchTimerRef.current) {
+        clearTimeout(workflowRefetchTimerRef.current);
+        workflowRefetchTimerRef.current = null;
+      }
     };
-  }, [connectionStatus, activeCustomerId, subscribe]);
+  }, [connectionStatus, activeCustomerId, subscribe, loadMatchedWorkflow]);
 
   const handleSelectCustomer = useCallback(
     async (id: string) => {
@@ -658,31 +732,42 @@ export const ConsultationPage: React.FC = () => {
       </div>
 
       <div className={styles.detailPane}>
-        {selectedMessage ? (
-          // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
-          <MessageDetailPanel
-            message={selectedMessage}
-            onClose={() => setSelectedMessageId(null)}
-          />
-        ) : (
-          <CustomerPanel
-            customer={
-              activeCustomer
-                ? {
-                    name: activeCustomerName,
-                    channel: activeCustomer.channel,
-                  }
-                : null
-            }
-            memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
-            onMemoChange={(val) => {
-              if (activeCustomerId) {
-                setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
-              }
-            }}
-            onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
-          />
+        {activeCustomerId && (isMatchedWorkflowLoading || matchedWorkflow) && (
+          <div className={styles.detailPaneTop}>
+            {matchedWorkflow ? (
+              <MatchedWorkflowBar workflow={matchedWorkflow} />
+            ) : (
+              <MatchedWorkflowBarSkeleton />
+            )}
+          </div>
         )}
+        <div className={styles.detailPaneBody}>
+          {selectedMessage ? (
+            // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
+            <MessageDetailPanel
+              message={selectedMessage}
+              onClose={() => setSelectedMessageId(null)}
+            />
+          ) : (
+            <CustomerPanel
+              customer={
+                activeCustomer
+                  ? {
+                      name: activeCustomerName,
+                      channel: activeCustomer.channel,
+                    }
+                  : null
+              }
+              memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
+              onMemoChange={(val) => {
+                if (activeCustomerId) {
+                  setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+                }
+              }}
+              onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

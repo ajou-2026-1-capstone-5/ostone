@@ -1,8 +1,11 @@
 package com.init.workflowruntime.presentation;
 
 import com.init.workflowruntime.application.ConsultationService;
+import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import jakarta.validation.Valid;
@@ -22,14 +25,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConsultationController {
 
   private final ConsultationService consultationService;
+  private final LlmToolService llmToolService;
 
   /**
    * ConsultationController 생성자입니다.
    *
    * @param consultationService 상담 비즈니스 로직 서비스
+   * @param llmToolService 매칭된 워크플로우 조회를 위한 LLM tool 서비스
    */
-  public ConsultationController(ConsultationService consultationService) {
+  public ConsultationController(
+      ConsultationService consultationService, LlmToolService llmToolService) {
     this.consultationService = consultationService;
+    this.llmToolService = llmToolService;
   }
 
   /**
@@ -68,5 +75,19 @@ public class ConsultationController {
       @PathVariable Long sessionId, @Valid @RequestBody UpdateStatusRequest request) {
     return ResponseEntity.ok(
         consultationService.updateSessionStatus(sessionId, request.getStatus()));
+  }
+
+  /**
+   * 상담 세션에 현재 매칭된 워크플로우 메타데이터와 그래프를 조회합니다.
+   *
+   * <p>운영자 화면 우측 패널의 매칭 워크플로우 바를 그리기 위한 thin endpoint입니다.
+   *
+   * @param sessionId 매칭 워크플로우를 조회할 세션 ID
+   * @return 워크플로우 정의/실행 상태를 담은 응답
+   */
+  @GetMapping("/sessions/{sessionId}/matched-workflow")
+  public ResponseEntity<LlmToolWorkflowResponse> getMatchedWorkflow(@PathVariable Long sessionId) {
+    return ResponseEntity.ok(
+        llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(sessionId)));
   }
 }

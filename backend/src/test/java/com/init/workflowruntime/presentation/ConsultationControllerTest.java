@@ -15,8 +15,11 @@ import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.ConsultationService;
+import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import java.time.OffsetDateTime;
@@ -49,6 +52,10 @@ class ConsultationControllerTest {
   @SuppressWarnings("removal")
   @MockBean
   private ConsultationService consultationService;
+
+  @SuppressWarnings("removal")
+  @MockBean
+  private LlmToolService llmToolService;
 
   @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
@@ -149,6 +156,76 @@ class ConsultationControllerTest {
     // when & then
     mockMvc
         .perform(get("/api/v1/consultation/sessions/999/messages"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/consultation/sessions/{id}/matched-workflow - 매칭 워크플로우 정보 반환")
+  void should_매칭워크플로우반환_when_정상조회() throws Exception {
+    // given
+    LlmToolWorkflowResponse response =
+        new LlmToolWorkflowResponse(
+            1L,
+            10L,
+            42L,
+            101L,
+            50L,
+            "RUNNING",
+            "collect_slots",
+            77L,
+            "refund_v1",
+            "환불 처리 워크플로우",
+            "환불 요청 처리",
+            objectMapper.readTree("{\"nodes\":[]}"),
+            "collect_slots",
+            objectMapper.readTree("[\"refund_granted\"]"));
+
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(response);
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/1/matched-workflow"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.domainPackId").value(42))
+        .andExpect(jsonPath("$.executionId").value(50))
+        .andExpect(jsonPath("$.workflowCode").value("refund_v1"))
+        .andExpect(jsonPath("$.currentState").value("collect_slots"))
+        .andExpect(jsonPath("$.graphJson.nodes").isArray());
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/v1/consultation/sessions/{id}/matched-workflow - execution 없으면 200 + null 필드")
+  void should_매칭워크플로우_null응답_when_execution없음() throws Exception {
+    // given
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(
+            new LlmToolWorkflowResponse(
+                1L, 10L, 42L, 101L, null, null, null, null, null, null, null, null, null, null));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/1/matched-workflow"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.domainPackId").value(42))
+        .andExpect(jsonPath("$.executionId").doesNotExist())
+        .andExpect(jsonPath("$.workflowCode").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/consultation/sessions/{id}/matched-workflow - 세션 없음 → 404")
+  void should_404반환_when_매칭워크플로우_세션없음() throws Exception {
+    // given
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(999L)))
+        .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
+
+    // when & then
+    mockMvc
+        .perform(get("/api/v1/consultation/sessions/999/matched-workflow"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
   }

@@ -109,9 +109,23 @@
   display: flex;
   flex: 0 0 320px;
   min-width: 300px;
+  flex-direction: column;
   overflow: hidden;
   border-left: 1px solid var(--line-2);
   background: var(--paper);
+}
+
+.detailPaneTop {
+  flex-shrink: 0;
+  padding: 12px 12px 0 12px;
+  background: var(--paper);
+}
+
+.detailPaneBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
 }
 
 @media (max-width: 1180px) {

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,10 +13,12 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.IntentSlotBinding;
 import com.init.domainpack.domain.model.SlotDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.IntentSlotBindingRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
@@ -73,6 +76,7 @@ class LlmToolServiceTest {
   @Mock private SlotDefinitionRepository slotDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   @Mock private DecisionLogRepository decisionLogRepository;
   @Mock private WorkflowExecutionStepRepository workflowExecutionStepRepository;
@@ -91,6 +95,7 @@ class LlmToolServiceTest {
             slotDefinitionRepository,
             intentSlotBindingRepository,
             workflowDefinitionRepository,
+            domainPackVersionRepository,
             workflowPolicyRuntimeService,
             decisionLogRepository,
             workflowExecutionStepRepository,
@@ -1027,6 +1032,9 @@ class LlmToolServiceTest {
           .willReturn(Optional.of(execution));
       given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(77L, 101L))
           .willReturn(Optional.of(definition));
+      DomainPackVersion packVersion = mock(DomainPackVersion.class);
+      given(packVersion.getDomainPackId()).willReturn(42L);
+      given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(packVersion));
 
       // when
       LlmToolWorkflowResponse result =
@@ -1035,6 +1043,7 @@ class LlmToolServiceTest {
       // then
       assertThat(result.sessionId()).isEqualTo(1L);
       assertThat(result.workspaceId()).isEqualTo(10L);
+      assertThat(result.domainPackId()).isEqualTo(42L);
       assertThat(result.domainPackVersionId()).isEqualTo(101L);
       assertThat(result.executionId()).isEqualTo(50L);
       assertThat(result.executionStatus()).isEqualTo("RUNNING");

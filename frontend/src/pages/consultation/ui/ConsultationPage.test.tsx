@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import "@testing-library/jest-dom/vitest";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
+import { getCurrentWorkflow } from "../../../features/consultation/api/llmToolWorkflowApi";
 import { toast } from "sonner";
 
 vi.mock("sonner", () => ({
@@ -127,6 +128,12 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
       }),
     ),
   },
+}));
+
+vi.mock("../../../features/consultation/api/llmToolWorkflowApi", () => ({
+  getCurrentWorkflow: vi.fn(() => Promise.resolve(null)),
+  isMatchedWorkflow: (payload: unknown) =>
+    !!payload && (payload as { workflowDefinitionId?: number | null }).workflowDefinitionId != null,
 }));
 
 vi.mock("@/shared/lib/websocket", () => ({
@@ -274,6 +281,151 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("대기 고객")).toBeInTheDocument();
     expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
+  });
+
+  describe("MatchedWorkflowBar integration", () => {
+    const matchedPayload = {
+      sessionId: 1,
+      workspaceId: 2,
+      domainPackId: 42,
+      domainPackVersionId: 12,
+      executionId: 41,
+      executionStatus: "RUNNING",
+      currentState: "COLLECT_INFO",
+      workflowDefinitionId: 88,
+      workflowCode: "REFUND_FLOW",
+      workflowName: "환불 워크플로우",
+      workflowDescription: "환불 흐름",
+      graphJson: { nodes: [{ id: "n1", type: "START", label: "start" }], edges: [] },
+    };
+
+    it("does not render the bar or skeleton when no session is active", async () => {
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
+      expect(getCurrentWorkflow).not.toHaveBeenCalled();
+    });
+
+    it("shows skeleton immediately after selecting a session and replaces it once workflow is matched", async () => {
+      let resolveFetch: ((value: typeof matchedPayload) => void) | null = null;
+      vi.mocked(getCurrentWorkflow).mockImplementationOnce(
+        () =>
+          new Promise<typeof matchedPayload>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      );
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("matched-workflow-bar-skeleton")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveFetch?.(matchedPayload);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("matched-workflow-bar")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
+      expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent(
+        "환불 워크플로우",
+      );
+      // collapsed by default — meta only appears after toggle
+      expect(screen.queryByTestId("matched-workflow-bar-meta")).not.toBeInTheDocument();
+    });
+
+    it("hides both skeleton and bar when the workflow lookup returns null", async () => {
+      vi.mocked(getCurrentWorkflow).mockResolvedValueOnce(null);
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(getCurrentWorkflow).toHaveBeenCalledWith(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
+    });
+
+    it("hides the bar when the workflow lookup throws", async () => {
+      vi.mocked(getCurrentWorkflow).mockRejectedValueOnce(new Error("boom"));
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(getCurrentWorkflow).toHaveBeenCalledWith(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
+    });
+
+    it("refetches the workflow after an assistant message arrives via STOMP", async () => {
+      vi.mocked(getCurrentWorkflow)
+        .mockResolvedValueOnce(matchedPayload)
+        .mockResolvedValueOnce({ ...matchedPayload, currentState: "REVIEW" });
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(getCurrentWorkflow).toHaveBeenCalledTimes(1);
+      });
+
+      const chatTopicCallback = stompState.callbacks.get("/topic/chat.1");
+      expect(chatTopicCallback).toBeDefined();
+
+      await act(async () => {
+        chatTopicCallback?.({
+          id: "assistant-1",
+          senderRole: "ASSISTANT",
+          content: "도움이 필요하신 내용을 알려주세요",
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      await waitFor(
+        () => {
+          expect(getCurrentWorkflow).toHaveBeenCalledTimes(2);
+        },
+        { timeout: 1500 },
+      );
+    });
   });
 
   it("does not load or subscribe to queue without a workspace id", async () => {

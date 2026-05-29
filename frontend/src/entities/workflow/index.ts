@@ -34,3 +34,4 @@ export type {
 } from "./api/useListWorkflowsByIntent";
 export { GraphRenderer } from "./ui";
 export { WorkflowGraphMini } from "./ui/WorkflowGraphMini";
+export { WorkflowGraphMiniSvg } from "./ui/WorkflowGraphMiniSvg";
