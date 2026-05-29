@@ -369,7 +369,7 @@ describe("ConsultationPage", () => {
       expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
     });
 
-    it("hides the bar when the workflow lookup throws", async () => {
+    it("hides the bar without showing an error toast when the workflow lookup fails", async () => {
       vi.mocked(getCurrentWorkflow).mockRejectedValueOnce(new Error("boom"));
 
       render(<ConsultationPage />, { wrapper: Wrapper });
@@ -388,6 +388,8 @@ describe("ConsultationPage", () => {
         expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
       });
       expect(screen.queryByTestId("matched-workflow-bar")).not.toBeInTheDocument();
+      // 매칭 바는 보조 패널이므로 조회 실패가 운영자에게 토스트로 노출되지 않아야 한다.
+      expect(toast.error).not.toHaveBeenCalledWith("워크플로우 정보를 불러오지 못했습니다.");
     });
 
     it("refetches the workflow after an assistant message arrives via STOMP", async () => {

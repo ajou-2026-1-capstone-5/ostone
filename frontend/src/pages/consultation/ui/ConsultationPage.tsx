@@ -256,21 +256,16 @@ export const ConsultationPage: React.FC = () => {
     pendingIdsRef.current.clear();
   }, []);
 
-  const loadMatchedWorkflow = useCallback(
-    async (sessionId: number, options: { silent?: boolean } = {}) => {
-      try {
-        const workflow = await getCurrentWorkflow(sessionId);
-        return workflow;
-      } catch (error) {
-        console.error("Failed to load matched workflow:", error);
-        if (!options.silent) {
-          toast.error("워크플로우 정보를 불러오지 못했습니다.");
-        }
-        return null;
-      }
-    },
-    [],
-  );
+  const loadMatchedWorkflow = useCallback(async (sessionId: number) => {
+    // 매칭 워크플로우 바는 보조 패널이므로 실패 시 토스트 없이 바만 숨긴다.
+    // getCurrentWorkflow는 오류를 흡수해 null을 반환하지만, 방어적으로 catch도 유지한다.
+    try {
+      return await getCurrentWorkflow(sessionId);
+    } catch (error) {
+      console.error("Failed to load matched workflow:", error);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     activeCustomerIdRef.current = activeCustomerId;
@@ -511,7 +506,7 @@ export const ConsultationPage: React.FC = () => {
         }
         workflowRefetchTimerRef.current = setTimeout(() => {
           workflowRefetchTimerRef.current = null;
-          void loadMatchedWorkflow(sessionIdForFetch, { silent: true }).then((workflow) => {
+          void loadMatchedWorkflow(sessionIdForFetch).then((workflow) => {
             if (activeCustomerIdRef.current === String(sessionIdForFetch)) {
               setMatchedWorkflow(workflow);
             }
