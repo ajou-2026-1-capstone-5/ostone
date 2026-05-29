@@ -181,7 +181,8 @@ class ConsultationControllerTest {
             "collect_slots",
             objectMapper.readTree("[\"refund_granted\"]"));
 
-    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L))).willReturn(response);
+    given(llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(1L)))
+        .willReturn(response);
 
     // when & then
     mockMvc
