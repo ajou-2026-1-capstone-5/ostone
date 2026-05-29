@@ -217,7 +217,7 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("대표 문장")).toBeInTheDocument();
     expect(screen.getByText("참고 1")).toBeInTheDocument();
     expect(screen.getByText("최근 이용내역을 확인하고 싶어요")).toBeInTheDocument();
-    expect(screen.getByText("상담자")).toBeInTheDocument();
+    expect(screen.getAllByText("상담자")).toHaveLength(2);
     expect(screen.getByText("해외 결제 내역이 보여요")).toBeInTheDocument();
     expect(screen.getByText("환불 가능한가요")).toBeInTheDocument();
     expect(screen.getByText("상담사")).toBeInTheDocument();
