@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { useGetRisk } from "@/shared/api/generated/endpoints/risk-definition-controller/risk-definition-controller";
+import { requireApiData, riskQueryKeys } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { RiskDefinitionResponse } from "@/shared/api/generated/zod";
 
@@ -17,19 +17,14 @@ export function useRiskDetail(
   riskId: number | null,
   retryKey = 0,
 ): RiskDetailState {
-  const query = useQuery({
-    queryKey: ["risk", "detail", workspaceId, packId, versionId, riskId],
-    queryFn: async () => {
-      if (riskId === null) {
-        throw new Error("riskId is required");
-      }
-      const res = (await getRisk(workspaceId, packId, versionId, riskId)) as
-        | { data?: RiskDefinitionResponse }
-        | RiskDefinitionResponse;
-      const candidate = (res as { data?: RiskDefinitionResponse }).data;
-      return candidate ?? (res as RiskDefinitionResponse);
+  const safeRiskId = riskId ?? -1;
+  const query = useGetRisk<RiskDefinitionResponse>(workspaceId, packId, versionId, safeRiskId, {
+    query: {
+      enabled: riskId !== null,
+      queryKey: riskQueryKeys.detail(workspaceId, packId, versionId, safeRiskId),
+      select: (response) =>
+        requireApiData<RiskDefinitionResponse>(response, "Risk 상세 응답을 확인할 수 없습니다."),
     },
-    enabled: riskId !== null,
   });
 
   const { refetch } = query;

@@ -1,6 +1,6 @@
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import { type UseQueryResult } from "@tanstack/react-query";
+import { useGetWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
+import { requireApiData, workflowQueryKeys } from "@/shared/api";
 import type { WorkflowDefinitionDetail } from "@/shared/api/generated/zod";
 
 export interface UseGetWorkflowDefinitionParams {
@@ -17,13 +17,16 @@ export function useGetWorkflowDefinition({
   versionId,
   workflowId,
   enabled,
-}: UseGetWorkflowDefinitionParams): UseQueryResult<WorkflowDefinitionDetail> {
-  return useQuery<WorkflowDefinitionDetail>({
-    queryKey: ["workflows", "detail", workspaceId, packId, versionId, workflowId] as const,
-    queryFn: async () => {
-      const res = await getWorkflow(workspaceId, packId, versionId, workflowId);
-      return (unwrapApiResponse(res) ?? res) as WorkflowDefinitionDetail;
+}: UseGetWorkflowDefinitionParams): UseQueryResult<WorkflowDefinitionDetail, unknown> {
+  return useGetWorkflow<WorkflowDefinitionDetail>(workspaceId, packId, versionId, workflowId, {
+    query: {
+      queryKey: workflowQueryKeys.detail(workspaceId, packId, versionId, workflowId),
+      select: (response) =>
+        requireApiData<WorkflowDefinitionDetail>(
+          response,
+          "Workflow 상세 응답을 확인할 수 없습니다.",
+        ),
+      enabled,
     },
-    enabled,
   });
 }

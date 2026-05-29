@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { listSlots } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
+import { useListSlots } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
+import { selectApiList, slotQueryKeys } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { SlotDefinitionSummary } from "@/shared/api/generated/zod";
 
@@ -15,15 +15,10 @@ export function useSlotList(
   versionId: number,
   retryKey = 0,
 ): SlotListState {
-  const query = useQuery({
-    queryKey: ["slots", "list", wsId, packId, versionId],
-    queryFn: async () => {
-      const res = (await listSlots(wsId, packId, versionId)) as
-        | { data?: SlotDefinitionSummary[] }
-        | SlotDefinitionSummary[];
-      if (Array.isArray(res)) return res;
-      if (Array.isArray(res?.data)) return res.data;
-      throw new Error("Unexpected slot list response shape");
+  const query = useListSlots<SlotDefinitionSummary[]>(wsId, packId, versionId, {
+    query: {
+      queryKey: slotQueryKeys.list(wsId, packId, versionId),
+      select: selectApiList<SlotDefinitionSummary>,
     },
   });
 

@@ -6,7 +6,7 @@ import type {
   PolicyDefinitionSummary,
   UpdatePolicyStatusRequest,
 } from "@/shared/api/generated/zod";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, policyQueryKeys, requireApiData } from "@/shared/api";
 import { POLICY_ERROR_MESSAGES } from "./messages";
 
 interface UpdatePolicyStatusParams {
@@ -32,11 +32,14 @@ export function useUpdatePolicyStatus() {
       status,
     }: UpdatePolicyStatusParams) => {
       const res = await updatePolicyStatus(workspaceId, packId, versionId, policyId, { status });
-      return res.data;
+      return requireApiData<PolicyDefinitionResponse>(
+        res,
+        "정책 상태 변경 응답을 확인할 수 없습니다.",
+      );
     },
     onMutate: async ({ workspaceId, packId, versionId, policyId, status }) => {
-      const detailKey = ["policies", "detail", workspaceId, packId, versionId, policyId] as const;
-      const listKey = ["policies", "list", workspaceId, packId, versionId] as const;
+      const detailKey = policyQueryKeys.detail(workspaceId, packId, versionId, policyId);
+      const listKey = policyQueryKeys.list(workspaceId, packId, versionId);
 
       await queryClient.cancelQueries({ queryKey: detailKey });
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -74,11 +77,11 @@ export function useUpdatePolicyStatus() {
     },
     onSuccess: (updatedPolicy, { workspaceId, packId, versionId, policyId }) => {
       queryClient.setQueryData(
-        ["policies", "detail", workspaceId, packId, versionId, policyId] as const,
+        policyQueryKeys.detail(workspaceId, packId, versionId, policyId),
         updatedPolicy,
       );
       queryClient.setQueryData<PolicyDefinitionSummary[]>(
-        ["policies", "list", workspaceId, packId, versionId] as const,
+        policyQueryKeys.list(workspaceId, packId, versionId),
         (old) =>
           old?.map((item) =>
             item.id === policyId

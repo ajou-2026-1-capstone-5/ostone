@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getSlot } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
+import { useGetSlot } from "@/shared/api/generated/endpoints/slot-definition-controller/slot-definition-controller";
+import { requireApiData, slotQueryKeys } from "@/shared/api";
 import { mapApiError } from "./mapApiError";
 import type { SlotDefinitionResponse } from "@/shared/api/generated/zod";
 
@@ -17,19 +17,14 @@ export function useSlotDetail(
   slotId: number | null,
   retryKey = 0,
 ): SlotDetailState {
-  const query = useQuery({
-    queryKey: ["slots", "detail", wsId, packId, versionId, slotId],
-    queryFn: async () => {
-      if (slotId === null) {
-        throw new Error("slotId is required");
-      }
-      const res = (await getSlot(wsId, packId, versionId, slotId)) as
-        | { data?: SlotDefinitionResponse }
-        | SlotDefinitionResponse;
-      const candidate = (res as { data?: SlotDefinitionResponse }).data;
-      return candidate ?? (res as SlotDefinitionResponse);
+  const safeSlotId = slotId ?? -1;
+  const query = useGetSlot<SlotDefinitionResponse>(wsId, packId, versionId, safeSlotId, {
+    query: {
+      enabled: slotId !== null,
+      queryKey: slotQueryKeys.detail(wsId, packId, versionId, safeSlotId),
+      select: (response) =>
+        requireApiData<SlotDefinitionResponse>(response, "Slot 상세 응답을 확인할 수 없습니다."),
     },
-    enabled: slotId !== null,
   });
 
   const { refetch } = query;

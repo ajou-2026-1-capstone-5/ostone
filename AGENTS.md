@@ -352,6 +352,10 @@ app → pages → widgets → features → entities → shared
 - 프론트엔드에서 **디자인/UI/스타일링 작업을 시작하기 전에 반드시 `frontend/DESIGN.md`를 먼저 읽고 준수한다**
 - `frontend/DESIGN.md`의 타이포그래피, 색상, radius, focus outline, 반응형 규칙을 임의 해석으로 대체하지 않는다
 - 디자인 가이드와 구현 사이에 충돌이 있으면 기존 UI 관성보다 `frontend/DESIGN.md`를 우선 기준으로 삼는다
+- Backend HTTP API 호출은 `frontend/src/shared/api/generated/`의 Orval generated endpoint function/hook을 기본값으로 사용한다
+- `apiClient` 또는 `customFetch` 직접 호출은 generated에 없는 endpoint에만 허용하며, 해당 파일에 OpenAPI 미생성 endpoint임을 명시한다
+- feature/entity API wrapper는 unwrap/select, query key 표준화, toast/error mapping, optimistic update, response normalization 목적일 때만 둔다
+- generated 파일은 직접 수정하지 않고 backend OpenAPI 갱신 후 `cd frontend && pnpm api:gen`으로 재생성한다
 - 컴포넌트당 단일 책임
 - loading/error/empty 3종 세트 처리 필수
 - API 에러는 toast.error() 사용

@@ -66,6 +66,10 @@ Orval `afterAllFilesWrite` hook이 `pnpm api:gen` 실행 시 자동 갱신하는
 - 생성된 타입과 zod 스키마: `features/*/api/`, `entities/*/api/`에서 자유롭게 import
 - 생성된 hook: `features/*/api/`에서 래핑한 뒤 wrapper를 컴포넌트에서 소비
 - 직접 import는 단순 read-only 케이스에만
+- HTTP 호출 기본값은 generated endpoint function/hook이며, `apiClient`/`customFetch` 직접 호출은 generated에 없는 endpoint에만 허용
+- wrapper는 unwrap/select, query key 표준화, toast/error mapping, optimistic update, response normalization 목적일 때만 유지
+- 수동 endpoint 호출을 남길 때는 해당 파일에 OpenAPI 미생성 endpoint임을 주석으로 남김
+- generated 파일은 직접 수정하지 않고 backend OpenAPI 갱신 후 `pnpm api:gen`으로 재생성
 
 **예시**:
 

@@ -3,12 +3,12 @@ import type { ChatMessage } from "../model/types";
 const DEMO_SESSION_ID_PATTERN = /^\d+$/;
 
 export interface ChatMessageResponse {
-  id: number;
-  seqNo: number;
-  senderRole: string;
-  messageType: string;
-  content: string;
-  createdAt: string;
+  id?: number;
+  seqNo?: number;
+  senderRole?: string;
+  messageType?: string;
+  content?: string;
+  createdAt?: string;
 }
 
 export interface RealtimeChatMessage {
@@ -44,13 +44,22 @@ export function isChatMessageResponse(message: unknown): message is ChatMessageR
   if (!message || typeof message !== "object") return false;
 
   const candidate = message as Partial<ChatMessageResponse>;
+  const hasKnownField =
+    candidate.id !== undefined ||
+    candidate.seqNo !== undefined ||
+    candidate.senderRole !== undefined ||
+    candidate.messageType !== undefined ||
+    candidate.content !== undefined ||
+    candidate.createdAt !== undefined;
+
   return (
-    typeof candidate.id === "number" &&
-    typeof candidate.seqNo === "number" &&
-    typeof candidate.senderRole === "string" &&
-    typeof candidate.messageType === "string" &&
-    typeof candidate.content === "string" &&
-    typeof candidate.createdAt === "string"
+    hasKnownField &&
+    (candidate.id === undefined || typeof candidate.id === "number") &&
+    (candidate.seqNo === undefined || typeof candidate.seqNo === "number") &&
+    (candidate.senderRole === undefined || typeof candidate.senderRole === "string") &&
+    (candidate.messageType === undefined || typeof candidate.messageType === "string") &&
+    (candidate.content === undefined || typeof candidate.content === "string") &&
+    (candidate.createdAt === undefined || typeof candidate.createdAt === "string")
   );
 }
 
@@ -74,12 +83,18 @@ export function toSenderType(senderRole: string): ChatMessage["senderType"] {
 }
 
 export function toChatMessage(message: ChatMessageResponse, sessionId: number): ChatMessage {
+  const stableCreatedAt = message.createdAt ?? "1970-01-01T00:00:00.000Z";
+  const stableFallbackId =
+    message.seqNo != null
+      ? `srv-${sessionId}-seq-${message.seqNo}`
+      : `srv-${sessionId}-${stableCreatedAt}-${message.senderRole ?? "BOT"}-${message.content ?? ""}`;
+
   return {
-    id: String(message.id),
+    id: String(message.id ?? stableFallbackId),
     sessionId,
-    content: message.content,
-    senderType: toSenderType(message.senderRole),
-    createdAt: message.createdAt,
+    content: message.content ?? "",
+    senderType: toSenderType(message.senderRole ?? "BOT"),
+    createdAt: stableCreatedAt,
   };
 }
 
@@ -124,6 +139,8 @@ export function mergePersistedMessages(
   currentMessages: ChatMessage[],
   persistedMessages: ChatMessage[],
 ): ChatMessage[] {
-  const optimisticMessages = currentMessages.filter((message) => message.id.startsWith("local-"));
-  return mergeMessages(optimisticMessages, persistedMessages);
+  const locallyOwnedMessages = currentMessages.filter(
+    (message) => message.id.startsWith("local-") || message.id.startsWith("backend-greeting-"),
+  );
+  return mergeMessages(locallyOwnedMessages, persistedMessages);
 }

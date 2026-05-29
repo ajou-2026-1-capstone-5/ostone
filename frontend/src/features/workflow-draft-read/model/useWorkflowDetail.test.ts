@@ -1,26 +1,17 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useWorkflowDetail } from "./useWorkflowDetail";
 import { ApiRequestError } from "../../../shared/api";
+import { useGetWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
-vi.mock("../api/workflowApi", () => ({
-  workflowApi: {
-    list: vi.fn(),
-    detail: vi.fn(),
-  },
-}));
+vi.mock(
+  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
+  () => ({
+    useGetWorkflow: vi.fn(),
+  }),
+);
 
-vi.mock("@/entities/workflow", () => ({
-  workflowQueryKeys: {
-    detail: (...args: number[]) => ["workflows", "detail", ...args],
-  },
-}));
-
-import { workflowApi } from "../api/workflowApi";
-
-const mockedDetail = vi.mocked(workflowApi.detail);
+const mockedUseGetWorkflow = vi.mocked(useGetWorkflow);
 
 const stubDetail = {
   id: 10,
@@ -36,52 +27,82 @@ const stubDetail = {
   updatedAt: "",
 };
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+function mockDetailQuery(overrides: Partial<ReturnType<typeof useGetWorkflow>> = {}) {
+  const result = {
+    fetchStatus: "idle",
+    isLoading: false,
+    isSuccess: true,
+    isError: false,
+    error: null,
+    data: stubDetail,
+    refetch: vi.fn().mockResolvedValue({}),
+    ...overrides,
+  };
+  mockedUseGetWorkflow.mockReturnValue(result as unknown as ReturnType<typeof useGetWorkflow>);
+  return result;
 }
 
 describe("useWorkflowDetail", () => {
   beforeEach(() => {
-    mockedDetail.mockReset();
+    mockedUseGetWorkflow.mockReset();
   });
 
   it("workflowId가 null이면 idle 상태다", () => {
-    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, null), {
-      wrapper: makeWrapper(),
-    });
+    mockDetailQuery({ data: undefined, isSuccess: false });
+    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, null));
+
     expect(result.current.fetchStatus).toBe("idle");
     expect(result.current.data).toBeUndefined();
-    expect(mockedDetail).not.toHaveBeenCalled();
+    expect(mockedUseGetWorkflow).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      -1,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: false,
+          queryKey: ["workflows", "detail", 1, 2, 3, -1],
+        }),
+      }),
+    );
   });
 
   it("workflowId가 주어지면 loading 상태로 시작한다", () => {
-    mockedDetail.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10), {
-      wrapper: makeWrapper(),
-    });
+    mockDetailQuery({ isLoading: true, isSuccess: false, data: undefined });
+    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10));
     expect(result.current.isLoading).toBe(true);
   });
 
   it("성공 시 ready 상태로 전이된다", async () => {
-    mockedDetail.mockResolvedValue(stubDetail as any);
-    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10), {
-      wrapper: makeWrapper(),
-    });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    mockDetailQuery({ data: stubDetail });
+    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 10));
+
+    expect(result.current.isSuccess).toBe(true);
     expect(result.current.data).toEqual(stubDetail);
+    expect(mockedUseGetWorkflow).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      10,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: true,
+          queryKey: ["workflows", "detail", 1, 2, 3, 10],
+        }),
+      }),
+    );
   });
 
   it("404 에러 시 httpStatus 404를 포함한 error 상태가 된다", async () => {
-    mockedDetail.mockRejectedValue(new ApiRequestError(404, "NOT_FOUND", "없음"));
-    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 99), {
-      wrapper: makeWrapper(),
+    mockDetailQuery({
+      isSuccess: false,
+      isError: true,
+      error: new ApiRequestError(404, "NOT_FOUND", "없음"),
+      data: undefined,
     });
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 99));
+
+    expect(result.current.isError).toBe(true);
     expect(result.current.error).toBeInstanceOf(ApiRequestError);
     if (result.current.error instanceof ApiRequestError) {
       expect(result.current.error.status).toBe(404);
@@ -90,11 +111,15 @@ describe("useWorkflowDetail", () => {
   });
 
   it("알 수 없는 오류 시 UNKNOWN_ERROR 코드가 된다", async () => {
-    mockedDetail.mockRejectedValue(new Error("unexpected"));
-    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 5), {
-      wrapper: makeWrapper(),
+    mockDetailQuery({
+      isSuccess: false,
+      isError: true,
+      error: new Error("unexpected"),
+      data: undefined,
     });
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    const { result } = renderHook(() => useWorkflowDetail(1, 2, 3, 5));
+
+    expect(result.current.isError).toBe(true);
     expect(result.current.error).not.toBeInstanceOf(ApiRequestError);
   });
 });

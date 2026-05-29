@@ -1,19 +1,16 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useGetWorkflow } from "./useGetWorkflow";
+import { useGetWorkflow as useGeneratedGetWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 
 vi.mock(
   "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
   () => ({
-    getWorkflow: vi.fn(),
+    useGetWorkflow: vi.fn(),
   }),
 );
 
-import { getWorkflow } from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
-
-const mockedGetWorkflow = vi.mocked(getWorkflow);
+const mockedUseGeneratedGetWorkflow = vi.mocked(useGeneratedGetWorkflow);
 
 const stubDetail = {
   id: 1,
@@ -29,44 +26,73 @@ const stubDetail = {
   updatedAt: "",
 };
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-}
-
 describe("useGetWorkflow", () => {
-  beforeEach(() => mockedGetWorkflow.mockReset());
+  beforeEach(() => mockedUseGeneratedGetWorkflow.mockReset());
 
   it("enabled=false이면 fetch 호출 없이 idle 상태다", () => {
-    const { result } = renderHook(() => useGetWorkflow(1, 2, 3, 10, false), {
-      wrapper: makeWrapper(),
-    });
+    mockedUseGeneratedGetWorkflow.mockReturnValue({
+      fetchStatus: "idle",
+      data: undefined,
+    } as unknown as ReturnType<typeof useGeneratedGetWorkflow>);
+    const { result } = renderHook(() => useGetWorkflow(1, 2, 3, 10, false));
+
     expect(result.current.fetchStatus).toBe("idle");
-    expect(mockedGetWorkflow).not.toHaveBeenCalled();
+    expect(mockedUseGeneratedGetWorkflow).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      10,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: false,
+          queryKey: ["workflows", "detail", 1, 2, 3, 10],
+        }),
+      }),
+    );
   });
 
-  it("enabled=true이면 올바른 인수로 queryFn이 호출된다", async () => {
-    mockedGetWorkflow.mockResolvedValue({ data: stubDetail, status: 200, headers: new Headers() });
-    renderHook(() => useGetWorkflow(1, 2, 3, 10, true), { wrapper: makeWrapper() });
-    await waitFor(() => expect(mockedGetWorkflow).toHaveBeenCalledWith(1, 2, 3, 10));
+  it("enabled=true이면 generated hook에 올바른 인수와 query 옵션을 넘긴다", async () => {
+    mockedUseGeneratedGetWorkflow.mockReturnValue({
+      data: stubDetail,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useGeneratedGetWorkflow>);
+    renderHook(() => useGetWorkflow(1, 2, 3, 10, true));
+
+    expect(mockedUseGeneratedGetWorkflow).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      10,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: true,
+          queryKey: ["workflows", "detail", 1, 2, 3, 10],
+        }),
+      }),
+    );
   });
 
   it("성공 시 data를 반환한다", async () => {
-    mockedGetWorkflow.mockResolvedValue({ data: stubDetail, status: 200, headers: new Headers() });
-    const { result } = renderHook(() => useGetWorkflow(1, 2, 3, 10, true), {
-      wrapper: makeWrapper(),
-    });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    mockedUseGeneratedGetWorkflow.mockReturnValue({
+      data: stubDetail,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useGeneratedGetWorkflow>);
+    const { result } = renderHook(() => useGetWorkflow(1, 2, 3, 10, true));
+
+    expect(result.current.isSuccess).toBe(true);
     expect(result.current.data).toEqual(stubDetail);
   });
 
   it("enabled=false이면 enabled=true보다 fetch 호출 횟수가 적다", async () => {
-    mockedGetWorkflow.mockResolvedValue({ data: stubDetail, status: 200, headers: new Headers() });
-    renderHook(() => useGetWorkflow(1, 2, 3, 10, false), { wrapper: makeWrapper() });
-    renderHook(() => useGetWorkflow(1, 2, 3, 10, true), { wrapper: makeWrapper() });
-    await waitFor(() => expect(mockedGetWorkflow).toHaveBeenCalledTimes(1));
+    mockedUseGeneratedGetWorkflow.mockReturnValue({
+      data: stubDetail,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useGeneratedGetWorkflow>);
+    renderHook(() => useGetWorkflow(1, 2, 3, 10, false));
+    renderHook(() => useGetWorkflow(1, 2, 3, 10, true));
+
+    expect(mockedUseGeneratedGetWorkflow).toHaveBeenCalledTimes(2);
+    expect(mockedUseGeneratedGetWorkflow.mock.calls[0]?.[4]?.query?.enabled).toBe(false);
+    expect(mockedUseGeneratedGetWorkflow.mock.calls[1]?.[4]?.query?.enabled).toBe(true);
   });
 });

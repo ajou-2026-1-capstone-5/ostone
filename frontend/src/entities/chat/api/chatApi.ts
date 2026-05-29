@@ -1,4 +1,7 @@
 import { customFetch } from "@/shared/api/mutator";
+import { selectApiData, selectApiList } from "@/shared/api";
+import { getMessages } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
+import { getChatWorkflow } from "@/shared/api/generated/endpoints/demo-runtime-controller/demo-runtime-controller";
 import type { ChatMessage, ChatSession } from "@/entities/chat/model/types";
 import {
   parseDemoSessionId,
@@ -6,6 +9,8 @@ import {
   toSenderType,
   type ChatMessageResponse,
 } from "../lib/chatMessageSync";
+
+// OpenAPI 미생성 endpoint: current chat session, demo session create/send는 수동 호출로 유지한다.
 
 interface DemoChatWorkflowResponse {
   chatSession?: {
@@ -73,10 +78,7 @@ export function createChatSession(workspaceId: number, customerName: string): Pr
 }
 
 export async function listChatMessages(sessionId: number): Promise<ChatMessage[]> {
-  const messages = await customFetch<ChatMessageResponse[]>(
-    `/api/v1/consultation/sessions/${sessionId}/messages`,
-    { method: "GET" },
-  );
+  const messages = selectApiList<ChatMessageResponse>(await getMessages(sessionId));
   return messages.map((message) => toChatMessage(message, sessionId));
 }
 
@@ -84,10 +86,7 @@ export async function createDemoChatSession(
   workspaceId: number,
   customerName: string,
 ): Promise<DemoChatSession> {
-  const response = await customFetch<DemoChatWorkflowResponse>(
-    `/api/v1/workspaces/${workspaceId}/demo/chat-workflow`,
-    { method: "GET" },
-  );
+  const response = selectApiData<DemoChatWorkflowResponse>(await getChatWorkflow(workspaceId)) ?? {};
   const chatSession = response.chatSession;
 
   return {

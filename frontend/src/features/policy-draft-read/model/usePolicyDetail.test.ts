@@ -28,7 +28,18 @@ describe("usePolicyDetail", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetPolicy>);
     renderHook(() => usePolicyDetail(1, 2, 3, null));
-    expect(mockedUseGetPolicy).toHaveBeenCalledWith(1, 2, 3, -1, { query: { enabled: false } });
+    expect(mockedUseGetPolicy).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      -1,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: false,
+          queryKey: ["policies", "detail", 1, 2, 3, -1],
+        }),
+      }),
+    );
   });
 
   it("policyId가 있으면 enabled:true로 호출한다", () => {
@@ -37,7 +48,18 @@ describe("usePolicyDetail", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetPolicy>);
     renderHook(() => usePolicyDetail(1, 2, 3, 4));
-    expect(mockedUseGetPolicy).toHaveBeenCalledWith(1, 2, 3, 4, { query: { enabled: true } });
+    expect(mockedUseGetPolicy).toHaveBeenCalledWith(
+      1,
+      2,
+      3,
+      4,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          enabled: true,
+          queryKey: ["policies", "detail", 1, 2, 3, 4],
+        }),
+      }),
+    );
   });
 
   it("loading 상태를 반환한다", () => {
@@ -66,26 +88,14 @@ describe("usePolicyDetail", () => {
   });
 
   it("성공 상태를 반환한다", () => {
-    const data = { data: { id: 4, name: "Test Policy" } };
-    mockedUseGetPolicy.mockReturnValue({
-      isSuccess: true,
-      data,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useGetPolicy>);
-    const { result } = renderHook(() => usePolicyDetail(1, 2, 3, 4));
-    expect(result.current).toEqual({ status: "ready", data: data.data });
-  });
-
-  it("성공 응답이 직접 객체로 오면 그대로 ready data로 반환한다", () => {
     const data = { id: 4, name: "Test Policy" };
     mockedUseGetPolicy.mockReturnValue({
       isSuccess: true,
       data,
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetPolicy>);
-
     const { result } = renderHook(() => usePolicyDetail(1, 2, 3, 4));
-
     expect(result.current).toEqual({ status: "ready", data });
   });
+
 });

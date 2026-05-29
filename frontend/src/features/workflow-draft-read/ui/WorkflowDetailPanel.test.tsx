@@ -6,6 +6,7 @@ import { ApiRequestError } from "@/shared/api";
 import { useWorkflowDetail } from "../model/useWorkflowDetail";
 import { useTransitionList } from "../model/useTransitionList";
 import { WorkflowDetailPanel } from "./WorkflowDetailPanel";
+import { useListPolicies } from "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller";
 
 vi.mock("../model/useWorkflowDetail", () => ({
   useWorkflowDetail: vi.fn(),
@@ -19,6 +20,13 @@ vi.mock("@/entities/policy", () => ({
   policyApi: { list: vi.fn().mockResolvedValue([]) },
   policyKeys: { list: (...args: unknown[]) => ["policies", "list", ...args] },
 }));
+
+vi.mock(
+  "@/shared/api/generated/endpoints/policy-definition-controller/policy-definition-controller",
+  () => ({
+    useListPolicies: vi.fn(),
+  }),
+);
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn() },
@@ -34,6 +42,7 @@ vi.mock("@/shared/ui/ErrorBoundary", () => ({
 
 const mockedUseWorkflowDetail = vi.mocked(useWorkflowDetail);
 const mockedUseTransitionList = vi.mocked(useTransitionList);
+const mockedUseListPolicies = vi.mocked(useListPolicies);
 
 const stubDetail = {
   id: 10,
@@ -78,8 +87,15 @@ describe("WorkflowDetailPanel", () => {
   beforeEach(() => {
     mockedUseWorkflowDetail.mockReset();
     mockedUseTransitionList.mockReset();
+    mockedUseListPolicies.mockReset();
     vi.mocked(toast.error).mockReset();
     mockedUseTransitionList.mockReturnValue(stubTransitionResult);
+    mockedUseListPolicies.mockReturnValue({
+      data: [{ id: 1, policyCode: "POLICY_001", name: "정책" }],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useListPolicies>);
   });
 
   it("workflowId=null이면 선택 안내를 보여준다", () => {
@@ -155,6 +171,67 @@ describe("WorkflowDetailPanel", () => {
     expect(screen.getByRole("tab", { name: "Graph" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "JSON" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Meta" })).toBeInTheDocument();
+  });
+
+  it("정책 목록 조회 중이면 graph 탭에 loading 상태를 보여준다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    mockedUseListPolicies.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useListPolicies>);
+
+    renderPanel();
+
+    expect(screen.getByRole("status")).toHaveTextContent("정책 목록을 불러오는 중입니다.");
+  });
+
+  it("정책 목록 조회 실패 시 toast와 error 상태를 보여준다", async () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    mockedUseListPolicies.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new ApiRequestError(500, "SERVER_ERROR", "정책 오류"),
+    } as unknown as ReturnType<typeof useListPolicies>);
+
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("정책 목록을 불러오지 못했습니다.");
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("정책 오류"));
+  });
+
+  it("정책 목록이 비어 있으면 empty 상태를 보여준다", () => {
+    mockedUseWorkflowDetail.mockReturnValue({
+      data: stubDetail,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowDetail>);
+    mockedUseListPolicies.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useListPolicies>);
+
+    renderPanel();
+
+    expect(screen.getByText("참조할 정책이 없습니다.")).toBeInTheDocument();
   });
 
   it("JSON 탭 클릭 시 tabpanel이 활성화된다", () => {

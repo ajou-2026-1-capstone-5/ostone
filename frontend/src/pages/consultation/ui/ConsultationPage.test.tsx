@@ -466,7 +466,9 @@ describe("ConsultationPage", () => {
       expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, "COMPLETED");
     });
 
-    expect(screen.queryByText("상담 종료")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("상담 종료")).not.toBeInTheDocument();
+    });
   });
 
   it("subscribes to STOMP topic when a customer is selected and connection is established", async () => {
@@ -810,11 +812,19 @@ describe("ConsultationPage", () => {
     const customerItem = screen.getByText("김민지").closest("div");
     if (customerItem) customerItem.click();
 
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+    });
+
     const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
     await user.type(input, "보낼 수 없는 메시지");
     await user.keyboard("{Enter}");
 
-    expect(toast.error).toHaveBeenCalledWith("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "연결이 불안정합니다. 잠시 후 다시 시도해주세요.",
+      );
+    });
     expect(mockSendTo).not.toHaveBeenCalled();
     expect(consultationApi.sendMessage).not.toHaveBeenCalled();
     expect(screen.queryByText("보낼 수 없는 메시지")).not.toBeInTheDocument();

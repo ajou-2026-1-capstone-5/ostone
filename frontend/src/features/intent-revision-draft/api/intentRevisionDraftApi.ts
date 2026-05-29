@@ -1,11 +1,20 @@
-import { apiClient } from "@/shared/api";
-import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import { requireApiData, selectApiData } from "@/shared/api";
+import { activate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import { create } from "@/shared/api/generated/endpoints/create-intent-revision-draft-controller/create-intent-revision-draft-controller";
+import { discard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
+import { getDomainPackVersion } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
+import {
+  getIntent,
+  listIntents,
+} from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
+import { update } from "@/shared/api/generated/endpoints/update-draft-intent-controller/update-draft-intent-controller";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import type { IntentDetail, IntentSummary } from "@/entities/intent";
+import type { UpdateDraftIntentRequest } from "@/shared/api/generated/zod";
 
 export interface UpdateDraftIntentBody {
-  name: string;
-  description: string;
+  name: UpdateDraftIntentRequest["name"];
+  description: UpdateDraftIntentRequest["description"];
 }
 
 interface RevisionDraftResponse {
@@ -26,7 +35,7 @@ interface ActivateVersionResponse {
 }
 
 function normalizeDraftVersionId(response: RevisionDraftResponse): number {
-  const unwrapped = unwrapApiResponse(response);
+  const unwrapped = selectApiData(response) ?? response;
   const canonicalId = unwrapped.draftVersionId;
   const legacyId =
     unwrapped.versionId ??
@@ -48,7 +57,7 @@ function normalizeDraftVersionId(response: RevisionDraftResponse): number {
 }
 
 function normalizeActivatedVersionId(response: ActivateVersionResponse): number {
-  const unwrapped = unwrapApiResponse(response);
+  const unwrapped = selectApiData(response) ?? response;
   const id = unwrapped.versionId ?? unwrapped.id;
 
   if (typeof id !== "number") {
@@ -64,11 +73,8 @@ export const intentRevisionDraftApi = {
     packId: number,
     versionId: number,
   ): Promise<{ draftVersionId: number }> {
-    const response = await apiClient.post<RevisionDraftResponse>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/revision-drafts`,
-      undefined,
-    );
-    return { draftVersionId: normalizeDraftVersionId(response) };
+    const response = await create(workspaceId, packId, versionId);
+    return { draftVersionId: normalizeDraftVersionId(response as RevisionDraftResponse) };
   },
 
   async updateDraftIntent(
@@ -78,11 +84,8 @@ export const intentRevisionDraftApi = {
     intentId: number,
     body: UpdateDraftIntentBody,
   ): Promise<IntentDetail> {
-    const response = await apiClient.patch<IntentDetail | { data: IntentDetail }>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/intents/${intentId}`,
-      body,
-    );
-    return unwrapApiResponse(response);
+    const response = await update(workspaceId, packId, draftVersionId, intentId, body);
+    return requireApiData<IntentDetail>(response, "Intent 수정 응답을 확인할 수 없습니다.");
   },
 
   async activateVersion(
@@ -90,17 +93,12 @@ export const intentRevisionDraftApi = {
     packId: number,
     versionId: number,
   ): Promise<{ activatedVersionId: number }> {
-    const response = await apiClient.post<ActivateVersionResponse>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/activate`,
-      undefined,
-    );
-    return { activatedVersionId: normalizeActivatedVersionId(response) };
+    const response = await activate(workspaceId, packId, versionId);
+    return { activatedVersionId: normalizeActivatedVersionId(response as ActivateVersionResponse) };
   },
 
   async discardDraft(workspaceId: number, packId: number, draftVersionId: number): Promise<void> {
-    await apiClient.delete<void>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${draftVersionId}/draft`,
-    );
+    await discard(workspaceId, packId, draftVersionId);
   },
 
   async listIntents(
@@ -109,11 +107,9 @@ export const intentRevisionDraftApi = {
     versionId: number,
     options?: { signal?: AbortSignal },
   ): Promise<IntentSummary[]> {
-    const response = await apiClient.get<IntentSummary[] | { data: IntentSummary[] }>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents`,
-      options,
-    );
-    return unwrapApiResponse(response);
+    const response = await listIntents(workspaceId, packId, versionId, options);
+    if (Array.isArray(response)) return response as IntentSummary[];
+    return selectApiData<IntentSummary[]>(response) ?? [];
   },
 
   async getIntent(
@@ -122,10 +118,8 @@ export const intentRevisionDraftApi = {
     versionId: number,
     intentId: number,
   ): Promise<IntentDetail> {
-    const response = await apiClient.get<IntentDetail | { data: IntentDetail }>(
-      `/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/intents/${intentId}`,
-    );
-    return unwrapApiResponse(response);
+    const response = await getIntent(workspaceId, packId, versionId, intentId);
+    return requireApiData<IntentDetail>(response, "Intent 상세 응답을 확인할 수 없습니다.");
   },
 
   async getVersionDetail(
@@ -133,9 +127,10 @@ export const intentRevisionDraftApi = {
     packId: number,
     versionId: number,
   ): Promise<DomainPackVersionDetail> {
-    const response = await apiClient.get<
-      DomainPackVersionDetail | { data: DomainPackVersionDetail }
-    >(`/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`);
-    return unwrapApiResponse(response);
+    const response = await getDomainPackVersion(workspaceId, packId, versionId);
+    return requireApiData<DomainPackVersionDetail>(
+      response,
+      "Domain pack version 상세 응답을 확인할 수 없습니다.",
+    );
   },
 };
