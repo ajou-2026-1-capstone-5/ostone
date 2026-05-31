@@ -334,9 +334,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {disabled && disabledReason && (
-        <div className={styles.disabledNotice} role="status">
+        <output className={styles.disabledNotice}>
           {disabledReason}
-        </div>
+        </output>
       )}
 
       {/* Input */}

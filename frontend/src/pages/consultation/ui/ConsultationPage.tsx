@@ -549,6 +549,9 @@ export const ConsultationPage: React.FC = () => {
     activeCustomer?.status === "COMPLETED" || activeCustomer?.status === "RESOLVED";
   const isActiveSessionUnassigned = !!activeCustomer && !activeCustomer.assignedCounselorId;
   const isClaimingActiveSession = activeCustomerId != null && claimingSessionId === activeCustomerId;
+  const messageInputDisabledReason = isAssignedToCurrentCounselor
+    ? undefined
+    : activeAssignment?.description;
 
   const clearActiveConversation = useCallback(() => {
     setActiveCustomerId(null);
@@ -1286,7 +1289,7 @@ export const ConsultationPage: React.FC = () => {
               onSelectMessage={setSelectedMessageId}
               sessionStatusLabel={activeAssignment?.label}
               sessionStatusDescription={activeAssignment?.description}
-              disabledReason={!isAssignedToCurrentCounselor ? activeAssignment?.description : undefined}
+              disabledReason={messageInputDisabledReason}
               disabled={!isAssignedToCurrentCounselor}
             />
           )}
