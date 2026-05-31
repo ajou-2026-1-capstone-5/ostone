@@ -278,7 +278,7 @@ describe("ConsultationPage", () => {
       "/topic/workspaces.2.consultation.queue",
       expect.any(Function),
     );
-    expect(screen.getByText("대기 고객")).toBeInTheDocument();
+    expect(screen.getByText("상담 큐")).toBeInTheDocument();
     expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
   });
@@ -434,7 +434,7 @@ describe("ConsultationPage", () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText("대기중인 고객이 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("현재 상담 큐가 비어 있습니다")).toBeInTheDocument();
     });
 
     expect(consultationApi.getQueue).not.toHaveBeenCalled();
