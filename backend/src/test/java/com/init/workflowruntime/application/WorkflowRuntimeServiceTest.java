@@ -21,10 +21,12 @@ import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -123,8 +125,7 @@ class WorkflowRuntimeServiceTest {
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(150L, 101L))
         .willReturn(Optional.of(workflow));
     given(workflowExecutionRepository.save(execution)).willReturn(execution);
-    given(chatSessionMetadataService.recordHandoff(session, "상담사 이관", "handoff"))
-        .willReturn(true);
+    given(chatSessionMetadataService.recordHandoff(session, "상담사 이관", "handoff")).willReturn(true);
 
     WorkflowAdvanceResponse result = service.advance(1L);
 
@@ -134,14 +135,13 @@ class WorkflowRuntimeServiceTest {
     assertThat(result.edgeId()).isEqualTo("e_decision_handoff");
     assertThat(execution.getCurrentState()).isEqualTo("handoff");
     verify(chatSessionMetadataService).recordHandoff(session, "상담사 이관", "handoff");
-    verify(eventPublisher)
-        .publishEvent(
-            argThat(
-                event ->
-                    event instanceof ConsultationQueueChangedEvent queueEvent
-                        && queueEvent.workspaceId().equals(10L)
-                        && queueEvent.sessionId().equals(1L)
-                        && queueEvent.type() == ConsultationQueueEventType.SESSION_UPSERTED));
+    ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+    ConsultationQueueChangedEvent queueEvent =
+        Assertions.assertInstanceOf(ConsultationQueueChangedEvent.class, eventCaptor.getValue());
+    assertThat(queueEvent.workspaceId()).isEqualTo(10L);
+    assertThat(queueEvent.sessionId()).isEqualTo(1L);
+    assertThat(queueEvent.type()).isEqualTo(ConsultationQueueEventType.SESSION_UPSERTED);
   }
 
   @Test
