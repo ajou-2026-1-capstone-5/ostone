@@ -8,7 +8,7 @@ import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
 
-// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics, sessions list, assign/release는 수동 호출로 유지한다.
+// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list, assign/release는 수동 호출로 유지한다.
 
 export type ChatSession = ChatSessionResponse & {
   assignedCounselorId?: number | null;
@@ -62,17 +62,20 @@ export const consultationApi = {
     return selectApiData<ChatSession[]>(response) ?? [];
   },
 
-  getSessions: async (params?: {
-    status?: string;
-    page?: number;
-    size?: number;
-  }): Promise<ChatSession[]> => {
+  getSessions: async (
+    workspaceId: number,
+    params?: {
+      status?: string;
+      page?: number;
+      size?: number;
+    },
+  ): Promise<ChatSession[]> => {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page !== undefined) searchParams.set("page", String(params.page));
     if (params?.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
-    const url = `/api/v1/consultation/sessions${query ? `?${query}` : ""}`;
+    const url = `/api/v1/workspaces/${workspaceId}/consultation/sessions${query ? `?${query}` : ""}`;
     const response = await customFetch<SessionListResponse>(url, { method: "GET" });
     return unwrapSessionList(response);
   },

@@ -27,6 +27,11 @@ public interface ChatSessionRepository {
   Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
       Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses);
 
+  Page<ChatSession> findByWorkspaceId(Long workspaceId, Pageable pageable);
+
+  Page<ChatSession> findByWorkspaceIdAndStatus(
+      Long workspaceId, ChatSessionStatus status, Pageable pageable);
+
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
 
   Page<ChatSession> findAll(Pageable pageable);

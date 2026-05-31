@@ -28,5 +28,12 @@ public interface JpaChatSessionRepository
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
   @Override
+  Page<ChatSession> findByWorkspaceId(Long workspaceId, Pageable pageable);
+
+  @Override
+  Page<ChatSession> findByWorkspaceIdAndStatus(
+      Long workspaceId, ChatSessionStatus status, Pageable pageable);
+
+  @Override
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
 }

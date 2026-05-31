@@ -3,7 +3,7 @@ import { consultationApi } from "./consultationApi";
 import { chatHistoryKeys } from "./chatHistoryKeys";
 
 export interface UseChatSessionsParams {
-  workspaceId: string;
+  workspaceId: number | null;
   status?: string;
   page?: number;
   size?: number;
@@ -17,7 +17,11 @@ export function useChatSessions({
 }: UseChatSessionsParams) {
   return useQuery({
     queryKey: chatHistoryKeys.sessionList(workspaceId, status, page, size),
-    queryFn: () => consultationApi.getSessions({ status, page, size }),
+    queryFn: () => {
+      if (workspaceId === null) return [];
+      return consultationApi.getSessions(workspaceId, { status, page, size });
+    },
+    enabled: workspaceId !== null,
   });
 }
 

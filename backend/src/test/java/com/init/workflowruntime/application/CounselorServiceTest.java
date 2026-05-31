@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
@@ -293,37 +294,50 @@ class CounselorServiceTest {
   // ── getSessions ───────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("getSessions: 상태 필터 없음 → 전체 세션 페이지 반환")
-  void should_returnAllSessions_when_noStatusFilter() {
+  @DisplayName("getSessions: 상태 필터 없음 → 워크스페이스 세션 페이지 반환")
+  void should_returnWorkspaceSessions_when_noStatusFilter() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     Page<ChatSession> page = new PageImpl<>(List.of(session));
-    given(chatSessionRepository.findAll(any(Pageable.class))).willReturn(page);
+    given(chatSessionRepository.findByWorkspaceId(eq(1L), any(Pageable.class))).willReturn(page);
 
-    CounselorSessionResponse result = service.getSessions(null, 0, 20);
+    CounselorSessionResponse result = service.getSessions(1L, null, 0, 20);
 
     assertThat(result.getContent()).hasSize(1);
     assertThat(result.getTotalElements()).isEqualTo(1);
+    verify(chatSessionRepository).findByWorkspaceId(eq(1L), any(Pageable.class));
   }
 
   @Test
-  @DisplayName("getSessions: 상태 필터 있음 → 필터링된 페이지 반환")
-  void should_returnFilteredSessions_when_statusGiven() {
+  @DisplayName("getSessions: 상태 필터 있음 → 워크스페이스와 상태로 필터링된 페이지 반환")
+  void should_returnFilteredWorkspaceSessions_when_statusGiven() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     Page<ChatSession> page = new PageImpl<>(List.of(session));
-    given(chatSessionRepository.findByStatus(any(ChatSessionStatus.class), any(Pageable.class)))
+    given(
+            chatSessionRepository.findByWorkspaceIdAndStatus(
+                eq(1L), eq(ChatSessionStatus.OPEN), any(Pageable.class)))
         .willReturn(page);
 
-    CounselorSessionResponse result = service.getSessions("OPEN", 0, 20);
+    CounselorSessionResponse result = service.getSessions(1L, "OPEN", 0, 20);
 
     assertThat(result.getContent()).hasSize(1);
+    verify(chatSessionRepository)
+        .findByWorkspaceIdAndStatus(eq(1L), eq(ChatSessionStatus.OPEN), any(Pageable.class));
   }
 
   @Test
   @DisplayName("getSessions: 지원하지 않는 상태 → BadRequestException")
   void should_throwBadRequest_when_invalidStatus() {
-    assertThatThrownBy(() -> service.getSessions("INVALID", 0, 20))
+    assertThatThrownBy(() -> service.getSessions(1L, "INVALID", 0, 20))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("Unsupported status");
+  }
+
+  @Test
+  @DisplayName("getSessions: 유효하지 않은 workspaceId → BadRequestException")
+  void should_throwBadRequest_when_invalidWorkspaceId() {
+    assertThatThrownBy(() -> service.getSessions(0L, null, 0, 20))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("workspaceId");
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
