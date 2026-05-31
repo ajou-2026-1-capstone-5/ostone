@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: init-backend
     volumes:
-      - ./backend/build/libs/backend-0.0.1-SNAPSHOT.jar:/app/app.jar
+      - ./backend/build/libs/app.jar:/app/app.jar
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-init}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-init}
@@ -62,7 +62,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5

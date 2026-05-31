@@ -22,6 +22,7 @@ import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflows
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
 import { DomainPackListPage } from "../pages/domain-pack/ui/DomainPackListPage";
 import { PrivateRoute } from "../shared/ui/PrivateRoute";
+import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
 import { Toaster } from "../shared/ui/sonner";
 import { WorkflowGraphViewerPage } from "../pages/domain-pack/ui/WorkflowGraphViewerPage";
 import { LegacyDomainPackVersionRedirect } from "../pages/domain-pack/ui/LegacyDomainPackVersionRedirect";
@@ -62,7 +63,14 @@ export function App() {
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
-        <Route path="/demo" element={<DemoPage />} />
+        <Route
+          path="/demo"
+          element={
+            <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+              <DemoPage />
+            </ErrorBoundary>
+          }
+        />
         <Route path="/demo/workspaces/:workspaceId/chat" element={<UserChatPage />} />
         <Route
           path="/upload"

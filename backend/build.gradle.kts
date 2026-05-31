@@ -60,6 +60,10 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}
+
 checkstyle {
     toolVersion = "10.17.0"
     configFile = file("${projectDir}/config/checkstyle/checkstyle.xml")

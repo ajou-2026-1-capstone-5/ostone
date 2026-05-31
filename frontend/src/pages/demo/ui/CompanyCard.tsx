@@ -14,7 +14,6 @@ export function CompanyCard({ company, active, onActivate }: CompanyCardProps) {
       type="button"
       data-testid={`demo-company-card-${company.workspaceId}`}
       aria-pressed={active}
-      aria-disabled={disabled}
       onClick={() => onActivate(company)}
       onMouseEnter={() => onActivate(company)}
       onFocus={() => onActivate(company)}
