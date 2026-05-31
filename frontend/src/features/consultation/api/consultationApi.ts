@@ -127,17 +127,17 @@ export const consultationApi = {
     );
   },
 
-  assignSession: async (sessionId: number, counselorId: number): Promise<ChatSession> => {
+  assignSession: async (sessionId: number): Promise<ChatSession> => {
     const response = await customFetch<ChatSession | { data?: ChatSession }>(
-      `/api/v1/consultation/sessions/${sessionId}/assign?counselorId=${counselorId}`,
+      `/api/v1/consultation/sessions/${sessionId}/assign`,
       { method: "POST" },
     );
     return requireApiData<ChatSession>(response, "상담 배정 응답을 확인할 수 없습니다.");
   },
 
-  releaseSession: async (sessionId: number, counselorId: number): Promise<ChatSession> => {
+  releaseSession: async (sessionId: number): Promise<ChatSession> => {
     const response = await customFetch<ChatSession | { data?: ChatSession }>(
-      `/api/v1/consultation/sessions/${sessionId}/release?counselorId=${counselorId}`,
+      `/api/v1/consultation/sessions/${sessionId}/release`,
       { method: "POST" },
     );
     return requireApiData<ChatSession>(response, "상담 배정 해제 응답을 확인할 수 없습니다.");

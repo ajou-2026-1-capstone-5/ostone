@@ -86,14 +86,14 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
       ]),
     ),
     updateStatus: vi.fn(() => Promise.resolve({})),
-    assignSession: vi.fn((sessionId: number, counselorId: number) =>
+    assignSession: vi.fn((sessionId: number) =>
       Promise.resolve({
         id: sessionId,
         status: "ACTIVE",
         channel: "카카오톡",
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
         startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
-        assignedCounselorId: counselorId,
+        assignedCounselorId: 7,
       }),
     ),
     releaseSession: vi.fn(() =>
@@ -898,7 +898,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
 
     await waitFor(() => {
-      expect(consultationApi.assignSession).toHaveBeenCalledWith(1, 7);
+      expect(consultationApi.assignSession).toHaveBeenCalledWith(1);
     });
     await waitFor(() => {
       expect(screen.getAllByText("내게 배정됨").length).toBeGreaterThan(0);
@@ -997,7 +997,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(screen.getByText("배정 해제"));
 
     await waitFor(() => {
-      expect(consultationApi.releaseSession).toHaveBeenCalledWith(1, 7);
+      expect(consultationApi.releaseSession).toHaveBeenCalledWith(1);
     });
   });
 

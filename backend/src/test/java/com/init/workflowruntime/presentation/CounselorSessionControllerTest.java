@@ -53,13 +53,10 @@ class CounselorSessionControllerTest {
     response.setChannel("WEB");
     response.setStartedAt(OffsetDateTime.now());
 
-    given(counselorService.assignSession(eq(42L), eq(1L), eq(7L))).willReturn(response);
+    given(counselorService.assignSession(eq(1L), eq(42L))).willReturn(response);
 
     mockMvc
-        .perform(
-            post("/api/v1/consultation/sessions/1/assign")
-                .param("counselorId", "42")
-                .principal(auth()))
+        .perform(post("/api/v1/consultation/sessions/1/assign").principal(auth(42L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(1))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -67,16 +64,34 @@ class CounselorSessionControllerTest {
   }
 
   @Test
-  @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 세션 없음 → 404")
-  void should_return404_when_sessionNotFound() throws Exception {
-    given(counselorService.assignSession(eq(1L), eq(999L), eq(7L)))
-        .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - query counselorId를 무시한다")
+  void should_ignoreCounselorIdQuery_when_assigning() throws Exception {
+    CounselorSessionResponse response = new CounselorSessionResponse();
+    response.setId(1L);
+    response.setStatus("ACTIVE");
+    response.setAssignedCounselorId(42L);
+    response.setChannel("WEB");
+    response.setStartedAt(OffsetDateTime.now());
+
+    given(counselorService.assignSession(eq(1L), eq(42L))).willReturn(response);
 
     mockMvc
         .perform(
-            post("/api/v1/consultation/sessions/999/assign")
-                .param("counselorId", "1")
-                .principal(auth()))
+            post("/api/v1/consultation/sessions/1/assign")
+                .param("counselorId", "99")
+                .principal(auth(42L)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.assignedCounselorId").value(42));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 세션 없음 → 404")
+  void should_return404_when_sessionNotFound() throws Exception {
+    given(counselorService.assignSession(eq(999L), eq(1L)))
+        .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
+
+    mockMvc
+        .perform(post("/api/v1/consultation/sessions/999/assign").principal(auth(1L)))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
   }
@@ -84,14 +99,11 @@ class CounselorSessionControllerTest {
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 이미 배정됨 → 400")
   void should_return400_when_alreadyAssigned() throws Exception {
-    given(counselorService.assignSession(eq(1L), eq(999L), eq(7L)))
+    given(counselorService.assignSession(eq(999L), eq(1L)))
         .willThrow(new BadRequestException("ALREADY_ASSIGNED", "Session already assigned"));
 
     mockMvc
-        .perform(
-            post("/api/v1/consultation/sessions/999/assign")
-                .param("counselorId", "1")
-                .principal(auth()))
+        .perform(post("/api/v1/consultation/sessions/999/assign").principal(auth(1L)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("ALREADY_ASSIGNED"));
   }
@@ -104,13 +116,10 @@ class CounselorSessionControllerTest {
     response.setStatus("OPEN");
     response.setAssignedCounselorId(null);
 
-    given(counselorService.releaseSession(eq(1L), eq(42L), eq(7L))).willReturn(response);
+    given(counselorService.releaseSession(eq(1L), eq(42L))).willReturn(response);
 
     mockMvc
-        .perform(
-            post("/api/v1/consultation/sessions/1/release")
-                .param("counselorId", "42")
-                .principal(auth()))
+        .perform(post("/api/v1/consultation/sessions/1/release").principal(auth(42L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("OPEN"));
   }
@@ -118,14 +127,11 @@ class CounselorSessionControllerTest {
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 비멤버 → 403")
   void should_return403_when_assignRequesterIsNotWorkspaceMember() throws Exception {
-    given(counselorService.assignSession(eq(42L), eq(1L), eq(7L)))
+    given(counselorService.assignSession(eq(1L), eq(42L)))
         .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
 
     mockMvc
-        .perform(
-            post("/api/v1/consultation/sessions/1/assign")
-                .param("counselorId", "42")
-                .principal(auth()))
+        .perform(post("/api/v1/consultation/sessions/1/assign").principal(auth(42L)))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
   }
@@ -133,16 +139,32 @@ class CounselorSessionControllerTest {
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/release - 비멤버 → 403")
   void should_return403_when_releaseRequesterIsNotWorkspaceMember() throws Exception {
-    given(counselorService.releaseSession(eq(1L), eq(42L), eq(7L)))
+    given(counselorService.releaseSession(eq(1L), eq(42L)))
         .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+
+    mockMvc
+        .perform(post("/api/v1/consultation/sessions/1/release").principal(auth(42L)))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/release - query counselorId를 무시한다")
+  void should_ignoreCounselorIdQuery_when_releasing() throws Exception {
+    CounselorSessionResponse response = new CounselorSessionResponse();
+    response.setId(1L);
+    response.setStatus("OPEN");
+    response.setAssignedCounselorId(null);
+
+    given(counselorService.releaseSession(eq(1L), eq(42L))).willReturn(response);
 
     mockMvc
         .perform(
             post("/api/v1/consultation/sessions/1/release")
-                .param("counselorId", "42")
-                .principal(auth()))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+                .param("counselorId", "99")
+                .principal(auth(42L)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.assignedCounselorId").isEmpty());
   }
 
   @Test
@@ -194,8 +216,8 @@ class CounselorSessionControllerTest {
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
   }
 
-  private UsernamePasswordAuthenticationToken auth() {
+  private UsernamePasswordAuthenticationToken auth(Long userId) {
     return new UsernamePasswordAuthenticationToken(
-        7L, null, List.of(new SimpleGrantedAuthority("ROLE_OPERATOR")));
+        userId, null, List.of(new SimpleGrantedAuthority("ROLE_OPERATOR")));
   }
 }

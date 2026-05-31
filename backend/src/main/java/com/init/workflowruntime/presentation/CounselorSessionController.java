@@ -26,16 +26,16 @@ public class CounselorSessionController {
 
   @PostMapping("/consultation/sessions/{sessionId}/assign")
   public ResponseEntity<CounselorSessionResponse> assignSession(
-      @PathVariable Long sessionId, @RequestParam Long counselorId, Authentication authentication) {
-    Long userId = AuthenticationUtils.getUserId(authentication);
-    return ResponseEntity.ok(counselorService.assignSession(counselorId, sessionId, userId));
+      @PathVariable Long sessionId, Authentication authentication) {
+    Long counselorId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(counselorService.assignSession(sessionId, counselorId));
   }
 
   @PostMapping("/consultation/sessions/{sessionId}/release")
   public ResponseEntity<CounselorSessionResponse> releaseSession(
-      @PathVariable Long sessionId, @RequestParam Long counselorId, Authentication authentication) {
-    Long userId = AuthenticationUtils.getUserId(authentication);
-    return ResponseEntity.ok(counselorService.releaseSession(sessionId, counselorId, userId));
+      @PathVariable Long sessionId, Authentication authentication) {
+    Long counselorId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(counselorService.releaseSession(sessionId, counselorId));
   }
 
   @GetMapping("/workspaces/{workspaceId}/consultation/sessions")

@@ -366,7 +366,7 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubMessages);
   });
 
-  it("assignSession이 상담사 ID와 함께 assign API를 호출한다", async () => {
+  it("assignSession이 상담사 ID 없이 assign API를 호출한다", async () => {
     const stubSession = {
       id: 1,
       status: "ACTIVE",
@@ -377,16 +377,16 @@ describe("consultationApi", () => {
     };
     mockedCustomFetch.mockResolvedValue(stubSession);
 
-    const result = await consultationApi.assignSession(1, 7);
+    const result = await consultationApi.assignSession(1);
 
     expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/assign?counselorId=7",
+      "/api/v1/consultation/sessions/1/assign",
       { method: "POST" },
     );
     expect(result).toEqual(stubSession);
   });
 
-  it("releaseSession이 상담사 ID와 함께 release API를 호출한다", async () => {
+  it("releaseSession이 상담사 ID 없이 release API를 호출한다", async () => {
     const stubSession = {
       id: 1,
       status: "OPEN",
@@ -397,10 +397,10 @@ describe("consultationApi", () => {
     };
     mockedCustomFetch.mockResolvedValue({ data: stubSession });
 
-    const result = await consultationApi.releaseSession(1, 7);
+    const result = await consultationApi.releaseSession(1);
 
     expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/release?counselorId=7",
+      "/api/v1/consultation/sessions/1/release",
       { method: "POST" },
     );
     expect(result).toEqual(stubSession);
