@@ -83,7 +83,7 @@ describe("EditableActionNode", () => {
       />,
     );
     expect(screen.getByLabelText("노드 이름")).toHaveValue("처리");
-    expect(screen.getByLabelText("정책 참조 코드")).toHaveValue("PR-001");
+    expect(screen.getByLabelText("응대 기준 참조 코드")).toHaveValue("PR-001");
   });
 
   it("renders container testid", () => {
@@ -96,7 +96,7 @@ describe("EditableActionNode", () => {
     render(
       <EditableActionNode {...baseProps} type="action" data={{ label: "x", policyRef: "" }} />,
     );
-    const input = screen.getByLabelText("정책 참조 코드");
+    const input = screen.getByLabelText("응대 기준 참조 코드");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "PR-NEW" } });
     fireEvent.blur(input);

@@ -27,7 +27,7 @@ export const UploadPage: React.FC = () => {
           borderBottom: "1px solid var(--line-2)",
         }}
       >
-        <Eyebrow>Pipeline &middot; 6 stages &middot; last run 14:22</Eyebrow>
+        <Eyebrow>처리 파이프라인 &middot; 6단계 &middot; 마지막 실행 14:22</Eyebrow>
         <h1
           style={{
             fontSize: 26,
@@ -58,9 +58,9 @@ export const UploadPage: React.FC = () => {
             marginTop: 8,
           }}
         >
-          업로드한 데이터셋 1개당 도메인 팩 초안 1개를 생성하고, 여러 상담에서 추출한 intent, slot,
-          policy, risk, workflow를 그 안에 모읍니다. 파이프라인은 6단계로 구성되며 각 단계의 진행
-          상황을 실시간으로 모니터링할 수 있습니다.
+          업로드한 상담 로그 1개당 도메인팩 초안 1개를 생성하고, 여러 상담에서 추출한 상담 유형,
+          확인 항목, 응대 기준, 주의 사항, 응대 흐름을 그 안에 모읍니다. 처리 단계별 진행 상황을
+          실시간으로 확인할 수 있습니다.
         </p>
       </div>
 
@@ -94,7 +94,7 @@ export const UploadPage: React.FC = () => {
           >
             <Dot tone="signal" size={6} />
             <Mono style={{ fontSize: 11, color: "var(--ink)" }}>RUN-2026-04-28-T1422</Mono>
-            <Pill tone="signal">running</Pill>
+            <Pill tone="signal">처리 중</Pill>
             <StagePips
               stages={[
                 { id: "ingestion", status: "done" },
@@ -106,7 +106,7 @@ export const UploadPage: React.FC = () => {
               ]}
             />
             <div style={{ flex: 1 }} />
-            <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>started 4m 12s ago</Mono>
+            <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>시작 4분 12초 전</Mono>
           </div>
 
           <div>
@@ -120,7 +120,7 @@ export const UploadPage: React.FC = () => {
               refund_logs_april_v3.jsonl
             </div>
             <Mono style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 4 }}>
-              412 MB &middot; 41,238 conversations &middot; 187,224 turns
+              412 MB &middot; 상담 41,238건 &middot; 발화 187,224건
             </Mono>
           </div>
 
@@ -154,7 +154,7 @@ export const UploadPage: React.FC = () => {
                 cursor: "pointer",
               }}
             >
-              Pause
+              일시 중지
             </button>
             <button
               style={{
@@ -168,10 +168,10 @@ export const UploadPage: React.FC = () => {
                 cursor: "pointer",
               }}
             >
-              Cancel
+              중단
             </button>
             <div style={{ flex: 1 }} />
-            <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>ETA 12m 44s</Mono>
+            <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>예상 남은 시간 12분 44초</Mono>
           </div>
         </div>
       </div>
@@ -195,7 +195,7 @@ export const UploadPage: React.FC = () => {
           }}
         >
           <div style={{ marginBottom: 12 }}>
-            <Eyebrow>Evaluation timeline</Eyebrow>
+            <Eyebrow>품질 평가 추이</Eyebrow>
           </div>
           <EvalChart
             runs={[
@@ -217,9 +217,9 @@ export const UploadPage: React.FC = () => {
           >
             {[
               { label: "K@1", value: "0.86" },
-              { label: "Mapping rate", value: "0.79" },
-              { label: "Separability", value: "0.92" },
-              { label: "Outlier rate", value: "0.03" },
+              { label: "유형 매칭률", value: "0.79" },
+              { label: "흐름 구분도", value: "0.92" },
+              { label: "예외 상담률", value: "0.03" },
             ].map((stat) => (
               <div key={stat.label} style={{ display: "flex", gap: 4 }}>
                 <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{stat.label}:</Mono>

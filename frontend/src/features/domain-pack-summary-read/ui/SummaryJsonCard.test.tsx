@@ -22,7 +22,7 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("82%")).toBeInTheDocument();
     expect(screen.getByText("이탈률")).toBeInTheDocument();
     expect(screen.getByText("7%")).toBeInTheDocument();
-    expect(screen.getByText("워크플로우 분리도")).toBeInTheDocument();
+    expect(screen.getByText("응대 흐름 분리도")).toBeInTheDocument();
     expect(screen.getByText("76%")).toBeInTheDocument();
     expect(screen.getByText("검토 포인트")).toBeInTheDocument();
     expect(screen.getByText("워크플로우 미매핑")).toBeInTheDocument();

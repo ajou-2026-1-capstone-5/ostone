@@ -18,10 +18,10 @@ type Tab = "graph" | "json" | "meta" | "transitions";
 
 const TABS = ["graph", "json", "meta", "transitions"] as const;
 const TAB_LABELS: Record<Tab, string> = {
-  graph: "Graph",
+  graph: "흐름도",
   json: "JSON",
-  meta: "Meta",
-  transitions: "Transitions",
+  meta: "상세 정보",
+  transitions: "전환 조건",
 };
 
 interface WorkflowDetailPanelProps {
@@ -79,7 +79,7 @@ export function WorkflowDetailPanel({
   const policyErrorMessage =
     policyErr instanceof ApiRequestError
       ? policyErr.message
-      : "정책 목록을 불러오지 못했습니다.";
+      : "응대 기준 목록을 불러오지 못했습니다.";
 
   useEffect(() => {
     if (!policyError) return;
@@ -120,9 +120,9 @@ export function WorkflowDetailPanel({
     if (!isError) return;
     const msg =
       apiErrorStatus === 404
-        ? "workflow를 찾을 수 없습니다."
+        ? "응대 흐름을 찾을 수 없습니다."
         : apiErrorCode === "WORKFLOW_GRAPH_JSON_INVALID"
-          ? "graph 데이터가 손상되어 시각화를 표시할 수 없습니다."
+          ? "흐름도 데이터가 손상되어 표시할 수 없습니다."
           : apiErrorMessage || "상세 정보를 불러오지 못했습니다.";
     toast.error(msg);
   }, [isError, apiErrorCode, apiErrorStatus, apiErrorMessage]);
@@ -143,9 +143,9 @@ export function WorkflowDetailPanel({
 
   if (workflowId === null) {
     return (
-      <section className={styles.panel} aria-label="workflow 상세">
+      <section className={styles.panel} aria-label="응대 흐름 상세">
         <div className={styles.placeholder}>
-          <span>좌측 목록에서 workflow를 선택해 주세요.</span>
+          <span>좌측 목록에서 응대 흐름을 선택해 주세요.</span>
         </div>
       </section>
     );
@@ -153,7 +153,7 @@ export function WorkflowDetailPanel({
 
   if (isLoading) {
     return (
-      <section className={styles.panel} aria-label="workflow 상세">
+      <section className={styles.panel} aria-label="응대 흐름 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -163,7 +163,7 @@ export function WorkflowDetailPanel({
 
   if (isError) {
     return (
-      <section className={styles.panel} aria-label="workflow 상세">
+      <section className={styles.panel} aria-label="응대 흐름 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <button type="button" className={styles.retryButton} onClick={() => void refetch()}>
@@ -177,9 +177,9 @@ export function WorkflowDetailPanel({
   if (!detail) return null;
 
   return (
-    <section className={styles.panel} aria-label="workflow 상세">
+    <section className={styles.panel} aria-label="응대 흐름 상세">
       <DetailHeader detail={detail} onEdit={onEdit} />
-      <nav className={styles.tabs} role="tablist" aria-label="workflow 상세 뷰">
+      <nav className={styles.tabs} role="tablist" aria-label="응대 흐름 상세 뷰">
         {TABS.map((t, i) => (
           <button
             key={t}
@@ -221,16 +221,16 @@ export function WorkflowDetailPanel({
           </ErrorBoundary>
           {policyLoading && (
             <div className={styles.policyStatus} role="status">
-              정책 목록을 불러오는 중입니다.
+              응대 기준 목록을 불러오는 중입니다.
             </div>
           )}
           {policyError && (
             <div className={styles.policyStatus} role="alert">
-              정책 목록을 불러오지 못했습니다.
+              응대 기준 목록을 불러오지 못했습니다.
             </div>
           )}
           {!policyLoading && !policyError && (policyList ?? []).length === 0 && (
-            <div className={styles.policyStatus}>참조할 정책이 없습니다.</div>
+            <div className={styles.policyStatus}>참조할 응대 기준이 없습니다.</div>
           )}
           {selectedEdgeId !== null && selectedTransition !== null && (
             <TransitionPopover
@@ -299,7 +299,7 @@ function GraphContent({
   if (graphJson == null) {
     return (
       <div className={styles.placeholder}>
-        <span>그래프 데이터 없음</span>
+        <span>흐름도 데이터 없음</span>
       </div>
     );
   }
@@ -321,12 +321,12 @@ function DetailHeader({ detail, onEdit }: { detail: WorkflowDetail; onEdit?: () 
           <span className={styles.name}>{detail.name}</span>
           {detail.description && <span className={styles.description}>{detail.description}</span>}
           <span className={styles.updatedAt}>
-            UPDATED · {detail.updatedAt ? new Date(detail.updatedAt).toLocaleString() : "—"}
+            수정일 · {detail.updatedAt ? new Date(detail.updatedAt).toLocaleString() : "—"}
           </span>
         </div>
         {onEdit && (
           <button type="button" className={styles.editButton} onClick={onEdit}>
-            Edit
+            수정
           </button>
         )}
       </div>
@@ -347,7 +347,7 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
   return (
     <div className={styles.metaSection}>
       <div className={styles.metaItem}>
-        <span className={styles.metaLabel}>Initial State</span>
+        <span className={styles.metaLabel}>시작 상태</span>
         {detail.initialState ? (
           <span className={styles.badge}>{detail.initialState}</span>
         ) : (
@@ -355,7 +355,7 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
         )}
       </div>
       <div className={styles.metaItem}>
-        <span className={styles.metaLabel}>Terminal States</span>
+        <span className={styles.metaLabel}>종료 상태</span>
         {terminals.ok ? (
           terminals.value.length === 0 ? (
             <span>—</span>
@@ -373,13 +373,13 @@ function MetaTab({ detail }: { detail: WorkflowDetail }) {
         )}
       </div>
       <div className={styles.metaItem}>
-        <span className={styles.metaLabel}>Evidence (raw)</span>
+        <span className={styles.metaLabel}>근거 로그</span>
         <pre className={styles.rawCode}>
           <code>{formatJsonForDisplay(detail.evidenceJson ?? "")}</code>
         </pre>
       </div>
       <div className={styles.metaItem}>
-        <span className={styles.metaLabel}>Meta (raw)</span>
+        <span className={styles.metaLabel}>추가 정보</span>
         <pre className={styles.rawCode}>
           <code>{formatJsonForDisplay(detail.metaJson ?? "")}</code>
         </pre>

@@ -90,7 +90,7 @@ export function useListAllWorkspaceWorkflows({
   } else if (detailQueries.find((q) => q.isError)) {
     error = "도메인팩 상세 조회 실패";
   } else if (workflowQueries.find((q) => q.isError)) {
-    error = "워크플로우 목록 조회 실패";
+    error = "응대 흐름 목록 조회 실패";
   }
 
   const entries: WorkspaceWorkflowEntry[] = [];

@@ -33,7 +33,7 @@ export function PolicyStatusToggle({
 
   return (
     <Switch
-      aria-label="정책 상태"
+      aria-label="응대 기준 상태"
       checked={currentStatus === "ACTIVE"}
       onCheckedChange={handleCheckedChange}
       disabled={disabled || isPending}

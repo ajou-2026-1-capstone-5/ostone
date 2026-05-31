@@ -50,7 +50,7 @@ describe("PolicyDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("정책을 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("응대 기준을 선택하세요.")).toBeInTheDocument();
   });
 
   it("ready 상태에서는 정책 상세와 수정 액션을 보여준다", () => {
@@ -61,7 +61,7 @@ describe("PolicyDetailPanel", () => {
     expect(screen.getByText("환불 정책")).toBeInTheDocument();
     expect(screen.getByText(/REFUND_REVIEW/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /POL_REFUND 정책 수정/ }));
+    fireEvent.click(screen.getByRole("button", { name: /POL_REFUND 응대 기준 수정/ }));
 
     expect(onEdit).toHaveBeenCalledWith(4);
   });
@@ -79,7 +79,7 @@ describe("PolicyDetailPanel", () => {
     expect(screen.getByText("상세 정보를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith(
-      "정책을 찾을 수 없습니다.",
+      "응대 기준을 찾을 수 없습니다.",
       expect.objectContaining({ id: expect.stringContaining("policy-detail-error") }),
     );
   });

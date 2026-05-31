@@ -47,7 +47,7 @@ describe("SlotDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("슬롯을 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("확인 항목을 선택하세요.")).toBeInTheDocument();
   });
 
   it("loading 상태에서는 스켈레톤을 보여준다", () => {
@@ -55,7 +55,7 @@ describe("SlotDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByLabelText("슬롯 상세")).toBeInTheDocument();
+    expect(screen.getByLabelText("확인 항목 상세")).toBeInTheDocument();
     expect(document.querySelector('[class*="skeleton"]')).toBeTruthy();
   });
 
@@ -67,14 +67,14 @@ describe("SlotDetailPanel", () => {
     expect(screen.getAllByText("SLOT_001").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("배송 주소")).toBeInTheDocument();
     expect(screen.getAllByText("STRING").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("NO")).toBeInTheDocument();
+    expect(screen.getByText("아니오")).toBeInTheDocument();
   });
 
   it("error 상태에서는 toast와 재시도 버튼을 보여준다", () => {
     mockedUseSlotDetail.mockReturnValue({
       status: "error",
       code: "SLOT_NOT_FOUND",
-      message: "슬롯을 찾을 수 없습니다.",
+      message: "확인 항목을 찾을 수 없습니다.",
       httpStatus: 404,
     });
 
@@ -84,7 +84,7 @@ describe("SlotDetailPanel", () => {
     expect(screen.getByText("SLOT_NOT_FOUND")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith(
-      "슬롯을 찾을 수 없습니다.",
+      "확인 항목을 찾을 수 없습니다.",
       expect.objectContaining({ id: expect.stringContaining("slot-detail-error") }),
     );
   });

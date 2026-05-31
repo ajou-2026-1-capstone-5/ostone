@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const slotEditSchema = z.object({
-  name: z.string().trim().min(1, "슬롯 이름은 필수입니다."),
+  name: z.string().trim().min(1, "확인 항목 이름은 필수입니다."),
   description: z.string().nullable().optional(),
   isSensitive: z.boolean().optional(),
   validationRuleJson: z.string().nullable().optional(),

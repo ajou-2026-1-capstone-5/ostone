@@ -178,7 +178,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
         <Mono style={{ color: "var(--ink-3)" }}>
           {status.kind === "success"
             ? `상담 ${status.conversationCount ?? "-"}건은 도메인팩 초안 1개 안에 반영됩니다.`
-            : ".json (consulting conversation array) · max 50MB"}
+            : ".json (상담 대화 배열) · 최대 50MB"}
         </Mono>
       </div>
 
@@ -201,8 +201,8 @@ export const Dropzone: React.FC<DropzoneProps> = ({ workspaceId }) => {
             marginBottom: "12px",
           }}
         >
-          <Eyebrow>schema preview</Eyebrow>
-          <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>6 fields</Mono>
+          <Eyebrow>파일 형식 미리보기</Eyebrow>
+          <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>6개 항목</Mono>
         </div>
 
         <div

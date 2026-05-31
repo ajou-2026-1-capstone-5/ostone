@@ -132,10 +132,10 @@ describe("ComponentCountGrid generated API integration", () => {
     );
   });
 
-  it("generated slot preview가 있으면 Slot 카드에서 편집 sheet를 연다", () => {
+  it("generated slot preview가 있으면 확인 항목 카드에서 편집 sheet를 연다", () => {
     renderGrid();
 
-    fireEvent.click(screen.getByRole("button", { name: /Slot/ }));
+    fireEvent.click(screen.getByRole("button", { name: /확인 항목/ }));
 
     expect(screen.getByRole("dialog")).toHaveTextContent("slot edit 11");
   });

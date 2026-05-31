@@ -43,7 +43,7 @@ export function useUpdatePolicy() {
               : item,
           ),
       );
-      toast.success("정책이 수정되었습니다.");
+      toast.success("응대 기준이 수정되었습니다.");
     },
     onError: (error: unknown) => {
       if (error instanceof ApiRequestError) {

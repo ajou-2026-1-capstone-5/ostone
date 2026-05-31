@@ -35,7 +35,7 @@ describe("riskEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("트리거 조건 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("감지 조건 JSON은 객체여야 합니다.");
     }
   });
 
@@ -47,7 +47,7 @@ describe("riskEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("처리 액션 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("응대 방법 JSON은 객체여야 합니다.");
     }
   });
 
@@ -71,7 +71,7 @@ describe("riskEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("메타 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("추가 정보 JSON은 객체여야 합니다.");
     }
   });
 });

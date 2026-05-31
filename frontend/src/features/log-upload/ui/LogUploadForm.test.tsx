@@ -68,7 +68,7 @@ describe("LogUploadForm", () => {
     const file = new File(["test"], "test.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(screen.getByText("Start Processing")).toBeInTheDocument();
+    expect(screen.getByText("처리 시작")).toBeInTheDocument();
     expect(screen.getByText("test.csv")).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe("LogUploadForm", () => {
     const file = new File(["data"], "data.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    fireEvent.click(screen.getByText("Start Processing"));
+    fireEvent.click(screen.getByText("처리 시작"));
     expect(mockMutate).toHaveBeenCalled();
   });
 
@@ -96,7 +96,7 @@ describe("LogUploadForm", () => {
     const file = new File(["data"], "data.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    const btn = screen.queryByText("Start Processing");
+    const btn = screen.queryByText("처리 시작");
     if (btn) fireEvent.click(btn);
     expect(mockMutate).not.toHaveBeenCalled();
   });
@@ -106,8 +106,8 @@ describe("LogUploadForm", () => {
     const file = new File(["data"], "data.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    fireEvent.click(screen.getByText("Start Processing"));
-    expect(screen.getByText("Upload Another File")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("처리 시작"));
+    expect(screen.getByText("다른 파일 업로드")).toBeInTheDocument();
     expect(screen.getByText("도메인팩 보기")).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe("LogUploadForm", () => {
     const file = new File(["data"], "data.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    fireEvent.click(screen.getByText("Start Processing"));
+    fireEvent.click(screen.getByText("처리 시작"));
     fireEvent.click(screen.getByText("도메인팩 보기"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
   });
@@ -126,11 +126,11 @@ describe("LogUploadForm", () => {
     const file = new File(["data"], "data.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    fireEvent.click(screen.getByText("Start Processing"));
-    expect(screen.getByText("Upload Another File")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Upload Another File"));
+    fireEvent.click(screen.getByText("처리 시작"));
+    expect(screen.getByText("다른 파일 업로드")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("다른 파일 업로드"));
     expect(mockReset).toHaveBeenCalled();
-    expect(screen.queryByText("Upload Another File")).not.toBeInTheDocument();
+    expect(screen.queryByText("다른 파일 업로드")).not.toBeInTheDocument();
     expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
   });
 });

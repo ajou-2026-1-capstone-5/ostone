@@ -30,7 +30,7 @@ describe("PolicyStatusToggle", () => {
       />,
     );
 
-    expect(screen.getByRole("switch", { name: "정책 상태" })).toBeChecked();
+    expect(screen.getByRole("switch", { name: "응대 기준 상태" })).toBeChecked();
   });
 
   it("상태 변경 시 update mutation을 호출한다", () => {
@@ -44,7 +44,7 @@ describe("PolicyStatusToggle", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("switch", { name: "정책 상태" }));
+    fireEvent.click(screen.getByRole("switch", { name: "응대 기준 상태" }));
 
     expect(mutate).toHaveBeenCalledWith({
       workspaceId: 1,

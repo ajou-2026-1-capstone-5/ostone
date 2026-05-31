@@ -75,7 +75,7 @@ describe("MatchedWorkflowSection", () => {
           versionId: 4,
           workflowId: 7,
           workflowCode: "wf.x",
-          name: "워크플로우",
+          name: "응대 흐름",
           description: "d",
           intentDefinitionId: 100,
         },
@@ -93,13 +93,13 @@ describe("MatchedWorkflowSection", () => {
     );
   });
 
-  it("count 가 loading 인 동안 loading 텍스트 노출", () => {
+  it("count 가 loading 인 동안 확인 중 텍스트 노출", () => {
     mockedHook.mockReturnValue({ loading: true, error: null, entries: [] });
     renderSection();
-    expect(screen.getByText(/loading/)).toBeInTheDocument();
+    expect(screen.getByText(/확인 중/)).toBeInTheDocument();
   });
 
-  it("count 가 ITEMS 형식으로 노출", () => {
+  it("count 가 개수 형식으로 노출", () => {
     mockedHook.mockReturnValue({
       loading: false,
       error: null,
@@ -117,6 +117,6 @@ describe("MatchedWorkflowSection", () => {
       ],
     });
     renderSection();
-    expect(screen.getByText("1 ITEMS")).toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
   });
 });

@@ -74,9 +74,9 @@ export const DatasetsTable: React.FC = () => {
             letterSpacing: "-0.01em",
           }}
         >
-          Datasets
+          상담 로그
         </h2>
-        <Eyebrow>&middot; 7 in CARD-CS workspace</Eyebrow>
+        <Eyebrow>&middot; CARD-CS 워크스페이스 7개</Eyebrow>
         <div style={{ flex: 1 }} />
         <Mono style={{ fontSize: 12, color: "var(--ink-3)" }}>14.2 GB</Mono>
       </div>
@@ -87,7 +87,7 @@ export const DatasetsTable: React.FC = () => {
           gridTemplateColumns: "2fr 0.9fr 1fr 1.4fr 0.9fr 0.9fr 32px",
         }}
       >
-        {["dataset", "size", "conversations", "stage", "quality", "uploaded", ""].map((h) => (
+        {["파일명", "크기", "상담 건수", "처리 단계", "품질", "업로드일", ""].map((h) => (
           <div
             key={h}
             style={{
@@ -144,7 +144,7 @@ export const DatasetsTable: React.FC = () => {
                 borderTop: "1px solid var(--line-2)",
               }}
             >
-              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>StagePips (T12)</Mono>
+              <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>처리 단계 12</Mono>
             </div>
             <div
               style={{
@@ -191,7 +191,7 @@ export const DatasetsTable: React.FC = () => {
                   justifyContent: "center",
                   color: "var(--ink-3)",
                 }}
-                aria-label="More options"
+                aria-label="추가 작업"
               >
                 <Icon name="dot3" size={14} />
               </button>

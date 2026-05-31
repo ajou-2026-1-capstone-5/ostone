@@ -50,7 +50,7 @@ export function IntentDetailPanel({
     if (state.status !== "error") return;
     const message =
       errorHttpStatus === 404
-        ? "intent를 찾을 수 없습니다."
+        ? "상담 유형을 찾을 수 없습니다."
         : errorMessage || "상세 정보를 불러오지 못했습니다.";
 
     toast.error(message, {
@@ -60,9 +60,9 @@ export function IntentDetailPanel({
 
   if (state.status === "idle") {
     return (
-      <section className={styles.panel} aria-label="intent 상세">
+      <section className={styles.panel} aria-label="상담 유형 상세">
         <div className={styles.placeholder}>
-          <span>좌측 목록에서 intent를 선택해 주세요.</span>
+          <span>좌측 목록에서 상담 유형을 선택해 주세요.</span>
         </div>
       </section>
     );
@@ -70,7 +70,7 @@ export function IntentDetailPanel({
 
   if (state.status === "loading") {
     return (
-      <section className={styles.panel} aria-label="intent 상세">
+      <section className={styles.panel} aria-label="상담 유형 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -80,7 +80,7 @@ export function IntentDetailPanel({
 
   if (state.status === "error") {
     return (
-      <section className={styles.panel} aria-label="intent 상세">
+      <section className={styles.panel} aria-label="상담 유형 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <span className={styles.errorCode}>{errorCode}</span>
@@ -90,25 +90,25 @@ export function IntentDetailPanel({
   }
 
   return (
-    <section className={styles.panel} aria-label="intent 상세">
+    <section className={styles.panel} aria-label="상담 유형 상세">
       <DetailHeader detail={state.data} actions={headerActions?.(state.data)} />
       {afterHeader?.(state.data)}
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
-            label="Status"
+            label="상태"
             value={<span className={styles.badge}>{state.data.status}</span>}
           />
           <InfoCard
-            label="Taxonomy Level"
+            label="분류 단계"
             value={<span className={styles.value}>LV {state.data.taxonomyLevel}</span>}
           />
           <InfoCard
-            label="Parent Intent"
+            label="상위 상담 유형"
             value={<span className={styles.value}>{parentIntentLabel}</span>}
           />
           <InfoCard
-            label="Created At"
+            label="생성일"
             value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
         </div>
@@ -144,7 +144,7 @@ function DetailHeader({ detail, actions }: { detail: IntentDetail; actions?: Rea
       <div className={styles.headerText}>
         <span className={styles.name}>{detail.name ?? ""}</span>
         {detail.description && <span className={styles.description}>{detail.description}</span>}
-        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+        <span className={styles.updatedAt}>수정일 · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
     </header>
   );
@@ -342,28 +342,28 @@ function buildClusterScope(raw: string): ClusterScopeView {
 
   if (clusterId) {
     items.push({
-      label: "Cluster",
+      label: "묶음",
       value: `#${clusterId}`,
       icon: <HashIcon size={16} />,
     });
   }
   if (clusterSize) {
     items.push({
-      label: "Cases",
+      label: "상담 건수",
       value: `${clusterSize}건`,
       icon: <FileTextIcon size={16} />,
     });
   }
   if (canonicalIntent) {
     items.push({
-      label: "Intent",
+      label: "상담 유형",
       value: canonicalIntent,
       icon: <LayersIcon size={16} />,
     });
   }
   if (segmentIds.length > 0) {
     items.push({
-      label: "Segments",
+      label: "상담 조각",
       value: `${segmentIds.length}개`,
       icon: <GitBranchIcon size={16} />,
     });

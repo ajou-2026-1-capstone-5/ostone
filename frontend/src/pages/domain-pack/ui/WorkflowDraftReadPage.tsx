@@ -116,7 +116,7 @@ export function WorkflowDraftReadPage() {
     (workflowId !== undefined && wfId === null)
   ) {
     return (
-      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
+      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
         <div role="alert" style={{ padding: "24px", color: "var(--danger)" }}>
           잘못된 URL 파라미터입니다.
         </div>
@@ -160,7 +160,7 @@ export function WorkflowDraftReadPage() {
 
       if (drafts.length !== 1 || drafts[0].versionId == null) {
         toast.error(
-          "진행 중인 Draft를 확인할 수 없습니다. Domain Pack 화면에서 상태를 확인해 주세요.",
+          "진행 중인 검토본을 확인할 수 없습니다. 도메인팩 화면에서 상태를 확인해 주세요.",
         );
         return;
       }
@@ -169,7 +169,7 @@ export function WorkflowDraftReadPage() {
       const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflowCode);
 
       if (draftWorkflowId == null) {
-        toast.error("기존 Draft에서 같은 워크플로우를 찾지 못했습니다.");
+        toast.error("기존 검토본에서 같은 응대 흐름을 찾지 못했습니다.");
         return;
       }
 
@@ -182,7 +182,7 @@ export function WorkflowDraftReadPage() {
       toast.error(
         resolveWorkflowActionErrorMessage(
           error,
-          "진행 중인 Draft를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          "진행 중인 검토본을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         ),
       );
     }
@@ -205,7 +205,7 @@ export function WorkflowDraftReadPage() {
     }
 
     if (!workflow.workflowCode) {
-      toast.error("워크플로우 코드를 확인할 수 없어 수정 초안을 만들 수 없습니다.");
+      toast.error("응대 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.");
       return;
     }
 
@@ -215,21 +215,21 @@ export function WorkflowDraftReadPage() {
       await packQuery.refetch();
       const draftWorkflowId = await findWorkflowIdByCode(draftVersionId, workflow.workflowCode);
       if (draftWorkflowId === null) {
-        toast.error("수정 초안에서 같은 워크플로우를 찾지 못했습니다.");
+        toast.error("수정 검토본에서 같은 응대 흐름을 찾지 못했습니다.");
         navigateToWorkflow(draftVersionId, null);
         return;
       }
       navigateToWorkflow(draftVersionId, draftWorkflowId);
       setIsEditing(true);
       setEditDirty(false);
-      toast.success("워크플로우 수정 초안이 생성되었습니다.");
+      toast.success("응대 흐름 수정 검토본이 생성되었습니다.");
     } catch (error) {
       if (error instanceof ApiRequestError && error.code === "DOMAIN_PACK_DRAFT_ALREADY_EXISTS") {
         await resolveExistingDraft(workflow.workflowCode);
         return;
       }
       toast.error(
-        resolveWorkflowActionErrorMessage(error, "워크플로우 수정 초안 생성에 실패했습니다."),
+        resolveWorkflowActionErrorMessage(error, "응대 흐름 수정 검토본 생성에 실패했습니다."),
       );
     } finally {
       setCreatingDraft(false);
@@ -257,7 +257,7 @@ export function WorkflowDraftReadPage() {
     vId: vId!,
     packName,
     versionNo,
-    section: { label: "WORKFLOWS", path: "workflows" },
+    section: { label: "응대 흐름", path: "workflows" },
     selectedLabel: workflow?.workflowCode ?? (wfId !== null ? `#${wfId}` : null),
   });
 
@@ -283,7 +283,7 @@ export function WorkflowDraftReadPage() {
   } else {
     graphContent = (
       <div data-testid="workflow-empty-graph" style={{ padding: "32px" }}>
-        <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
+        <EmptyState message="이 응대 흐름에는 아직 흐름도가 정의되어 있지 않습니다." />
       </div>
     );
   }
@@ -295,15 +295,17 @@ export function WorkflowDraftReadPage() {
           <div className={styles.titleGroup}>
             <div className={styles.titleStack}>
               <h2 data-testid="workflow-detail-title" className={styles.detailTitle}>
-                {workflow?.name || (query.isLoading ? "워크플로우 로드 중..." : "워크플로우")}
+                {workflow?.name || (query.isLoading ? "응대 흐름 로드 중..." : "응대 흐름")}
               </h2>
               {workflow?.description && (
                 <p className={styles.detailDescription}>{workflow.description}</p>
               )}
             </div>
-            {workflow && lifecycleStatus && <Pill tone="signal">{lifecycleStatus}</Pill>}
-            {workflow && isEditing && <Pill tone="ink">EDITING</Pill>}
-            {workflow && <Mono className={styles.nodeCount}>{nodeCount} nodes</Mono>}
+            {workflow && lifecycleStatus && (
+              <Pill tone="signal">{formatLifecycleStatus(lifecycleStatus)}</Pill>
+            )}
+            {workflow && isEditing && <Pill tone="ink">수정 중</Pill>}
+            {workflow && <Mono className={styles.nodeCount}>노드 {nodeCount}개</Mono>}
           </div>
 
           <div className={styles.headerActions}>
@@ -337,21 +339,21 @@ export function WorkflowDraftReadPage() {
         <div className={styles.canvasFrame} data-editing={isEditing ? "true" : "false"}>
           {!enabled && (
             <div data-testid="workflow-select-empty" className={styles.centerState}>
-              좌측 사이드바에서 워크플로우를 선택하세요.
+              좌측 사이드바에서 응대 흐름을 선택하세요.
             </div>
           )}
 
           {enabled && query.isLoading && (
             <div data-testid="workflow-loading" className={styles.loadingState}>
               <LoadingSpinner />
-              <Mono className={styles.loadingText}>워크플로우 로드 중...</Mono>
+              <Mono className={styles.loadingText}>응대 흐름 로드 중...</Mono>
             </div>
           )}
 
           {enabled && query.isError && (
             <div data-testid="workflow-error" className={styles.errorState}>
               <ErrorState
-                message="워크플로우를 불러오지 못했습니다."
+                message="응대 흐름을 불러오지 못했습니다."
                 onRetry={() => query.refetch()}
               />
             </div>
@@ -388,17 +390,17 @@ export function WorkflowDraftReadPage() {
         }}
       >
         <AlertDialogContent size="sm">
-          <AlertDialogTitle>진행 중인 Draft가 있습니다</AlertDialogTitle>
+          <AlertDialogTitle>진행 중인 검토본이 있습니다</AlertDialogTitle>
           <AlertDialogDescription>
-            새 Draft를 만들 수 없습니다. 기존 Draft에서 계속 편집하거나, Domain Pack 화면에서
-            Draft를 적용 또는 폐기한 뒤 다시 시도하세요.
+            새 검토본을 만들 수 없습니다. 기존 검토본에서 계속 편집하거나, 도메인팩 화면에서
+            검토본을 적용 또는 폐기한 뒤 다시 시도하세요.
           </AlertDialogDescription>
           <AlertDialogFooter>
             <Button type="button" variant="outline" onClick={() => setExistingDraftTarget(null)}>
               취소
             </Button>
             <Button type="button" onClick={confirmExistingDraftNavigation}>
-              기존 Draft로 이동
+              기존 검토본으로 이동
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -411,6 +413,12 @@ function readWorkflowReturnTo(state: unknown): string | null {
   if (typeof state !== "object" || state === null) return null;
   const value = (state as { workflowReturnTo?: unknown }).workflowReturnTo;
   return typeof value === "string" && value.startsWith("/") ? value : null;
+}
+
+function formatLifecycleStatus(status: string): string {
+  if (status === "PUBLISHED") return "운영 가능";
+  if (status === "DRAFT") return "검토 중";
+  return status;
 }
 
 function resolveWorkflowActionErrorMessage(error: unknown, fallback: string): string {

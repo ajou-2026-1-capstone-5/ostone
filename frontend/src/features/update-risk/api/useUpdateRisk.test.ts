@@ -71,7 +71,7 @@ describe("useUpdateRisk", () => {
       });
     });
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("위험요소가 수정되었습니다."));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("주의 사항이 수정되었습니다."));
   });
 
   it("수정 응답 data가 없으면 성공 처리하지 않고 실패 메시지를 표시한다", async () => {

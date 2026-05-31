@@ -41,19 +41,19 @@ export function ComponentCountGrid({
   const workflowPreview = useWorkflowPreview(wsId, packId, versionId);
 
   useEffect(() => {
-    if (intentPreview.isError) toast.error("Intent 미리보기 로드 실패");
+    if (intentPreview.isError) toast.error("상담 유형 미리보기를 불러오지 못했습니다.");
   }, [intentPreview.isError]);
 
   useEffect(() => {
-    if (slotPreview.isError) toast.error("Slot 미리보기 로드 실패");
+    if (slotPreview.isError) toast.error("확인 항목 미리보기를 불러오지 못했습니다.");
   }, [slotPreview.isError]);
 
   useEffect(() => {
-    if (policyPreview.isError) toast.error("Policy 미리보기 로드 실패");
+    if (policyPreview.isError) toast.error("응대 기준 미리보기를 불러오지 못했습니다.");
   }, [policyPreview.isError]);
 
   useEffect(() => {
-    if (workflowPreview.isError) toast.error("Workflow 미리보기 로드 실패");
+    if (workflowPreview.isError) toast.error("응대 흐름 미리보기를 불러오지 못했습니다.");
   }, [workflowPreview.isError]);
 
   const firstSlotId = slotPreview.data?.[0]?.id;
@@ -62,7 +62,7 @@ export function ComponentCountGrid({
     <>
       <div className={styles.grid}>
         <CountCard
-          label="Intent"
+          label="상담 유형"
           count={intentCount}
           disabled={false}
           onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
@@ -70,16 +70,16 @@ export function ComponentCountGrid({
           isLoadingPreview={intentPreview.isLoading}
         />
         <CountCard
-          label="Slot"
+          label="확인 항목"
           count={slotCount}
           disabled={firstSlotId === undefined}
-          tooltip="수정할 Slot이 없습니다"
+          tooltip="수정할 확인 항목이 없습니다"
           onNavigate={() => setSlotEditOpen(true)}
           previewNames={slotPreview.data?.map((s) => s.name) as string[]}
           isLoadingPreview={slotPreview.isLoading}
         />
         <CountCard
-          label="Policy"
+          label="응대 기준"
           count={policyCount}
           disabled={false}
           onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
@@ -87,7 +87,7 @@ export function ComponentCountGrid({
           isLoadingPreview={policyPreview.isLoading}
         />
         <CountCard
-          label="Workflow"
+          label="응대 흐름"
           count={workflowCount}
           disabled={false}
           onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}

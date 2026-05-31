@@ -35,8 +35,8 @@ export function PolicyDetailPanel({
     if (state.status !== "error") return;
     const message =
       errorHttpStatus === 404
-        ? "정책을 찾을 수 없습니다."
-        : errorMessage || "정책 상세 정보를 불러오지 못했습니다.";
+        ? "응대 기준을 찾을 수 없습니다."
+        : errorMessage || "응대 기준 상세 정보를 불러오지 못했습니다.";
 
     toast.error(message, {
       id: `policy-detail-error-${workspaceId}-${packId}-${versionId}-${policyId ?? "none"}-${errorCode ?? errorHttpStatus ?? "unknown"}`,
@@ -54,9 +54,9 @@ export function PolicyDetailPanel({
 
   if (state.status === "idle") {
     return (
-      <section className={styles.panel} aria-label="정책 상세">
+      <section className={styles.panel} aria-label="응대 기준 상세">
         <div className={styles.placeholder}>
-          <span>정책을 선택하세요.</span>
+          <span>응대 기준을 선택하세요.</span>
         </div>
       </section>
     );
@@ -64,7 +64,7 @@ export function PolicyDetailPanel({
 
   if (state.status === "loading") {
     return (
-      <section className={styles.panel} aria-label="정책 상세">
+      <section className={styles.panel} aria-label="응대 기준 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -74,10 +74,10 @@ export function PolicyDetailPanel({
 
   if (state.status === "error") {
     return (
-      <section className={styles.panel} aria-label="정책 상세">
+      <section className={styles.panel} aria-label="응대 기준 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
-          <span>{errorHttpStatus === 404 ? "정책을 찾을 수 없습니다." : errorMessage}</span>
+          <span>{errorHttpStatus === 404 ? "응대 기준을 찾을 수 없습니다." : errorMessage}</span>
           <span className={styles.errorCode}>{errorCode}</span>
           <button
             type="button"
@@ -92,47 +92,47 @@ export function PolicyDetailPanel({
   }
 
   const jsonFields: PolicyJsonField[] = [
-    { label: "Condition", value: state.data.conditionJson ?? "" },
-    { label: "Action", value: state.data.actionJson ?? "" },
-    { label: "Evidence", value: state.data.evidenceJson ?? "" },
-    { label: "Meta", value: state.data.metaJson ?? "" },
+    { label: "적용 조건", value: state.data.conditionJson ?? "" },
+    { label: "응대 방법", value: state.data.actionJson ?? "" },
+    { label: "근거 로그", value: state.data.evidenceJson ?? "" },
+    { label: "추가 정보", value: state.data.metaJson ?? "" },
   ];
 
   return (
-    <section className={styles.panel} aria-label="정책 상세">
+    <section className={styles.panel} aria-label="응대 기준 상세">
       <DetailHeader detail={state.data} onEdit={() => onEdit(state.data.id!)} />
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
-            label="Policy Code"
+            label="기준 코드"
             value={<span className={styles.value}>{state.data.policyCode}</span>}
           />
           <InfoCard
-            label="Severity"
-            value={<span className={styles.value}>{state.data.severity ?? "—"}</span>}
+            label="중요도"
+            value={<span className={styles.value}>{formatSeverity(state.data.severity)}</span>}
           />
           <InfoCard
-            label="Status"
+            label="상태"
             value={
               <span
                 className={`${styles.badge} ${
                   state.data.status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive
                 }`}
               >
-                {state.data.status === "ACTIVE" ? "● ACTIVE" : "○ INACTIVE"}
+                {formatStatus(state.data.status)}
               </span>
             }
           />
           <InfoCard
-            label="Version Id"
+            label="버전 ID"
             value={<span className={styles.value}>{state.data.domainPackVersionId}</span>}
           />
           <InfoCard
-            label="Created At"
+            label="생성일"
             value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
           <InfoCard
-            label="Updated At"
+            label="수정일"
             value={<span className={styles.value}>{formatDate(state.data.updatedAt ?? "")}</span>}
           />
         </div>
@@ -157,19 +157,34 @@ function DetailHeader({
         <span className={styles.code}>{detail.policyCode}</span>
         <span className={styles.name}>{detail.name ?? ""}</span>
         {detail.description && <span className={styles.description}>{detail.description}</span>}
-        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+        <span className={styles.updatedAt}>수정일 · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
       <button
         type="button"
         className={styles.editButton}
         onClick={onEdit}
-        aria-label={`${detail.policyCode} 정책 수정`}
+        aria-label={`${detail.policyCode} 응대 기준 수정`}
       >
         <PencilIcon aria-hidden="true" />
         <span>수정</span>
       </button>
     </header>
   );
+}
+
+function formatStatus(status: PolicyDefinition["status"]): string {
+  return status === "ACTIVE" ? "사용중" : "사용 안 함";
+}
+
+function formatSeverity(severity: PolicyDefinition["severity"]): string {
+  if (!severity) return "—";
+  const labels: Record<string, string> = {
+    LOW: "낮음",
+    MEDIUM: "보통",
+    HIGH: "높음",
+    CRITICAL: "긴급",
+  };
+  return labels[severity] ?? severity;
 }
 
 function InfoCard({ label, value }: Readonly<{ label: string; value: ReactNode }>) {

@@ -94,14 +94,14 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
             <span className={styles.fileName}>{file.name}</span>
             <span className={styles.fileSize}>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
           </div>
-          <Button onClick={() => handleUpload(file)}>Start Processing</Button>
+          <Button onClick={() => handleUpload(file)}>처리 시작</Button>
         </div>
       )}
 
       {status === "success" && (
         <div className={styles.successActions}>
           <Button variant="secondary" onClick={handleReset}>
-            Upload Another File
+            다른 파일 업로드
           </Button>
           <Button onClick={() => navigate(domainPacksPath)}>도메인팩 보기</Button>
         </div>

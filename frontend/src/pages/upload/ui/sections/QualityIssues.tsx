@@ -12,26 +12,26 @@ const ISSUES: Issue[] = [
   {
     severity: "high",
     id: "intent_023",
-    convs: "12 convs",
-    description: "Overlapping with intent_019",
+    convs: "상담 12건",
+    description: "상담 유형 intent_019와 범위가 겹칩니다",
   },
   {
     severity: "high",
     id: "slot_007",
-    convs: "8 convs",
-    description: "Missing required slot: amount",
+    convs: "상담 8건",
+    description: "필수 확인 항목 amount가 빠져 있습니다",
   },
   {
     severity: "medium",
     id: "policy_004",
-    convs: "3 convs",
-    description: "Circular policy reference",
+    convs: "상담 3건",
+    description: "응대 기준이 서로 순환 참조됩니다",
   },
   {
     severity: "medium",
     id: "risk_001",
-    convs: "2 convs",
-    description: "Risk threshold too strict",
+    convs: "상담 2건",
+    description: "주의 사항 감지 기준이 너무 엄격합니다",
   },
 ];
 
@@ -53,8 +53,8 @@ export const QualityIssues: React.FC = () => {
           marginBottom: "16px",
         }}
       >
-        <Eyebrow>Quality issues</Eyebrow>
-        <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>4 issues</Mono>
+        <Eyebrow>품질 점검 필요 항목</Eyebrow>
+        <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>4건</Mono>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -70,7 +70,9 @@ export const QualityIssues: React.FC = () => {
               borderRadius: "var(--r-2)",
             }}
           >
-            <Pill tone={issue.severity === "high" ? "danger" : "warn"}>{issue.severity}</Pill>
+            <Pill tone={issue.severity === "high" ? "danger" : "warn"}>
+              {issue.severity === "high" ? "높음" : "보통"}
+            </Pill>
             <Mono style={{ fontSize: 11, color: "var(--ink)" }}>{issue.id}</Mono>
             <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{issue.convs}</Mono>
             <span

@@ -37,14 +37,14 @@ export function PolicyEditPanel({
   });
 
   return (
-    <section className={styles.panel} aria-label="정책 수정">
+    <section className={styles.panel} aria-label="응대 기준 수정">
       <header className={styles.header}>
         <div className={styles.headerText}>
-          <span className={styles.eyebrow}>EDIT POLICY</span>
+          <span className={styles.eyebrow}>응대 기준 수정</span>
           <h2 className={styles.title}>
-            {policy ? `${policy.policyCode} · ${policy.name}` : "정책 수정"}
+            {policy ? `${policy.policyCode} · ${policy.name}` : "응대 기준 수정"}
           </h2>
-          <p className={styles.description}>정책 필드와 상태를 수정합니다.</p>
+          <p className={styles.description}>응대 기준 필드와 상태를 수정합니다.</p>
         </div>
         <button
           type="button"

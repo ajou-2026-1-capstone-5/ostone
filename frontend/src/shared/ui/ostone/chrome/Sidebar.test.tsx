@@ -23,13 +23,13 @@ describe("Sidebar", () => {
     const nav = screen.getByLabelText("주요 내비게이션");
     expect(nav).toHaveAttribute("data-collapsed", "false");
     expect(nav).toHaveStyle({ width: "200px" });
-    expect(screen.getByTitle("Consultation")).toBeInTheDocument();
-    expect(screen.getByTitle("Chat")).toBeInTheDocument();
-    expect(screen.getByTitle("Uploads")).toBeInTheDocument();
-    expect(screen.getByTitle("Domain Packs")).toBeInTheDocument();
-    expect(screen.getByText("Consultation")).toBeInTheDocument();
-    expect(screen.getByText("Chat")).toBeInTheDocument();
-    expect(screen.getByText("Uploads")).toBeInTheDocument();
+    expect(screen.getByTitle("상담 응대")).toBeInTheDocument();
+    expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
+    expect(screen.getByTitle("상담 로그 수집")).toBeInTheDocument();
+    expect(screen.getByTitle("도메인팩 관리")).toBeInTheDocument();
+    expect(screen.getByText("상담 응대")).toBeInTheDocument();
+    expect(screen.getByText("사용자 화면 미리보기")).toBeInTheDocument();
+    expect(screen.getByText("상담 로그 수집")).toBeInTheDocument();
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
   });
 
@@ -71,23 +71,29 @@ describe("Sidebar", () => {
   it("active=consult일 때 Consultation 항목이 강조된다", () => {
     renderSidebar({ active: "consult" });
 
-    expect(screen.getByTitle("Consultation")).toHaveAttribute("data-active", "true");
+    expect(screen.getByTitle("상담 응대")).toHaveAttribute("data-active", "true");
   });
 
   it("basePath prop을 지정하면 링크에 반영된다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
-    expect(screen.getByTitle("Consultation")).toHaveAttribute("href", "/workspaces/7/consultation");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/demo/workspaces/7/chat");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("target", "_blank");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("rel", "noopener noreferrer");
-    expect(screen.getByTitle("Domain Packs")).toHaveAttribute("href", "/workspaces/7/domain-packs");
+    expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "href",
+      "/demo/workspaces/7/chat",
+    );
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
+    expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute("href", "/workspaces/7/domain-packs");
   });
 
   it("workspaceId를 추출할 수 없으면 Chat 링크를 안전한 내부 경로로 보낸다", () => {
     renderSidebar({ basePath: "/workspaces" });
 
-    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/workspaces");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/workspaces");
   });
 
   it("switcher가 주어지면 렌더링된다", () => {
@@ -98,7 +104,7 @@ describe("Sidebar", () => {
 
   it("inactive 항목에 mouseEnter/Leave 시 배경이 토글된다", () => {
     renderSidebar({ active: "consult" });
-    const link = screen.getByTitle("Uploads") as HTMLElement;
+    const link = screen.getByTitle("상담 로그 수집") as HTMLElement;
 
     fireEvent.mouseEnter(link);
     expect(link.style.background).toBe("var(--paper-3)");
@@ -109,8 +115,8 @@ describe("Sidebar", () => {
   it("redesign: active 링크는 fontWeight 540, idle은 450 으로 그려진다", () => {
     renderSidebar({ active: "consult" });
 
-    const activeLink = screen.getByTitle("Consultation") as HTMLElement;
-    const idleLink = screen.getByTitle("Uploads") as HTMLElement;
+    const activeLink = screen.getByTitle("상담 응대") as HTMLElement;
+    const idleLink = screen.getByTitle("상담 로그 수집") as HTMLElement;
 
     expect(activeLink.style.fontWeight).toBe("540");
     expect(idleLink.style.fontWeight).toBe("450");
@@ -119,7 +125,7 @@ describe("Sidebar", () => {
   it("redesign: 모든 링크는 13.5px / letter-spacing -0.18px / Pretendard 변수 폰트를 사용한다", () => {
     renderSidebar({ active: "consult" });
 
-    const link = screen.getByTitle("Consultation") as HTMLElement;
+    const link = screen.getByTitle("상담 응대") as HTMLElement;
     expect(link.style.fontSize).toBe("13.5px");
     expect(link.style.letterSpacing).toBe("-0.18px");
     expect(link.style.fontFamily).toBe("var(--font-sans)");

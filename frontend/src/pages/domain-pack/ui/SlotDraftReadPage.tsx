@@ -31,7 +31,7 @@ export function SlotDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || (slotId !== undefined && sId === null)) {
     return (
-      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
+      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
@@ -56,11 +56,11 @@ export function SlotDraftReadPage() {
     vId,
     packName,
     versionNo,
-    section: { label: "SLOTS", path: "slots" },
+    section: { label: "확인 항목", path: "slots" },
     selectedLabel: sId !== null ? `#${sId}` : null,
   });
 
-  const topbarRight = <Pill tone="mute">READ ONLY</Pill>;
+  const topbarRight = <Pill tone="mute">읽기 전용</Pill>;
 
   return (
     <OstoneShell active="slot" crumbs={crumbs} topbarRight={topbarRight}>

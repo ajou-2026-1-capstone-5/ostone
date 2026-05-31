@@ -43,7 +43,7 @@ export function WorkflowGraphViewerPage() {
       try {
         return JSON.parse(rawGraph) as WorkflowGraph;
       } catch {
-        console.error("워크플로우 그래프 JSON 파싱 실패:", rawGraph);
+        console.error("응대 흐름도 JSON 파싱 실패:", rawGraph);
         return null;
       }
     }
@@ -52,7 +52,7 @@ export function WorkflowGraphViewerPage() {
 
   useEffect(() => {
     if (error) {
-      toast.error("워크플로우 데이터를 불러오지 못했습니다.");
+      toast.error("응대 흐름 데이터를 불러오지 못했습니다.");
     }
   }, [error]);
 
@@ -64,16 +64,16 @@ export function WorkflowGraphViewerPage() {
           vId: vsId,
           packName,
           versionNo,
-          section: { label: "WORKFLOWS", path: "workflows" },
-          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId} GRAPH` : "GRAPH"),
+          section: { label: "응대 흐름", path: "workflows" },
+          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId} 흐름도` : "흐름도"),
         })
-      : ["Domain Packs", "Workflow Graph"];
+      : ["도메인팩 관리", "응대 흐름도"];
 
   if (isLoading) {
     return (
       <OstoneShell active="domain" crumbs={crumbs}>
         <div data-testid="loading-state" className={styles.loadingState}>
-          워크플로우 데이터를 불러오는 중...
+          응대 흐름 데이터를 불러오는 중...
         </div>
       </OstoneShell>
     );
@@ -94,7 +94,7 @@ export function WorkflowGraphViewerPage() {
     return (
       <OstoneShell active="domain" crumbs={crumbs}>
         <div data-testid="empty-state" className={styles.emptyState}>
-          표시할 워크플로우 그래프가 없습니다.
+          표시할 응대 흐름도가 없습니다.
         </div>
       </OstoneShell>
     );

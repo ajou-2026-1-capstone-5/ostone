@@ -44,8 +44,10 @@ export function PolicyEditSheet({
     >
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader className="px-4 pt-4">
-          <SheetTitle>{policy ? `${policy.policyCode} · ${policy.name}` : "정책 수정"}</SheetTitle>
-          <SheetDescription>정책 필드와 상태를 수정합니다.</SheetDescription>
+          <SheetTitle>
+            {policy ? `${policy.policyCode} · ${policy.name}` : "응대 기준 수정"}
+          </SheetTitle>
+          <SheetDescription>응대 기준 필드와 상태를 수정합니다.</SheetDescription>
         </SheetHeader>
 
         {isLoading && (

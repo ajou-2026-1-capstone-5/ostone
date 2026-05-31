@@ -77,9 +77,9 @@ describe("MessageDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByText("반품 정책")).toBeInTheDocument();
-    expect(screen.getByText("환불 정책")).toBeInTheDocument();
-    expect(screen.getByText("교환 정책")).toBeInTheDocument();
+    expect(screen.getByText("반품 응대 기준")).toBeInTheDocument();
+    expect(screen.getByText("환불 응대 기준")).toBeInTheDocument();
+    expect(screen.getByText("교환 응대 기준")).toBeInTheDocument();
   });
 
   /* ─── Test 5: Risk tags ─── */

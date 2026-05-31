@@ -341,8 +341,10 @@ describe("DomainPackSummaryPage", () => {
     );
     expect(packRefetch).toHaveBeenCalled();
     expect(versionRefetch).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith("Draft 버전이 적용되었습니다.");
-    expect(toast.error).not.toHaveBeenCalledWith("Draft 버전을 적용하지 못했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "검토 중인 버전이 운영 버전으로 적용되었습니다.",
+    );
+    expect(toast.error).not.toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
   });
 
   it("Draft 삭제 버튼 클릭 시 discard mutation을 호출한다", () => {
@@ -410,14 +412,14 @@ describe("DomainPackSummaryPage", () => {
     expect(screen.getByTestId("current-version-id")).toHaveTextContent("none");
   });
 
-  it('"새 DRAFT 묶기" 버튼을 표시하지 않는다', () => {
+  it('"새 검토본 묶기" 버튼을 표시하지 않는다', () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: { packId: 2, name: "CS Pack", code: "CS", versions: [] },
       }),
     );
     renderPage();
-    expect(screen.queryByRole("button", { name: "새 DRAFT 묶기" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "새 검토본 묶기" })).not.toBeInTheDocument();
   });
 
   it("packDetail 로딩 중 LoadingSpinner를 표시한다", () => {

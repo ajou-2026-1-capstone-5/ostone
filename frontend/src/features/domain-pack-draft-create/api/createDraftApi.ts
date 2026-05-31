@@ -16,7 +16,7 @@ export const createDraftApi = {
     const response = await createDraft(wsId, packId, payload);
     return requireApiData<CreateDomainPackDraftResponse>(
       response,
-      "DRAFT 생성 응답을 확인할 수 없습니다.",
+      "검토본 생성 응답을 확인할 수 없습니다.",
     );
   },
 };

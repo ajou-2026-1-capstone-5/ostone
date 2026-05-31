@@ -12,42 +12,42 @@ interface StageInfo {
 const STAGES: StageInfo[] = [
   {
     id: "ingestion",
-    name: "ingestion",
-    description: "Read and validate raw conversation logs",
+    name: "로그 접수",
+    description: "상담 로그를 읽고 파일 형식을 확인합니다",
     status: "completed",
     duration: "1m 12s",
   },
   {
     id: "preprocessing",
-    name: "preprocessing",
-    description: "Remove boilerplate, canonical text, PII mask",
+    name: "개인정보 정리",
+    description: "반복 문구를 정리하고 개인정보를 마스킹합니다",
     status: "completed",
     duration: "4m 08s",
   },
   {
     id: "intent-discovery",
-    name: "intent-discovery",
-    description: "Semantic embedding + graph clustering",
+    name: "상담 유형 묶기",
+    description: "비슷한 상담을 묶어 상담 유형 후보를 찾습니다",
     status: "running",
     duration: "6m 34s",
     progress: 78,
   },
   {
     id: "draft-generation",
-    name: "draft-generation",
-    description: "Generate slot, policy, risk, workflow drafts",
+    name: "초안 생성",
+    description: "확인 항목, 응대 기준, 주의 사항, 응대 흐름 초안을 만듭니다",
     status: "pending",
   },
   {
     id: "evaluation",
-    name: "evaluation",
-    description: "K@1, mapping rate, separability scoring",
+    name: "품질 점검",
+    description: "유형 매칭률과 응대 흐름 구분도를 점검합니다",
     status: "pending",
   },
   {
     id: "publish-candidate",
-    name: "publish-candidate",
-    description: "Produce final artifact and notify backend",
+    name: "검토본 준비",
+    description: "상담사가 검토할 도메인팩 초안을 준비합니다",
     status: "pending",
   },
 ];
@@ -71,7 +71,7 @@ export function ActiveRunTimeline({ stages }: ActiveRunTimelineProps) {
   const displayStages: StageInfo[] = stages
     ? stages.map((s, i) => ({
         id: s.name,
-        name: s.name,
+        name: formatStageName(s.name),
         description: STAGES[i]?.description ?? "",
         status: normalizeStatus(s.status),
         duration: s.duration,
@@ -202,4 +202,16 @@ export function ActiveRunTimeline({ stages }: ActiveRunTimelineProps) {
 
 function isPending(status: StageInfo["status"]): boolean {
   return status === "pending";
+}
+
+function formatStageName(name: string): string {
+  const labels: Record<string, string> = {
+    ingestion: "로그 접수",
+    preprocessing: "개인정보 정리",
+    "intent-discovery": "상담 유형 묶기",
+    "draft-generation": "초안 생성",
+    evaluation: "품질 점검",
+    "publish-candidate": "검토본 준비",
+  };
+  return labels[name] ?? name;
 }

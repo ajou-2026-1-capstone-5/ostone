@@ -48,10 +48,10 @@ describe("RiskDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("위험요소를 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("주의 사항을 선택하세요.")).toBeInTheDocument();
   });
 
-  it("ready 상태에서는 위험요소 상세와 JSON 필드를 보여준다", () => {
+  it("ready 상태에서는 주의 사항 상세와 JSON 필드를 보여준다", () => {
     mockedUseRiskDetail.mockReturnValue({ status: "ready", data: stubRisk });
 
     renderPanel();
@@ -59,15 +59,15 @@ describe("RiskDetailPanel", () => {
     expect(screen.getAllByText("RISK_FRAUD")).toHaveLength(2);
     expect(screen.getByText("사기 위험")).toBeInTheDocument();
     expect(screen.getByText(/MANUAL_REVIEW/)).toBeInTheDocument();
-    expect(screen.getByText("Trigger Condition")).toBeInTheDocument();
-    expect(screen.getByText("Handling Action")).toBeInTheDocument();
+    expect(screen.getByText("감지 조건")).toBeInTheDocument();
+    expect(screen.getByText("응대 방법")).toBeInTheDocument();
   });
 
   it("수정 버튼을 누르면 onEdit에 riskId를 전달한다", () => {
     mockedUseRiskDetail.mockReturnValue({ status: "ready", data: stubRisk });
     const { onEdit } = renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "RISK_FRAUD 위험요소 수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "RISK_FRAUD 주의 사항 수정" }));
 
     expect(onEdit).toHaveBeenCalledWith(4);
   });
@@ -85,7 +85,7 @@ describe("RiskDetailPanel", () => {
     expect(screen.getByText("상세 정보를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith(
-      "위험요소를 찾을 수 없습니다.",
+      "주의 사항을 찾을 수 없습니다.",
       expect.objectContaining({ id: expect.stringContaining("risk-detail-error") }),
     );
   });

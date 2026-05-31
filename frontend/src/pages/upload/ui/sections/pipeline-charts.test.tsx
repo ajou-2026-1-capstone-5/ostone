@@ -9,7 +9,7 @@ describe("ActiveRunTimeline", () => {
   it("renders 6 stage rows", () => {
     render(<ActiveRunTimeline />);
     const rows = screen.getAllByText(
-      /ingestion|preprocessing|intent-discovery|draft-generation|evaluation|publish-candidate/,
+      /로그 접수|개인정보 정리|상담 유형 묶기|초안 생성|품질 점검|검토본 준비/,
     );
     expect(rows.length).toBe(6);
   });
