@@ -363,6 +363,33 @@
   overflow: hidden;
 }
 
+.urlSessionState {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.urlSessionTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.urlSessionText {
+  max-width: 360px;
+  margin: 8px 0 0;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .detailPane {
   display: flex;
   flex: 0 0 320px;

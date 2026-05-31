@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import "@testing-library/jest-dom/vitest";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
@@ -85,9 +85,9 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
       ]),
     ),
     updateStatus: vi.fn(() => Promise.resolve({})),
-    assignSession: vi.fn((_sessionId: number, counselorId: number) =>
+    assignSession: vi.fn((sessionId: number, counselorId: number) =>
       Promise.resolve({
-        id: 1,
+        id: sessionId,
         status: "ACTIVE",
         channel: "카카오톡",
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
@@ -154,6 +154,25 @@ vi.mock("@/shared/lib/websocket", () => ({
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
+
+function createRoutedWrapper(initialPath: string) {
+  return function RoutedWrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <MemoryRouter initialEntries={[initialPath]}>
+        <LocationProbe />
+        <Routes>
+          <Route path="/workspaces/:workspaceId/consultation" element={children} />
+          <Route path="/workspaces/:workspaceId/consultation/:sessionId" element={children} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
 }
 
 function saveTestUser(id: number) {
@@ -286,6 +305,93 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("상담 큐")).toBeInTheDocument();
     expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
+  });
+
+  it("selects the route session and restores messages when opening a session URL directly", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/1"),
+    });
+
+    await waitFor(() => {
+      expect(consultationApi.getMessages).toHaveBeenCalledWith(1);
+    });
+    expect(screen.getByText("김민지 고객")).toBeInTheDocument();
+    expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+    expect(consultationApi.assignSession).toHaveBeenCalledWith(1, 7);
+  });
+
+  it("updates the browser URL when a queue session is selected", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/2/consultation/1");
+    });
+  });
+
+  it("shows an unavailable state for an inaccessible route session without loading messages", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/999"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+    });
+    expect(consultationApi.getMessages).not.toHaveBeenCalledWith(999);
+  });
+
+  it("treats non-numeric route session IDs as unavailable without loading messages", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/abc"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+    });
+    expect(consultationApi.getMessages).not.toHaveBeenCalled();
+  });
+
+  it("selects a route session when it arrives later through the queue websocket", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([]);
+
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/9"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 9,
+          status: "OPEN",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "박지훈", handoffReason: "배송 문의" }),
+          startedAt: new Date().toISOString(),
+          assignedCounselorId: 7,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("요청한 상담 세션을 찾을 수 없습니다")).not.toBeInTheDocument();
+      expect(screen.getByText("박지훈 고객")).toBeInTheDocument();
+      expect(consultationApi.getMessages).toHaveBeenCalledWith(9);
+    });
   });
 
   describe("MatchedWorkflowBar integration", () => {

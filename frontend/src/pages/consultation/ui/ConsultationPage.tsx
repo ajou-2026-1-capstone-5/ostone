@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Dot, Mono, Avatar } from "@/shared/ui/ostone/atoms";
@@ -430,6 +430,18 @@ const StatusRight = ({
 export const ConsultationPage: React.FC = () => {
   const { setTopbarRight, setCrumbs, workspace } = useOutletContext<ShellContext>();
   const workspaceId = typeof workspace?.id === "number" ? workspace.id : null;
+  const { workspaceId: workspaceIdParam, sessionId: routeSessionIdParam } = useParams<{
+    workspaceId?: string;
+    sessionId?: string;
+  }>();
+  const navigate = useNavigate();
+  const workspacePathId = workspaceIdParam ?? (workspaceId ? String(workspaceId) : "");
+  const routeSessionIdNumber = routeSessionIdParam ? Number(routeSessionIdParam) : null;
+  const isRouteSessionIdValid =
+    !routeSessionIdParam ||
+    (Number.isInteger(routeSessionIdNumber) && Number(routeSessionIdNumber) > 0);
+  const normalizedRouteSessionId =
+    routeSessionIdParam && isRouteSessionIdValid ? String(routeSessionIdNumber) : null;
   const [queue, setQueue] = useState<QueueCustomer[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
@@ -446,6 +458,8 @@ export const ConsultationPage: React.FC = () => {
   const [endSessionModal, setEndSessionModal] = useState<EndSessionModalState>({ open: false });
   const isEndSessionModalOpen = endSessionModal.open;
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
+  const [hasQueueLoaded, setHasQueueLoaded] = useState(false);
+  const [urlSessionUnavailable, setUrlSessionUnavailable] = useState(false);
   const workflowRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
@@ -541,6 +555,11 @@ export const ConsultationPage: React.FC = () => {
     setEndSessionModal({ open: false });
     clearPendingMessages();
   }, [clearPendingMessages]);
+
+  const navigateToConsultationRoot = useCallback(() => {
+    if (!workspacePathId) return;
+    navigate(`/workspaces/${workspacePathId}/consultation`, { replace: true });
+  }, [navigate, workspacePathId]);
 
   const loadMatchedWorkflow = useCallback(async (sessionId: number) => {
     // 매칭 워크플로우 바는 보조 패널이므로 실패 시 토스트 없이 바만 숨긴다.
@@ -646,6 +665,7 @@ export const ConsultationPage: React.FC = () => {
     async (isManualRetry = false) => {
       if (!workspaceId) {
         setQueue([]);
+        setHasQueueLoaded(false);
         setIsQueueLoading(false);
         setQueueLoadError(null);
         clearActiveConversation();
@@ -658,6 +678,7 @@ export const ConsultationPage: React.FC = () => {
 
       setIsQueueLoading(true);
       setQueueLoadError(null);
+      setHasQueueLoaded(false);
 
       try {
         const sessions = await consultationApi.getQueue(workspaceId);
@@ -666,6 +687,7 @@ export const ConsultationPage: React.FC = () => {
         );
         setQueue(sortQueueCustomers(formattedQueue));
         queueErrorToastShownRef.current = false;
+        setHasQueueLoaded(true);
       } catch (error) {
         console.error("Failed to load queue:", error);
         setQueueLoadError("대기열을 불러오지 못했습니다.");
@@ -673,6 +695,7 @@ export const ConsultationPage: React.FC = () => {
           queueErrorToastShownRef.current = true;
           toast.error("대기열을 불러오지 못했습니다.");
         }
+        setHasQueueLoaded(true);
       } finally {
         setIsQueueLoading(false);
       }
@@ -696,6 +719,7 @@ export const ConsultationPage: React.FC = () => {
         setQueue((prev) => prev.filter((customer) => customer.id !== sessionId));
         if (activeCustomerIdRef.current === sessionId) {
           clearActiveConversation();
+          navigateToConsultationRoot();
         }
         return;
       }
@@ -720,13 +744,80 @@ export const ConsultationPage: React.FC = () => {
         return sortQueueCustomers(next);
       });
     },
-    [clearActiveConversation, currentCounselorId],
+    [clearActiveConversation, currentCounselorId, navigateToConsultationRoot],
   );
 
   useEffect(() => {
     queueErrorToastShownRef.current = false;
     void loadQueue();
   }, [loadQueue]);
+
+  const activateCustomer = useCallback(
+    async (id: string) => {
+      setActiveCustomerId(id);
+      setSelectedMessageId(null);
+      setQueue((prev) =>
+        prev.some((customer) => customer.id === id && customer.hasUnread)
+          ? prev.map((customer) =>
+              customer.id === id ? { ...customer, hasUnread: false } : customer,
+            )
+          : prev,
+      );
+
+      const selected = queue.find((customer) => customer.id === id);
+      if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
+
+      try {
+        const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
+        setQueue((prev) =>
+          replaceAssignedQueueCustomer(prev, id, assignedSession, currentCounselorId),
+        );
+        toast.success("상담 세션이 배정되었습니다.");
+      } catch {
+        toast.error("상담 세션 배정에 실패했습니다.");
+      }
+    },
+    [currentCounselorId, queue],
+  );
+
+  useEffect(() => {
+    if (!routeSessionIdParam) {
+      setUrlSessionUnavailable(false);
+      if (workspaceIdParam && activeCustomerIdRef.current) {
+        clearActiveConversation();
+      }
+      return;
+    }
+
+    if (!isRouteSessionIdValid || !normalizedRouteSessionId) {
+      setUrlSessionUnavailable(true);
+      clearActiveConversation();
+      return;
+    }
+
+    if (!hasQueueLoaded || isQueueLoading || queueLoadError) return;
+
+    const routeSession = queue.find((customer) => customer.id === normalizedRouteSessionId);
+    if (!routeSession) {
+      setUrlSessionUnavailable(true);
+      clearActiveConversation();
+      return;
+    }
+
+    setUrlSessionUnavailable(false);
+    void activateCustomer(normalizedRouteSessionId);
+  }, [
+    activateCustomer,
+    clearActiveConversation,
+    hasQueueLoaded,
+    isQueueLoading,
+    isRouteSessionIdValid,
+    normalizedRouteSessionId,
+    queue,
+    queueLoadError,
+    routeSessionIdParam,
+    workspaceIdParam,
+  ]);
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED" || !workspaceId) return;
@@ -864,27 +955,14 @@ export const ConsultationPage: React.FC = () => {
   );
 
   const handleSelectCustomer = useCallback(
-    async (id: string) => {
-      setActiveCustomerId(id);
-      setSelectedMessageId(null);
-      setQueue((prev) =>
-        prev.map((customer) => (customer.id === id ? { ...customer, hasUnread: false } : customer)),
-      );
-
-      const selected = queue.find((customer) => customer.id === id);
-      if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
-
-      try {
-        const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
-        setQueue((prev) =>
-          replaceAssignedQueueCustomer(prev, id, assignedSession, currentCounselorId),
-        );
-        toast.success("상담 세션이 배정되었습니다.");
-      } catch {
-        toast.error("상담 세션 배정에 실패했습니다.");
+    (id: string) => {
+      setUrlSessionUnavailable(false);
+      void activateCustomer(id);
+      if (workspacePathId) {
+        navigate(`/workspaces/${workspacePathId}/consultation/${id}`);
       }
     },
-    [currentCounselorId, queue],
+    [activateCustomer, navigate, workspacePathId],
   );
 
   const handleSendMessage = useCallback(
@@ -1032,6 +1110,7 @@ export const ConsultationPage: React.FC = () => {
       setQueue((prev) => prev.filter((customer) => customer.id !== endedSessionId));
       clearActiveConversation();
       setEndSessionModal({ open: false });
+      navigateToConsultationRoot();
     } catch {
       setEndSessionModal((prev) =>
         prev.open
@@ -1066,6 +1145,7 @@ export const ConsultationPage: React.FC = () => {
       );
       toast.success("상담 배정이 해제되었습니다.");
       clearActiveConversation();
+      navigateToConsultationRoot();
     } catch (error) {
       console.error("Failed to release session:", error);
       toast.error("상담 배정 해제에 실패했습니다.");
@@ -1148,19 +1228,28 @@ export const ConsultationPage: React.FC = () => {
         )}
 
         <div className={styles.chatPanelSlot}>
-          <ChatPanel
-            sessionId={activeCustomerId}
-            customerName={activeCustomer ? activeCustomerName : null}
-            channel={activeCustomer?.channel || null}
-            messages={visibleMessages}
-            onSendMessage={handleSendMessage}
-            onRetryMessage={handleRetryMessage}
-            selectedMessageId={selectedMessageId}
-            onSelectMessage={setSelectedMessageId}
-            sessionStatusLabel={activeAssignment?.label}
-            sessionStatusDescription={activeAssignment?.description}
-            disabled={!isAssignedToCurrentCounselor}
-          />
+          {urlSessionUnavailable ? (
+            <div className={styles.urlSessionState} role="status" aria-live="polite">
+              <p className={styles.urlSessionTitle}>요청한 상담 세션을 찾을 수 없습니다</p>
+              <p className={styles.urlSessionText}>
+                상담이 종료되었거나 현재 대기열에서 접근할 수 없는 세션입니다.
+              </p>
+            </div>
+          ) : (
+            <ChatPanel
+              sessionId={activeCustomerId}
+              customerName={activeCustomer ? activeCustomerName : null}
+              channel={activeCustomer?.channel || null}
+              messages={visibleMessages}
+              onSendMessage={handleSendMessage}
+              onRetryMessage={handleRetryMessage}
+              selectedMessageId={selectedMessageId}
+              onSelectMessage={setSelectedMessageId}
+              sessionStatusLabel={activeAssignment?.label}
+              sessionStatusDescription={activeAssignment?.description}
+              disabled={!isAssignedToCurrentCounselor}
+            />
+          )}
         </div>
       </div>
 
