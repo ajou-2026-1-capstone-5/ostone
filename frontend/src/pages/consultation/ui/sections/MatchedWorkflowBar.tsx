@@ -32,11 +32,34 @@ function buildMeta(workflow: MatchedWorkflow): string {
   return parts.join(" · ");
 }
 
+function formatConfidence(workflow: MatchedWorkflow): string | null {
+  const confidence = workflow.confidenceScore ?? workflow.confidence;
+  if (typeof confidence !== "number" || Number.isNaN(confidence)) return null;
+  const normalized = confidence > 1 ? confidence : confidence * 100;
+  return `${Math.round(normalized)}%`;
+}
+
+function buildMatchBasis(workflow: MatchedWorkflow): string {
+  const confidence = formatConfidence(workflow);
+  if (confidence) {
+    return `최근 분류 신뢰도 ${confidence} 기준으로 표시 중입니다.`;
+  }
+  if (workflow.currentState) {
+    return `최근 AI 응답이 ${workflow.currentState} 단계와 연결되어 표시 중입니다.`;
+  }
+  if (workflow.workflowCode) {
+    return `${workflow.workflowCode} 워크플로우 후보가 현재 세션에 연결되어 표시 중입니다.`;
+  }
+  return "현재 세션에 연결된 워크플로우 후보가 표시 중입니다.";
+}
+
 export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
   const navigate = useNavigate();
   const [previewOpen, setPreviewOpen] = useState(false);
   const title = workflow.workflowName ?? workflow.workflowCode ?? "워크플로우";
   const meta = buildMeta(workflow);
+  const intentLabel = workflow.intentName ?? workflow.intentCode;
+  const matchBasis = buildMatchBasis(workflow);
   const statusLabel = workflow.executionStatus ?? "UNKNOWN";
   const tone = resolveStatusTone(workflow.executionStatus);
 
@@ -101,12 +124,20 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
             <div className={styles.expanded} data-testid="matched-workflow-bar-preview">
               <div className={styles.metaRow}>
                 <Pill tone={tone}>{statusLabel}</Pill>
+                {intentLabel && (
+                  <Pill tone="mute" className={styles.intentPill}>
+                    intent {intentLabel}
+                  </Pill>
+                )}
                 {meta && (
                   <span data-testid="matched-workflow-bar-meta">
                     <Mono className={styles.meta}>{meta}</Mono>
                   </span>
                 )}
               </div>
+              <p className={styles.matchBasis} data-testid="matched-workflow-bar-basis">
+                {matchBasis}
+              </p>
               {workflow.workflowDescription && (
                 <p className={styles.description} data-testid="matched-workflow-bar-description">
                   {workflow.workflowDescription}

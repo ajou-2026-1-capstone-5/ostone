@@ -13,6 +13,12 @@ export interface LlmToolWorkflowPayload {
   workflowName: string | null;
   workflowDescription: string | null;
   graphJson?: unknown;
+  initialState?: string | null;
+  terminalStates?: unknown;
+  intentCode?: string | null;
+  intentName?: string | null;
+  confidence?: number | null;
+  confidenceScore?: number | null;
 }
 
 export type MatchedWorkflow = LlmToolWorkflowPayload & {
