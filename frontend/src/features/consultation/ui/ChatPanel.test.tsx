@@ -73,7 +73,7 @@ describe("ChatPanel", () => {
       />,
     );
 
-    const noteToggle = screen.getByTitle("내부 메모 모드");
+    const noteToggle = screen.getByTitle("내부 메모로 남기기");
     const input = screen.getByPlaceholderText("메시지를 입력하세요...");
     const sendButton = screen.getByLabelText("메시지 전송");
 
@@ -151,11 +151,11 @@ describe("ChatPanel", () => {
     expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("내부 메모 내용")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle("내부 메모 모드"));
+    fireEvent.click(screen.getByTitle("내부 메모로 남기기"));
 
-    const input = screen.getByPlaceholderText("내부 메모를 입력하세요 (고객에게 보이지 않음)...");
+    const input = screen.getByPlaceholderText("내부 메모로 타임라인에 남길 내용을 입력하세요...");
     fireEvent.change(input, { target: { value: "메모로 남길 내용" } });
-    fireEvent.click(screen.getByLabelText("메시지 전송"));
+    fireEvent.click(screen.getByLabelText("내부 메모 남기기"));
 
     expect(onSendMessage).toHaveBeenCalledWith("메모로 남길 내용", true);
     expect(onSelectMessage).not.toHaveBeenCalled();

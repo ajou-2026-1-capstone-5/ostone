@@ -88,11 +88,53 @@ const getSessionStatusLabel = (
 ) => {
   if (status === "COMPLETED") return "상담 종료";
   if (status === "RESOLVED") return "해결됨";
-  if (assignedCounselorId && assignedCounselorId === currentCounselorId) return "내 상담 진행중";
-  if (assignedCounselorId) return "상담 진행중";
-  if (status === "ACTIVE") return "상담 진행중";
-  if (status === "OPEN") return "대기중";
+  if (assignedCounselorId && assignedCounselorId === currentCounselorId) return "내게 배정됨";
+  if (assignedCounselorId) return "다른 상담사 배정";
+  if (status === "ACTIVE") return "미배정";
+  if (status === "OPEN") return "미배정";
   return status ?? "상태 미확인";
+};
+
+type AssignmentView = {
+  label: string;
+  description: string;
+  tone: "mine" | "unassigned" | "other" | "closed";
+};
+
+const getAssignmentView = (
+  status?: string | null,
+  assignedCounselorId?: number | null,
+  currentCounselorId?: number | null,
+): AssignmentView => {
+  if (status === "COMPLETED" || status === "RESOLVED") {
+    return {
+      label: status === "RESOLVED" ? "해결됨" : "상담 종료",
+      description: "종료된 세션이므로 메시지를 보낼 수 없습니다.",
+      tone: "closed",
+    };
+  }
+
+  if (assignedCounselorId && assignedCounselorId === currentCounselorId) {
+    return {
+      label: "내게 배정됨",
+      description: "이 세션에 응답하고 내부 메모를 남길 수 있습니다.",
+      tone: "mine",
+    };
+  }
+
+  if (assignedCounselorId) {
+    return {
+      label: "다른 상담사 배정",
+      description: "다른 상담사가 응대 중인 세션입니다.",
+      tone: "other",
+    };
+  }
+
+  return {
+    label: "미배정",
+    description: "선택하면 자동으로 내게 배정됩니다.",
+    tone: "unassigned",
+  };
 };
 
 const toQueueCustomer = (
@@ -235,13 +277,13 @@ export const ConsultationPage: React.FC = () => {
   const visibleMessages =
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
-  const activeStatusLabel = activeCustomer
-    ? getSessionStatusLabel(
+  const activeAssignment = activeCustomer
+    ? getAssignmentView(
         activeCustomer.status,
         activeCustomer.assignedCounselorId,
         currentCounselorId,
       )
-    : undefined;
+    : null;
   const isAssignedToCurrentCounselor =
     !!activeCustomer?.assignedCounselorId &&
     activeCustomer.assignedCounselorId === currentCounselorId;
@@ -662,7 +704,7 @@ export const ConsultationPage: React.FC = () => {
     if (activeCustomerIdRef.current === requestCustomerId) {
       handleSendMessage(memo, true);
       setMemos((prev) => ({ ...prev, [requestCustomerId]: "" }));
-      toast.success("상담 메모 저장 요청을 전송했습니다.");
+      toast.success("내부 메모를 타임라인에 남겼습니다.");
     }
   }, [activeCustomerId, connectionStatus, handleSendMessage, isAssignedToCurrentCounselor, memos]);
 
@@ -694,6 +736,15 @@ export const ConsultationPage: React.FC = () => {
               </div>
             </div>
             <div className={styles.conversationActions}>
+              {activeAssignment && (
+                <div
+                  className={`${styles.assignmentBadge} ${styles[`assignmentBadge_${activeAssignment.tone}`]}`}
+                  data-testid="conversation-assignment-status"
+                >
+                  <span>{activeAssignment.label}</span>
+                  <small>{activeAssignment.description}</small>
+                </div>
+              )}
               <button
                 className={styles.linkButton}
                 onClick={handleReleaseAssignment}
@@ -720,7 +771,8 @@ export const ConsultationPage: React.FC = () => {
             onSendMessage={handleSendMessage}
             selectedMessageId={selectedMessageId}
             onSelectMessage={setSelectedMessageId}
-            sessionStatusLabel={activeStatusLabel}
+            sessionStatusLabel={activeAssignment?.label}
+            sessionStatusDescription={activeAssignment?.description}
             disabled={!isAssignedToCurrentCounselor}
           />
         </div>
@@ -738,7 +790,6 @@ export const ConsultationPage: React.FC = () => {
         )}
         <div className={styles.detailPaneBody}>
           {selectedMessage ? (
-            // TODO: domainPackElements를 실제 API 응답 데이터로 교체 (별도 API 연동 티켓)
             <MessageDetailPanel
               message={selectedMessage}
               onClose={() => setSelectedMessageId(null)}

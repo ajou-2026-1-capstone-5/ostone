@@ -95,11 +95,28 @@
   line-height: 1.5;
 }
 
+.matchBasis {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  line-height: 1.45;
+  letter-spacing: -0.1px;
+}
+
 .metaRow {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.intentPill {
+  max-width: 100%;
 }
 
 .meta {

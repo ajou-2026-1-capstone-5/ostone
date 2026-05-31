@@ -66,6 +66,55 @@
   border-top: 1px solid var(--line-2);
 }
 
+.assignmentBadge {
+  margin-right: auto;
+  min-width: 0;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+.assignmentBadge span {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.assignmentBadge small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: -0.1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignmentBadge_mine {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.assignmentBadge_mine small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.assignmentBadge_other,
+.assignmentBadge_closed {
+  opacity: 0.74;
+}
+
 .linkButton,
 .dangerButton {
   padding: 0;

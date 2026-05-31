@@ -341,9 +341,7 @@ describe("ConsultationPage", () => {
         expect(screen.getByTestId("matched-workflow-bar")).toBeInTheDocument();
       });
       expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
-      expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent(
-        "환불 워크플로우",
-      );
+      expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("환불 워크플로우");
       // collapsed by default — meta only appears after toggle
       expect(screen.queryByTestId("matched-workflow-bar-meta")).not.toBeInTheDocument();
     });
@@ -546,7 +544,7 @@ describe("ConsultationPage", () => {
       expect(consultationApi.assignSession).toHaveBeenCalledWith(1, 7);
     });
     await waitFor(() => {
-      expect(screen.getAllByText("내 상담 진행중").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("내게 배정됨").length).toBeGreaterThan(0);
     });
   });
 
@@ -691,7 +689,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByText("닫기"));
@@ -719,7 +717,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     fireEvent.click(messageEl);
@@ -749,7 +747,7 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     messageButton.focus();
@@ -780,7 +778,7 @@ describe("ConsultationPage", () => {
     await user.keyboard(" ");
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
   });
 
@@ -939,7 +937,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     vi.mocked(consultationApi.getMessages).mockResolvedValueOnce([]);
@@ -949,7 +947,7 @@ describe("ConsultationPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("고객 정보")).toBeInTheDocument();
-      expect(screen.queryByText("가격 문의")).not.toBeInTheDocument();
+      expect(screen.queryByText("연결된 도메인 팩 요소가 없습니다")).not.toBeInTheDocument();
     });
   });
 
@@ -975,9 +973,7 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "연결이 불안정합니다. 잠시 후 다시 시도해주세요.",
-      );
+      expect(toast.error).toHaveBeenCalledWith("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
     });
     expect(mockSendTo).not.toHaveBeenCalled();
     expect(consultationApi.sendMessage).not.toHaveBeenCalled();
@@ -1144,7 +1140,9 @@ describe("ConsultationPage", () => {
     const customerItem = screen.getByText("김민지").closest("div");
     if (customerItem) customerItem.click();
 
-    const textarea = await screen.findByPlaceholderText("상담 메모를 입력하세요...");
+    const textarea = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
     await user.type(textarea, "고객이 매우 다급함");
 
     expect(textarea).toHaveValue("고객이 매우 다급함");
@@ -1161,9 +1159,11 @@ describe("ConsultationPage", () => {
     const customerItem = screen.getByText("김민지").closest('[role="button"]');
     if (customerItem) fireEvent.click(customerItem);
 
-    const textarea = await screen.findByPlaceholderText("상담 메모를 입력하세요...");
+    const textarea = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
     await user.type(textarea, "카드사 확인 필요");
-    await user.click(screen.getByText("메모 저장"));
+    await user.click(screen.getByText("내부 메모로 남기기"));
 
     await waitFor(() => {
       expect(mockSendTo).toHaveBeenCalledWith("/app/chat.counselor.send", {

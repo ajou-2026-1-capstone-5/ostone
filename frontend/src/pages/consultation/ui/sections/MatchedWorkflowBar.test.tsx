@@ -33,6 +33,8 @@ const baseWorkflow: MatchedWorkflow = {
   workflowCode: "REFUND_FLOW",
   workflowName: "환불 워크플로우",
   workflowDescription: "환불 처리 흐름",
+  intentCode: "refund.request",
+  intentName: "환불 요청",
   graphJson: { nodes: [{ id: "n1", type: "START", label: "start" }], edges: [] },
 };
 
@@ -68,8 +70,12 @@ describe("MatchedWorkflowBar", () => {
     expect(bar).toHaveAttribute("data-state", "open");
     expect(screen.getByTestId("matched-workflow-bar-preview")).toBeInTheDocument();
     expect(screen.getByText("진행 중")).toBeInTheDocument();
+    expect(screen.getByText("의도 환불 요청")).toBeInTheDocument();
     expect(screen.getByTestId("matched-workflow-bar-meta")).toHaveTextContent(
       "응대 코드 REFUND_FLOW · v12 · COLLECT_INFO",
+    );
+    expect(screen.getByTestId("matched-workflow-bar-basis")).toHaveTextContent(
+      "최근 AI 응답이 COLLECT_INFO 단계와 연결되어 표시 중입니다.",
     );
     expect(screen.getByTestId("matched-workflow-bar-description")).toHaveTextContent(
       "환불 처리 흐름",
@@ -175,6 +181,15 @@ describe("MatchedWorkflowBar", () => {
     fireEvent.mouseEnter(screen.getByTestId("matched-workflow-bar"));
 
     expect(screen.getByText("UNEXPECTED")).toBeInTheDocument();
+  });
+
+  it("uses workflow code as matching basis when current state is missing", () => {
+    renderBar({ ...baseWorkflow, currentState: null });
+    fireEvent.mouseEnter(screen.getByTestId("matched-workflow-bar"));
+
+    expect(screen.getByTestId("matched-workflow-bar-basis")).toHaveTextContent(
+      "REFUND_FLOW 워크플로우 후보가 현재 세션에 연결되어 표시 중입니다.",
+    );
   });
 });
 
