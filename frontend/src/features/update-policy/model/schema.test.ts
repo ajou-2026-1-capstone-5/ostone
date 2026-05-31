@@ -30,7 +30,7 @@ describe("policyEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("조건 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("적용 조건 JSON은 객체여야 합니다.");
     }
   });
 
@@ -54,7 +54,7 @@ describe("policyEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("액션 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("응대 방법 JSON은 객체여야 합니다.");
     }
   });
 
@@ -66,7 +66,7 @@ describe("policyEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("메타 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("추가 정보 JSON은 객체여야 합니다.");
     }
   });
 
@@ -78,7 +78,7 @@ describe("policyEditSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("조건 JSON은 객체여야 합니다.");
+      expect(result.error.issues[0]?.message).toBe("적용 조건 JSON은 객체여야 합니다.");
     }
   });
 });

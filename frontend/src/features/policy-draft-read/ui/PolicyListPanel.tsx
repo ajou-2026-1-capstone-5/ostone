@@ -25,16 +25,16 @@ export function PolicyListPanel({
 
   useEffect(() => {
     if (state.status === "error") {
-      toast.error(errorMessage ?? "정책 목록을 불러오지 못했습니다.");
+      toast.error(errorMessage ?? "응대 기준 목록을 불러오지 못했습니다.");
     }
   }, [state.status, errorMessage]);
 
   return (
-    <aside className={styles.panel} aria-label="정책 목록">
+    <aside className={styles.panel} aria-label="응대 기준 목록">
       <header className={styles.header}>
-        <span className={styles.headerTitle}>Policies</span>
+        <span className={styles.headerTitle}>응대 기준</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · LIST` : "— · LIST"}
+          {state.status === "ready" ? `${state.data.length}개` : "—개"}
         </span>
       </header>
 
@@ -74,7 +74,7 @@ function PolicyListContent({
   if (state.status === "error") {
     return (
       <div className={styles.emptyState}>
-        <span>정책 목록을 불러오지 못했습니다.</span>
+        <span>응대 기준 목록을 불러오지 못했습니다.</span>
         <button type="button" className={styles.retryButton} onClick={onRetry}>
           다시 시도
         </button>
@@ -85,7 +85,7 @@ function PolicyListContent({
   if (state.data.length === 0) {
     return (
       <div className={styles.emptyState}>
-        <span>등록된 정책 초안이 없습니다.</span>
+        <span>등록된 응대 기준 초안이 없습니다.</span>
       </div>
     );
   }
@@ -129,7 +129,7 @@ function PolicyListRow({
               policy.status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive
             }`}
           >
-            {policy.status === "ACTIVE" ? "● ACTIVE" : "○ INACTIVE"}
+            {formatStatus(policy.status)}
           </span>
           <span
             className={`${styles.badge} ${
@@ -138,10 +138,25 @@ function PolicyListRow({
                 : ""
             }`}
           >
-            {policy.severity ?? "NO SEVERITY"}
+            {formatSeverity(policy.severity)}
           </span>
         </span>
       </div>
     </button>
   );
+}
+
+function formatStatus(status: PolicySummary["status"]): string {
+  return status === "ACTIVE" ? "사용중" : "사용 안 함";
+}
+
+function formatSeverity(severity: PolicySummary["severity"]): string {
+  if (!severity) return "중요도 없음";
+  const labels: Record<string, string> = {
+    LOW: "낮음",
+    MEDIUM: "보통",
+    HIGH: "높음",
+    CRITICAL: "긴급",
+  };
+  return labels[severity] ?? severity;
 }

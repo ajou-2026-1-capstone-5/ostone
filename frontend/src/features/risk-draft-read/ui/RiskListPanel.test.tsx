@@ -44,8 +44,8 @@ describe("RiskListPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByLabelText("위험요소 목록")).toBeInTheDocument();
-    expect(screen.getByText("— · LIST")).toBeInTheDocument();
+    expect(screen.getByLabelText("주의 사항 목록")).toBeInTheDocument();
+    expect(screen.getByText("—개")).toBeInTheDocument();
   });
 
   it("ready 상태에서는 목록을 렌더링하고 선택 이벤트를 전달한다", () => {
@@ -55,7 +55,7 @@ describe("RiskListPanel", () => {
     const riskButton = screen.getByRole("button", { name: /RISK_FRAUD/ });
     fireEvent.click(riskButton);
 
-    expect(screen.getByText("1 · LIST")).toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
     expect(riskButton).toHaveAttribute("aria-current", "true");
     expect(screen.getByText("사기 위험")).toBeInTheDocument();
     expect(onSelect).toHaveBeenCalledWith(4);
@@ -66,8 +66,8 @@ describe("RiskListPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("0 · LIST")).toBeInTheDocument();
-    expect(screen.getByText("등록된 위험요소 초안이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("0개")).toBeInTheDocument();
+    expect(screen.getByText("등록된 주의 사항 초안이 없습니다.")).toBeInTheDocument();
   });
 
   it("error 상태에서는 재시도 버튼을 제공한다", () => {
@@ -79,7 +79,7 @@ describe("RiskListPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("위험요소 목록을 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("주의 사항 목록을 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });

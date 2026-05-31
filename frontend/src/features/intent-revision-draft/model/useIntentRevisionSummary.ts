@@ -145,7 +145,9 @@ export function useIntentRevisionSummary({
           value: {
             status: "error",
             message:
-              error instanceof Error ? error.message : "Intent 수정 요약을 불러오지 못했습니다.",
+              error instanceof Error
+                ? error.message
+                : "상담 유형 수정 요약을 불러오지 못했습니다.",
           },
         });
       });

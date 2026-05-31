@@ -105,10 +105,10 @@ function DomainPackSummaryPageContent({
           { replace: true },
         );
         await Promise.allSettled([packQuery.refetch(), versionQuery.refetch()]);
-        toast.success("Draft 버전이 적용되었습니다.");
+        toast.success("검토 중인 버전이 운영 버전으로 적용되었습니다.");
       },
       onError: (error) => {
-        toast.error(resolveVersionActionErrorMessage(error, "Draft 버전을 적용하지 못했습니다."));
+        toast.error(resolveVersionActionErrorMessage(error, "검토 중인 버전을 적용하지 못했습니다."));
       },
     },
   });
@@ -129,10 +129,10 @@ function DomainPackSummaryPageContent({
           },
           { replace: true },
         );
-        toast.success("Draft 버전이 삭제되었습니다.");
+        toast.success("검토 중인 버전이 삭제되었습니다.");
       },
       onError: (error) => {
-        toast.error(resolveVersionActionErrorMessage(error, "Draft 버전을 삭제하지 못했습니다."));
+        toast.error(resolveVersionActionErrorMessage(error, "검토 중인 버전을 삭제하지 못했습니다."));
       },
     },
   });

@@ -22,10 +22,15 @@ interface SidebarBaseProps {
 }
 
 const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
-  workflows: "워크플로우 설계",
+  workflows: "응대 흐름 관리",
   upload: "상담 로그 수집",
   consult: "상담 응대",
   domain: "도메인팩 관리",
+  chat: "사용자 화면 미리보기",
+  intent: "상담 유형",
+  slot: "확인 항목",
+  policy: "응대 기준",
+  risk: "주의 사항",
 };
 
 function labelOf(c: Crumb): string {
@@ -45,6 +50,26 @@ function resolveDisplayCrumbs(active: SidebarActive, crumbs: Crumb[]): Crumb[] {
 
   if (first === "CARD-CS" && second === "Pipeline · Datasets") {
     return ["상담 로그 수집"];
+  }
+
+  if (second === "Domain Packs") {
+    const sectionMap: Record<string, string> = {
+      Workflows: "응대 흐름",
+      WORKFLOWS: "응대 흐름",
+      Intents: "상담 유형",
+      INTENTS: "상담 유형",
+      Slots: "확인 항목",
+      SLOTS: "확인 항목",
+      Policies: "응대 기준",
+      POLICIES: "응대 기준",
+      Risks: "주의 사항",
+      RISKS: "주의 사항",
+    };
+    return crumbs.map((crumb) => {
+      const label = labelOf(crumb);
+      const nextLabel = label === "Domain Packs" ? "도메인팩 관리" : (sectionMap[label] ?? label);
+      return typeof crumb === "string" ? nextLabel : { ...crumb, label: nextLabel };
+    });
   }
 
   const topLevelCrumb = TOP_LEVEL_CRUMB_BY_ACTIVE[active];

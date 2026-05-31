@@ -60,7 +60,7 @@ describe("IntentTreePanel", () => {
       },
     );
 
-    expect(screen.getByText("2 · TREE")).toBeInTheDocument();
+    expect(screen.getByText("2개")).toBeInTheDocument();
     expect(screen.getByText("수정 중")).toBeInTheDocument();
     const selectedRow = screen.getByRole("button", { name: /refund/ });
     expect(selectedRow).toHaveAttribute("aria-current", "true");
@@ -74,15 +74,15 @@ describe("IntentTreePanel", () => {
   it("loading 상태에서는 skeleton과 pending meta를 표시한다", () => {
     renderPanel({ status: "loading" });
 
-    expect(screen.getByText("— · TREE")).toBeInTheDocument();
+    expect(screen.getByText("—개")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("ready 상태에서 intent가 없으면 empty state를 표시한다", () => {
     renderPanel({ status: "ready", data: [] });
 
-    expect(screen.getByText("0 · TREE")).toBeInTheDocument();
-    expect(screen.getByText("해당 버전에 등록된 intent 초안이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("0개")).toBeInTheDocument();
+    expect(screen.getByText("해당 버전에 등록된 상담 유형 초안이 없습니다.")).toBeInTheDocument();
   });
 
   it("목록 조회 실패 시 toast와 error empty state를 보여준다", () => {

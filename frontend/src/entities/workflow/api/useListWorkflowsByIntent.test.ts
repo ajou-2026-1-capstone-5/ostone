@@ -141,7 +141,7 @@ describe("useListWorkflowsByIntent", () => {
     );
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
-    expect(result.current.error).toBe("워크플로우 목록 조회 실패");
+    expect(result.current.error).toBe("응대 흐름 목록 조회 실패");
   });
 
   it("workflows 응답이 비어있을 때 빈 entries", async () => {

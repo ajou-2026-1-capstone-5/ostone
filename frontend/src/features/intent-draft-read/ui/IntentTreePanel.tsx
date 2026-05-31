@@ -31,11 +31,11 @@ export function IntentTreePanel({
   }, [state.status, errorMessage]);
 
   return (
-    <aside className={styles.panel} aria-label="intent 목록">
+    <aside className={styles.panel} aria-label="상담 유형 목록">
       <header className={styles.header}>
-        <span className={styles.headerTitle}>Intents</span>
+        <span className={styles.headerTitle}>상담 유형</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · TREE` : "— · TREE"}
+          {state.status === "ready" ? `${state.data.length}개` : "—개"}
         </span>
       </header>
 
@@ -56,7 +56,7 @@ export function IntentTreePanel({
 
         {state.status === "ready" && state.data.length === 0 && (
           <div className={styles.emptyState}>
-            <span>해당 버전에 등록된 intent 초안이 없습니다.</span>
+            <span>해당 버전에 등록된 상담 유형 초안이 없습니다.</span>
           </div>
         )}
 

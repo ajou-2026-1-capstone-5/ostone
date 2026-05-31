@@ -33,7 +33,7 @@ export function RiskStatusToggle({
 
   return (
     <Switch
-      aria-label="위험요소 상태"
+      aria-label="주의 사항 상태"
       checked={currentStatus === "ACTIVE"}
       onCheckedChange={handleCheckedChange}
       disabled={disabled || isPending}

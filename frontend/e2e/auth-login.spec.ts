@@ -95,7 +95,7 @@ test.describe("Login screen", () => {
         await page.getByRole("button", { name: "시스템 로그인" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/1\/workflows/);
-        await expect(page.getByText("Workflows")).toBeVisible();
+        await expect(page.getByText("응대 흐름")).toBeVisible();
         await expect
           .poll(() => page.evaluate(() => window.localStorage.getItem("accessToken")))
           .toBeTruthy();

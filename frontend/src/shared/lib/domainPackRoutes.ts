@@ -1,11 +1,11 @@
 export type DomainPackSection = "intents" | "slots" | "policies" | "risks" | "workflows";
 
 export const SECTION_LABEL: Record<DomainPackSection, string> = {
-  intents: "INTENTS",
-  slots: "SLOTS",
-  policies: "POLICIES",
-  risks: "RISKS",
-  workflows: "WORKFLOWS",
+  intents: "상담 유형",
+  slots: "확인 항목",
+  policies: "응대 기준",
+  risks: "주의 사항",
+  workflows: "응대 흐름",
 };
 
 export interface DomainPackCrumbInput {

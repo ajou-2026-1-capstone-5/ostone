@@ -230,7 +230,7 @@ describe("generated API affected read screens", () => {
       />,
     );
 
-    expect(screen.getByText("1 · LIST")).toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /POL_REFUND/ })).toHaveTextContent("환불 정책");
     fireEvent.click(screen.getByRole("button", { name: /POL_REFUND/ }));
     expect(onSelect).toHaveBeenCalledWith(41);
@@ -253,7 +253,7 @@ describe("generated API affected read screens", () => {
     expect(screen.getAllByText("POL_REFUND").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("환불 승인 조건")).toBeInTheDocument();
     expect(screen.getByText(/REFUND_REVIEW/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /POL_REFUND 정책 수정/ }));
+    fireEvent.click(screen.getByRole("button", { name: /POL_REFUND 응대 기준 수정/ }));
     expect(onEdit).toHaveBeenCalledWith(41);
     expect(mocks.useGetPolicy).toHaveBeenCalledWith(1, 2, 3, 41, expect.any(Object));
   });
@@ -282,12 +282,12 @@ describe("generated API affected read screens", () => {
     );
 
     fireEvent.click(
-      within(screen.getByLabelText("위험요소 목록")).getByRole("button", { name: /RISK_FRAUD/ }),
+      within(screen.getByLabelText("주의 사항 목록")).getByRole("button", { name: /RISK_FRAUD/ }),
     );
     expect(onSelect).toHaveBeenCalledWith(51);
     expect(screen.getByText("부정 거래 징후")).toBeInTheDocument();
     expect(screen.getByText(/MANUAL_REVIEW/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /RISK_FRAUD 위험요소 수정/ }));
+    fireEvent.click(screen.getByRole("button", { name: /RISK_FRAUD 주의 사항 수정/ }));
     expect(onEdit).toHaveBeenCalledWith(51);
   });
 
@@ -305,7 +305,7 @@ describe("generated API affected read screens", () => {
     expect(onSelect).toHaveBeenCalledWith(61);
     expect(screen.getAllByText("배송 주소").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("STRING").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("NO")).toBeInTheDocument();
+    expect(screen.getByText("아니오")).toBeInTheDocument();
   });
 
   it("workflow 목록/상세 화면은 generated list/detail/transition/policy 응답을 함께 소비한다", () => {
@@ -321,8 +321,8 @@ describe("generated API affected read screens", () => {
     fireEvent.click(screen.getByRole("button", { name: /WF_REFUND/ }));
     expect(onSelect).toHaveBeenCalledWith(71);
     expect(screen.getAllByText("환불 처리").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("그래프 데이터 없음")).toBeInTheDocument();
-    expect(screen.queryByText("정책 목록을 불러오지 못했습니다.")).not.toBeInTheDocument();
+    expect(screen.getByText("흐름도 데이터 없음")).toBeInTheDocument();
+    expect(screen.queryByText("응대 기준 목록을 불러오지 못했습니다.")).not.toBeInTheDocument();
     expect(mocks.useListTransitions).toHaveBeenCalledWith(1, 2, 3, 71, expect.any(Object));
   });
 });

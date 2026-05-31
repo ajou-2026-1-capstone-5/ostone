@@ -36,7 +36,7 @@ export function WorkflowGraphMini({
         data-testid={`workflow-graph-mini-loading-${workflowId}`}
         style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--ink-3)" }}
       >
-        loading…
+        확인 중…
       </span>
     );
   }
@@ -47,7 +47,7 @@ export function WorkflowGraphMini({
         data-testid={`workflow-graph-mini-error-${workflowId}`}
         style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--danger)" }}
       >
-        graph unavailable
+        흐름도 없음
       </span>
     );
   }
@@ -59,7 +59,7 @@ export function WorkflowGraphMini({
         data-testid={`workflow-graph-mini-error-${workflowId}`}
         style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--danger)" }}
       >
-        graph unavailable
+        흐름도 없음
       </span>
     );
   }

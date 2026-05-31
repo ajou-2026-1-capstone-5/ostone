@@ -133,10 +133,29 @@ describe("SummaryDetailPanel", () => {
     );
 
     expect(screen.getByText("v1")).toBeInTheDocument();
-    expect(screen.getByText("DRAFT")).toBeInTheDocument();
+    expect(screen.getByText("검토 중")).toBeInTheDocument();
     expect(screen.getByTestId("summary-json-card")).toHaveTextContent('{"key":"val"}');
     expect(screen.getByTestId("component-count-grid")).toBeInTheDocument();
     expect(screen.queryByText("승인 준비 상태")).not.toBeInTheDocument();
+  });
+
+  it("상태가 없는 버전도 상담사 용어로 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            lifecycleStatus: null,
+            createdAt: "날짜 확인 전",
+          },
+        })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.getByText("상태 없음")).toBeInTheDocument();
+    expect(screen.getByText("날짜 확인 전")).toBeInTheDocument();
   });
 
   it("상세 메타 카드의 배포 버튼 클릭 시 확인 다이얼로그를 먼저 표시한다", () => {
@@ -296,9 +315,9 @@ describe("SummaryDetailPanel", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
-    expect(screen.getByText("Draft 버전을 삭제할까요?")).toBeInTheDocument();
+    expect(screen.getByText("검토 중인 버전을 삭제할까요?")).toBeInTheDocument();
     expect(
-      screen.getByText("삭제하면 이 Draft 버전과 저장된 수정 내용이 모두 삭제됩니다."),
+      screen.getByText("삭제하면 이 검토 중인 버전과 저장된 수정 내용이 모두 삭제됩니다."),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
 

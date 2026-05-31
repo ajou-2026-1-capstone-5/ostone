@@ -22,7 +22,7 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
     if (state.status !== "error") return;
     const message =
       errorHttpStatus === 404
-        ? "슬롯을 찾을 수 없습니다."
+        ? "확인 항목을 찾을 수 없습니다."
         : errorMessage || "상세 정보를 불러오지 못했습니다.";
 
     toast.error(message, {
@@ -32,9 +32,9 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
 
   if (state.status === "idle") {
     return (
-      <section className={styles.panel} aria-label="슬롯 상세">
+      <section className={styles.panel} aria-label="확인 항목 상세">
         <div className={styles.placeholder}>
-          <span>슬롯을 선택하세요.</span>
+          <span>확인 항목을 선택하세요.</span>
         </div>
       </section>
     );
@@ -42,7 +42,7 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
 
   if (state.status === "loading") {
     return (
-      <section className={styles.panel} aria-label="슬롯 상세">
+      <section className={styles.panel} aria-label="확인 항목 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -52,7 +52,7 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
 
   if (state.status === "error") {
     return (
-      <section className={styles.panel} aria-label="슬롯 상세">
+      <section className={styles.panel} aria-label="확인 항목 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <span className={styles.errorCode}>{errorCode}</span>
@@ -69,38 +69,38 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
   }
 
   return (
-    <section className={styles.panel} aria-label="슬롯 상세">
+    <section className={styles.panel} aria-label="확인 항목 상세">
       <DetailHeader detail={state.data} />
       <div className={styles.body}>
         <div className={styles.grid}>
           <InfoCard
-            label="Slot Code"
+            label="항목 코드"
             value={<span className={styles.value}>{state.data.slotCode}</span>}
           />
           <InfoCard
-            label="Data Type"
+            label="값 형식"
             value={<span className={styles.value}>{state.data.dataType}</span>}
           />
           <InfoCard
-            label="Status"
-            value={<span className={styles.badge}>{state.data.status}</span>}
+            label="상태"
+            value={<span className={styles.badge}>{formatStatus(state.data.status)}</span>}
           />
           <InfoCard
-            label="Is Sensitive"
-            value={<span className={styles.value}>{state.data.isSensitive ? "YES" : "NO"}</span>}
+            label="민감 정보"
+            value={<span className={styles.value}>{state.data.isSensitive ? "예" : "아니오"}</span>}
           />
           <InfoCard
-            label="Created At"
+            label="생성일"
             value={<span className={styles.value}>{formatDate(state.data.createdAt ?? "")}</span>}
           />
           <InfoCard
-            label="Updated At"
+            label="수정일"
             value={<span className={styles.value}>{formatDate(state.data.updatedAt ?? "")}</span>}
           />
         </div>
-        <JsonCard label="Validation Rule" value={state.data.validationRuleJson ?? ""} />
-        <JsonCard label="Default Value" value={(state.data.defaultValueJson ?? "") || null} />
-        <JsonCard label="Meta" value={state.data.metaJson ?? ""} />
+        <JsonCard label="검증 규칙" value={state.data.validationRuleJson ?? ""} />
+        <JsonCard label="기본값" value={(state.data.defaultValueJson ?? "") || null} />
+        <JsonCard label="추가 정보" value={state.data.metaJson ?? ""} />
       </div>
     </section>
   );
@@ -112,9 +112,13 @@ function DetailHeader({ detail }: { detail: SlotDefinition }) {
       <span className={styles.code}>{detail.slotCode}</span>
       <span className={styles.name}>{detail.name}</span>
       {detail.description && <span className={styles.description}>{detail.description}</span>}
-      <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+      <span className={styles.updatedAt}>수정일 · {formatDate(detail.updatedAt ?? "")}</span>
     </header>
   );
+}
+
+function formatStatus(status: SlotDefinition["status"]): string {
+  return status === "ACTIVE" ? "사용중" : "사용 안 함";
 }
 
 function InfoCard({ label, value }: { label: string; value: ReactNode }) {

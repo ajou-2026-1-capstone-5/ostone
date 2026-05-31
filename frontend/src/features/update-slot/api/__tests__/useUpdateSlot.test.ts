@@ -90,7 +90,7 @@ describe("useUpdateSlot", () => {
       result.current.mutate({ ...params, body: { name: "새 이름" } });
     });
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("슬롯이 수정되었습니다."));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("확인 항목이 수정되었습니다."));
   });
 
   it("SLOT_NOT_EDITABLE 에러 시 전용 안내 메시지를 toast.error로 표시한다", async () => {

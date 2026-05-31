@@ -26,7 +26,7 @@ function resolveStatusTone(status: string | null): PillTone {
 
 function buildMeta(workflow: MatchedWorkflow): string {
   const parts: string[] = [];
-  if (workflow.workflowCode) parts.push(`wf ${workflow.workflowCode}`);
+  if (workflow.workflowCode) parts.push(`응대 코드 ${workflow.workflowCode}`);
   if (workflow.domainPackVersionId != null) parts.push(`v${workflow.domainPackVersionId}`);
   if (workflow.currentState) parts.push(workflow.currentState);
   return parts.join(" · ");
@@ -35,9 +35,9 @@ function buildMeta(workflow: MatchedWorkflow): string {
 export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
   const navigate = useNavigate();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const title = workflow.workflowName ?? workflow.workflowCode ?? "워크플로우";
+  const title = workflow.workflowName ?? workflow.workflowCode ?? "응대 흐름";
   const meta = buildMeta(workflow);
-  const statusLabel = workflow.executionStatus ?? "UNKNOWN";
+  const statusLabel = formatExecutionStatus(workflow.executionStatus);
   const tone = resolveStatusTone(workflow.executionStatus);
 
   const canNavigate =
@@ -76,7 +76,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
       className={styles.bar}
       data-testid="matched-workflow-bar"
       data-state={previewOpen ? "open" : "closed"}
-      aria-label="매칭된 워크플로우"
+      aria-label="매칭된 응대 흐름"
       onMouseEnter={() => setPreviewOpen(true)}
       onMouseLeave={handleMouseLeave}
       onFocusCapture={() => setPreviewOpen(true)}
@@ -89,7 +89,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
         disabled={!canNavigate}
         data-testid="matched-workflow-bar-open"
       >
-        <span className={styles.label}>workflow</span>
+        <span className={styles.label}>응대 흐름</span>
         <span className={styles.title} data-testid="matched-workflow-bar-title">
           {title}
         </span>
@@ -119,7 +119,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
                     graphJson={workflow.graphJson}
                   />
                 ) : (
-                  <span className={styles.graphMissing}>graph unavailable</span>
+                  <span className={styles.graphMissing}>흐름 미리보기 없음</span>
                 )}
               </div>
             </div>
@@ -136,9 +136,19 @@ export function MatchedWorkflowBarSkeleton() {
       className={styles.skeleton}
       data-testid="matched-workflow-bar-skeleton"
       aria-busy="true"
-      aria-label="매칭된 워크플로우 로딩 중"
+      aria-label="매칭된 응대 흐름 로딩 중"
     >
       <span className={styles.skeletonBar} />
     </div>
   );
+}
+
+function formatExecutionStatus(status: string | null): string {
+  const labels: Record<string, string> = {
+    RUNNING: "진행 중",
+    COMPLETED: "완료",
+    FAILED: "실패",
+    CANCELED: "취소됨",
+  };
+  return status ? (labels[status.toUpperCase()] ?? status) : "상태 미확인";
 }

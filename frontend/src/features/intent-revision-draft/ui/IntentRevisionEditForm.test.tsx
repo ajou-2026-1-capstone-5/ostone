@@ -144,7 +144,7 @@ describe("IntentRevisionEditForm", () => {
 
     await waitFor(() =>
       expect(mockedToastError).toHaveBeenCalledWith(
-        "Intent 수정 내용 저장에 실패했습니다. patch failed",
+        "상담 유형 수정 내용 저장에 실패했습니다. patch failed",
       ),
     );
     expect(screen.getByLabelText("이름")).toHaveValue("유지되어야 하는 수정");

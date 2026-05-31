@@ -115,7 +115,7 @@ function VersionListItem({
           <span
             className={`${styles.badge} ${isPublished ? styles.badgePublished : styles.badgeDraft}`}
           >
-            {version.lifecycleStatus}
+            {formatLifecycleStatus(version.lifecycleStatus)}
           </span>
           {isCurrentVersion && (
             <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
@@ -125,4 +125,10 @@ function VersionListItem({
       </button>
     </li>
   );
+}
+
+function formatLifecycleStatus(status?: string | null): string {
+  if (status === "PUBLISHED") return "운영 가능";
+  if (status === "DRAFT") return "검토 중";
+  return "상태 없음";
 }

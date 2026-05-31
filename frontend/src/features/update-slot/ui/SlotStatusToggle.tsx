@@ -32,7 +32,7 @@ export function SlotStatusToggle({
 
   return (
     <Switch
-      aria-label="슬롯 상태"
+      aria-label="확인 항목 상태"
       checked={currentStatus === "ACTIVE"}
       onCheckedChange={handleCheckedChange}
       disabled={disabled || isPending}

@@ -13,7 +13,7 @@ interface UpdateWorkflowParams {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  WORKFLOW_NOT_EDITABLE: "DRAFT 상태의 버전에서만 수정할 수 있습니다.",
+  WORKFLOW_NOT_EDITABLE: "검토 중인 버전에서만 응대 흐름을 수정할 수 있습니다.",
   GRAPH_JSON_REQUIRED: "그래프 데이터가 필요합니다.",
   GRAPH_JSON_TOO_LARGE: "그래프 데이터가 너무 큽니다.",
   WORKFLOW_GRAPH_JSON_INVALID: "그래프 데이터 형식이 유효하지 않습니다.",
@@ -23,11 +23,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   WORKFLOW_UNREACHABLE_NODE: "모든 노드가 START에서 도달 가능해야 합니다.",
   WORKFLOW_CYCLE_DETECTED: "그래프에 순환 경로가 있습니다.",
   WORKFLOW_UNLABELED_BRANCH: "DECISION 노드의 모든 분기에 label이 필요합니다.",
-  WORKFLOW_ACTION_NODE_POLICY_REF_MISSING: "ACTION 노드의 policyRef 값이 필요합니다.",
+  WORKFLOW_ACTION_NODE_POLICY_REF_MISSING: "ACTION 노드의 응대 기준 참조값이 필요합니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_INVALID_CHARS:
-    "ACTION 노드의 policyRef 형식이 유효하지 않습니다.",
+    "ACTION 노드의 응대 기준 참조 형식이 유효하지 않습니다.",
   WORKFLOW_ACTION_NODE_POLICY_REF_NOT_FOUND:
-    "ACTION 노드의 policyRef가 이 버전에 존재하지 않습니다.",
+    "ACTION 노드가 참조하는 응대 기준이 이 버전에 존재하지 않습니다.",
   WORKFLOW_EDGE_ID_MISSING: "그래프 구조가 유효하지 않습니다.",
   WORKFLOW_EDGE_ID_DUPLICATE: "그래프 구조가 유효하지 않습니다.",
 };
@@ -46,12 +46,12 @@ export function useUpdateWorkflow() {
       queryClient.invalidateQueries({
         queryKey: workflowQueryKeys.list(wsId, packId, versionId),
       });
-      toast.success("워크플로우가 수정되었습니다.");
+      toast.success("응대 흐름이 수정되었습니다.");
     },
     onError: (error: unknown) => {
       const code = error instanceof ApiRequestError ? error.code : "";
       const message = error instanceof ApiRequestError ? error.message : "";
-      toast.error((ERROR_MESSAGES[code] ?? message) || "워크플로우 수정에 실패했습니다.");
+      toast.error((ERROR_MESSAGES[code] ?? message) || "응대 흐름 수정에 실패했습니다.");
     },
   });
 }

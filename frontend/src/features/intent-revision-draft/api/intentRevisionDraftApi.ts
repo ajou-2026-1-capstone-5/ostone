@@ -50,7 +50,7 @@ function normalizeDraftVersionId(response: RevisionDraftResponse): number {
   }
 
   if (typeof id !== "number") {
-    throw new Error("Intent 수정 초안 version id를 확인할 수 없습니다.");
+    throw new Error("상담 유형 수정 초안 버전 ID를 확인할 수 없습니다.");
   }
 
   return id;
@@ -85,7 +85,7 @@ export const intentRevisionDraftApi = {
     body: UpdateDraftIntentBody,
   ): Promise<IntentDetail> {
     const response = await update(workspaceId, packId, draftVersionId, intentId, body);
-    return requireApiData<IntentDetail>(response, "Intent 수정 응답을 확인할 수 없습니다.");
+    return requireApiData<IntentDetail>(response, "상담 유형 수정 응답을 확인할 수 없습니다.");
   },
 
   async activateVersion(
@@ -119,7 +119,7 @@ export const intentRevisionDraftApi = {
     intentId: number,
   ): Promise<IntentDetail> {
     const response = await getIntent(workspaceId, packId, versionId, intentId);
-    return requireApiData<IntentDetail>(response, "Intent 상세 응답을 확인할 수 없습니다.");
+    return requireApiData<IntentDetail>(response, "상담 유형 상세 응답을 확인할 수 없습니다.");
   },
 
   async getVersionDetail(

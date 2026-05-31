@@ -49,9 +49,9 @@ const MOCK_DATA: {
     { name: "배송지 주소", extracted: false },
   ],
   policies: [
-    { name: "반품 정책", extracted: true, matched: true },
-    { name: "환불 정책", extracted: true, matched: false },
-    { name: "교환 정책", extracted: false, matched: false },
+    { name: "반품 응대 기준", extracted: true, matched: true },
+    { name: "환불 응대 기준", extracted: true, matched: false },
+    { name: "교환 응대 기준", extracted: false, matched: false },
   ],
   risks: [
     { name: "고객 불만 고조", extracted: true, level: "high" as const },
@@ -137,19 +137,19 @@ export function MessageDetailPanel({
         <p className={styles.messagePreview}>{message.content}</p>
       </div>
 
-      <Section title="Slot">
+      <Section title="확인 항목">
         {slots.map((slot) => (
           <SlotTagItem key={slot.name} slot={slot} />
         ))}
       </Section>
 
-      <Section title="Policy">
+      <Section title="응대 기준">
         {policies.map((policy) => (
           <PolicyTagItem key={policy.name} policy={policy} />
         ))}
       </Section>
 
-      <Section title="Risk">
+      <Section title="주의 사항">
         {risks.map((risk) => (
           <RiskTagItem key={risk.name} risk={risk} />
         ))}

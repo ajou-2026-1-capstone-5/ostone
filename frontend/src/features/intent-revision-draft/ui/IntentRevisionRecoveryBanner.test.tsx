@@ -7,7 +7,7 @@ describe("IntentRevisionRecoveryBanner", () => {
     render(<IntentRevisionRecoveryBanner />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Intent 수정 초안은 생성됐지만 첫 수정 내용은 저장되지 않았습니다.",
+      "상담 유형 수정 초안은 생성됐지만 첫 수정 내용은 저장되지 않았습니다.",
     );
   });
 });

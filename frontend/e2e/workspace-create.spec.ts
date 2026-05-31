@@ -82,7 +82,7 @@ test.describe("Workspace creation", () => {
 
         await expect(page).toHaveURL(/\/workspaces\/777\/workflows/);
         await expect(page.getByText("워크스페이스를 생성했습니다.")).toBeVisible();
-        await expect(page.getByText("Workflows")).toBeVisible();
+        await expect(page.getByText("응대 흐름")).toBeVisible();
         expect(seen).toContain("POST /workspaces");
       });
     });

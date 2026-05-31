@@ -27,20 +27,20 @@ const stubPolicy: PolicySummary = {
 } as any;
 
 describe("TransitionPopover", () => {
-  it("transition 기본 정보를 표시한다", () => {
+  it("전환 조건 기본 정보를 표시한다", () => {
     render(<TransitionPopover transition={stubTransition} policy={null} onClose={vi.fn()} />);
-    expect(screen.getByRole("dialog", { name: "transition 상세" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "전환 조건 상세" })).toBeInTheDocument();
     expect(screen.getByText("STATE_A → STATE_B")).toBeInTheDocument();
     expect(screen.getByText("조건A")).toBeInTheDocument();
   });
 
-  it("policy가 있으면 policy 섹션을 표시한다", () => {
+  it("응대 기준이 있으면 응대 기준 섹션을 표시한다", () => {
     render(<TransitionPopover transition={stubTransition} policy={stubPolicy} onClose={vi.fn()} />);
     expect(screen.getByText("정책 이름")).toBeInTheDocument();
     expect(screen.getByText("정책 설명")).toBeInTheDocument();
   });
 
-  it("policy=null이면 policy 섹션을 표시하지 않는다", () => {
+  it("응대 기준이 없으면 응대 기준 섹션을 표시하지 않는다", () => {
     render(<TransitionPopover transition={stubTransition} policy={null} onClose={vi.fn()} />);
     expect(screen.queryByText("정책 이름")).not.toBeInTheDocument();
   });
@@ -69,6 +69,6 @@ describe("TransitionPopover", () => {
   it("label=null이면 label 섹션을 표시하지 않는다", () => {
     const noLabel = { ...stubTransition, label: null } as any;
     render(<TransitionPopover transition={noLabel} policy={null} onClose={vi.fn()} />);
-    expect(screen.queryByText("Label")).not.toBeInTheDocument();
+    expect(screen.queryByText("조건 이름")).not.toBeInTheDocument();
   });
 });
