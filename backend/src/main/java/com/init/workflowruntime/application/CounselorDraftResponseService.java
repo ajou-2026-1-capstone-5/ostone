@@ -65,8 +65,7 @@ public class CounselorDraftResponseService {
         recentMessages.stream()
             .map(message -> message.getSenderRole() + ": " + nullToEmpty(message.getContent()))
             .collect(Collectors.joining("\n"));
-    String latestCustomerMessage =
-        latestCustomerMessage(recentMessages);
+    String latestCustomerMessage = latestCustomerMessage(recentMessages);
 
     return llmAssistantService.generateCounselorDraftResponse(
         workflowSummary(workflow),

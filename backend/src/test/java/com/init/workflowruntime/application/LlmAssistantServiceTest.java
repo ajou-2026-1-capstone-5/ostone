@@ -25,8 +25,7 @@ import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
 @SuppressWarnings({"unchecked", "rawtypes"})
 class LlmAssistantServiceTest {
 
-  private static final String COUNSELOR_DRAFT_RESPONSE =
-      "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.";
+  private static final String COUNSELOR_DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.";
 
   @Mock private ChatClient chatClient;
   @Mock private ChatClientRequestSpec promptSpec;
@@ -116,10 +115,7 @@ class LlmAssistantServiceTest {
     String result =
         service
             .generateCounselorDraftResponse(
-                "환불 워크플로우 (REFUND_FLOW)",
-                "COLLECT_INFO",
-                "CUSTOMER: 환불 문의드립니다.",
-                "환불 문의드립니다.")
+                "환불 워크플로우 (REFUND_FLOW)", "COLLECT_INFO", "CUSTOMER: 환불 문의드립니다.", "환불 문의드립니다.")
             .content();
 
     assertThat(result).isEqualTo(COUNSELOR_DRAFT_RESPONSE);

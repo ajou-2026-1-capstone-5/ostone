@@ -34,8 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("CounselorDraftResponseService")
 class CounselorDraftResponseServiceTest {
 
-  private static final String DRAFT_RESPONSE =
-      "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.";
+  private static final String DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.";
   private static final String WORKFLOW_SUMMARY =
       """
       환불 워크플로우 (REFUND_FLOW)
@@ -85,8 +84,7 @@ class CounselorDraftResponseServiceTest {
     List<ChatMessage> recentDesc =
         List.of(
             ChatMessage.create(1L, 3, "COUNSELOR", "TEXT", "확인해보겠습니다."),
-            ChatMessage.create(
-                1L, 2, "CUSTOMER", "TEXT", "주문을 취소했는데 환불되나요?"),
+            ChatMessage.create(1L, 2, "CUSTOMER", "TEXT", "주문을 취소했는데 환불되나요?"),
             ChatMessage.create(1L, 1, "CUSTOMER", "TEXT", "환불 문의드립니다."));
 
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
@@ -94,8 +92,7 @@ class CounselorDraftResponseServiceTest {
         .willReturn(Optional.of(execution));
     given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(88L, 12L))
         .willReturn(Optional.of(workflow));
-    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L))
-        .willReturn(recentDesc);
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L)).willReturn(recentDesc);
     given(
             llmAssistantService.generateCounselorDraftResponse(
                 any(), eq("COLLECT_INFO"), any(), eq("주문을 취소했는데 환불되나요?")))

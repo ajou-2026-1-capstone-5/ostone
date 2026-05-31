@@ -54,8 +54,7 @@ import org.springframework.test.web.servlet.MockMvc;
     addFilters = false) // Disable spring security filters for simple controller test
 class ConsultationControllerTest {
 
-  private static final String DRAFT_RESPONSE =
-      "주문번호를 확인해주시면 환불 가능 여부를 안내드리겠습니다.";
+  private static final String DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 가능 여부를 안내드리겠습니다.";
 
   @Autowired private MockMvc mockMvc;
 
