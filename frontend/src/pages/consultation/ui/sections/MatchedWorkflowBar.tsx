@@ -32,11 +32,24 @@ function buildMeta(workflow: MatchedWorkflow): string {
   return parts.join(" · ");
 }
 
+/** MatchedWorkflow basis priority follows the current API contract: currentState, workflowCode, then fallback. */
+function buildMatchBasis(workflow: MatchedWorkflow): string {
+  if (workflow.currentState) {
+    return `최근 AI 응답이 ${workflow.currentState} 단계와 연결되어 표시 중입니다.`;
+  }
+  if (workflow.workflowCode) {
+    return `${workflow.workflowCode} 워크플로우 후보가 현재 세션에 연결되어 표시 중입니다.`;
+  }
+  return "현재 세션에 연결된 워크플로우 후보가 표시 중입니다.";
+}
+
 export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
   const navigate = useNavigate();
   const [previewOpen, setPreviewOpen] = useState(false);
   const title = workflow.workflowName ?? workflow.workflowCode ?? "응대 흐름";
   const meta = buildMeta(workflow);
+  const intentLabel = workflow.intentName ?? workflow.intentCode;
+  const matchBasis = buildMatchBasis(workflow);
   const statusLabel = formatExecutionStatus(workflow.executionStatus);
   const tone = resolveStatusTone(workflow.executionStatus);
 
@@ -101,12 +114,20 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
             <div className={styles.expanded} data-testid="matched-workflow-bar-preview">
               <div className={styles.metaRow}>
                 <Pill tone={tone}>{statusLabel}</Pill>
+                {intentLabel && (
+                  <Pill tone="mute" className={styles.intentPill}>
+                    의도 {intentLabel}
+                  </Pill>
+                )}
                 {meta && (
                   <span data-testid="matched-workflow-bar-meta">
                     <Mono className={styles.meta}>{meta}</Mono>
                   </span>
                 )}
               </div>
+              <p className={styles.matchBasis} data-testid="matched-workflow-bar-basis">
+                {matchBasis}
+              </p>
               {workflow.workflowDescription && (
                 <p className={styles.description} data-testid="matched-workflow-bar-description">
                   {workflow.workflowDescription}

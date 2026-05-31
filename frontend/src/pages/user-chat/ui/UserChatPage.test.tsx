@@ -408,6 +408,9 @@ describe("UserChatPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     await screen.findByTestId("chat-header-eyebrow");
+    await waitFor(() => {
+      expect(topicHandler).toBeDefined();
+    });
 
     act(() => {
       topicHandler?.({

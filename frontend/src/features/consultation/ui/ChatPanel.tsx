@@ -22,6 +22,7 @@ interface ChatPanelProps {
   selectedMessageId: string | null;
   onSelectMessage: (messageId: string | null) => void;
   sessionStatusLabel?: string;
+  sessionStatusDescription?: string;
   disabled?: boolean;
 }
 
@@ -40,6 +41,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   selectedMessageId,
   onSelectMessage,
   sessionStatusLabel,
+  sessionStatusDescription,
   disabled = false,
 }) => {
   const [input, setInput] = useState("");
@@ -94,9 +96,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <div className={styles.chatChannel}>{channel}</div>
           </div>
         </div>
-        <div className={styles.chatStatus}>
+        <div className={styles.chatStatus} data-testid="chat-assignment-status">
           <span className={styles.statusDot}></span>
-          {sessionStatusLabel ?? "상담 진행중"}
+          <div className={styles.statusCopy}>
+            <span>{sessionStatusLabel ?? "상담 진행중"}</span>
+            {sessionStatusDescription && <small>{sessionStatusDescription}</small>}
+          </div>
         </div>
       </div>
 
@@ -176,7 +181,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ""}`}
           onClick={() => setIsNoteMode(!isNoteMode)}
           disabled={disabled}
-          title={isNoteMode ? "일반 메시지로 전환" : "내부 메모 모드"}
+          title={isNoteMode ? "일반 메시지로 전환" : "내부 메모로 남기기"}
         >
           <StickyNote size={18} />
         </button>
@@ -185,7 +190,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           rows={1}
           placeholder={
             isNoteMode
-              ? "내부 메모를 입력하세요 (고객에게 보이지 않음)..."
+              ? "내부 메모로 타임라인에 남길 내용을 입력하세요..."
               : "메시지를 입력하세요..."
           }
           value={input}
@@ -197,8 +202,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          aria-label="메시지 전송"
-          title="메시지 전송"
+          aria-label={isNoteMode ? "내부 메모 남기기" : "메시지 전송"}
+          title={isNoteMode ? "내부 메모로 남기기" : "메시지 전송"}
         >
           <Send size={18} />
         </button>

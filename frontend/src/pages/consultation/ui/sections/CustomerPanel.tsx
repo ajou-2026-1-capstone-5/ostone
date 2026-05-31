@@ -108,13 +108,13 @@ export function CustomerPanel({
         <InfoRow label="처리 기한" value="2024-05-10" tone="danger" />
       </InfoCard>
 
-      <InfoCard title="상담 메모" meta="private">
+      <InfoCard title="내부 메모" meta="NOTE 메시지">
         <textarea
           data-testid="customer-memo-textarea"
           value={memo}
           onChange={(e) => onMemoChange(e.target.value)}
-          placeholder="상담 메모를 입력하세요..."
-          aria-label="상담 메모 입력"
+          placeholder="타임라인에 내부 메모로 남길 내용을 입력하세요..."
+          aria-label="내부 메모 입력"
           style={{
             width: "100%",
             minHeight: 84,
@@ -149,7 +149,7 @@ export function CustomerPanel({
             letterSpacing: "-0.1px",
           }}
         >
-          {isMemoSaving ? "저장 중..." : "메모 저장"}
+          {isMemoSaving ? "남기는 중..." : "내부 메모로 남기기"}
         </button>
       </InfoCard>
     </div>
