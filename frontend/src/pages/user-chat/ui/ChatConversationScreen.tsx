@@ -1,5 +1,6 @@
-import type { ConnectionStatus, DemoChatSession } from "@/entities/chat";
+import type { DemoChatSession } from "@/entities/chat";
 import { MessageInput, MessageList } from "@/features/user-chat";
+import type { ConnectionStatus } from "@/shared/lib/websocket";
 import { ChatHeader } from "./ChatHeader";
 
 interface ChatConversationScreenProps {
@@ -7,16 +8,68 @@ interface ChatConversationScreenProps {
   customerName: string;
   workspaceId: number;
   isSending: boolean;
-  connectionStatus?: ConnectionStatus;
+  connectionStatus: ConnectionStatus;
   messageError: string | null;
   onSend: (content: string) => void;
   onStartNewSession: () => void;
 }
 
-function getConnectionLabel(status: ConnectionStatus): string {
-  if (status === "CONNECTED") return "연결됨";
-  if (status === "CONNECTING") return "연결 중";
-  return "연결 끊김";
+interface RealtimeConnectionDisplay {
+  label: string;
+  notice: string | null;
+  dotColor: string;
+  noticeBorder: string;
+  noticeBackground: string;
+  noticeColor: string;
+  canSend: boolean;
+}
+
+function resolveRealtimeConnectionDisplay(status: ConnectionStatus): RealtimeConnectionDisplay {
+  if (status === "CONNECTED") {
+    return {
+      label: "연결됨",
+      notice: null,
+      dotColor: "var(--signal)",
+      noticeBorder: "var(--line-2)",
+      noticeBackground: "var(--paper)",
+      noticeColor: "var(--ink-3)",
+      canSend: true,
+    };
+  }
+
+  if (status === "CONNECTING") {
+    return {
+      label: "연결 중",
+      notice: "실시간 연결을 준비하는 중입니다. 연결 후 메시지를 보낼 수 있습니다.",
+      dotColor: "var(--ink-4)",
+      noticeBorder: "var(--line)",
+      noticeBackground: "var(--paper-3)",
+      noticeColor: "var(--ink-3)",
+      canSend: false,
+    };
+  }
+
+  if (status === "DISCONNECTED") {
+    return {
+      label: "재연결 중",
+      notice: "실시간 연결이 끊어졌습니다. 잠시 후 자동 재연결을 시도합니다.",
+      dotColor: "var(--ink-4)",
+      noticeBorder: "var(--line)",
+      noticeBackground: "var(--paper-3)",
+      noticeColor: "var(--ink-3)",
+      canSend: false,
+    };
+  }
+
+  return {
+    label: "오프라인",
+    notice: "실시간 연결에 문제가 있습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+    dotColor: "var(--danger)",
+    noticeBorder: "var(--danger)",
+    noticeBackground: "var(--danger-bg)",
+    noticeColor: "var(--danger)",
+    canSend: false,
+  };
 }
 
 export function ChatConversationScreen({
@@ -24,12 +77,13 @@ export function ChatConversationScreen({
   customerName,
   workspaceId,
   isSending,
-  connectionStatus = "CONNECTED",
+  connectionStatus,
   messageError,
   onSend,
   onStartNewSession,
 }: ChatConversationScreenProps) {
-  const connectionLabel = getConnectionLabel(connectionStatus);
+  const connectionDisplay = resolveRealtimeConnectionDisplay(connectionStatus);
+  const isInputDisabled = isSending || !connectionDisplay.canSend;
 
   return (
     <div
@@ -73,14 +127,15 @@ export function ChatConversationScreen({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <span
               aria-hidden="true"
+              data-testid="chat-connection-dot"
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: 999,
-                background: connectionStatus === "CONNECTED" ? "var(--signal)" : "var(--danger)",
+                background: connectionDisplay.dotColor,
               }}
             />
-            {connectionLabel}
+            {connectionDisplay.label}
           </span>
           <span>Workspace #{workspaceId} · 운영 도메인 팩 기준</span>
         </div>
@@ -145,11 +200,28 @@ export function ChatConversationScreen({
           {messageError}
         </div>
       )}
+      {connectionDisplay.notice && (
+        <div
+          role="status"
+          data-testid="chat-connection-notice"
+          style={{
+            borderTop: `1px solid ${connectionDisplay.noticeBorder}`,
+            background: connectionDisplay.noticeBackground,
+            padding: "9px 20px",
+            fontSize: 12.5,
+            lineHeight: 1.45,
+            color: connectionDisplay.noticeColor,
+            fontWeight: 450,
+          }}
+        >
+          {connectionDisplay.notice}
+        </div>
+      )}
       <MessageInput
         onSend={(content) => {
           onSend(content);
         }}
-        disabled={isSending}
+        disabled={isInputDisabled}
       />
     </div>
   );

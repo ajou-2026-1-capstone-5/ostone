@@ -452,7 +452,7 @@ export function UserChatPage() {
       session={activeChatState.session}
       customerName={customerName}
       workspaceId={workspaceId}
-      isSending={isSending || connectionStatus !== "CONNECTED"}
+      isSending={isSending}
       connectionStatus={connectionStatus}
       messageError={messageError}
       onSend={(content) => {
