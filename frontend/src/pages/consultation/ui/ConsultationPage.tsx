@@ -284,6 +284,9 @@ export const ConsultationPage: React.FC = () => {
         currentCounselorId,
       )
     : null;
+  const activeAssignmentToneClass = activeAssignment
+    ? styles["assignmentBadge_" + activeAssignment.tone]
+    : "";
   const isAssignedToCurrentCounselor =
     !!activeCustomer?.assignedCounselorId &&
     activeCustomer.assignedCounselorId === currentCounselorId;
@@ -738,7 +741,7 @@ export const ConsultationPage: React.FC = () => {
             <div className={styles.conversationActions}>
               {activeAssignment && (
                 <div
-                  className={`${styles.assignmentBadge} ${styles[`assignmentBadge_${activeAssignment.tone}`]}`}
+                  className={`${styles.assignmentBadge} ${activeAssignmentToneClass}`}
                   data-testid="conversation-assignment-status"
                 >
                   <span>{activeAssignment.label}</span>
