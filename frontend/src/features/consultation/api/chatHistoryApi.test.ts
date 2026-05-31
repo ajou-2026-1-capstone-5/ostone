@@ -54,13 +54,13 @@ describe("useChatSessions", () => {
     const { result } = renderHook(
       () =>
         useChatSessions({
-          workspaceId: "ws-1",
+          workspaceId: 1,
         }),
       { wrapper: makeWrapper() },
     );
 
     await waitFor(() => expect(result.current.data).toEqual([stubSession]));
-    expect(mockedGetSessions).toHaveBeenCalledWith({ status: undefined, page: 0, size: 20 });
+    expect(mockedGetSessions).toHaveBeenCalledWith(1, { status: undefined, page: 0, size: 20 });
   });
 
   it("상태 필터로 세션 목록을 조회한다", async () => {
@@ -69,7 +69,7 @@ describe("useChatSessions", () => {
     const { result } = renderHook(
       () =>
         useChatSessions({
-          workspaceId: "ws-1",
+          workspaceId: 1,
           status: "COMPLETED",
           page: 1,
           size: 10,
@@ -78,7 +78,20 @@ describe("useChatSessions", () => {
     );
 
     await waitFor(() => expect(result.current.data).toEqual([stubSession]));
-    expect(mockedGetSessions).toHaveBeenCalledWith({ status: "COMPLETED", page: 1, size: 10 });
+    expect(mockedGetSessions).toHaveBeenCalledWith(1, { status: "COMPLETED", page: 1, size: 10 });
+  });
+
+  it("workspaceId가 없으면 세션 목록을 조회하지 않는다", () => {
+    const { result } = renderHook(
+      () =>
+        useChatSessions({
+          workspaceId: null,
+        }),
+      { wrapper: makeWrapper() },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockedGetSessions).not.toHaveBeenCalled();
   });
 });
 

@@ -1,12 +1,16 @@
 import { EmptyState, ErrorState, Eyebrow, LoadingSpinner } from "@/shared/ui/ostone/atoms";
-import { useChatSessions } from "../../api/chatHistoryApi";
+import type { ChatSession } from "../../api/consultationApi";
 import { SessionCard } from "./SessionCard";
 import styles from "./SessionList.module.css";
 
 interface SessionListProps {
-  workspaceId: string;
+  sessions: ChatSession[];
   selectedSessionId?: string | null;
   onSelectSession: (sessionId: string) => void;
+  isLoading?: boolean;
+  isError?: boolean;
+  error?: unknown;
+  onRetry: () => void;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -14,17 +18,15 @@ function getErrorMessage(error: unknown): string {
   return "채팅 기록을 불러오지 못했습니다";
 }
 
-export function SessionList({ workspaceId, selectedSessionId, onSelectSession }: SessionListProps) {
-  const {
-    data: sessions = [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useChatSessions({
-    workspaceId,
-    status: "completed",
-  });
+export function SessionList({
+  sessions,
+  selectedSessionId,
+  onSelectSession,
+  isLoading = false,
+  isError = false,
+  error,
+  onRetry,
+}: SessionListProps) {
   const validSessions = sessions.filter(
     (session): session is typeof session & { id: number } => session.id != null,
   );
@@ -51,7 +53,7 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
           <span className={styles.count}>오류</span>
         </div>
         <div className={styles.stateArea}>
-          <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+          <ErrorState message={getErrorMessage(error)} onRetry={onRetry} />
         </div>
       </aside>
     );
