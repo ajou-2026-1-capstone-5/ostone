@@ -93,6 +93,7 @@ class ChatWebSocketServiceTest {
 
       // 즉시 전송되지 않음
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+      verify(eventPublisher, never()).publishEvent(any(Object.class));
 
       // afterCommit 수동 트리거
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
@@ -169,6 +170,7 @@ class ChatWebSocketServiceTest {
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+      verify(eventPublisher, never()).publishEvent(any(Object.class));
 
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 

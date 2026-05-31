@@ -76,13 +76,13 @@ public class ChatWebSocketService {
             command.sessionId(), nextSeqNo, command.senderRole(), "TEXT", command.content());
     ChatMessage savedMessage = chatMessageRepository.save(message);
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
-    if (isCustomerRole(command.senderRole())) {
-      eventPublisher.publishEvent(
-          new ConsultationQueueChangedEvent(
-              session.getWorkspaceId(),
-              command.sessionId(),
-              ConsultationQueueEventType.SESSION_UPSERTED));
-    }
+    ConsultationQueueChangedEvent queueChangedEvent =
+        isCustomerRole(command.senderRole())
+            ? new ConsultationQueueChangedEvent(
+                session.getWorkspaceId(),
+                command.sessionId(),
+                ConsultationQueueEventType.SESSION_UPSERTED)
+            : null;
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + command.sessionId();
@@ -96,6 +96,9 @@ public class ChatWebSocketService {
             } finally {
               eventPublisher.publishEvent(
                   new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
+              if (queueChangedEvent != null) {
+                eventPublisher.publishEvent(queueChangedEvent);
+              }
             }
           }
         });
