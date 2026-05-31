@@ -33,9 +33,9 @@
   --dark-ink-3: oklch(0.58 0.012 260);
 
   /* type */
-  --sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --serif: "Instrument Serif", "Times New Roman", serif;
+  --sans: var(--font-sans);
+  --mono: var(--font-mono);
+  --serif: var(--font-sans);
 
   /* radii — small, technical */
   --r-1: 2px;
