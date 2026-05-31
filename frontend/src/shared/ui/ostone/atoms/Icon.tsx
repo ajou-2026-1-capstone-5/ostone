@@ -77,7 +77,7 @@ const ICONS: Record<IconName, React.ReactNode> = {
   ),
   folder: (
     <>
-      <path d="M14 6H8L6 4H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1z" />
+      <path d="M13.5 6.25H8.15L6.35 4.5h-3.1a.75.75 0 0 0-.75.75v7.5c0 .41.34.75.75.75h10.5c.41 0 .75-.34.75-.75V7a.75.75 0 0 0-.75-.75z" />
     </>
   ),
   grid: (

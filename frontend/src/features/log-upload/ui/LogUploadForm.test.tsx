@@ -125,6 +125,9 @@ describe("LogUploadForm", () => {
   it("renders upload header and file uploader", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
+    expect(
+      screen.getByText("상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
     expect(screen.getByTestId("accepted-types")).toHaveTextContent(".json,application/json");
     expect(screen.getByTestId("policy-copy")).toHaveTextContent("JSON 50MB JSON");

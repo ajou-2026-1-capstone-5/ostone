@@ -166,7 +166,7 @@ function DomainPackSummaryPageContent({
 
   const buildSummaryCrumbs = (): Crumb[] => {
     const items: Crumb[] = [
-      { label: `WS · ${wsId}`, href: `/workspaces/${wsId}/domain-packs` },
+      { label: "도메인팩", href: `/workspaces/${wsId}/domain-packs` },
       {
         label: pack?.name ?? `PACK · ${packId}`,
         href: domainPackPath(wsId, packId),
