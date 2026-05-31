@@ -1,0 +1,7 @@
+.input:focus,
+.input:focus-visible {
+  border-color: var(--ink) !important;
+  background: var(--paper-2) !important;
+  outline: none;
+  box-shadow: none !important;
+}

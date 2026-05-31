@@ -274,11 +274,16 @@
   background: var(--bg-color);
   outline: none;
   resize: none;
-  transition: border-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
 }
 
-.messageInput:focus {
-  border-color: var(--primary-color);
+.messageInput:focus,
+.messageInput:focus-visible {
+  border-color: var(--ink);
+  background: var(--paper-2);
+  box-shadow: none;
 }
 
 .messageInput:disabled {

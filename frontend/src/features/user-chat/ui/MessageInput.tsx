@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Paperclip, Send } from "lucide-react";
+import styles from "./MessageInput.module.css";
 
 export interface MessageInputProps {
   onSend: (content: string) => void;
@@ -57,6 +58,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
         <Paperclip size={16} aria-hidden="true" />
       </button>
       <input
+        className={styles.input}
         aria-label="메시지 입력"
         disabled={disabled}
         placeholder="메시지를 입력하세요"
@@ -72,6 +74,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           fontWeight: 460,
           fontFamily: "inherit",
           letterSpacing: "-0.12px",
+          transition: "border-color 160ms ease, background 160ms ease",
         }}
         value={content}
         onChange={(event) => setContent(event.target.value)}
