@@ -58,13 +58,14 @@ public class ConsultationService {
         .collect(Collectors.toList());
   }
 
-  public List<ChatMessageResponse> getMessages(@NonNull Long sessionId) {
+  public List<ChatMessageResponse> getMessages(@NonNull Long sessionId, @NonNull Long userId) {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     Long id = session.getId();
     if (id == null) {
@@ -78,13 +79,14 @@ public class ConsultationService {
 
   @Transactional
   public ChatMessageResponse sendMessage(
-      @NonNull Long sessionId, @NonNull SendMessageRequest request) {
+      @NonNull Long sessionId, @NonNull SendMessageRequest request, @NonNull Long userId) {
     ChatSession session =
         chatSessionRepository
             .findByIdForUpdate(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
@@ -108,21 +110,23 @@ public class ConsultationService {
   }
 
   @Transactional
-  public ChatSessionResponse updateSessionStatus(@NonNull Long sessionId, @NonNull String status) {
+  public ChatSessionResponse updateSessionStatus(
+      @NonNull Long sessionId, @NonNull String status, @NonNull Long userId) {
     UpdateStatusRequest request = new UpdateStatusRequest();
     request.setStatus(status);
-    return updateSessionStatus(sessionId, request);
+    return updateSessionStatus(sessionId, request, userId);
   }
 
   @Transactional
   public ChatSessionResponse updateSessionStatus(
-      @NonNull Long sessionId, @NonNull UpdateStatusRequest request) {
+      @NonNull Long sessionId, @NonNull UpdateStatusRequest request, @NonNull Long userId) {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     ChatSessionStatus newStatus = parseStatus(request.getStatus());
     SessionResolutionOutcome outcome = parseOutcome(request.getResolutionOutcome());

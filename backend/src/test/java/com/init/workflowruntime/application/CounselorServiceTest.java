@@ -24,6 +24,10 @@ import com.init.workflowruntime.domain.InvalidSessionStateException;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.model.WorkspaceMember;
+import com.init.workspace.domain.model.WorkspaceMemberRole;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,11 +49,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @DisplayName("CounselorService")
 class CounselorServiceTest {
 
+  private static final Long USER_ID = 7L;
+
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private SimpMessagingTemplate messagingTemplate;
   @Mock private ApplicationEventPublisher eventPublisher;
   @Mock private ChatSessionMetadataService chatSessionMetadataService;
+  @Mock private WorkspaceMemberRepository workspaceMemberRepository;
 
   private CounselorService service;
 
@@ -61,7 +68,8 @@ class CounselorServiceTest {
             chatMessageRepository,
             messagingTemplate,
             eventPublisher,
-            chatSessionMetadataService);
+            chatSessionMetadataService,
+            workspaceMemberRepository);
   }
 
   // ── assignSession ─────────────────────────────────────────────────────────
@@ -71,8 +79,9 @@ class CounselorServiceTest {
   void should_assignSession_when_sessionOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    CounselorSessionResponse result = service.assignSession(42L, 1L);
+    CounselorSessionResponse result = service.assignSession(42L, 1L, USER_ID);
 
     assertThat(result.getStatus()).isEqualTo("ACTIVE");
     assertThat(result.getAssignedCounselorId()).isEqualTo(42L);
@@ -86,7 +95,7 @@ class CounselorServiceTest {
   void should_throwNotFoundException_when_sessionNotFound() {
     given(chatSessionRepository.findByIdForUpdate(999L)).willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.assignSession(1L, 999L))
+    assertThatThrownBy(() -> service.assignSession(1L, 999L, USER_ID))
         .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("Session not found: 999");
   }
@@ -97,8 +106,9 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    assertThatThrownBy(() -> service.assignSession(42L, 1L))
+    assertThatThrownBy(() -> service.assignSession(42L, 1L, USER_ID))
         .isInstanceOf(InvalidSessionStateException.class)
         .hasMessageContaining("already assigned");
   }
@@ -108,10 +118,24 @@ class CounselorServiceTest {
   void should_throwInvalidState_when_notOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    assertThatThrownBy(() -> service.assignSession(42L, 1L))
+    assertThatThrownBy(() -> service.assignSession(42L, 1L, USER_ID))
         .isInstanceOf(com.init.workflowruntime.domain.InvalidSessionStateException.class)
         .hasMessageContaining("requires status OPEN");
+  }
+
+  @Test
+  @DisplayName("assignSession: 세션 워크스페이스 멤버가 아니면 배정하지 않는다")
+  void should_throwAccessDenied_when_assignRequesterIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.assignSession(42L, 1L, USER_ID))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.OPEN);
   }
 
   // ── releaseSession ────────────────────────────────────────────────────────
@@ -122,8 +146,9 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    CounselorSessionResponse result = service.releaseSession(1L, 42L);
+    CounselorSessionResponse result = service.releaseSession(1L, 42L, USER_ID);
 
     assertThat(result.getStatus()).isEqualTo("OPEN");
     assertThat(result.getAssignedCounselorId()).isNull();
@@ -137,8 +162,9 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    assertThatThrownBy(() -> service.releaseSession(1L, 99L))
+    assertThatThrownBy(() -> service.releaseSession(1L, 99L, USER_ID))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not assigned to counselor");
   }
@@ -148,10 +174,25 @@ class CounselorServiceTest {
   void should_throwBadRequest_when_notAssignedToRelease() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
-    assertThatThrownBy(() -> service.releaseSession(1L, 42L))
+    assertThatThrownBy(() -> service.releaseSession(1L, 42L, USER_ID))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not assigned to counselor");
+  }
+
+  @Test
+  @DisplayName("releaseSession: 세션 워크스페이스 멤버가 아니면 해제하지 않는다")
+  void should_throwAccessDenied_when_releaseRequesterIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.releaseSession(1L, 42L, USER_ID))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.ACTIVE);
   }
 
   // ── isSessionAssigned ─────────────────────────────────────────────────────
@@ -367,5 +408,11 @@ class CounselorServiceTest {
               assertThat(queueEvent.sessionId()).isEqualTo(sessionId);
               assertThat(queueEvent.type()).isEqualTo(type);
             });
+  }
+
+  private void givenWorkspaceMember(Long workspaceId, Long userId) {
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+        .willReturn(
+            Optional.of(WorkspaceMember.create(workspaceId, userId, WorkspaceMemberRole.OPERATOR)));
   }
 }

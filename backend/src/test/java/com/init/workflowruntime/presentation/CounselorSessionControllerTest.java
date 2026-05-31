@@ -13,6 +13,7 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.CounselorService;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +24,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
@@ -50,10 +53,13 @@ class CounselorSessionControllerTest {
     response.setChannel("WEB");
     response.setStartedAt(OffsetDateTime.now());
 
-    given(counselorService.assignSession(eq(42L), eq(1L))).willReturn(response);
+    given(counselorService.assignSession(eq(42L), eq(1L), eq(7L))).willReturn(response);
 
     mockMvc
-        .perform(post("/api/v1/consultation/sessions/1/assign").param("counselorId", "42"))
+        .perform(
+            post("/api/v1/consultation/sessions/1/assign")
+                .param("counselorId", "42")
+                .principal(auth()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(1))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -63,11 +69,14 @@ class CounselorSessionControllerTest {
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 세션 없음 → 404")
   void should_return404_when_sessionNotFound() throws Exception {
-    given(counselorService.assignSession(eq(1L), eq(999L)))
+    given(counselorService.assignSession(eq(1L), eq(999L), eq(7L)))
         .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
 
     mockMvc
-        .perform(post("/api/v1/consultation/sessions/999/assign").param("counselorId", "1"))
+        .perform(
+            post("/api/v1/consultation/sessions/999/assign")
+                .param("counselorId", "1")
+                .principal(auth()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
   }
@@ -75,11 +84,14 @@ class CounselorSessionControllerTest {
   @Test
   @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 이미 배정됨 → 400")
   void should_return400_when_alreadyAssigned() throws Exception {
-    given(counselorService.assignSession(eq(1L), eq(999L)))
+    given(counselorService.assignSession(eq(1L), eq(999L), eq(7L)))
         .willThrow(new BadRequestException("ALREADY_ASSIGNED", "Session already assigned"));
 
     mockMvc
-        .perform(post("/api/v1/consultation/sessions/999/assign").param("counselorId", "1"))
+        .perform(
+            post("/api/v1/consultation/sessions/999/assign")
+                .param("counselorId", "1")
+                .principal(auth()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("ALREADY_ASSIGNED"));
   }
@@ -92,12 +104,45 @@ class CounselorSessionControllerTest {
     response.setStatus("OPEN");
     response.setAssignedCounselorId(null);
 
-    given(counselorService.releaseSession(eq(1L), eq(42L))).willReturn(response);
+    given(counselorService.releaseSession(eq(1L), eq(42L), eq(7L))).willReturn(response);
 
     mockMvc
-        .perform(post("/api/v1/consultation/sessions/1/release").param("counselorId", "42"))
+        .perform(
+            post("/api/v1/consultation/sessions/1/release")
+                .param("counselorId", "42")
+                .principal(auth()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("OPEN"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/assign - 비멤버 → 403")
+  void should_return403_when_assignRequesterIsNotWorkspaceMember() throws Exception {
+    given(counselorService.assignSession(eq(42L), eq(1L), eq(7L)))
+        .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+
+    mockMvc
+        .perform(
+            post("/api/v1/consultation/sessions/1/assign")
+                .param("counselorId", "42")
+                .principal(auth()))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/release - 비멤버 → 403")
+  void should_return403_when_releaseRequesterIsNotWorkspaceMember() throws Exception {
+    given(counselorService.releaseSession(eq(1L), eq(42L), eq(7L)))
+        .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+
+    mockMvc
+        .perform(
+            post("/api/v1/consultation/sessions/1/release")
+                .param("counselorId", "42")
+                .principal(auth()))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
   }
 
   @Test
@@ -147,5 +192,10 @@ class CounselorSessionControllerTest {
                 .param("size", "20"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
+  }
+
+  private UsernamePasswordAuthenticationToken auth() {
+    return new UsernamePasswordAuthenticationToken(
+        7L, null, List.of(new SimpleGrantedAuthority("ROLE_OPERATOR")));
   }
 }
