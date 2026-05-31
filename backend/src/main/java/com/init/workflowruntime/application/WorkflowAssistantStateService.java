@@ -26,8 +26,10 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import com.init.workflowruntime.domain.WorkflowExecutionRepository;
+import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +53,7 @@ public class WorkflowAssistantStateService {
   private final ChatSessionRepository chatSessionRepository;
   private final WorkflowExecutionRepository workflowExecutionRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
+  private final WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository;
   private final ObjectMapper objectMapper;
 
   public WorkflowAssistantStateService(
@@ -59,12 +62,14 @@ public class WorkflowAssistantStateService {
       ChatSessionRepository chatSessionRepository,
       WorkflowExecutionRepository workflowExecutionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
+      WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository,
       ObjectMapper objectMapper) {
     this.llmToolService = llmToolService;
     this.workflowRuntimeService = workflowRuntimeService;
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
+    this.workflowMatchDecisionRepository = workflowMatchDecisionRepository;
     this.objectMapper = objectMapper;
   }
 
@@ -79,8 +84,13 @@ public class WorkflowAssistantStateService {
     if (!hasText(intentCode)) {
       throw new BadRequestException("INTENT_CODE_REQUIRED", "intentCode is required");
     }
+    Optional<Long> preferredWorkflow =
+        workflowMatchDecisionRepository.findLatestConfidentWorkflowId(
+            command.sessionId(), intentCode.trim());
+    Long workflowDefinitionId = preferredWorkflow == null ? null : preferredWorkflow.orElse(null);
     llmToolService.selectIntent(
-        new SelectLlmToolIntentCommand(command.sessionId(), intentCode.trim()));
+        new SelectLlmToolIntentCommand(
+            command.sessionId(), intentCode.trim(), workflowDefinitionId));
     return AssistantConversationResult.of(inspectState(command.sessionId()));
   }
 

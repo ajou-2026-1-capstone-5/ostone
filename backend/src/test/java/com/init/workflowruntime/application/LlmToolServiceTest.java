@@ -52,6 +52,7 @@ import com.init.workflowruntime.domain.WorkflowExecutionRepository;
 import com.init.workflowruntime.domain.WorkflowExecutionStep;
 import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
 import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
+import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
@@ -84,6 +85,7 @@ class LlmToolServiceTest {
   @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   @Mock private DecisionLogRepository decisionLogRepository;
   @Mock private WorkflowExecutionStepRepository workflowExecutionStepRepository;
+  @Mock private WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
 
   private ObjectMapper objectMapper;
@@ -104,6 +106,7 @@ class LlmToolServiceTest {
             workflowPolicyRuntimeService,
             decisionLogRepository,
             workflowExecutionStepRepository,
+            workflowMatchDecisionRepository,
             objectMapper,
             workspaceMemberRepository);
   }

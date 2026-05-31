@@ -26,6 +26,7 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,12 +104,15 @@ class UpdateWorkflowTransitionUseCaseTest {
   @Mock private DomainPackValidator validator;
   @Mock private DomainPackVersionRepository versionRepository;
   @Mock private WorkflowDefinitionRepository workflowRepository;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private UpdateWorkflowTransitionUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase = new UpdateWorkflowTransitionUseCase(validator, versionRepository, workflowRepository);
+    useCase =
+        new UpdateWorkflowTransitionUseCase(
+            validator, versionRepository, workflowRepository, profileBuildRequestService);
   }
 
   @Test

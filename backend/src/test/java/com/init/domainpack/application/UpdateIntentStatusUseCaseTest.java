@@ -17,6 +17,7 @@ import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,7 @@ class UpdateIntentStatusUseCaseTest {
   @Mock private DomainPackVersionRepository versionRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private UpdateIntentStatusUseCase useCase;
 
@@ -41,7 +43,11 @@ class UpdateIntentStatusUseCaseTest {
   void setUp() {
     useCase =
         new UpdateIntentStatusUseCase(
-            intentRepository, versionRepository, workspaceExistencePort, workspaceMembershipPort);
+            intentRepository,
+            versionRepository,
+            workspaceExistencePort,
+            workspaceMembershipPort,
+            profileBuildRequestService);
   }
 
   @Test

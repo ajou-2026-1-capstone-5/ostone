@@ -7,6 +7,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,14 +23,17 @@ public class UpdateWorkflowUseCase {
   private final DomainPackValidator validator;
   private final DomainPackVersionRepository versionRepository;
   private final WorkflowDefinitionRepository workflowRepository;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public UpdateWorkflowUseCase(
       DomainPackValidator validator,
       DomainPackVersionRepository versionRepository,
-      WorkflowDefinitionRepository workflowRepository) {
+      WorkflowDefinitionRepository workflowRepository,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.validator = validator;
     this.versionRepository = versionRepository;
     this.workflowRepository = workflowRepository;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -97,6 +101,7 @@ public class UpdateWorkflowUseCase {
     }
 
     workflowRepository.save(workflow);
+    profileBuildRequestService.enqueue(command.versionId(), "WORKFLOW_UPDATED");
     return WorkflowDefinitionDetail.from(workflow);
   }
 }

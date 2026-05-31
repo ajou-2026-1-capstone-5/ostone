@@ -18,6 +18,7 @@ import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class DomainPackDraftPersistenceService {
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final IntentSlotBindingRepository intentSlotBindingRepository;
   private final DomainPackVersionCloneService domainPackVersionCloneService;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public DomainPackDraftPersistenceService(
       DomainPackVersionRepository domainPackVersionRepository,
@@ -50,7 +52,8 @@ public class DomainPackDraftPersistenceService {
       RiskDefinitionRepository riskDefinitionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       IntentSlotBindingRepository intentSlotBindingRepository,
-      DomainPackVersionCloneService domainPackVersionCloneService) {
+      DomainPackVersionCloneService domainPackVersionCloneService,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.slotDefinitionRepository = slotDefinitionRepository;
@@ -59,6 +62,7 @@ public class DomainPackDraftPersistenceService {
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.intentSlotBindingRepository = intentSlotBindingRepository;
     this.domainPackVersionCloneService = domainPackVersionCloneService;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   /** DRAFT 버전만 생성한다 (intent/slot/policy 등은 저장하지 않음). Airflow 파이프라인 콜백의 1단계에서 사용한다. */
@@ -222,6 +226,9 @@ public class DomainPackDraftPersistenceService {
                 components.risks(),
                 validatedWorkflows,
                 components.intentSlotBindings()));
+    if (savedComponents.addedWorkflowCount() > 0) {
+      profileBuildRequestService.enqueue(savedVersion.getId(), "DRAFT_IMPORT");
+    }
 
     return CreateDomainPackDraftResult.from(
         savedVersion,
@@ -283,6 +290,9 @@ public class DomainPackDraftPersistenceService {
                 components.risks(),
                 validatedWorkflows,
                 components.intentSlotBindings()));
+    if (savedComponents.addedWorkflowCount() > 0) {
+      profileBuildRequestService.enqueue(domainPackVersionId, "WORKFLOW_DRAFT_IMPORT");
+    }
 
     return new AddWorkflowDraftToVersionResult(
         domainPackVersionId,

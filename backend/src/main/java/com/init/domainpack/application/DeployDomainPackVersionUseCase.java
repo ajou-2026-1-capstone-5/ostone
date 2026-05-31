@@ -15,6 +15,7 @@ import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -35,6 +36,7 @@ public class DeployDomainPackVersionUseCase {
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public DeployDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
@@ -42,13 +44,15 @@ public class DeployDomainPackVersionUseCase {
       IntentDefinitionRepository intentDefinitionRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort,
-      Clock clock) {
+      Clock clock,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.versionRepository = versionRepository;
     this.domainPackRepository = domainPackRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.clock = clock;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -93,6 +97,7 @@ public class DeployDomainPackVersionUseCase {
     try {
       version.markDeployed(OffsetDateTime.now(clock));
       DomainPackVersion saved = versionRepository.saveAndFlush(version);
+      profileBuildRequestService.enqueue(saved.getId(), "VERSION_DEPLOYED");
       return DeployDomainPackVersionResult.from(saved);
     } catch (ObjectOptimisticLockingFailureException e) {
       throw new DomainPackVersionConflictException(command.versionId(), e);

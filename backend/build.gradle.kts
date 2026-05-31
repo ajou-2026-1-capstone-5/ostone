@@ -48,6 +48,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation(platform("software.amazon.awssdk:bom:2.26.7"))
     implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:bedrockruntime")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
     testImplementation("com.h2database:h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -27,7 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class JpaWorkflowDefinitionRepositoryPolicyRefTest {
 
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16");
 
   static {
     // Start the container eagerly in the class initializer so it is ready before

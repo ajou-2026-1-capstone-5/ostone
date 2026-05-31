@@ -28,6 +28,20 @@ llm_service_desired_count  = 0
 llm_service_container_port = 8000
 llm_runtime_api_key        = ""
 
+ai_embedding_provider                          = "bedrock"
+ai_embedding_model                             = "cohere.embed-multilingual-v3"
+ai_embedding_bedrock_region                    = "ap-northeast-1"
+ai_embedding_enabled                           = true
+ai_embedding_timeout_seconds                   = 5
+ai_embedding_profile_build_running_timeout     = "15m"
+ai_embedding_auto_run_replay_fitness_threshold = 0.70
+ai_embedding_confident_threshold               = 0.72
+ai_embedding_ambiguous_threshold               = 0.55
+ai_embedding_confident_margin                  = 0.10
+ai_embedding_semantic_floor                    = 0.65
+ai_embedding_route_evidence_floor              = 0.50
+ai_embedding_lexical_evidence_floor            = 0.30
+
 cors_allowed_origins = [
   "https://airflow.example.com",
   "https://app.example.com"

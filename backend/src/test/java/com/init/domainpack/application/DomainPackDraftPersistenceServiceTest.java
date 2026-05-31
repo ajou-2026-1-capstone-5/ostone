@@ -20,6 +20,7 @@ import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
 import com.init.domainpack.domain.repository.RiskDefinitionRepository;
 import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +46,7 @@ class DomainPackDraftPersistenceServiceTest {
   @Mock private RiskDefinitionRepository riskDefinitionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   @InjectMocks private DomainPackDraftPersistenceService service;
 

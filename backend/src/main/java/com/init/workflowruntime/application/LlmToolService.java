@@ -45,6 +45,7 @@ import com.init.workflowruntime.domain.WorkflowExecutionRepository;
 import com.init.workflowruntime.domain.WorkflowExecutionStep;
 import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
 import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
+import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.Comparator;
@@ -70,6 +71,7 @@ public class LlmToolService {
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   private final DecisionLogRepository decisionLogRepository;
   private final WorkflowExecutionStepRepository workflowExecutionStepRepository;
+  private final WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository;
   private final ObjectMapper objectMapper;
   private final WorkspaceMemberRepository workspaceMemberRepository;
 
@@ -84,6 +86,7 @@ public class LlmToolService {
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
       DecisionLogRepository decisionLogRepository,
       WorkflowExecutionStepRepository workflowExecutionStepRepository,
+      WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository,
       ObjectMapper objectMapper,
       WorkspaceMemberRepository workspaceMemberRepository) {
     this.chatSessionRepository = chatSessionRepository;
@@ -96,6 +99,7 @@ public class LlmToolService {
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
     this.decisionLogRepository = decisionLogRepository;
     this.workflowExecutionStepRepository = workflowExecutionStepRepository;
+    this.workflowMatchDecisionRepository = workflowMatchDecisionRepository;
     this.objectMapper = objectMapper;
     this.workspaceMemberRepository = workspaceMemberRepository;
   }
@@ -380,10 +384,13 @@ public class LlmToolService {
           "INTENT_NOT_SELECTABLE", "Rejected intent cannot be selected: " + intentCode);
     }
 
-    WorkflowDefinition workflow = resolveWorkflow(session.getDomainPackVersionId(), intent);
+    WorkflowDefinition workflow =
+        resolveWorkflow(session.getDomainPackVersionId(), intent, command.workflowDefinitionId());
     WorkflowExecution execution = findOrCreateExecutionForUpdate(session);
     execution.assignIntentWorkflow(intent.getId(), workflow.getId(), resolveInitialState(workflow));
     WorkflowExecution saved = workflowExecutionRepository.save(execution);
+    workflowMatchDecisionRepository.attachLatestExecution(
+        session.getId(), workflow.getId(), saved.getId());
 
     ObjectNode slotValues = readObjectNode(saved.getSlotValuesJson());
     List<LlmToolSlotResponse> requiredSlots =
@@ -585,7 +592,24 @@ public class LlmToolService {
                     "INTENT_DEFINITION_NOT_FOUND", "IntentDefinition not found: " + intentCode));
   }
 
-  private WorkflowDefinition resolveWorkflow(Long domainPackVersionId, IntentDefinition intent) {
+  private WorkflowDefinition resolveWorkflow(
+      Long domainPackVersionId, IntentDefinition intent, Long preferredWorkflowDefinitionId) {
+    if (preferredWorkflowDefinitionId != null) {
+      WorkflowDefinition workflow =
+          workflowDefinitionRepository
+              .findByIdAndDomainPackVersionId(preferredWorkflowDefinitionId, domainPackVersionId)
+              .orElseThrow(
+                  () ->
+                      new NotFoundException(
+                          "WORKFLOW_DEFINITION_NOT_FOUND",
+                          "WorkflowDefinition not found: " + preferredWorkflowDefinitionId));
+      if (!workflow.getIntentDefinitionId().equals(intent.getId())) {
+        throw new BadRequestException(
+            "WORKFLOW_INTENT_MISMATCH", "Selected workflow does not belong to selected intent.");
+      }
+      return workflow;
+    }
+
     List<WorkflowDefinition> workflows =
         workflowDefinitionRepository
             .findAllByIntentDefinitionIdAndDomainPackVersionId(intent.getId(), domainPackVersionId)

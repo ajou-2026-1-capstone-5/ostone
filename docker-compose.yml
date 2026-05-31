@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg16
     container_name: init-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-init}
@@ -10,6 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-init} -d ${DB_NAME:-init}" ]
       interval: 10s
@@ -53,6 +54,19 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}
       AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gemini-2.5-flash-lite}
       AI_CHAT_TEMPERATURE: ${AI_CHAT_TEMPERATURE:-0.7}
+      AI_EMBEDDING_PROVIDER: ${AI_EMBEDDING_PROVIDER:-bedrock}
+      AI_EMBEDDING_ENABLED: ${AI_EMBEDDING_ENABLED:-false}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-cohere.embed-multilingual-v3}
+      AI_EMBEDDING_BEDROCK_REGION: ${AI_EMBEDDING_BEDROCK_REGION:-ap-northeast-1}
+      AI_EMBEDDING_TIMEOUT_SECONDS: ${AI_EMBEDDING_TIMEOUT_SECONDS:-5}
+      AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT: ${AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT:-15m}
+      AI_EMBEDDING_AUTO_RUN_REPLAY_FITNESS_THRESHOLD: ${AI_EMBEDDING_AUTO_RUN_REPLAY_FITNESS_THRESHOLD:-0.70}
+      AI_EMBEDDING_CONFIDENT_THRESHOLD: ${AI_EMBEDDING_CONFIDENT_THRESHOLD:-0.72}
+      AI_EMBEDDING_AMBIGUOUS_THRESHOLD: ${AI_EMBEDDING_AMBIGUOUS_THRESHOLD:-0.55}
+      AI_EMBEDDING_CONFIDENT_MARGIN: ${AI_EMBEDDING_CONFIDENT_MARGIN:-0.10}
+      AI_EMBEDDING_SEMANTIC_FLOOR: ${AI_EMBEDDING_SEMANTIC_FLOOR:-0.65}
+      AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR: ${AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR:-0.50}
+      AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR: ${AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR:-0.30}
 
     ports:
       - "8080:8080"

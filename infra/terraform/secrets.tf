@@ -24,3 +24,23 @@ resource "aws_secretsmanager_secret_version" "app" {
     llm_runtime_api_key    = var.llm_runtime_api_key
   })
 }
+
+resource "aws_secretsmanager_secret" "db_admin" {
+  name        = "/prod/ostone/db-admin"
+  description = "Database admin credentials used only by the production bootstrap task"
+
+  recovery_window_in_days = 7
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-db-admin-secrets"
+  })
+}
+
+resource "aws_secretsmanager_secret_version" "db_admin" {
+  secret_id = aws_secretsmanager_secret.db_admin.id
+
+  secret_string = jsonencode({
+    db_master_username = var.db_master_username
+    db_master_password = var.db_master_password
+  })
+}
