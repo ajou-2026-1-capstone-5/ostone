@@ -7,9 +7,11 @@ import { Button } from "../../../shared/ui/button/Button";
 import { useUploadRawFile } from "../../../shared/api/generated/endpoints/dataset-controller/dataset-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
+  RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
   RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
+  RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
   validateRawLogUploadFile,
-} from "../model/uploadPolicy";
+} from "../../../shared/lib/rawLogUploadPolicy";
 
 import styles from "./log-upload-form.module.css";
 
@@ -87,8 +89,8 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
         <FileUploader
           onFileSelect={handleFileSelect}
           acceptedTypes={RAW_LOG_UPLOAD_ACCEPT}
-          acceptedTypeLabel="JSON"
-          maxSizeLabel="50MB"
+          acceptedTypeLabel={RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL}
+          maxSizeLabel={RAW_LOG_UPLOAD_MAX_SIZE_LABEL}
           fileTypeLabels={RAW_LOG_UPLOAD_FILE_TYPE_LABELS}
           status={status}
           progress={0}

@@ -1,5 +1,11 @@
 import React, { useState, useRef } from "react";
 import { UploadCloud, FileType, CheckCircle2 } from "lucide-react";
+import {
+  RAW_LOG_UPLOAD_ACCEPT,
+  RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
+  RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
+  RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
+} from "../../lib/rawLogUploadPolicy";
 import styles from "./file-uploader.module.css";
 
 interface FileUploaderProps {
@@ -15,10 +21,10 @@ interface FileUploaderProps {
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
   onFileSelect,
-  acceptedTypes = ".json,application/json",
-  acceptedTypeLabel = "JSON",
-  maxSizeLabel = "50MB",
-  fileTypeLabels = ["JSON"],
+  acceptedTypes = RAW_LOG_UPLOAD_ACCEPT,
+  acceptedTypeLabel = RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
+  maxSizeLabel = RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
+  fileTypeLabels = RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
   isUploading = false,
   progress = 0,
   status = "idle",
@@ -67,7 +73,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <div className={styles.loaderArea}>
           <div className={styles.spinner} />
           <h3 className={`${styles.statusText} ${styles.title}`}>
-            {status === "analyzing" ? "Analyzing CSV Log..." : "Uploading File..."}
+            {status === "analyzing" ? "Analyzing JSON Log..." : "Uploading File..."}
           </h3>
           <div className={styles.progressBarContainer}>
             <div className={styles.progressBar} style={{ width: `${progress}%` }} />
