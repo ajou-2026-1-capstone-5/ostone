@@ -31,6 +31,7 @@ interface ChatPanelProps {
   sessionStatusLabel?: string;
   sessionStatusDescription?: string;
   disabled?: boolean;
+  disabledReason?: string;
 }
 
 const BOTTOM_SCROLL_THRESHOLD_PX = 96;
@@ -66,6 +67,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   sessionStatusLabel,
   sessionStatusDescription,
   disabled = false,
+  disabledReason,
 }) => {
   const [input, setInput] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
@@ -330,6 +332,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </button>
         )}
       </div>
+
+      {disabled && disabledReason && (
+        <output className={styles.disabledNotice}>
+          {disabledReason}
+        </output>
+      )}
 
       {/* Input */}
       <div className={styles.inputArea}>

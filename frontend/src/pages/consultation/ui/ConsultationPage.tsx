@@ -281,14 +281,14 @@ const getAssignmentView = (
   if (assignedCounselorId) {
     return {
       label: "다른 상담사 배정",
-      description: "다른 상담사가 응대 중인 세션입니다.",
+      description: "다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다.",
       tone: "other",
     };
   }
 
   return {
     label: "미배정",
-    description: "선택하면 자동으로 내게 배정됩니다.",
+    description: "배정받기 전에는 메시지와 내부 메모를 보낼 수 없습니다.",
     tone: "unassigned",
   };
 };
@@ -461,6 +461,7 @@ export const ConsultationPage: React.FC = () => {
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
   const [hasQueueLoaded, setHasQueueLoaded] = useState(false);
   const [urlSessionUnavailable, setUrlSessionUnavailable] = useState(false);
+  const [claimingSessionId, setClaimingSessionId] = useState<string | null>(null);
   const workflowRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
@@ -545,6 +546,13 @@ export const ConsultationPage: React.FC = () => {
   const isAssignedToCurrentCounselor =
     !!activeCustomer?.assignedCounselorId &&
     activeCustomer.assignedCounselorId === currentCounselorId;
+  const isActiveSessionClosed =
+    activeCustomer?.status === "COMPLETED" || activeCustomer?.status === "RESOLVED";
+  const isActiveSessionUnassigned = !!activeCustomer && !activeCustomer.assignedCounselorId;
+  const isClaimingActiveSession = activeCustomerId != null && claimingSessionId === activeCustomerId;
+  const messageInputDisabledReason = isAssignedToCurrentCounselor
+    ? undefined
+    : activeAssignment?.description;
 
   const clearActiveConversation = useCallback(() => {
     setActiveCustomerId(null);
@@ -754,7 +762,7 @@ export const ConsultationPage: React.FC = () => {
   }, [loadQueue]);
 
   const activateCustomer = useCallback(
-    async (id: string) => {
+    (id: string) => {
       setActiveCustomerId(id);
       setSelectedMessageId(null);
       setQueue((prev) =>
@@ -764,21 +772,8 @@ export const ConsultationPage: React.FC = () => {
             )
           : prev,
       );
-
-      const selected = queue.find((customer) => customer.id === id);
-      if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
-
-      try {
-        const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
-        setQueue((prev) =>
-          replaceAssignedQueueCustomer(prev, id, assignedSession, currentCounselorId),
-        );
-        toast.success("상담 세션이 배정되었습니다.");
-      } catch {
-        toast.error("상담 세션 배정에 실패했습니다.");
-      }
     },
-    [currentCounselorId, queue],
+    [],
   );
 
   useEffect(() => {
@@ -806,7 +801,7 @@ export const ConsultationPage: React.FC = () => {
     }
 
     setUrlSessionUnavailable(false);
-    void activateCustomer(normalizedRouteSessionId);
+    activateCustomer(normalizedRouteSessionId);
   }, [
     activateCustomer,
     clearActiveConversation,
@@ -958,13 +953,50 @@ export const ConsultationPage: React.FC = () => {
   const handleSelectCustomer = useCallback(
     (id: string) => {
       setUrlSessionUnavailable(false);
-      void activateCustomer(id);
+      activateCustomer(id);
       if (workspacePathId) {
         navigate(`/workspaces/${workspacePathId}/consultation/${id}`);
       }
     },
     [activateCustomer, navigate, workspacePathId],
   );
+
+  const handleClaimSession = useCallback(async () => {
+    if (
+      !activeCustomerId ||
+      !currentCounselorId ||
+      !activeCustomer ||
+      activeCustomer.assignedCounselorId ||
+      isActiveSessionClosed ||
+      claimingSessionId
+    ) {
+      return;
+    }
+
+    const targetSessionId = activeCustomerId;
+    setClaimingSessionId(targetSessionId);
+    try {
+      const assignedSession = await consultationApi.assignSession(
+        Number(targetSessionId),
+        currentCounselorId,
+      );
+      setQueue((prev) =>
+        replaceAssignedQueueCustomer(prev, targetSessionId, assignedSession, currentCounselorId),
+      );
+      toast.success("상담 세션이 배정되었습니다.");
+    } catch (error) {
+      console.error("Failed to claim session:", error);
+      toast.error("상담 세션 배정에 실패했습니다.");
+    } finally {
+      setClaimingSessionId((current) => (current === targetSessionId ? null : current));
+    }
+  }, [
+    activeCustomer,
+    activeCustomerId,
+    claimingSessionId,
+    currentCounselorId,
+    isActiveSessionClosed,
+  ]);
 
   const handleSendMessage = useCallback(
     (content: string, isNote: boolean) => {
@@ -1211,6 +1243,16 @@ export const ConsultationPage: React.FC = () => {
                   <small>{activeAssignment.description}</small>
                 </div>
               )}
+              {isActiveSessionUnassigned && !isActiveSessionClosed && (
+                <button
+                  type="button"
+                  className={styles.claimButton}
+                  onClick={handleClaimSession}
+                  disabled={!currentCounselorId || isClaimingActiveSession}
+                >
+                  {isClaimingActiveSession ? "배정 중..." : "배정받기"}
+                </button>
+              )}
               <button
                 className={styles.linkButton}
                 onClick={handleReleaseAssignment}
@@ -1249,6 +1291,7 @@ export const ConsultationPage: React.FC = () => {
               onSelectMessage={setSelectedMessageId}
               sessionStatusLabel={activeAssignment?.label}
               sessionStatusDescription={activeAssignment?.description}
+              disabledReason={messageInputDisabledReason}
               disabled={!isAssignedToCurrentCounselor}
             />
           )}

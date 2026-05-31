@@ -355,6 +355,16 @@
   color: var(--ink);
 }
 
+.disabledNotice {
+  padding: 10px 24px;
+  border-top: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: -0.1px;
+  line-height: 1.45;
+}
+
 /* Input Area */
 .inputArea {
   display: flex;
