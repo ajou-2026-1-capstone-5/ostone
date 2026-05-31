@@ -1,0 +1,36 @@
+aws_region  = "ap-northeast-2"
+domain_name = "example.com"
+admin_cidr  = "203.0.113.10/32"
+
+db_name             = "ostone"
+db_master_username  = "ostone_admin"
+db_master_password  = "replace-with-secure-master-password"
+app_db_password     = "replace-with-secure-app-password"
+airflow_db_password = "replace-with-secure-airflow-password"
+jwt_secret          = "replace-with-secure-jwt-secret"
+airflow_api_username = "admin"
+airflow_api_password = "replace-with-secure-airflow-api-password"
+airflow_api_base_url = "http://<airflow-private-ip>:8080"
+airflow_api_allow_insecure_http = true
+airflow_webhook_secret = "replace-with-secure-webhook-secret"
+sns_email           = "alerts@example.com"
+
+gpu_instance_type          = "g6.2xlarge"
+gpu_asg_min_size           = 0
+gpu_asg_max_size           = 1
+gpu_asg_desired_capacity   = 0
+gpu_root_volume_size       = 120
+embedding_model_name       = "BAAI/bge-m3"
+ml_runtime_profile         = "balanced"
+llm_model_name             = "google/gemma-4-E4B-it"
+llm_model_path             = "/models/gemma-4-E4B-it.gguf"
+llm_service_desired_count  = 0
+llm_service_container_port = 8000
+llm_runtime_api_key        = ""
+
+cors_allowed_origins = [
+  "https://airflow.example.com",
+  "https://app.example.com"
+]
+
+secret_arns = []

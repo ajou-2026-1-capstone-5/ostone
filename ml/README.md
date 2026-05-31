@@ -33,6 +33,171 @@ uv sync && uv run pytest && uv run ruff check . && uv run ruff format . && uv ru
 - 위 명령으로 공유 `postgres`도 함께 기동
 - backend/frontend까지 포함한 전체 스택은 루트 `README.md` 참고
 
+## Parsed Consultation Dataset
+
+ML 파이프라인의 기본 입력 계약은 category-free parsed consultation dataset이다.
+
+스키마:
+
+- `ml/schemas/parsed-consultation-dataset.schema.json`
+- `ml/schemas/evaluation-pairwise-benchmark.schema.json`
+- `ml/schemas/evaluation-benchmark-suite.schema.json`
+
+로컬 개발 dataset 구조:
+
+```text
+ml/dataset/
+├── training/
+│   ├── 하나카드/
+│   │   ├── 001.json
+│   │   └── ...
+│   ├── 엘지유플러스/
+│   └── 액티벤처/
+└── validation/
+    ├── 하나카드/
+    ├── 엘지유플러스/
+    └── 액티벤처/
+```
+
+파일 구조:
+
+```json
+[
+  {
+    "source_id": "90001",
+    "turns": [
+      {
+        "turn_index": 0,
+        "speaker_role": "CUSTOMER",
+        "message_text": "상담 발화"
+      }
+    ]
+  }
+]
+```
+
+입력에 포함하지 않는 필드:
+
+- `consulting_category`
+- `consulting_content`
+- `source`
+- `client_gender`
+- `client_age`
+- `consulting_date`
+- `consulting_turns`
+- `consulting_length`
+
+원본 raw source에서 로컬 parsed dataset을 재생성할 때:
+
+```bash
+cd ml
+uv run python scripts/build_parsed_dataset.py \
+  /Users/owen/Projects/school/5stone-poc/data/raw \
+  dataset \
+  --clean
+```
+
+특정 회사 training set으로 로컬 파이프라인을 실행할 때:
+
+```bash
+cd ml
+uv run python scripts/run_local_pipeline.py dataset/training/하나카드 --max-files 30
+```
+
+validation set은 생성된 workflow가 holdout 상담을 얼마나 잘 처리하는지 확인하는 개발용 샘플로 사용한다.
+
+```bash
+cd ml
+uv run python scripts/run_local_pipeline.py dataset/validation/하나카드 --max-files 30
+```
+
+오프라인 평가 정답은 pipeline input에 섞지 않고 별도 benchmark 파일로만 둔다. 기본 pairwise benchmark는 `must_link`/`cannot_link` 관계만 담고, `consulting_category`나 category label은 평가 신호로 사용하지 않는다.
+
+```json
+{
+  "schemaVersion": "evaluation-pairwise-benchmark.v1",
+  "pairs": [
+    {
+      "sourceCaseletId": "caselet-a",
+      "targetCaseletId": "caselet-b",
+      "relation": "must_link"
+    },
+    {
+      "sourceCaseletId": "caselet-a",
+      "targetCaseletId": "caselet-c",
+      "relation": "cannot_link"
+    }
+  ]
+}
+```
+
+더 엄밀한 오프라인 평가는 category-free benchmark suite로 확장한다. suite는 pipeline input이 아니며, boundary, intent pair, label object/action, workflow event/variant gold를 분리해서 담는다.
+
+```json
+{
+  "schemaVersion": "evaluation-benchmark-suite.v1",
+  "boundaryCases": [
+    {
+      "conversationId": "conv-001",
+      "expectedCaselets": [
+        {
+          "turnStart": 0,
+          "turnEnd": 3,
+          "issueObject": "결제수단",
+          "issueAction": "변경"
+        }
+      ]
+    }
+  ],
+  "intentPairs": [
+    {
+      "sourceCaseletId": "caselet-a",
+      "targetCaseletId": "caselet-b",
+      "relation": "same_intent"
+    },
+    {
+      "sourceCaseletId": "caselet-a",
+      "targetCaseletId": "caselet-c",
+      "relation": "different_intent_same_object"
+    }
+  ],
+  "labelExpectations": [
+    {
+      "clusterGoldId": "G001",
+      "object": "결제수단",
+      "action": "변경",
+      "allowedLabels": ["결제수단 변경 문의"],
+      "forbiddenTerms": ["수고했습니다", "여기"]
+    }
+  ],
+  "workflowExpectations": [
+    {
+      "caseletId": "caselet-a",
+      "expectedEvents": ["USER_REQUEST", "SLOT_COLLECTION", "RESOLUTION"],
+      "workflowVariant": "slot_collection_then_resolution"
+    }
+  ]
+}
+```
+
+Airflow manifest payload 또는 환경 변수로 전달할 수 있다.
+
+```text
+evaluationBenchmarkPath
+PIPELINE_EVALUATION_BENCHMARK_PATH
+```
+
+production ingestion은 같은 parsed JSON 파일들을 담은 zip archive도 입력으로 받는다. Backend/Airflow는 S3 object key 하나를 넘기고, ML ingestion stage가 archive 내부의 `.json`/`.jsonl` 파일을 읽는다.
+
+zip archive를 로컬에서 smoke test할 때:
+
+```bash
+cd ml
+uv run python scripts/run_local_pipeline.py dataset/archives/training-flat/하나카드_training_parsed_flat.zip
+```
+
+`ml/dataset/`은 로컬 대용량 데이터 영역이므로 git에 올리지 않는다.
+
 ## Airflow 로컬 실행
 
 - 기준 파일: 루트 `docker-compose.yml`, `ml/docker-compose.yml`

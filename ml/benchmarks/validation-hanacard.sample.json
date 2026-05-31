@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "evaluation-benchmark-suite.v1",
+  "boundaryCases": [
+    {
+      "conversationId": "200050",
+      "expectedCaselets": [
+        {
+          "turnStart": 0,
+          "turnEnd": 16,
+          "issueObject": "가상계좌",
+          "issueAction": "결제"
+        },
+        {
+          "turnStart": 17,
+          "turnEnd": 27,
+          "issueObject": "한도 복원 금액",
+          "issueAction": "확인"
+        },
+        {
+          "turnStart": 28,
+          "turnEnd": 29,
+          "issueObject": "입금 후 한도 복원",
+          "issueAction": "확인"
+        },
+        {
+          "turnStart": 30,
+          "turnEnd": 34,
+          "issueObject": "안내 문자",
+          "issueAction": "재발송"
+        }
+      ],
+      "note": "Manual category-free boundary sample from card payment and follow-up restoration/SMS questions."
+    }
+  ],
+  "intentPairs": [
+    {
+      "sourceCaseletId": "21769#issue-02",
+      "targetCaseletId": "22540#issue-01",
+      "relation": "same_intent",
+      "note": "Both ask about a card application already submitted."
+    },
+    {
+      "sourceCaseletId": "21577#issue-01",
+      "targetCaseletId": "22680#issue-02",
+      "relation": "same_intent",
+      "note": "Both request card payment date change."
+    },
+    {
+      "sourceCaseletId": "21769#issue-02",
+      "targetCaseletId": "200049#issue-01",
+      "relation": "different_intent_same_object",
+      "note": "Card application status and card payment account change share card terms but should not merge."
+    },
+    {
+      "sourceCaseletId": "200050#issue-01",
+      "targetCaseletId": "200204#issue-01",
+      "relation": "same_workflow_pattern_different_intent",
+      "note": "Both involve payment guidance but virtual account payment and full card-usage prepayment are separate intents."
+    }
+  ],
+  "labelExpectations": [
+    {
+      "clusterGoldId": "hanacard-card-application",
+      "memberCaseletIds": ["21769#issue-02", "22540#issue-01"],
+      "object": "카드",
+      "action": "신청",
+      "allowedLabels": ["카드 신청 문의 - 카드 신청 변형 1"],
+      "forbiddenTerms": ["수고했습니다", "여쭤봐", "가능여부확인", "검토"]
+    },
+    {
+      "clusterGoldId": "hanacard-payment-date-change",
+      "memberCaseletIds": ["21577#issue-01", "22680#issue-02"],
+      "object": "결제일",
+      "action": "변경",
+      "allowedLabels": ["결제일 변경 문의"],
+      "forbiddenTerms": ["수고했습니다", "여쭤봐", "가능여부확인", "검토"]
+    },
+    {
+      "clusterGoldId": "hanacard-virtual-account-payment",
+      "memberCaseletIds": ["200050#issue-01"],
+      "object": "가상계좌",
+      "action": "결제",
+      "allowedLabels": ["가상계좌 결제 문의"],
+      "forbiddenTerms": ["수고했습니다", "여쭤봐", "가능여부확인", "검토"]
+    }
+  ],
+  "workflowExpectations": [
+    {
+      "caseletId": "21769#issue-02",
+      "expectedEvents": ["확인질문"],
+      "workflowVariant": "card_application_status_check",
+      "expectedBranchConditions": ["카드", "신청"]
+    },
+    {
+      "caseletId": "21577#issue-01",
+      "expectedEvents": ["확인질문"],
+      "workflowVariant": "payment_date_change",
+      "expectedBranchConditions": ["결제일", "변경"]
+    },
+    {
+      "caseletId": "200050#issue-01",
+      "expectedEvents": ["확인질문", "정책안내"],
+      "workflowVariant": "virtual_account_payment_guidance",
+      "expectedBranchConditions": ["가상계좌", "결제"]
+    }
+  ]
+}

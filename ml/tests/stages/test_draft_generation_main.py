@@ -14,11 +14,15 @@ from pipeline.stages.draft_generation.main import (
     _build_intents,
     _build_slot_draft,
     _build_workflow_draft,
+    _cluster_workflow_events,
     _derive_pack_identity,
+    _evaluation_inputs,
     _hydrate_case,
+    _label_metrics,
     _read_clusters,
     _read_preprocessed_index,
     _resolve_cases_per_intent,
+    _route_condition,
     _write_candidate,
     run,
 )
@@ -51,7 +55,19 @@ def _preprocessed_conv(conv_id: str, canonical: str = "text", problem: str = "pr
 def _write_clusters(clusters_dir: Path, clusters: list[dict[str, Any]]) -> None:
     clusters_dir.mkdir(parents=True, exist_ok=True)
     (clusters_dir / "clusters.json").write_text(
-        json.dumps({"schema_version": "1.0", "clusters": clusters}), encoding="utf-8"
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "clusters": clusters,
+                "stats": {"outlier_rate": 0.12},
+                "flow_split_metrics": {
+                    "workflowSeparability": 0.9,
+                    "entrypointDistinctiveness": 0.72,
+                    "entrypointSemanticCoverage": 1.0,
+                },
+            }
+        ),
+        encoding="utf-8",
     )
 
 
@@ -113,6 +129,61 @@ def test_build_intents_partial_hydration() -> None:
     assert len(intents[0]["representativeCases"]) == 2
     assert metrics["representative_case_total"] == 2
     assert metrics["intents_with_zero_cases"] == 0
+
+
+def test_build_intents_groups_duplicate_labels_as_parent_variants() -> None:
+    clusters = [
+        {
+            "cluster_id": 10,
+            "suggested_name": "카드 결제 문의",
+            "suggested_description": "카드 결제 확인",
+            "exemplar_conv_ids": ["caselet-a"],
+            "segment_ids": ["caselet-a"],
+            "workflow_signal": {"requires_payment_check": True},
+            "flow_split_key": "requires_payment_check|action_object 카드 결제|sequence 확인질문",
+            "label_score": 0.86,
+            "label_validation_status": "auto_acceptable",
+        },
+        {
+            "cluster_id": 11,
+            "suggested_name": "카드 결제 문의",
+            "suggested_description": "카드 결제 본인 확인",
+            "exemplar_conv_ids": ["caselet-b"],
+            "segment_ids": ["caselet-b"],
+            "workflow_signal": {"requires_user_identification": True},
+            "flow_split_key": "requires_user_identification+requires_payment_check|mixed_residual",
+            "label_score": 0.84,
+            "label_validation_status": "auto_acceptable",
+        },
+    ]
+    index = {
+        "caselet-a": _preprocessed_conv("caselet-a", "카드 결제 내역 확인해주세요", "카드 결제 확인"),
+        "caselet-b": _preprocessed_conv("caselet-b", "카드 결제 때문에 본인확인 해야 하나요", "카드 결제 본인확인"),
+    }
+
+    intents, metrics = _build_intents(clusters, index, cases_per_intent=2)
+
+    parent = intents[0]
+    children = intents[1:]
+    assert parent["intentCode"] == "PARENT_INTENT_0"
+    assert parent["name"] == "카드 결제 문의"
+    assert parent["taxonomyLevel"] == 1
+    assert parent["parentIntentCode"] is None
+    assert json.loads(parent["metaJson"])["intentRole"] == "parent_intent"
+    assert {child["parentIntentCode"] for child in children} == {"PARENT_INTENT_0"}
+    assert {child["taxonomyLevel"] for child in children} == {2}
+    assert [child["name"] for child in children] == [
+        "카드 결제 문의 - 결제확인·카드 결제·확인질문 변형 1",
+        "카드 결제 문의 - 본인확인·결제확인·잔여 변형 2",
+    ]
+    assert all(json.loads(child["metaJson"])["intentRole"] == "workflow_variant" for child in children)
+    assert metrics["intent_count"] == 3
+    assert metrics["parent_intent_count"] == 1
+    assert metrics["leaf_intent_count"] == 2
+    assert metrics["workflow_variant_intent_count"] == 2
+    assert metrics["variants_per_parent_intent_avg"] == 2.0
+    assert metrics["variants_per_parent_intent_max"] == 2
+    assert metrics["single_variant_intent_rate"] == 0.0
 
 
 def test_build_intents_empty_exemplar_conv_ids() -> None:
@@ -385,6 +456,10 @@ def test_run_keeps_single_dataset_candidate_when_segment_rows_exist(
     assert "candidates" not in candidate
     assert "consultationId" not in candidate
     assert candidate["domainPackDraft"]["packKey"] == "pack_wsws1_dsds1"
+    assert candidate["evaluationInputs"]["outlierRate"] == 0.12
+    assert candidate["evaluationInputs"]["workflowSeparability"] == 0.9
+    assert candidate["evaluationInputs"]["entrypointDistinctiveness"] == 0.72
+    assert candidate["evaluationInputs"]["mappingRate"] == 1.0
     assert len(candidate["intentDraft"]["intents"]) == 1
     assert len(candidate["intentDraft"]["intents"][0]["representativeCases"]) == 2
 
@@ -407,6 +482,149 @@ def test_build_candidate_structure() -> None:
     assert wf_draft["workflows"][0]["intentCode"] == "INTENT_0"
     assert len(wf_draft["policies"]) == 1
     assert wf_draft["policies"][0]["policyCode"] == "default_policy"
+
+
+def test_evaluation_inputs_collects_source_quality_metrics() -> None:
+    evaluation_inputs = _evaluation_inputs(
+        {
+            "stats": {"outlier_rate": 0.2},
+            "flow_split_metrics": {"workflowSeparability": 0.75},
+        },
+        {"intent_count": 2},
+        {"workflow_count": 2},
+        {"cluster_with_slot_count": 1},
+    )
+
+    assert evaluation_inputs == {
+        "mappingRate": 1.0,
+        "outlierRate": 0.2,
+        "workflowSeparability": 0.75,
+        "slotCoverage": 0.5,
+    }
+
+
+def test_evaluation_inputs_prefers_unrepresented_outlier_rate() -> None:
+    evaluation_inputs = _evaluation_inputs(
+        {
+            "stats": {"outlier_rate": 0.6},
+            "flow_split_metrics": {
+                "workflowSeparability": 1.0,
+                "unrepresentedOutlierRate": 0.0,
+                "representedOutlierCoverage": 1.0,
+                "promotedNovelCandidateCount": 1,
+                "promotedNovelMemberCount": 3,
+                "unrepresentedOutlierMemberCount": 0,
+            },
+        },
+        {"intent_count": 1},
+        {"workflow_count": 1},
+        {"cluster_with_slot_count": 1},
+    )
+
+    assert evaluation_inputs["outlierRate"] == 0.0
+    assert evaluation_inputs["rawOutlierRate"] == 0.6
+    assert evaluation_inputs["representedOutlierCoverage"] == 1.0
+    assert evaluation_inputs["promotedNovelCandidateCount"] == 1
+
+
+def test_evaluation_inputs_maps_workflows_against_leaf_intents() -> None:
+    evaluation_inputs = _evaluation_inputs(
+        {
+            "stats": {"outlier_rate": 0.0},
+            "flow_split_metrics": {"workflowSeparability": 0.9},
+        },
+        {
+            "intent_count": 3,
+            "parent_intent_count": 1,
+            "leaf_intent_count": 2,
+            "workflow_variant_intent_count": 2,
+            "variants_per_parent_intent_avg": 2.0,
+            "variants_per_parent_intent_max": 2,
+            "single_variant_intent_rate": 0.0,
+        },
+        {"workflow_count": 2},
+        {"cluster_with_slot_count": 1},
+    )
+
+    assert evaluation_inputs["mappingRate"] == 1.0
+    assert evaluation_inputs["slotCoverage"] == 0.5
+    assert evaluation_inputs["parentIntentCount"] == 1.0
+    assert evaluation_inputs["leafIntentCount"] == 2.0
+    assert evaluation_inputs["workflowVariantIntentCount"] == 2.0
+    assert evaluation_inputs["variantsPerParentIntentAvg"] == 2.0
+    assert evaluation_inputs["variantsPerParentIntentMax"] == 2.0
+    assert evaluation_inputs["singleVariantIntentRate"] == 0.0
+
+
+def test_evaluation_inputs_collects_label_and_workflow_path_metrics() -> None:
+    evaluation_inputs = _evaluation_inputs(
+        {
+            "stats": {"outlier_rate": 0.0},
+            "flow_split_metrics": {"workflowSeparability": 1.0},
+            "clusters": [
+                {
+                    "label_score": 0.8,
+                    "label_evidence_coverage": 0.75,
+                    "label_member_evidence_coverage": 0.5,
+                    "label_object_action_joint_coverage": 0.7,
+                    "label_validation_status": "auto_acceptable",
+                },
+                {
+                    "label_score": 0.6,
+                    "label_evidence_coverage": 0.5,
+                    "label_member_evidence_coverage": 0.25,
+                    "label_object_action_joint_coverage": 0.2,
+                    "label_validation_status": "needs_review",
+                },
+            ],
+        },
+        {"intent_count": 2},
+        {"workflow_count": 2, "workflow_path_support": 0.7, "workflow_replay_fitness": 0.65},
+        {"cluster_with_slot_count": 2},
+    )
+
+    assert evaluation_inputs["labelFidelity"] == pytest.approx(0.7)
+    assert evaluation_inputs["labelEvidenceCoverage"] == pytest.approx(0.625)
+    assert evaluation_inputs["labelMemberEvidenceCoverage"] == pytest.approx(0.375)
+    assert evaluation_inputs["labelObjectActionJointCoverage"] == pytest.approx(0.45)
+    assert evaluation_inputs["labelNeedsReviewRate"] == pytest.approx(0.5)
+    assert evaluation_inputs["autoCandidateLabelCount"] == 1.0
+    assert evaluation_inputs["autoCandidateLabelMemberEvidenceCoverage"] == 0.5
+    assert evaluation_inputs["autoCandidateLabelObjectActionJointCoverage"] == 0.7
+    assert evaluation_inputs["reviewRequiredLabelCount"] == 1.0
+    assert evaluation_inputs["reviewRequiredLabelMemberEvidenceCoverage"] == 0.25
+    assert evaluation_inputs["workflowPathSupport"] == 0.7
+    assert evaluation_inputs["workflowReplayFitness"] == 0.65
+
+
+def test_label_metrics_separate_review_only_novel_candidates() -> None:
+    metrics = _label_metrics(
+        [
+            {
+                "label_score": 0.8,
+                "label_evidence_coverage": 0.75,
+                "label_member_evidence_coverage": 0.5,
+                "label_object_action_joint_coverage": 0.6,
+                "label_validation_status": "auto_acceptable",
+            },
+            {
+                "label_score": 0.2,
+                "label_evidence_coverage": 0.0,
+                "label_member_evidence_coverage": 0.0,
+                "label_object_action_joint_coverage": 0.0,
+                "label_validation_status": "needs_review",
+                "is_novel_outlier_candidate": True,
+            },
+        ]
+    )
+
+    assert metrics["labelFidelity"] == 0.8
+    assert metrics["labelMemberEvidenceCoverage"] == 0.5
+    assert metrics["labelObjectActionJointCoverage"] == 0.6
+    assert metrics["labelNeedsReviewRate"] == 0.0
+    assert metrics["autoCandidateLabelCount"] == 1.0
+    assert metrics["autoCandidateLabelObjectActionJointCoverage"] == 0.6
+    assert metrics["reviewCandidateLabelFidelity"] == 0.2
 
 
 def test_build_candidate_raises_when_workspace_id_missing() -> None:
@@ -441,7 +659,18 @@ def test_derive_pack_identity_raises_on_none_dataset() -> None:
 
 
 def test_build_workflow_draft_single_cluster() -> None:
-    clusters = [{"cluster_id": 0, "suggested_name": "환불 문의", "workflow_signal": {}}]
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "환불 문의",
+            "workflow_signal": {},
+            "workflow_confidence": 0.72,
+            "workflow_confidence_components": {"label": 0.6},
+            "sample_review_reason_codes": ["weak_label_sample"],
+            "review_reason_codes": [],
+            "review_tier": "sample_review",
+        }
+    ]
     draft, _ = _build_workflow_draft(clusters)
 
     assert len(draft["workflows"]) == 1
@@ -449,10 +678,65 @@ def test_build_workflow_draft_single_cluster() -> None:
     assert draft["workflows"][0]["workflowCode"] == "WORKFLOW_0"
     assert draft["workflows"][0]["intentCode"] == "INTENT_0"
     assert draft["workflows"][0]["isPrimary"] is True
-    assert draft["workflows"][0]["routeConditionJson"] == "{}"
+    route = json.loads(draft["workflows"][0]["routeConditionJson"])
+    assert route["requiredTerms"] == ["환불"]
+    assert route["executionEligibility"] == "review_only"
     assert draft["slots"] == []
     assert draft["risks"] == []
     assert draft["intentSlotBindings"] == []
+    meta = json.loads(draft["workflows"][0]["metaJson"])
+    assert meta["sampleReviewReasonCodes"] == ["weak_label_sample"]
+    assert meta["reviewReasonCodes"] == []
+    assert meta["reviewOnlyCandidate"] is True
+
+
+def test_route_condition_uses_core_terms_without_dialogue_fillers() -> None:
+    route = _route_condition(
+        {
+            "cluster_id": 3,
+            "suggested_name": "카드 한도 문의",
+            "keywords": ["한도", "알아서 주시", "계좌", "사용"],
+            "label_candidates": [
+                {"name": "카드 한도 문의", "score": 0.72, "evidenceCoverage": 0.6},
+                {"name": "할부 가능여부확인 문의", "score": 0.49, "evidenceCoverage": 0.1},
+            ],
+            "member_conv_ids": ["c1"],
+            "exemplar_conv_ids": ["c1"],
+        },
+        {
+            "c1": _preprocessed_conv(
+                "c1",
+                problem="여보세요 알겠습니다 이게 잠시만 카드 한도 올려서 쓰고 싶어요.",
+            )
+        },
+        path_case_count=3,
+        workflow_path_support=0.9,
+        review_only_reasons=[],
+    )
+
+    assert route["requiredTerms"] == ["카드", "한도"]
+    route_terms = set(route["requiredTerms"]) | set(route["optionalTerms"])
+    assert {"여보세", "알겠습니다", "이게", "잠시만", "주시", "알아서"}.isdisjoint(route_terms)
+
+
+def test_route_condition_cleans_noisy_action_object_phrase() -> None:
+    route = _route_condition(
+        {
+            "cluster_id": 4,
+            "suggested_name": "명의 해지 문의",
+            "action_object_frame": {"object": "명의로 지금 쓰고 있고", "action": "해지"},
+            "member_conv_ids": ["c1"],
+            "exemplar_conv_ids": ["c1"],
+        },
+        {"c1": _preprocessed_conv("c1", problem="제가 엄마 명의로 지금 쓰고 있고 해지되는지 문의합니다.")},
+        path_case_count=3,
+        workflow_path_support=0.8,
+        review_only_reasons=[],
+    )
+
+    assert route["requiredTerms"] == ["명의", "해지"]
+    route_terms = set(route["requiredTerms"]) | set(route["optionalTerms"])
+    assert {"지금", "쓰고", "있고"}.isdisjoint(route_terms)
 
 
 def test_build_workflow_draft_empty_clusters() -> None:
@@ -479,6 +763,46 @@ def test_build_workflow_draft_default_policy_is_dummy() -> None:
     policy = draft["policies"][0]
     assert policy["policyCode"] == "default_policy"
     assert "Dummy" in policy["name"]
+
+
+def test_cluster_workflow_events_uses_dominant_collapsed_sequence() -> None:
+    cluster = {
+        "cluster_id": 0,
+        "member_conv_ids": ["c1", "c2", "c3"],
+        "exemplar_conv_ids": ["c1"],
+    }
+    preprocessed_index = {
+        "c1": {"flow_events": ["확인질문", "확인질문", "정책안내"]},
+        "c2": {"flow_events": ["확인질문", "추가정보요청", "정책안내"]},
+        "c3": {"flow_events": ["확인질문", "정책안내"]},
+    }
+
+    events = _cluster_workflow_events(cluster, preprocessed_index)
+
+    assert events == ("확인질문", "정책안내")
+
+
+def test_build_workflow_draft_uses_observed_flow_events_in_graph() -> None:
+    clusters = [
+        {
+            "cluster_id": 0,
+            "suggested_name": "처리 문의",
+            "workflow_signal": {},
+            "member_conv_ids": ["c1", "c2"],
+            "exemplar_conv_ids": ["c1"],
+        }
+    ]
+    preprocessed_index = {
+        "c1": {"flow_events": ["확인질문", "정책안내"]},
+        "c2": {"flow_events": ["확인질문", "정책안내"]},
+    }
+
+    draft, _metrics = _build_workflow_draft(clusters, preprocessed_index=preprocessed_index)
+    graph = json.loads(draft["workflows"][0]["graphJson"])
+    node_ids = [node["id"] for node in graph["nodes"]]
+
+    assert "request_check" in node_ids
+    assert "policy_check" in node_ids
 
 
 def test_build_workflow_draft_metrics_counts_signals() -> None:
@@ -695,8 +1019,8 @@ def test_build_slot_draft_payment_check_true_yields_two_slots() -> None:
     assert "SLOT_1_1" in slot_codes
     assert "SLOT_1_2" in slot_codes
     names = {s["name"] for s in slots}
-    assert "주문 ID" in names
-    assert "결제 수단" in names
+    assert "업무 식별 정보" in names
+    assert "결제/납부 수단" in names
 
 
 def test_build_slot_draft_user_identification_is_sensitive() -> None:
@@ -713,11 +1037,10 @@ def test_build_slot_draft_user_identification_is_sensitive() -> None:
 
     slots, bindings, _ = _build_slot_draft(clusters)
 
-    assert len(slots) == 2
+    assert len(slots) == 1
     assert all(s["isSensitive"] is True for s in slots)
     names = {s["name"] for s in slots}
-    assert "고객 이름" in names
-    assert "고객 연락처" in names
+    assert "본인 확인 정보" in names
 
 
 def test_build_slot_draft_all_signals_true_yields_five_slots() -> None:
@@ -734,10 +1057,10 @@ def test_build_slot_draft_all_signals_true_yields_five_slots() -> None:
 
     slots, bindings, _ = _build_slot_draft(clusters)
 
-    assert len(slots) == 5
-    assert len(bindings) == 5
+    assert len(slots) == 4
+    assert len(bindings) == 4
     collection_orders = sorted(b["collectionOrder"] for b in bindings)
-    assert collection_orders == [1, 2, 3, 4, 5]
+    assert collection_orders == [1, 2, 3, 4]
 
 
 def test_build_slot_draft_multiple_clusters_slot_codes_reset() -> None:
@@ -791,7 +1114,7 @@ def test_build_slot_draft_metrics_accuracy() -> None:
 
     _, _, metrics = _build_slot_draft(clusters)
 
-    assert metrics["slot_count"] == 5  # 2+2 + 1
+    assert metrics["slot_count"] == 4  # 2 + 1 + 1
     assert metrics["cluster_with_slot_count"] == 2
     assert metrics["signal_slot_hit_payment_check"] == 1
     assert metrics["signal_slot_hit_user_identification"] == 1

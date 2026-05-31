@@ -12,7 +12,13 @@ from collections import deque
 
 from pipeline.stages.draft_generation.workflow_graph import (
     ClusterContext,
+    GraphEdgeSpec,
+    GraphNodeSpec,
     WorkflowGraphSpec,
+    _add_start_edges_to_unreachable_nodes,
+    _event_node,
+    frequent_path_generator,
+    graph_event_specificity,
     serialize_graph_json,
     signal_based_generator,
 )
@@ -177,6 +183,45 @@ def test_baseline_action_label_uses_suggested_name() -> None:
 def test_baseline_passes_v1_to_v8() -> None:
     spec = signal_based_generator(_make_context())
     _validate_graph(spec)
+
+
+def test_graph_event_specificity_uses_domain_specific_graph_nodes() -> None:
+    generic_spec = WorkflowGraphSpec(
+        direction="LR",
+        nodes=(
+            GraphNodeSpec("start", "START", "시작"),
+            GraphNodeSpec("request_check", "ACTION", "요청 내용 확인", "default_policy"),
+            GraphNodeSpec("terminal", "TERMINAL", "종료"),
+        ),
+        edges=(
+            GraphEdgeSpec("e1", "start", "request_check"),
+            GraphEdgeSpec("e2", "request_check", "terminal"),
+        ),
+    )
+    specific_spec = WorkflowGraphSpec(
+        direction="LR",
+        nodes=(
+            GraphNodeSpec("start", "START", "시작"),
+            GraphNodeSpec(
+                "route_check",
+                "DECISION",
+                "진입 조건 확인",
+                evidence_refs=({"type": "route_term", "value": "요금제"},),
+            ),
+            GraphNodeSpec("request_check", "ACTION", "요청 내용 확인", "default_policy"),
+            GraphNodeSpec("policy_control", "ACTION", "정책 확인: 요금제 변경 기준", "default_policy"),
+            GraphNodeSpec("terminal", "TERMINAL", "종료"),
+        ),
+        edges=(
+            GraphEdgeSpec("e1", "start", "route_check"),
+            GraphEdgeSpec("e2", "route_check", "request_check", "matched"),
+            GraphEdgeSpec("e3", "request_check", "policy_control"),
+            GraphEdgeSpec("e4", "policy_control", "terminal"),
+        ),
+    )
+    path_cases = [(["확인질문", "확인질문", "해결"], "resolved")]
+
+    assert graph_event_specificity(path_cases, specific_spec) > graph_event_specificity(path_cases, generic_spec)
 
 
 def test_baseline_edge_ids_sequential() -> None:
@@ -409,6 +454,45 @@ def test_suggested_name_fallback_used_in_action_label() -> None:
     assert action.label == "주문 취소"
 
 
+def test_observed_workflow_events_add_grounded_action_nodes() -> None:
+    ctx = ClusterContext(
+        cluster_id=9,
+        suggested_name="처리 문의",
+        workflow_signal={"has_escalation_cases": False},
+        workflow_events=("확인질문", "추가정보요청", "정책안내"),
+    )
+
+    spec = signal_based_generator(ctx)
+    node_ids = [node.id for node in spec.nodes]
+
+    assert "request_check" in node_ids
+    assert "info_collect" in node_ids
+    assert "policy_check" in node_ids
+    _validate_graph(spec)
+    serialized = json.loads(serialize_graph_json(spec))
+    request_check = next(node for node in serialized["nodes"] if node["id"] == "request_check")
+    assert request_check["evidenceRefs"] == [{"type": "flow_event", "value": "확인질문"}]
+
+
+def test_event_node_maps_supported_flow_events() -> None:
+    expected = {
+        "확인질문": "request_check",
+        "추가정보요청": "info_collect",
+        "정책안내": "policy_check",
+        "불만표현": "issue_review",
+        "예외처리": "exception_review",
+        "해결": "result_notice",
+    }
+
+    for event, node_id in expected.items():
+        node = _event_node(event, "policy_1")
+        assert node is not None
+        assert node.id == node_id
+        assert node.policy_ref == "policy_1"
+        assert node.evidence_refs == ({"type": "flow_event", "value": event},)
+    assert _event_node("이관", "policy_1") is None
+
+
 # ---------------------------------------------------------------------------
 # serialize_graph_json
 # ---------------------------------------------------------------------------
@@ -465,3 +549,46 @@ def test_serialize_length_within_20000() -> None:
     spec = signal_based_generator(_make_context(identify=True, payment=True, escalation=True))
     serialized = serialize_graph_json(spec)
     assert len(serialized) <= 20000
+
+
+def test_frequent_path_generator_mines_supported_edges() -> None:
+    context = ClusterContext(cluster_id=7, suggested_name="처리 문의", workflow_signal={}, policy_ref="policy_1")
+
+    spec = frequent_path_generator(
+        context,
+        [
+            (["확인질문", "정책안내", "해결"], "resolved"),
+            (["확인질문", "정책안내", "해결"], "resolved"),
+            (["확인질문", "추가정보요청", "정책안내", "해결"], "resolved"),
+        ],
+        min_edge_support=0.34,
+    )
+    result = json.loads(serialize_graph_json(spec))
+
+    assert any(node["id"] == "request_check" and node["support"] == 1.0 for node in result["nodes"])
+    assert any(edge["from"] == "request_check" and edge["to"] == "policy_check" for edge in result["edges"])
+    assert any(edge.get("label") == "resolved" for edge in result["edges"])
+
+
+def test_frequent_path_generator_repairs_supported_unreachable_nodes() -> None:
+    context = ClusterContext(cluster_id=9, suggested_name="처리 문의", workflow_signal={}, policy_ref="policy_1")
+    edges = [GraphEdgeSpec("e_9_1", "issue_review", "request_check", "observed", 0.5)]
+
+    next_edge = _add_start_edges_to_unreachable_nodes(
+        context,
+        edges,
+        {"START", "불만표현", "확인질문"},
+        2,
+    )
+
+    assert next_edge == 3
+    assert any(edge.from_node == "start" and edge.to_node == "issue_review" for edge in edges)
+
+
+def test_frequent_path_generator_falls_back_when_no_terminal_path() -> None:
+    context = ClusterContext(cluster_id=8, suggested_name="처리 문의", workflow_signal={}, policy_ref="policy_1")
+
+    spec = frequent_path_generator(context, [], min_edge_support=0.5)
+
+    result = json.loads(serialize_graph_json(spec))
+    assert any(node["id"] == "action" for node in result["nodes"])

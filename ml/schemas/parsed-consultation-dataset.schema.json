@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ostone.local/schemas/parsed-consultation-dataset.schema.json",
+  "title": "Parsed Consultation Dataset File",
+  "description": "A category-free consultation source file with materialized speaker turns. Each JSON file contains one or more consultation rows.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["source_id", "turns"],
+    "properties": {
+      "source_id": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Stable source consultation identifier used only for lineage and evidence references."
+      },
+      "turns": {
+        "type": "array",
+        "minItems": 1,
+        "description": "Speaker-attributed consultation turns parsed from raw consulting_content.",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["turn_index", "speaker_role", "message_text"],
+          "properties": {
+            "turn_index": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Zero-based turn order within the source consultation."
+            },
+            "speaker_role": {
+              "type": "string",
+              "enum": ["CUSTOMER", "AGENT"],
+              "description": "Normalized speaker role. CUSTOMER includes customer/client/user aliases; AGENT includes counselor/operator aliases."
+            },
+            "message_text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "PII-untrusted raw utterance text. Downstream preprocessing must redact PII before embeddings or LLM calls."
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "evaluation-benchmark-suite.v1",
+  "boundaryCases": [
+    {
+      "conversationId": "90801",
+      "expectedCaselets": [
+        {
+          "turnStart": 0,
+          "turnEnd": 3,
+          "issueObject": "홈페이지 리조트",
+          "issueAction": "예약"
+        },
+        {
+          "turnStart": 4,
+          "turnEnd": 5,
+          "issueObject": "가격대",
+          "issueAction": "정보확인"
+        },
+        {
+          "turnStart": 6,
+          "turnEnd": 7,
+          "issueObject": "항공권 리조트",
+          "issueAction": "예약"
+        },
+        {
+          "turnStart": 8,
+          "turnEnd": 9,
+          "issueObject": "대기",
+          "issueAction": "확인"
+        }
+      ],
+      "note": "Manual category-free boundary sample from parsed validation caselets."
+    }
+  ],
+  "intentPairs": [
+    {
+      "sourceCaseletId": "90801#issue-01",
+      "targetCaseletId": "90816#issue-01",
+      "relation": "same_intent",
+      "note": "Reservation entry point with website/product booking request."
+    },
+    {
+      "sourceCaseletId": "90801#issue-01",
+      "targetCaseletId": "90801#issue-03",
+      "relation": "different_intent_same_object",
+      "note": "Initial booking method request and later booking progression should not be forced together."
+    },
+    {
+      "sourceCaseletId": "90801#issue-03",
+      "targetCaseletId": "90804#issue-01",
+      "relation": "same_workflow_pattern_different_intent",
+      "note": "Both may follow request/check flow but object/action differs."
+    }
+  ],
+  "labelExpectations": [
+    {
+      "clusterGoldId": "activeventure-booking-method",
+      "memberCaseletIds": ["90801#issue-01"],
+      "object": "홈페이지 리조트",
+      "action": "예약",
+      "allowedLabels": ["홈페이지 리조트 예약 문의"],
+      "forbiddenTerms": ["수고했습니다", "그래가지고", "나간다", "전에"]
+    },
+    {
+      "clusterGoldId": "activeventure-booking-progression",
+      "memberCaseletIds": ["90801#issue-03"],
+      "object": "항공권 리조트",
+      "action": "예약",
+      "allowedLabels": ["항공권 리조트 예약 문의"],
+      "forbiddenTerms": ["수고했습니다", "그래가지고", "나간다", "전에"]
+    },
+    {
+      "clusterGoldId": "activeventure-price-info",
+      "memberCaseletIds": ["90804#issue-01"],
+      "object": "가격대",
+      "action": "정보확인",
+      "allowedLabels": ["가격대 정보확인 문의"],
+      "forbiddenTerms": ["수고했습니다", "그래가지고", "나간다", "전에"]
+    }
+  ],
+  "workflowExpectations": [
+    {
+      "caseletId": "90801#issue-01",
+      "expectedEvents": ["추가정보요청", "정책안내"],
+      "workflowVariant": "booking_request_requires_information_and_policy_check",
+      "expectedBranchConditions": ["예약"]
+    },
+    {
+      "caseletId": "90801#issue-03",
+      "expectedEvents": ["확인질문", "해결"],
+      "workflowVariant": "booking_progression_confirmation",
+      "expectedBranchConditions": ["예약"]
+    },
+    {
+      "caseletId": "90804#issue-01",
+      "expectedEvents": ["확인질문", "정책안내"],
+      "workflowVariant": "price_and_payment_information_check",
+      "expectedBranchConditions": ["결제"]
+    }
+  ]
+}

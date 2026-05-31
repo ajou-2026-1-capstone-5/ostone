@@ -11,7 +11,9 @@ from pipeline.stages.preprocessing.flow_signature import (
     detect_escalation_flag,
     detect_exception_flag,
     infer_event,
+    infer_event_detail,
     infer_outcome,
+    infer_workflow_signal,
     outcome_to_one_hot,
 )
 from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM, Conversation, ConversationTurn
@@ -30,6 +32,17 @@ def test_should_infer_events_with_default_fallback() -> None:
     assert infer_event("불편해서 환불 요청", "customer") == "불만표현"
     assert infer_event("처리 완료", "agent") in ("해결", "확인질문")
     assert infer_event("아무 키워드 없음", "agent") == "확인질문"
+
+
+def test_should_return_role_aware_event_detail() -> None:
+    detail = infer_event_detail("성함과 생년월일 말씀 부탁드립니다", "agent")
+    fallback = infer_event_detail("궁금합니다", "customer")
+
+    assert detail["event"] == "추가정보요청"
+    assert detail["level2"] == "slot_collection"
+    assert detail["confidence"] == 0.85
+    assert fallback["event"] == "확인질문"
+    assert fallback["level2"] == "customer_question"
 
 
 def test_should_compute_normalized_event_histogram() -> None:
@@ -114,3 +127,24 @@ def test_should_build_signature_with_system_turns() -> None:
     signature = build_signature(conversation)
 
     assert signature.shape == (61,)
+
+
+def test_should_infer_conversation_workflow_signal() -> None:
+    conversation = Conversation(
+        conversation_id="c1",
+        dataset_id="ds1",
+        ended_status="escalated",
+        turns=(
+            ConversationTurn(turn_id="t1", speaker_role="customer", text="주문 환불 요청합니다"),
+            ConversationTurn(turn_id="t2", speaker_role="agent", text="성함과 연락처 확인 부탁드립니다"),
+            ConversationTurn(turn_id="t3", speaker_role="agent", text="담당 부서로 이관하겠습니다"),
+        ),
+    )
+
+    signal = infer_workflow_signal(conversation)
+
+    assert signal == {
+        "requires_payment_check": True,
+        "requires_user_identification": True,
+        "has_escalation_cases": True,
+    }

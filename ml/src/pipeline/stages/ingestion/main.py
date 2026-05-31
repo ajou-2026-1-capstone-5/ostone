@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import zipfile
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
 
@@ -19,7 +21,9 @@ from pipeline.common.exceptions import PipelineConfigurationError, PipelineStage
 DEFAULT_INGESTION_ARTIFACT_NAME = "conversations.jsonl"
 CUSTOMER_ROLE = "CUSTOMER"
 AGENT_ROLE = "AGENT"
+PARSED_DATASET_SCHEMA_VERSION = "parsed-consultation-dataset.v1"
 
+_FORBIDDEN_INPUT_KEYS = frozenset({"consulting_category"})
 _CUSTOMER_PREFIXES = ("고객님", "Customer", "CLIENT", "문의자", "고객", "손님", "C")
 _AGENT_PREFIXES = ("상담직원", "상담사", "상담원", "Agent", "직원", "A")
 _ROLE_PREFIX_SEPARATORS = (":", "：", "-", ")")
@@ -162,13 +166,44 @@ def _s3_client() -> Any:
 
 
 def _parse_raw_payload(raw_bytes: bytes, dataset_id: str | None) -> Iterable[dict[str, object]]:
-    text = raw_bytes.decode("utf-8-sig")
-    payload = _load_json_or_jsonl(text)
-    rows = _extract_rows(payload)
-    for index, row in enumerate(rows):
+    for index, row in enumerate(_extract_raw_rows(raw_bytes)):
         conversation = _build_conversation(row, index, dataset_id)
         if conversation is not None:
             yield conversation
+
+
+def _extract_raw_rows(raw_bytes: bytes) -> list[Mapping[str, object]]:
+    if _is_zip_bytes(raw_bytes):
+        return _extract_rows_from_zip(raw_bytes)
+    text = raw_bytes.decode("utf-8-sig")
+    payload = _load_json_or_jsonl(text)
+    return _extract_rows(payload)
+
+
+def _is_zip_bytes(raw_bytes: bytes) -> bool:
+    return zipfile.is_zipfile(BytesIO(raw_bytes))
+
+
+def _extract_rows_from_zip(raw_bytes: bytes) -> list[Mapping[str, object]]:
+    rows: list[Mapping[str, object]] = []
+    try:
+        with zipfile.ZipFile(BytesIO(raw_bytes)) as archive:
+            for info in sorted(archive.infolist(), key=lambda item: item.filename):
+                if info.is_dir() or not _is_supported_archive_member(info.filename):
+                    continue
+                with archive.open(info) as member:
+                    payload = _load_json_or_jsonl(member.read().decode("utf-8-sig"))
+                rows.extend(_extract_rows(payload))
+    except (OSError, zipfile.BadZipFile, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PipelineStageError("Invalid parsed consultation zip archive.") from exc
+    if not rows:
+        raise PipelineStageError("Parsed consultation zip archive did not contain any JSON conversation rows.")
+    return rows
+
+
+def _is_supported_archive_member(filename: str) -> bool:
+    lowered = filename.lower()
+    return lowered.endswith(".json") or lowered.endswith(".jsonl")
 
 
 def _load_json_or_jsonl(text: str) -> object:
@@ -206,17 +241,22 @@ def _build_conversation(
     index: int,
     dataset_id: str | None,
 ) -> dict[str, object] | None:
+    forbidden_path = _find_forbidden_key(row)
+    if forbidden_path is not None:
+        raise PipelineStageError(f"Forbidden unavailable metadata found in consultation input: {forbidden_path}")
+
     turns = _extract_turns(row)
     if not turns:
         return None
     source_id = _first_text(row, ("source_id", "id", "consultation_id", "case_id")) or f"conversation_{index:06d}"
-    return {
+    conversation: dict[str, object] = {
         "id": source_id,
         "dataset_id": dataset_id or str(_first_text(row, ("dataset_id",)) or ""),
         "channel": _first_text(row, ("channel", "source")),
         "ended_status": _first_text(row, ("ended_status", "status")),
         "turns": turns,
     }
+    return conversation
 
 
 def _extract_turns(row: Mapping[str, object]) -> list[dict[str, object]]:
@@ -299,6 +339,24 @@ def _parse_consulting_content(content: str) -> list[dict[str, object]]:
     if turns:
         return turns
     return [{"turn_index": 0, "speaker_role": CUSTOMER_ROLE, "message_text": _normalize_text(content)}]
+
+
+def _find_forbidden_key(value: object, path: str = "$") -> str | None:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            key_text = str(key)
+            child_path = f"{path}.{key_text}"
+            if key_text in _FORBIDDEN_INPUT_KEYS:
+                return child_path
+            nested_path = _find_forbidden_key(child, child_path)
+            if nested_path is not None:
+                return nested_path
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            nested_path = _find_forbidden_key(child, f"{path}[{index}]")
+            if nested_path is not None:
+                return nested_path
+    return None
 
 
 def _split_role_prefix(line: str, prefixes: tuple[str, ...]) -> str | None:

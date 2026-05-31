@@ -1,0 +1,92 @@
+x-airflow-common: &airflow-common
+  build:
+    context: ./airflow
+    dockerfile: Dockerfile
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow_user}:${AIRFLOW_DB_PASSWORD}@${RDS_ENDPOINT}:5432/${DB_NAME:-ostone}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_ASYNC: postgresql+asyncpg://${AIRFLOW_DB_USER:-airflow_user}:${AIRFLOW_DB_PASSWORD}@${RDS_ENDPOINT}:5432/${DB_NAME:-ostone}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY is required}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:?AIRFLOW__API__SECRET_KEY is required}
+    AIRFLOW__API__BASE_URL: http://airflow-apiserver:8080
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:?AIRFLOW__API_AUTH__JWT_SECRET is required}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin,viewer:viewer
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
+    AIRFLOW_SIMPLE_ADMIN_PASSWORD: ${AIRFLOW_SIMPLE_ADMIN_PASSWORD:?AIRFLOW_SIMPLE_ADMIN_PASSWORD is required}
+    AIRFLOW_SIMPLE_VIEWER_PASSWORD: ${AIRFLOW_SIMPLE_VIEWER_PASSWORD:?AIRFLOW_SIMPLE_VIEWER_PASSWORD is required}
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/src/dags
+    AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+    PIPELINE_BACKEND_BASE_URL: ${PIPELINE_BACKEND_BASE_URL:?PIPELINE_BACKEND_BASE_URL is required}
+    PIPELINE_ARTIFACT_ROOT: ${PIPELINE_ARTIFACT_ROOT:-/opt/airflow/artifacts}
+    PIPELINE_CALLBACK_ENABLED: ${PIPELINE_CALLBACK_ENABLED:-true}
+    PIPELINE_CALLBACK_TIMEOUT_SECONDS: ${PIPELINE_CALLBACK_TIMEOUT_SECONDS:-10}
+    AIRFLOW_WEBHOOK_SECRET: ${AIRFLOW_WEBHOOK_SECRET:?AIRFLOW_WEBHOOK_SECRET is required}
+    ML_ARTIFACT_STORE: ${ML_ARTIFACT_STORE:-s3}
+    ML_ARTIFACT_BUCKET: ${ML_ARTIFACT_BUCKET:?ML_ARTIFACT_BUCKET is required}
+    ML_ARTIFACT_PREFIX: ${ML_ARTIFACT_PREFIX:-domain-pack}
+    EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-BAAI/bge-m3}
+    ML_EMBEDDING_RUNTIME: flag_embedding
+    ML_RUNTIME_PROFILE: ${ML_RUNTIME_PROFILE:-balanced}
+    GPU_TASK_MODE: ${GPU_TASK_MODE:-run_task}
+    ECS_GPU_CLUSTER_NAME: ${ECS_GPU_CLUSTER_NAME:?ECS_GPU_CLUSTER_NAME is required}
+    ECS_GPU_CAPACITY_PROVIDER: ${ECS_GPU_CAPACITY_PROVIDER:?ECS_GPU_CAPACITY_PROVIDER is required}
+    ECS_GPU_ASG_NAME: ${ECS_GPU_ASG_NAME:?ECS_GPU_ASG_NAME is required}
+    ECS_EMBEDDER_TASK_DEFINITION: ${ECS_EMBEDDER_TASK_DEFINITION:?ECS_EMBEDDER_TASK_DEFINITION is required}
+    ECS_EMBEDDER_CONTAINER_NAME: ${ECS_EMBEDDER_CONTAINER_NAME:-ml-embedder}
+    LLM_MODEL_NAME: ${LLM_MODEL_NAME:-Qwen/Qwen3-14B}
+    LLM_RUNTIME_BASE_URL: ${LLM_RUNTIME_BASE_URL:-}
+    LLM_RUNTIME_API_KEY: ${LLM_RUNTIME_API_KEY:-}
+    PYTHONPATH: /opt/airflow/src
+  volumes:
+    - ./src:/opt/airflow/src
+    - airflow_logs:/opt/airflow/logs
+    - airflow_artifacts:/opt/airflow/artifacts
+    - airflow_auth:/opt/airflow/auth
+  user: "${AIRFLOW_UID:-50000}:0"
+  restart: unless-stopped
+
+services:
+  airflow-init:
+    <<: *airflow-common
+    container_name: init-airflow-init
+    entrypoint: [ "/opt/airflow/scripts/init-airflow.sh" ]
+    restart: "no"
+
+  airflow-apiserver:
+    <<: *airflow-common
+    container_name: init-airflow-apiserver
+    command: [ "airflow", "api-server" ]
+    ports:
+      - "0.0.0.0:8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: init-airflow-scheduler
+    command: [ "airflow", "scheduler" ]
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: init-airflow-dag-processor
+    command: [ "airflow", "dag-processor" ]
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  airflow_logs:
+  airflow_artifacts:
+  airflow_auth:

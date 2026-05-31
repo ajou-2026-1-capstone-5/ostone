@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ostone.local/schemas/evaluation-pairwise-benchmark.schema.json",
+  "title": "Evaluation Pairwise Benchmark",
+  "description": "Category-free gold annotations for offline discovery evaluation. This file is never part of pipeline input.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/pairList"
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pairs"],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "evaluation-pairwise-benchmark.v1"
+        },
+        "pairs": {
+          "$ref": "#/$defs/pairList"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "pairList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sourceCaseletId", "targetCaseletId", "relation"],
+        "properties": {
+          "sourceCaseletId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetCaseletId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "type": "string",
+            "enum": ["must_link", "cannot_link"]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -203,7 +203,7 @@ def _validate_single_candidate(candidate: dict[str, Any]) -> None:
     slot_codes = _validate_slot_drafts(workflow_lists)
     _validate_policy_drafts(workflow_lists)
     _validate_risk_drafts(workflow_lists)
-    workflow_codes = _validate_workflow_drafts(workflow_lists)
+    _ = _validate_workflow_drafts(workflow_lists)
     _validate_intent_slot_bindings(workflow_lists, intent_codes, slot_codes)
     _validate_workflow_intent_codes(workflow_lists, intent_codes)
 
