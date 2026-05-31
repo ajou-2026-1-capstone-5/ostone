@@ -193,7 +193,7 @@ def _run_graph_leiden(
         high=1.0,
     )
     hdbscan_min_samples = _resolve_optional_positive_int_env("PIPELINE_HDBSCAN_MIN_SAMPLES")
-    compaction_enabled = _resolve_bool_env("PIPELINE_CLUSTER_COMPACTION_ENABLED", default=False)
+    compaction_enabled = _resolve_bool_env("PIPELINE_CLUSTER_COMPACTION_ENABLED", default=True)
     compaction_thresholds = _resolve_float_sequence_env(
         "PIPELINE_CLUSTER_COMPACTION_THRESHOLDS",
         default=(0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95),
@@ -203,7 +203,7 @@ def _run_graph_leiden(
     min_compacted_clusters = _resolve_positive_int_env("PIPELINE_MIN_COMPACTED_CLUSTERS", 4)
     same_intent_threshold = _resolve_bounded_float_env(
         "PIPELINE_SAME_INTENT_THRESHOLD",
-        0.55,
+        0.65,
         low=0.0,
         high=1.0,
     )
@@ -231,7 +231,7 @@ def _run_graph_leiden(
         high=5.0,
     )
     safe_merge_enabled = _resolve_bool_env("PIPELINE_SAFE_MERGE_ENABLED", default=True)
-    safe_merge_min_score = _resolve_bounded_float_env("PIPELINE_SAFE_MERGE_MIN_SCORE", 0.82, low=0.0, high=1.0)
+    safe_merge_min_score = _resolve_bounded_float_env("PIPELINE_SAFE_MERGE_MIN_SCORE", 0.75, low=0.0, high=1.0)
     clustering_config = _ClusteringConfig(
         knn_k=knn_k,
         leiden_resolution=leiden_resolution,

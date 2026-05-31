@@ -227,7 +227,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
 
 
 def _resolve_flow_split_strategy() -> str:
-    strategy = os.getenv("PIPELINE_FLOW_SPLIT_STRATEGY", "expanded").strip().lower()
+    strategy = os.getenv("PIPELINE_FLOW_SPLIT_STRATEGY", "signal").strip().lower()
     if strategy not in FLOW_SPLIT_STRATEGIES:
         return "conservative"
     return strategy

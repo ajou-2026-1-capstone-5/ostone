@@ -642,7 +642,7 @@ def test_evaluation_routes_soft_quality_failures_to_review_required() -> None:
     candidate["evaluationInputs"].update(
         {
             "clusterStability": 0.4,
-            "clusterDistinctiveness": 0.2,
+            "clusterDistinctiveness": 0.15,
             "labelFidelity": 0.4,
             "entrypointSemanticCoverage": 1.0,
             "entrypointDistinctiveness": 0.62,

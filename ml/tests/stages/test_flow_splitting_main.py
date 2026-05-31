@@ -402,7 +402,7 @@ def test_confidence_review_reasons_route_label_only_weakness_to_sample_review() 
         "semantic": 0.72,
         "flow": 0.72,
         "evidence": 0.72,
-        "label": 0.60,
+        "label": 0.50,
         "support": 0.72,
         "safety": 1.0,
     }
@@ -432,7 +432,7 @@ def test_confidence_review_reasons_block_very_weak_label() -> None:
             "semantic": 0.72,
             "flow": 0.72,
             "evidence": 0.72,
-            "label": 0.45,
+            "label": 0.35,
             "support": 0.72,
             "safety": 1.0,
         },
@@ -471,9 +471,9 @@ def test_confidence_uses_expanded_support_floor_for_compound_action_splits() -> 
         duplicate_label_count=1,
     )
 
-    assert payload["support_min_split_size"] == 3
+    assert payload["support_min_split_size"] == 4
     assert payload["workflow_confidence_components"]["support"] == pytest.approx(
-        flow_splitting._support_confidence(member_ids, 3)
+        flow_splitting._support_confidence(member_ids, 4)
     )
     assert payload["workflow_confidence_components"]["evidence"] > flow_splitting._evidence_confidence(
         {"exemplar_conv_ids": ["c1", "c2", "c3"], "keywords": ["결제", "금액"]},
@@ -2053,7 +2053,7 @@ def test_split_label_auto_acceptance_requires_strong_object_action_evidence() ->
             "name": "무제한 있다고 신청 문의",
             "score": 0.70,
             "evidenceCoverage": 0.40,
-            "objectActionJointCoverage": 0.60,
+            "objectActionJointCoverage": 0.45,
             "actionObjectValidity": 0.76,
             "specificity": 1.0,
         }
