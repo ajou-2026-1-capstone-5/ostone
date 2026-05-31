@@ -424,7 +424,7 @@ describe("consultationApi", () => {
       "/api/v1/consultation/sessions/1/response-mode",
       {
         method: "PATCH",
-        body: { counselorId: 7, responseMode: "AI_ASSIST_ONLY" },
+        body: JSON.stringify({ counselorId: 7, responseMode: "AI_ASSIST_ONLY" }),
       },
     );
     expect(result).toEqual(stubSession);

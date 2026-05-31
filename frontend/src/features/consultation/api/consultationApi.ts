@@ -159,7 +159,7 @@ export const consultationApi = {
       `/api/v1/consultation/sessions/${sessionId}/response-mode`,
       {
         method: "PATCH",
-        body: { counselorId, responseMode },
+        body: JSON.stringify({ counselorId, responseMode }),
       },
     );
     return requireApiData<ChatSession>(response, "AI 응대 모드 변경 응답을 확인할 수 없습니다.");

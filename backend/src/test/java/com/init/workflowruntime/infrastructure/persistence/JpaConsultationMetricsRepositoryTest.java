@@ -153,8 +153,8 @@ class JpaConsultationMetricsRepositoryTest {
         entityManager.createNativeQuery(
             """
             insert into runtime.chat_session
-              (id, workspace_id, domain_pack_version_id, status, channel, meta_json, started_at, ended_at)
-            values (:id, :workspaceId, 20, :status, 'WEB', '{}', :startedAt, :endedAt)
+              (id, workspace_id, domain_pack_version_id, status, channel, meta_json, response_mode, started_at, ended_at)
+            values (:id, :workspaceId, 20, :status, 'WEB', '{}', 'AI_ACTIVE', :startedAt, :endedAt)
             """);
     query.setParameter("id", sessionId);
     query.setParameter("workspaceId", workspaceId);
