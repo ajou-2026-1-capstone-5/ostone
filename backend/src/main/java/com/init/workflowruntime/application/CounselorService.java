@@ -54,7 +54,7 @@ public class CounselorService {
   }
 
   @Transactional
-  public CounselorSessionResponse assignSession(Long counselorId, Long sessionId, Long userId) {
+  public CounselorSessionResponse assignSession(Long sessionId, Long counselorId) {
     validateCounselorId(counselorId);
 
     ChatSession session =
@@ -63,8 +63,8 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
-    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
+    validateWorkspaceMembership(session.getWorkspaceId(), counselorId);
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
 
@@ -77,7 +77,7 @@ public class CounselorService {
   }
 
   @Transactional
-  public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId, Long userId) {
+  public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId) {
     validateCounselorId(counselorId);
 
     ChatSession session =
@@ -86,8 +86,8 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
-    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
+    validateWorkspaceMembership(session.getWorkspaceId(), counselorId);
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException(
           "SESSION_NOT_ASSIGNED_TO_COUNSELOR",

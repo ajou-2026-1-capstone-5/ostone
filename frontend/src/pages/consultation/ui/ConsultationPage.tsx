@@ -1004,10 +1004,7 @@ export const ConsultationPage: React.FC = () => {
     const targetSessionId = activeCustomerId;
     setClaimingSessionId(targetSessionId);
     try {
-      const assignedSession = await consultationApi.assignSession(
-        Number(targetSessionId),
-        currentCounselorId,
-      );
+      const assignedSession = await consultationApi.assignSession(Number(targetSessionId));
       setQueue((prev) =>
         replaceAssignedQueueCustomer(prev, targetSessionId, assignedSession, currentCounselorId),
       );
@@ -1191,10 +1188,7 @@ export const ConsultationPage: React.FC = () => {
     const releasedSessionId = activeCustomerId;
 
     try {
-      const releasedSession = await consultationApi.releaseSession(
-        Number(releasedSessionId),
-        currentCounselorId,
-      );
+      const releasedSession = await consultationApi.releaseSession(Number(releasedSessionId));
       setQueue((prev) =>
         sortQueueCustomers(
           prev.map((customer) =>
