@@ -1,4 +1,4 @@
-import type { DemoChatSession } from "@/entities/chat";
+import type { ConnectionStatus, DemoChatSession } from "@/entities/chat";
 import { MessageInput, MessageList } from "@/features/user-chat";
 import { ChatHeader } from "./ChatHeader";
 
@@ -7,9 +7,16 @@ interface ChatConversationScreenProps {
   customerName: string;
   workspaceId: number;
   isSending: boolean;
+  connectionStatus?: ConnectionStatus;
   messageError: string | null;
   onSend: (content: string) => void;
   onStartNewSession: () => void;
+}
+
+function getConnectionLabel(status: ConnectionStatus): string {
+  if (status === "CONNECTED") return "연결됨";
+  if (status === "CONNECTING") return "연결 중";
+  return "연결 끊김";
 }
 
 export function ChatConversationScreen({
@@ -17,10 +24,13 @@ export function ChatConversationScreen({
   customerName,
   workspaceId,
   isSending,
+  connectionStatus = "CONNECTED",
   messageError,
   onSend,
   onStartNewSession,
 }: ChatConversationScreenProps) {
+  const connectionLabel = getConnectionLabel(connectionStatus);
+
   return (
     <div
       data-testid="chat-conversation-screen"
@@ -67,10 +77,10 @@ export function ChatConversationScreen({
                 width: 6,
                 height: 6,
                 borderRadius: 999,
-                background: "var(--signal)",
+                background: connectionStatus === "CONNECTED" ? "var(--signal)" : "var(--danger)",
               }}
             />
-            연결됨
+            {connectionLabel}
           </span>
           <span>Workspace #{workspaceId} · 운영 도메인 팩 기준</span>
         </div>

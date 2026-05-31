@@ -5,11 +5,10 @@ import {
   registerDemoChatSession,
   sendDemoChatMessage,
 } from "@/entities/chat";
-import type { ChatMessage, DemoChatSession } from "@/entities/chat";
+import type { DemoChatSession } from "@/entities/chat";
 import {
   isRealtimeChatMessage,
   mergeMessages,
-  mergePersistedMessages,
   toRealtimeChatMessage,
   tryParseDemoSessionId,
   withCustomerNames,
@@ -186,66 +185,17 @@ export function UserChatPage() {
   const handleSendMessage = async (content: string) => {
     const activeSession = activeChatState.session;
     if (!activeSession || !customerName || isSending) return;
-
-    const now = new Date().toISOString();
-    const userMessage: ChatMessage = {
-      id: `local-user-${Date.now()}`,
-      sessionId: 0,
-      content,
-      senderType: "USER",
-      senderName: customerName,
-      createdAt: now,
-    };
+    if (connectionStatus !== "CONNECTED") {
+      setMessageError("연결이 불안정합니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
 
     setMessageError(null);
     setIsSending(true);
-    setChatState((current) => {
-      if (current.session?.id !== activeSession.id) return current;
-      const nextSession = {
-        ...activeSession,
-        messages: [...activeSession.messages, userMessage],
-      };
-      writeStoredSession(workspaceId, customerName, nextSession);
-      return {
-        ...current,
-        session: nextSession,
-      };
-    });
 
     try {
-      const savedMessages = await sendDemoChatMessage(workspaceId, activeSession.id, content);
-      const namedMessages = savedMessages.map((message) =>
-        message.senderType === "USER" ? { ...message, senderName: customerName } : message,
-      );
-
-      setChatState((current) => {
-        if (current.session?.id !== activeSession.id) return current;
-        const nextSession = {
-          ...current.session,
-          messages: [
-            ...current.session.messages.filter((message) => message.id !== userMessage.id),
-            ...namedMessages,
-          ],
-        };
-        writeStoredSession(workspaceId, customerName, nextSession);
-        return {
-          ...current,
-          session: nextSession,
-        };
-      });
+      await sendDemoChatMessage(workspaceId, activeSession.id, content);
     } catch {
-      setChatState((current) => {
-        if (current.session?.id !== activeSession.id) return current;
-        const nextSession = {
-          ...current.session,
-          messages: current.session.messages.filter((message) => message.id !== userMessage.id),
-        };
-        writeStoredSession(workspaceId, customerName, nextSession);
-        return {
-          ...current,
-          session: nextSession,
-        };
-      });
       setMessageError("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setIsSending(false);
@@ -270,7 +220,7 @@ export function UserChatPage() {
           }
           const nextSession = {
             ...current.session,
-            messages: mergePersistedMessages(current.session.messages, namedMessages),
+            messages: namedMessages,
           };
           writeStoredSession(workspaceId, customerName, nextSession);
           return {
@@ -284,13 +234,9 @@ export function UserChatPage() {
     };
 
     void syncMessages();
-    const intervalId = window.setInterval(() => {
-      void syncMessages();
-    }, 3000);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
     };
   }, [activeSessionId, customerName, workspaceId]);
 
@@ -374,7 +320,8 @@ export function UserChatPage() {
       session={activeChatState.session}
       customerName={customerName}
       workspaceId={workspaceId}
-      isSending={isSending}
+      isSending={isSending || connectionStatus !== "CONNECTED"}
+      connectionStatus={connectionStatus}
       messageError={messageError}
       onSend={(content) => {
         void handleSendMessage(content);
