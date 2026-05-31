@@ -2,6 +2,42 @@ const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
 
+const memoryStorage = new Map<string, string>();
+
+function getStorage(): Storage | null {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+
+  try {
+    const probeKey = "__ostone_storage_probe__";
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function setAuthValue(key: string, value: string): void {
+  const storage = getStorage();
+  if (storage) {
+    storage.setItem(key, value);
+    return;
+  }
+
+  memoryStorage.set(key, value);
+}
+
+function getAuthValue(key: string): string | null {
+  return getStorage()?.getItem(key) ?? memoryStorage.get(key) ?? null;
+}
+
+function removeAuthValue(key: string): void {
+  getStorage()?.removeItem(key);
+  memoryStorage.delete(key);
+}
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -17,27 +53,27 @@ export interface AuthTokens {
 }
 
 export function saveAuthSession(tokens: AuthTokens, user: AuthUser): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  setAuthValue(ACCESS_TOKEN_KEY, tokens.accessToken);
+  setAuthValue(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  setAuthValue(USER_KEY, JSON.stringify(user));
 }
 
 export function clearAuthSession(): void {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  removeAuthValue(ACCESS_TOKEN_KEY);
+  removeAuthValue(REFRESH_TOKEN_KEY);
+  removeAuthValue(USER_KEY);
 }
 
 export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return getAuthValue(ACCESS_TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return getAuthValue(REFRESH_TOKEN_KEY);
 }
 
 export function getAuthUser(): AuthUser | null {
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = getAuthValue(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AuthUser;

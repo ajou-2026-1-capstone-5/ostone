@@ -1,4 +1,4 @@
-import { clearAuthSession } from "@/shared/lib/auth";
+import { clearAuthSession, getAccessToken } from "@/shared/lib/auth";
 
 export function resolveApiBase(apiBaseUrl: string | undefined): string {
   return apiBaseUrl || "/api/v1";
@@ -43,7 +43,7 @@ class ApiClient {
     let hasSessionAuthHeader = false;
 
     if (typeof window !== "undefined" && this.shouldAttachAuthHeader(path)) {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
         hasSessionAuthHeader = true;

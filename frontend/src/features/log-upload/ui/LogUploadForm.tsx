@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
 import { useUploadRawFile } from "../../../shared/api/generated/endpoints/dataset-controller/dataset-controller";
+import { useTriggerDomainPackGeneration } from "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
   RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
@@ -17,29 +18,116 @@ import styles from "./log-upload-form.module.css";
 
 type UploadStatus = "idle" | "uploading" | "success";
 
+type GenerationStatus =
+  | { kind: "idle" }
+  | { kind: "triggering" }
+  | { kind: "success"; pipelineJobId: number | null; status: string | null }
+  | { kind: "error"; message: string };
+
+interface UploadedDataset {
+  datasetId: number | null;
+  fileName: string;
+  conversationCount: number | null;
+}
+
+interface RawUploadResponseLike {
+  data?: {
+    datasetId?: number;
+    conversationCount?: number;
+  };
+  datasetId?: number;
+  conversationCount?: number;
+}
+
+interface GenerationResponseLike {
+  data?: {
+    pipelineJobId?: number;
+    status?: string;
+  };
+  pipelineJobId?: number;
+  status?: string;
+}
+
 interface LogUploadFormProps {
   workspaceId?: number;
 }
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+const readUploadResponse = (
+  response: unknown,
+): Pick<UploadedDataset, "datasetId" | "conversationCount"> => {
+  const r =
+    typeof response === "object" && response !== null ? (response as RawUploadResponseLike) : null;
+
+  return {
+    datasetId: r?.data?.datasetId ?? r?.datasetId ?? null,
+    conversationCount: r?.data?.conversationCount ?? r?.conversationCount ?? null,
+  };
+};
+
+const readGenerationResponse = (
+  response: unknown,
+): Omit<GenerationStatus & { kind: "success" }, "kind"> => {
+  const r =
+    typeof response === "object" && response !== null ? (response as GenerationResponseLike) : null;
+
+  return {
+    pipelineJobId: r?.data?.pipelineJobId ?? r?.pipelineJobId ?? null,
+    status: r?.data?.status ?? r?.status ?? null,
+  };
+};
 
 export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
+  const [uploadedDataset, setUploadedDataset] = useState<UploadedDataset | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({ kind: "idle" });
 
   const uploadMutation = useUploadRawFile({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (response, variables) => {
+        const { datasetId, conversationCount } = readUploadResponse(response);
+        setUploadedDataset({
+          datasetId,
+          conversationCount,
+          fileName: variables.data?.file?.name ?? file?.name ?? "업로드한 파일",
+        });
+        setGenerationStatus({ kind: "idle" });
         setStatus("success");
         toast.success("업로드 완료");
       },
       onError: (error) => {
         setStatus("idle");
-        toast.error(error instanceof Error ? error.message : "업로드에 실패했습니다.", {
+        setUploadedDataset(null);
+        setGenerationStatus({ kind: "idle" });
+        toast.error(getErrorMessage(error, "업로드에 실패했습니다."), {
           action: {
             label: "재시도",
             onClick: () => {
               if (file) handleUpload(file);
             },
+          },
+        });
+      },
+    },
+  });
+
+  const generationMutation = useTriggerDomainPackGeneration({
+    mutation: {
+      onSuccess: (response) => {
+        setGenerationStatus({ kind: "success", ...readGenerationResponse(response) });
+        toast.success("도메인팩 초안 생성 요청 완료");
+      },
+      onError: (error) => {
+        const message = getErrorMessage(error, "도메인팩 초안 생성 요청에 실패했습니다.");
+        setGenerationStatus({ kind: "error", message });
+        toast.error(message, {
+          action: {
+            label: "재시도",
+            onClick: () => handleStartGeneration(),
           },
         });
       },
@@ -54,6 +142,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     }
     setFile(selectedFile);
     setStatus("idle");
+    setUploadedDataset(null);
+    setGenerationStatus({ kind: "idle" });
+    uploadMutation.reset();
+    generationMutation.reset();
   };
 
   const handleUpload = (fileToUpload: File) => {
@@ -70,19 +162,38 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     });
   };
 
+  function handleStartGeneration() {
+    if (!workspaceId || !uploadedDataset?.datasetId) {
+      toast.error("생성 요청에 필요한 데이터셋 정보를 확인할 수 없습니다.");
+      return;
+    }
+
+    setGenerationStatus({ kind: "triggering" });
+    generationMutation.mutate({
+      workspaceId,
+      datasetId: uploadedDataset.datasetId,
+    });
+  }
+
   const handleReset = () => {
     uploadMutation.reset();
+    generationMutation.reset();
     setFile(null);
+    setUploadedDataset(null);
     setStatus("idle");
+    setGenerationStatus({ kind: "idle" });
   };
 
   const domainPacksPath = workspaceId ? `/workspaces/${workspaceId}/domain-packs` : "/workspaces";
+  const canStartGeneration = Boolean(uploadedDataset?.datasetId);
+  const isGenerationPending =
+    generationStatus.kind === "triggering" || generationMutation.isPending;
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>상담 로그 업로드</h2>
-        <p>파일 하나를 데이터셋으로 올리고, 데이터셋 단위로 도메인팩 초안 1개를 생성합니다.</p>
+        <p>파일을 데이터셋으로 업로드한 뒤, 생성 시작 버튼으로 도메인팩 초안 생성을 요청합니다.</p>
       </div>
 
       <div className={styles.uploadArea}>
@@ -109,11 +220,82 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
       )}
 
       {status === "success" && (
-        <div className={styles.successActions}>
-          <Button variant="secondary" onClick={handleReset}>
-            다른 파일 업로드
-          </Button>
-          <Button onClick={() => navigate(domainPacksPath)}>도메인팩 보기</Button>
+        <div className={styles.afterUpload}>
+          <div className={styles.uploadSummary}>
+            <span className={styles.statusLabel}>업로드 완료</span>
+            <strong>{uploadedDataset?.fileName ?? file?.name}</strong>
+            <span>
+              {uploadedDataset?.datasetId
+                ? `dataset ${uploadedDataset.datasetId}`
+                : "데이터셋 ID 확인 필요"}
+              {uploadedDataset?.conversationCount != null
+                ? ` · 상담 ${uploadedDataset.conversationCount}건`
+                : ""}
+            </span>
+          </div>
+
+          {generationStatus.kind === "idle" && (
+            <div className={styles.generationPanel}>
+              <p>
+                업로드한 데이터셋을 기반으로 intent, slot, policy, risk, workflow 초안을 생성할 수
+                있습니다.
+              </p>
+              <div className={styles.successActions}>
+                <Button variant="secondary" onClick={handleReset}>
+                  다른 파일 업로드
+                </Button>
+                <Button onClick={handleStartGeneration} disabled={!canStartGeneration}>
+                  도메인팩 초안 생성 시작
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isGenerationPending && (
+            <div className={styles.generationPanel}>
+              <span className={styles.statusLabel}>생성 요청 중</span>
+              <p>파이프라인 생성 요청을 보내고 있습니다. 잠시만 기다려 주세요.</p>
+              <Button
+                variant="secondary"
+                onClick={handleReset}
+                disabled={generationMutation.isPending}
+              >
+                다른 파일 업로드
+              </Button>
+            </div>
+          )}
+
+          {generationStatus.kind === "error" && (
+            <div className={styles.generationPanel}>
+              <span className={styles.statusLabel}>생성 요청 실패</span>
+              <p>{generationStatus.message}</p>
+              <div className={styles.successActions}>
+                <Button variant="secondary" onClick={handleReset}>
+                  다른 파일 업로드
+                </Button>
+                <Button onClick={handleStartGeneration} disabled={!canStartGeneration}>
+                  다시 생성 요청
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {generationStatus.kind === "success" && (
+            <div className={styles.generationPanel}>
+              <span className={styles.statusLabel}>생성 요청 완료</span>
+              <p>
+                도메인팩 초안 생성 파이프라인이 등록되었습니다.
+                {generationStatus.pipelineJobId ? ` job ${generationStatus.pipelineJobId}` : ""}
+                {generationStatus.status ? ` · ${generationStatus.status}` : ""}
+              </p>
+              <div className={styles.successActions}>
+                <Button variant="secondary" onClick={handleReset}>
+                  다른 파일 업로드
+                </Button>
+                <Button onClick={() => navigate(domainPacksPath)}>도메인팩 보기</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
