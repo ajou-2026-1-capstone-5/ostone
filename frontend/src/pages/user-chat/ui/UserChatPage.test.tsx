@@ -8,12 +8,14 @@ const {
   registerDemoChatSessionMock,
   sendDemoChatMessageMock,
   routeState,
+  searchState,
   stompState,
 } = vi.hoisted(() => ({
   listDemoChatMessagesMock: vi.fn(),
   registerDemoChatSessionMock: vi.fn(),
   sendDemoChatMessageMock: vi.fn(),
   routeState: { workspaceId: "42" as string | undefined },
+  searchState: { search: "" },
   stompState: {
     connectionStatus: "DISCONNECTED",
     subscribe: vi.fn(),
@@ -35,12 +37,14 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useParams: () => routeState,
+    useSearchParams: () => [new URLSearchParams(searchState.search), () => {}],
   };
 });
 
 describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
+    searchState.search = "";
     window.localStorage.clear();
     stompState.connectionStatus = "DISCONNECTED";
     stompState.subscribe.mockReset();
@@ -111,6 +115,25 @@ describe("UserChatPage", () => {
     } finally {
       setIntervalSpy.mockRestore();
     }
+  });
+
+  it("name 쿼리 파라미터가 있으면 이름 입력 화면을 건너뛰고 세션을 자동 생성한다", async () => {
+    searchState.search = "name=박서준";
+
+    render(<UserChatPage />);
+
+    expect(await screen.findByTestId("chat-conversation-screen")).not.toBeNull();
+    expect(registerDemoChatSessionMock).toHaveBeenCalledWith(42, "박서준");
+    expect(screen.queryByTestId("chat-entry-screen")).toBeNull();
+  });
+
+  it("name 쿼리 파라미터가 공백이면 이름 입력 화면으로 폴백한다", () => {
+    searchState.search = "name=%20%20";
+
+    render(<UserChatPage />);
+
+    expect(screen.getByTestId("chat-entry-screen")).not.toBeNull();
+    expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 
   it("같은 이름으로 다시 진입하면 백엔드 저장 메시지를 다시 불러온다", async () => {

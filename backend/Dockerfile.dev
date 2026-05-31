@@ -1,0 +1,10 @@
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+RUN addgroup --system appgroup && adduser --system --group appuser
+USER appuser
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-Xmx384m", "-XX:+ExitOnOutOfMemoryError", "-XX:+UseSerialGC", "-jar", "app.jar"]

@@ -1,5 +1,5 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   listDemoChatMessages,
   registerDemoChatSession,
@@ -176,13 +176,19 @@ async function createFreshStoredSession(
 export function UserChatPage() {
   const { workspaceId: raw } = useParams<{ workspaceId: string }>();
   const workspaceId = Number(raw);
+  const [searchParams] = useSearchParams();
+  const nameParam = searchParams.get("name");
   const { connectionStatus, subscribe } = useStomp();
   const [draftName, setDraftName] = useState("");
-  const [customerName, setCustomerName] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(() => {
+    const initialName = nameParam?.trim();
+    return initialName ? initialName : null;
+  });
   const [nameError, setNameError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const nameRequestIdRef = useRef(0);
+  const autoStartedRef = useRef(false);
   const [chatState, setChatState] = useState<{
     workspaceId: number | null;
     customerName: string | null;
@@ -196,34 +202,48 @@ export function UserChatPage() {
       : { session: null, error: null };
   const activeSessionId = activeChatState.session?.id ?? null;
 
-  const handleNameSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const startSession = useCallback(
+    async (rawName: string) => {
+      const nextName = rawName.trim();
+      if (!nextName) {
+        setNameError("이름을 입력해 주세요.");
+        return;
+      }
+
+      const requestId = ++nameRequestIdRef.current;
+      setNameError(null);
+      setCustomerName(nextName);
+      setChatState({ workspaceId, customerName: nextName, session: null, error: null });
+      try {
+        const nextSession = await getOrCreateStoredSession(workspaceId, nextName);
+        if (requestId !== nameRequestIdRef.current) return;
+        setChatState({ workspaceId, customerName: nextName, session: nextSession, error: null });
+      } catch (error) {
+        console.error("Failed to start demo chat session", error);
+        if (requestId !== nameRequestIdRef.current) return;
+        setChatState({
+          workspaceId,
+          customerName: nextName,
+          session: null,
+          error: resolveSessionStartErrorMessage(error),
+        });
+      }
+    },
+    [workspaceId],
+  );
+
+  const handleNameSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    const nextName = draftName.trim();
-    if (!nextName) {
-      setNameError("이름을 입력해 주세요.");
-      return;
-    }
-
-    const requestId = ++nameRequestIdRef.current;
-    setNameError(null);
-    setCustomerName(nextName);
-    setChatState({ workspaceId, customerName: nextName, session: null, error: null });
-    try {
-      const nextSession = await getOrCreateStoredSession(workspaceId, nextName);
-      if (requestId !== nameRequestIdRef.current) return;
-      setChatState({ workspaceId, customerName: nextName, session: nextSession, error: null });
-    } catch (error) {
-      console.error("Failed to start demo chat session", error);
-      if (requestId !== nameRequestIdRef.current) return;
-      setChatState({
-        workspaceId,
-        customerName: nextName,
-        session: null,
-        error: resolveSessionStartErrorMessage(error),
-      });
-    }
+    void startSession(draftName);
   };
+
+  useEffect(() => {
+    if (autoStartedRef.current || isInvalidWorkspace) return;
+    const trimmedName = nameParam?.trim();
+    if (!trimmedName) return;
+    autoStartedRef.current = true;
+    void startSession(trimmedName);
+  }, [nameParam, isInvalidWorkspace, startSession]);
 
   const handleStartNewSession = async () => {
     if (!customerName) return;
