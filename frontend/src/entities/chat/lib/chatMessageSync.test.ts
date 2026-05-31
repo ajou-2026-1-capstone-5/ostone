@@ -4,7 +4,6 @@ import {
   isChatMessageResponse,
   isRealtimeChatMessage,
   mergeMessages,
-  mergePersistedMessages,
   parseDemoSessionId,
   toChatMessage,
   toRealtimeChatMessage,
@@ -147,31 +146,8 @@ describe("chatMessageSync", () => {
     ]);
   });
 
-  it("저장 메시지는 optimistic/greeting 메시지를 유지한 뒤 백엔드 메시지와 병합한다", () => {
-    const currentMessages: ChatMessage[] = [
-      {
-        id: "local-user-1",
-        sessionId: 0,
-        senderType: "USER",
-        content: "전송 중",
-        createdAt: "2026-05-22T00:00:01Z",
-      },
-      {
-        id: "backend-greeting-77",
-        sessionId: 77,
-        senderType: "BOT",
-        content: "안녕하세요",
-        createdAt: "2026-05-22T00:00:00Z",
-      },
-      {
-        id: "old-1",
-        sessionId: 77,
-        senderType: "BOT",
-        content: "오래된 응답",
-        createdAt: "2026-05-22T00:00:00Z",
-      },
-    ];
-    const persistedMessages = withCustomerNames(
+  it("사용자 메시지에 고객 이름을 보강한다", () => {
+    const messages = withCustomerNames(
       [
         {
           id: "91",
@@ -180,16 +156,32 @@ describe("chatMessageSync", () => {
           content: "저장된 질문",
           createdAt: "2026-05-22T00:00:02Z",
         },
+        {
+          id: "92",
+          sessionId: 77,
+          senderType: "BOT",
+          content: "저장된 답변",
+          createdAt: "2026-05-22T00:00:03Z",
+        },
       ],
       "김민지",
     );
 
-    expect(mergePersistedMessages(currentMessages, persistedMessages)).toEqual([
-      currentMessages[1],
-      currentMessages[0],
+    expect(messages).toEqual([
       {
-        ...persistedMessages[0],
+        id: "91",
+        sessionId: 77,
+        senderType: "USER",
         senderName: "김민지",
+        content: "저장된 질문",
+        createdAt: "2026-05-22T00:00:02Z",
+      },
+      {
+        id: "92",
+        sessionId: 77,
+        senderType: "BOT",
+        content: "저장된 답변",
+        createdAt: "2026-05-22T00:00:03Z",
       },
     ]);
   });

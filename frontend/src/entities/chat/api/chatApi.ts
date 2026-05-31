@@ -117,15 +117,7 @@ export async function registerDemoChatSession(
     id: String(sessionId),
     status: response.status ?? "OPEN",
     startedAt,
-    messages: [
-      {
-        id: `backend-greeting-${sessionId}`,
-        sessionId,
-        content: `안녕하세요, ${customerName}님. 무엇을 도와드릴까요?`,
-        senderType: "BOT",
-        createdAt: startedAt,
-      },
-    ],
+    messages: [],
   };
 }
 

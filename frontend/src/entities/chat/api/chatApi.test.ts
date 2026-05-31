@@ -126,15 +126,7 @@ describe("chatApi", () => {
       id: "77",
       status: "OPEN",
       startedAt: "2026-05-22T00:00:00Z",
-      messages: [
-        {
-          id: "backend-greeting-77",
-          sessionId: 77,
-          senderType: "BOT",
-          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
-          createdAt: "2026-05-22T00:00:00Z",
-        },
-      ],
+      messages: [],
     });
 
     expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/2/demo/chat-sessions", {

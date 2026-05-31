@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "@/shared/api";
 import { UserChatPage } from "./UserChatPage";
@@ -50,22 +50,22 @@ describe("UserChatPage", () => {
     stompState.subscribe.mockReset();
     stompState.subscribe.mockReturnValue(() => {});
     listDemoChatMessagesMock.mockReset();
-    listDemoChatMessagesMock.mockRejectedValue(new Error("sync unavailable"));
+    listDemoChatMessagesMock.mockResolvedValue([
+      {
+        id: "80",
+        sessionId: 77,
+        content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+        senderType: "BOT",
+        createdAt: "2026-05-22T00:00:00Z",
+      },
+    ]);
     registerDemoChatSessionMock.mockReset();
     sendDemoChatMessageMock.mockReset();
     registerDemoChatSessionMock.mockResolvedValue({
       id: "77",
       status: "OPEN",
       startedAt: "2026-05-22T00:00:00Z",
-      messages: [
-        {
-          id: "backend-greeting-77",
-          sessionId: 77,
-          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
-          senderType: "BOT",
-          createdAt: "2026-05-22T00:00:00Z",
-        },
-      ],
+      messages: [],
     });
     sendDemoChatMessageMock.mockResolvedValue([
       {
@@ -95,8 +95,26 @@ describe("UserChatPage", () => {
     const eyebrow = await screen.findByTestId("chat-header-eyebrow");
     expect(eyebrow).toHaveTextContent("Session #77");
     expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
-    expect(screen.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
+    expect(await screen.findByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
     expect(registerDemoChatSessionMock).toHaveBeenCalledWith(42, "김민지");
+  });
+
+  it("세션 진입 시 메시지를 한 번만 조회하고 polling interval을 만들지 않는다", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+
+    try {
+      render(<UserChatPage />);
+      fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+      fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+      await waitFor(() => {
+        expect(listDemoChatMessagesMock).toHaveBeenCalledWith(42, "77");
+      });
+      expect(listDemoChatMessagesMock).toHaveBeenCalledTimes(1);
+      expect(setIntervalSpy).not.toHaveBeenCalledWith(expect.any(Function), 3000);
+    } finally {
+      setIntervalSpy.mockRestore();
+    }
   });
 
   it("name 쿼리 파라미터가 있으면 이름 입력 화면을 건너뛰고 세션을 자동 생성한다", async () => {
@@ -118,17 +136,47 @@ describe("UserChatPage", () => {
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 
-  it("같은 이름으로 다시 진입하면 저장된 세션 메시지를 유지한다", async () => {
+  it("같은 이름으로 다시 진입하면 백엔드 저장 메시지를 다시 불러온다", async () => {
+    listDemoChatMessagesMock
+      .mockResolvedValueOnce([
+        {
+          id: "80",
+          sessionId: 77,
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "80",
+          sessionId: 77,
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+        {
+          id: "81",
+          sessionId: 77,
+          content: "Hello",
+          senderType: "USER",
+          senderName: "김민지",
+          createdAt: "2026-05-22T00:00:01Z",
+        },
+        {
+          id: "82",
+          sessionId: 77,
+          content: "LLM 응답입니다.",
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:02Z",
+        },
+      ]);
+
     const firstRender = render(<UserChatPage />);
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
     fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
-    const input = await screen.findByLabelText("메시지 입력");
-    fireEvent.change(input, { target: { value: "Hello" } });
-    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
-    expect(await screen.findByText("Hello")).not.toBeNull();
-    expect(await screen.findByText("LLM 응답입니다.")).not.toBeNull();
-    expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "77", "Hello");
+    expect(await screen.findByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
 
     firstRender.unmount();
     registerDemoChatSessionMock.mockClear();
@@ -141,37 +189,45 @@ describe("UserChatPage", () => {
     expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
     expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
+    expect(listDemoChatMessagesMock).toHaveBeenCalledTimes(2);
   });
 
   it("새 테스트 세션 시작은 새 백엔드 세션으로 저장 세션을 교체한다", async () => {
+    listDemoChatMessagesMock.mockImplementation((_workspaceId: number, sessionId: string) =>
+      Promise.resolve(
+        sessionId === "77"
+          ? [
+              {
+                id: "80",
+                sessionId: 77,
+                content: "첫 테스트 세션입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:00:00Z",
+              },
+            ]
+          : [
+              {
+                id: "90",
+                sessionId: 88,
+                content: "새 테스트 세션입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:10:00Z",
+              },
+            ],
+      ),
+    );
     registerDemoChatSessionMock
       .mockResolvedValueOnce({
         id: "77",
         status: "OPEN",
         startedAt: "2026-05-22T00:00:00Z",
-        messages: [
-          {
-            id: "backend-greeting-77",
-            sessionId: 77,
-            content: "첫 테스트 세션입니다.",
-            senderType: "BOT",
-            createdAt: "2026-05-22T00:00:00Z",
-          },
-        ],
+        messages: [],
       })
       .mockResolvedValueOnce({
         id: "88",
         status: "OPEN",
         startedAt: "2026-05-22T00:10:00Z",
-        messages: [
-          {
-            id: "backend-greeting-88",
-            sessionId: 88,
-            content: "새 테스트 세션입니다.",
-            senderType: "BOT",
-            createdAt: "2026-05-22T00:10:00Z",
-          },
-        ],
+        messages: [],
       });
 
     render(<UserChatPage />);
@@ -188,20 +244,21 @@ describe("UserChatPage", () => {
 
   it("새 테스트 세션 생성 실패 시 운영 도메인팩 안내 에러를 표시한다", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    listDemoChatMessagesMock.mockResolvedValueOnce([
+      {
+        id: "80",
+        sessionId: 77,
+        content: "첫 테스트 세션입니다.",
+        senderType: "BOT",
+        createdAt: "2026-05-22T00:00:00Z",
+      },
+    ]);
     registerDemoChatSessionMock
       .mockResolvedValueOnce({
         id: "77",
         status: "OPEN",
         startedAt: "2026-05-22T00:00:00Z",
-        messages: [
-          {
-            id: "backend-greeting-77",
-            sessionId: 77,
-            content: "첫 테스트 세션입니다.",
-            senderType: "BOT",
-            createdAt: "2026-05-22T00:00:00Z",
-          },
-        ],
+        messages: [],
       })
       .mockRejectedValueOnce(
         new ApiRequestError(
@@ -252,7 +309,134 @@ describe("UserChatPage", () => {
     expect(listDemoChatMessagesMock).toHaveBeenCalledWith(42, "77");
   });
 
-  it("메시지 전송 실패 시 optimistic 메시지를 되돌린다", async () => {
+  it("기존 localStorage 임시 greeting은 초기 REST 메시지로 대체한다", async () => {
+    const storageKey = `ostone:demo-chat-session:42:${encodeURIComponent("김민지")}`;
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [
+          {
+            id: "backend-greeting-77",
+            sessionId: 77,
+            content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+            senderType: "BOT",
+            createdAt: "2026-05-22T00:00:00Z",
+          },
+        ],
+      }),
+    );
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    expect(await screen.findByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
+    expect(screen.getAllByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).toHaveLength(1);
+    await waitFor(() => {
+      expect(window.localStorage.getItem(storageKey)).not.toContain("backend-greeting-77");
+    });
+  });
+
+  it("메시지 전송 직후 사용자 메시지를 표시하고 REST 응답만으로는 봇 답변을 추가하지 않는다", async () => {
+    stompState.connectionStatus = "CONNECTED";
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    await waitFor(() => {
+      expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "77", "Hello");
+    });
+    expect(screen.getByText("Hello")).not.toBeNull();
+    expect(screen.queryByText("LLM 응답입니다.")).toBeNull();
+  });
+
+  it("WebSocket user 메시지는 optimistic 메시지를 서버 메시지로 교체한다", async () => {
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByText("Hello")).not.toBeNull();
+
+    act(() => {
+      topicHandler?.({
+        id: 81,
+        senderRole: "USER",
+        content: "Hello",
+        createdAt: "2026-05-22T00:00:01Z",
+      });
+    });
+
+    expect(screen.getAllByText("Hello")).toHaveLength(1);
+    expect(screen.getByTestId("message-81")).not.toBeNull();
+  });
+
+  it("WebSocket user/assistant 메시지를 표시하고 같은 id는 한 번만 렌더링한다", async () => {
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    await screen.findByTestId("chat-header-eyebrow");
+
+    act(() => {
+      topicHandler?.({
+        id: 81,
+        senderRole: "USER",
+        content: "Hello",
+        createdAt: "2026-05-22T00:00:01Z",
+      });
+      topicHandler?.({
+        id: 82,
+        senderRole: "ASSISTANT",
+        content: "LLM 응답입니다.",
+        createdAt: "2026-05-22T00:00:02Z",
+      });
+      topicHandler?.({
+        id: 82,
+        senderRole: "ASSISTANT",
+        content: "LLM 응답입니다.",
+        createdAt: "2026-05-22T00:00:02Z",
+      });
+    });
+
+    expect(await screen.findByText("Hello")).not.toBeNull();
+    expect(await screen.findByText("LLM 응답입니다.")).not.toBeNull();
+    expect(screen.getAllByText("LLM 응답입니다.")).toHaveLength(1);
+  });
+
+  it("메시지 전송 실패 시 에러를 표시한다", async () => {
+    stompState.connectionStatus = "CONNECTED";
     sendDemoChatMessageMock.mockRejectedValueOnce(new Error("LLM failed"));
 
     render(<UserChatPage />);
@@ -283,7 +467,9 @@ describe("UserChatPage", () => {
 
     await screen.findByTestId("chat-header-eyebrow");
 
-    expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
 
     act(() => {
       topicHandler?.({

@@ -9,7 +9,6 @@ import type { ChatMessage, DemoChatSession } from "@/entities/chat";
 import {
   isRealtimeChatMessage,
   mergeMessages,
-  mergePersistedMessages,
   toRealtimeChatMessage,
   tryParseDemoSessionId,
   withCustomerNames,
@@ -32,6 +31,7 @@ function resolveSessionStartErrorMessage(error: unknown): string {
 }
 
 const DEMO_SESSION_STORAGE_PREFIX = "ostone:demo-chat-session";
+const LOCAL_USER_MESSAGE_PREFIX = "local-user-";
 
 function createStorageKey(workspaceId: number, customerName: string): string {
   const normalizedName = customerName.trim().toLowerCase();
@@ -52,6 +52,80 @@ function isDemoChatSession(value: unknown): value is DemoChatSession {
 
 function isBackendRegisteredSession(session: DemoChatSession): boolean {
   return tryParseDemoSessionId(session.id) != null;
+}
+
+function isLocalUserMessage(message: ChatMessage): boolean {
+  return message.senderType === "USER" && message.id.startsWith(LOCAL_USER_MESSAGE_PREFIX);
+}
+
+function withoutLocalUserMessages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter((message) => !isLocalUserMessage(message));
+}
+
+function createLocalUserMessage(
+  sessionId: number,
+  customerName: string,
+  content: string,
+): ChatMessage {
+  const createdAt = new Date().toISOString();
+  return {
+    id: `${LOCAL_USER_MESSAGE_PREFIX}${sessionId}-${Date.now()}`,
+    sessionId,
+    content,
+    senderType: "USER",
+    senderName: customerName,
+    createdAt,
+  };
+}
+
+function mergePersistedMessagesWithPending(
+  persistedMessages: ChatMessage[],
+  currentMessages: ChatMessage[],
+): ChatMessage[] {
+  const unmatchedPersistedUserCounts = new Map<string, number>();
+  persistedMessages.forEach((message) => {
+    if (message.senderType !== "USER") return;
+    unmatchedPersistedUserCounts.set(
+      message.content,
+      (unmatchedPersistedUserCounts.get(message.content) ?? 0) + 1,
+    );
+  });
+
+  const pendingMessages = currentMessages.filter((message) => {
+    if (!isLocalUserMessage(message)) return false;
+    const matchingPersistedCount = unmatchedPersistedUserCounts.get(message.content) ?? 0;
+    if (matchingPersistedCount === 0) return true;
+    unmatchedPersistedUserCounts.set(message.content, matchingPersistedCount - 1);
+    return false;
+  });
+
+  return mergeMessages(persistedMessages, pendingMessages);
+}
+
+function mergeRealtimeMessage(
+  currentMessages: ChatMessage[],
+  realtimeMessage: ChatMessage,
+): ChatMessage[] {
+  if (realtimeMessage.senderType !== "USER") {
+    return mergeMessages(currentMessages, [realtimeMessage]);
+  }
+
+  let replacedLocalMessage = false;
+  const nextMessages = currentMessages.map((message) => {
+    if (
+      !replacedLocalMessage &&
+      isLocalUserMessage(message) &&
+      message.content === realtimeMessage.content
+    ) {
+      replacedLocalMessage = true;
+      return realtimeMessage;
+    }
+    return message;
+  });
+
+  return replacedLocalMessage
+    ? mergeMessages(nextMessages, [])
+    : mergeMessages(currentMessages, [realtimeMessage]);
 }
 
 function readStoredSession(workspaceId: number, customerName: string): DemoChatSession | null {
@@ -206,64 +280,42 @@ export function UserChatPage() {
   const handleSendMessage = async (content: string) => {
     const activeSession = activeChatState.session;
     if (!activeSession || !customerName || isSending) return;
+    const numericSessionId = tryParseDemoSessionId(activeSession.id);
+    if (numericSessionId == null) return;
+    if (connectionStatus !== "CONNECTED") {
+      setMessageError("연결이 불안정합니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
 
-    const now = new Date().toISOString();
-    const userMessage: ChatMessage = {
-      id: `local-user-${Date.now()}`,
-      sessionId: 0,
-      content,
-      senderType: "USER",
-      senderName: customerName,
-      createdAt: now,
-    };
-
+    const localMessage = createLocalUserMessage(numericSessionId, customerName, content);
     setMessageError(null);
     setIsSending(true);
     setChatState((current) => {
-      if (current.session?.id !== activeSession.id) return current;
-      const nextSession = {
-        ...activeSession,
-        messages: [...activeSession.messages, userMessage],
-      };
-      writeStoredSession(workspaceId, customerName, nextSession);
+      if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+        return current;
+      }
       return {
         ...current,
-        session: nextSession,
+        session: {
+          ...current.session,
+          messages: mergeMessages(current.session.messages, [localMessage]),
+        },
       };
     });
 
     try {
-      const savedMessages = await sendDemoChatMessage(workspaceId, activeSession.id, content);
-      const namedMessages = savedMessages.map((message) =>
-        message.senderType === "USER" ? { ...message, senderName: customerName } : message,
-      );
-
-      setChatState((current) => {
-        if (current.session?.id !== activeSession.id) return current;
-        const nextSession = {
-          ...current.session,
-          messages: [
-            ...current.session.messages.filter((message) => message.id !== userMessage.id),
-            ...namedMessages,
-          ],
-        };
-        writeStoredSession(workspaceId, customerName, nextSession);
-        return {
-          ...current,
-          session: nextSession,
-        };
-      });
+      await sendDemoChatMessage(workspaceId, activeSession.id, content);
     } catch {
       setChatState((current) => {
-        if (current.session?.id !== activeSession.id) return current;
-        const nextSession = {
-          ...current.session,
-          messages: current.session.messages.filter((message) => message.id !== userMessage.id),
-        };
-        writeStoredSession(workspaceId, customerName, nextSession);
+        if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+          return current;
+        }
         return {
           ...current,
-          session: nextSession,
+          session: {
+            ...current.session,
+            messages: current.session.messages.filter((message) => message.id !== localMessage.id),
+          },
         };
       });
       setMessageError("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -288,29 +340,32 @@ export function UserChatPage() {
           if (current.session?.id !== activeSessionId || current.customerName !== customerName) {
             return current;
           }
+          const nextMessages = mergePersistedMessagesWithPending(
+            namedMessages,
+            current.session.messages,
+          );
           const nextSession = {
             ...current.session,
-            messages: mergePersistedMessages(current.session.messages, namedMessages),
+            messages: nextMessages,
           };
-          writeStoredSession(workspaceId, customerName, nextSession);
+          writeStoredSession(workspaceId, customerName, {
+            ...nextSession,
+            messages: namedMessages,
+          });
           return {
             ...current,
             session: nextSession,
           };
         });
       } catch {
-        // Demo chat remains usable through the send response even if background sync fails.
+        // Demo chat can continue with realtime messages even if the initial sync fails.
       }
     };
 
     void syncMessages();
-    const intervalId = window.setInterval(() => {
-      void syncMessages();
-    }, 3000);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
     };
   }, [activeSessionId, customerName, workspaceId]);
 
@@ -329,9 +384,12 @@ export function UserChatPage() {
         }
         const nextSession = {
           ...current.session,
-          messages: mergeMessages(current.session.messages, [nextMessage]),
+          messages: mergeRealtimeMessage(current.session.messages, nextMessage),
         };
-        writeStoredSession(workspaceId, customerName, nextSession);
+        writeStoredSession(workspaceId, customerName, {
+          ...nextSession,
+          messages: withoutLocalUserMessages(nextSession.messages),
+        });
         return {
           ...current,
           session: nextSession,
@@ -394,7 +452,8 @@ export function UserChatPage() {
       session={activeChatState.session}
       customerName={customerName}
       workspaceId={workspaceId}
-      isSending={isSending}
+      isSending={isSending || connectionStatus !== "CONNECTED"}
+      connectionStatus={connectionStatus}
       messageError={messageError}
       onSend={(content) => {
         void handleSendMessage(content);

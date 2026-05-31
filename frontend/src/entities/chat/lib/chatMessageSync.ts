@@ -134,13 +134,3 @@ export function withCustomerNames(messages: ChatMessage[], customerName: string)
     message.senderType === "USER" ? { ...message, senderName: customerName } : message,
   );
 }
-
-export function mergePersistedMessages(
-  currentMessages: ChatMessage[],
-  persistedMessages: ChatMessage[],
-): ChatMessage[] {
-  const locallyOwnedMessages = currentMessages.filter(
-    (message) => message.id.startsWith("local-") || message.id.startsWith("backend-greeting-"),
-  );
-  return mergeMessages(locallyOwnedMessages, persistedMessages);
-}
