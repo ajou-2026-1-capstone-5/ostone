@@ -5,6 +5,9 @@ import styles from "./file-uploader.module.css";
 interface FileUploaderProps {
   onFileSelect: (file: File) => void;
   acceptedTypes?: string;
+  acceptedTypeLabel?: string;
+  maxSizeLabel?: string;
+  fileTypeLabels?: string[];
   isUploading?: boolean;
   progress?: number;
   status?: "idle" | "uploading" | "analyzing" | "success";
@@ -12,7 +15,10 @@ interface FileUploaderProps {
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
   onFileSelect,
-  acceptedTypes = ".csv,.json",
+  acceptedTypes = ".json,application/json",
+  acceptedTypeLabel = "JSON",
+  maxSizeLabel = "50MB",
+  fileTypeLabels = ["JSON"],
   isUploading = false,
   progress = 0,
   status = "idle",
@@ -92,15 +98,16 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <UploadCloud size={40} className={styles.uploadIcon} />
       </div>
       <h3 className={styles.title}>Click or drag file to this area to upload</h3>
-      <p className={styles.mutedText}>Support for a single {acceptedTypes} file upload.</p>
+      <p className={styles.mutedText}>
+        Support for a single {acceptedTypeLabel} file upload up to {maxSizeLabel}.
+      </p>
 
       <div className={styles.fileTypesHint}>
-        <span className={styles.badge}>
-          <FileType size={14} /> CSV
-        </span>
-        <span className={styles.badge}>
-          <FileType size={14} /> JSON
-        </span>
+        {fileTypeLabels.map((label) => (
+          <span className={styles.badge} key={label}>
+            <FileType size={14} /> {label}
+          </span>
+        ))}
       </div>
     </div>
   );

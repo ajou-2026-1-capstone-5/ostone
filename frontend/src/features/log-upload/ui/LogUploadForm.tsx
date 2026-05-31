@@ -5,6 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
 import { useUploadRawFile } from "../../../shared/api/generated/endpoints/dataset-controller/dataset-controller";
+import {
+  RAW_LOG_UPLOAD_ACCEPT,
+  RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
+  validateRawLogUploadFile,
+} from "../model/uploadPolicy";
 
 import styles from "./log-upload-form.module.css";
 
@@ -40,9 +45,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   });
 
   const handleFileSelect = (selectedFile: File) => {
-    const name = selectedFile.name.toLowerCase();
-    if (!name.endsWith(".csv") && !name.endsWith(".json")) {
-      toast.error("CSV 또는 JSON 파일만 업로드할 수 있습니다.");
+    const errorMessage = validateRawLogUploadFile(selectedFile);
+    if (errorMessage) {
+      toast.error(errorMessage);
       return;
     }
     setFile(selectedFile);
@@ -81,7 +86,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
       <div className={styles.uploadArea}>
         <FileUploader
           onFileSelect={handleFileSelect}
-          acceptedTypes=".csv,.json"
+          acceptedTypes={RAW_LOG_UPLOAD_ACCEPT}
+          acceptedTypeLabel="JSON"
+          maxSizeLabel="50MB"
+          fileTypeLabels={RAW_LOG_UPLOAD_FILE_TYPE_LABELS}
           status={status}
           progress={0}
           isUploading={uploadMutation.isPending}
