@@ -168,6 +168,22 @@ class ChatSessionMetadataServiceTest {
   }
 
   @Test
+  @DisplayName("recordHandoff: 빈 reason과 nodeId는 기본 사유와 node 제거로 정규화한다")
+  void should_useDefaultReasonAndRemoveNode_when_handoffValuesAreBlank() throws Exception {
+    ChatSession session =
+        createSession("{\"title\":\"기존 상담\",\"handoffNodeId\":\"previous-node\"}");
+
+    boolean changed = service.recordHandoff(session, " ", " ");
+
+    JsonNode meta = objectMapper.readTree(session.getMetaJson());
+    assertThat(changed).isTrue();
+    assertThat(meta.path("handoffRequired").asBoolean()).isTrue();
+    assertThat(meta.path("handoffReason").asText()).isEqualTo("상담원 확인이 필요합니다.");
+    assertThat(meta.has("handoffNodeId")).isFalse();
+    assertThat(meta.path("title").asText()).isEqualTo("기존 상담");
+  }
+
+  @Test
   @DisplayName("resolveHandoff: 이관 필요 상태를 해소하고 해소 시각을 남긴다")
   void should_resolveHandoffMetadata() throws Exception {
     ChatSession session =
@@ -180,6 +196,26 @@ class ChatSessionMetadataServiceTest {
     assertThat(meta.path("handoffRequired").asBoolean()).isFalse();
     assertThat(meta.path("handoffResolvedAt").asText()).isNotBlank();
     assertThat(meta.path("handoffReason").asText()).isEqualTo("상담사 이관");
+  }
+
+  @Test
+  @DisplayName("resolveHandoff: 이관 필요 상태가 아니면 meta를 변경하지 않는다")
+  void should_keepMetadata_when_handoffIsNotRequired() {
+    ChatSession session = createSession("{\"handoffRequired\":false,\"title\":\"일반 상담\"}");
+
+    service.resolveHandoff(session);
+
+    assertThat(session.getMetaJson()).isEqualTo("{\"handoffRequired\":false,\"title\":\"일반 상담\"}");
+  }
+
+  @Test
+  @DisplayName("handoffAt: 값이 없거나 잘못된 시각이면 null을 반환한다")
+  void should_returnNull_when_handoffAtIsMissingOrInvalid() {
+    ChatSession missing = createSession("{}");
+    ChatSession invalid = createSession("{\"handoffAt\":\"not-a-date\"}");
+
+    assertThat(service.handoffAt(missing)).isNull();
+    assertThat(service.handoffAt(invalid)).isNull();
   }
 
   @Test

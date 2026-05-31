@@ -21,6 +21,10 @@ public class ChatSessionMetadataService {
   private static final int TITLE_MAX_LENGTH = 40;
   private static final int PREVIEW_MAX_LENGTH = 80;
   private static final String DEFAULT_HANDOFF_REASON = "상담원 확인이 필요합니다.";
+  private static final String META_HANDOFF_REQUIRED = "handoffRequired";
+  private static final String META_HANDOFF_REASON = "handoffReason";
+  private static final String META_HANDOFF_NODE_ID = "handoffNodeId";
+  private static final String META_TITLE = "title";
 
   private final ObjectMapper objectMapper;
 
@@ -66,20 +70,20 @@ public class ChatSessionMetadataService {
     ObjectNode meta = parseMeta(session.getMetaJson());
     String normalizedReason = hasText(reason) ? reason.trim() : DEFAULT_HANDOFF_REASON;
     String normalizedNodeId = hasText(nodeId) ? nodeId.trim() : "";
-    boolean alreadyRequired = meta.path("handoffRequired").asBoolean(false);
-    boolean sameReason = normalizedReason.equals(meta.path("handoffReason").asText(""));
-    boolean sameNode = normalizedNodeId.equals(meta.path("handoffNodeId").asText(""));
+    boolean alreadyRequired = meta.path(META_HANDOFF_REQUIRED).asBoolean(false);
+    boolean sameReason = normalizedReason.equals(meta.path(META_HANDOFF_REASON).asText(""));
+    boolean sameNode = normalizedNodeId.equals(meta.path(META_HANDOFF_NODE_ID).asText(""));
     if (alreadyRequired && sameReason && sameNode) {
       return false;
     }
 
-    meta.put("handoffRequired", true);
-    meta.put("handoffReason", normalizedReason);
+    meta.put(META_HANDOFF_REQUIRED, true);
+    meta.put(META_HANDOFF_REASON, normalizedReason);
     meta.put("handoffAt", OffsetDateTime.now().toString());
     if (hasText(normalizedNodeId)) {
-      meta.put("handoffNodeId", normalizedNodeId);
+      meta.put(META_HANDOFF_NODE_ID, normalizedNodeId);
     } else {
-      meta.remove("handoffNodeId");
+      meta.remove(META_HANDOFF_NODE_ID);
     }
     ensureTitleFromHandoff(meta, normalizedReason);
     session.updateMetaJson(meta.toString());
@@ -89,16 +93,16 @@ public class ChatSessionMetadataService {
   @Transactional
   public void resolveHandoff(ChatSession session) {
     ObjectNode meta = parseMeta(session.getMetaJson());
-    if (!meta.path("handoffRequired").asBoolean(false)) {
+    if (!meta.path(META_HANDOFF_REQUIRED).asBoolean(false)) {
       return;
     }
-    meta.put("handoffRequired", false);
+    meta.put(META_HANDOFF_REQUIRED, false);
     meta.put("handoffResolvedAt", OffsetDateTime.now().toString());
     session.updateMetaJson(meta.toString());
   }
 
   public boolean isHandoffRequired(ChatSession session) {
-    return parseMeta(session.getMetaJson()).path("handoffRequired").asBoolean(false);
+    return parseMeta(session.getMetaJson()).path(META_HANDOFF_REQUIRED).asBoolean(false);
   }
 
   public OffsetDateTime handoffAt(ChatSession session) {
@@ -130,11 +134,11 @@ public class ChatSessionMetadataService {
   }
 
   private void ensureTitle(ObjectNode meta, ChatSession session, ChatMessage message) {
-    if (hasText(meta.path("title").asText(null))) {
+    if (hasText(meta.path(META_TITLE).asText(null))) {
       return;
     }
 
-    String title = firstText(meta, "handoffReason");
+    String title = firstText(meta, META_HANDOFF_REASON);
     if (!hasText(title) && isCustomerRole(message.getSenderRole())) {
       title = truncate(message.getContent(), TITLE_MAX_LENGTH);
     }
@@ -147,14 +151,14 @@ public class ChatSessionMetadataService {
     if (!hasText(title)) {
       title = hasText(session.getChannel()) ? session.getChannel() + " 상담" : "채팅 상담";
     }
-    meta.put("title", truncate(title, TITLE_MAX_LENGTH));
+    meta.put(META_TITLE, truncate(title, TITLE_MAX_LENGTH));
   }
 
   private void ensureTitleFromHandoff(ObjectNode meta, String reason) {
-    if (hasText(meta.path("title").asText(null))) {
+    if (hasText(meta.path(META_TITLE).asText(null))) {
       return;
     }
-    meta.put("title", truncate(reason, TITLE_MAX_LENGTH));
+    meta.put(META_TITLE, truncate(reason, TITLE_MAX_LENGTH));
   }
 
   private static String firstText(ObjectNode meta, String fieldName) {

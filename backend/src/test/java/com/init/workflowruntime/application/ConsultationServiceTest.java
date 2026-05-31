@@ -24,6 +24,7 @@ import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +77,50 @@ class ConsultationServiceTest {
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getId()).isEqualTo(2L);
     assertThat(result.get(1).getId()).isEqualTo(1L);
+  }
+
+  @Test
+  @DisplayName("getActiveQueue: handoff 세션끼리는 이관 발생 시각이 오래된 순서로 정렬한다")
+  void should_sortHandoffSessionsByOldestHandoffTime() {
+    ChatSession missingHandoffTime =
+        createSession(1L, ChatSessionStatus.OPEN, "2026-06-01T11:00:00+09:00");
+    ChatSession newerHandoff =
+        createSession(2L, ChatSessionStatus.OPEN, "2026-06-01T09:00:00+09:00");
+    ChatSession olderHandoff =
+        createSession(3L, ChatSessionStatus.ACTIVE, "2026-06-01T08:00:00+09:00");
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
+        .willReturn(List.of(missingHandoffTime, newerHandoff, olderHandoff));
+    given(chatSessionMetadataService.isHandoffRequired(missingHandoffTime)).willReturn(true);
+    given(chatSessionMetadataService.isHandoffRequired(newerHandoff)).willReturn(true);
+    given(chatSessionMetadataService.isHandoffRequired(olderHandoff)).willReturn(true);
+    given(chatSessionMetadataService.handoffAt(missingHandoffTime)).willReturn(null);
+    given(chatSessionMetadataService.handoffAt(newerHandoff))
+        .willReturn(OffsetDateTime.parse("2026-06-01T10:30:00+09:00"));
+    given(chatSessionMetadataService.handoffAt(olderHandoff))
+        .willReturn(OffsetDateTime.parse("2026-06-01T10:00:00+09:00"));
+
+    List<ChatSessionResponse> result = service.getActiveQueue(1L, 7L);
+
+    assertThat(result).extracting(ChatSessionResponse::getId).containsExactly(3L, 2L, 1L);
+  }
+
+  @Test
+  @DisplayName("getActiveQueue: 일반 세션끼리는 시작 시각이 최신인 순서로 정렬한다")
+  void should_sortNormalSessionsByNewestStartedAt() {
+    ChatSession older = createSession(1L, ChatSessionStatus.OPEN, "2026-06-01T09:00:00+09:00");
+    ChatSession newer = createSession(2L, ChatSessionStatus.ACTIVE, "2026-06-01T11:00:00+09:00");
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
+        .willReturn(List.of(older, newer));
+    given(chatSessionMetadataService.isHandoffRequired(older)).willReturn(false);
+    given(chatSessionMetadataService.isHandoffRequired(newer)).willReturn(false);
+
+    List<ChatSessionResponse> result = service.getActiveQueue(1L, 7L);
+
+    assertThat(result).extracting(ChatSessionResponse::getId).containsExactly(2L, 1L);
   }
 
   @Test
@@ -226,6 +271,12 @@ class ConsultationServiceTest {
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", id);
+    return session;
+  }
+
+  private ChatSession createSession(Long id, ChatSessionStatus status, String startedAt) {
+    ChatSession session = createSession(id, status);
+    ReflectionTestUtils.setField(session, "startedAt", OffsetDateTime.parse(startedAt));
     return session;
   }
 
