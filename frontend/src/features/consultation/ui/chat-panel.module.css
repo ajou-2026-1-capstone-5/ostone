@@ -281,7 +281,7 @@
 
 .messageInput:focus,
 .messageInput:focus-visible {
-  border-color: var(--glass-border);
+  border-color: var(--ink);
   background: var(--paper-2);
   box-shadow:
     0 0 0 2px rgba(0, 0, 0, 0.045),
