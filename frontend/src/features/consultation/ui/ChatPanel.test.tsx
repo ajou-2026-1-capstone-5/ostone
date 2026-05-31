@@ -143,6 +143,25 @@ describe("ChatPanel", () => {
     expect(onSendMessage).not.toHaveBeenCalled();
   });
 
+  it("disabled 사유가 있으면 입력 영역 위에 안내한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        disabled
+        disabledReason="다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다."
+      />,
+    );
+
+    expect(
+      screen.getByText("다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다."),
+    ).toBeInTheDocument();
+  });
+
   it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", () => {
     const onSelectMessage = vi.fn();
 

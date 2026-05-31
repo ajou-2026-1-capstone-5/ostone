@@ -115,6 +115,7 @@
   opacity: 0.74;
 }
 
+.claimButton,
 .linkButton,
 .dangerButton {
   padding: 0;
@@ -122,6 +123,21 @@
   background: none;
   cursor: pointer;
   font-size: 12px;
+}
+
+.claimButton {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: 50px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 540;
+  letter-spacing: -0.1px;
+}
+
+.claimButton:hover {
+  background: #000000;
 }
 
 .linkButton {
@@ -134,12 +150,14 @@
   font-weight: 600;
 }
 
+.claimButton:focus-visible,
 .linkButton:focus-visible,
 .dangerButton:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
+.claimButton:disabled,
 .linkButton:disabled,
 .dangerButton:disabled {
   cursor: not-allowed;
