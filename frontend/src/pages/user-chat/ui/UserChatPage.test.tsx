@@ -317,7 +317,7 @@ describe("UserChatPage", () => {
     });
   });
 
-  it("메시지 전송 성공 응답만으로는 메시지를 화면에 추가하지 않는다", async () => {
+  it("메시지 전송 직후 사용자 메시지를 표시하고 REST 응답만으로는 봇 답변을 추가하지 않는다", async () => {
     stompState.connectionStatus = "CONNECTED";
 
     render(<UserChatPage />);
@@ -325,14 +325,51 @@ describe("UserChatPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
     fireEvent.change(input, { target: { value: "Hello" } });
     fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
 
     await waitFor(() => {
       expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "77", "Hello");
     });
-    expect(screen.queryByText("Hello")).toBeNull();
+    expect(screen.getByText("Hello")).not.toBeNull();
     expect(screen.queryByText("LLM 응답입니다.")).toBeNull();
+  });
+
+  it("WebSocket user 메시지는 optimistic 메시지를 서버 메시지로 교체한다", async () => {
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByText("Hello")).not.toBeNull();
+
+    act(() => {
+      topicHandler?.({
+        id: 81,
+        senderRole: "USER",
+        content: "Hello",
+        createdAt: "2026-05-22T00:00:01Z",
+      });
+    });
+
+    expect(screen.getAllByText("Hello")).toHaveLength(1);
+    expect(screen.getByTestId("message-81")).not.toBeNull();
   });
 
   it("WebSocket user/assistant 메시지를 표시하고 같은 id는 한 번만 렌더링한다", async () => {
