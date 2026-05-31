@@ -9,6 +9,9 @@ interface CustomerInfo {
   membershipTier?: string;
   contact?: string;
   email?: string;
+  handoffRequired?: boolean;
+  handoffReason?: string;
+  handoffAt?: string | null;
 }
 
 interface CustomerPanelProps {
@@ -90,6 +93,14 @@ export function CustomerPanel({
         <InfoRow label="연락처" value={customer.contact || "010-****-1234"} />
         <InfoRow label="이메일" value={customer.email || "mi***@example.com"} />
       </InfoCard>
+
+      {customer.handoffRequired && (
+        <InfoCard title="AI 이관" meta="HANDOFF">
+          <InfoRow label="상태" tone="warn" value={<Pill tone="warn">상담사 확인 필요</Pill>} />
+          <InfoRow label="사유" value={customer.handoffReason || "상담원 확인이 필요합니다."} />
+          <InfoRow label="발생 시각" value={customer.handoffAt || "기록 없음"} />
+        </InfoCard>
+      )}
 
       <InfoCard title="문의 관련 주문" meta="#ORD-2024-08921">
         <InfoRow label="주문일" value="2024-05-03" />

@@ -4,6 +4,7 @@ import { Message, HandoffDivider } from "./Message";
 import { Queue } from "./Queue";
 import { DetectedItems } from "./DetectedItems";
 import { WorkflowProgress } from "./WorkflowProgress";
+import { CustomerPanel } from "./CustomerPanel";
 
 describe("Message", () => {
   it("renders customer variant with correct data-msg and left alignment", () => {
@@ -170,5 +171,28 @@ describe("WorkflowProgress", () => {
     expect(screen.getByText("환불 조건 확인")).toBeInTheDocument();
     expect(screen.getByText("환불 처리")).toBeInTheDocument();
     expect(screen.getByText("완료 안내")).toBeInTheDocument();
+  });
+});
+
+describe("CustomerPanel", () => {
+  it("renders AI handoff reason when selected customer requires handoff", () => {
+    render(
+      <CustomerPanel
+        customer={{
+          name: "김민지",
+          channel: "WEB",
+          handoffRequired: true,
+          handoffReason: "관리자 승인 필요",
+          handoffAt: "2026-06-01T10:00:00+09:00",
+        }}
+        memo=""
+        onMemoChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("AI 이관")).toBeInTheDocument();
+    expect(screen.getByText("상담사 확인 필요")).toBeInTheDocument();
+    expect(screen.getByText("관리자 승인 필요")).toBeInTheDocument();
+    expect(screen.getByText("2026-06-01T10:00:00+09:00")).toBeInTheDocument();
   });
 });

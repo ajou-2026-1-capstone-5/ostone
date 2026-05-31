@@ -60,7 +60,7 @@ class ConsultationServiceTest {
   }
 
   @Test
-  @DisplayName("getActiveQueue: OPEN+ACTIVE 세션 목록을 반환한다")
+  @DisplayName("getActiveQueue: handoff 세션을 일반 대기 세션보다 먼저 반환한다")
   void should_returnActiveQueue_when_called() {
     ChatSession s1 = createSession(1L, ChatSessionStatus.OPEN);
     ChatSession s2 = createSession(2L, ChatSessionStatus.ACTIVE);
@@ -68,12 +68,14 @@ class ConsultationServiceTest {
         .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
     given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
         .willReturn(List.of(s1, s2));
+    given(chatSessionMetadataService.isHandoffRequired(s1)).willReturn(false);
+    given(chatSessionMetadataService.isHandoffRequired(s2)).willReturn(true);
 
     List<ChatSessionResponse> result = service.getActiveQueue(1L, 7L);
 
     assertThat(result).hasSize(2);
-    assertThat(result.get(0).getId()).isEqualTo(1L);
-    assertThat(result.get(1).getId()).isEqualTo(2L);
+    assertThat(result.get(0).getId()).isEqualTo(2L);
+    assertThat(result.get(1).getId()).isEqualTo(1L);
   }
 
   @Test
@@ -169,6 +171,7 @@ class ConsultationServiceTest {
     assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(1L);
     assertThat(eventCaptor.getValue().sessionId()).isEqualTo(1L);
     assertThat(eventCaptor.getValue().type()).isEqualTo(ConsultationQueueEventType.SESSION_REMOVED);
+    verify(chatSessionMetadataService).resolveHandoff(session);
   }
 
   @Test
@@ -184,6 +187,7 @@ class ConsultationServiceTest {
     ChatSessionResponse result = service.updateSessionStatus(1L, request);
 
     assertThat(result.getStatus()).isEqualTo("RESOLVED");
+    verify(chatSessionMetadataService).resolveHandoff(session);
     verify(chatSessionMetadataService)
         .recordResolution(session, "FOLLOW_UP_REQUIRED", "후속 연락 필요", "RESOLVED", "배송사 확인 필요", true);
   }

@@ -63,7 +63,10 @@ type PendingMessage = {
 
 type SessionMeta = {
   customerName?: string;
+  handoffRequired?: boolean;
   handoffReason?: string;
+  handoffAt?: string;
+  handoffNodeId?: string;
   title?: string;
   lastMessagePreview?: string;
   lastMessageRole?: string;
@@ -240,13 +243,16 @@ const getSessionStatusLabel = (
   status?: string | null,
   assignedCounselorId?: number | null,
   currentCounselorId?: number | null,
+  handoffRequired?: boolean,
 ) => {
+  const prefix = handoffRequired ? "AI 이관 · " : "";
   if (status === "COMPLETED") return "상담 종료";
   if (status === "RESOLVED") return "해결됨";
-  if (assignedCounselorId && assignedCounselorId === currentCounselorId) return "내게 배정됨";
-  if (assignedCounselorId) return "다른 상담사 배정";
-  if (status === "ACTIVE") return "미배정";
-  if (status === "OPEN") return "미배정";
+  if (assignedCounselorId && assignedCounselorId === currentCounselorId)
+    return `${prefix}내게 배정됨`;
+  if (assignedCounselorId) return `${prefix}다른 상담사 배정`;
+  if (status === "ACTIVE") return `${prefix}미배정`;
+  if (status === "OPEN") return `${prefix}미배정`;
   return status ?? "상태 미확인";
 };
 
@@ -298,7 +304,10 @@ const isCustomerMessageRole = (role?: string | null) => {
 };
 
 const getQueueSortTime = (customer: QueueCustomer) => {
-  const timeSource = customer.lastMessageAt ?? customer.startedAt;
+  const timeSource =
+    customer.handoffRequired && customer.handoffAt
+      ? customer.handoffAt
+      : (customer.lastMessageAt ?? customer.startedAt);
   if (!timeSource) return 0;
   const timestamp = new Date(timeSource).getTime();
   return Number.isNaN(timestamp) ? 0 : timestamp;
@@ -320,6 +329,9 @@ const toQueueCustomer = (
   const lastMessagePreview = meta.lastMessagePreview?.trim() || previous?.lastMessagePreview || "";
   const lastMessageRole = meta.lastMessageRole ?? previous?.lastMessageRole;
   const lastMessageAt = meta.lastMessageAt ?? previous?.lastMessageAt ?? null;
+  const handoffRequired = meta.handoffRequired ?? previous?.handoffRequired ?? false;
+  const handoffAt = meta.handoffAt ?? previous?.handoffAt ?? null;
+  const handoffNodeId = meta.handoffNodeId ?? previous?.handoffNodeId ?? null;
   const lastMessageTimeLabel =
     formatLastMessageTimeLabel(lastMessageAt) || previous?.lastMessageTimeLabel;
 
@@ -329,6 +341,9 @@ const toQueueCustomer = (
     title: meta.title?.trim() || previous?.title || "",
     channel: session.channel ?? previous?.channel ?? "",
     handoffReason: meta.handoffReason ?? previous?.handoffReason ?? "",
+    handoffRequired,
+    handoffAt,
+    handoffNodeId,
     waitMinutes: startedAt ? calcWaitMinutes(startedAt) : (previous?.waitMinutes ?? 0),
     hasUnread: options?.hasUnread ?? previous?.hasUnread ?? false,
     lastMessagePreview,
@@ -336,7 +351,12 @@ const toQueueCustomer = (
     lastMessageAt,
     lastMessageTimeLabel,
     status,
-    statusLabel: getSessionStatusLabel(status, assignedCounselorId, currentCounselorId),
+    statusLabel: getSessionStatusLabel(
+      status,
+      assignedCounselorId,
+      currentCounselorId,
+      handoffRequired,
+    ),
     assignedCounselorId,
     startedAt,
   };
@@ -344,6 +364,14 @@ const toQueueCustomer = (
 
 const sortQueueCustomers = (customers: QueueCustomer[]) =>
   [...customers].sort((a, b) => {
+    const aIsHandoff = a.handoffRequired === true;
+    const bIsHandoff = b.handoffRequired === true;
+    if (aIsHandoff !== bIsHandoff) {
+      return aIsHandoff ? -1 : 1;
+    }
+    if (aIsHandoff && bIsHandoff) {
+      return getQueueSortTime(a) - getQueueSortTime(b);
+    }
     return getQueueSortTime(b) - getQueueSortTime(a);
   });
 
@@ -1276,6 +1304,9 @@ export const ConsultationPage: React.FC = () => {
                   ? {
                       name: activeCustomerName,
                       channel: activeCustomer.channel,
+                      handoffRequired: activeCustomer.handoffRequired,
+                      handoffReason: activeCustomer.handoffReason,
+                      handoffAt: activeCustomer.handoffAt,
                     }
                   : null
               }

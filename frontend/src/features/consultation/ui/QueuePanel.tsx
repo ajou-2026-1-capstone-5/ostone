@@ -8,6 +8,9 @@ export interface QueueCustomer {
   title?: string;
   channel: string;
   handoffReason: string;
+  handoffRequired?: boolean;
+  handoffAt?: string | null;
+  handoffNodeId?: string | null;
   lastMessage?: string;
   waitMinutes: number;
   hasUnread: boolean;
@@ -31,7 +34,7 @@ interface QueuePanelProps {
   onRetry?: () => void;
 }
 
-type QueueFilter = "all" | "mine" | "unassigned" | "unread";
+type QueueFilter = "all" | "handoff" | "mine" | "unassigned" | "unread";
 
 interface QueueFilterOption {
   value: QueueFilter;
@@ -40,6 +43,7 @@ interface QueueFilterOption {
 
 const FILTER_OPTIONS: QueueFilterOption[] = [
   { value: "all", label: "전체" },
+  { value: "handoff", label: "AI 이관" },
   { value: "mine", label: "내 상담" },
   { value: "unassigned", label: "미배정" },
   { value: "unread", label: "읽지 않음" },
@@ -60,6 +64,8 @@ const matchesFilter = (
   switch (selectedFilter) {
     case "mine":
       return isAssignedToCurrentCounselor(customer, currentCounselorId);
+    case "handoff":
+      return customer.handoffRequired === true;
     case "unassigned":
       return isUnassigned(customer);
     case "unread":
@@ -82,6 +88,7 @@ const matchesSearch = (customer: QueueCustomer, searchTerm: string) => {
     customer.lastMessage,
     customer.lastMessagePreview,
     customer.handoffReason,
+    customer.handoffRequired ? "AI 이관" : "",
   ]
     .filter(Boolean)
     .some((value) => normalizeSearch(String(value)).includes(normalizedTerm));
@@ -89,6 +96,7 @@ const matchesSearch = (customer: QueueCustomer, searchTerm: string) => {
 
 const getFilterCounts = (customers: QueueCustomer[], currentCounselorId: number | null) => ({
   all: customers.length,
+  handoff: customers.filter((customer) => customer.handoffRequired === true).length,
   mine: customers.filter((customer) => isAssignedToCurrentCounselor(customer, currentCounselorId))
     .length,
   unassigned: customers.filter(isUnassigned).length,
@@ -109,6 +117,7 @@ const getEmptyMessage = (
   if (customers.length === 0) return "현재 상담 큐가 비어 있습니다";
   if (normalizeSearch(searchTerm)) return "검색 조건에 맞는 상담이 없습니다";
   if (selectedFilter === "mine") return "내 상담이 없습니다";
+  if (selectedFilter === "handoff") return "AI 이관 상담이 없습니다";
   if (selectedFilter === "unassigned") return "미배정 상담이 없습니다";
   if (selectedFilter === "unread") return "읽지 않은 상담이 없습니다";
   return "표시할 상담이 없습니다";
@@ -200,8 +209,14 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
             {displayName.charAt(0)}
           </div>
           <div className={styles.queueItemInfo}>
-            <div className={styles.customerName}>{displayName}</div>
+            <div className={styles.customerNameRow}>
+              <div className={styles.customerName}>{displayName}</div>
+              {c.handoffRequired && <span className={styles.handoffBadge}>AI 이관</span>}
+            </div>
             <div className={styles.handoffPreview}>{subject}</div>
+            {c.handoffRequired && c.handoffReason && (
+              <div className={styles.handoffReason}>사유: {c.handoffReason}</div>
+            )}
             {c.statusLabel && <div className={styles.sessionStatus}>{c.statusLabel}</div>}
           </div>
           <div className={styles.queueItemMeta}>
@@ -222,7 +237,8 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
       <div className={styles.queueHeader}>
         <h3 className={styles.queueTitle}>상담 큐</h3>
         <span className={styles.queueCount}>
-          미배정 {filterCounts.unassigned}건 · 진행 {inProgressCount}건
+          AI 이관 {filterCounts.handoff}건 · 미배정 {filterCounts.unassigned}건 · 진행{" "}
+          {inProgressCount}건
         </span>
         <label className={styles.searchBox}>
           <Search size={14} className={styles.searchIcon} aria-hidden="true" />

@@ -135,6 +135,54 @@ class ChatSessionMetadataServiceTest {
   }
 
   @Test
+  @DisplayName("recordHandoff: handoff 메타데이터를 기록하고 제목 후보로 사용한다")
+  void should_recordHandoffMetadata() throws Exception {
+    ChatSession session = createSession("{\"customerName\":\"김민지\"}");
+
+    boolean changed = service.recordHandoff(session, " 상담사 이관 ", " handoff ");
+
+    JsonNode meta = objectMapper.readTree(session.getMetaJson());
+    assertThat(changed).isTrue();
+    assertThat(meta.path("customerName").asText()).isEqualTo("김민지");
+    assertThat(meta.path("handoffRequired").asBoolean()).isTrue();
+    assertThat(meta.path("handoffReason").asText()).isEqualTo("상담사 이관");
+    assertThat(meta.path("handoffNodeId").asText()).isEqualTo("handoff");
+    assertThat(meta.path("handoffAt").asText()).isNotBlank();
+    assertThat(meta.path("title").asText()).isEqualTo("상담사 이관");
+    assertThat(service.isHandoffRequired(session)).isTrue();
+    assertThat(service.handoffAt(session)).isNotNull();
+  }
+
+  @Test
+  @DisplayName("recordHandoff: 같은 handoff는 handoffAt을 다시 쓰지 않는다")
+  void should_notRewriteSameHandoff() throws Exception {
+    ChatSession session =
+        createSession(
+            "{\"handoffRequired\":true,\"handoffReason\":\"상담사 이관\",\"handoffNodeId\":\"handoff\",\"handoffAt\":\"2026-06-01T10:00:00+09:00\"}");
+
+    boolean changed = service.recordHandoff(session, "상담사 이관", "handoff");
+
+    JsonNode meta = objectMapper.readTree(session.getMetaJson());
+    assertThat(changed).isFalse();
+    assertThat(meta.path("handoffAt").asText()).isEqualTo("2026-06-01T10:00:00+09:00");
+  }
+
+  @Test
+  @DisplayName("resolveHandoff: 이관 필요 상태를 해소하고 해소 시각을 남긴다")
+  void should_resolveHandoffMetadata() throws Exception {
+    ChatSession session =
+        createSession(
+            "{\"handoffRequired\":true,\"handoffReason\":\"상담사 이관\",\"handoffAt\":\"2026-06-01T10:00:00+09:00\"}");
+
+    service.resolveHandoff(session);
+
+    JsonNode meta = objectMapper.readTree(session.getMetaJson());
+    assertThat(meta.path("handoffRequired").asBoolean()).isFalse();
+    assertThat(meta.path("handoffResolvedAt").asText()).isNotBlank();
+    assertThat(meta.path("handoffReason").asText()).isEqualTo("상담사 이관");
+  }
+
+  @Test
   @DisplayName("recordResolution: 기존 meta를 보존하고 처리 결과를 기록한다")
   void should_preserveMetaAndRecordResolution() throws Exception {
     ChatSession session = createSession("{\"customerName\":\"김민지\",\"title\":\"환불 상담\"}");
