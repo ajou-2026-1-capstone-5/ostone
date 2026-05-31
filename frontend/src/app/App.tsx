@@ -7,6 +7,7 @@ import { PasswordResetCompletePage } from "../pages/password-reset/ui/PasswordRe
 import { ChatHistoryPage } from "../pages/consultation/ui/chat-history/ChatHistoryPage";
 import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
 import { UserChatPage } from "../pages/user-chat";
+import { DemoPage } from "../pages/demo";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
 import { IntentDraftReadPage } from "../pages/domain-pack/ui/IntentDraftReadPage";
 import { PolicyDraftReadPage } from "../pages/domain-pack/ui/PolicyDraftReadPage";
@@ -61,6 +62,7 @@ export function App() {
           <Route path="upload" element={<WorkspaceUploadPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
+        <Route path="/demo" element={<DemoPage />} />
         <Route path="/demo/workspaces/:workspaceId/chat" element={<UserChatPage />} />
         <Route
           path="/upload"
