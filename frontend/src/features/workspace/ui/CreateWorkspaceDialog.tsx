@@ -106,18 +106,18 @@ export function CreateWorkspaceDialog({
         <DialogHeader>
           <DialogTitle>워크스페이스 생성</DialogTitle>
           <DialogDescription>
-            팀이 함께 사용할 워크스페이스를 만들고 응대 흐름 생성 작업을 시작합니다.
+            워크스페이스를 생성하여 상담 공간을 구축합니다.
           </DialogDescription>
         </DialogHeader>
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <Label htmlFor="workspace-name">이름</Label>
+            <Label htmlFor="workspace-name">제목</Label>
             <Input
               id="workspace-name"
               className={styles.dialogInput}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="CS Team Alpha"
+              placeholder="예: 아주대학교 운영팀"
               aria-invalid={fieldErrors.name ? "true" : "false"}
               aria-describedby={nameErrorId}
             />
@@ -128,7 +128,6 @@ export function CreateWorkspaceDialog({
               </p>
             )}
           </div>
-          <p className={styles.helperText}>워크스페이스 키는 이름을 바탕으로 자동 생성됩니다.</p>
           <DialogFooter className={styles.buttonRow}>
             <Button
               type="button"
