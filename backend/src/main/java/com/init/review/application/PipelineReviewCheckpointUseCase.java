@@ -49,6 +49,9 @@ public class PipelineReviewCheckpointUseCase {
   private static final String ARTIFACT_CONFIRMED_DOMAIN_PROFILE = "CONFIRMED_DOMAIN_PROFILE";
   private static final String ARTIFACT_FEEDBACK_QUESTIONS = "FEEDBACK_QUESTIONS";
   private static final String ARTIFACT_FEEDBACK_CONSTRAINTS = "FEEDBACK_CONSTRAINTS";
+  private static final String FIELD_CONFIDENCE = "confidence";
+  private static final String FIELD_DISPLAY_NAME = "displayName";
+  private static final String FIELD_UPSTREAM_MANIFEST_PATH = "upstreamManifestPath";
   private static final Set<String> ALLOWED_REVIEW_ROLES = Set.of("OWNER", "ADMIN", "OPERATOR");
 
   private final PipelineJobRepository pipelineJobRepository;
@@ -124,9 +127,9 @@ public class PipelineReviewCheckpointUseCase {
     ObjectNode profile = objectMapper.createObjectNode();
     profile.put("schemaVersion", "confirmed-domain-profile.v1");
     profile.put("candidateId", text(candidate, "candidateId"));
-    profile.put("confirmedDomain", text(candidate, "displayName"));
-    profile.put("displayName", text(candidate, "displayName"));
-    profile.put("confidence", number(candidate, "confidence"));
+    profile.put("confirmedDomain", text(candidate, FIELD_DISPLAY_NAME));
+    profile.put(FIELD_DISPLAY_NAME, text(candidate, FIELD_DISPLAY_NAME));
+    profile.put(FIELD_CONFIDENCE, number(candidate, FIELD_CONFIDENCE));
     profile.set("evidenceTerms", candidate.path("evidenceTerms"));
     profile.set("evidenceConversationIds", candidate.path("evidenceConversationIds"));
     profile.set("domainLexicon", candidate.path("suggestedDomainLexicon"));
@@ -149,8 +152,8 @@ public class PipelineReviewCheckpointUseCase {
     List<ReviewTask> remainingTasks =
         openTasksForSession(session, ReviewTask.TARGET_DOMAIN_CANDIDATE).stream()
             .filter(task -> !selectedTask.getId().equals(task.getId()))
-            .peek(task -> task.resolve(command.userId(), now))
             .toList();
+    remainingTasks.forEach(task -> task.resolve(command.userId(), now));
     reviewTaskRepository.saveAll(remainingTasks);
     session.close(now);
     reviewSessionRepository.save(session);
@@ -164,8 +167,7 @@ public class PipelineReviewCheckpointUseCase {
                 null,
                 toJson(profile),
                 now));
-    triggerReplay(
-        job, "DOMAIN_CONFIRMED_REPLAY", artifact.getPayloadJson(), null, false, command.userId());
+    triggerReplay(job, "DOMAIN_CONFIRMED_REPLAY", artifact.getPayloadJson(), null, false);
     return ReviewCheckpointResult.of(session.getId(), "DOMAIN_CONFIRMED_REPLAY_TRIGGERED");
   }
 
@@ -248,8 +250,7 @@ public class PipelineReviewCheckpointUseCase {
         "FEEDBACK_REPLAY",
         latestArtifactJsonOrNull(job.getId(), ARTIFACT_CONFIRMED_DOMAIN_PROFILE),
         artifact.getPayloadJson(),
-        true,
-        command.userId());
+        true);
     return ReviewCheckpointResult.of(session.getId(), "FEEDBACK_REPLAY_TRIGGERED");
   }
 
@@ -258,12 +259,7 @@ public class PipelineReviewCheckpointUseCase {
     if (!workspaceId.equals(job.getWorkspaceId())) {
       throw new NotFoundException("PIPELINE_JOB_NOT_FOUND", "Pipeline job을 찾을 수 없습니다.");
     }
-    String kind =
-        PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION.equals(job.getStatus())
-            ? ReviewSession.KIND_DOMAIN_CONFIRMATION
-            : PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK.equals(job.getStatus())
-                ? ReviewSession.KIND_HUMAN_FEEDBACK
-                : "";
+    String kind = reviewKindForStatus(job.getStatus());
     if (kind.isBlank()) {
       return new ReviewCheckpointView(pipelineJobId, job.getStatus(), null, List.of());
     }
@@ -321,15 +317,14 @@ public class PipelineReviewCheckpointUseCase {
     return callbackSupportService.executeInTransactionOrMarkFailure(
         command.jobId(),
         command.externalEventId(),
-        () -> processCheckpoint(command, reviewKind, artifactType, waitingStatus, webhookType));
+        () -> processCheckpoint(command, reviewKind, artifactType, waitingStatus));
   }
 
   private CheckpointCallbackResult processCheckpoint(
       CheckpointCallbackCommand command,
       String reviewKind,
       String artifactType,
-      String waitingStatus,
-      String webhookType) {
+      String waitingStatus) {
     PipelineJob job = runningJob(command.jobId());
     OffsetDateTime now = callbackSupportService.now();
     String artifactPayload = toJson(command.artifactPayload());
@@ -399,8 +394,7 @@ public class PipelineReviewCheckpointUseCase {
       String runMode,
       String confirmedDomainProfileJson,
       String feedbackConstraintsJson,
-      boolean skipFeedbackCheckpoint,
-      Long userId) {
+      boolean skipFeedbackCheckpoint) {
     String upstreamManifestPath = upstreamManifestPath(parentJob);
     String dagRunId = "pipeline_job_" + parentJob.getId() + "_" + runMode.toLowerCase();
     try {
@@ -432,7 +426,7 @@ public class PipelineReviewCheckpointUseCase {
 
   private String upstreamManifestPath(PipelineJob job) {
     JsonNode summary = readJson(job.getResultSummaryJson());
-    String value = text(summary, "upstreamManifestPath");
+    String value = text(summary, FIELD_UPSTREAM_MANIFEST_PATH);
     if (!value.isBlank()) {
       return value;
     }
@@ -441,7 +435,7 @@ public class PipelineReviewCheckpointUseCase {
       return value;
     }
     JsonNode meta = latestArtifactPayload(job.getId(), ARTIFACT_DOMAIN_CANDIDATES);
-    value = text(meta, "upstreamManifestPath");
+    value = text(meta, FIELD_UPSTREAM_MANIFEST_PATH);
     if (!value.isBlank()) {
       return value;
     }
@@ -465,10 +459,6 @@ public class PipelineReviewCheckpointUseCase {
         .findFirst()
         .map(PipelineArtifact::getPayloadJson)
         .orElse(null);
-  }
-
-  private ReviewSession openSession(Long pipelineJobId, String kind) {
-    return openSession(pipelineJobId, kind, false);
   }
 
   private ReviewSession openSession(Long pipelineJobId, String kind, boolean requireOpen) {
@@ -534,10 +524,20 @@ public class PipelineReviewCheckpointUseCase {
     return ReviewSession.KIND_DOMAIN_CONFIRMATION.equals(reviewKind) ? "상담 도메인 확정" : "클러스터링 피드백";
   }
 
+  private String reviewKindForStatus(String status) {
+    if (PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION.equals(status)) {
+      return ReviewSession.KIND_DOMAIN_CONFIRMATION;
+    }
+    if (PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK.equals(status)) {
+      return ReviewSession.KIND_HUMAN_FEEDBACK;
+    }
+    return "";
+  }
+
   private String summaryJson(CheckpointCallbackCommand command, String reviewKind) {
     ObjectNode summary = objectMapper.createObjectNode();
     summary.put("reviewKind", reviewKind);
-    summary.put("upstreamManifestPath", command.upstreamManifestPath());
+    summary.put(FIELD_UPSTREAM_MANIFEST_PATH, command.upstreamManifestPath());
     summary.put("artifactPath", command.artifactPath());
     return toJson(summary);
   }
@@ -549,7 +549,7 @@ public class PipelineReviewCheckpointUseCase {
       String feedbackConstraintsJson) {
     ObjectNode summary = objectMapper.createObjectNode();
     summary.put("runMode", runMode);
-    summary.put("upstreamManifestPath", upstreamManifestPath);
+    summary.put(FIELD_UPSTREAM_MANIFEST_PATH, upstreamManifestPath);
     if (confirmedDomainProfileJson != null) {
       summary.set("confirmedDomainProfile", readJson(confirmedDomainProfileJson));
     }

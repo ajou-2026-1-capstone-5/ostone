@@ -99,7 +99,7 @@ def main() -> None:
     host = os.environ.get("LOCAL_EMBEDDER_HOST", "127.0.0.1")
     port = int(os.environ.get("LOCAL_EMBEDDER_PORT", "18090"))
     server = ThreadingHTTPServer((host, port), LocalEmbedderHandler)
-    logger.info("Local embedding worker listening on http://%s:%d", host, port)
+    logger.info("Local embedding worker listening on %s:%d", host, port)
     server.serve_forever()
 
 

@@ -63,6 +63,81 @@ def test_stage_manifest_includes_output_file_checksum(tmp_path):
     assert manifest["outputArtifactRefs"][0]["checksum"]
 
 
+def test_stage_manifest_skips_checksum_for_path_outside_stage_dir(tmp_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+    )
+    stage_context = StageContext(
+        dag_id="dag",
+        run_id="run",
+        stage_name="stage",
+        workspace_id=None,
+        dataset_id=None,
+        pipeline_job_id=None,
+    )
+    outside = tmp_path / "outside.json"
+    outside.write_text('{"ok":true}', encoding="utf-8")
+
+    manifest_path = write_stage_manifest(stage_context, runtime_config, {"artifact_path": str(outside)})
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["outputArtifactRefs"][0] == {
+        "type": "artifact_path",
+        "uri": str(outside),
+    }
+
+
+@pytest.mark.parametrize("artifact_path", ["../outside.json", "C:\\temp\\artifact.json"])
+def test_stage_manifest_skips_checksum_for_unsafe_relative_paths(tmp_path, artifact_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+    )
+    stage_context = StageContext(
+        dag_id="dag",
+        run_id="run",
+        stage_name="stage",
+        workspace_id=None,
+        dataset_id=None,
+        pipeline_job_id=None,
+    )
+
+    manifest_path = write_stage_manifest(stage_context, runtime_config, {"artifact_path": artifact_path})
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["outputArtifactRefs"][0] == {
+        "type": "artifact_path",
+        "uri": artifact_path,
+    }
+
+
+def test_stage_manifest_skips_remote_artifact_checksum(tmp_path):
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+    )
+    stage_context = StageContext(
+        dag_id="dag",
+        run_id="run",
+        stage_name="stage",
+        workspace_id=None,
+        dataset_id=None,
+        pipeline_job_id=None,
+    )
+
+    manifest_path = write_stage_manifest(stage_context, runtime_config, {"artifact_path": "s3://bucket/path.json"})
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["outputArtifactRefs"][0] == {
+        "type": "artifact_path",
+        "uri": "s3://bucket/path.json",
+    }
+
+
 def test_runtime_config_rejects_blank_callback_secret(monkeypatch):
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "   ")
 

@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import boto3
@@ -112,15 +112,35 @@ def _output_refs(payload: dict[str, Any], artifact_dir: Path) -> list[dict[str, 
 
 
 def _file_checksum(uri: str, artifact_dir: Path) -> str | None:
-    path = Path(uri)
-    candidate = path if path.is_absolute() else artifact_dir / path
-    if not candidate.exists() or not candidate.is_file():
+    candidate = _resolve_stage_artifact_file(uri, artifact_dir)
+    if candidate is None:
         return None
     digest = hashlib.sha256()
     with candidate.open("rb") as artifact_file:
         for chunk in iter(lambda: artifact_file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _resolve_stage_artifact_file(uri: str, artifact_dir: Path) -> Path | None:
+    if "://" in uri or uri.startswith(("/", "\\")) or _looks_like_windows_absolute_path(uri):
+        return None
+    base_dir = artifact_dir.resolve()
+    parts = PurePosixPath(uri.replace("\\", "/")).parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        return None
+    candidate = base_dir.joinpath(*parts).resolve()
+    try:
+        candidate.relative_to(base_dir)
+    except ValueError:
+        return None
+    if not candidate.is_file():
+        return None
+    return candidate
+
+
+def _looks_like_windows_absolute_path(uri: str) -> bool:
+    return len(uri) >= 3 and uri[1] == ":" and uri[2] in {"/", "\\"}
 
 
 def _record_count(payload: dict[str, Any]) -> int | None:

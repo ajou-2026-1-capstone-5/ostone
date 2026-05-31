@@ -359,7 +359,7 @@ def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, ob
     },
     tags=["pipeline", "domain-pack"],
 )
-def domain_pack_generation() -> None:
+def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this DAG; stage helpers are unit-tested.
     @task(task_id="ingestion")
     def ingestion() -> dict[str, str]:
         if _run_mode() != RUN_MODE_INITIAL:

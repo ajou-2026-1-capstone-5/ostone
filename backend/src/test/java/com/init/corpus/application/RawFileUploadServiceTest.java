@@ -206,6 +206,64 @@ class RawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_reject_zip_with_absolute_entry_path")
+  void upload_zipWithAbsoluteEntryPath_throwsRawFileParseException() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "absolute-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] zipBytes = zip("/evil.json", "[{\"source_id\":\"001\",\"consulting_content\":\"x\"}]");
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "absolute-zip",
+            "위험 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "absolute.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("안전하지 않은 경로");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
+  @DisplayName("should_reject_zip_without_supported_conversation_entries")
+  void upload_zipWithoutSupportedEntries_throwsRawFileParseException() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "empty-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] zipBytes = zip("notes.txt", "not conversation data");
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "empty-zip",
+            "빈 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "empty.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("상담 데이터가 없습니다");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
   @DisplayName("should_throw_WorkspaceNotFoundException_when_워크스페이스_없음")
   void upload_workspaceNotFound_throwsException() {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(false);

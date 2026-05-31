@@ -81,34 +81,51 @@ def _cannot_link_questions(
     *,
     limit: int,
 ) -> list[dict[str, object]]:
+    output: list[dict[str, object]] = []
+    for source, items in _entrypoints_by_source(entrypoints).items():
+        if len(items) < 2:
+            continue
+        output.extend(_cannot_link_questions_for_source(source, items, preprocessed_index, limit - len(output)))
+        if len(output) >= limit:
+            return output[:limit]
+    return output
+
+
+def _entrypoints_by_source(entrypoints: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     by_source: dict[str, list[dict[str, Any]]] = {}
     for entrypoint in entrypoints:
         source = str(entrypoint.get("sourceClusterId") or "")
         if source:
             by_source.setdefault(source, []).append(entrypoint)
+    return by_source
+
+
+def _cannot_link_questions_for_source(
+    source: str,
+    items: list[dict[str, Any]],
+    preprocessed_index: dict[str, dict[str, Any]],
+    limit: int,
+) -> list[dict[str, object]]:
     output: list[dict[str, object]] = []
-    for source, items in by_source.items():
-        if len(items) < 2:
-            continue
-        ordered = sorted(items, key=lambda item: float(item.get("confidence") or 0.0))
-        for index, left in enumerate(ordered):
-            for right in ordered[index + 1 :]:
-                pair = _representative_pair(left, right)
-                if pair is None:
-                    continue
-                output.append(
-                    _question(
-                        question_id=f"cannot-link-{source}-{len(output) + 1}",
-                        source_id=pair[0],
-                        target_id=pair[1],
-                        preprocessed_index=preprocessed_index,
-                        expected_type="cannot_link",
-                        reason="same_source_cluster_split",
-                        priority="HIGH",
-                    )
+    ordered = sorted(items, key=lambda item: float(item.get("confidence") or 0.0))
+    for index, left in enumerate(ordered):
+        for right in ordered[index + 1 :]:
+            pair = _representative_pair(left, right)
+            if pair is None:
+                continue
+            output.append(
+                _question(
+                    question_id=f"cannot-link-{source}-{len(output) + 1}",
+                    source_id=pair[0],
+                    target_id=pair[1],
+                    preprocessed_index=preprocessed_index,
+                    expected_type="cannot_link",
+                    reason="same_source_cluster_split",
+                    priority="HIGH",
                 )
-                if len(output) >= limit:
-                    return output
+            )
+            if len(output) >= limit:
+                return output
     return output
 
 

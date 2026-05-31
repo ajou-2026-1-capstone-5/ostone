@@ -14,6 +14,7 @@ from pipeline.stages.preprocessing.types import ProcessedConversation
 
 UNKNOWN_ROOT_DOMAIN = "mixed_or_unknown"
 GENERIC_ROOT_DOMAIN = "generic"
+CONFIRMED_DOMAIN_METHOD = "llm_confirmed_domain.v1"
 _MIN_PROFILE_TERM_LENGTH = 2
 _PROFILE_STOPWORDS = frozenset(
     {
@@ -59,7 +60,7 @@ class RootDomainProfile:
     def allowed_rule_domains(self) -> tuple[str, ...]:
         if self.root_domain == UNKNOWN_ROOT_DOMAIN:
             return ()
-        if self.method == "llm_confirmed_domain.v1":
+        if self.method == CONFIRMED_DOMAIN_METHOD:
             return (self.root_domain,)
         return (GENERIC_ROOT_DOMAIN,)
 
@@ -73,10 +74,10 @@ class RootDomainProfile:
             "evidenceTerms": {domain: list(terms) for domain, terms in self.evidence_terms.items()},
             "allowedRuleDomains": list(self.allowed_rule_domains),
             "method": self.method,
-            "confirmedDomain": self.root_domain if self.method == "llm_confirmed_domain.v1" else None,
+            "confirmedDomain": self.root_domain if self.method == CONFIRMED_DOMAIN_METHOD else None,
             "domainLexicon": list(self.domain_lexicon),
             "domainEvidence": self.domain_evidence or {},
-            "usesOperatorCategoryMetadata": self.method == "llm_confirmed_domain.v1",
+            "usesOperatorCategoryMetadata": self.method == CONFIRMED_DOMAIN_METHOD,
             "usesDomainSpecificLexicon": bool(self.domain_lexicon),
         }
 
@@ -106,7 +107,7 @@ def load_confirmed_domain_profile(path: Path) -> RootDomainProfile:
         total_conversation_count=_int_value(payload.get("totalConversationCount")),
         scores={root_domain: confidence},
         evidence_terms={root_domain: evidence_terms},
-        method="llm_confirmed_domain.v1",
+        method=CONFIRMED_DOMAIN_METHOD,
         domain_lexicon=lexicon,
         domain_evidence={
             "candidateId": payload.get("candidateId"),

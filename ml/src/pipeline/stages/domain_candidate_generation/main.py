@@ -63,7 +63,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
 
     try:
         candidates = _generate_llm_candidates(runtime_config, sampled, fallback_terms, sample_hash)
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+    except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
         generation_error = {"type": type(exc).__name__, "message": str(exc)}
         candidates = []
 

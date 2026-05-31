@@ -9,6 +9,7 @@ import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import urlparse
 
 import numpy as np
 
@@ -225,7 +226,8 @@ def _required_url_env(key: str) -> str:
     value = os.getenv(key, "").strip()
     if not value:
         raise PipelineConfigurationError(f"{key} must not be blank when ML_EMBEDDING_RUNTIME=local_http.")
-    if not value.startswith(("http://", "https://")):
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise PipelineConfigurationError(f"{key} must be an http(s) URL.")
     return value
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import pytest
 
@@ -105,3 +106,86 @@ def test_prompt_and_terms_are_stable() -> None:
     assert prompt["sampleHash"] == "hash-1"
     assert prompt["samples"][0]["conversationId"] == "c1"
     assert "고객 카드 분실" in prompt["samples"][0]["text"]
+
+
+def test_generate_llm_candidates_posts_prompt_and_parses_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    sampled = [_conversation("c1", "카드 결제 한도 문의")]
+    posts: list[dict[str, Any]] = []
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            posts.append({"raised": True})
+
+        def json(self) -> dict[str, object]:
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "candidates": [
+                                        {
+                                            "displayName": "카드 결제",
+                                            "confidence": 0.91,
+                                        },
+                                        "ignored",
+                                    ]
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            }
+
+    class FakeClient:
+        def __init__(self, timeout: float) -> None:
+            posts.append({"timeout": timeout})
+
+        def __enter__(self) -> "FakeClient":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            posts.append({"closed": True})
+
+        def post(self, endpoint: str, *, headers: dict[str, str], json: dict[str, object]) -> FakeResponse:
+            posts.append({"endpoint": endpoint, "headers": headers, "json": json})
+            return FakeResponse()
+
+    runtime_config = type(
+        "RuntimeConfig",
+        (),
+        {
+            "llm_runtime_base_url": "http://llm.local/",
+            "llm_runtime_api_key": "secret-token",
+            "llm_model_name": "model-a",
+        },
+    )()
+    monkeypatch.setattr(main.httpx, "Client", FakeClient)
+    monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "3.5")
+
+    candidates = main._generate_llm_candidates(runtime_config, sampled, ["카드"], "hash-1")
+
+    assert candidates == [{"displayName": "카드 결제", "confidence": 0.91}]
+    request = posts[1]
+    assert request["endpoint"] == "http://llm.local/chat/completions"
+    assert request["headers"]["Authorization"] == "Bearer secret-token"
+    assert request["json"]["model"] == "model-a"
+
+
+def test_generate_llm_candidates_requires_candidates_list() -> None:
+    parsed = main._normalize_candidates(
+        [
+            {"displayName": "배송 문의"},
+            {"displayName": "교환 문의"},
+            {"displayName": "환불 문의"},
+            {"displayName": "앱 문의"},
+            {"displayName": "결제 문의"},
+            {"displayName": "초과 후보"},
+        ],
+        ["배송", "교환"],
+        [_conversation("c1", "배송 문의"), _conversation("c2", "교환 문의"), _conversation("c3", "환불 문의")],
+    )
+
+    assert len(parsed) == main.MAX_CANDIDATES
+    assert parsed[-1]["candidateId"] == "결제_문의"
