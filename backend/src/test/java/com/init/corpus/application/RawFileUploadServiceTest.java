@@ -177,6 +177,35 @@ class RawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_reject_zip_with_unsafe_entry_path")
+  void upload_zipWithUnsafeEntryPath_throwsRawFileParseException() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "unsafe-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] zipBytes = zip("../evil.json", "[{\"source_id\":\"001\",\"consulting_content\":\"x\"}]");
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "unsafe-zip",
+            "위험 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "unsafe.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("안전하지 않은 경로");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
   @DisplayName("should_throw_WorkspaceNotFoundException_when_워크스페이스_없음")
   void upload_workspaceNotFound_throwsException() {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(false);
@@ -364,6 +393,16 @@ class RawFileUploadServiceTest {
       zip.closeEntry();
       zip.putNextEntry(new ZipEntry(secondName));
       zip.write(secondContent.getBytes(StandardCharsets.UTF_8));
+      zip.closeEntry();
+    }
+    return bytes.toByteArray();
+  }
+
+  private byte[] zip(String name, String content) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+      zip.putNextEntry(new ZipEntry(name));
+      zip.write(content.getBytes(StandardCharsets.UTF_8));
       zip.closeEntry();
     }
     return bytes.toByteArray();

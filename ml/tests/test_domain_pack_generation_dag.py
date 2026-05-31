@@ -15,6 +15,10 @@ from pipeline.common.exceptions import PipelineConfigurationError
 def _import_dag_module(monkeypatch: pytest.MonkeyPatch) -> Any:
     airflow_module = types.ModuleType("airflow")
     airflow_sdk_module = types.ModuleType("airflow.sdk")
+    airflow_exceptions_module = types.ModuleType("airflow.exceptions")
+
+    class AirflowSkipException(Exception):
+        pass
 
     def fake_dag(*_args: object, **_kwargs: object) -> Any:
         def decorator(_function: Any) -> Any:
@@ -28,11 +32,14 @@ def _import_dag_module(monkeypatch: pytest.MonkeyPatch) -> Any:
 
         return decorator
 
+    airflow_module.__path__ = []
     setattr(airflow_sdk_module, "dag", fake_dag)
     setattr(airflow_sdk_module, "task", fake_task)
     setattr(airflow_sdk_module, "get_current_context", lambda: {})
+    setattr(airflow_exceptions_module, "AirflowSkipException", AirflowSkipException)
     monkeypatch.setitem(sys.modules, "airflow", airflow_module)
     monkeypatch.setitem(sys.modules, "airflow.sdk", airflow_sdk_module)
+    monkeypatch.setitem(sys.modules, "airflow.exceptions", airflow_exceptions_module)
     sys.modules.pop("dags.domain_pack_generation", None)
     return importlib.import_module("dags.domain_pack_generation")
 

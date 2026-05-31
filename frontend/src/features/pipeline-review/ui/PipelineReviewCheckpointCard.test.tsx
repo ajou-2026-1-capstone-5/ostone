@@ -1,0 +1,214 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  useConfirmPipelineDomain,
+  usePipelineReviewCheckpoint,
+  useSubmitPipelineFeedback,
+} from "../api/pipelineReviewApi";
+import { PipelineReviewCheckpointCard } from "./PipelineReviewCheckpointCard";
+
+vi.mock("../api/pipelineReviewApi", () => ({
+  usePipelineReviewCheckpoint: vi.fn(),
+  useConfirmPipelineDomain: vi.fn(),
+  useSubmitPipelineFeedback: vi.fn(),
+}));
+
+const mockedUseCheckpoint = vi.mocked(usePipelineReviewCheckpoint);
+const mockedUseConfirmDomain = vi.mocked(useConfirmPipelineDomain);
+const mockedUseSubmitFeedback = vi.mocked(useSubmitPipelineFeedback);
+
+beforeEach(() => {
+  mockedUseCheckpoint.mockReset();
+  mockedUseConfirmDomain.mockReset();
+  mockedUseSubmitFeedback.mockReset();
+  mockedUseConfirmDomain.mockReturnValue({ isPending: false, mutate: vi.fn() } as never);
+  mockedUseSubmitFeedback.mockReturnValue({ isPending: false, mutate: vi.fn() } as never);
+});
+
+describe("PipelineReviewCheckpointCard", () => {
+  it("renders nothing without a pipeline job id", () => {
+    mockedUseCheckpoint.mockReturnValue({ isLoading: false } as never);
+
+    const { container } = render(<PipelineReviewCheckpointCard workspaceId={1} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders loading state", () => {
+    mockedUseCheckpoint.mockReturnValue({ isLoading: true } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("리뷰 체크포인트를 불러오는 중입니다.")).toBeInTheDocument();
+  });
+
+  it("renders error state", () => {
+    mockedUseCheckpoint.mockReturnValue({ isLoading: false, isError: true } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("리뷰 체크포인트를 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
+  it("confirms selected domain candidate", () => {
+    const mutate = vi.fn();
+    mockedUseConfirmDomain.mockReturnValue({ isPending: false, mutate } as never);
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 101,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "OPEN",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: {
+              displayName: "카드 상담",
+              confidence: 0.92,
+              description: "카드 분실, 결제, 한도 문의가 섞인 상담",
+              evidenceTerms: ["분실", "결제", "한도"],
+            },
+          },
+        ],
+      },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
+
+    expect(screen.getByText("92%")).toBeInTheDocument();
+    expect(mutate).toHaveBeenCalledWith(101);
+  });
+
+  it("submits pairwise feedback with conversation evidence", () => {
+    const mutate = vi.fn();
+    mockedUseSubmitFeedback.mockReturnValue({ isPending: false, mutate } as never);
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_HUMAN_FEEDBACK",
+        reviewKind: "HUMAN_FEEDBACK",
+        tasks: [
+          {
+            id: 201,
+            targetType: "FEEDBACK_PAIR",
+            status: "OPEN",
+            priority: "NORMAL",
+            title: "이 두 상담은 같은 업무인가?",
+            payload: {
+              questionText: "이 두 상담은 같은 업무인가?",
+              reason: "low_confidence_cluster_boundary",
+              sourceReviewContext: {
+                conversationId: "A-1",
+                summary: "카드 분실 후 정지 요청",
+                object: "카드",
+                action: "정지",
+                signals: ["분실", "정지"],
+                turns: [
+                  { role: "customer", text: "카드를 잃어버렸어요." },
+                  { role: "agent", text: "분실 정지를 도와드리겠습니다." },
+                  { text: "본인 확인 완료" },
+                ],
+              },
+              targetReviewContext: {
+                conversationId: "B-1",
+                summary: "카드 결제 한도 상향 요청",
+                object: "한도",
+                action: "상향",
+                signals: ["결제", "한도"],
+                logExcerpt: "고객: 결제 한도를 올리고 싶어요.",
+              },
+            },
+          },
+        ],
+      },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("카드를 잃어버렸어요.")).toBeInTheDocument();
+    expect(screen.getByText("고객: 결제 한도를 올리고 싶어요.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "분리하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "피드백 반영 후 replay" }));
+
+    expect(mutate).toHaveBeenCalledWith([{ reviewTaskId: 201, decisionType: "cannot_link" }]);
+  });
+
+  it("renders feedback reason labels and empty evidence fallback", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_HUMAN_FEEDBACK",
+        reviewKind: "HUMAN_FEEDBACK",
+        tasks: [
+          {
+            id: 301,
+            targetType: "FEEDBACK_PAIR",
+            status: "OPEN",
+            priority: "NORMAL",
+            title: "클러스터 분리 확인",
+            payload: {
+              reason: "same_source_cluster_split",
+              sourceReviewContext: {},
+              targetReviewContext: {},
+            },
+          },
+          {
+            id: 302,
+            targetType: "FEEDBACK_PAIR",
+            status: "OPEN",
+            priority: "NORMAL",
+            title: "기본 사유 확인",
+            payload: {
+              reason: "other",
+              reasonLabel: "운영자 확인이 필요한 후보입니다.",
+              sourceSnippet: "고객: 배송지를 바꾸고 싶어요.",
+              targetReviewContext: {},
+            },
+          },
+        ],
+      },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다.")).toBeInTheDocument();
+    expect(screen.getByText("운영자 확인이 필요한 후보입니다.")).toBeInTheDocument();
+    expect(screen.getAllByText("업무 내용을 확인할 수 없습니다.")).toHaveLength(3);
+  });
+
+  it("shows completed state when there is no active review kind", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { pipelineJobId: 7, pipelineStatus: "SUCCEEDED", reviewKind: null, tasks: [] },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("리뷰 체크포인트가 완료되었습니다.")).toBeInTheDocument();
+  });
+
+  it("shows failed state when pipeline failed without an active review kind", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { pipelineJobId: 7, pipelineStatus: "FAILED", reviewKind: null, tasks: [] },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("파이프라인이 실패했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("실패 원인은 파이프라인 job 상세에서 확인할 수 있습니다.")).toBeInTheDocument();
+  });
+});

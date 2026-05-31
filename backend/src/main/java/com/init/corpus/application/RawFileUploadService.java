@@ -15,6 +15,7 @@ import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -33,6 +34,10 @@ import org.springframework.stereotype.Service;
 public class RawFileUploadService {
 
   private static final Logger log = LoggerFactory.getLogger(RawFileUploadService.class);
+  private static final int MAX_ZIP_ENTRY_COUNT = 5_000;
+  private static final int MAX_ZIP_ENTRY_BYTES = 20 * 1024 * 1024;
+  private static final long MAX_ZIP_TOTAL_BYTES = 100L * 1024 * 1024;
+  private static final int ZIP_READ_BUFFER_BYTES = 8 * 1024;
 
   private final WorkspaceExistenceRepository workspaceExistenceRepository;
   private final WorkspaceMembershipRepository workspaceMembershipRepository;
@@ -172,15 +177,30 @@ public class RawFileUploadService {
         && fileBytes[3] == 0x04;
   }
 
+  @SuppressWarnings("java:S5042") // ZIP entries are path-checked and bounded before parsing.
   private List<RawConversationInput> parseZipConversations(byte[] fileBytes) {
     List<RawConversationInput> conversations = new ArrayList<>();
+    int entryCount = 0;
+    long totalUncompressedBytes = 0L;
     try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(fileBytes))) {
       ZipEntry entry;
       while ((entry = zip.getNextEntry()) != null) {
-        if (entry.isDirectory() || !isSupportedZipEntry(entry.getName())) {
+        entryCount++;
+        if (entryCount > MAX_ZIP_ENTRY_COUNT) {
+          throw new RawFileParseException("ZIP 파일의 항목 수가 너무 많습니다.");
+        }
+        String entryName = entry.getName();
+        if (!isSafeZipEntryName(entryName)) {
+          throw new RawFileParseException("ZIP 파일에 안전하지 않은 경로가 포함되어 있습니다: " + entryName);
+        }
+        if (entry.isDirectory() || !isSupportedZipEntry(entryName)) {
+          zip.closeEntry();
           continue;
         }
-        conversations.addAll(parseJsonConversations(zip.readAllBytes(), entry.getName()));
+        byte[] entryBytes = readBoundedZipEntry(zip, entryName, totalUncompressedBytes);
+        totalUncompressedBytes += entryBytes.length;
+        conversations.addAll(parseJsonConversations(entryBytes, entryName));
+        zip.closeEntry();
       }
     } catch (IOException e) {
       throw new RawFileParseException("ZIP 파일을 파싱할 수 없습니다: " + e.getMessage());
@@ -189,6 +209,39 @@ public class RawFileUploadService {
       throw new RawFileParseException("ZIP 파일에 상담 데이터가 없습니다.");
     }
     return conversations;
+  }
+
+  private byte[] readBoundedZipEntry(
+      ZipInputStream zip, String entryName, long totalUncompressedBytes) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    byte[] buffer = new byte[ZIP_READ_BUFFER_BYTES];
+    int read;
+    while ((read = zip.read(buffer)) != -1) {
+      if (bytes.size() + read > MAX_ZIP_ENTRY_BYTES) {
+        throw new RawFileParseException("ZIP 항목의 압축 해제 크기가 너무 큽니다: " + entryName);
+      }
+      if (totalUncompressedBytes + bytes.size() + read > MAX_ZIP_TOTAL_BYTES) {
+        throw new RawFileParseException("ZIP 파일의 전체 압축 해제 크기가 너무 큽니다.");
+      }
+      bytes.write(buffer, 0, read);
+    }
+    return bytes.toByteArray();
+  }
+
+  private boolean isSafeZipEntryName(String entryName) {
+    if (entryName == null || entryName.isBlank()) {
+      return false;
+    }
+    String normalized = entryName.replace('\\', '/');
+    if (normalized.startsWith("/") || normalized.contains(":")) {
+      return false;
+    }
+    for (String part : normalized.split("/")) {
+      if (part.equals("..")) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private boolean isSupportedZipEntry(String entryName) {
@@ -278,7 +331,8 @@ public class RawFileUploadService {
   }
 
   private String consultingContent(JsonNode node) {
-    String content = firstText(node, "consulting_content", "content", "text", "full_text", "conversation");
+    String content =
+        firstText(node, "consulting_content", "content", "text", "full_text", "conversation");
     if (content != null && !content.isBlank()) {
       return content;
     }
@@ -292,7 +346,8 @@ public class RawFileUploadService {
       if (text == null || text.isBlank()) {
         continue;
       }
-      lines.add(speakerPrefix(firstText(turn, "speaker_role", "speaker", "role", "화자")) + text.strip());
+      lines.add(
+          speakerPrefix(firstText(turn, "speaker_role", "speaker", "role", "화자")) + text.strip());
     }
     return String.join("\n", lines);
   }
