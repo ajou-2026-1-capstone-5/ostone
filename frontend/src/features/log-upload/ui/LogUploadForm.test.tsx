@@ -25,17 +25,27 @@ type UploadVariables = { data?: { file?: File } };
 type TriggerVariables = { workspaceId: number; datasetId: number };
 
 let callUploadOnSuccess: ((response: unknown, variables: UploadVariables) => void) | null = null;
+let callUploadOnError: ((error: unknown) => void) | null = null;
 let callTriggerOnSuccess: ((response: unknown, variables: TriggerVariables) => void) | null = null;
 let callTriggerOnError: ((error: unknown) => void) | null = null;
+let mockUploadError: Error | null = null;
 
 vi.mock("../../../shared/api/generated/endpoints/dataset-controller/dataset-controller", () => ({
   useUploadRawFile: (config: {
-    mutation?: { onSuccess?: (response: unknown, variables: UploadVariables) => void };
+    mutation?: {
+      onSuccess?: (response: unknown, variables: UploadVariables) => void;
+      onError?: (error: unknown) => void;
+    };
   }) => {
     callUploadOnSuccess = config?.mutation?.onSuccess ?? null;
+    callUploadOnError = config?.mutation?.onError ?? null;
     return {
       mutate: (...args: unknown[]) => {
         mockUploadMutate(...args);
+        if (mockUploadError) {
+          callUploadOnError?.(mockUploadError);
+          return;
+        }
         const variables = args[0] as UploadVariables;
         callUploadOnSuccess?.({ datasetId: 42, conversationCount: 7 }, variables);
       },
@@ -106,8 +116,10 @@ describe("LogUploadForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     callUploadOnSuccess = null;
+    callUploadOnError = null;
     callTriggerOnSuccess = null;
     callTriggerOnError = null;
+    mockUploadError = null;
   });
 
   it("renders upload header and file uploader", () => {
@@ -173,6 +185,28 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("도메인팩 초안 생성 시작")).toBeInTheDocument();
     expect(screen.getByText(/dataset 42/)).toBeInTheDocument();
     expect(screen.queryByText("도메인팩 보기")).not.toBeInTheDocument();
+  });
+
+  it("shows upload failure toast with retry action", () => {
+    mockUploadError = new Error("업로드 실패");
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.json", { type: "application/json" });
+    const input = screen.getByTestId("file-input");
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByText("처리 시작"));
+
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      "업로드 실패",
+      expect.objectContaining({
+        action: expect.objectContaining({ label: "재시도" }),
+      }),
+    );
+
+    mockUploadError = null;
+    const retryAction = vi.mocked(toast.error).mock.calls[0]?.[1]?.action;
+    retryAction?.onClick();
+
+    expect(mockUploadMutate).toHaveBeenCalledTimes(2);
   });
 
   it("triggers domain pack generation with uploaded dataset id", () => {
