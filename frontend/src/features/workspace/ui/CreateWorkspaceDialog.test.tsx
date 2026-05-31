@@ -222,6 +222,17 @@ describe("CreateWorkspaceDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(true);
   });
 
+  it("Dialog open 이벤트는 기존 검증 오류를 reset하지 않는다", () => {
+    const { onOpenChange } = renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "생성" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("이름을 입력해주세요.");
+
+    fireEvent.click(screen.getByRole("button", { name: "mock keep dialog open" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("이름을 입력해주세요.");
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
   it("이름이 비어 있으면 생성 mutation을 호출하지 않는다", () => {
     renderDialog();
 
