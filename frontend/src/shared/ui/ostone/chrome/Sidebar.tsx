@@ -43,7 +43,7 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
   {
     key: "consult",
     icon: "book",
-    label: "Consultation",
+    label: "상담 응대",
     getPath: (base) => `${base}/consultation`,
   },
   {
@@ -56,12 +56,12 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
   {
     key: "upload",
     icon: "upload",
-    label: "Uploads",
+    label: "상담 로그 수집",
     getPath: (base) => `${base}/upload`,
   },
 ];
 
-const DOMAIN_PACKS_LABEL = "Domain Packs";
+const DOMAIN_PACKS_LABEL = "도메인팩 관리";
 const DOMAIN_PACKS_ICON: IconName = "folder";
 const SIDEBAR_WIDTH = "200px";
 

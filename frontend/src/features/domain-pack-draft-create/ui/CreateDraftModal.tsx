@@ -61,7 +61,7 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
         onError: (error: unknown) => {
           if (error instanceof ApiRequestError) {
             if (error.status === 409) {
-              setInlineError("동일 Pack 묶기 충돌. 잠시 후 재시도하세요.");
+              setInlineError("동일한 도메인팩 초안이 이미 있습니다. 잠시 후 다시 시도하세요.");
             } else if (error.status === 400) {
               setInlineError(error.message || "요청 검증 실패. 입력을 확인해 주세요.");
             } else {
@@ -99,7 +99,7 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
       >
         <div className={styles.header}>
           <span id="create-draft-title" className={styles.title}>
-            새 DRAFT 묶기
+            새 검토본 묶기
           </span>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="닫기">
             ✕
@@ -124,7 +124,7 @@ export function CreateDraftModal({ wsId, packId, onClose, onSuccess }: CreateDra
             onClick={() => setActiveTab("pipeline")}
             title="파이프라인 import 기능 준비 중"
           >
-            파이프라인 import
+            파이프라인 가져오기
           </button>
         </div>
 

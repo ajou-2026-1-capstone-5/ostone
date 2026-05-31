@@ -34,7 +34,7 @@ export function useUpdatePolicyStatus() {
       const res = await updatePolicyStatus(workspaceId, packId, versionId, policyId, { status });
       return requireApiData<PolicyDefinitionResponse>(
         res,
-        "정책 상태 변경 응답을 확인할 수 없습니다.",
+        "응대 기준 상태 변경 응답을 확인할 수 없습니다.",
       );
     },
     onMutate: async ({ workspaceId, packId, versionId, policyId, status }) => {

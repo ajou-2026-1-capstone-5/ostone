@@ -26,13 +26,13 @@ export function jsonArrayString(message: string) {
 }
 
 export const policyEditSchema = z.object({
-  name: z.string().trim().min(1, "정책 이름은 필수입니다."),
+  name: z.string().trim().min(1, "응대 기준 이름은 필수입니다."),
   description: z.string().nullable().optional(),
   severity: z.string().nullable().optional(),
-  conditionJson: jsonObjectString("조건 JSON은 객체여야 합니다."),
-  actionJson: jsonObjectString("액션 JSON은 객체여야 합니다."),
+  conditionJson: jsonObjectString("적용 조건 JSON은 객체여야 합니다."),
+  actionJson: jsonObjectString("응대 방법 JSON은 객체여야 합니다."),
   evidenceJson: jsonArrayString("근거 JSON은 배열이어야 합니다."),
-  metaJson: jsonObjectString("메타 JSON은 객체여야 합니다."),
+  metaJson: jsonObjectString("추가 정보 JSON은 객체여야 합니다."),
 });
 
 export type PolicyEditFormValues = z.infer<typeof policyEditSchema>;

@@ -44,8 +44,8 @@ describe("PolicyListPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByLabelText("정책 목록")).toBeInTheDocument();
-    expect(screen.getByText("— · LIST")).toBeInTheDocument();
+    expect(screen.getByLabelText("응대 기준 목록")).toBeInTheDocument();
+    expect(screen.getByText("—개")).toBeInTheDocument();
   });
 
   it("ready 상태에서는 목록을 렌더링하고 선택 이벤트를 전달한다", () => {
@@ -54,7 +54,7 @@ describe("PolicyListPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /POL_REFUND/ }));
 
-    expect(screen.getByText("1 · LIST")).toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
     expect(screen.getByText("환불 정책")).toBeInTheDocument();
     expect(onSelect).toHaveBeenCalledWith(4);
   });
@@ -68,7 +68,7 @@ describe("PolicyListPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("정책 목록을 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("응대 기준 목록을 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 });

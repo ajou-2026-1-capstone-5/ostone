@@ -45,17 +45,17 @@ export function WorkspaceWorkflowsPage() {
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Workflows</h1>
+        <h1 className={styles.pageTitle}>응대 흐름</h1>
         <Button variant="outline" size="sm" onClick={handleNewWorkflow}>
           <PlusIcon className={styles.pageHeaderIcon} />
-          <span>새 워크플로우</span>
+          <span>새 응대 흐름</span>
         </Button>
       </div>
 
       {loading && (
         <div className={styles.statePanel} data-testid="workspace-workflows-loading">
           <LoadingSpinner />
-          <p className={styles.stateText}>워크플로우 목록을 불러오는 중입니다.</p>
+          <p className={styles.stateText}>응대 흐름 목록을 불러오는 중입니다.</p>
         </div>
       )}
 
@@ -67,7 +67,7 @@ export function WorkspaceWorkflowsPage() {
 
       {!loading && !error && entries.length === 0 && (
         <div className={styles.statePanel} data-testid="workspace-workflows-empty">
-          <EmptyState message="아직 등록된 워크플로우가 없습니다. 도메인팩에서 워크플로우를 생성해 주세요." />
+          <EmptyState message="아직 등록된 응대 흐름이 없습니다. 도메인팩에서 응대 흐름을 생성해 주세요." />
         </div>
       )}
 

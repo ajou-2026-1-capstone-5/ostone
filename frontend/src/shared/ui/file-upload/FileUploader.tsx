@@ -61,8 +61,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     return (
       <div className={`${styles.uploaderBox} ${styles.successBox}`}>
         <CheckCircle2 size={48} className={styles.successIcon} />
-        <h3 className={styles.title}>Upload Complete</h3>
-        <p className={styles.mutedText}>Log data has been successfully processed.</p>
+        <h3 className={styles.title}>업로드 완료</h3>
+        <p className={styles.mutedText}>상담 로그 처리가 완료되었습니다.</p>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <div className={styles.loaderArea}>
           <div className={styles.spinner} />
           <h3 className={`${styles.statusText} ${styles.title}`}>
-            {status === "analyzing" ? "Analyzing JSON Log..." : "Uploading File..."}
+            {status === "analyzing" ? "상담 로그 분석 중..." : "파일 업로드 중..."}
           </h3>
           <div className={styles.progressBarContainer}>
             <div className={styles.progressBar} style={{ width: `${progress}%` }} />
@@ -103,9 +103,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       <div className={styles.iconWrapper}>
         <UploadCloud size={40} className={styles.uploadIcon} />
       </div>
-      <h3 className={styles.title}>Click or drag file to this area to upload</h3>
+      <h3 className={styles.title}>파일을 클릭하거나 끌어다 놓으세요</h3>
       <p className={styles.mutedText}>
-        Support for a single {acceptedTypeLabel} file upload up to {maxSizeLabel}.
+        {acceptedTypeLabel} 파일 1개를 업로드할 수 있습니다. 최대 {maxSizeLabel}.
       </p>
 
       <div className={styles.fileTypesHint}>

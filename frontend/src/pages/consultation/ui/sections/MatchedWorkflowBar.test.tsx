@@ -56,7 +56,7 @@ describe("MatchedWorkflowBar", () => {
     expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("환불 워크플로우");
     expect(screen.queryByTestId("matched-workflow-bar-preview")).not.toBeInTheDocument();
     expect(screen.queryByTestId("matched-workflow-bar-meta")).not.toBeInTheDocument();
-    expect(screen.queryByText("RUNNING")).not.toBeInTheDocument();
+    expect(screen.queryByText("진행 중")).not.toBeInTheDocument();
   });
 
   it("expands preview on hover (mouseEnter)", () => {
@@ -67,9 +67,9 @@ describe("MatchedWorkflowBar", () => {
 
     expect(bar).toHaveAttribute("data-state", "open");
     expect(screen.getByTestId("matched-workflow-bar-preview")).toBeInTheDocument();
-    expect(screen.getByText("RUNNING")).toBeInTheDocument();
+    expect(screen.getByText("진행 중")).toBeInTheDocument();
     expect(screen.getByTestId("matched-workflow-bar-meta")).toHaveTextContent(
-      "wf REFUND_FLOW · v12 · COLLECT_INFO",
+      "응대 코드 REFUND_FLOW · v12 · COLLECT_INFO",
     );
     expect(screen.getByTestId("matched-workflow-bar-description")).toHaveTextContent(
       "환불 처리 흐름",
@@ -131,14 +131,16 @@ describe("MatchedWorkflowBar", () => {
   it("falls back to literal label when both workflowName and workflowCode are null", () => {
     renderBar({ ...baseWorkflow, workflowName: null, workflowCode: null });
 
-    expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("워크플로우");
+    expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("응대 흐름");
   });
 
   it("shows graph unavailable placeholder when graphJson is missing (after hover)", () => {
     renderBar({ ...baseWorkflow, graphJson: undefined });
     fireEvent.mouseEnter(screen.getByTestId("matched-workflow-bar"));
 
-    expect(screen.getByTestId("matched-workflow-bar-graph")).toHaveTextContent("graph unavailable");
+    expect(screen.getByTestId("matched-workflow-bar-graph")).toHaveTextContent(
+      "흐름 미리보기 없음",
+    );
     expect(screen.queryByTestId("workflow-graph-mini-88")).not.toBeInTheDocument();
   });
 
@@ -153,7 +155,7 @@ describe("MatchedWorkflowBar", () => {
     renderBar({ ...baseWorkflow, executionStatus: null });
     fireEvent.mouseEnter(screen.getByTestId("matched-workflow-bar"));
 
-    expect(screen.getByText("UNKNOWN")).toBeInTheDocument();
+    expect(screen.getByText("상태 미확인")).toBeInTheDocument();
   });
 
   it("omits meta in preview when no meta parts are available", () => {

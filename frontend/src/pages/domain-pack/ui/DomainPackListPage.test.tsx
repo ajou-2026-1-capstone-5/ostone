@@ -87,7 +87,7 @@ describe("DomainPackListPage", () => {
     expect(screen.queryByText("상담 로그 업로드")).not.toBeInTheDocument();
   });
 
-  it("데이터가 있을 때 Domain Packs 제목과 목록을 렌더링한다", () => {
+  it("데이터가 있을 때 도메인팩 관리 제목과 목록을 렌더링한다", () => {
     useListDomainPacks.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -107,7 +107,7 @@ describe("DomainPackListPage", () => {
       refetch: vi.fn(),
     });
     renderPage();
-    expect(screen.getByText("Domain Packs")).toBeInTheDocument();
+    expect(screen.getByText("도메인팩 관리")).toBeInTheDocument();
     expect(screen.getByText("CS Pack")).toBeInTheDocument();
     expect(screen.getByText("Customer service pack")).toBeInTheDocument();
     expect(screen.getByText("Pack 2")).toBeInTheDocument();

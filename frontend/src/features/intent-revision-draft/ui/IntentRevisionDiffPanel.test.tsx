@@ -16,8 +16,8 @@ describe("IntentRevisionDiffPanel", () => {
   it("변경된 필드의 before/after 값을 보여준다", () => {
     render(<IntentRevisionDiffPanel change={change} />);
 
-    expect(screen.getByLabelText("Intent 수정 diff")).toBeInTheDocument();
-    expect(screen.getByText("2 fields")).toBeInTheDocument();
+    expect(screen.getByLabelText("상담 유형 수정 내용")).toBeInTheDocument();
+    expect(screen.getByText("2개 항목")).toBeInTheDocument();
     expect(screen.getByText("환불")).toBeInTheDocument();
     expect(screen.getByText("환불 문의")).toBeInTheDocument();
     expect(screen.getByText("비어 있음")).toBeInTheDocument();

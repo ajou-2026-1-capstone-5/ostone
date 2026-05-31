@@ -133,7 +133,7 @@ describe("SummaryDetailPanel", () => {
     );
 
     expect(screen.getByText("v1")).toBeInTheDocument();
-    expect(screen.getByText("DRAFT")).toBeInTheDocument();
+    expect(screen.getByText("검토 중")).toBeInTheDocument();
     expect(screen.getByTestId("summary-json-card")).toHaveTextContent('{"key":"val"}');
     expect(screen.getByTestId("component-count-grid")).toBeInTheDocument();
     expect(screen.queryByText("승인 준비 상태")).not.toBeInTheDocument();
@@ -296,9 +296,9 @@ describe("SummaryDetailPanel", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
-    expect(screen.getByText("Draft 버전을 삭제할까요?")).toBeInTheDocument();
+    expect(screen.getByText("검토 중인 버전을 삭제할까요?")).toBeInTheDocument();
     expect(
-      screen.getByText("삭제하면 이 Draft 버전과 저장된 수정 내용이 모두 삭제됩니다."),
+      screen.getByText("삭제하면 이 검토 중인 버전과 저장된 수정 내용이 모두 삭제됩니다."),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
 

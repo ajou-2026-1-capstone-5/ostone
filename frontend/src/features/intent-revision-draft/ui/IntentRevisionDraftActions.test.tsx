@@ -37,9 +37,9 @@ describe("IntentRevisionDraftActions", () => {
   it("변경 요약과 Domain Pack 화면 안내 문구를 보여준다", () => {
     renderActions();
 
-    expect(screen.getByText("변경된 intent 1개")).toBeInTheDocument();
+    expect(screen.getByText("변경된 상담 유형 1개")).toBeInTheDocument();
     expect(
-      screen.getByText("수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다."),
+      screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "적용" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "취소" })).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("IntentRevisionDraftActions", () => {
     });
 
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
-    expect(screen.queryByText("변경된 intent가 없습니다.")).not.toBeInTheDocument();
+    expect(screen.queryByText("변경된 상담 유형이 없습니다.")).not.toBeInTheDocument();
   });
 
   it("요약 로딩 중에는 로딩 문구와 안내 문구만 보여준다", () => {
@@ -74,7 +74,7 @@ describe("IntentRevisionDraftActions", () => {
 
     expect(screen.getByText("변경 요약을 불러오는 중입니다.")).toBeInTheDocument();
     expect(
-      screen.getByText("수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다."),
+      screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "적용" })).not.toBeInTheDocument();
   });
@@ -88,6 +88,6 @@ describe("IntentRevisionDraftActions", () => {
       },
     });
 
-    expect(screen.getByText("변경된 intent가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("변경된 상담 유형이 없습니다.")).toBeInTheDocument();
   });
 });

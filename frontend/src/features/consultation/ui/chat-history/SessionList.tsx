@@ -33,7 +33,7 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
     return (
       <aside className={styles.wrapper} aria-label="채팅 기록 목록">
         <div className={styles.header}>
-          <Eyebrow>Chat history</Eyebrow>
+          <Eyebrow>상담 이력</Eyebrow>
           <span className={styles.count}>불러오는 중</span>
         </div>
         <div className={styles.stateArea}>
@@ -47,7 +47,7 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
     return (
       <aside className={styles.wrapper} aria-label="채팅 기록 목록">
         <div className={styles.header}>
-          <Eyebrow>Chat history</Eyebrow>
+          <Eyebrow>상담 이력</Eyebrow>
           <span className={styles.count}>오류</span>
         </div>
         <div className={styles.stateArea}>
@@ -60,7 +60,7 @@ export function SessionList({ workspaceId, selectedSessionId, onSelectSession }:
   return (
     <aside className={styles.wrapper} aria-label="채팅 기록 목록">
       <div className={styles.header}>
-        <Eyebrow>Chat history</Eyebrow>
+        <Eyebrow>상담 이력</Eyebrow>
         <span className={styles.count}>{validSessions.length}개 세션</span>
       </div>
 

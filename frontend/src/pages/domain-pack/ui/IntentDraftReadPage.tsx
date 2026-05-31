@@ -90,7 +90,7 @@ function IntentDraftReadContent({
         vId,
         packName,
         versionNo,
-        section: { label: "INTENTS", path: "intents" },
+        section: { label: "상담 유형", path: "intents" },
         selectedLabel: controller.selectedIntentCode,
       }),
     [wsId, pId, vId, packName, versionNo, controller.selectedIntentCode],
@@ -398,7 +398,7 @@ function SelectedIntentCodeSync({
 
 function versionLabelTone(label: string): PillTone {
   if (label === "운영 중") return "signal";
-  if (label === "DRAFT" || label === "Intent 수정 검토") return "warn";
+  if (label === "검토 중" || label === "상담 유형 수정 검토") return "warn";
   if (label === "이전 버전") return "mute";
   return "mute";
 }
@@ -412,15 +412,15 @@ function getVersionLabel({
   isCurrentPublished: boolean;
   isRevisionDraft: boolean;
 }): string {
-  if (isRevisionDraft) return "Intent 수정 검토";
+  if (isRevisionDraft) return "상담 유형 수정 검토";
   if (isCurrentPublished) return "운영 중";
   if (lifecycleStatus === "PUBLISHED") return "이전 버전";
-  if (lifecycleStatus === "DRAFT") return "DRAFT";
+  if (lifecycleStatus === "DRAFT") return "검토 중";
   return "확인 중";
 }
 
 function getExistingDraftDescription(target: ExistingDraftTarget | null): string {
   return target?.sourceType === "INTENT_REVISION"
-    ? "기존 Intent 수정 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요."
-    : "기존 Draft로 이동하거나 Domain Pack 화면에서 Draft를 적용 또는 폐기해 주세요.";
+    ? "기존 상담 유형 수정 검토본으로 이동하거나 도메인팩 화면에서 검토본을 적용 또는 폐기해 주세요."
+    : "기존 검토본으로 이동하거나 도메인팩 화면에서 검토본을 적용 또는 폐기해 주세요.";
 }

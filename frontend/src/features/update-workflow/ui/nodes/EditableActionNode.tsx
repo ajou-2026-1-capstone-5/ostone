@@ -53,8 +53,8 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
             onFocus={policyRef.onFocus}
             onBlur={policyRef.onBlur}
             size={chipInputSize(policyRef.value)}
-            placeholder="policyRef"
-            aria-label="정책 참조 코드"
+            placeholder="응대 기준 코드"
+            aria-label="응대 기준 참조 코드"
           />
         }
         containerTestId="editable-action-node"

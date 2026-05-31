@@ -74,7 +74,7 @@ describe("ApproveIntentDialog", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
-  it("intentName이 다이얼로그 제목과 설명에 표시된다", () => {
+  it("상담 유형 이름이 다이얼로그 제목과 설명에 표시된다", () => {
     render(
       <ApproveIntentDialog
         intentName="order_cancel"
@@ -86,7 +86,7 @@ describe("ApproveIntentDialog", () => {
       />,
     );
 
-    expect(screen.getByText(/intent publish하기/)).toBeInTheDocument();
+    expect(screen.getByText(/상담 유형 승인/)).toBeInTheDocument();
     expect(screen.getByText(/order_cancel/)).toBeInTheDocument();
   });
 });

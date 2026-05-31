@@ -76,7 +76,7 @@ export function WorkflowGraphViewerPage() {
 
   useEffect(() => {
     if (error) {
-      toast.error("워크플로우 데이터를 불러오지 못했습니다.");
+      toast.error("응대 흐름 데이터를 불러오지 못했습니다.");
     }
   }, [error]);
 
@@ -88,10 +88,10 @@ export function WorkflowGraphViewerPage() {
           vId: vsId,
           packName,
           versionNo,
-          section: { label: "WORKFLOWS", path: "workflows" },
-          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId}` : "GRAPH"),
+          section: { label: "응대 흐름", path: "workflows" },
+          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId} 흐름도` : "흐름도"),
         })
-      : ["워크플로우 설계", "Workflow Graph"];
+      : ["도메인팩 관리", "응대 흐름도"];
 
   const listPath =
     wsId !== null && pkId !== null
@@ -103,7 +103,7 @@ export function WorkflowGraphViewerPage() {
       : null;
 
   const pageTitle =
-    data?.name ?? data?.workflowCode ?? (wfId !== null ? `워크플로우 #${wfId}` : "워크플로우 그래프");
+    data?.name ?? data?.workflowCode ?? (wfId !== null ? `응대 흐름 #${wfId}` : "응대 흐름도");
 
   const shell = (children: ReactNode) => (
     <OstoneShell active="workflows" crumbs={crumbs}>
@@ -152,7 +152,7 @@ export function WorkflowGraphViewerPage() {
     return shell(
       <div data-testid="loading-state" className={styles.loadingState}>
         <LoadingSpinner />
-        <span className={styles.loadingText}>워크플로우 데이터를 불러오는 중...</span>
+        <span className={styles.loadingText}>응대 흐름 데이터를 불러오는 중...</span>
       </div>,
     );
   }
@@ -172,7 +172,7 @@ export function WorkflowGraphViewerPage() {
   if (graphResult.status === "invalid") {
     return shell(
       <div data-testid="graph-data-error-state" className={styles.centerState}>
-        <ErrorState message="워크플로우 그래프 데이터 형식이 올바르지 않습니다." />
+        <ErrorState message="응대 흐름도 데이터 형식이 올바르지 않습니다." />
       </div>,
     );
   }
@@ -180,7 +180,7 @@ export function WorkflowGraphViewerPage() {
   if (graphResult.status === "empty") {
     return shell(
       <div data-testid="empty-state" className={styles.centerState}>
-        <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
+        <EmptyState message="표시할 응대 흐름도가 없습니다." />
       </div>,
     );
   }

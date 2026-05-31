@@ -168,7 +168,7 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     expect(screen.getByTestId("workflow-detail-title")).toHaveTextContent("환불 처리");
     expect(screen.queryByText("refund.standard")).not.toBeInTheDocument();
-    expect(screen.getByText("2 nodes")).toBeInTheDocument();
+    expect(screen.getByText("노드 2개")).toBeInTheDocument();
     expect(screen.getByTestId("graph-viewer")).toHaveTextContent("graph nodes: 2");
   });
 
@@ -280,7 +280,7 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "워크플로우 코드를 확인할 수 없어 수정 초안을 만들 수 없습니다.",
+        "응대 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.",
       ),
     );
     expect(mockCreateRevisionDraft).not.toHaveBeenCalled();
@@ -322,7 +322,7 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "수정 초안에서 같은 워크플로우를 찾지 못했습니다.",
+        "수정 검토본에서 같은 응대 흐름을 찾지 못했습니다.",
       ),
     );
     expect(screen.getByTestId("location")).toHaveTextContent(
@@ -330,7 +330,7 @@ describe("WorkflowDraftReadPage", () => {
     );
   });
 
-  it("기존 DRAFT가 있으면 기존 Draft 이동 dialog를 표시한다", async () => {
+  it("기존 검토본이 있으면 기존 검토본 이동 dialog를 표시한다", async () => {
     mockUsePackDetail.mockReturnValue({
       data: {
         name: "CS Pack",
@@ -365,8 +365,8 @@ describe("WorkflowDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
     fireEvent.click(screen.getByTestId("edit-toggle"));
 
-    expect(await screen.findByText("진행 중인 Draft가 있습니다")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "기존 Draft로 이동" }));
+    expect(await screen.findByText("진행 중인 검토본이 있습니다")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "기존 검토본으로 이동" }));
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent(
         "/workspaces/1/domain-packs/2/workflows/55?versionId=5",
@@ -405,10 +405,10 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "진행 중인 Draft를 확인할 수 없습니다. Domain Pack 화면에서 상태를 확인해 주세요.",
+        "진행 중인 검토본을 확인할 수 없습니다. 도메인팩 화면에서 상태를 확인해 주세요.",
       ),
     );
-    expect(screen.queryByText("진행 중인 Draft가 있습니다")).not.toBeInTheDocument();
+    expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
   });
 
   it("기존 DRAFT 충돌 후 같은 workflow를 찾지 못하면 이동 dialog를 열지 않는다", async () => {
@@ -448,10 +448,10 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "기존 Draft에서 같은 워크플로우를 찾지 못했습니다.",
+        "기존 검토본에서 같은 응대 흐름을 찾지 못했습니다.",
       ),
     );
-    expect(screen.queryByText("진행 중인 Draft가 있습니다")).not.toBeInTheDocument();
+    expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
   });
 
   it("기존 DRAFT 충돌 후 pack refetch가 실패하면 에러를 안내하고 dialog를 열지 않는다", async () => {
@@ -486,7 +486,7 @@ describe("WorkflowDraftReadPage", () => {
         "Failed to resolve existing workflow draft",
         expect.any(Error),
       );
-      expect(screen.queryByText("진행 중인 Draft가 있습니다")).not.toBeInTheDocument();
+      expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();
     } finally {
       consoleError.mockRestore();
     }

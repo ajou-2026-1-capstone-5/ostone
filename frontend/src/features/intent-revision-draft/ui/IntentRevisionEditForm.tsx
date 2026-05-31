@@ -165,8 +165,8 @@ export function IntentRevisionEditForm({
     } catch (error) {
       toast.error(
         error instanceof Error
-          ? `Intent 수정 내용 저장에 실패했습니다. ${error.message}`
-          : "Intent 수정 내용 저장에 실패했습니다.",
+          ? `상담 유형 수정 내용 저장에 실패했습니다. ${error.message}`
+          : "상담 유형 수정 내용 저장에 실패했습니다.",
       );
       return;
     }

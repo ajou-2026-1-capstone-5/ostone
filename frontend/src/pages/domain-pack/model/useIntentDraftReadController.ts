@@ -375,10 +375,10 @@ function useSaveRevisionHandler({
         });
         resetDirty();
         refreshIntentViews();
-        toast.success("Intent 수정 내용이 저장되었습니다.");
+        toast.success("상담 유형 수정 내용이 저장되었습니다.");
         return true;
       } catch (error) {
-        toast.error(resolveApiErrorMessage(error, "Intent 수정 내용 저장에 실패했습니다."));
+        toast.error(resolveApiErrorMessage(error, "상담 유형 수정 내용 저장에 실패했습니다."));
         return false;
       }
     },
@@ -439,14 +439,14 @@ async function savePublishedIntentRevision({
     if (!result.patchSucceeded) {
       toast.error(
         result.clonedIntentId === null
-          ? "Intent 수정 초안에서 같은 intent를 찾지 못했습니다."
-          : "Intent 수정 초안은 생성됐지만 수정 내용 저장에 실패했습니다.",
+          ? "상담 유형 수정 초안에서 같은 상담 유형을 찾지 못했습니다."
+          : "상담 유형 수정 초안은 생성됐지만 수정 내용 저장에 실패했습니다.",
       );
       setRecoveryVersionId(result.draftVersionId);
     }
     navigateToIntentRoute(result.draftVersionId, result.clonedIntentId);
     if (result.patchSucceeded) {
-      toast.success("Intent 수정 초안이 생성되었습니다.");
+      toast.success("상담 유형 수정 초안이 생성되었습니다.");
     }
     return true;
   } catch (error) {
@@ -461,7 +461,7 @@ async function savePublishedIntentRevision({
       return false;
     }
 
-    toast.error(resolveApiErrorMessage(error, "Intent 수정 내용 저장에 실패했습니다."));
+    toast.error(resolveApiErrorMessage(error, "상담 유형 수정 내용 저장에 실패했습니다."));
     return false;
   }
 }
@@ -501,12 +501,12 @@ function useApplyRevisionDraftHandler({
         const activated = await intentRevisionDraftApi.activateVersion(wsId, pId, vId);
         await Promise.all([packQuery.refetch(), versionQuery.refetch()]);
         refreshIntentViews();
-        toast.success("Intent 수정 초안이 적용되었습니다.");
+        toast.success("상담 유형 수정 초안이 적용되었습니다.");
         await navigateToIntentCode(activated.activatedVersionId, intentCode, {
           replace: true,
         });
       } catch (error) {
-        toast.error(resolveApiErrorMessage(error, "Intent 수정 초안 적용에 실패했습니다."));
+        toast.error(resolveApiErrorMessage(error, "상담 유형 수정 초안 적용에 실패했습니다."));
       } finally {
         setVersionActionPending(false);
       }
@@ -557,7 +557,7 @@ function useDiscardRevisionDraftHandler({
         await intentRevisionDraftApi.discardDraft(wsId, pId, vId);
         const targetVersionId = currentPublishedVersionId ?? baseVersionId;
         await packQuery.refetch();
-        toast.success("Intent 수정 초안이 취소되었습니다.");
+        toast.success("상담 유형 수정 초안이 취소되었습니다.");
         if (targetVersionId !== null) {
           await navigateToIntentCode(targetVersionId, intentCode, {
             replace: true,
@@ -568,7 +568,7 @@ function useDiscardRevisionDraftHandler({
           });
         }
       } catch (error) {
-        toast.error(resolveApiErrorMessage(error, "Intent 수정 초안 취소에 실패했습니다."));
+        toast.error(resolveApiErrorMessage(error, "상담 유형 수정 초안 취소에 실패했습니다."));
       } finally {
         setVersionActionPending(false);
       }

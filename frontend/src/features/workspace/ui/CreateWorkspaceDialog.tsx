@@ -106,7 +106,7 @@ export function CreateWorkspaceDialog({
         <DialogHeader>
           <DialogTitle>워크스페이스 생성</DialogTitle>
           <DialogDescription>
-            팀이 함께 사용할 워크스페이스를 만들고 워크플로우 생성 작업을 시작합니다.
+            팀이 함께 사용할 워크스페이스를 만들고 응대 흐름 생성 작업을 시작합니다.
           </DialogDescription>
         </DialogHeader>
         <form className={styles.form} onSubmit={handleSubmit}>

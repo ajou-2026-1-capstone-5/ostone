@@ -30,7 +30,7 @@ describe("RiskStatusToggle", () => {
       />,
     );
 
-    expect(screen.getByRole("switch", { name: "위험요소 상태" })).toBeChecked();
+    expect(screen.getByRole("switch", { name: "주의 사항 상태" })).toBeChecked();
   });
 
   it("상태 변경 시 update mutation을 호출한다", () => {
@@ -44,7 +44,7 @@ describe("RiskStatusToggle", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("switch", { name: "위험요소 상태" }));
+    fireEvent.click(screen.getByRole("switch", { name: "주의 사항 상태" }));
 
     expect(mutate).toHaveBeenCalledWith({
       workspaceId: 1,

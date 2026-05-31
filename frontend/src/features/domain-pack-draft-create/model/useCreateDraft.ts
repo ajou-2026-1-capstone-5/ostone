@@ -17,7 +17,7 @@ export function useCreateDraft() {
       createDraftApi.create(wsId, packId, payload as Parameters<typeof createDraftApi.create>[2]),
     onSuccess: (_data, { wsId, packId }) => {
       queryClient.invalidateQueries({ queryKey: domainPackQueryKeys.detail(wsId, packId) });
-      toast.success("새 DRAFT 버전이 생성되었습니다.");
+      toast.success("새 검토본이 생성되었습니다.");
     },
     onError: (error: unknown) => {
       if (error instanceof ApiRequestError) {
@@ -26,10 +26,10 @@ export function useCreateDraft() {
         } else if (error.status === 409) {
           // 409는 caller(모달)의 per-call onError에서 처리. toast 없음.
         } else {
-          toast.error("DRAFT 생성에 실패했습니다.");
+          toast.error("검토본 생성에 실패했습니다.");
         }
       } else {
-        toast.error("DRAFT 생성에 실패했습니다.");
+        toast.error("검토본 생성에 실패했습니다.");
       }
     },
   });

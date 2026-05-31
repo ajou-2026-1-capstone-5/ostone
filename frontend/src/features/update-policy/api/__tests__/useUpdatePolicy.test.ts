@@ -97,7 +97,7 @@ describe("useUpdatePolicy", () => {
       result.current.mutate({ ...params, body: { name: "새 정책" } });
     });
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("정책이 수정되었습니다."));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("응대 기준이 수정되었습니다."));
   });
 
   it("POLICY_NOT_EDITABLE 에러 시 전용 안내 메시지를 표시한다", async () => {

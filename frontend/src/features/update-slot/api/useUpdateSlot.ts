@@ -27,7 +27,7 @@ export function useUpdateSlot() {
       queryClient.invalidateQueries({
         queryKey: slotQueryKeys.list(workspaceId, packId, versionId),
       });
-      toast.success("슬롯이 수정되었습니다.");
+      toast.success("확인 항목이 수정되었습니다.");
     },
     onError: (error: unknown) => {
       if (error instanceof ApiRequestError && error.code === "SLOT_NOT_EDITABLE") {
