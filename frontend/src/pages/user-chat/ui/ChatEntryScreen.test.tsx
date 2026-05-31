@@ -59,5 +59,14 @@ describe("ChatEntryScreen", () => {
     setup({ workspaceId: 42 });
 
     expect(screen.getByTestId("chat-entry-brand")).toHaveTextContent("Workspace #42");
+    expect(screen.getByTestId("chat-entry-brand")).toHaveTextContent("고객 채팅 미리보기");
+    expect(screen.getByTestId("chat-entry-brand")).toHaveTextContent("CURRENT PACK");
+    expect(screen.getByTestId("chat-entry-submit")).toHaveTextContent("미리보기 시작");
+    expect(screen.getByTestId("chat-entry-screen")).toHaveTextContent(
+      "운영 중인 도메인 팩이 고객에게 어떻게 응답하는지 확인할 이름을 적어 주세요",
+    );
+    expect(screen.getByTestId("chat-entry-brand")).toHaveTextContent(
+      "같은 이름으로 다시 들어오면 저장된 테스트 세션을 이어서 엽니다",
+    );
   });
 });
