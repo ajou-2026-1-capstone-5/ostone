@@ -9,7 +9,10 @@ import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
 import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
 import type { ChatMessage as UiChatMessage } from "../../../features/consultation/ui/ChatPanel";
-import { normalizeChatSenderRole } from "../../../features/consultation/lib/chatRoleLabels";
+import {
+  normalizeChatSenderRole,
+  type ChatSenderRole,
+} from "../../../features/consultation/lib/chatRoleLabels";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import type {
   ChatSession,
@@ -47,6 +50,15 @@ type MessageLike = {
   timestamp?: string | null;
 };
 
+type PendingMessage = {
+  id: string;
+  sessionId: string;
+  content: string;
+  isNote: boolean;
+  timeoutId: ReturnType<typeof setTimeout>;
+  createdAt: number;
+};
+
 type SessionMeta = {
   customerName?: string;
   handoffReason?: string;
@@ -55,6 +67,8 @@ type SessionMeta = {
   lastMessageRole?: string;
   lastMessageAt?: string;
 };
+
+const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
 
 const toUiMessage = (message: MessageLike): UiChatMessage => {
   const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
@@ -65,6 +79,79 @@ const toUiMessage = (message: MessageLike): UiChatMessage => {
     timestamp: formatTime(createdAt),
   };
 };
+
+const shouldRefreshMatchedWorkflow = (role: ChatSenderRole) =>
+  role === "ASSISTANT" || role === "SYSTEM";
+
+const isCounselorEchoRole = (role: ChatSenderRole) =>
+  role === "COUNSELOR" || role === "AGENT" || role === "NOTE";
+
+const pendingRoleMatchesEcho = (pending: PendingMessage, role: ChatSenderRole) =>
+  pending.isNote ? role === "NOTE" : role === "COUNSELOR" || role === "AGENT";
+
+const hasSendingMessage = (messages: UiChatMessage[], pendingId: string) =>
+  messages.some((message) => message.id === pendingId && message.deliveryStatus === "sending");
+
+const findPendingEchoMatch = (
+  pendingMessages: Iterable<PendingMessage>,
+  messages: UiChatMessage[],
+  sessionId: string,
+  role: ChatSenderRole,
+  content: string,
+) =>
+  [...pendingMessages]
+    .filter(
+      (pending) =>
+        pending.sessionId === sessionId &&
+        pendingRoleMatchesEcho(pending, role) &&
+        pending.content === content &&
+        hasSendingMessage(messages, pending.id),
+    )
+    .sort((a, b) => a.createdAt - b.createdAt)[0];
+
+const reconcileCounselorEchoMessage = (
+  messages: UiChatMessage[],
+  pendingMessages: Map<string, PendingMessage>,
+  sessionId: string,
+  role: ChatSenderRole,
+  realtimeMessage: RealtimeChatMessage,
+) => {
+  const serverMessage = {
+    ...toUiMessage(realtimeMessage),
+    deliveryStatus: "sent" as const,
+  };
+  if (messages.some((message) => message.id === serverMessage.id)) {
+    return messages;
+  }
+
+  const pendingMatch = findPendingEchoMatch(
+    pendingMessages.values(),
+    messages,
+    sessionId,
+    role,
+    realtimeMessage.content ?? "",
+  );
+  if (!pendingMatch) {
+    return messages;
+  }
+
+  clearTimeout(pendingMatch.timeoutId);
+  pendingMessages.delete(pendingMatch.id);
+  return messages.map((message) => (message.id === pendingMatch.id ? serverMessage : message));
+};
+
+const markMessageSending = (messages: UiChatMessage[], messageId: string) =>
+  messages.map((message) =>
+    message.id === messageId
+      ? {
+          ...message,
+          deliveryStatus: "sending" as const,
+          retryable: false,
+          errorMessage: undefined,
+          timestamp: formatTime(new Date().toISOString()),
+        }
+      : message,
+  );
 
 const calcWaitMinutes = (isoString: string) => {
   if (!isoString) return 0;
@@ -204,6 +291,20 @@ const sortQueueCustomers = (customers: QueueCustomer[]) =>
     return getQueueSortTime(b) - getQueueSortTime(a);
   });
 
+const replaceAssignedQueueCustomer = (
+  customers: QueueCustomer[],
+  sessionId: string,
+  assignedSession: ChatSession,
+  currentCounselorId: number,
+) =>
+  sortQueueCustomers(
+    customers.map((customer) =>
+      customer.id === sessionId
+        ? toQueueCustomer(assignedSession, currentCounselorId, customer)
+        : customer,
+    ),
+  );
+
 const formatAverageFirstResponse = (seconds?: number | null) => {
   if (seconds == null) return "--";
   const minutes = Math.floor(seconds / 60);
@@ -287,13 +388,61 @@ export const ConsultationPage: React.FC = () => {
   const [matchedWorkflow, setMatchedWorkflow] = useState<MatchedWorkflow | null>(null);
   const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
   const workflowRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { connectionStatus, subscribe, sendTo } = useStomp();
-  const pendingIdsRef = useRef<Set<string>>(new Set());
+  const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
   const metricsErrorToastShownRef = useRef(false);
   const queueErrorToastShownRef = useRef(false);
   const currentCounselorId = getAuthUser()?.id ?? null;
+
+  const failPendingMessage = useCallback((messageId: string, errorMessage?: string) => {
+    const pending = pendingMessagesRef.current.get(messageId);
+    if (!pending) return;
+
+    clearTimeout(pending.timeoutId);
+    pendingMessagesRef.current.delete(messageId);
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              deliveryStatus: "failed",
+              retryable: true,
+              errorMessage,
+            }
+          : message,
+      ),
+    );
+  }, []);
+
+  const clearPendingMessages = useCallback(() => {
+    pendingMessagesRef.current.forEach((pending) => clearTimeout(pending.timeoutId));
+    pendingMessagesRef.current.clear();
+  }, []);
+
+  const handleServerError = useCallback(
+    (error: unknown) => {
+      const activeSessionId = activeCustomerIdRef.current;
+      if (!activeSessionId) return;
+
+      const pending = [...pendingMessagesRef.current.values()]
+        .filter((item) => item.sessionId === activeSessionId)
+        .sort((a, b) => a.createdAt - b.createdAt)[0];
+      if (!pending) return;
+
+      const errorMessage =
+        typeof error === "object" &&
+        error !== null &&
+        "content" in error &&
+        typeof (error as { content?: unknown }).content === "string"
+          ? (error as { content: string }).content
+          : "메시지 전송에 실패했습니다.";
+      failPendingMessage(pending.id, errorMessage);
+    },
+    [failPendingMessage],
+  );
+
+  const { connectionStatus, subscribe, sendTo } = useStomp({ onServerError: handleServerError });
 
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
@@ -330,8 +479,8 @@ export const ConsultationPage: React.FC = () => {
     setMessagesCustomerId(null);
     setMatchedWorkflow(null);
     setIsMatchedWorkflowLoading(false);
-    pendingIdsRef.current.clear();
-  }, []);
+    clearPendingMessages();
+  }, [clearPendingMessages]);
 
   const loadMatchedWorkflow = useCallback(async (sessionId: number) => {
     // 매칭 워크플로우 바는 보조 패널이므로 실패 시 토스트 없이 바만 숨긴다.
@@ -343,6 +492,29 @@ export const ConsultationPage: React.FC = () => {
       return null;
     }
   }, []);
+
+  const refreshMatchedWorkflow = useCallback(
+    async (sessionId: number) => {
+      const workflow = await loadMatchedWorkflow(sessionId);
+      if (activeCustomerIdRef.current === String(sessionId)) {
+        setMatchedWorkflow(workflow);
+      }
+    },
+    [loadMatchedWorkflow],
+  );
+
+  const scheduleMatchedWorkflowRefresh = useCallback(
+    (sessionId: number) => {
+      if (workflowRefetchTimerRef.current) {
+        clearTimeout(workflowRefetchTimerRef.current);
+      }
+      workflowRefetchTimerRef.current = setTimeout(() => {
+        workflowRefetchTimerRef.current = null;
+        void refreshMatchedWorkflow(sessionId);
+      }, 300);
+    },
+    [refreshMatchedWorkflow],
+  );
 
   useEffect(() => {
     activeCustomerIdRef.current = activeCustomerId;
@@ -536,19 +708,20 @@ export const ConsultationPage: React.FC = () => {
         clearTimeout(workflowRefetchTimerRef.current);
         workflowRefetchTimerRef.current = null;
       }
+      clearPendingMessages();
     };
-  }, []);
+  }, [clearPendingMessages]);
 
   useEffect(() => {
     if (!activeCustomerId) {
-      pendingIdsRef.current.clear();
+      clearPendingMessages();
       setMessages([]);
       setMessagesCustomerId(null);
       setSelectedMessageId(null);
       return;
     }
 
-    pendingIdsRef.current.clear();
+    clearPendingMessages();
     setMessages([]);
     setMessagesCustomerId(null);
     setSelectedMessageId(null);
@@ -574,49 +747,29 @@ export const ConsultationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeCustomerId]);
+  }, [activeCustomerId, clearPendingMessages]);
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
 
     const topic = `/topic/chat.${activeCustomerId}`;
-    const sessionIdForFetch = Number(activeCustomerId);
     const unsubscribe = subscribe(topic, (raw) => {
       const msg = raw as RealtimeChatMessage;
       const normalizedRole = normalizeChatSenderRole(msg.senderRole);
-      if (normalizedRole === "ASSISTANT" || normalizedRole === "SYSTEM") {
-        if (workflowRefetchTimerRef.current) {
-          clearTimeout(workflowRefetchTimerRef.current);
-        }
-        workflowRefetchTimerRef.current = setTimeout(() => {
-          workflowRefetchTimerRef.current = null;
-          void loadMatchedWorkflow(sessionIdForFetch).then((workflow) => {
-            if (activeCustomerIdRef.current === String(sessionIdForFetch)) {
-              setMatchedWorkflow(workflow);
-            }
-          });
-        }, 300);
+      if (shouldRefreshMatchedWorkflow(normalizedRole)) {
+        scheduleMatchedWorkflowRefresh(Number(activeCustomerId));
       }
-      if (
-        normalizedRole === "COUNSELOR" ||
-        normalizedRole === "AGENT" ||
-        normalizedRole === "NOTE"
-      ) {
+      if (isCounselorEchoRole(normalizedRole)) {
         setMessagesCustomerId(activeCustomerId);
-        setMessages((prev) => {
-          const temps = [...pendingIdsRef.current];
-          if (temps.length > 0) {
-            const matchIdx = temps.findIndex((id) => {
-              const pending = prev.find((m) => m.id === id);
-              return pending?.content === (msg.content ?? "");
-            });
-            if (matchIdx < 0) return prev;
-            const tempId = temps[matchIdx];
-            pendingIdsRef.current.delete(tempId);
-            return prev.map((m) => (m.id === tempId ? toUiMessage(msg) : m));
-          }
-          return prev;
-        });
+        setMessages((prev) =>
+          reconcileCounselorEchoMessage(
+            prev,
+            pendingMessagesRef.current,
+            activeCustomerId,
+            normalizedRole,
+            msg,
+          ),
+        );
         return;
       }
       const msgId = String(msg.id);
@@ -634,7 +787,21 @@ export const ConsultationPage: React.FC = () => {
         workflowRefetchTimerRef.current = null;
       }
     };
-  }, [connectionStatus, activeCustomerId, subscribe, loadMatchedWorkflow]);
+  }, [connectionStatus, activeCustomerId, subscribe, scheduleMatchedWorkflowRefresh]);
+
+  const registerPendingMessage = useCallback(
+    (message: Omit<PendingMessage, "timeoutId">) => {
+      const timeoutId = setTimeout(
+        () => failPendingMessage(message.id, "서버 응답 시간이 초과되었습니다."),
+        COUNSELOR_MESSAGE_ACK_TIMEOUT_MS,
+      );
+      pendingMessagesRef.current.set(message.id, {
+        ...message,
+        timeoutId,
+      });
+    },
+    [failPendingMessage],
+  );
 
   const handleSelectCustomer = useCallback(
     async (id: string) => {
@@ -650,13 +817,7 @@ export const ConsultationPage: React.FC = () => {
       try {
         const assignedSession = await consultationApi.assignSession(Number(id), currentCounselorId);
         setQueue((prev) =>
-          sortQueueCustomers(
-            prev.map((customer) =>
-              customer.id === id
-                ? toQueueCustomer(assignedSession, currentCounselorId, customer)
-                : customer,
-            ),
-          ),
+          replaceAssignedQueueCustomer(prev, id, assignedSession, currentCounselorId),
         );
         toast.success("상담 세션이 배정되었습니다.");
       } catch {
@@ -680,10 +841,18 @@ export const ConsultationPage: React.FC = () => {
         senderRole: isNote ? "NOTE" : "COUNSELOR",
         content,
         timestamp: formatTime(new Date().toISOString()),
+        deliveryStatus: "sending",
+        retryable: false,
       };
       setMessages((prev) => [...prev, optimisticMsg]);
       setMessagesCustomerId(targetId);
-      pendingIdsRef.current.add(optimisticMsg.id);
+      registerPendingMessage({
+        id: optimisticMsg.id,
+        sessionId: targetId,
+        content,
+        isNote,
+        createdAt: Date.now(),
+      });
       setSelectedMessageId(null);
 
       sendTo("/app/chat.counselor.send", {
@@ -692,7 +861,52 @@ export const ConsultationPage: React.FC = () => {
         isNote,
       });
     },
-    [activeCustomerId, connectionStatus, isAssignedToCurrentCounselor, sendTo],
+    [
+      activeCustomerId,
+      connectionStatus,
+      isAssignedToCurrentCounselor,
+      registerPendingMessage,
+      sendTo,
+    ],
+  );
+
+  const handleRetryMessage = useCallback(
+    (messageId: string) => {
+      if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
+      if (connectionStatus !== "CONNECTED") {
+        toast.error("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      const failedMessage = messages.find((message) => message.id === messageId);
+      if (failedMessage?.deliveryStatus !== "failed") return;
+
+      const isNote = failedMessage.senderRole === "NOTE";
+      const targetId = activeCustomerId;
+      setMessages((prev) => markMessageSending(prev, messageId));
+      registerPendingMessage({
+        id: messageId,
+        sessionId: targetId,
+        content: failedMessage.content,
+        isNote,
+        createdAt: Date.now(),
+      });
+      setSelectedMessageId(null);
+
+      sendTo("/app/chat.counselor.send", {
+        sessionId: Number(targetId),
+        content: failedMessage.content,
+        isNote,
+      });
+    },
+    [
+      activeCustomerId,
+      connectionStatus,
+      isAssignedToCurrentCounselor,
+      messages,
+      registerPendingMessage,
+      sendTo,
+    ],
   );
 
   const handleEndSession = async () => {
@@ -815,6 +1029,7 @@ export const ConsultationPage: React.FC = () => {
             channel={activeCustomer?.channel || null}
             messages={visibleMessages}
             onSendMessage={handleSendMessage}
+            onRetryMessage={handleRetryMessage}
             selectedMessageId={selectedMessageId}
             onSelectMessage={setSelectedMessageId}
             sessionStatusLabel={activeAssignment?.label}

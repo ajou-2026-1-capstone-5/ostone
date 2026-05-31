@@ -242,6 +242,16 @@
   border-bottom-right-radius: 6px;
 }
 
+.msgBubbleSending {
+  opacity: 0.72;
+}
+
+.msgBubbleFailed {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
 .msgTime {
   font-size: 0.7rem;
   letter-spacing: normal;
@@ -252,6 +262,55 @@
 
 .msgTimeAgent {
   text-align: right;
+}
+
+.deliveryMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  letter-spacing: normal;
+  color: var(--text-secondary);
+}
+
+.deliveryMetaAgent {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.deliveryMetaFailed {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.retryButton {
+  border: 1px solid var(--ink);
+  border-radius: 50px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 5px 10px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.retryButton:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.retryButton:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.08),
+    0 0 0 5px rgba(0, 0, 0, 0.03);
 }
 
 /* System Message */
@@ -284,6 +343,16 @@
   color: rgba(0, 0, 0, 0.7);
   align-self: flex-end;
   max-width: 75%;
+}
+
+.internalNoteSending {
+  opacity: 0.72;
+}
+
+.internalNoteFailed {
+  background: var(--paper);
+  border-style: solid;
+  color: var(--ink);
 }
 
 /* Input Area */
