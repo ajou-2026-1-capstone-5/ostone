@@ -193,7 +193,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>상담 로그 업로드</h2>
-        <p>파일을 데이터셋으로 업로드한 뒤, 생성 시작 버튼으로 도메인팩 초안 생성을 요청합니다.</p>
+        <p>상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다.</p>
       </div>
 
       <div className={styles.uploadArea}>
