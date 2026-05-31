@@ -178,19 +178,20 @@ def test_runtime_config_rejects_missing_backend_base_url(monkeypatch):
         PipelineRuntimeConfig.from_env()
 
 
-def test_runtime_config_accepts_only_flag_embedding_runtime_env(monkeypatch, tmp_path):
+@pytest.mark.parametrize("runtime", [" flag_embedding ", " local_http "])
+def test_runtime_config_accepts_supported_embedding_runtime_env(monkeypatch, tmp_path, runtime):
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
     monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
-    monkeypatch.setenv("ML_EMBEDDING_RUNTIME", " flag_embedding ")
+    monkeypatch.setenv("ML_EMBEDDING_RUNTIME", runtime)
 
     runtime_config = PipelineRuntimeConfig.from_env()
 
-    assert runtime_config.embedding_runtime == "flag_embedding"
+    assert runtime_config.embedding_runtime == runtime.strip()
 
 
 def test_runtime_config_rejects_unknown_embedding_runtime(tmp_path):
-    with pytest.raises(PipelineConfigurationError, match="Only ML_EMBEDDING_RUNTIME=flag_embedding"):
+    with pytest.raises(PipelineConfigurationError, match="ML_EMBEDDING_RUNTIME must be one of"):
         PipelineRuntimeConfig(
             artifact_root=tmp_path,
             backend_base_url="http://backend:8080",
@@ -205,7 +206,7 @@ def test_runtime_config_rejects_removed_embedding_runtime_env(monkeypatch, tmp_p
     monkeypatch.setenv("AIRFLOW_WEBHOOK_SECRET", "secret")
     monkeypatch.setenv("ML_EMBEDDING_RUNTIME", "hash")
 
-    with pytest.raises(PipelineConfigurationError, match="no longer supports alternate runtimes"):
+    with pytest.raises(PipelineConfigurationError, match="no longer supports hash/fake/cheap"):
         PipelineRuntimeConfig.from_env()
 
 

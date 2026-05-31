@@ -12,6 +12,7 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.common.runtime import (
     FlagEmbeddingRuntime,
+    HttpEmbeddingRuntime,
     build_embedding_runtime,
     cosine_similarity,
 )
@@ -112,6 +113,37 @@ def test_flag_embedding_runtime_reports_missing_optional_dependency(monkeypatch)
         FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
 
 
+def test_flag_embedding_runtime_uses_profile_default_max_length(monkeypatch) -> None:
+    captured: dict[str, int] = {}
+
+    class FakeBGEM3FlagModel:
+        def __init__(self, _model_name: str, use_fp16: bool = False) -> None:
+            self.use_fp16 = use_fp16
+
+        def encode(
+            self,
+            texts: Sequence[str],
+            *,
+            batch_size: int,
+            max_length: int,
+            return_dense: bool,
+            return_sparse: bool,
+            return_colbert_vecs: bool,
+        ) -> dict[str, list[list[float]]]:
+            captured["max_length"] = max_length
+            return {"dense_vecs": [[1.0, 0.0] for _text in texts]}
+
+    fake_module = types.ModuleType("FlagEmbedding")
+    fake_module.BGEM3FlagModel = FakeBGEM3FlagModel  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "FlagEmbedding", fake_module)
+    monkeypatch.delenv("EMBEDDING_MAX_LENGTH", raising=False)
+
+    runtime = FlagEmbeddingRuntime("BAAI/bge-m3", "balanced")
+    runtime.embed(["요금 문의"])
+
+    assert captured["max_length"] == 1024
+
+
 def test_build_embedding_runtime_can_select_flag_embedding(monkeypatch, tmp_path) -> None:
     class FakeBGEM3FlagModel:
         def __init__(self, _model_name: str, use_fp16: bool = False) -> None:
@@ -133,6 +165,34 @@ def test_build_embedding_runtime_can_select_flag_embedding(monkeypatch, tmp_path
 
     assert runtime.model_name == "BAAI/bge-m3"
     assert isinstance(runtime, FlagEmbeddingRuntime)
+
+
+def test_build_embedding_runtime_can_select_local_http(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("EMBEDDING_RUNTIME_BASE_URL", "http://host.docker.internal:18090")
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+        embedding_runtime="local_http",
+    )
+
+    runtime = build_embedding_runtime(runtime_config)
+
+    assert runtime.model_name == "BAAI/bge-m3"
+    assert isinstance(runtime, HttpEmbeddingRuntime)
+
+
+def test_local_http_runtime_requires_base_url(monkeypatch, tmp_path) -> None:
+    monkeypatch.delenv("EMBEDDING_RUNTIME_BASE_URL", raising=False)
+    runtime_config = PipelineRuntimeConfig(
+        artifact_root=tmp_path,
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+        embedding_runtime="local_http",
+    )
+
+    with pytest.raises(PipelineConfigurationError, match="EMBEDDING_RUNTIME_BASE_URL"):
+        build_embedding_runtime(runtime_config)
 
 
 def test_cosine_similarity_handles_zero_vectors_and_normal_vectors() -> None:

@@ -21,6 +21,7 @@ gpu_asg_max_size           = 1
 gpu_asg_desired_capacity   = 0
 gpu_root_volume_size       = 120
 embedding_model_name       = "BAAI/bge-m3"
+embedding_model_cache_mount_path = "/app/.cache/huggingface"
 ml_runtime_profile         = "balanced"
 llm_model_name             = "google/gemma-4-E4B-it"
 llm_model_path             = "/models/gemma-4-E4B-it.gguf"

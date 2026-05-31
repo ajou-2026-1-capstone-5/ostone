@@ -63,7 +63,7 @@ public class TriggerDomainPackGenerationUseCase {
 
     try {
       triggerPort.trigger(
-          new DomainPackGenerationTriggerCommand(
+          DomainPackGenerationTriggerCommand.initial(
               command.workspaceId(),
               command.datasetId(),
               createdJob.pipelineJobId(),
@@ -175,6 +175,7 @@ public class TriggerDomainPackGenerationUseCase {
     payload.put("airflowRunId", dagRunId);
     payload.put("requestedBy", command.userId());
     payload.put("objectKey", objectKey);
+    payload.put("runMode", "INITIAL");
     try {
       return objectMapper.writeValueAsString(payload);
     } catch (JsonProcessingException ex) {

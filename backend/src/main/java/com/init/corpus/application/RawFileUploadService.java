@@ -1,7 +1,6 @@
 package com.init.corpus.application;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.corpus.application.RawDatasetUploadCommand.RawConversationInput;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
@@ -15,12 +14,17 @@ import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -154,43 +158,167 @@ public class RawFileUploadService {
   }
 
   private List<RawConversationInput> parseConversations(byte[] fileBytes) {
-    List<RawConversationJson> jsonItems;
-    try {
-      jsonItems =
-          objectMapper.readValue(
-              fileBytes,
-              objectMapper
-                  .getTypeFactory()
-                  .constructCollectionType(List.class, RawConversationJson.class));
-    } catch (IOException e) {
-      throw new RawFileParseException("JSON 파일을 파싱할 수 없습니다: " + e.getMessage());
+    if (isZip(fileBytes)) {
+      return parseZipConversations(fileBytes);
     }
-    if (jsonItems == null || jsonItems.isEmpty()) {
+    return parseJsonConversations(fileBytes, "file");
+  }
+
+  private boolean isZip(byte[] fileBytes) {
+    return fileBytes.length >= 4
+        && fileBytes[0] == 0x50
+        && fileBytes[1] == 0x4b
+        && fileBytes[2] == 0x03
+        && fileBytes[3] == 0x04;
+  }
+
+  private List<RawConversationInput> parseZipConversations(byte[] fileBytes) {
+    List<RawConversationInput> conversations = new ArrayList<>();
+    try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(fileBytes))) {
+      ZipEntry entry;
+      while ((entry = zip.getNextEntry()) != null) {
+        if (entry.isDirectory() || !isSupportedZipEntry(entry.getName())) {
+          continue;
+        }
+        conversations.addAll(parseJsonConversations(zip.readAllBytes(), entry.getName()));
+      }
+    } catch (IOException e) {
+      throw new RawFileParseException("ZIP 파일을 파싱할 수 없습니다: " + e.getMessage());
+    }
+    if (conversations.isEmpty()) {
+      throw new RawFileParseException("ZIP 파일에 상담 데이터가 없습니다.");
+    }
+    return conversations;
+  }
+
+  private boolean isSupportedZipEntry(String entryName) {
+    String lowered = entryName.toLowerCase();
+    return lowered.endsWith(".json") || lowered.endsWith(".jsonl");
+  }
+
+  private List<RawConversationInput> parseJsonConversations(byte[] fileBytes, String sourceName) {
+    String text = new String(fileBytes, StandardCharsets.UTF_8).strip();
+    if (text.isEmpty()) {
+      return List.of();
+    }
+    if (sourceName.toLowerCase().endsWith(".jsonl")) {
+      return parseJsonlConversations(text, sourceName);
+    }
+    try {
+      JsonNode root = objectMapper.readTree(text);
+      List<RawConversationInput> conversations = new ArrayList<>();
+      for (JsonNode node : conversationNodes(root)) {
+        conversations.add(toRawConversationInput(node));
+      }
+      if (conversations.isEmpty()) {
+        throw new RawFileParseException("파일에 상담 데이터가 없습니다.");
+      }
+      return conversations;
+    } catch (IOException e) {
+      throw new RawFileParseException(sourceName + " JSON 파일을 파싱할 수 없습니다: " + e.getMessage());
+    }
+  }
+
+  private List<RawConversationInput> parseJsonlConversations(String text, String sourceName) {
+    List<RawConversationInput> conversations = new ArrayList<>();
+    String[] lines = text.split("\\R");
+    for (int index = 0; index < lines.length; index++) {
+      String line = lines[index].strip();
+      if (line.isEmpty()) {
+        continue;
+      }
+      try {
+        JsonNode node = objectMapper.readTree(line);
+        for (JsonNode row : conversationNodes(node)) {
+          conversations.add(toRawConversationInput(row));
+        }
+      } catch (IOException e) {
+        throw new RawFileParseException(
+            sourceName + " JSONL " + (index + 1) + "번째 줄을 파싱할 수 없습니다: " + e.getMessage());
+      }
+    }
+    if (conversations.isEmpty()) {
       throw new RawFileParseException("파일에 상담 데이터가 없습니다.");
     }
+    return conversations;
+  }
+
+  private List<JsonNode> conversationNodes(JsonNode root) {
+    if (root.isArray()) {
+      List<JsonNode> rows = new ArrayList<>();
+      root.forEach(rows::add);
+      return rows;
+    }
+    if (root.isObject()) {
+      for (String key : List.of("conversations", "data", "items")) {
+        JsonNode rows = root.get(key);
+        if (rows != null && rows.isArray()) {
+          List<JsonNode> nodes = new ArrayList<>();
+          rows.forEach(nodes::add);
+          return nodes;
+        }
+      }
+      return List.of(root);
+    }
+    return List.of();
+  }
+
+  private RawConversationInput toRawConversationInput(JsonNode node) {
     try {
-      return jsonItems.stream()
-          .map(
-              json ->
-                  new RawConversationInput(
-                      json.sourceId(),
-                      json.source(),
-                      json.consultingCategory(),
-                      json.clientGender(),
-                      json.clientAge(),
-                      json.consultingContent()))
-          .toList();
+      return new RawConversationInput(
+          firstText(node, "source_id", "id", "consultation_id", "case_id"),
+          firstText(node, "source", "channel"),
+          firstText(node, "consulting_category"),
+          firstText(node, "client_gender"),
+          firstText(node, "client_age"),
+          consultingContent(node));
     } catch (IllegalArgumentException e) {
       throw new RawFileParseException("상담 데이터 형식이 올바르지 않습니다: " + e.getMessage());
     }
   }
 
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private record RawConversationJson(
-      @JsonProperty("source_id") String sourceId,
-      @JsonProperty("source") String source,
-      @JsonProperty("consulting_category") String consultingCategory,
-      @JsonProperty("client_gender") String clientGender,
-      @JsonProperty("client_age") String clientAge,
-      @JsonProperty("consulting_content") String consultingContent) {}
+  private String consultingContent(JsonNode node) {
+    String content = firstText(node, "consulting_content", "content", "text", "full_text", "conversation");
+    if (content != null && !content.isBlank()) {
+      return content;
+    }
+    JsonNode turns = node.get("turns");
+    if (turns == null || !turns.isArray()) {
+      return null;
+    }
+    List<String> lines = new ArrayList<>();
+    for (JsonNode turn : turns) {
+      String text = firstText(turn, "message_text", "text", "utterance", "content", "발화");
+      if (text == null || text.isBlank()) {
+        continue;
+      }
+      lines.add(speakerPrefix(firstText(turn, "speaker_role", "speaker", "role", "화자")) + text.strip());
+    }
+    return String.join("\n", lines);
+  }
+
+  private String speakerPrefix(String speaker) {
+    String value = speaker == null ? "" : speaker.toLowerCase();
+    if (value.contains("agent") || value.contains("상담") || value.contains("직원")) {
+      return "상담사: ";
+    }
+    return "고객: ";
+  }
+
+  private String firstText(JsonNode node, String... fieldNames) {
+    if (node == null || !node.isObject()) {
+      return null;
+    }
+    for (String fieldName : fieldNames) {
+      JsonNode value = node.get(fieldName);
+      if (value == null || value.isNull() || value.isContainerNode()) {
+        continue;
+      }
+      String text = value.asText("").strip();
+      if (!text.isEmpty()) {
+        return text;
+      }
+    }
+    return null;
+  }
 }

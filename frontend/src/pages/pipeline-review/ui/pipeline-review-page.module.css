@@ -1,0 +1,90 @@
+.pageWrapper {
+  width: min(920px, 100%);
+  padding: var(--s-6) var(--s-8) var(--s-10);
+  display: grid;
+  gap: var(--s-5);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.eyebrow {
+  margin: 0 0 var(--s-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.title {
+  margin: 0;
+  max-width: 640px;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 450;
+  letter-spacing: -0.26px;
+  line-height: 1.25;
+}
+
+.jobBadge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.contextPanel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--line);
+}
+
+.contextItem {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  background: var(--paper);
+}
+
+.contextLabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.54px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.contextItem strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.1px;
+}
+
+@media (max-width: 760px) {
+  .pageWrapper {
+    padding: var(--s-5) var(--s-4) var(--s-8);
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .contextPanel {
+    grid-template-columns: 1fr;
+  }
+}

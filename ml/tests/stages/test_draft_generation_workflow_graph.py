@@ -570,6 +570,26 @@ def test_frequent_path_generator_mines_supported_edges() -> None:
     assert any(edge.get("label") == "resolved" for edge in result["edges"])
 
 
+def test_frequent_path_generator_drops_supported_cycle_edges() -> None:
+    context = ClusterContext(cluster_id=10, suggested_name="처리 문의", workflow_signal={}, policy_ref="policy_1")
+
+    spec = frequent_path_generator(
+        context,
+        [
+            (["확인질문", "추가정보요청", "확인질문", "해결"], "resolved"),
+            (["확인질문", "추가정보요청", "확인질문", "해결"], "resolved"),
+            (["확인질문", "추가정보요청", "확인질문", "해결"], "resolved"),
+        ],
+        min_edge_support=0.34,
+    )
+
+    _validate_graph(spec, {"policy_1"})
+    edge_pairs = {(edge.from_node, edge.to_node) for edge in spec.edges}
+    assert (("request_check", "info_collect") in edge_pairs) != (
+        ("info_collect", "request_check") in edge_pairs
+    )
+
+
 def test_frequent_path_generator_repairs_supported_unreachable_nodes() -> None:
     context = ClusterContext(cluster_id=9, suggested_name="처리 문의", workflow_signal={}, policy_ref="policy_1")
     edges = [GraphEdgeSpec("e_9_1", "issue_review", "request_check", "observed", 0.5)]

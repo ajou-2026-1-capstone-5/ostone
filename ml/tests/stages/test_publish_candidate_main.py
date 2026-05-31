@@ -416,23 +416,66 @@ def test_unexpected_callback_status_fails_before_next_callback(monkeypatch: pyte
     assert result["error"]["parsedResponseBody"] == {"status": "WEIRD", "domainPackVersionId": 101}
 
 
-def test_evaluation_blocked_fails_airflow_task(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_evaluation_blocked_surfaces_needs_human_review(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     candidate = _candidate()
-    candidate["evaluationSummary"] = {"passed": False}
+    candidate["evaluationSummary"] = {
+        "passed": False,
+        "blockReasons": ["missing_metric:clusterStability"],
+        "qualityReviewReasons": ["cluster_distinctiveness_below_threshold"],
+    }
     manifest_path, _candidate_path = _write_publish_inputs(tmp_path, candidate)
     artifact_root = tmp_path / "artifacts"
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(artifact_root))
     monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
 
-    with pytest.raises(publish.PublishCandidateStageError):
-        publish.run(str(manifest_path))
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_post_callback(
+        backend_base_url: str,
+        job_id: str,
+        callback_type: str,
+        payload: dict[str, object],
+        webhook_secret: str,
+        timeout_seconds: float,
+    ) -> CallbackResponse:
+        calls.append((callback_type, payload))
+        body: dict[str, object] = {"status": "CREATED"}
+        if callback_type == "domain-pack-drafts":
+            body.update({"domainPackId": 100, "domainPackVersionId": 101, "versionNo": 1})
+        return CallbackResponse(
+            callback_type=callback_type,
+            external_event_id=str(payload.get("externalEventId")),
+            endpoint=f"{backend_base_url}/{job_id}/{callback_type}",
+            http_status=201,
+            response_status="CREATED",
+            response_body=json.dumps(body),
+            response_body_truncated=False,
+            parsed_response_body=body,
+        )
+
+    monkeypatch.setattr(publish, "post_callback", fake_post_callback)
+
+    payload = publish.run(str(manifest_path))
 
     result_path = (
         artifact_root / "domain_pack_generation" / "manual__run" / "publish_candidate" / "publish_candidate_result.json"
     )
     result = json.loads(result_path.read_text(encoding="utf-8"))
-    assert result["publishStatus"] == "BLOCKED_BY_EVALUATION"
-    assert result["callbackResults"] == []
+    assert payload["publish_status"] == "SUCCEEDED"
+    assert result["evaluationGateStatus"] == "NEEDS_HUMAN_REVIEW"
+    assert [callback_type for callback_type, _payload in calls] == [
+        "domain-pack-drafts",
+        "intent-drafts",
+        "workflow-drafts",
+    ]
+    summary_json = calls[0][1]["summaryJson"]
+    assert isinstance(summary_json, str)
+    summary = json.loads(summary_json)
+    assert summary["needsHumanReview"] is True
+    assert summary["evaluationPassed"] is False
+    assert "missing_metric:clusterStability" in summary["qualityReviewReasons"]
 
 
 def test_callback_disabled_writes_skipped_result(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

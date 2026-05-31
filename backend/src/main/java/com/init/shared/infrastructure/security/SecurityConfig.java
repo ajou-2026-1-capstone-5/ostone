@@ -57,6 +57,14 @@ public class SecurityConfig {
                         HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/domain-pack-drafts")
                     .permitAll()
                     .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/pipeline-jobs/*/callbacks/domain-confirmation-checkpoints")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/pipeline-jobs/*/callbacks/human-feedback-checkpoints")
+                    .permitAll()
+                    .requestMatchers(
                         HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/intent-drafts")
                     .permitAll()
                     .requestMatchers(

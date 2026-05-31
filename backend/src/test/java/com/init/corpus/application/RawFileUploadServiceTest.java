@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.corpus.application.RawDatasetUploadCommand.RawConversationInput;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.RawFileParseException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
@@ -24,11 +25,17 @@ import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -105,6 +112,68 @@ class RawFileUploadServiceTest {
     verify(rawDatasetUploadService).upload(any());
     verify(rawFileRepository).save(any());
     verify(triggerPort).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_parse_turn_based_json_files_in_zip")
+  void upload_turnBasedZip_parsesConversations() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "prod-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    DatasetUploadResult uploadResult =
+        new DatasetUploadResult(
+            43L, "prod-zip", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 2);
+    given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                43L, "some-key", "prod.zip", "application/zip", 100L, "b".repeat(64)));
+
+    byte[] zipBytes =
+        zip(
+            "a.json",
+            """
+            [{"source_id":"active-001","turns":[
+              {"speaker_role":"CUSTOMER","message_text":"예약 변경하고 싶어요."},
+              {"speaker_role":"AGENT","message_text":"예약 번호를 확인해 드릴게요."}
+            ]}]
+            """,
+            "nested/b.json",
+            """
+            [{"source_id":"active-002","turns":[
+              {"speaker_role":"AGENT","message_text":"상담원입니다."},
+              {"speaker_role":"CUSTOMER","message_text":"취소 수수료 문의드립니다."}
+            ]}]
+            """);
+
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "prod-zip",
+            "운영 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "prod.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    service.upload(command);
+
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+
+    List<RawConversationInput> conversations = commandCaptor.getValue().conversations();
+    assertThat(conversations).hasSize(2);
+    assertThat(conversations.get(0).sourceId()).isEqualTo("active-001");
+    assertThat(conversations.get(0).consultingContent())
+        .contains("고객: 예약 변경하고 싶어요.", "상담사: 예약 번호를 확인해 드릴게요.");
+    assertThat(conversations.get(1).sourceId()).isEqualTo("active-002");
+    assertThat(conversations.get(1).consultingContent())
+        .contains("상담사: 상담원입니다.", "고객: 취소 수수료 문의드립니다.");
   }
 
   @Test
@@ -284,5 +353,19 @@ class RawFileUploadServiceTest {
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("DB error");
+  }
+
+  private byte[] zip(String firstName, String firstContent, String secondName, String secondContent)
+      throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+      zip.putNextEntry(new ZipEntry(firstName));
+      zip.write(firstContent.getBytes(StandardCharsets.UTF_8));
+      zip.closeEntry();
+      zip.putNextEntry(new ZipEntry(secondName));
+      zip.write(secondContent.getBytes(StandardCharsets.UTF_8));
+      zip.closeEntry();
+    }
+    return bytes.toByteArray();
   }
 }

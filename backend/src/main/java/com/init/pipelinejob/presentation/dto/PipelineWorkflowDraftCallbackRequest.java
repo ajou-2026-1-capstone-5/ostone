@@ -17,7 +17,7 @@ public record PipelineWorkflowDraftCallbackRequest(
     @Size(max = 200, message = "slots는 200개 이하여야 합니다.") List<@Valid SlotDraftRequest> slots,
     @Size(max = 200, message = "policies는 200개 이하여야 합니다.") List<@Valid PolicyDraftRequest> policies,
     @Size(max = 200, message = "risks는 200개 이하여야 합니다.") List<@Valid RiskDraftRequest> risks,
-    @Size(max = 50, message = "workflows는 50개 이하여야 합니다.")
+    @Size(max = 200, message = "workflows는 200개 이하여야 합니다.")
         List<@Valid WorkflowDraftRequest> workflows,
     @Size(max = 1000, message = "intentSlotBindings는 1000개 이하여야 합니다.")
         List<@Valid IntentSlotBindingDraftRequest> intentSlotBindings,

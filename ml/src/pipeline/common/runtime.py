@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import json
 import math
 import os
+import platform
+import urllib.error
+import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 import numpy as np
 
-from pipeline.common.config import PipelineRuntimeConfig
+from pipeline.common.config import DEFAULT_EMBEDDING_RUNTIME, LOCAL_HTTP_EMBEDDING_RUNTIME, PipelineRuntimeConfig
 from pipeline.common.exceptions import PipelineConfigurationError
 
 DEFAULT_EMBEDDING_DIM = 1024
@@ -36,13 +40,14 @@ class FlagEmbeddingRuntime:
     fake FlagEmbedding module or monkeypatch build_embedding_runtime explicitly.
     """
 
-    def __init__(self, model_name: str, runtime_profile: str) -> None:
+    def __init__(self, model_name: str, runtime_profile: str, *, auto_device: bool = False) -> None:
         self.model_name = model_name
         self.runtime_profile = runtime_profile
         self.batch_size = _positive_int_env("EMBEDDING_RUNTIME_BATCH_SIZE", default=8)
-        self.max_length = _positive_int_env("EMBEDDING_MAX_LENGTH", default=8192)
+        self.max_length = _positive_int_env("EMBEDDING_MAX_LENGTH", default=_default_max_length(runtime_profile))
         self.dim = _positive_int_env("EMBEDDING_DIM", default=1024)
         self.use_fp16 = _bool_env("EMBEDDING_USE_FP16", default=False)
+        self.device = _embedding_device(auto_device)
         try:
             from FlagEmbedding import BGEM3FlagModel  # type: ignore[import-not-found, import-untyped]
         except ImportError as exc:
@@ -50,7 +55,10 @@ class FlagEmbeddingRuntime:
                 "ML_EMBEDDING_RUNTIME=flag_embedding requires optional local dependencies. "
                 "Install FlagEmbedding and torch, then retry."
             ) from exc
-        self._model: object = BGEM3FlagModel(model_name, use_fp16=self.use_fp16)
+        kwargs: dict[str, object] = {"use_fp16": self.use_fp16}
+        if self.device:
+            kwargs["devices"] = self.device
+        self._model: object = BGEM3FlagModel(model_name, **kwargs)
 
     def embed(self, texts: Sequence[str]) -> EmbeddingResult:
         normalized_texts = [text.strip() for text in texts]
@@ -96,9 +104,73 @@ class FlagEmbeddingRuntime:
         )
 
 
+class HttpEmbeddingRuntime:
+    """Embedding runtime that delegates inference to a host-local HTTP worker."""
+
+    def __init__(self, model_name: str, runtime_profile: str) -> None:
+        self.model_name = model_name
+        self.runtime_profile = runtime_profile
+        self.base_url = _required_url_env("EMBEDDING_RUNTIME_BASE_URL").rstrip("/")
+        self.timeout_seconds = _positive_float_env("EMBEDDING_RUNTIME_TIMEOUT_SECONDS", default=1800.0)
+        self.dim = _positive_int_env("EMBEDDING_DIM", default=1024)
+
+    def embed(self, texts: Sequence[str]) -> EmbeddingResult:
+        if not texts:
+            return EmbeddingResult(
+                embeddings=np.zeros((0, self.dim), dtype=np.float32),
+                success_mask=[],
+                model_name=self.model_name,
+                runtime_profile=self.runtime_profile,
+            )
+        payload = {
+            "texts": list(texts),
+            "modelName": self.model_name,
+            "runtimeProfile": self.runtime_profile,
+        }
+        request = urllib.request.Request(
+            f"{self.base_url}/v1/embeddings",
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                raw = response.read()
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise PipelineConfigurationError(f"Local embedding worker request failed: {exc}") from exc
+        try:
+            response_payload = json.loads(raw.decode("utf-8"))
+        except json.JSONDecodeError as exc:
+            raise PipelineConfigurationError("Local embedding worker returned invalid JSON.") from exc
+        if not isinstance(response_payload, dict):
+            raise PipelineConfigurationError("Local embedding worker returned a non-object JSON response.")
+        embeddings = _dense_embeddings(response_payload.get("embeddings"))
+        success_mask = response_payload.get("successMask")
+        if not isinstance(success_mask, list) or len(success_mask) != len(texts):
+            raise PipelineConfigurationError("Local embedding worker returned an invalid successMask.")
+        if embeddings.shape[0] != len(texts):
+            raise PipelineConfigurationError(
+                "Local embedding worker returned an embedding count that does not match the input."
+            )
+        self.dim = embeddings.shape[1]
+        return EmbeddingResult(
+            embeddings=_l2norm(embeddings),
+            success_mask=[bool(value) for value in success_mask],
+            model_name=str(response_payload.get("modelName") or self.model_name),
+            runtime_profile=str(response_payload.get("runtimeProfile") or self.runtime_profile),
+        )
+
+
 def build_embedding_runtime(runtime_config: PipelineRuntimeConfig | None = None) -> EmbeddingRuntime:
     if runtime_config is None:
         runtime_config = PipelineRuntimeConfig.from_env()
+    if runtime_config.embedding_runtime == LOCAL_HTTP_EMBEDDING_RUNTIME:
+        return HttpEmbeddingRuntime(
+            model_name=runtime_config.embedding_model_name,
+            runtime_profile=runtime_config.runtime_profile,
+        )
+    if runtime_config.embedding_runtime != DEFAULT_EMBEDDING_RUNTIME:
+        raise PipelineConfigurationError("Unsupported embedding runtime.")
     return FlagEmbeddingRuntime(
         model_name=runtime_config.embedding_model_name,
         runtime_profile=runtime_config.runtime_profile,
@@ -136,6 +208,28 @@ def _positive_int_env(key: str, default: int) -> int:
     return parsed
 
 
+def _positive_float_env(key: str, default: float) -> float:
+    value = os.getenv(key, "").strip()
+    if not value:
+        return default
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise PipelineConfigurationError(f"{key} must be a positive number.") from exc
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise PipelineConfigurationError(f"{key} must be a positive number.")
+    return parsed
+
+
+def _required_url_env(key: str) -> str:
+    value = os.getenv(key, "").strip()
+    if not value:
+        raise PipelineConfigurationError(f"{key} must not be blank when ML_EMBEDDING_RUNTIME=local_http.")
+    if not value.startswith(("http://", "https://")):
+        raise PipelineConfigurationError(f"{key} must be an http(s) URL.")
+    return value
+
+
 def _bool_env(key: str, default: bool) -> bool:
     value = os.getenv(key, "").strip().lower()
     if not value:
@@ -145,6 +239,27 @@ def _bool_env(key: str, default: bool) -> bool:
     if value in {"0", "false", "no", "n", "off"}:
         return False
     raise PipelineConfigurationError(f"{key} must be a boolean value.")
+
+
+def _default_max_length(runtime_profile: str) -> int:
+    return 8192 if runtime_profile.strip().lower() == "quality" else 1024
+
+
+def _embedding_device(auto_device: bool) -> str | None:
+    value = os.getenv("EMBEDDING_DEVICE", "").strip().lower()
+    if value and value != "auto":
+        return value
+    if value != "auto" and not auto_device:
+        return None
+    if platform.system().lower() != "darwin":
+        return None
+    try:
+        import torch
+    except ImportError:
+        return None
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return "mps"
+    return None
 
 
 def cosine_similarity(left: np.ndarray, right: np.ndarray) -> float:
@@ -160,6 +275,7 @@ __all__ = [
     "EmbeddingResult",
     "EmbeddingRuntime",
     "FlagEmbeddingRuntime",
+    "HttpEmbeddingRuntime",
     "build_embedding_runtime",
     "cosine_similarity",
 ]
