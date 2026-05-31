@@ -478,6 +478,133 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("배송 문의")).toBeInTheDocument();
   });
 
+  it("marks inactive queue item as unread when a customer message queue event arrives", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "배송이 아직 도착하지 않았어요",
+            lastMessageRole: "CUSTOMER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("배송이 아직 도착하지 않았어요")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
+  });
+
+  it("clears unread state when selecting an unread queue item", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "확인 부탁드립니다",
+            lastMessageRole: "USER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("박서연").closest('[role="button"]');
+    if (customerItem) fireEvent.click(customerItem);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("읽지 않은 고객 메시지")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not mark active or non-customer queue events as unread", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) fireEvent.click(customerItem);
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeInTheDocument();
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 1,
+          status: "ACTIVE",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({
+            customerName: "김민지",
+            handoffReason: "환불 문의",
+            lastMessagePreview: "활성 세션의 새 고객 메시지",
+            lastMessageRole: "CUSTOMER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: 7,
+        },
+      });
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "내부 확인 메모",
+            lastMessageRole: "NOTE",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("활성 세션의 새 고객 메시지")).toBeInTheDocument();
+      expect(screen.getByText("내부 확인 메모")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("읽지 않은 고객 메시지")).not.toBeInTheDocument();
+  });
+
   it("removes queue item and clears active selection from workspace queue remove events", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 

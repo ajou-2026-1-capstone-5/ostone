@@ -84,6 +84,24 @@ describe("QueuePanel", () => {
     expect(screen.queryByText("카드 오류")).not.toBeInTheDocument();
   });
 
+  it("마지막 메시지 미리보기가 있으면 title보다 우선 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[
+          makeCustomer("1", {
+            title: "VIP 환불 상담",
+            lastMessagePreview: "방금 고객이 남긴 메시지입니다",
+          }),
+        ]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("방금 고객이 남긴 메시지입니다")).toBeInTheDocument();
+    expect(screen.queryByText("VIP 환불 상담")).not.toBeInTheDocument();
+  });
+
   it("고객 이름이 없으면 Unknown을 표시한다", () => {
     render(
       <QueuePanel
@@ -156,7 +174,7 @@ describe("QueuePanel", () => {
         onSelectCustomer={vi.fn()}
       />,
     );
-    expect(document.querySelector('[class*="unreadDot"]')).toBeInTheDocument();
+    expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
   });
 
   it("대기 시간을 표시한다", () => {
@@ -168,6 +186,24 @@ describe("QueuePanel", () => {
       />,
     );
     expect(screen.getByText("5분 전")).toBeInTheDocument();
+  });
+
+  it("마지막 메시지 시간이 있으면 대기 시간보다 우선 표시한다", () => {
+    render(
+      <QueuePanel
+        customers={[
+          makeCustomer("10", {
+            waitMinutes: 20,
+            lastMessageAt: "2026-06-01T12:03:00+09:00",
+            lastMessageTimeLabel: "2분 전",
+          }),
+        ]}
+        activeCustomerId={null}
+        onSelectCustomer={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("2분 전")).toBeInTheDocument();
+    expect(screen.queryByText("20분 전")).not.toBeInTheDocument();
   });
 
   it("세션 상태 라벨을 표시한다", () => {

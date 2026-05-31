@@ -10,6 +10,10 @@ export interface QueueCustomer {
   handoffReason: string;
   waitMinutes: number;
   hasUnread: boolean;
+  lastMessagePreview?: string;
+  lastMessageRole?: string;
+  lastMessageAt?: string | null;
+  lastMessageTimeLabel?: string;
   status?: string | null;
   statusLabel?: string;
   assignedCounselorId?: number | null;
@@ -68,7 +72,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
 
     return customers.map((c) => {
       const displayName = c.name?.trim() || "Unknown";
-      const subject = c.title?.trim() || c.handoffReason;
+      const subject = c.lastMessagePreview?.trim() || c.title?.trim() || c.handoffReason;
       return (
         <div
           key={c.id}
@@ -93,16 +97,13 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
             <div className={styles.handoffPreview}>{subject}</div>
             {c.statusLabel && <div className={styles.sessionStatus}>{c.statusLabel}</div>}
           </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 4,
-            }}
-          >
-            <span className={styles.waitTime}>{c.waitMinutes}분 전</span>
-            {c.hasUnread && <span className={styles.unreadDot}></span>}
+          <div className={styles.queueItemMeta}>
+            <span className={styles.waitTime}>
+              {c.lastMessageTimeLabel || `${c.waitMinutes}분 전`}
+            </span>
+            {c.hasUnread && (
+              <span className={styles.unreadDot} role="status" aria-label="읽지 않은 고객 메시지" />
+            )}
           </div>
         </div>
       );
