@@ -53,8 +53,12 @@ export function withVersionSearch(path: string, versionId: number | null): strin
   return `${path}${separator}versionId=${versionId}`;
 }
 
+export function domainPackListPath(workspaceId: number): string {
+  return `/workspaces/${workspaceId}/domain-packs`;
+}
+
 export function domainPackPath(workspaceId: number, packId: number): string {
-  return `/workspaces/${workspaceId}/domain-packs/${packId}`;
+  return `${domainPackListPath(workspaceId)}/${packId}`;
 }
 
 export function domainPackSectionPath(

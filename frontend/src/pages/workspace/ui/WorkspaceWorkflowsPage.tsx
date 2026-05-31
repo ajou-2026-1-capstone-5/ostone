@@ -1,9 +1,8 @@
-import { PlusIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
-import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
+import { domainPackListPath, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -38,17 +37,17 @@ export function WorkspaceWorkflowsPage() {
     );
   };
 
-  const handleNewWorkflow = () => {
-    toast("준비 중입니다");
+  const handleOpenDomainPacks = () => {
+    navigate(domainPackListPath(parsedWorkspaceId));
   };
 
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>응대 흐름</h1>
-        <Button variant="outline" size="sm" onClick={handleNewWorkflow}>
-          <PlusIcon className={styles.pageHeaderIcon} />
-          <span>새 응대 흐름</span>
+        <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
+          <span>도메인팩 관리</span>
+          <ArrowRightIcon className={styles.pageHeaderIcon} />
         </Button>
       </div>
 
@@ -67,7 +66,11 @@ export function WorkspaceWorkflowsPage() {
 
       {!loading && !error && entries.length === 0 && (
         <div className={styles.statePanel} data-testid="workspace-workflows-empty">
-          <EmptyState message="아직 등록된 응대 흐름이 없습니다. 도메인팩에서 응대 흐름을 생성해 주세요." />
+          <EmptyState message="아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다." />
+          <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
+            <span>도메인팩으로 이동</span>
+            <ArrowRightIcon className={styles.pageHeaderIcon} />
+          </Button>
         </div>
       )}
 
