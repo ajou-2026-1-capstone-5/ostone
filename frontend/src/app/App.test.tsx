@@ -108,7 +108,7 @@ describe("App", () => {
     expect(await screen.findByText("응대 흐름")).toBeInTheDocument();
     expect(
       await screen.findByText(
-        "아직 등록된 응대 흐름이 없습니다. 도메인팩에서 응대 흐름을 생성해 주세요.",
+        "아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다.",
       ),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
