@@ -973,6 +973,7 @@ export const ConsultationPage: React.FC = () => {
         <QueuePanel
           customers={queue}
           activeCustomerId={activeCustomerId}
+          currentCounselorId={currentCounselorId}
           onSelectCustomer={handleSelectCustomer}
           isLoading={isQueueLoading}
           loadError={queueLoadError}
