@@ -1,7 +1,9 @@
 .input:focus,
 .input:focus-visible {
-  border-color: var(--ink) !important;
-  background: var(--paper-2) !important;
+  border-color: var(--ink);
+  background: var(--paper-2);
   outline: none;
-  box-shadow: none !important;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.045),
+    0 0 0 5px rgba(0, 0, 0, 0.018);
 }

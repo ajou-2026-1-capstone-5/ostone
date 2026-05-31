@@ -281,9 +281,11 @@
 
 .messageInput:focus,
 .messageInput:focus-visible {
-  border-color: var(--ink);
+  border-color: var(--glass-border);
   background: var(--paper-2);
-  box-shadow: none;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.045),
+    0 0 0 5px rgba(0, 0, 0, 0.018);
 }
 
 .messageInput:disabled {
