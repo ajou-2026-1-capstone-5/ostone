@@ -24,7 +24,7 @@ export function useCreateDraft() {
         if (error.status === 403) {
           toast.error("접근 권한 없음");
         } else if (error.status === 409) {
-          // 409는 caller(모달)의 per-call onError에서 처리. toast 없음.
+          toast.error("검토본 생성에 실패했습니다.");
         } else {
           toast.error("검토본 생성에 실패했습니다.");
         }

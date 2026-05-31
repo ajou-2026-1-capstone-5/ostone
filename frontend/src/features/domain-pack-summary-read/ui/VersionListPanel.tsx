@@ -130,5 +130,5 @@ function VersionListItem({
 function formatLifecycleStatus(status?: string | null): string {
   if (status === "PUBLISHED") return "운영 가능";
   if (status === "DRAFT") return "검토 중";
-  return status ?? "상태 없음";
+  return "상태 없음";
 }

@@ -425,7 +425,7 @@ describe("IntentDraftReadPage", () => {
       "/workspaces/1/domain-packs/7/intents?versionId=4",
       { replace: true },
     );
-    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("상담 유형 수정 초안이 생성되었습니다.");
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
   });
 
   it("운영 버전이 바뀐 상태에서 저장하면 pack을 새로고침하고 안내한다", async () => {

@@ -68,14 +68,6 @@ function renderPage(path = "/workspaces/1/domain-packs/2/workflows/4/graph?versi
   );
 }
 
-function VersionSearchWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <MemoryRouter initialEntries={["/workspaces/1/domain-packs/2/workflows/4/graph?versionId=3"]}>
-      {children}
-    </MemoryRouter>
-  );
-}
-
 describe("WorkflowGraphViewerPage", () => {
   beforeEach(() => {
     mockUseGetWorkflowDefinition.mockReset();
@@ -143,7 +135,7 @@ describe("WorkflowGraphViewerPage", () => {
       error: null,
     });
 
-    render(<WorkflowGraphViewerPage />, { wrapper: VersionSearchWrapper });
+    renderPage();
 
     expect(screen.getByTestId("graph-viewer")).toBeInTheDocument();
   });

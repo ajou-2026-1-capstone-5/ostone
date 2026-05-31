@@ -160,10 +160,12 @@ describe("VersionListPanel", () => {
             ...stubPack,
             versions: [
               { ...stubVersion, lifecycleStatus: "PUBLISHED", createdAt: "날짜 확인 전" },
+              { ...stubVersion2, versionNo: null, lifecycleStatus: null, createdAt: "날짜 확인 전" },
               {
                 ...stubVersion2,
-                versionNo: null,
-                lifecycleStatus: null,
+                versionId: 3,
+                versionNo: 3,
+                lifecycleStatus: "ARCHIVED" as never,
                 createdAt: "날짜 확인 전",
               },
             ],
@@ -178,6 +180,8 @@ describe("VersionListPanel", () => {
     expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("운영 가능");
     expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
     expect(screen.getByRole("button", { name: /v-/ })).toHaveTextContent("상태 없음");
-    expect(screen.getAllByText("날짜 확인 전")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /v3/ })).toHaveTextContent("상태 없음");
+    expect(screen.getByRole("button", { name: /v3/ })).not.toHaveTextContent("ARCHIVED");
+    expect(screen.getAllByText("날짜 확인 전")).toHaveLength(3);
   });
 });

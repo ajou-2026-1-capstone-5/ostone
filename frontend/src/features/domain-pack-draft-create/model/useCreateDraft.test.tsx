@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
 import { createDraftApi } from "../api/createDraftApi";
+import type { CreateDomainPackDraftResponse } from "../api/createDraftApi";
 import { useCreateDraft } from "./useCreateDraft";
 
 vi.mock("../api/createDraftApi", () => ({
@@ -25,19 +26,19 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
-const stubResponse = {
+const stubResponse: CreateDomainPackDraftResponse = {
   versionId: 10,
   domainPackId: 2,
   versionNo: 2,
-  lifecycleStatus: "DRAFT" as const,
-  sourcePipelineJobId: undefined as any,
+  lifecycleStatus: "DRAFT",
+  sourcePipelineJobId: undefined,
   intentCount: 0,
   slotCount: 0,
   policyCount: 0,
   riskCount: 0,
   workflowCount: 0,
   createdAt: "",
-} as any;
+};
 
 const mutateParams = { wsId: 1, packId: 2, payload: {} };
 
@@ -49,7 +50,7 @@ describe("useCreateDraft", () => {
   });
 
   it("201 성공 시 toast.success를 호출한다", async () => {
-    vi.mocked(createDraftApi.create).mockResolvedValue(stubResponse as any);
+    vi.mocked(createDraftApi.create).mockResolvedValue(stubResponse);
     const { result } = renderHook(() => useCreateDraft(), { wrapper });
     result.current.mutate(mutateParams);
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("새 검토본이 생성되었습니다."));
@@ -64,14 +65,14 @@ describe("useCreateDraft", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("접근 권한 없음"));
   });
 
-  it("409 에러 시 toast를 호출하지 않는다", async () => {
+  it('409 에러 시 "검토본 생성에 실패했습니다." toast.error를 호출한다', async () => {
     vi.mocked(createDraftApi.create).mockRejectedValue(
       new ApiRequestError(409, "CONFLICT", "conflict"),
     );
     const { result } = renderHook(() => useCreateDraft(), { wrapper });
     result.current.mutate(mutateParams);
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("검토본 생성에 실패했습니다.");
   });
 
   it('400 에러 시 "검토본 생성에 실패했습니다." toast.error를 호출한다', async () => {
