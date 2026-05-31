@@ -393,10 +393,10 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
-    givenWorkspaceMember(1L, USER_ID);
+    givenWorkspaceMember(1L, 42L);
 
     CounselorSessionResponse result =
-        service.updateResponseMode(1L, updateResponseModeRequest(42L, "AI_ASSIST_ONLY"), USER_ID);
+        service.updateResponseMode(1L, updateResponseModeRequest(42L, "AI_ASSIST_ONLY"), 42L);
 
     assertThat(result.getResponseMode()).isEqualTo("AI_ASSIST_ONLY");
     assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ASSIST_ONLY);
@@ -410,12 +410,10 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
-    givenWorkspaceMember(1L, USER_ID);
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(99L, "AI_ACTIVE");
 
-    assertThatThrownBy(
-            () ->
-                service.updateResponseMode(
-                    1L, updateResponseModeRequest(99L, "AI_ACTIVE"), USER_ID))
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not assigned to counselor");
   }
@@ -426,12 +424,10 @@ class CounselorServiceTest {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
-    givenWorkspaceMember(1L, USER_ID);
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(42L, "UNKNOWN");
 
-    assertThatThrownBy(
-            () ->
-                service.updateResponseMode(
-                    1L, updateResponseModeRequest(42L, "UNKNOWN"), USER_ID))
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("Unsupported response mode");
   }

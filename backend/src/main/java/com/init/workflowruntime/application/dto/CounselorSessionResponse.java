@@ -74,6 +74,14 @@ public class CounselorSessionResponse {
     this.metaJson = metaJson;
   }
 
+  public String getResponseMode() {
+    return responseMode;
+  }
+
+  public void setResponseMode(String responseMode) {
+    this.responseMode = responseMode;
+  }
+
   public OffsetDateTime getStartedAt() {
     return startedAt;
   }
@@ -88,14 +96,6 @@ public class CounselorSessionResponse {
 
   public void setAssignedCounselorId(Long assignedCounselorId) {
     this.assignedCounselorId = assignedCounselorId;
-  }
-
-  public String getResponseMode() {
-    return responseMode;
-  }
-
-  public void setResponseMode(String responseMode) {
-    this.responseMode = responseMode;
   }
 
   public List<ChatSessionResponse> getContent() {

@@ -150,10 +150,6 @@ public class LlmResponseHandler {
               chatSessionMetadataService.updateAfterMessage(session, saved);
               return Optional.of(saved);
             });
-    if (savedMessage == null) {
-      throw new IllegalStateException(
-          "Assistant message save transaction returned null for session: " + sessionId);
-    }
     return savedMessage;
   }
 }

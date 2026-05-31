@@ -179,14 +179,14 @@ class CounselorSessionControllerTest {
     response.setAssignedCounselorId(42L);
     response.setResponseMode("AI_ASSIST_ONLY");
 
-    given(counselorService.updateResponseMode(eq(1L), any(), eq(7L))).willReturn(response);
+    given(counselorService.updateResponseMode(eq(1L), any(), eq(42L))).willReturn(response);
 
     mockMvc
         .perform(
             patch("/api/v1/consultation/sessions/1/response-mode")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"counselorId\":42,\"responseMode\":\"AI_ASSIST_ONLY\"}")
-                .principal(auth()))
+                .principal(auth(42L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(1))
         .andExpect(jsonPath("$.responseMode").value("AI_ASSIST_ONLY"));
