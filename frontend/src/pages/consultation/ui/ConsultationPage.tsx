@@ -13,6 +13,7 @@ import {
   normalizeChatSenderRole,
   type ChatSenderRole,
 } from "../../../features/consultation/lib/chatRoleLabels";
+import { formatWaitDuration } from "../../../features/consultation/lib/formatWaitDuration";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import type {
   ChatSession,
@@ -222,7 +223,7 @@ const formatLastMessageTimeLabel = (isoString?: string | null) => {
   const timestamp = d.getTime();
   if (Number.isNaN(timestamp)) return "";
   const diffMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
-  return diffMinutes === 0 ? "방금 전" : `${diffMinutes}분 전`;
+  return diffMinutes === 0 ? "방금 전" : `${formatWaitDuration(diffMinutes)} 전`;
 };
 
 const parseSessionMeta = (metaJson?: string | null): SessionMeta => {
@@ -1194,7 +1195,8 @@ export const ConsultationPage: React.FC = () => {
                 <div>
                   <div className={styles.customerName}>{activeCustomerName} 고객</div>
                   <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                    {activeCustomer.channel ?? ""} · {activeCustomer.waitMinutes}분 대기 중
+                    {activeCustomer.channel ?? ""} ·{" "}
+                    {formatWaitDuration(activeCustomer.waitMinutes)} 대기 중
                   </Mono>
                 </div>
               </div>

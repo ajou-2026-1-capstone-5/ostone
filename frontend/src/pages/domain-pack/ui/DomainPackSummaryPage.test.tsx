@@ -14,7 +14,20 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/widgets/ostone-shell", () => ({
-  OstoneShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  OstoneShell: ({
+    children,
+    crumbs,
+  }: {
+    children: React.ReactNode;
+    crumbs?: Array<string | { label: string }>;
+  }) => (
+    <div>
+      <div data-testid="shell-crumbs">
+        {crumbs?.map((crumb) => (typeof crumb === "string" ? crumb : crumb.label)).join(" / ")}
+      </div>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock("@/shared/ui/ostone/atoms/LoadingSpinner", () => ({
@@ -180,6 +193,19 @@ describe("DomainPackSummaryPage", () => {
     renderPage();
     expect(screen.getByTestId("version-list-panel")).toBeInTheDocument();
     expect(screen.getByTestId("summary-detail-panel")).toBeInTheDocument();
+  });
+
+  it("도메인팩 상세 breadcrumb의 workspace 축약 라벨을 도메인팩으로 표시한다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: { packId: 2, name: "CS Pack", code: "CS", versions: [] },
+      }),
+    );
+
+    renderPage();
+
+    expect(screen.getByTestId("shell-crumbs")).toHaveTextContent("도메인팩 / CS Pack");
+    expect(screen.getByTestId("shell-crumbs")).not.toHaveTextContent("WS · 1");
   });
 
   it("도메인팩 상위 route에서는 최신 버전으로 자동 이동하지 않는다", async () => {

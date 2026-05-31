@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AlertCircle, Inbox, LoaderCircle, Search } from "lucide-react";
+import { formatWaitDuration } from "../lib/formatWaitDuration";
 import styles from "./queue-panel.module.css";
 
 export interface QueueCustomer {
@@ -206,7 +207,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           </div>
           <div className={styles.queueItemMeta}>
             <span className={styles.waitTime}>
-              {c.lastMessageTimeLabel || `${c.waitMinutes}분 전`}
+              {c.lastMessageTimeLabel || `${formatWaitDuration(c.waitMinutes)} 전`}
             </span>
             {c.hasUnread && (
               <span className={styles.unreadDot} role="status" aria-label="읽지 않은 고객 메시지" />

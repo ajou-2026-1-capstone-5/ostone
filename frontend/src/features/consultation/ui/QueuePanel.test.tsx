@@ -148,6 +148,16 @@ describe("QueuePanel", () => {
     expect(screen.getByText("5분 전")).toBeInTheDocument();
   });
 
+  it("대기 시간이 60분을 넘으면 시간 단위로 표시한다", () => {
+    renderQueuePanel({ customers: [makeCustomer("10", { waitMinutes: 60 })] });
+    expect(screen.getByText("1시간 전")).toBeInTheDocument();
+  });
+
+  it("대기 시간이 24시간을 넘으면 일 단위로 표시한다", () => {
+    renderQueuePanel({ customers: [makeCustomer("10", { waitMinutes: 60 * 24 })] });
+    expect(screen.getByText("1일 전")).toBeInTheDocument();
+  });
+
   it("마지막 메시지 시간이 있으면 대기 시간보다 우선 표시한다", () => {
     renderQueuePanel({
       customers: [
