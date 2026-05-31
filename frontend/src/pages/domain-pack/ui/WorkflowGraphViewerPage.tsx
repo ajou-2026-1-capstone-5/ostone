@@ -1,19 +1,55 @@
-import { useEffect, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { type ReactNode, useEffect, useMemo } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useGetWorkflowDefinition } from "@/entities/workflow";
 import type { WorkflowGraph } from "@/entities/workflow";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
-import { buildDomainPackCrumbs } from "@/shared/lib/domainPackRoutes";
+import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import type { Crumb } from "@/shared/ui/ostone/chrome";
+import { Button } from "@/shared/ui/button";
+import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
+import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
+import { Icon } from "@/shared/ui/ostone/atoms";
+import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import styles from "./WorkflowGraphViewerPage.module.css";
+
+function isWorkflowGraph(value: unknown): value is WorkflowGraph {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const graph = value as { nodes?: unknown; edges?: unknown; direction?: unknown };
+  const hasValidDirection =
+    graph.direction === undefined || graph.direction === "LR" || graph.direction === "TB";
+  return Array.isArray(graph.nodes) && Array.isArray(graph.edges) && hasValidDirection;
+}
+
+type GraphParseResult =
+  | { status: "empty" }
+  | { status: "invalid" }
+  | { status: "ready"; graph: WorkflowGraph };
+
+function parseWorkflowGraph(rawGraph: unknown): GraphParseResult {
+  if (rawGraph === undefined || rawGraph === null || rawGraph === "") {
+    return { status: "empty" };
+  }
+
+  if (typeof rawGraph === "string") {
+    try {
+      const parsed: unknown = JSON.parse(rawGraph);
+      return isWorkflowGraph(parsed) ? { status: "ready", graph: parsed } : { status: "invalid" };
+    } catch {
+      return { status: "invalid" };
+    }
+  }
+
+  return isWorkflowGraph(rawGraph) ? { status: "ready", graph: rawGraph } : { status: "invalid" };
+}
 
 export function WorkflowGraphViewerPage() {
   const { workspaceId, packId, workflowId } = useParams();
   const [search] = useSearchParams();
+  const navigate = useNavigate();
 
   const wsId = parseRouteId(workspaceId);
   const pkId = parseRouteId(packId);
@@ -31,24 +67,12 @@ export function WorkflowGraphViewerPage() {
   });
 
   const packDetail = usePackDetail(wsId ?? 0, pkId ?? 0, {
-    enabled: wsId !== null && pkId !== null,
+    enabled: enabled,
   }).data;
   const packName = packDetail?.name ?? `PACK · ${pkId ?? "?"}`;
   const versionNo = packDetail?.versions?.find((v) => v.versionId === vsId)?.versionNo ?? vsId ?? 0;
 
-  const rawGraph = data?.graphJson;
-  const graph = useMemo<WorkflowGraph | null>(() => {
-    if (!rawGraph) return null;
-    if (typeof rawGraph === "string") {
-      try {
-        return JSON.parse(rawGraph) as WorkflowGraph;
-      } catch {
-        console.error("워크플로우 그래프 JSON 파싱 실패:", rawGraph);
-        return null;
-      }
-    }
-    return rawGraph as WorkflowGraph;
-  }, [rawGraph]);
+  const graphResult = useMemo(() => parseWorkflowGraph(data?.graphJson), [data?.graphJson]);
 
   useEffect(() => {
     if (error) {
@@ -65,48 +89,105 @@ export function WorkflowGraphViewerPage() {
           packName,
           versionNo,
           section: { label: "WORKFLOWS", path: "workflows" },
-          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId} GRAPH` : "GRAPH"),
+          selectedLabel: data?.workflowCode ?? (wfId !== null ? `#${wfId}` : "GRAPH"),
         })
-      : ["Domain Packs", "Workflow Graph"];
+      : ["워크플로우 설계", "Workflow Graph"];
+
+  const listPath =
+    wsId !== null && pkId !== null
+      ? domainPackSectionPath(wsId, pkId, vsId, "workflows")
+      : "/workspaces";
+  const detailPath =
+    wsId !== null && pkId !== null && vsId !== null && wfId !== null
+      ? domainPackSectionPath(wsId, pkId, vsId, "workflows", wfId)
+      : null;
+
+  const pageTitle =
+    data?.name ?? data?.workflowCode ?? (wfId !== null ? `워크플로우 #${wfId}` : "워크플로우 그래프");
+
+  const shell = (children: ReactNode) => (
+    <OstoneShell active="workflows" crumbs={crumbs}>
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <div className={styles.titleStack}>
+            <h2 className={styles.title}>{pageTitle}</h2>
+            {data?.description && <p className={styles.description}>{data.description}</p>}
+          </div>
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              variant="outline"
+              className={`${styles.headerButton} ${styles.backAction}`}
+              onClick={() => navigate(listPath)}
+            >
+              <Icon name="chevron" size={14} />
+              목록
+            </Button>
+            {detailPath && (
+              <Button
+                type="button"
+                className={`${styles.headerButton} ${styles.detailAction}`}
+                onClick={() => navigate(detailPath)}
+              >
+                <Icon name="flow" size={14} />
+                상세
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className={styles.canvasFrame}>{children}</div>
+      </div>
+    </OstoneShell>
+  );
+
+  if (!enabled) {
+    return shell(
+      <div role="alert" data-testid="url-error-state" className={styles.centerState}>
+        <ErrorState message="잘못된 URL 파라미터입니다." />
+      </div>,
+    );
+  }
 
   if (isLoading) {
-    return (
-      <OstoneShell active="domain" crumbs={crumbs}>
-        <div data-testid="loading-state" className={styles.loadingState}>
-          워크플로우 데이터를 불러오는 중...
-        </div>
-      </OstoneShell>
+    return shell(
+      <div data-testid="loading-state" className={styles.loadingState}>
+        <LoadingSpinner />
+        <span className={styles.loadingText}>워크플로우 데이터를 불러오는 중...</span>
+      </div>,
     );
   }
 
   if (error) {
-    return (
-      <OstoneShell active="domain" crumbs={crumbs}>
-        <div data-testid="error-state" className={styles.errorState}>
-          에러:{" "}
-          {error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."}
-        </div>
-      </OstoneShell>
+    return shell(
+      <div data-testid="error-state" className={styles.centerState}>
+        <ErrorState
+          message={
+            error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다."
+          }
+        />
+      </div>,
     );
   }
 
-  if (!graph) {
-    return (
-      <OstoneShell active="domain" crumbs={crumbs}>
-        <div data-testid="empty-state" className={styles.emptyState}>
-          표시할 워크플로우 그래프가 없습니다.
-        </div>
-      </OstoneShell>
+  if (graphResult.status === "invalid") {
+    return shell(
+      <div data-testid="graph-data-error-state" className={styles.centerState}>
+        <ErrorState message="워크플로우 그래프 데이터 형식이 올바르지 않습니다." />
+      </div>,
     );
   }
 
-  return (
-    <OstoneShell active="domain" crumbs={crumbs}>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <div className={styles.graphContainer}>
-          <GraphViewer graph={graph} />
-        </div>
-      </div>
-    </OstoneShell>
+  if (graphResult.status === "empty") {
+    return shell(
+      <div data-testid="empty-state" className={styles.centerState}>
+        <EmptyState message="이 워크플로우에는 아직 그래프가 정의되어 있지 않습니다." />
+      </div>,
+    );
+  }
+
+  return shell(
+    <div className={styles.graphContainer}>
+      <GraphViewer graph={graphResult.graph} />
+    </div>,
   );
 }
