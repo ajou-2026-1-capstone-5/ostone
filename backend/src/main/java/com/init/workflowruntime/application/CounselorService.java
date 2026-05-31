@@ -161,7 +161,11 @@ public class CounselorService {
     return response;
   }
 
-  public CounselorSessionResponse getSessions(String status, int page, int size) {
+  public CounselorSessionResponse getSessions(Long workspaceId, String status, int page, int size) {
+    if (workspaceId == null || workspaceId <= 0) {
+      throw new BadRequestException(
+          "INVALID_WORKSPACE_ID", "workspaceId must be a positive number");
+    }
     if (page < 0 || size <= 0) {
       throw new BadRequestException("INVALID_PAGING", "page must be >= 0 and size must be > 0");
     }
@@ -178,9 +182,10 @@ public class CounselorService {
     PageRequest pageRequest = PageRequest.of(page, size);
     Page<ChatSession> sessionPage;
     if (sessionStatus != null) {
-      sessionPage = chatSessionRepository.findByStatus(sessionStatus, pageRequest);
+      sessionPage =
+          chatSessionRepository.findByWorkspaceIdAndStatus(workspaceId, sessionStatus, pageRequest);
     } else {
-      sessionPage = chatSessionRepository.findAll(pageRequest);
+      sessionPage = chatSessionRepository.findByWorkspaceId(workspaceId, pageRequest);
     }
 
     List<ChatSessionResponse> content =

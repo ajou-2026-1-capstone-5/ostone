@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useChatMessages,
@@ -71,9 +71,17 @@ function makeMessage(overrides?: Partial<ChatMessage>): ChatMessage {
   };
 }
 
-function renderPage(path = "/workspaces/workspace-1/consultation/history") {
+let currentPathname = "";
+
+function LocationProbe() {
+  currentPathname = useLocation().pathname;
+  return null;
+}
+
+function renderPage(path = "/workspaces/1/consultation/history") {
   render(
     <MemoryRouter initialEntries={[path]}>
+      <LocationProbe />
       <Routes>
         <Route path="/workspaces/:workspaceId/consultation/history" element={<ChatHistoryPage />} />
         <Route
@@ -97,7 +105,7 @@ describe("ChatHistoryPage", () => {
     renderPage();
 
     expect(mockedUseChatSessions).toHaveBeenCalledWith({
-      workspaceId: "workspace-1",
+      workspaceId: 1,
       status: "completed",
     });
   });
@@ -121,6 +129,7 @@ describe("ChatHistoryPage", () => {
     expect(
       screen.getByText(new Date("2026-05-22T09:10:00+09:00").toLocaleString("ko-KR")),
     ).toBeTruthy();
+    expect(currentPathname).toBe("/workspaces/1/consultation/history/7");
   });
 
   it("상담사 메시지는 상담사 역할로 표시한다", () => {
@@ -190,8 +199,17 @@ describe("ChatHistoryPage", () => {
 
   it("URL의 sessionId로 초기 세션을 선택한다", () => {
     mockedUseChatMessages.mockReturnValue(makeMessagesResult({ data: [makeMessage()] }));
-    renderPage("/workspaces/workspace-1/consultation/history/7");
+    renderPage("/workspaces/1/consultation/history/7");
 
     expect(mockedUseChatMessages).toHaveBeenLastCalledWith("7");
+  });
+
+  it("URL의 sessionId가 현재 워크스페이스 목록에 없으면 메시지를 조회하지 않고 안내한다", () => {
+    renderPage("/workspaces/1/consultation/history/999");
+
+    expect(mockedUseChatMessages).toHaveBeenLastCalledWith("");
+    expect(
+      screen.getByText("현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다"),
+    ).toBeTruthy();
   });
 });

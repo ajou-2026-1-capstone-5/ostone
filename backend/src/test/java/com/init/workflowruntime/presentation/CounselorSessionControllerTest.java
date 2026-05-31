@@ -101,28 +101,31 @@ class CounselorSessionControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/v1/consultation/sessions - 전체 세션 목록 조회")
+  @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/sessions - 전체 세션 목록 조회")
   void should_returnSessions_when_noStatusFilter() throws Exception {
     CounselorSessionResponse response = new CounselorSessionResponse(List.of(), 0, 20, 0, 0);
 
-    given(counselorService.getSessions(eq(null), eq(0), eq(20))).willReturn(response);
+    given(counselorService.getSessions(eq(1L), eq(null), eq(0), eq(20))).willReturn(response);
 
     mockMvc
-        .perform(get("/api/v1/consultation/sessions").param("page", "0").param("size", "20"))
+        .perform(
+            get("/api/v1/workspaces/1/consultation/sessions")
+                .param("page", "0")
+                .param("size", "20"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray());
   }
 
   @Test
-  @DisplayName("GET /api/v1/consultation/sessions - 상태 필터 조회")
+  @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/sessions - 상태 필터 조회")
   void should_returnSessions_when_statusFilter() throws Exception {
     CounselorSessionResponse response = new CounselorSessionResponse(List.of(), 0, 20, 0, 0);
 
-    given(counselorService.getSessions(eq("OPEN"), eq(0), eq(20))).willReturn(response);
+    given(counselorService.getSessions(eq(1L), eq("OPEN"), eq(0), eq(20))).willReturn(response);
 
     mockMvc
         .perform(
-            get("/api/v1/consultation/sessions")
+            get("/api/v1/workspaces/1/consultation/sessions")
                 .param("status", "OPEN")
                 .param("page", "0")
                 .param("size", "20"))
@@ -131,14 +134,14 @@ class CounselorSessionControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/v1/consultation/sessions - 유효하지 않은 상태 → 400")
+  @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/sessions - 유효하지 않은 상태 → 400")
   void should_return400_when_invalidStatus() throws Exception {
-    given(counselorService.getSessions(eq("INVALID"), anyInt(), anyInt()))
+    given(counselorService.getSessions(eq(1L), eq("INVALID"), anyInt(), anyInt()))
         .willThrow(new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: INVALID"));
 
     mockMvc
         .perform(
-            get("/api/v1/consultation/sessions")
+            get("/api/v1/workspaces/1/consultation/sessions")
                 .param("status", "INVALID")
                 .param("page", "0")
                 .param("size", "20"))

@@ -15,6 +15,8 @@ import styles from "./MessageHistory.module.css";
 
 interface MessageHistoryProps {
   sessionId?: string | null;
+  isSelectionPending?: boolean;
+  missingSessionId?: string | null;
 }
 
 function formatTimestamp(dateStr?: string): string {
@@ -61,8 +63,12 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   );
 }
 
-export function MessageHistory({ sessionId }: MessageHistoryProps) {
-  const activeSessionId = sessionId ?? "";
+export function MessageHistory({
+  sessionId,
+  isSelectionPending = false,
+  missingSessionId = null,
+}: MessageHistoryProps) {
+  const activeSessionId = isSelectionPending || missingSessionId ? "" : (sessionId ?? "");
   const {
     data: messages = [],
     isLoading,
@@ -70,6 +76,27 @@ export function MessageHistory({ sessionId }: MessageHistoryProps) {
     error,
     refetch,
   } = useChatMessages(activeSessionId);
+
+  if (missingSessionId) {
+    return (
+      <section className={styles.wrapper} aria-label="채팅 메시지 내역">
+        <div className={styles.stateArea}>
+          <EmptyState message="현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다" />
+        </div>
+      </section>
+    );
+  }
+
+  if (isSelectionPending) {
+    return (
+      <section className={styles.wrapper} aria-label="채팅 메시지 내역">
+        <Header countText="불러오는 중" />
+        <div className={styles.stateArea}>
+          <LoadingSpinner />
+        </div>
+      </section>
+    );
+  }
 
   if (!activeSessionId) {
     return (
