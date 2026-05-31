@@ -760,7 +760,23 @@ public class WorkflowMatchingService {
     return hasRouteTerms(route) ? 0.5 : 0.0;
   }
 
-  private record CachedEmbedding(float[] embedding, Instant expiresAt) {}
+  private static final class CachedEmbedding {
+    private final float[] embedding;
+    private final Instant expiresAt;
+
+    private CachedEmbedding(float[] embedding, Instant expiresAt) {
+      this.embedding = embedding;
+      this.expiresAt = expiresAt;
+    }
+
+    private float[] embedding() {
+      return embedding;
+    }
+
+    private Instant expiresAt() {
+      return expiresAt;
+    }
+  }
 
   private record TermGroup(Set<String> alternatives) {}
 

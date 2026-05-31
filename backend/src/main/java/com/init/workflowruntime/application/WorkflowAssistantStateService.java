@@ -87,7 +87,7 @@ public class WorkflowAssistantStateService {
     Optional<Long> preferredWorkflow =
         workflowMatchDecisionRepository.findLatestConfidentWorkflowId(
             command.sessionId(), intentCode.trim());
-    Long workflowDefinitionId = preferredWorkflow == null ? null : preferredWorkflow.orElse(null);
+    Long workflowDefinitionId = preferredWorkflow.orElse(null);
     llmToolService.selectIntent(
         new SelectLlmToolIntentCommand(
             command.sessionId(), intentCode.trim(), workflowDefinitionId));

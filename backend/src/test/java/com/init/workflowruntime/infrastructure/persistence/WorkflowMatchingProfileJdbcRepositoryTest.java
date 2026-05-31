@@ -261,7 +261,8 @@ class WorkflowMatchingProfileJdbcRepositoryTest {
             domain_pack_version_id BIGINT NOT NULL,
             workflow_definition_id BIGINT NOT NULL,
             intent_definition_id BIGINT NOT NULL,
-            profile_status VARCHAR(50) NOT NULL,
+            profile_kind VARCHAR(50) NOT NULL DEFAULT 'WORKFLOW_ENTRYPOINT',
+            profile_status VARCHAR(50) NOT NULL DEFAULT 'BUILDING',
             profile_version VARCHAR(100) NOT NULL,
             profile_text_hash VARCHAR(64) NOT NULL DEFAULT 'profile-hash',
             profile_text TEXT NOT NULL,
@@ -272,6 +273,8 @@ class WorkflowMatchingProfileJdbcRepositoryTest {
             embedding_region VARCHAR(50) NOT NULL,
             embedding_input_type VARCHAR(50) NOT NULL DEFAULT 'search_document',
             embedding vector(1024) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             profile_search_vector tsvector GENERATED ALWAYS AS
                 (to_tsvector('simple', COALESCE(profile_text, ''))) STORED
         )

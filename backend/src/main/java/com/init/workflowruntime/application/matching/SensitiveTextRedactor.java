@@ -12,7 +12,7 @@ public class SensitiveTextRedactor {
   private static final Pattern PHONE =
       Pattern.compile("(?<!\\d)(?:\\+?82[-\\s]?)?0?1[016789][-\\s]?\\d{3,4}[-\\s]?\\d{4}(?!\\d)");
   private static final Pattern ORDER =
-      Pattern.compile("(?i)\\b(?:ord|order|주문)[-_:\\s]*[A-Z0-9-]{6,}\\b");
+      Pattern.compile("(?iu)\\b(?:ord|order|주문)[-_:\\s]*[A-Z0-9-]{6,}\\b");
 
   public String redact(String value) {
     String redacted = value == null ? "" : value;
