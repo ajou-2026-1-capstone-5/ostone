@@ -444,7 +444,9 @@ describe("UserChatPage", () => {
 
     await screen.findByTestId("chat-header-eyebrow");
 
-    expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
 
     act(() => {
       topicHandler?.({
