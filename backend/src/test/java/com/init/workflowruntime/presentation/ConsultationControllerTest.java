@@ -1,9 +1,11 @@
 package com.init.workflowruntime.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -107,12 +110,16 @@ class ConsultationControllerTest {
     // given
     UpdateStatusRequest request = new UpdateStatusRequest();
     request.setStatus("COMPLETED");
+    request.setResolutionOutcome("CUSTOMER_LEFT");
+    request.setResolutionReason("고객 응답 없음");
+    request.setFollowUpRequired(false);
 
     ChatSessionResponse response = new ChatSessionResponse();
     response.setId(1L);
-    response.setStatus("RESOLVED");
+    response.setStatus("COMPLETED");
 
-    given(consultationService.updateSessionStatus(eq(1L), eq("COMPLETED"))).willReturn(response);
+    given(consultationService.updateSessionStatus(eq(1L), any(UpdateStatusRequest.class)))
+        .willReturn(response);
 
     // when & then
     String content = objectMapper.writeValueAsString(request);
@@ -124,7 +131,15 @@ class ConsultationControllerTest {
                 .contentType(contentType)
                 .content(content))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("RESOLVED"));
+        .andExpect(jsonPath("$.status").value("COMPLETED"));
+    ArgumentCaptor<UpdateStatusRequest> requestCaptor =
+        ArgumentCaptor.forClass(UpdateStatusRequest.class);
+    verify(consultationService).updateSessionStatus(eq(1L), requestCaptor.capture());
+    UpdateStatusRequest capturedRequest = requestCaptor.getValue();
+    assertThat(capturedRequest.getStatus()).isEqualTo("COMPLETED");
+    assertThat(capturedRequest.getResolutionOutcome()).isEqualTo("CUSTOMER_LEFT");
+    assertThat(capturedRequest.getResolutionReason()).isEqualTo("고객 응답 없음");
+    assertThat(capturedRequest.getFollowUpRequired()).isFalse();
   }
 
   @Test
@@ -239,7 +254,7 @@ class ConsultationControllerTest {
 
     willThrow(new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: INVALID_STATUS"))
         .given(consultationService)
-        .updateSessionStatus(eq(1L), eq("INVALID_STATUS"));
+        .updateSessionStatus(eq(1L), any(UpdateStatusRequest.class));
 
     // when & then
     mockMvc

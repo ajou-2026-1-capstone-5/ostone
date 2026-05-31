@@ -5,6 +5,8 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
+import com.init.workflowruntime.application.dto.SessionResolutionOutcome;
+import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -107,6 +109,14 @@ public class ConsultationService {
 
   @Transactional
   public ChatSessionResponse updateSessionStatus(@NonNull Long sessionId, @NonNull String status) {
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus(status);
+    return updateSessionStatus(sessionId, request);
+  }
+
+  @Transactional
+  public ChatSessionResponse updateSessionStatus(
+      @NonNull Long sessionId, @NonNull UpdateStatusRequest request) {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
@@ -114,11 +124,15 @@ public class ConsultationService {
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
-    ChatSessionStatus newStatus;
-    try {
-      newStatus = ChatSessionStatus.valueOf(status.toUpperCase());
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    ChatSessionStatus newStatus = parseStatus(request.getStatus());
+    SessionResolutionOutcome outcome = parseOutcome(request.getResolutionOutcome());
+    if (outcome != null && outcome.getDefaultStatus() != newStatus) {
+      throw new BadRequestException(
+          "INVALID_RESOLUTION_STATUS",
+          "Resolution outcome "
+              + outcome.name()
+              + " requires status "
+              + outcome.getDefaultStatus());
     }
 
     switch (newStatus) {
@@ -128,11 +142,48 @@ public class ConsultationService {
       case OPEN -> session.reopen();
     }
 
+    if (outcome != null) {
+      boolean followUpRequired =
+          request.getFollowUpRequired() != null
+              ? request.getFollowUpRequired()
+              : outcome.isDefaultFollowUpRequired();
+      chatSessionMetadataService.recordResolution(
+          session,
+          outcome.name(),
+          outcome.getLabel(),
+          newStatus.name(),
+          request.getResolutionReason(),
+          followUpRequired);
+    }
+
     eventPublisher.publishEvent(
         new ConsultationQueueChangedEvent(
             session.getWorkspaceId(), sessionId, queueEventTypeFor(newStatus)));
 
     return ChatSessionResponse.from(session);
+  }
+
+  private ChatSessionStatus parseStatus(String status) {
+    if (status == null || status.isBlank()) {
+      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    }
+    try {
+      return ChatSessionStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    }
+  }
+
+  private SessionResolutionOutcome parseOutcome(String resolutionOutcome) {
+    if (resolutionOutcome == null || resolutionOutcome.isBlank()) {
+      return null;
+    }
+    try {
+      return SessionResolutionOutcome.valueOf(resolutionOutcome.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(
+          "UNSUPPORTED_RESOLUTION_OUTCOME", "Unsupported resolution outcome: " + resolutionOutcome);
+    }
   }
 
   private ConsultationQueueEventType queueEventTypeFor(ChatSessionStatus status) {

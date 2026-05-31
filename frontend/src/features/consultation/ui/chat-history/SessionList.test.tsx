@@ -63,7 +63,29 @@ describe("SessionList", () => {
       screen.getByText(new Date("2026-05-22T09:00:00+09:00").toLocaleDateString("ko-KR")),
     ).toBeTruthy();
     expect(screen.getByText("메시지 3개")).toBeTruthy();
+    expect(screen.getByText("상담 종료")).toBeTruthy();
     expect(screen.getByText("배송 상태를 확인해주세요")).toBeTruthy();
+  });
+
+  it("RESOLVED 세션과 처리 결과를 상담 기록에 표시한다", () => {
+    renderSessionList({
+      sessions: [
+        {
+          ...makeSession(7, {
+            resolution: {
+              label: "후속 연락 필요",
+              reason: "배송사 확인 필요",
+              followUpRequired: true,
+            },
+          }),
+          status: "RESOLVED",
+        },
+      ],
+    });
+
+    expect(screen.getByText("해결됨")).toBeTruthy();
+    expect(screen.getAllByText("후속 연락 필요")).toHaveLength(2);
+    expect(screen.getByText("배송사 확인 필요")).toBeTruthy();
   });
 
   it("세션 카드 제목은 meta title을 우선 표시한다", () => {

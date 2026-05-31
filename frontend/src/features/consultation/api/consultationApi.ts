@@ -14,6 +14,14 @@ export type ChatSession = ChatSessionResponse & {
   assignedCounselorId?: number | null;
 };
 export type ChatMessage = ChatMessageResponse;
+export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
+export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
+export interface UpdateSessionStatusPayload {
+  status: ConsultationSessionStatus;
+  resolutionOutcome?: ResolutionOutcome;
+  resolutionReason?: string;
+  followUpRequired?: boolean;
+}
 export type ConsultationQueueEventType = "SESSION_UPSERTED" | "SESSION_REMOVED";
 export interface ConsultationQueueEvent {
   type: ConsultationQueueEventType;
@@ -107,9 +115,14 @@ export const consultationApi = {
     );
   },
 
-  updateStatus: async (sessionId: number, status: string): Promise<ChatSession> => {
+  updateStatus: async (
+    sessionId: number,
+    statusOrPayload: ConsultationSessionStatus | UpdateSessionStatusPayload,
+  ): Promise<ChatSession> => {
+    const payload =
+      typeof statusOrPayload === "string" ? { status: statusOrPayload } : statusOrPayload;
     return requireApiData<ChatSession>(
-      await updateStatus(sessionId, { status }),
+      await updateStatus(sessionId, payload),
       "상담 상태 변경 응답을 확인할 수 없습니다.",
     );
   },
