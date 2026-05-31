@@ -90,6 +90,15 @@ async function getOrCreateStoredSession(
   return nextSession;
 }
 
+async function createFreshStoredSession(
+  workspaceId: number,
+  customerName: string,
+): Promise<DemoChatSession> {
+  const nextSession = await registerDemoChatSession(workspaceId, customerName);
+  writeStoredSession(workspaceId, customerName, nextSession);
+  return nextSession;
+}
+
 export function UserChatPage() {
   const { workspaceId: raw } = useParams<{ workspaceId: string }>();
   const workspaceId = Number(raw);
@@ -136,6 +145,30 @@ export function UserChatPage() {
       setChatState({
         workspaceId,
         customerName: nextName,
+        session: null,
+        error: resolveSessionStartErrorMessage(error),
+      });
+    }
+  };
+
+  const handleStartNewSession = async () => {
+    if (!customerName) return;
+
+    const requestId = ++nameRequestIdRef.current;
+    setMessageError(null);
+    setNameError(null);
+    setChatState({ workspaceId, customerName, session: null, error: null });
+
+    try {
+      const nextSession = await createFreshStoredSession(workspaceId, customerName);
+      if (requestId !== nameRequestIdRef.current) return;
+      setChatState({ workspaceId, customerName, session: nextSession, error: null });
+    } catch (error) {
+      console.error("Failed to restart demo chat session", error);
+      if (requestId !== nameRequestIdRef.current) return;
+      setChatState({
+        workspaceId,
+        customerName,
         session: null,
         error: resolveSessionStartErrorMessage(error),
       });
@@ -340,10 +373,14 @@ export function UserChatPage() {
     <ChatConversationScreen
       session={activeChatState.session}
       customerName={customerName}
+      workspaceId={workspaceId}
       isSending={isSending}
       messageError={messageError}
       onSend={(content) => {
         void handleSendMessage(content);
+      }}
+      onStartNewSession={() => {
+        void handleStartNewSession();
       }}
     />
   );

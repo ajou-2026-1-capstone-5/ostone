@@ -24,11 +24,11 @@ describe("Sidebar", () => {
     expect(nav).toHaveAttribute("data-collapsed", "false");
     expect(nav).toHaveStyle({ width: "200px" });
     expect(screen.getByTitle("Consultation")).toBeInTheDocument();
-    expect(screen.getByTitle("Chat")).toBeInTheDocument();
+    expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByTitle("Uploads")).toBeInTheDocument();
     expect(screen.getByTitle("Domain Packs")).toBeInTheDocument();
     expect(screen.getByText("Consultation")).toBeInTheDocument();
-    expect(screen.getByText("Chat")).toBeInTheDocument();
+    expect(screen.getByText("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByText("Uploads")).toBeInTheDocument();
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
   });
@@ -78,16 +78,22 @@ describe("Sidebar", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
     expect(screen.getByTitle("Consultation")).toHaveAttribute("href", "/workspaces/7/consultation");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/demo/workspaces/7/chat");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("target", "_blank");
-    expect(screen.getByTitle("Chat")).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "href",
+      "/demo/workspaces/7/chat",
+    );
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
     expect(screen.getByTitle("Domain Packs")).toHaveAttribute("href", "/workspaces/7/domain-packs");
   });
 
-  it("workspaceId를 추출할 수 없으면 Chat 링크를 안전한 내부 경로로 보낸다", () => {
+  it("workspaceId를 추출할 수 없으면 사용자 화면 미리보기 링크를 안전한 내부 경로로 보낸다", () => {
     renderSidebar({ basePath: "/workspaces" });
 
-    expect(screen.getByTitle("Chat")).toHaveAttribute("href", "/workspaces");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/workspaces");
   });
 
   it("switcher가 주어지면 렌더링된다", () => {

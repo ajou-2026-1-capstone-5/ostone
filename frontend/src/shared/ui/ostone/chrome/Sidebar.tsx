@@ -49,7 +49,7 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
   {
     key: "chat",
     icon: "msg",
-    label: "Chat",
+    label: "사용자 화면 미리보기",
     getPath: getDemoChatPath,
     external: true,
   },
