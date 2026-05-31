@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useCallback } from "react";
-import { Send, StickyNote, MessageSquare } from "lucide-react";
+import { Send, StickyNote, MessageSquare, WandSparkles } from "lucide-react";
 import {
   getChatRolePresentation,
   isCounselorLikeRole,
@@ -32,6 +32,10 @@ interface ChatPanelProps {
   sessionStatusDescription?: string;
   disabled?: boolean;
   disabledReason?: string;
+  draftResponseAction?: {
+    isLoading: boolean;
+    onInsert: () => Promise<string>;
+  };
 }
 
 const BOTTOM_SCROLL_THRESHOLD_PX = 96;
@@ -68,6 +72,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   sessionStatusDescription,
   disabled = false,
   disabledReason,
+  draftResponseAction,
 }) => {
   const [input, setInput] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
@@ -162,6 +167,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       showNewMessageNotice: false,
       shouldScrollToBottom: false,
     }));
+  };
+
+  const handleInsertDraft = async () => {
+    if (disabled || !draftResponseAction || draftResponseAction.isLoading) return;
+    try {
+      const draft = await draftResponseAction.onInsert();
+      if (draft.trim()) {
+        setInput(draft);
+        setIsNoteMode(false);
+      }
+    } catch {
+      // The page-level handler owns user-facing error feedback and the existing input is preserved.
+    }
   };
 
   /**
@@ -349,6 +367,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         >
           <StickyNote size={18} />
         </button>
+        {draftResponseAction && (
+          <button
+            type="button"
+            className={styles.draftInsertButton}
+            onClick={() => void handleInsertDraft()}
+            disabled={disabled || draftResponseAction.isLoading}
+            aria-label="답변 초안 삽입"
+            title="답변 초안 삽입"
+            data-testid="insert-draft-response"
+          >
+            <WandSparkles size={18} />
+          </button>
+        )}
         <textarea
           className={styles.messageInput}
           rows={1}

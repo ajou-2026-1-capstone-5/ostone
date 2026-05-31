@@ -375,7 +375,8 @@
   background: var(--bg-secondary);
 }
 
-.noteToggle {
+.noteToggle,
+.draftInsertButton {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,14 +391,22 @@
   flex-shrink: 0;
 }
 
-.noteToggle:hover {
+.noteToggle:hover,
+.draftInsertButton:hover {
   background: rgba(0, 0, 0, 0.05);
   color: var(--text-primary);
 }
 
-.noteToggle:disabled {
+.noteToggle:disabled,
+.draftInsertButton:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.draftInsertButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
 }
 
 .noteToggleActive {

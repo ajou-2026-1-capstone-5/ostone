@@ -8,7 +8,8 @@ import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
 
-// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list, assign/release는 수동 호출로 유지한다.
+// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
+// assign/release, draft-response는 수동 호출로 유지한다.
 
 export type ChatSession = ChatSessionResponse & {
   assignedCounselorId?: number | null;
@@ -39,6 +40,10 @@ export interface ConsultationMetrics {
   handledTodayCount: number;
   llmHandledTodayCount: number;
   humanHandledTodayCount: number;
+}
+
+export interface DraftResponse {
+  content: string;
 }
 
 type SessionListResponse =
@@ -149,5 +154,13 @@ export const consultationApi = {
       { method: "GET" },
     );
     return requireApiData<ConsultationMetrics>(response, "상담 지표 응답을 확인할 수 없습니다.");
+  },
+
+  generateDraftResponse: async (sessionId: number): Promise<DraftResponse> => {
+    const response = await customFetch<DraftResponse | { data?: DraftResponse }>(
+      `/api/v1/consultation/sessions/${sessionId}/draft-response`,
+      { method: "POST" },
+    );
+    return requireApiData<DraftResponse>(response, "답변 초안 응답을 확인할 수 없습니다.");
   },
 };
