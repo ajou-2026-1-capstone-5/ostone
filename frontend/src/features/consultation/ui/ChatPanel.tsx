@@ -7,11 +7,16 @@ import {
 } from "../lib/chatRoleLabels";
 import styles from "./chat-panel.module.css";
 
+export type MessageDeliveryStatus = "sending" | "sent" | "failed";
+
 export interface ChatMessage {
   id: string;
   senderRole: ChatSenderRole;
   content: string;
   timestamp: string;
+  deliveryStatus?: MessageDeliveryStatus;
+  retryable?: boolean;
+  errorMessage?: string;
 }
 
 interface ChatPanelProps {
@@ -20,6 +25,7 @@ interface ChatPanelProps {
   channel: string | null;
   messages: ChatMessage[];
   onSendMessage: (content: string, isNote: boolean) => void;
+  onRetryMessage?: (messageId: string) => void;
   selectedMessageId: string | null;
   onSelectMessage: (messageId: string | null) => void;
   sessionStatusLabel?: string;
@@ -54,6 +60,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   channel,
   messages,
   onSendMessage,
+  onRetryMessage,
   selectedMessageId,
   onSelectMessage,
   sessionStatusLabel,
@@ -81,18 +88,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     const hasNewMessages = messages.length > scrollState.messageCount;
     const shouldScrollToBottom = Boolean(
       customerName &&
-        (hasSessionChanged ||
-          hasInitialMessages ||
-          hasMessageCountDecreased ||
-          (hasNewMessages && scrollState.wasNearBottom)),
+      (hasSessionChanged ||
+        hasInitialMessages ||
+        hasMessageCountDecreased ||
+        (hasNewMessages && scrollState.wasNearBottom)),
     );
     const shouldShowNewMessageNotice = Boolean(
       customerName &&
-        hasNewMessages &&
-        !scrollState.wasNearBottom &&
-        !hasSessionChanged &&
-        !hasInitialMessages &&
-        !hasMessageCountDecreased,
+      hasNewMessages &&
+      !scrollState.wasNearBottom &&
+      !hasSessionChanged &&
+      !hasInitialMessages &&
+      !hasMessageCountDecreased,
     );
 
     setScrollState({
@@ -174,6 +181,38 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  const renderDeliveryMeta = (msg: ChatMessage, isAgent = false) => {
+    if (msg.deliveryStatus === "sending") {
+      return (
+        <div className={`${styles.deliveryMeta} ${isAgent ? styles.deliveryMetaAgent : ""}`}>
+          전송 중
+        </div>
+      );
+    }
+
+    if (msg.deliveryStatus !== "failed") return null;
+
+    return (
+      <div
+        className={`${styles.deliveryMeta} ${styles.deliveryMetaFailed} ${isAgent ? styles.deliveryMetaAgent : ""}`}
+      >
+        <span title={msg.errorMessage}>전송 실패</span>
+        {msg.retryable && onRetryMessage ? (
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRetryMessage(msg.id);
+            }}
+          >
+            다시 보내기
+          </button>
+        ) : null}
+      </div>
+    );
+  };
+
   if (!customerName) {
     return (
       <div className={styles.chatWrapper}>
@@ -226,9 +265,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             if (msg.senderRole === "NOTE") {
               const role = getChatRolePresentation(msg.senderRole);
               return (
-                <div key={msg.id} className={styles.internalNote}>
+                <div
+                  key={msg.id}
+                  className={`${styles.internalNote} ${msg.deliveryStatus === "sending" ? styles.internalNoteSending : ""} ${msg.deliveryStatus === "failed" ? styles.internalNoteFailed : ""}`}
+                >
                   <div className={styles.noteLabel}>{role.label}</div>
                   {msg.content}
+                  {renderDeliveryMeta(msg, true)}
                 </div>
               );
             }
@@ -267,7 +310,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 </div>
                 <div>
                   <div
-                    className={`${styles.msgBubble} ${isAgent ? styles.msgBubbleAgent : styles.msgBubbleCustomer}`}
+                    className={`${styles.msgBubble} ${isAgent ? styles.msgBubbleAgent : styles.msgBubbleCustomer} ${msg.deliveryStatus === "sending" ? styles.msgBubbleSending : ""} ${msg.deliveryStatus === "failed" ? styles.msgBubbleFailed : ""}`}
                   >
                     {msg.content}
                   </div>
@@ -275,17 +318,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     <span>{role.label} · </span>
                     {msg.timestamp}
                   </div>
+                  {renderDeliveryMeta(msg, isAgent)}
                 </div>
               </div>
             );
           })}
         </div>
         {showNewMessageNotice && (
-          <button
-            type="button"
-            className={styles.newMessageButton}
-            onClick={handleNewMessageClick}
-          >
+          <button type="button" className={styles.newMessageButton} onClick={handleNewMessageClick}>
             새 메시지 보기
           </button>
         )}

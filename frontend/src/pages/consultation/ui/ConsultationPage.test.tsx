@@ -30,6 +30,7 @@ const { mockSubscribe, mockSendTo, stompState } = vi.hoisted(() => {
   const stompState = {
     connectionStatus: "CONNECTED" as "CONNECTED" | "DISCONNECTED",
     latestCallback: null as ((msg: RealtimePayload) => void) | null,
+    onServerError: null as ((error: unknown) => void) | null,
     callbacks: new Map<string, (msg: RealtimePayload) => void>(),
   };
   return {
@@ -137,15 +138,18 @@ vi.mock("../../../features/consultation/api/llmToolWorkflowApi", () => ({
 }));
 
 vi.mock("@/shared/lib/websocket", () => ({
-  useStomp: () => ({
-    connectionStatus: stompState.connectionStatus,
-    subscribe: mockSubscribe,
-    sendTo: mockSendTo,
-    sendMessage: vi.fn(),
-    lastMessage: null,
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-  }),
+  useStomp: (options?: { onServerError?: (error: unknown) => void }) => {
+    stompState.onServerError = options?.onServerError ?? null;
+    return {
+      connectionStatus: stompState.connectionStatus,
+      subscribe: mockSubscribe,
+      sendTo: mockSendTo,
+      sendMessage: vi.fn(),
+      lastMessage: null,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    };
+  },
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -164,6 +168,7 @@ describe("ConsultationPage", () => {
     vi.clearAllMocks();
     stompState.connectionStatus = "CONNECTED";
     stompState.latestCallback = null;
+    stompState.onServerError = null;
     stompState.callbacks.clear();
     shellContext.workspace = { id: 2, name: "QA Alpha" };
     window.alert = vi.fn();
@@ -789,6 +794,163 @@ describe("ConsultationPage", () => {
     });
     expect(consultationApi.sendMessage).not.toHaveBeenCalled();
     expect(screen.getByText("처리 도와드리겠습니다.")).toBeInTheDocument();
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+  });
+
+  it("marks an optimistic counselor message as sent when the server echo arrives", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "처리 도와드리겠습니다.");
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 201,
+        senderRole: "COUNSELOR",
+        content: "처리 도와드리겠습니다.",
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("전송 중")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("전송 실패")).not.toBeInTheDocument();
+    expect(screen.getAllByText("처리 도와드리겠습니다.")).toHaveLength(1);
+  });
+
+  it("marks the oldest pending message as failed when the server error queue reports a send error", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "권한 오류가 날 메시지");
+    await user.keyboard("{Enter}");
+
+    act(() => {
+      stompState.onServerError?.({
+        senderRole: "SYSTEM",
+        messageType: "ERROR",
+        content: "[SESSION_NOT_ASSIGNED] Session is not assigned",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("전송 실패")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "다시 보내기" })).toBeInTheDocument();
+  });
+
+  it("marks a pending message as failed when the server echo times out", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(input, { target: { value: "응답이 늦는 메시지" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      expect(screen.getByText("전송 중")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(8000);
+      });
+
+      expect(screen.getByText("전송 실패")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "다시 보내기" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries a failed message without leaving a duplicate after the echo succeeds", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "다시 보낼 메시지");
+    await user.keyboard("{Enter}");
+
+    act(() => {
+      stompState.onServerError?.({
+        senderRole: "SYSTEM",
+        messageType: "ERROR",
+        content: "[INTERNAL_ERROR] failed",
+      });
+    });
+
+    const retryButton = await screen.findByRole("button", { name: "다시 보내기" });
+    await user.click(retryButton);
+
+    await waitFor(() => {
+      expect(mockSendTo).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+    expect(screen.queryByText("전송 실패")).not.toBeInTheDocument();
+
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 202,
+        senderRole: "COUNSELOR",
+        content: "다시 보낼 메시지",
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("전송 중")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText("다시 보낼 메시지")).toHaveLength(1);
   });
 
   it("cleans up topbar and crumbs on unmount", () => {

@@ -419,6 +419,93 @@ describe("ChatPanel", () => {
     expect(screen.getByText("A")).toBeInTheDocument();
   });
 
+  it("상담사 메시지의 전송 중 상태를 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "pending-1",
+            senderRole: "COUNSELOR",
+            content: "곧 확인해드리겠습니다.",
+            timestamp: "10:05",
+            deliveryStatus: "sending",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("곧 확인해드리겠습니다.")).toBeInTheDocument();
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+  });
+
+  it("실패한 상담사 메시지에 재전송 액션을 표시하고 메시지 선택과 분리한다", () => {
+    const onRetryMessage = vi.fn();
+    const onSelectMessage = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "failed-1",
+            senderRole: "COUNSELOR",
+            content: "다시 보내야 하는 메시지",
+            timestamp: "10:05",
+            deliveryStatus: "failed",
+            retryable: true,
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        onRetryMessage={onRetryMessage}
+        selectedMessageId={null}
+        onSelectMessage={onSelectMessage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 보내기" }));
+
+    expect(screen.getByText("전송 실패")).toBeInTheDocument();
+    expect(onRetryMessage).toHaveBeenCalledWith("failed-1");
+    expect(onSelectMessage).not.toHaveBeenCalled();
+  });
+
+  it("내부 메모 메시지의 실패 상태와 재전송 액션을 표시한다", () => {
+    const onRetryMessage = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "note-failed-1",
+            senderRole: "NOTE",
+            content: "내부 메모 재전송 필요",
+            timestamp: "10:05",
+            deliveryStatus: "failed",
+            retryable: true,
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        onRetryMessage={onRetryMessage}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("내부 메모 재전송 필요")).toBeInTheDocument();
+    expect(screen.getByText("전송 실패")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 보내기" }));
+    expect(onRetryMessage).toHaveBeenCalledWith("note-failed-1");
+  });
+
   it("USER, AGENT, NOTE, SYSTEM 역할 라벨을 일관되게 표시한다", () => {
     render(
       <ChatPanel

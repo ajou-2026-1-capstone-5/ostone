@@ -16,16 +16,25 @@ export interface UseStompResult {
   sendTo: (destination: string, body: unknown) => void;
 }
 
-export function useStomp(): UseStompResult {
+export interface UseStompOptions {
+  onServerError?: (error: unknown) => void;
+}
+
+export function useStomp(options: UseStompOptions = {}): UseStompResult {
   const clientRef = useRef<Client | null>(null);
   const errorSubscriptionRef = useRef<StompSubscription | null>(null);
   const customSubscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
   const connectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
+  const onServerErrorRef = useRef<UseStompOptions["onServerError"]>(options.onServerError);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("DISCONNECTED");
 
   useEffect(() => {
     connectionStatusRef.current = connectionStatus;
   }, [connectionStatus]);
+
+  useEffect(() => {
+    onServerErrorRef.current = options.onServerError;
+  }, [options.onServerError]);
 
   const disconnect = useCallback(() => {
     errorSubscriptionRef.current?.unsubscribe();
@@ -60,6 +69,7 @@ export function useStomp(): UseStompResult {
         try {
           const error = JSON.parse(message.body) as unknown;
           console.error("WebSocket server error:", error);
+          onServerErrorRef.current?.(error);
         } catch {
           // ignore malformed error frames
         }
