@@ -911,3 +911,16 @@ CREATE INDEX idx_workflow_match_decision_recent_confident_workflow
     ON runtime.workflow_match_decision (domain_pack_version_id, selected_workflow_id, created_at DESC)
     WHERE status = 'CONFIDENT'
       AND selected_workflow_id IS NOT NULL;
+
+--changeset init:20260601-add-response-mode-to-chat-session
+--comment: Add session-level AI response mode for counselor intervention control
+ALTER TABLE runtime.chat_session
+    ADD COLUMN response_mode VARCHAR(50) NOT NULL DEFAULT 'AI_ACTIVE';
+
+UPDATE runtime.chat_session
+SET response_mode = 'HUMAN_ACTIVE'
+WHERE assigned_counselor_id IS NOT NULL;
+
+ALTER TABLE runtime.chat_session
+    ADD CONSTRAINT chk_chat_session_response_mode
+    CHECK (response_mode IN ('AI_ACTIVE', 'HUMAN_ACTIVE', 'AI_ASSIST_ONLY'));

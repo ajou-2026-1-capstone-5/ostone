@@ -38,6 +38,10 @@ public class ChatSession {
   @Column(name = "assigned_counselor_id")
   private Long assignedCounselorId;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "response_mode", nullable = false)
+  private ChatSessionResponseMode responseMode = ChatSessionResponseMode.AI_ACTIVE;
+
   @Column(name = "started_by")
   private Long startedBy;
 
@@ -76,6 +80,7 @@ public class ChatSession {
     session.channel = channel;
     session.metaJson = metaJson != null ? metaJson : "{}";
     session.startedBy = startedBy;
+    session.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     return session;
   }
 
@@ -83,6 +88,9 @@ public class ChatSession {
   protected void onPersist() {
     if (this.startedAt == null) {
       this.startedAt = OffsetDateTime.now();
+    }
+    if (this.responseMode == null) {
+      this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     }
   }
 
@@ -112,6 +120,10 @@ public class ChatSession {
 
   public Long getAssignedCounselorId() {
     return assignedCounselorId;
+  }
+
+  public ChatSessionResponseMode getResponseMode() {
+    return responseMode != null ? responseMode : ChatSessionResponseMode.AI_ACTIVE;
   }
 
   public String getMetaJson() {
@@ -156,6 +168,7 @@ public class ChatSession {
     }
     this.status = ChatSessionStatus.OPEN;
     this.assignedCounselorId = null;
+    this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     this.endedAt = null;
   }
 
@@ -173,6 +186,7 @@ public class ChatSession {
     }
     this.assignedCounselorId = counselorId;
     this.status = ChatSessionStatus.ACTIVE;
+    this.responseMode = ChatSessionResponseMode.HUMAN_ACTIVE;
   }
 
   public void releaseFrom() {
@@ -185,6 +199,22 @@ public class ChatSession {
     }
     this.assignedCounselorId = null;
     this.status = ChatSessionStatus.OPEN;
+    this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
+  }
+
+  public void switchResponseMode(ChatSessionResponseMode responseMode) {
+    if (responseMode == null) {
+      throw new InvalidSessionStateException("responseMode must not be null");
+    }
+    this.responseMode = responseMode;
+  }
+
+  public void markHumanResponding() {
+    this.responseMode = ChatSessionResponseMode.HUMAN_ACTIVE;
+  }
+
+  public boolean allowsAiAutoResponse() {
+    return getResponseMode() == ChatSessionResponseMode.AI_ACTIVE;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */

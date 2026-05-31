@@ -1,9 +1,11 @@
 package com.init.workflowruntime.presentation;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,6 +26,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -165,6 +168,28 @@ class CounselorSessionControllerTest {
                 .principal(auth(42L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.assignedCounselorId").isEmpty());
+  }
+
+  @Test
+  @DisplayName("PATCH /api/v1/consultation/sessions/{id}/response-mode - 응대 모드 변경 성공")
+  void should_updateResponseMode_when_validRequest() throws Exception {
+    CounselorSessionResponse response = new CounselorSessionResponse();
+    response.setId(1L);
+    response.setStatus("ACTIVE");
+    response.setAssignedCounselorId(42L);
+    response.setResponseMode("AI_ASSIST_ONLY");
+
+    given(counselorService.updateResponseMode(eq(1L), any(), eq(7L))).willReturn(response);
+
+    mockMvc
+        .perform(
+            patch("/api/v1/consultation/sessions/1/response-mode")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"counselorId\":42,\"responseMode\":\"AI_ASSIST_ONLY\"}")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.responseMode").value("AI_ASSIST_ONLY"));
   }
 
   @Test

@@ -22,6 +22,7 @@ export interface QueueCustomer {
   status?: string | null;
   statusLabel?: string;
   assignedCounselorId?: number | null;
+  responseMode?: "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY" | null;
   startedAt?: string | null;
 }
 

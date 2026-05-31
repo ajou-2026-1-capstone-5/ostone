@@ -13,6 +13,7 @@ public class ChatSessionResponse {
   private String metaJson;
   private OffsetDateTime startedAt;
   private Long assignedCounselorId;
+  private String responseMode;
   private OffsetDateTime endedAt;
 
   /**
@@ -29,6 +30,7 @@ public class ChatSessionResponse {
     resp.metaJson = session.getMetaJson();
     resp.startedAt = session.getStartedAt();
     resp.assignedCounselorId = session.getAssignedCounselorId();
+    resp.responseMode = session.getResponseMode().name();
     resp.endedAt = session.getEndedAt();
     return resp;
   }
@@ -80,6 +82,14 @@ public class ChatSessionResponse {
 
   public void setAssignedCounselorId(Long assignedCounselorId) {
     this.assignedCounselorId = assignedCounselorId;
+  }
+
+  public String getResponseMode() {
+    return responseMode;
+  }
+
+  public void setResponseMode(String responseMode) {
+    this.responseMode = responseMode;
   }
 
   public OffsetDateTime getEndedAt() {

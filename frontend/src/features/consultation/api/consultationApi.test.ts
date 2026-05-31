@@ -406,6 +406,30 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubSession);
   });
 
+  it("updateResponseMode가 상담사 ID와 모드를 전달한다", async () => {
+    const stubSession = {
+      id: 1,
+      status: "ACTIVE",
+      channel: "WEB",
+      metaJson: "{}",
+      startedAt: new Date().toISOString(),
+      assignedCounselorId: 7,
+      responseMode: "AI_ASSIST_ONLY" as const,
+    };
+    mockedCustomFetch.mockResolvedValue({ data: stubSession });
+
+    const result = await consultationApi.updateResponseMode(1, 7, "AI_ASSIST_ONLY");
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/response-mode",
+      {
+        method: "PATCH",
+        body: { counselorId: 7, responseMode: "AI_ASSIST_ONLY" },
+      },
+    );
+    expect(result).toEqual(stubSession);
+  });
+
   it("getMetrics가 워크스페이스 상담 지표를 반환한다", async () => {
     const stubMetrics = {
       workspaceId: 2,

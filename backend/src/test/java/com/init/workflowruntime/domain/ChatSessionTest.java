@@ -15,12 +15,14 @@ class ChatSessionTest {
   void should_clearCounselorAndEndedAt_when_reopen() {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.RESOLVED, "WEB", "{}");
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    ReflectionTestUtils.setField(session, "responseMode", ChatSessionResponseMode.HUMAN_ACTIVE);
     ReflectionTestUtils.setField(session, "endedAt", java.time.OffsetDateTime.now());
 
     session.reopen();
 
     assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.OPEN);
     assertThat(session.getAssignedCounselorId()).isNull();
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ACTIVE);
     assertThat(session.getEndedAt()).isNull();
   }
 
@@ -78,5 +80,49 @@ class ChatSessionTest {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", null);
 
     assertThat(session.getMetaJson()).isEqualTo("{}");
+  }
+
+  @Test
+  @DisplayName("create: 기본 응대 모드는 AI_ACTIVE이다")
+  void should_defaultAiActiveResponseMode_when_create() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ACTIVE);
+    assertThat(session.allowsAiAutoResponse()).isTrue();
+  }
+
+  @Test
+  @DisplayName("assignTo: 상담사 배정 시 HUMAN_ACTIVE로 전환된다")
+  void should_switchHumanActive_when_assignToCounselor() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+
+    session.assignTo(42L);
+
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.ACTIVE);
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.HUMAN_ACTIVE);
+    assertThat(session.allowsAiAutoResponse()).isFalse();
+  }
+
+  @Test
+  @DisplayName("releaseFrom: 배정 해제 시 AI_ACTIVE로 전환된다")
+  void should_switchAiActive_when_releaseFromCounselor() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(42L);
+
+    session.releaseFrom();
+
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.OPEN);
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ACTIVE);
+  }
+
+  @Test
+  @DisplayName("switchResponseMode: AI 보조 모드로 전환하면 자동응답을 허용하지 않는다")
+  void should_notAllowAutoResponse_when_assistOnly() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+
+    session.switchResponseMode(ChatSessionResponseMode.AI_ASSIST_ONLY);
+
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ASSIST_ONLY);
+    assertThat(session.allowsAiAutoResponse()).isFalse();
   }
 }

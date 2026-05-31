@@ -13,9 +13,11 @@ import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/gene
 
 export type ChatSession = ChatSessionResponse & {
   assignedCounselorId?: number | null;
+  responseMode?: ConsultationResponseMode | null;
 };
 export type ChatMessage = ChatMessageResponse;
 export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
+export type ConsultationResponseMode = "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY";
 export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
 export interface UpdateSessionStatusPayload {
   status: ConsultationSessionStatus;
@@ -146,6 +148,21 @@ export const consultationApi = {
       { method: "POST" },
     );
     return requireApiData<ChatSession>(response, "상담 배정 해제 응답을 확인할 수 없습니다.");
+  },
+
+  updateResponseMode: async (
+    sessionId: number,
+    counselorId: number,
+    responseMode: ConsultationResponseMode,
+  ): Promise<ChatSession> => {
+    const response = await customFetch<ChatSession | { data?: ChatSession }>(
+      `/api/v1/consultation/sessions/${sessionId}/response-mode`,
+      {
+        method: "PATCH",
+        body: { counselorId, responseMode },
+      },
+    );
+    return requireApiData<ChatSession>(response, "AI 응대 모드 변경 응답을 확인할 수 없습니다.");
   },
 
   getMetrics: async (workspaceId: number): Promise<ConsultationMetrics> => {

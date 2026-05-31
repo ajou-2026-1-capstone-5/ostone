@@ -70,6 +70,7 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
           metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
           startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
           assignedCounselorId: 7,
+          responseMode: "AI_ACTIVE",
         },
       ]),
     ),
@@ -94,6 +95,7 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
         startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
         assignedCounselorId: 7,
+        responseMode: "HUMAN_ACTIVE",
       }),
     ),
     releaseSession: vi.fn(() =>
@@ -104,6 +106,18 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
         startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
         assignedCounselorId: null,
+        responseMode: "AI_ACTIVE",
+      }),
+    ),
+    updateResponseMode: vi.fn((sessionId: number, counselorId: number, responseMode: string) =>
+      Promise.resolve({
+        id: sessionId,
+        status: "ACTIVE",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: counselorId,
+        responseMode,
       }),
     ),
     getMetrics: vi.fn(() =>
@@ -1039,6 +1053,39 @@ describe("ConsultationPage", () => {
     ).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "배정받기" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it("updates AI response mode for the assigned session", async () => {
+    const user = userEvent.setup();
+    saveTestUser(7);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
+
+    await waitFor(() => {
+      expect(consultationApi.updateResponseMode).toHaveBeenCalledWith(1, 7, "AI_ASSIST_ONLY");
+    });
+    expect(toast.success).toHaveBeenCalledWith("AI 응대 모드가 변경되었습니다.");
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
   });
 
   it("releases the current counselor assignment through the backend API", async () => {

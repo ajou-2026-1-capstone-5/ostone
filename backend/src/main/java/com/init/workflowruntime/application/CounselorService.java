@@ -5,10 +5,12 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
+import com.init.workflowruntime.application.dto.UpdateResponseModeRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
@@ -153,6 +155,9 @@ public class CounselorService {
     String senderRole = isNote ? "NOTE" : "COUNSELOR";
     ChatMessage message = ChatMessage.create(sessionId, nextSeqNo, senderRole, "TEXT", content);
     ChatMessage savedMessage = chatMessageRepository.save(message);
+    if (!isNote) {
+      session.markHumanResponding();
+    }
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
@@ -166,6 +171,34 @@ public class CounselorService {
         });
 
     return response;
+  }
+
+  @Transactional
+  public CounselorSessionResponse updateResponseMode(
+      Long sessionId, UpdateResponseModeRequest request, Long userId) {
+    validateCounselorId(request.getCounselorId());
+
+    ChatSession session =
+        chatSessionRepository
+            .findByIdForUpdate(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
+
+    if (!Objects.equals(request.getCounselorId(), session.getAssignedCounselorId())) {
+      throw new BadRequestException(
+          "SESSION_NOT_ASSIGNED",
+          "Session " + sessionId + " is not assigned to counselor: " + request.getCounselorId());
+    }
+
+    session.switchResponseMode(parseResponseMode(request.getResponseMode()));
+    chatSessionRepository.save(session);
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
+
+    return CounselorSessionResponse.from(session);
   }
 
   public CounselorSessionResponse getSessions(Long workspaceId, String status, int page, int size) {
@@ -218,5 +251,18 @@ public class CounselorService {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
         .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+  }
+
+  private ChatSessionResponseMode parseResponseMode(String responseMode) {
+    if (responseMode == null || responseMode.isBlank()) {
+      throw new BadRequestException(
+          "UNSUPPORTED_RESPONSE_MODE", "Unsupported response mode: " + responseMode);
+    }
+    try {
+      return ChatSessionResponseMode.valueOf(responseMode.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(
+          "UNSUPPORTED_RESPONSE_MODE", "Unsupported response mode: " + responseMode);
+    }
   }
 }

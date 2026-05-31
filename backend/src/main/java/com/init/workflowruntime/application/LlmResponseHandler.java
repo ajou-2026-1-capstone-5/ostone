@@ -10,6 +10,7 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,18 +52,24 @@ public class LlmResponseHandler {
   @EventListener
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
-      String conversationContext = loadConversationContext(event.sessionId());
+      Optional<String> conversationContext = loadConversationContextIfAutoResponseEnabled(event);
+      if (conversationContext.isEmpty()) {
+        return;
+      }
 
       String llmResponse =
           llmAssistantService
               .generateWorkflowAwareResponse(
                   new GenerateWorkflowAwareResponseCommand(
-                      event.sessionId(), conversationContext, event.content()))
+                      event.sessionId(), conversationContext.get(), event.content()))
               .content();
 
-      ChatMessage savedMessage = saveAssistantMessage(event.sessionId(), llmResponse);
+      Optional<ChatMessage> savedMessage = saveAssistantMessage(event.sessionId(), llmResponse);
+      if (savedMessage.isEmpty()) {
+        return;
+      }
 
-      ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
+      ChatMessageResponse response = ChatMessageResponse.from(savedMessage.get());
       String destination = "/topic/chat." + event.sessionId();
       messagingTemplate.convertAndSend(destination, response);
 
@@ -79,22 +86,35 @@ public class LlmResponseHandler {
     }
   }
 
-  private String loadConversationContext(Long sessionId) {
-    chatSessionRepository
-        .findById(sessionId)
-        .orElseThrow(
-            () -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+  private Optional<String> loadConversationContextIfAutoResponseEnabled(
+      ChatMessageReceivedEvent event) {
+    ChatSession session =
+        chatSessionRepository
+            .findById(event.sessionId())
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        "SESSION_NOT_FOUND", "Session not found: " + event.sessionId()));
+
+    if (!session.allowsAiAutoResponse()) {
+      log.info(
+          "Skip LLM auto response for session {} because response mode is {}",
+          event.sessionId(),
+          session.getResponseMode());
+      return Optional.empty();
+    }
 
     List<ChatMessage> recentDesc =
-        chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(sessionId);
+        chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(event.sessionId());
     Collections.reverse(recentDesc);
-    return recentDesc.stream()
-        .map(m -> m.getSenderRole() + ": " + m.getContent())
-        .collect(Collectors.joining("\n"));
+    return Optional.of(
+        recentDesc.stream()
+            .map(m -> m.getSenderRole() + ": " + m.getContent())
+            .collect(Collectors.joining("\n")));
   }
 
-  private ChatMessage saveAssistantMessage(Long sessionId, String llmResponse) {
-    ChatMessage savedMessage =
+  private Optional<ChatMessage> saveAssistantMessage(Long sessionId, String llmResponse) {
+    Optional<ChatMessage> savedMessage =
         transactionTemplate.execute(
             status -> {
               ChatSession session =
@@ -105,6 +125,15 @@ public class LlmResponseHandler {
                               new NotFoundException(
                                   "SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
+              if (!session.allowsAiAutoResponse()) {
+                log.info(
+                    "Skip saving LLM auto response for session {} because response mode changed to"
+                        + " {}",
+                    sessionId,
+                    session.getResponseMode());
+                return Optional.empty();
+              }
+
               Integer nextSeqNo =
                   chatMessageRepository
                       .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
@@ -114,10 +143,12 @@ public class LlmResponseHandler {
               ChatMessage saved =
                   chatMessageRepository.save(
                       ChatMessage.create(sessionId, nextSeqNo, "ASSISTANT", "TEXT", llmResponse));
-              if (saved != null) {
-                chatSessionMetadataService.updateAfterMessage(session, saved);
+              if (saved == null) {
+                throw new IllegalStateException(
+                    "Assistant message save returned null for session: " + sessionId);
               }
-              return saved;
+              chatSessionMetadataService.updateAfterMessage(session, saved);
+              return Optional.of(saved);
             });
     if (savedMessage == null) {
       throw new IllegalStateException(
