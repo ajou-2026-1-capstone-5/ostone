@@ -174,13 +174,13 @@ aws ecs describe-services \
   --region ap-northeast-2
 
 # ALB Health Check
-curl -sfk https://api.ostone.io/actuator/health
+curl -sf https://api.ostone.io/actuator/health
 
 # API 엔드포인트 검증
-curl -sfk https://api.ostone.io/api/v1/workspace
+curl -sf https://api.ostone.io/api/v1/workspace
 
 # Frontend 접속 확인
-curl -sfk https://app.ostone.io/ | grep -o '<html'
+curl -sf https://app.ostone.io/ | grep -o '<html'
 
 # RDS 연결 확인
 aws rds describe-db-instances \
