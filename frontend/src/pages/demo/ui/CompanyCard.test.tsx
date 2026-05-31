@@ -22,13 +22,13 @@ const disabledCompany: DemoCompany = {
 describe("CompanyCard", () => {
   it("renders an enabled company as available", () => {
     render(<CompanyCard company={enabledCompany} active={false} onActivate={vi.fn()} />);
-    expect(screen.getByTestId("demo-company-card-1")).toHaveAttribute("aria-disabled", "false");
+    expect(screen.getByTestId("demo-company-card-1")).not.toHaveAttribute("aria-disabled");
     expect(screen.getByTestId("demo-company-status-1")).toHaveTextContent("상담 가능");
   });
 
   it("renders a disabled company as a preview", () => {
     render(<CompanyCard company={disabledCompany} active={false} onActivate={vi.fn()} />);
-    expect(screen.getByTestId("demo-company-card-2")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByTestId("demo-company-card-2")).not.toHaveAttribute("aria-disabled");
     expect(screen.getByTestId("demo-company-status-2")).toHaveTextContent("데모 준비 중");
   });
 
