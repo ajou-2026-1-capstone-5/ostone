@@ -810,6 +810,7 @@ export const ConsultationPage: React.FC = () => {
 
         <div className={styles.chatPanelSlot}>
           <ChatPanel
+            sessionId={activeCustomerId}
             customerName={activeCustomer ? activeCustomerName : null}
             channel={activeCustomer?.channel || null}
             messages={visibleMessages}

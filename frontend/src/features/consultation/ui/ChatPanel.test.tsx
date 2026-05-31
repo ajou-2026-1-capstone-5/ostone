@@ -1,7 +1,65 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { ChatPanel } from "./ChatPanel";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { ChatPanel, type ChatMessage } from "./ChatPanel";
+
+const baseMessages: ChatMessage[] = [
+  {
+    id: "msg-1",
+    senderRole: "CUSTOMER",
+    content: "환불 문의 드립니다.",
+    timestamp: "10:02",
+  },
+  {
+    id: "msg-2",
+    senderRole: "COUNSELOR",
+    content: "확인 후 안내드리겠습니다.",
+    timestamp: "10:03",
+  },
+];
+
+const nextMessage: ChatMessage = {
+  id: "msg-3",
+  senderRole: "ASSISTANT",
+  content: "AI가 환불 정책을 확인했습니다.",
+  timestamp: "10:04",
+};
+
+const renderChatPanel = (messages: ChatMessage[] = baseMessages, sessionId = "session-1") =>
+  render(
+    <ChatPanel
+      sessionId={sessionId}
+      customerName="김민지"
+      channel="카카오톡"
+      messages={messages}
+      onSendMessage={vi.fn()}
+      selectedMessageId={null}
+      onSelectMessage={vi.fn()}
+    />,
+  );
+
+const setScrollMetrics = (
+  element: HTMLElement,
+  metrics: { scrollHeight: number; clientHeight: number; scrollTop: number },
+) => {
+  Object.defineProperty(element, "scrollHeight", {
+    configurable: true,
+    value: metrics.scrollHeight,
+  });
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    value: metrics.clientHeight,
+  });
+  Object.defineProperty(element, "scrollTop", {
+    configurable: true,
+    writable: true,
+    value: metrics.scrollTop,
+  });
+};
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("ChatPanel", () => {
   it("고객이 선택되지 않으면 빈 상태 안내를 보여준다", () => {
@@ -402,5 +460,199 @@ describe("ChatPanel", () => {
     expect(screen.getByText("상담사 ·")).toBeInTheDocument();
     expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("시스템 안내")).toBeInTheDocument();
+  });
+
+  it("초기 메시지 로딩과 세션 전환 시 최신 메시지로 이동한다", () => {
+    const { rerender } = render(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 0,
+    });
+
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={baseMessages}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1200);
+
+    messageList.scrollTop = 240;
+    fireEvent.scroll(messageList);
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+
+    rerender(
+      <ChatPanel
+        sessionId="session-2"
+        customerName="이서연"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "session-2-msg-1",
+            senderRole: "CUSTOMER",
+            content: "새 상담입니다.",
+            timestamp: "11:00",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("하단 근처에서 새 메시지가 도착하면 자동으로 최신 메시지를 따라간다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 840,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 840,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("과거 메시지를 읽는 중 새 메시지가 도착하면 위치를 유지하고 새 메시지 보기 버튼을 표시한다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(240);
+    expect(screen.getByRole("button", { name: "새 메시지 보기" })).toBeInTheDocument();
+  });
+
+  it("새 메시지 보기 버튼을 누르면 최신 메시지로 이동하고 버튼을 숨긴다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "새 메시지 보기" }));
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("사용자가 직접 하단 근처로 스크롤하면 새 메시지 보기 버튼을 숨긴다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "새 메시지 보기" })).toBeInTheDocument();
+
+    messageList.scrollTop = 1010;
+    fireEvent.scroll(messageList);
+
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
   });
 });
