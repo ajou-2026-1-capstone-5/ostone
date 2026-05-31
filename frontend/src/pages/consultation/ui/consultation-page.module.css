@@ -147,6 +147,215 @@
   text-decoration: none;
 }
 
+.modalOverlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 42%);
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.endSessionDialog {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 18%);
+  color: var(--ink);
+  padding: 20px;
+}
+
+.modalHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.modalEyebrow {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.modalTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 540;
+  letter-spacing: -0.1px;
+  line-height: 1.35;
+}
+
+.outcomeFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldLabel,
+.reasonLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 540;
+}
+
+.outcomeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.outcomeButton {
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.outcomeButton:hover {
+  border-color: var(--ink-3);
+  background: var(--paper-2);
+}
+
+.outcomeButton:focus-visible,
+.secondaryAction:focus-visible,
+.confirmDangerAction:focus-visible,
+.reasonTextarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.outcomeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.outcomeButtonSelected {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+
+.outcomeLabel,
+.outcomeDescription {
+  display: block;
+}
+
+.outcomeLabel {
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.outcomeDescription {
+  color: var(--ink-3);
+  font-size: 12px;
+  letter-spacing: -0.1px;
+  line-height: 1.45;
+}
+
+.reasonLabel {
+  margin-top: 16px;
+}
+
+.reasonTextarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.reasonTextarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.followUpNotice,
+.modalError {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.followUpNotice {
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+.modalError {
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.secondaryAction,
+.confirmDangerAction {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--r-3);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.secondaryAction {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+}
+
+.confirmDangerAction {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: var(--paper);
+}
+
+.secondaryAction:disabled,
+.confirmDangerAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .chatPanelSlot {
   display: flex;
   flex: 1 1 auto;
@@ -191,5 +400,9 @@
   .queuePane {
     width: 220px;
     flex-basis: 220px;
+  }
+
+  .outcomeGrid {
+    grid-template-columns: 1fr;
   }
 }

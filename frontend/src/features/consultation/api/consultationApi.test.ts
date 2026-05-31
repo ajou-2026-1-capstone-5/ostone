@@ -171,6 +171,36 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubSession);
   });
 
+  it("updateStatus가 처리 결과 payload를 전달한다", async () => {
+    const stubSession = {
+      id: 1,
+      status: "RESOLVED",
+      channel: "카카오톡",
+      metaJson: "{}",
+      startedAt: new Date().toISOString(),
+    };
+    mockedUpdateStatus.mockResolvedValue({
+      data: stubSession,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.updateStatus(1, {
+      status: "RESOLVED",
+      resolutionOutcome: "FOLLOW_UP_REQUIRED",
+      resolutionReason: "배송사 확인 필요",
+      followUpRequired: true,
+    });
+
+    expect(mockedUpdateStatus).toHaveBeenCalledWith(1, {
+      status: "RESOLVED",
+      resolutionOutcome: "FOLLOW_UP_REQUIRED",
+      resolutionReason: "배송사 확인 필요",
+      followUpRequired: true,
+    });
+    expect(result).toEqual(stubSession);
+  });
+
   it("getSessions가 모든 세션을 반환한다", async () => {
     const stubSessions = [
       {

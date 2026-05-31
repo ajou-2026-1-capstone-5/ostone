@@ -134,6 +134,25 @@ class ChatSessionMetadataServiceTest {
     assertThat(meta.path("lastMessagePreview").asText()).hasSizeLessThanOrEqualTo(80).endsWith("…");
   }
 
+  @Test
+  @DisplayName("recordResolution: 기존 meta를 보존하고 처리 결과를 기록한다")
+  void should_preserveMetaAndRecordResolution() throws Exception {
+    ChatSession session = createSession("{\"customerName\":\"김민지\",\"title\":\"환불 상담\"}");
+
+    service.recordResolution(
+        session, "FOLLOW_UP_REQUIRED", "후속 연락 필요", "RESOLVED", " 배송사 확인 필요 ", true);
+
+    JsonNode meta = objectMapper.readTree(session.getMetaJson());
+    assertThat(meta.path("customerName").asText()).isEqualTo("김민지");
+    assertThat(meta.path("title").asText()).isEqualTo("환불 상담");
+    assertThat(meta.path("resolution").path("outcome").asText()).isEqualTo("FOLLOW_UP_REQUIRED");
+    assertThat(meta.path("resolution").path("label").asText()).isEqualTo("후속 연락 필요");
+    assertThat(meta.path("resolution").path("status").asText()).isEqualTo("RESOLVED");
+    assertThat(meta.path("resolution").path("reason").asText()).isEqualTo("배송사 확인 필요");
+    assertThat(meta.path("resolution").path("followUpRequired").asBoolean()).isTrue();
+    assertThat(meta.path("resolution").path("resolvedAt").asText()).isNotBlank();
+  }
+
   private ChatSession createSession(String metaJson) {
     return createSession(metaJson, "WEB");
   }

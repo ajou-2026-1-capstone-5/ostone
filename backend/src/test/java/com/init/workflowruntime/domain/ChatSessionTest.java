@@ -46,9 +46,28 @@ class ChatSessionTest {
   }
 
   @Test
+  @DisplayName("closeSession: RESOLVED 상태에서도 COMPLETED로 전환할 수 있다")
+  void should_complete_when_closeSessionFromResolved() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.RESOLVED, "WEB", "{}");
+
+    session.closeSession();
+
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.COMPLETED);
+    assertThat(session.getEndedAt()).isNotNull();
+  }
+
+  @Test
   @DisplayName("closeSession: 이미 COMPLETED → InvalidSessionStateException")
   void should_throw_when_closeSessionAlreadyCompleted() {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.COMPLETED, "WEB", "{}");
+
+    assertThatThrownBy(session::closeSession).isInstanceOf(InvalidSessionStateException.class);
+  }
+
+  @Test
+  @DisplayName("closeSession: OPEN 상태에서는 종료할 수 없다")
+  void should_throw_when_closeSessionFromOpen() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
 
     assertThatThrownBy(session::closeSession).isInstanceOf(InvalidSessionStateException.class);
   }

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useEffect } from "react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -74,7 +75,10 @@ function makeMessage(overrides?: Partial<ChatMessage>): ChatMessage {
 let currentPathname = "";
 
 function LocationProbe() {
-  currentPathname = useLocation().pathname;
+  const location = useLocation();
+  useEffect(() => {
+    currentPathname = location.pathname;
+  }, [location.pathname]);
   return null;
 }
 
@@ -101,12 +105,11 @@ describe("ChatHistoryPage", () => {
     mockedUseChatMessages.mockReturnValue(makeMessagesResult());
   });
 
-  it("URL의 workspaceId로 완료 세션 목록을 요청한다", () => {
+  it("URL의 workspaceId로 상담 이력 목록을 요청한다", () => {
     renderPage();
 
     expect(mockedUseChatSessions).toHaveBeenCalledWith({
       workspaceId: 1,
-      status: "completed",
     });
   });
 

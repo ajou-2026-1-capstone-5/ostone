@@ -10,11 +10,41 @@ public class UpdateStatusRequest {
   @NotBlank(message = "상담 상태는 필수 입력 항목입니다.")
   private String status;
 
+  private String resolutionOutcome;
+
+  private String resolutionReason;
+
+  private Boolean followUpRequired;
+
   public String getStatus() {
     return status;
   }
 
   public void setStatus(String status) {
     this.status = status;
+  }
+
+  public String getResolutionOutcome() {
+    return resolutionOutcome;
+  }
+
+  public void setResolutionOutcome(String resolutionOutcome) {
+    this.resolutionOutcome = resolutionOutcome;
+  }
+
+  public String getResolutionReason() {
+    return resolutionReason;
+  }
+
+  public void setResolutionReason(String resolutionReason) {
+    this.resolutionReason = resolutionReason;
+  }
+
+  public Boolean getFollowUpRequired() {
+    return followUpRequired;
+  }
+
+  public void setFollowUpRequired(Boolean followUpRequired) {
+    this.followUpRequired = followUpRequired;
   }
 }

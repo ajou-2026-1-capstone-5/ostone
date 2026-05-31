@@ -26,14 +26,22 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
     refetch,
   } = useChatSessions({
     workspaceId,
-    status: "completed",
   });
+  const historySessions = useMemo(
+    () =>
+      sessions.filter(
+        (session) => session.status === "COMPLETED" || session.status === "RESOLVED",
+      ),
+    [sessions],
+  );
   const selectableSessionIds = useMemo(
     () =>
       new Set(
-        sessions.filter((session) => session.id != null).map((session) => String(session.id)),
+        historySessions
+          .filter((session) => session.id != null)
+          .map((session) => String(session.id)),
       ),
-    [sessions],
+    [historySessions],
   );
   const hasSelectedSession =
     selectedSessionId !== null && selectableSessionIds.has(selectedSessionId);
@@ -51,7 +59,7 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
   return (
     <main className={styles.page}>
       <SessionList
-        sessions={sessions}
+        sessions={historySessions}
         selectedSessionId={selectedSessionId}
         onSelectSession={handleSelectSession}
         isLoading={isLoading}

@@ -73,8 +73,7 @@ public class ConsultationController {
   @PatchMapping("/sessions/{sessionId}/status")
   public ResponseEntity<ChatSessionResponse> updateStatus(
       @PathVariable Long sessionId, @Valid @RequestBody UpdateStatusRequest request) {
-    return ResponseEntity.ok(
-        consultationService.updateSessionStatus(sessionId, request.getStatus()));
+    return ResponseEntity.ok(consultationService.updateSessionStatus(sessionId, request));
   }
 
   /**

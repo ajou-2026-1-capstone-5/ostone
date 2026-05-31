@@ -28,7 +28,8 @@ export function SessionList({
   onRetry,
 }: SessionListProps) {
   const validSessions = sessions.filter(
-    (session): session is typeof session & { id: number } => session.id != null,
+    (session): session is typeof session & { id: number } =>
+      session.id != null && (session.status === "COMPLETED" || session.status === "RESOLVED"),
   );
 
   if (isLoading) {

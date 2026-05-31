@@ -37,6 +37,28 @@ public class ChatSessionMetadataService {
     session.updateMetaJson(meta.toString());
   }
 
+  @Transactional
+  public void recordResolution(
+      ChatSession session,
+      String outcome,
+      String label,
+      String status,
+      String reason,
+      boolean followUpRequired) {
+    ObjectNode meta = parseMeta(session.getMetaJson());
+    ObjectNode resolution = objectMapper.createObjectNode();
+    resolution.put("outcome", outcome);
+    resolution.put("label", label);
+    resolution.put("status", status);
+    resolution.put("followUpRequired", followUpRequired);
+    resolution.put("resolvedAt", OffsetDateTime.now().toString());
+    if (hasText(reason)) {
+      resolution.put("reason", reason.trim());
+    }
+    meta.set("resolution", resolution);
+    session.updateMetaJson(meta.toString());
+  }
+
   private ObjectNode parseMeta(String metaJson) {
     if (metaJson == null || metaJson.isBlank()) {
       return objectMapper.createObjectNode();

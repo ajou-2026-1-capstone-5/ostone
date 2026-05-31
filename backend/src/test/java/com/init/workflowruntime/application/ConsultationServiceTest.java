@@ -12,6 +12,7 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
+import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -153,7 +154,7 @@ class ConsultationServiceTest {
   @DisplayName("updateSessionStatus: COMPLETED → closeSession 호출 후 응답 반환")
   void should_세션응답반환_when_COMPLETED상태로변경() {
     // given
-    ChatSession session = createSession(1L);
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
 
     // when
@@ -168,6 +169,36 @@ class ConsultationServiceTest {
     assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(1L);
     assertThat(eventCaptor.getValue().sessionId()).isEqualTo(1L);
     assertThat(eventCaptor.getValue().type()).isEqualTo(ConsultationQueueEventType.SESSION_REMOVED);
+  }
+
+  @Test
+  @DisplayName("updateSessionStatus: 처리 결과가 있으면 metaJson에 resolution을 기록한다")
+  void should_recordResolutionMetadata_when_resolutionOutcomeExists() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("RESOLVED");
+    request.setResolutionOutcome("FOLLOW_UP_REQUIRED");
+    request.setResolutionReason("배송사 확인 필요");
+
+    ChatSessionResponse result = service.updateSessionStatus(1L, request);
+
+    assertThat(result.getStatus()).isEqualTo("RESOLVED");
+    verify(chatSessionMetadataService)
+        .recordResolution(session, "FOLLOW_UP_REQUIRED", "후속 연락 필요", "RESOLVED", "배송사 확인 필요", true);
+  }
+
+  @Test
+  @DisplayName("updateSessionStatus: 알 수 없는 처리 결과 → BadRequestException 발생")
+  void should_throwBadRequest_when_unknownResolutionOutcome() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("RESOLVED");
+    request.setResolutionOutcome("UNKNOWN_OUTCOME");
+
+    assertThatThrownBy(() -> service.updateSessionStatus(1L, request))
+        .isInstanceOf(BadRequestException.class);
   }
 
   @Test

@@ -744,15 +744,45 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("상담 종료")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("상담 종료"));
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+
+    expect(consultationApi.updateStatus).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /고객 이탈/ }));
+    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
 
     await waitFor(() => {
-      expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, "COMPLETED");
+      expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, {
+        status: "COMPLETED",
+        resolutionOutcome: "CUSTOMER_LEFT",
+        resolutionReason: undefined,
+        followUpRequired: false,
+      });
     });
 
     await waitFor(() => {
       expect(screen.queryByText("상담 종료")).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps the session unchanged when end session modal is cancelled", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "상담 종료" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(consultationApi.updateStatus).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "상담 종료" })).toBeInTheDocument();
   });
 
   it("subscribes to STOMP topic when a customer is selected and connection is established", async () => {
@@ -1411,11 +1441,14 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("상담 종료")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("상담 종료"));
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+    fireEvent.click(screen.getByRole("button", { name: /해결됨/ }));
+    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("세션 종료 실패");
     });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("updates active customer's memo when typing in the textarea", async () => {

@@ -16,8 +16,10 @@ import {
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import type {
   ChatSession,
+  ConsultationSessionStatus,
   ConsultationMetrics,
   ConsultationQueueEvent,
+  ResolutionOutcome,
 } from "../../../features/consultation/api/consultationApi";
 import { CustomerPanel } from "./sections/CustomerPanel";
 import { MatchedWorkflowBar, MatchedWorkflowBarSkeleton } from "./sections/MatchedWorkflowBar";
@@ -69,6 +71,60 @@ type SessionMeta = {
 };
 
 const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
+
+type EndSessionModalState =
+  | { open: false }
+  | {
+      open: true;
+      sessionId: string;
+      customerName: string;
+      outcome: ResolutionOutcome | null;
+      reason: string;
+      isSubmitting: boolean;
+      error: string | null;
+    };
+
+type ResolutionOutcomeOption = {
+  value: ResolutionOutcome;
+  label: string;
+  description: string;
+  status: Extract<ConsultationSessionStatus, "RESOLVED" | "COMPLETED">;
+  followUpRequired: boolean;
+};
+
+const RESOLUTION_OUTCOME_OPTIONS: ResolutionOutcomeOption[] = [
+  {
+    value: "RESOLVED",
+    label: "해결됨",
+    description: "문제가 해결되어 상담 기록을 해결 상태로 남깁니다.",
+    status: "RESOLVED",
+    followUpRequired: false,
+  },
+  {
+    value: "CUSTOMER_LEFT",
+    label: "고객 이탈",
+    description: "고객 응답 없이 상담을 완전히 종료합니다.",
+    status: "COMPLETED",
+    followUpRequired: false,
+  },
+  {
+    value: "PENDING",
+    label: "보류",
+    description: "현재 상담은 대기열에서 제거하고 후속 확인 대상으로 남깁니다.",
+    status: "RESOLVED",
+    followUpRequired: true,
+  },
+  {
+    value: "FOLLOW_UP_REQUIRED",
+    label: "후속 연락 필요",
+    description: "상담 기록에 후속 연락 필요 여부를 명확히 남깁니다.",
+    status: "RESOLVED",
+    followUpRequired: true,
+  },
+];
+
+const findResolutionOutcomeOption = (outcome: ResolutionOutcome | null) =>
+  RESOLUTION_OUTCOME_OPTIONS.find((option) => option.value === outcome) ?? null;
 
 const toUiMessage = (message: MessageLike): UiChatMessage => {
   const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
@@ -387,6 +443,9 @@ export const ConsultationPage: React.FC = () => {
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
   const [matchedWorkflow, setMatchedWorkflow] = useState<MatchedWorkflow | null>(null);
   const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
+  const [endSessionModal, setEndSessionModal] = useState<EndSessionModalState>({ open: false });
+  const isEndSessionModalOpen = endSessionModal.open;
+  const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
   const workflowRefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
@@ -479,6 +538,7 @@ export const ConsultationPage: React.FC = () => {
     setMessagesCustomerId(null);
     setMatchedWorkflow(null);
     setIsMatchedWorkflowLoading(false);
+    setEndSessionModal({ open: false });
     clearPendingMessages();
   }, [clearPendingMessages]);
 
@@ -909,15 +969,79 @@ export const ConsultationPage: React.FC = () => {
     ],
   );
 
-  const handleEndSession = async () => {
+  const handleOpenEndSession = () => {
     if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
-    const endedSessionId = activeCustomerId;
+    setEndSessionModal({
+      open: true,
+      sessionId: activeCustomerId,
+      customerName: activeCustomerName,
+      outcome: null,
+      reason: "",
+      isSubmitting: false,
+      error: null,
+    });
+  };
+
+  const handleCancelEndSession = () => {
+    setEndSessionModal({ open: false });
+  };
+
+  useEffect(() => {
+    if (!isEndSessionModalOpen || isEndSessionSubmitting) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setEndSessionModal({ open: false });
+      }
+    };
+
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => {
+      globalThis.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isEndSessionModalOpen, isEndSessionSubmitting]);
+
+  const handleSelectResolutionOutcome = (outcome: ResolutionOutcome) => {
+    setEndSessionModal((prev) => (prev.open ? { ...prev, outcome, error: null } : prev));
+  };
+
+  const handleChangeResolutionReason = (reason: string) => {
+    setEndSessionModal((prev) => (prev.open ? { ...prev, reason, error: null } : prev));
+  };
+
+  const handleConfirmEndSession = async () => {
+    if (!endSessionModal.open || endSessionModal.isSubmitting) return;
+    const selectedOutcome = findResolutionOutcomeOption(endSessionModal.outcome);
+    if (!selectedOutcome) {
+      setEndSessionModal((prev) =>
+        prev.open ? { ...prev, error: "처리 결과를 선택하세요." } : prev,
+      );
+      return;
+    }
+    const endedSessionId = endSessionModal.sessionId;
+    setEndSessionModal((prev) => (prev.open ? { ...prev, isSubmitting: true, error: null } : prev));
     try {
-      await consultationApi.updateStatus(Number(endedSessionId), "COMPLETED");
+      const trimmedReason = endSessionModal.reason.trim();
+      await consultationApi.updateStatus(Number(endedSessionId), {
+        status: selectedOutcome.status,
+        resolutionOutcome: selectedOutcome.value,
+        resolutionReason: trimmedReason || undefined,
+        followUpRequired: selectedOutcome.followUpRequired,
+      });
       toast.success("상담이 종료되었습니다.");
       setQueue((prev) => prev.filter((customer) => customer.id !== endedSessionId));
       clearActiveConversation();
+      setEndSessionModal({ open: false });
     } catch {
+      setEndSessionModal((prev) =>
+        prev.open
+          ? {
+              ...prev,
+              isSubmitting: false,
+              error: "상담 종료 요청을 완료하지 못했습니다.",
+            }
+          : prev,
+      );
       toast.error("세션 종료 실패");
     }
   };
@@ -1013,7 +1137,7 @@ export const ConsultationPage: React.FC = () => {
                 배정 해제
               </button>
               <button
-                onClick={handleEndSession}
+                onClick={handleOpenEndSession}
                 className={styles.dangerButton}
                 disabled={!isAssignedToCurrentCounselor}
               >
@@ -1077,6 +1201,93 @@ export const ConsultationPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {endSessionModal.open && (
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label="상담 종료 모달 닫기"
+            onClick={handleCancelEndSession}
+            disabled={endSessionModal.isSubmitting}
+          />
+          <dialog
+            open
+            className={styles.endSessionDialog}
+            aria-modal="true"
+            aria-labelledby="end-session-title"
+          >
+            <div className={styles.modalHeader}>
+              <Mono className={styles.modalEyebrow}>END CONSULTATION</Mono>
+              <h2 id="end-session-title" className={styles.modalTitle}>
+                {endSessionModal.customerName} 고객 상담 종료
+              </h2>
+            </div>
+
+            <fieldset className={styles.outcomeFieldset}>
+              <legend className={styles.fieldLabel}>처리 결과</legend>
+              <div className={styles.outcomeGrid}>
+                {RESOLUTION_OUTCOME_OPTIONS.map((option) => {
+                  const isSelected = endSessionModal.outcome === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`${styles.outcomeButton} ${isSelected ? styles.outcomeButtonSelected : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => handleSelectResolutionOutcome(option.value)}
+                      disabled={endSessionModal.isSubmitting}
+                    >
+                      <span className={styles.outcomeLabel}>{option.label}</span>
+                      <span className={styles.outcomeDescription}>{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <label className={styles.reasonLabel} htmlFor="end-session-reason">
+              종료 사유 또는 내부 메모
+            </label>
+            <textarea
+              id="end-session-reason"
+              className={styles.reasonTextarea}
+              value={endSessionModal.reason}
+              onChange={(event) => handleChangeResolutionReason(event.target.value)}
+              placeholder="처리 결과를 이해할 수 있는 짧은 메모를 남기세요."
+              disabled={endSessionModal.isSubmitting}
+            />
+
+            {findResolutionOutcomeOption(endSessionModal.outcome)?.followUpRequired && (
+              <div className={styles.followUpNotice}>후속 연락 필요 항목으로 기록됩니다.</div>
+            )}
+            {endSessionModal.error && (
+              <div className={styles.modalError} role="alert">
+                {endSessionModal.error}
+              </div>
+            )}
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryAction}
+                onClick={handleCancelEndSession}
+                disabled={endSessionModal.isSubmitting}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDangerAction}
+                onClick={handleConfirmEndSession}
+                disabled={endSessionModal.isSubmitting || !endSessionModal.outcome}
+              >
+                {endSessionModal.isSubmitting ? "종료 중..." : "종료 확인"}
+              </button>
+            </div>
+          </dialog>
+        </div>
+      )}
     </div>
   );
 };
