@@ -27,7 +27,6 @@ interface SummaryDetailPanelProps {
   onDeploy?: (versionId: number) => void;
   onApplyDraft?: (versionId: number) => void;
   onDiscardDraft?: (versionId: number) => void;
-  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
 export function SummaryDetailPanel({
@@ -41,7 +40,6 @@ export function SummaryDetailPanel({
   onDeploy,
   onApplyDraft,
   onDiscardDraft,
-  renderSlotEditSheet,
 }: Readonly<SummaryDetailPanelProps>) {
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
@@ -316,7 +314,6 @@ export function SummaryDetailPanel({
             slotCount={v.slotCount ?? 0}
             policyCount={v.policyCount ?? 0}
             workflowCount={v.workflowCount ?? 0}
-            renderSlotEditSheet={renderSlotEditSheet}
           />
         )}
       </div>

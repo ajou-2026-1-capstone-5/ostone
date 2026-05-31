@@ -79,9 +79,6 @@ function renderGrid() {
       slotCount={1}
       policyCount={1}
       workflowCount={1}
-      renderSlotEditSheet={(slotId, isOpen) =>
-        isOpen ? <div role="dialog">slot edit {slotId}</div> : null
-      }
     />,
   );
 }
@@ -132,11 +129,21 @@ describe("ComponentCountGrid generated API integration", () => {
     );
   });
 
-  it("generated slot preview가 있으면 확인 항목 카드에서 편집 sheet를 연다", () => {
+  it("generated slot preview가 있으면 확인 항목 카드에서 목록으로 이동한다", () => {
     renderGrid();
 
     fireEvent.click(screen.getByRole("button", { name: /확인 항목/ }));
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("slot edit 11");
+    expect(mocks.navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/slots?versionId=3");
+  });
+
+  it("generated slot preview 항목 클릭 시 해당 slot 상세로 이동한다", () => {
+    renderGrid();
+
+    fireEvent.click(screen.getByText("배송 주소"));
+
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      "/workspaces/1/domain-packs/2/slots/11?versionId=3",
+    );
   });
 });
