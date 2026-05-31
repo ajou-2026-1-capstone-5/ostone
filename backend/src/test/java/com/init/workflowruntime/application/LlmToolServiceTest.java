@@ -52,6 +52,10 @@ import com.init.workflowruntime.domain.WorkflowExecutionRepository;
 import com.init.workflowruntime.domain.WorkflowExecutionStep;
 import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
 import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.model.WorkspaceMember;
+import com.init.workspace.domain.model.WorkspaceMemberRole;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,6 +84,7 @@ class LlmToolServiceTest {
   @Mock private WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   @Mock private DecisionLogRepository decisionLogRepository;
   @Mock private WorkflowExecutionStepRepository workflowExecutionStepRepository;
+  @Mock private WorkspaceMemberRepository workspaceMemberRepository;
 
   private ObjectMapper objectMapper;
   private LlmToolService service;
@@ -99,7 +104,40 @@ class LlmToolServiceTest {
             workflowPolicyRuntimeService,
             decisionLogRepository,
             workflowExecutionStepRepository,
-            objectMapper);
+            objectMapper,
+            workspaceMemberRepository);
+  }
+
+  @Test
+  @DisplayName("getCurrentWorkflowForOperator: 세션 워크스페이스 멤버면 워크플로우를 조회한다")
+  void should_returnCurrentWorkflow_when_operatorIsWorkspaceMember() {
+    ChatSession session = createSession(1L, 10L, 101L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(10L, 7L))
+        .willReturn(Optional.of(WorkspaceMember.create(10L, 7L, WorkspaceMemberRole.OPERATOR)));
+    given(workflowExecutionRepository.findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L))
+        .willReturn(Optional.empty());
+
+    LlmToolWorkflowResponse result =
+        service.getCurrentWorkflowForOperator(new GetCurrentWorkflowCommand(1L), 7L);
+
+    assertThat(result.sessionId()).isEqualTo(1L);
+    assertThat(result.workspaceId()).isEqualTo(10L);
+  }
+
+  @Test
+  @DisplayName("getCurrentWorkflowForOperator: 세션 워크스페이스 멤버가 아니면 거부한다")
+  void should_throwAccessDenied_when_operatorIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L, 10L, 101L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(10L, 7L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () -> service.getCurrentWorkflowForOperator(new GetCurrentWorkflowCommand(1L), 7L))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    verify(workflowExecutionRepository, never())
+        .findTopByChatSessionIdOrderByStartedAtDescIdDesc(1L);
   }
 
   @Test

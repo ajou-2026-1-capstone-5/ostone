@@ -1,5 +1,6 @@
 package com.init.workflowruntime.presentation;
 
+import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.ConsultationService;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
@@ -11,6 +12,7 @@ import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,8 +48,10 @@ public class ConsultationController {
    * @return 메시지 상세 목록 응답
    */
   @GetMapping("/sessions/{sessionId}/messages")
-  public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable Long sessionId) {
-    return ResponseEntity.ok(consultationService.getMessages(sessionId));
+  public ResponseEntity<List<ChatMessageResponse>> getMessages(
+      @PathVariable Long sessionId, Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(consultationService.getMessages(sessionId, userId));
   }
 
   /**
@@ -59,8 +63,11 @@ public class ConsultationController {
    */
   @PostMapping("/sessions/{sessionId}/messages")
   public ResponseEntity<ChatMessageResponse> sendMessage(
-      @PathVariable Long sessionId, @Valid @RequestBody SendMessageRequest request) {
-    return ResponseEntity.ok(consultationService.sendMessage(sessionId, request));
+      @PathVariable Long sessionId,
+      @Valid @RequestBody SendMessageRequest request,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(consultationService.sendMessage(sessionId, request, userId));
   }
 
   /**
@@ -72,8 +79,11 @@ public class ConsultationController {
    */
   @PatchMapping("/sessions/{sessionId}/status")
   public ResponseEntity<ChatSessionResponse> updateStatus(
-      @PathVariable Long sessionId, @Valid @RequestBody UpdateStatusRequest request) {
-    return ResponseEntity.ok(consultationService.updateSessionStatus(sessionId, request));
+      @PathVariable Long sessionId,
+      @Valid @RequestBody UpdateStatusRequest request,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(consultationService.updateSessionStatus(sessionId, request, userId));
   }
 
   /**
@@ -85,8 +95,11 @@ public class ConsultationController {
    * @return 워크플로우 정의/실행 상태를 담은 응답
    */
   @GetMapping("/sessions/{sessionId}/matched-workflow")
-  public ResponseEntity<LlmToolWorkflowResponse> getMatchedWorkflow(@PathVariable Long sessionId) {
+  public ResponseEntity<LlmToolWorkflowResponse> getMatchedWorkflow(
+      @PathVariable Long sessionId, Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(
-        llmToolService.getCurrentWorkflow(new GetCurrentWorkflowCommand(sessionId)));
+        llmToolService.getCurrentWorkflowForOperator(
+            new GetCurrentWorkflowCommand(sessionId), userId));
   }
 }

@@ -1,10 +1,12 @@
 package com.init.workflowruntime.presentation;
 
+import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.CounselorService;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,14 +26,16 @@ public class CounselorSessionController {
 
   @PostMapping("/consultation/sessions/{sessionId}/assign")
   public ResponseEntity<CounselorSessionResponse> assignSession(
-      @PathVariable Long sessionId, @RequestParam Long counselorId) {
-    return ResponseEntity.ok(counselorService.assignSession(counselorId, sessionId));
+      @PathVariable Long sessionId, @RequestParam Long counselorId, Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(counselorService.assignSession(counselorId, sessionId, userId));
   }
 
   @PostMapping("/consultation/sessions/{sessionId}/release")
   public ResponseEntity<CounselorSessionResponse> releaseSession(
-      @PathVariable Long sessionId, @RequestParam Long counselorId) {
-    return ResponseEntity.ok(counselorService.releaseSession(sessionId, counselorId));
+      @PathVariable Long sessionId, @RequestParam Long counselorId, Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(counselorService.releaseSession(sessionId, counselorId, userId));
   }
 
   @GetMapping("/workspaces/{workspaceId}/consultation/sessions")

@@ -13,6 +13,8 @@ import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -34,22 +36,25 @@ public class CounselorService {
   private final SimpMessagingTemplate messagingTemplate;
   private final ApplicationEventPublisher eventPublisher;
   private final ChatSessionMetadataService chatSessionMetadataService;
+  private final WorkspaceMemberRepository workspaceMemberRepository;
 
   public CounselorService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       SimpMessagingTemplate messagingTemplate,
       ApplicationEventPublisher eventPublisher,
-      ChatSessionMetadataService chatSessionMetadataService) {
+      ChatSessionMetadataService chatSessionMetadataService,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.messagingTemplate = messagingTemplate;
     this.eventPublisher = eventPublisher;
     this.chatSessionMetadataService = chatSessionMetadataService;
+    this.workspaceMemberRepository = workspaceMemberRepository;
   }
 
   @Transactional
-  public CounselorSessionResponse assignSession(Long counselorId, Long sessionId) {
+  public CounselorSessionResponse assignSession(Long counselorId, Long sessionId, Long userId) {
     validateCounselorId(counselorId);
 
     ChatSession session =
@@ -58,6 +63,7 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
@@ -71,7 +77,7 @@ public class CounselorService {
   }
 
   @Transactional
-  public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId) {
+  public CounselorSessionResponse releaseSession(Long sessionId, Long counselorId, Long userId) {
     validateCounselorId(counselorId);
 
     ChatSession session =
@@ -80,6 +86,7 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException(
@@ -205,5 +212,11 @@ public class CounselorService {
     if (counselorId == null) {
       throw new BadRequestException("INVALID_COUNSELOR_ID", "counselorId must not be null");
     }
+  }
+
+  private void validateWorkspaceMembership(Long workspaceId, Long userId) {
+    workspaceMemberRepository
+        .findByWorkspaceIdAndUserId(workspaceId, userId)
+        .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
   }
 }

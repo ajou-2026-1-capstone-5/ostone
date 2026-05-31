@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.init.shared.application.exception.BadRequestException;
@@ -41,6 +42,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DisplayName("ConsultationService")
 class ConsultationServiceTest {
 
+  private static final Long USER_ID = 7L;
+
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
@@ -65,14 +68,13 @@ class ConsultationServiceTest {
   void should_returnActiveQueue_when_called() {
     ChatSession s1 = createSession(1L, ChatSessionStatus.OPEN);
     ChatSession s2 = createSession(2L, ChatSessionStatus.ACTIVE);
-    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
-        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    givenWorkspaceMember(1L, USER_ID);
     given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
         .willReturn(List.of(s1, s2));
     given(chatSessionMetadataService.isHandoffRequired(s1)).willReturn(false);
     given(chatSessionMetadataService.isHandoffRequired(s2)).willReturn(true);
 
-    List<ChatSessionResponse> result = service.getActiveQueue(1L, 7L);
+    List<ChatSessionResponse> result = service.getActiveQueue(1L, USER_ID);
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getId()).isEqualTo(2L);
@@ -126,21 +128,20 @@ class ConsultationServiceTest {
   @Test
   @DisplayName("getActiveQueue: 대기 세션 없음 → 빈 목록 반환")
   void should_returnEmptyList_when_noActiveQueue() {
-    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
-        .willReturn(Optional.of(WorkspaceMember.create(1L, 7L, WorkspaceMemberRole.OPERATOR)));
+    givenWorkspaceMember(1L, USER_ID);
     given(chatSessionRepository.findByWorkspaceIdAndStatusInOrderByStartedAtDesc(eq(1L), any()))
         .willReturn(List.of());
 
-    assertThat(service.getActiveQueue(1L, 7L)).isEmpty();
+    assertThat(service.getActiveQueue(1L, USER_ID)).isEmpty();
   }
 
   @Test
   @DisplayName("getActiveQueue: 워크스페이스 멤버가 아니면 거부한다")
   void should_throwAccessDenied_when_queueRequesterIsNotWorkspaceMember() {
-    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 7L))
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
         .willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.getActiveQueue(1L, 7L))
+    assertThatThrownBy(() -> service.getActiveQueue(1L, USER_ID))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
   }
 
@@ -151,7 +152,7 @@ class ConsultationServiceTest {
     given(chatSessionRepository.findById(999L)).willReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> service.getMessages(999L))
+    assertThatThrownBy(() -> service.getMessages(999L, USER_ID))
         .isInstanceOf(NotFoundException.class)
         .hasMessageContaining("Session not found");
   }
@@ -162,13 +163,27 @@ class ConsultationServiceTest {
     // given
     ChatSession session = createSession(1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
     given(chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(1L)).willReturn(List.of());
 
     // when
-    List<ChatMessageResponse> result = service.getMessages(1L);
+    List<ChatMessageResponse> result = service.getMessages(1L, USER_ID);
 
     // then
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("getMessages: 세션 워크스페이스 멤버가 아니면 거부한다")
+  void should_throwAccessDenied_when_messageRequesterIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getMessages(1L, USER_ID))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    verify(chatMessageRepository, never()).findByChatSessionIdOrderBySeqNoAsc(1L);
   }
 
   @Test
@@ -177,6 +192,7 @@ class ConsultationServiceTest {
     // given
     ChatSession session = createSession(1L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
 
@@ -188,7 +204,7 @@ class ConsultationServiceTest {
     request.setNote(false);
 
     // when
-    ChatMessageResponse result = service.sendMessage(1L, request);
+    ChatMessageResponse result = service.sendMessage(1L, request, USER_ID);
 
     // then
     assertThat(result.content()).isEqualTo("Hello");
@@ -198,14 +214,32 @@ class ConsultationServiceTest {
   }
 
   @Test
+  @DisplayName("sendMessage: 세션 워크스페이스 멤버가 아니면 메시지를 저장하지 않는다")
+  void should_throwAccessDenied_when_messageSenderIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
+        .willReturn(Optional.empty());
+
+    SendMessageRequest request = new SendMessageRequest();
+    request.setContent("Hello");
+    request.setNote(false);
+
+    assertThatThrownBy(() -> service.sendMessage(1L, request, USER_ID))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    verify(chatMessageRepository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("updateSessionStatus: COMPLETED → closeSession 호출 후 응답 반환")
   void should_세션응답반환_when_COMPLETED상태로변경() {
     // given
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
     // when
-    ChatSessionResponse result = service.updateSessionStatus(1L, "COMPLETED");
+    ChatSessionResponse result = service.updateSessionStatus(1L, "COMPLETED", USER_ID);
 
     // then
     assertThat(result).isNotNull();
@@ -224,12 +258,13 @@ class ConsultationServiceTest {
   void should_recordResolutionMetadata_when_resolutionOutcomeExists() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
     UpdateStatusRequest request = new UpdateStatusRequest();
     request.setStatus("RESOLVED");
     request.setResolutionOutcome("FOLLOW_UP_REQUIRED");
     request.setResolutionReason("배송사 확인 필요");
 
-    ChatSessionResponse result = service.updateSessionStatus(1L, request);
+    ChatSessionResponse result = service.updateSessionStatus(1L, request, USER_ID);
 
     assertThat(result.getStatus()).isEqualTo("RESOLVED");
     verify(chatSessionMetadataService).resolveHandoff(session);
@@ -242,12 +277,28 @@ class ConsultationServiceTest {
   void should_throwBadRequest_when_unknownResolutionOutcome() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
     UpdateStatusRequest request = new UpdateStatusRequest();
     request.setStatus("RESOLVED");
     request.setResolutionOutcome("UNKNOWN_OUTCOME");
 
-    assertThatThrownBy(() -> service.updateSessionStatus(1L, request))
+    assertThatThrownBy(() -> service.updateSessionStatus(1L, request, USER_ID))
         .isInstanceOf(BadRequestException.class);
+  }
+
+  @Test
+  @DisplayName("updateSessionStatus: 세션 워크스페이스 멤버가 아니면 상태를 변경하지 않는다")
+  void should_throwAccessDenied_when_statusRequesterIsNotWorkspaceMember() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, USER_ID))
+        .willReturn(Optional.empty());
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("COMPLETED");
+
+    assertThatThrownBy(() -> service.updateSessionStatus(1L, request, USER_ID))
+        .isInstanceOf(WorkspaceAccessDeniedException.class);
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.ACTIVE);
   }
 
   @Test
@@ -256,9 +307,10 @@ class ConsultationServiceTest {
     // given
     ChatSession session = createSession(1L);
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
 
     // when & then
-    assertThatThrownBy(() -> service.updateSessionStatus(1L, "INVALID_STATUS"))
+    assertThatThrownBy(() -> service.updateSessionStatus(1L, "INVALID_STATUS", USER_ID))
         .isInstanceOf(BadRequestException.class);
   }
 
@@ -284,5 +336,11 @@ class ConsultationServiceTest {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
     ReflectionTestUtils.setField(msg, "id", 1L);
     return msg;
+  }
+
+  private void givenWorkspaceMember(Long workspaceId, Long userId) {
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId))
+        .willReturn(
+            Optional.of(WorkspaceMember.create(workspaceId, userId, WorkspaceMemberRole.OPERATOR)));
   }
 }
