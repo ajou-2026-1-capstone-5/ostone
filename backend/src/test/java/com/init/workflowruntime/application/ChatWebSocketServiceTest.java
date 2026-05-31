@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -18,11 +19,14 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -95,6 +99,7 @@ class ChatWebSocketServiceTest {
 
       // 커밋 후 전송 확인
       verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
+      assertQueueUpsertEventPublished();
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
@@ -168,6 +173,32 @@ class ChatWebSocketServiceTest {
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 
       verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
+      assertQueueUpsertEventPublished();
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+  }
+
+  @Test
+  @DisplayName("saveAndBroadcast: 상담사 역할 메시지는 queue unread 이벤트를 발행하지 않는다")
+  void should_notPublishQueueEvent_when_senderIsAgent() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.empty());
+    ChatMessage savedMsg = createMessage(1L, 1, "AGENT", "Hello");
+    given(chatMessageRepository.save(any())).willReturn(savedMsg);
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      service.saveAndBroadcast(new SendChatMessageCommand(1L, "Hello", 7L, "AGENT"));
+
+      TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
+
+      ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+      verify(eventPublisher, atLeastOnce()).publishEvent(eventCaptor.capture());
+      assertThat(eventCaptor.getAllValues())
+          .noneMatch(ConsultationQueueChangedEvent.class::isInstance);
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
@@ -183,5 +214,19 @@ class ChatWebSocketServiceTest {
     ChatMessage msg = ChatMessage.create(sessionId, seqNo, role, "TEXT", content);
     ReflectionTestUtils.setField(msg, "id", 1L);
     return msg;
+  }
+
+  private void assertQueueUpsertEventPublished() {
+    ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher, atLeastOnce()).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getAllValues())
+        .anySatisfy(
+            event -> {
+              assertThat(event).isInstanceOf(ConsultationQueueChangedEvent.class);
+              ConsultationQueueChangedEvent changed = (ConsultationQueueChangedEvent) event;
+              assertThat(changed.workspaceId()).isEqualTo(1L);
+              assertThat(changed.sessionId()).isEqualTo(1L);
+              assertThat(changed.type()).isEqualTo(ConsultationQueueEventType.SESSION_UPSERTED);
+            });
   }
 }

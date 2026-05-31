@@ -9,6 +9,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -74,6 +76,13 @@ public class ChatWebSocketService {
             command.sessionId(), nextSeqNo, command.senderRole(), "TEXT", command.content());
     ChatMessage savedMessage = chatMessageRepository.save(message);
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+    if (isCustomerRole(command.senderRole())) {
+      eventPublisher.publishEvent(
+          new ConsultationQueueChangedEvent(
+              session.getWorkspaceId(),
+              command.sessionId(),
+              ConsultationQueueEventType.SESSION_UPSERTED));
+    }
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + command.sessionId();
@@ -92,5 +101,9 @@ public class ChatWebSocketService {
         });
 
     return response;
+  }
+
+  private static boolean isCustomerRole(String senderRole) {
+    return "USER".equals(senderRole) || "CUSTOMER".equals(senderRole);
   }
 }

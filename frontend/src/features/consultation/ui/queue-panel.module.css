@@ -128,6 +128,14 @@
   flex-shrink: 0;
 }
 
+.queueItemMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .unreadDot {
   width: 8px;
   height: 8px;

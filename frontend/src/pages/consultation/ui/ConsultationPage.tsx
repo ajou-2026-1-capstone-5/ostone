@@ -51,6 +51,9 @@ type SessionMeta = {
   customerName?: string;
   handoffReason?: string;
   title?: string;
+  lastMessagePreview?: string;
+  lastMessageRole?: string;
+  lastMessageAt?: string;
 };
 
 const toUiMessage = (message: MessageLike): UiChatMessage => {
@@ -68,6 +71,15 @@ const calcWaitMinutes = (isoString: string) => {
   const d = new Date(isoString);
   const diffMs = new Date().getTime() - d.getTime();
   return Math.max(0, Math.floor(diffMs / 60000));
+};
+
+const formatLastMessageTimeLabel = (isoString?: string | null) => {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const timestamp = d.getTime();
+  if (Number.isNaN(timestamp)) return "";
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  return diffMinutes === 0 ? "방금 전" : `${diffMinutes}분 전`;
 };
 
 const parseSessionMeta = (metaJson?: string | null): SessionMeta => {
@@ -137,10 +149,23 @@ const getAssignmentView = (
   };
 };
 
+const isCustomerMessageRole = (role?: string | null) => {
+  const normalizedRole = normalizeChatSenderRole(role);
+  return normalizedRole === "USER" || normalizedRole === "CUSTOMER";
+};
+
+const getQueueSortTime = (customer: QueueCustomer) => {
+  const timeSource = customer.lastMessageAt ?? customer.startedAt;
+  if (!timeSource) return 0;
+  const timestamp = new Date(timeSource).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 const toQueueCustomer = (
   session: ChatSession,
   currentCounselorId: number | null,
   previous?: QueueCustomer,
+  options?: { hasUnread?: boolean },
 ): QueueCustomer => {
   const meta = parseSessionMeta(session.metaJson);
   const assignedCounselorId =
@@ -149,6 +174,11 @@ const toQueueCustomer = (
       : (previous?.assignedCounselorId ?? null);
   const status = session.status !== undefined ? session.status : (previous?.status ?? null);
   const startedAt = session.startedAt ?? previous?.startedAt ?? null;
+  const lastMessagePreview = meta.lastMessagePreview?.trim() || previous?.lastMessagePreview || "";
+  const lastMessageRole = meta.lastMessageRole ?? previous?.lastMessageRole;
+  const lastMessageAt = meta.lastMessageAt ?? previous?.lastMessageAt ?? null;
+  const lastMessageTimeLabel =
+    formatLastMessageTimeLabel(lastMessageAt) || previous?.lastMessageTimeLabel;
 
   return {
     id: String(session.id ?? previous?.id ?? ""),
@@ -157,7 +187,11 @@ const toQueueCustomer = (
     channel: session.channel ?? previous?.channel ?? "",
     handoffReason: meta.handoffReason ?? previous?.handoffReason ?? "",
     waitMinutes: startedAt ? calcWaitMinutes(startedAt) : (previous?.waitMinutes ?? 0),
-    hasUnread: previous?.hasUnread ?? false,
+    hasUnread: options?.hasUnread ?? previous?.hasUnread ?? false,
+    lastMessagePreview,
+    lastMessageRole,
+    lastMessageAt,
+    lastMessageTimeLabel,
     status,
     statusLabel: getSessionStatusLabel(status, assignedCounselorId, currentCounselorId),
     assignedCounselorId,
@@ -167,9 +201,7 @@ const toQueueCustomer = (
 
 const sortQueueCustomers = (customers: QueueCustomer[]) =>
   [...customers].sort((a, b) => {
-    const aTime = a.startedAt ? new Date(a.startedAt).getTime() : 0;
-    const bTime = b.startedAt ? new Date(b.startedAt).getTime() : 0;
-    return bTime - aTime;
+    return getQueueSortTime(b) - getQueueSortTime(a);
   });
 
 const formatAverageFirstResponse = (seconds?: number | null) => {
@@ -441,7 +473,14 @@ export const ConsultationPage: React.FC = () => {
       setQueue((prev) => {
         const currentIndex = prev.findIndex((customer) => customer.id === sessionId);
         const previous = currentIndex >= 0 ? prev[currentIndex] : undefined;
-        const nextCustomer = toQueueCustomer(session, currentCounselorId, previous);
+        const nextCustomerBase = toQueueCustomer(session, currentCounselorId, previous);
+        const hasUnread =
+          activeCustomerIdRef.current === sessionId
+            ? false
+            : isCustomerMessageRole(nextCustomerBase.lastMessageRole)
+              ? true
+              : (previous?.hasUnread ?? false);
+        const nextCustomer = { ...nextCustomerBase, hasUnread };
         const next =
           currentIndex >= 0
             ? prev.map((customer) => (customer.id === sessionId ? nextCustomer : customer))
@@ -601,6 +640,9 @@ export const ConsultationPage: React.FC = () => {
     async (id: string) => {
       setActiveCustomerId(id);
       setSelectedMessageId(null);
+      setQueue((prev) =>
+        prev.map((customer) => (customer.id === id ? { ...customer, hasUnread: false } : customer)),
+      );
 
       const selected = queue.find((customer) => customer.id === id);
       if (!selected || !currentCounselorId || selected.assignedCounselorId) return;
