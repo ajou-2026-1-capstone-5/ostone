@@ -18,8 +18,10 @@
 }
 
 :root {
-  --font-sans: "pretendard variable", -apple-system, blinkmacsystemfont, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", monospace;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, Consolas, monospace;
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 15px;
