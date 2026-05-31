@@ -347,6 +347,34 @@ describe("DomainPackSummaryPage", () => {
     expect(toast.error).not.toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
   });
 
+  it("Draft 적용 실패 시 상담사 용어의 실패 toast를 띄운다", () => {
+    let activateOnError: ((error: unknown) => unknown) | undefined;
+    const mutate = vi.fn(() => activateOnError?.(new Error("activate failed")));
+    vi.mocked(useActivate).mockImplementation((options) => {
+      activateOnError = options?.mutation?.onError;
+      return {
+        mutate,
+        isPending: false,
+        variables: undefined,
+      } as unknown as ReturnType<typeof useActivate>;
+    });
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
+
+    expect(toast.error).toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
+  });
+
   it("Draft 삭제 버튼 클릭 시 discard mutation을 호출한다", () => {
     const mutate = vi.fn();
     vi.mocked(useDiscard).mockReturnValue({
@@ -373,6 +401,40 @@ describe("DomainPackSummaryPage", () => {
       packId: 2,
       draftVersionId: 5,
     });
+  });
+
+  it("Draft 삭제 성공 후 운영 버전이 없으면 versionId를 제거한다", async () => {
+    const packRefetch = vi.fn().mockResolvedValue({ data: { currentVersionId: null } });
+    let discardOnSuccess: (() => unknown) | undefined;
+    const mutate = vi.fn(() => discardOnSuccess?.());
+    vi.mocked(useDiscard).mockImplementation((options) => {
+      discardOnSuccess = options?.mutation?.onSuccess;
+      return {
+        mutate,
+        isPending: false,
+        variables: undefined,
+      } as unknown as ReturnType<typeof useDiscard>;
+    });
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          currentVersionId: null,
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+        refetch: packRefetch,
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "delete draft" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/1/domain-packs/2"),
+    );
+    expect(toast.success).toHaveBeenCalledWith("검토 중인 버전이 삭제되었습니다.");
   });
 
   it("currentVersionId가 없으면 PUBLISHED 버전이 하나뿐이어도 운영 버전을 추론하지 않는다", () => {

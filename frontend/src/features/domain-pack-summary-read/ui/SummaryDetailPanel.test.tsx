@@ -139,6 +139,25 @@ describe("SummaryDetailPanel", () => {
     expect(screen.queryByText("승인 준비 상태")).not.toBeInTheDocument();
   });
 
+  it("상태가 없는 버전도 상담사 용어로 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            lifecycleStatus: null,
+            createdAt: "날짜 확인 전",
+          },
+        })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.getByText("상태 없음")).toBeInTheDocument();
+    expect(screen.getByText("날짜 확인 전")).toBeInTheDocument();
+  });
+
   it("상세 메타 카드의 배포 버튼 클릭 시 확인 다이얼로그를 먼저 표시한다", () => {
     const onDeploy = vi.fn();
 

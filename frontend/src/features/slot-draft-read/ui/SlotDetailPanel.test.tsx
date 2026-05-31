@@ -70,6 +70,30 @@ describe("SlotDetailPanel", () => {
     expect(screen.getByText("아니오")).toBeInTheDocument();
   });
 
+  it("민감 확인 항목과 빈 JSON을 상담사 용어로 표시한다", () => {
+    mockedUseSlotDetail.mockReturnValue({
+      status: "ready",
+      data: {
+        ...stubDetail,
+        description: "주문자 본인 확인",
+        isSensitive: true,
+        validationRuleJson: undefined,
+        defaultValueJson: "",
+        metaJson: undefined,
+        status: "INACTIVE",
+        updatedAt: "확인 전",
+      },
+    });
+
+    renderPanel();
+
+    expect(screen.getByText("주문자 본인 확인")).toBeInTheDocument();
+    expect(screen.getByText("사용 안 함")).toBeInTheDocument();
+    expect(screen.getByText("예")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText("수정일 · 확인 전")).toBeInTheDocument();
+  });
+
   it("error 상태에서는 toast와 재시도 버튼을 보여준다", () => {
     mockedUseSlotDetail.mockReturnValue({
       status: "error",

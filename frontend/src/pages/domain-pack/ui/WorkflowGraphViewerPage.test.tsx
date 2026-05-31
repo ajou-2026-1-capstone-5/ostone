@@ -68,6 +68,14 @@ function renderPage(path = "/workspaces/1/domain-packs/2/workflows/4/graph?versi
   );
 }
 
+function VersionSearchWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <MemoryRouter initialEntries={["/workspaces/1/domain-packs/2/workflows/4/graph?versionId=3"]}>
+      {children}
+    </MemoryRouter>
+  );
+}
+
 describe("WorkflowGraphViewerPage", () => {
   beforeEach(() => {
     mockUseGetWorkflowDefinition.mockReset();
@@ -121,6 +129,25 @@ describe("WorkflowGraphViewerPage", () => {
     expect(screen.getByTestId("graph-viewer")).toBeInTheDocument();
   });
 
+  it("shows GraphViewer when graphJson is already an object and versionId exists", () => {
+    const mockData: WorkflowDefinitionDetail = {
+      workflowCode: "WF_REFUND",
+      graphJson: {
+        nodes: [],
+        edges: [],
+      },
+    };
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<WorkflowGraphViewerPage />, { wrapper: VersionSearchWrapper });
+
+    expect(screen.getByTestId("graph-viewer")).toBeInTheDocument();
+  });
+
   it("shows empty state when graphJson is null", () => {
     const mockData: WorkflowDefinitionDetail = {
       graphJson: undefined,
@@ -158,7 +185,7 @@ describe("WorkflowGraphViewerPage", () => {
 
     renderPage();
     expect(screen.getByTestId("graph-data-error-state")).toHaveTextContent(
-      "워크플로우 그래프 데이터 형식이 올바르지 않습니다.",
+      "응대 흐름도 데이터 형식이 올바르지 않습니다.",
     );
     expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
   });

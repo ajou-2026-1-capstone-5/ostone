@@ -151,4 +151,33 @@ describe("VersionListPanel", () => {
 
     expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
   });
+
+  it("운영 가능 버전과 상태가 없는 버전을 상담사 용어로 표시한다", () => {
+    render(
+      <VersionListPanel
+        query={makeQuery({
+          data: {
+            ...stubPack,
+            versions: [
+              { ...stubVersion, lifecycleStatus: "PUBLISHED", createdAt: "날짜 확인 전" },
+              {
+                ...stubVersion2,
+                versionNo: null,
+                lifecycleStatus: null,
+                createdAt: "날짜 확인 전",
+              },
+            ],
+          },
+        })}
+        selectedId={2}
+        currentVersionId={1}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("운영 가능");
+    expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
+    expect(screen.getByRole("button", { name: /v-/ })).toHaveTextContent("상태 없음");
+    expect(screen.getAllByText("날짜 확인 전")).toHaveLength(2);
+  });
 });

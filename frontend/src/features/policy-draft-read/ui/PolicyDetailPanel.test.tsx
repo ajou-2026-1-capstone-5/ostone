@@ -66,6 +66,30 @@ describe("PolicyDetailPanel", () => {
     expect(onEdit).toHaveBeenCalledWith(4);
   });
 
+  it("빈 JSON과 비활성 응대 기준도 상담사 용어로 표시한다", () => {
+    mockedUsePolicyDetail.mockReturnValue({
+      status: "ready",
+      data: {
+        ...stubPolicy,
+        description: null,
+        severity: null,
+        conditionJson: null,
+        actionJson: null,
+        evidenceJson: null,
+        metaJson: null,
+        status: "INACTIVE",
+        updatedAt: "확인 전",
+      },
+    });
+
+    renderPanel();
+
+    expect(screen.getByText("중요도")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByText("사용 안 함")).toBeInTheDocument();
+    expect(screen.getByText("수정일 · 확인 전")).toBeInTheDocument();
+  });
+
   it("error 상태에서는 toast와 재시도 버튼을 보여준다", () => {
     mockedUsePolicyDetail.mockReturnValue({
       status: "error",

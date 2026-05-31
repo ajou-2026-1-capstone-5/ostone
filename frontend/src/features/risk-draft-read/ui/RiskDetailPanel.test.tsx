@@ -63,6 +63,30 @@ describe("RiskDetailPanel", () => {
     expect(screen.getByText("응대 방법")).toBeInTheDocument();
   });
 
+  it("빈 JSON과 비활성 주의 사항도 상담사 용어로 표시한다", () => {
+    mockedUseRiskDetail.mockReturnValue({
+      status: "ready",
+      data: {
+        ...stubRisk,
+        description: null,
+        riskLevel: null,
+        triggerConditionJson: null,
+        handlingActionJson: null,
+        evidenceJson: null,
+        metaJson: null,
+        status: "INACTIVE",
+        updatedAt: "확인 전",
+      },
+    });
+
+    renderPanel();
+
+    expect(screen.getByText("주의 수준")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByText("사용 안 함")).toBeInTheDocument();
+    expect(screen.getByText("수정일 · 확인 전")).toBeInTheDocument();
+  });
+
   it("수정 버튼을 누르면 onEdit에 riskId를 전달한다", () => {
     mockedUseRiskDetail.mockReturnValue({ status: "ready", data: stubRisk });
     const { onEdit } = renderPanel();
