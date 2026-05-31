@@ -36,9 +36,27 @@ vi.mock("../../../shared/api/generated/endpoints/dataset-controller/dataset-cont
 }));
 
 vi.mock("../../../shared/ui/file-upload/FileUploader", () => ({
-  FileUploader: ({ onFileSelect, status }: { onFileSelect: (f: File) => void; status: string }) => (
+  FileUploader: ({
+    onFileSelect,
+    status,
+    acceptedTypes,
+    acceptedTypeLabel,
+    maxSizeLabel,
+    fileTypeLabels,
+  }: {
+    onFileSelect: (f: File) => void;
+    status: string;
+    acceptedTypes: string;
+    acceptedTypeLabel: string;
+    maxSizeLabel: string;
+    fileTypeLabels: string[];
+  }) => (
     <div data-testid="file-uploader">
       {status}
+      <span data-testid="accepted-types">{acceptedTypes}</span>
+      <span data-testid="policy-copy">
+        {acceptedTypeLabel} {maxSizeLabel} {fileTypeLabels.join(",")}
+      </span>
       <input
         data-testid="file-input"
         type="file"
@@ -61,30 +79,39 @@ describe("LogUploadForm", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
+    expect(screen.getByTestId("accepted-types")).toHaveTextContent(".json,application/json");
+    expect(screen.getByTestId("policy-copy")).toHaveTextContent("JSON 50MB JSON");
   });
 
   it("shows file preview and Start Processing button after selecting a file", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["test"], "test.csv", { type: "text/csv" });
+    const file = new File(["test"], "test.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     expect(screen.getByText("Start Processing")).toBeInTheDocument();
-    expect(screen.getByText("test.csv")).toBeInTheDocument();
+    expect(screen.getByText("test.json")).toBeInTheDocument();
   });
 
-  it("rejects non-CSV/JSON files with toast error", () => {
+  it("rejects non-JSON files with toast error", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["test"], "test.txt", { type: "text/plain" });
+    const file = new File(["test"], "test.csv", { type: "text/csv" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-      "CSV 또는 JSON 파일만 업로드할 수 있습니다.",
-    );
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("JSON 파일만 업로드할 수 있습니다.");
+  });
+
+  it("rejects files larger than 50MB with toast error", () => {
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["test"], "big.json", { type: "application/json" });
+    Object.defineProperty(file, "size", { value: 51 * 1024 * 1024 });
+    const input = screen.getByTestId("file-input");
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("파일 크기는 50MB 이하여야 합니다.");
   });
 
   it("calls mutate on Start Processing click", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.csv", { type: "text/csv" });
+    const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("Start Processing"));
@@ -93,7 +120,7 @@ describe("LogUploadForm", () => {
 
   it("does not call mutate when workspaceId is undefined", () => {
     render(<LogUploadForm />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.csv", { type: "text/csv" });
+    const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     const btn = screen.queryByText("Start Processing");
@@ -103,7 +130,7 @@ describe("LogUploadForm", () => {
 
   it("shows success actions after successful upload", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.csv", { type: "text/csv" });
+    const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("Start Processing"));
@@ -113,7 +140,7 @@ describe("LogUploadForm", () => {
 
   it("navigates to domain packs on success action click", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.csv", { type: "text/csv" });
+    const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("Start Processing"));
@@ -123,7 +150,7 @@ describe("LogUploadForm", () => {
 
   it("resets form state when Upload Another File is clicked", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.csv", { type: "text/csv" });
+    const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("Start Processing"));

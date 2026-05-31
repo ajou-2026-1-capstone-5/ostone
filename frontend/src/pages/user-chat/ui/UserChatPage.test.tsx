@@ -90,7 +90,7 @@ describe("UserChatPage", () => {
 
     expect(screen.getByRole("form", { name: "채팅 사용자 이름 입력" })).not.toBeNull();
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     const eyebrow = await screen.findByTestId("chat-header-eyebrow");
     expect(eyebrow).toHaveTextContent("Session #77");
@@ -121,7 +121,7 @@ describe("UserChatPage", () => {
   it("같은 이름으로 다시 진입하면 저장된 세션 메시지를 유지한다", async () => {
     const firstRender = render(<UserChatPage />);
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     const input = await screen.findByLabelText("메시지 입력");
     fireEvent.change(input, { target: { value: "Hello" } });
@@ -135,12 +135,102 @@ describe("UserChatPage", () => {
     render(<UserChatPage />);
 
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     expect(await screen.findByText("Hello")).not.toBeNull();
     expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
     expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("새 테스트 세션 시작은 새 백엔드 세션으로 저장 세션을 교체한다", async () => {
+    registerDemoChatSessionMock
+      .mockResolvedValueOnce({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [
+          {
+            id: "backend-greeting-77",
+            sessionId: 77,
+            content: "첫 테스트 세션입니다.",
+            senderType: "BOT",
+            createdAt: "2026-05-22T00:00:00Z",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: "88",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:10:00Z",
+        messages: [
+          {
+            id: "backend-greeting-88",
+            sessionId: 88,
+            content: "새 테스트 세션입니다.",
+            senderType: "BOT",
+            createdAt: "2026-05-22T00:10:00Z",
+          },
+        ],
+      });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    expect(await screen.findByText("첫 테스트 세션입니다.")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "새 테스트 세션 시작" }));
+
+    expect(await screen.findByText("새 테스트 세션입니다.")).not.toBeNull();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #88");
+    expect(registerDemoChatSessionMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("새 테스트 세션 생성 실패 시 운영 도메인팩 안내 에러를 표시한다", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    registerDemoChatSessionMock
+      .mockResolvedValueOnce({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [
+          {
+            id: "backend-greeting-77",
+            sessionId: 77,
+            content: "첫 테스트 세션입니다.",
+            senderType: "BOT",
+            createdAt: "2026-05-22T00:00:00Z",
+          },
+        ],
+      })
+      .mockRejectedValueOnce(
+        new ApiRequestError(
+          404,
+          "DOMAIN_PACK_CURRENT_VERSION_NOT_FOUND",
+          "현재 운영 중인 PUBLISHED version을 찾을 수 없습니다.",
+        ),
+      );
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    expect(await screen.findByText("첫 테스트 세션입니다.")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "새 테스트 세션 시작" }));
+
+    expect(
+      await screen.findByText(
+        "이 워크스페이스에는 운영 중인 도메인 팩 버전이 없습니다. 관리자에게 문의해 주세요.",
+      ),
+    ).not.toBeNull();
+    const storedSession = window.localStorage.getItem(window.localStorage.key(0) ?? "");
+    expect(storedSession).toContain("첫 테스트 세션입니다.");
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Failed to restart demo chat session",
+      expect.any(ApiRequestError),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("백엔드에 저장된 상담사 메시지를 동기화해 화면에 표시한다", async () => {
@@ -156,7 +246,7 @@ describe("UserChatPage", () => {
 
     render(<UserChatPage />);
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     expect(await screen.findByText("저장된 상담사 답변입니다.")).not.toBeNull();
     expect(listDemoChatMessagesMock).toHaveBeenCalledWith(42, "77");
@@ -167,7 +257,7 @@ describe("UserChatPage", () => {
 
     render(<UserChatPage />);
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     const input = await screen.findByLabelText("메시지 입력");
     fireEvent.change(input, { target: { value: "Hello" } });
@@ -189,7 +279,7 @@ describe("UserChatPage", () => {
 
     render(<UserChatPage />);
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     await screen.findByTestId("chat-header-eyebrow");
 
@@ -210,7 +300,7 @@ describe("UserChatPage", () => {
   it("이름이 비어 있으면 세션을 생성하지 않는다", async () => {
     render(<UserChatPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     expect(await screen.findByText("이름을 입력해 주세요.")).not.toBeNull();
     expect(window.localStorage.length).toBe(0);
@@ -247,7 +337,7 @@ describe("UserChatPage", () => {
 
       render(<UserChatPage />);
       fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-      fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+      fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
       expect(
         await screen.findByText(
@@ -266,7 +356,7 @@ describe("UserChatPage", () => {
 
       render(<UserChatPage />);
       fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-      fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+      fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
       expect(
         await screen.findByText("채팅 세션을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요."),
@@ -278,7 +368,7 @@ describe("UserChatPage", () => {
 
       render(<UserChatPage />);
       fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
-      fireEvent.click(screen.getByRole("button", { name: "채팅 시작" }));
+      fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
       const retryButton = await screen.findByRole("button", { name: "다시 시도" });
       fireEvent.click(retryButton);

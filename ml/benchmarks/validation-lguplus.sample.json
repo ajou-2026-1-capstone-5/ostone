@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "evaluation-benchmark-suite.v1",
+  "boundaryCases": [
+    {
+      "conversationId": "43232",
+      "expectedCaselets": [
+        {
+          "turnStart": 0,
+          "turnEnd": 16,
+          "issueObject": "중고폰 반납",
+          "issueAction": "확인"
+        },
+        {
+          "turnStart": 17,
+          "turnEnd": 24,
+          "issueObject": "기기변경 요금제",
+          "issueAction": "확인"
+        },
+        {
+          "turnStart": 25,
+          "turnEnd": 49,
+          "issueObject": "기기변경 지원",
+          "issueAction": "변경"
+        }
+      ],
+      "note": "Manual category-free boundary sample from device return, plan, and device-change support questions."
+    }
+  ],
+  "intentPairs": [
+    {
+      "sourceCaseletId": "43308#issue-01",
+      "targetCaseletId": "43539#issue-01",
+      "relation": "same_intent",
+      "note": "Both request mobile plan change."
+    },
+    {
+      "sourceCaseletId": "43260#issue-01",
+      "targetCaseletId": "43272#issue-01",
+      "relation": "same_intent",
+      "note": "Both request payment of unpaid telecom charges."
+    },
+    {
+      "sourceCaseletId": "43308#issue-01",
+      "targetCaseletId": "43238#issue-01",
+      "relation": "different_intent_same_object",
+      "note": "Plan change and payment-card change share change wording but route differently."
+    },
+    {
+      "sourceCaseletId": "43260#issue-01",
+      "targetCaseletId": "43259#issue-01",
+      "relation": "same_workflow_pattern_different_intent",
+      "note": "Unpaid charge payment and small-payment limit check both involve payment checks but are different intents."
+    }
+  ],
+  "labelExpectations": [
+    {
+      "clusterGoldId": "lguplus-plan-change",
+      "memberCaseletIds": ["43308#issue-01", "43539#issue-01"],
+      "object": "요금제",
+      "action": "변경",
+      "allowedLabels": ["요금제 변경 문의 - 요금제 변경·잔여 변형 2"],
+      "forbiddenTerms": ["수고했습니다", "걸려 이후", "검토", "가능여부확인"]
+    },
+    {
+      "clusterGoldId": "lguplus-unpaid-charge-payment",
+      "memberCaseletIds": ["43260#issue-01", "43272#issue-01"],
+      "object": "납부",
+      "action": "결제",
+      "allowedLabels": ["납부 결제 문의 - 본인확인·결제확인·납부 결제 변형 1"],
+      "forbiddenTerms": ["수고했습니다", "걸려 이후", "검토", "가능여부확인"]
+    },
+    {
+      "clusterGoldId": "lguplus-device-change",
+      "memberCaseletIds": ["43279#issue-04", "43301#issue-02"],
+      "object": "기기",
+      "action": "변경",
+      "allowedLabels": ["기기 변경 문의 - 기기 변경 변형 1"],
+      "forbiddenTerms": ["수고했습니다", "걸려 이후", "검토", "가능여부확인"]
+    }
+  ],
+  "workflowExpectations": [
+    {
+      "caseletId": "43308#issue-01",
+      "expectedEvents": ["확인질문"],
+      "workflowVariant": "plan_change_request",
+      "expectedBranchConditions": ["요금제", "변경"]
+    },
+    {
+      "caseletId": "43260#issue-01",
+      "expectedEvents": ["확인질문", "추가정보요청"],
+      "workflowVariant": "unpaid_charge_payment_with_identity_or_payment_collection",
+      "expectedBranchConditions": ["납부", "결제"]
+    },
+    {
+      "caseletId": "43279#issue-04",
+      "expectedEvents": ["확인질문"],
+      "workflowVariant": "device_change_guidance",
+      "expectedBranchConditions": ["기기", "변경"]
+    }
+  ]
+}

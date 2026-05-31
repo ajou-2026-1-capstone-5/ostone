@@ -54,6 +54,8 @@ def test_should_read_preprocessed_artifact(tmp_path: Path) -> None:
     conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
 
     assert [conversation.id for conversation in conversations] == ["c1", "c2"]
+    assert conversations[0].workflow_signal == {"requires_payment_check": True}
+    assert conversations[0].flow_events == ("확인질문", "정책안내")
     assert flow_signatures.shape == (2, FLOW_SIGNATURE_DIM)
     assert flow_signatures.dtype == np.float32
     first_signature = cast(object, flow_signatures[0])
@@ -186,6 +188,8 @@ def _preprocessed_payload(conversation_id: str, flow_signature: list[float]) -> 
         "customer_turn_count": 1,
         "pii_mask_count": 0,
         "filtered": False,
+        "workflow_signal": {"requires_payment_check": True},
+        "flow_events": ["확인질문", "정책안내"],
     }
 
 
@@ -213,6 +217,140 @@ def test_should_raise_on_missing_conversations_field(tmp_path: Path) -> None:
 
     with pytest.raises(PipelineStageError, match="conversations must be a list"):
         _ = read_preprocessed_artifact(runtime_config, context)
+
+
+def test_read_preprocessed_artifact_excludes_filtered_conversations(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    rows = [
+        _preprocessed_payload("kept", [1.0] + [0.0] * (FLOW_SIGNATURE_DIM - 1)),
+        {**_preprocessed_payload("filtered", [0.0] * FLOW_SIGNATURE_DIM), "filtered": True},
+    ]
+    artifact_path.write_text(json.dumps({"conversations": rows}), encoding="utf-8")
+
+    conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
+
+    assert [conversation.id for conversation in conversations] == ["kept"]
+    assert flow_signatures.shape == (1, FLOW_SIGNATURE_DIM)
+
+
+def test_read_preprocessed_artifact_can_use_caselets(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [_preprocessed_payload("conversation", [0.0] * FLOW_SIGNATURE_DIM)],
+                "issueCaselets": [
+                    {
+                        "caseletId": "conversation#issue-01",
+                        "conversationId": "conversation",
+                        "datasetId": "ds1",
+                        "turnStart": 0,
+                        "turnEnd": 1,
+                        "customerIssueText": "환불 문의",
+                        "canonicalText": "환불 문의 처리",
+                        "flowSignature": [1.0] + [0.0] * (FLOW_SIGNATURE_DIM - 1),
+                        "flowSignatureDim": FLOW_SIGNATURE_DIM,
+                        "flowEvents": ["확인질문"],
+                        "outcome": "resolved",
+                        "workflowSignal": {"requires_payment_check": True},
+                        "piiMaskCount": 0,
+                        "filtered": False,
+                        "sourceQualityFlags": [],
+                        "qualityScore": 1.0,
+                        "qualityTier": "A",
+                        "evidenceTurnIds": ["t0", "t1"],
+                        "actionObjectFrame": {
+                            "object": "결제",
+                            "action": "환불",
+                            "confidence": 0.9,
+                        },
+                    },
+                    {
+                        "caseletId": "conversation#issue-02",
+                        "conversationId": "conversation",
+                        "datasetId": "ds1",
+                        "turnStart": 2,
+                        "turnEnd": 3,
+                        "customerIssueText": "네",
+                        "canonicalText": "네 감사합니다",
+                        "flowSignature": [0.0, 1.0] + [0.0] * (FLOW_SIGNATURE_DIM - 2),
+                        "flowSignatureDim": FLOW_SIGNATURE_DIM,
+                        "flowEvents": ["해결"],
+                        "outcome": "resolved",
+                        "workflowSignal": {},
+                        "piiMaskCount": 0,
+                        "filtered": True,
+                        "sourceQualityFlags": ["low_information_customer_issue"],
+                        "qualityScore": 0.0,
+                        "qualityTier": "D",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PIPELINE_ANALYSIS_UNIT", "caselet")
+
+    conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
+
+    assert [conversation.id for conversation in conversations] == ["conversation#issue-01"]
+    assert conversations[0].metadata["sourceConversationId"] == "conversation"
+    assert conversations[0].metadata["sourceQualityFlags"] == ()
+    assert conversations[0].metadata["qualityScore"] == 1.0
+    assert conversations[0].metadata["qualityTier"] == "A"
+    assert conversations[0].metadata["evidenceTurnIds"] == ("t0", "t1")
+    assert conversations[0].metadata["actionObjectFrame"] == {
+        "object": "결제",
+        "action": "환불",
+        "confidence": 0.9,
+    }
+    assert conversations[0].customer_problem_text == "환불 문의"
+    assert flow_signatures.shape == (1, FLOW_SIGNATURE_DIM)
+
+
+def test_read_preprocessed_artifact_does_not_fallback_when_all_caselets_filtered(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _context("intent_discovery")
+    artifact_path = _preprocessing_dir(runtime_config, context) / DEFAULT_PREPROCESSED_ARTIFACT
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_text(
+        json.dumps(
+            {
+                "conversations": [_preprocessed_payload("conversation", [1.0] + [0.0] * (FLOW_SIGNATURE_DIM - 1))],
+                "issueCaselets": [
+                    {
+                        "caseletId": "conversation#issue-01",
+                        "conversationId": "conversation",
+                        "datasetId": "ds1",
+                        "turnStart": 0,
+                        "turnEnd": 1,
+                        "customerIssueText": "네",
+                        "canonicalText": "네 감사합니다",
+                        "flowSignature": [0.0] * FLOW_SIGNATURE_DIM,
+                        "flowSignatureDim": FLOW_SIGNATURE_DIM,
+                        "piiMaskCount": 0,
+                        "filtered": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PIPELINE_ANALYSIS_UNIT", "caselet")
+
+    conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
+
+    assert conversations == []
+    assert flow_signatures.shape == (0, FLOW_SIGNATURE_DIM)
 
 
 def test_should_raise_when_field_is_not_string(tmp_path: Path) -> None:

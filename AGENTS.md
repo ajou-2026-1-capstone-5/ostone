@@ -88,14 +88,16 @@ ml/
 └── pyproject.toml
 ```
 
-**6개 Pipeline Stage**:
+**8개 Pipeline Stage**:
 
 1. **ingestion**: 상담 로그 입력, conversation 단위 묶기
 2. **preprocessing**: boilerplate 제거, canonical text 생성, PII 제거
-3. **intent-discovery**: semantic embedding, graph clustering
-4. **draft-generation**: slot/policy/risk/workflow 초안 생성
-5. **evaluation**: mapping rate, outlier rate, workflow separability 평가
-6. **publish-candidate**: 최종 draft artifact 생성 및 Spring 전달
+3. **representation**: role-aware semantic representation과 flow signature 생성
+4. **intent-discovery**: semantic embedding, graph clustering
+5. **flow-splitting**: semantic cluster를 workflow entry point 단위로 분할
+6. **draft-generation**: slot/policy/risk/workflow 초안 생성
+7. **evaluation**: mapping rate, outlier rate, workflow separability 평가
+8. **publish-candidate**: 최종 draft artifact 생성 및 Spring 전달
 
 ---
 
@@ -363,10 +365,10 @@ app → pages → widgets → features → entities → shared
 
 ### ML (Python)
 
-**파이프라인 구조**: 6개 Stage 순서 강제
+**파이프라인 구조**: ML Runtime v2는 8개 Stage 순서 강제
 
 ```
-ingestion → preprocessing → intent_discovery → draft_generation → evaluation → publish_candidate
+ingestion → preprocessing → representation → intent_discovery → flow_splitting → draft_generation → evaluation → publish_candidate
 ```
 
 **파이프라인 규칙**:

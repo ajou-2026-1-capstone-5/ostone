@@ -1,10 +1,19 @@
 import React, { useState, useRef } from "react";
 import { UploadCloud, FileType, CheckCircle2 } from "lucide-react";
+import {
+  RAW_LOG_UPLOAD_ACCEPT,
+  RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
+  RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
+  RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
+} from "../../lib/rawLogUploadPolicy";
 import styles from "./file-uploader.module.css";
 
 interface FileUploaderProps {
   onFileSelect: (file: File) => void;
   acceptedTypes?: string;
+  acceptedTypeLabel?: string;
+  maxSizeLabel?: string;
+  fileTypeLabels?: string[];
   isUploading?: boolean;
   progress?: number;
   status?: "idle" | "uploading" | "analyzing" | "success";
@@ -12,7 +21,10 @@ interface FileUploaderProps {
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
   onFileSelect,
-  acceptedTypes = ".csv,.json",
+  acceptedTypes = RAW_LOG_UPLOAD_ACCEPT,
+  acceptedTypeLabel = RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL,
+  maxSizeLabel = RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
+  fileTypeLabels = RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
   isUploading = false,
   progress = 0,
   status = "idle",
@@ -61,7 +73,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <div className={styles.loaderArea}>
           <div className={styles.spinner} />
           <h3 className={`${styles.statusText} ${styles.title}`}>
-            {status === "analyzing" ? "Analyzing CSV Log..." : "Uploading File..."}
+            {status === "analyzing" ? "Analyzing JSON Log..." : "Uploading File..."}
           </h3>
           <div className={styles.progressBarContainer}>
             <div className={styles.progressBar} style={{ width: `${progress}%` }} />
@@ -92,15 +104,16 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <UploadCloud size={40} className={styles.uploadIcon} />
       </div>
       <h3 className={styles.title}>Click or drag file to this area to upload</h3>
-      <p className={styles.mutedText}>Support for a single {acceptedTypes} file upload.</p>
+      <p className={styles.mutedText}>
+        Support for a single {acceptedTypeLabel} file upload up to {maxSizeLabel}.
+      </p>
 
       <div className={styles.fileTypesHint}>
-        <span className={styles.badge}>
-          <FileType size={14} /> CSV
-        </span>
-        <span className={styles.badge}>
-          <FileType size={14} /> JSON
-        </span>
+        {fileTypeLabels.map((label) => (
+          <span className={styles.badge} key={label}>
+            <FileType size={14} /> {label}
+          </span>
+        ))}
       </div>
     </div>
   );

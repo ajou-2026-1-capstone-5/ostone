@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ostone.local/schemas/evaluation-benchmark-suite.schema.json",
+  "title": "Evaluation Benchmark Suite",
+  "description": "Category-free offline gold annotations for boundary, same-intent, label, and workflow evaluation. This file is never part of pipeline input.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "evaluation-benchmark-suite.v1"
+    },
+    "boundaryCases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/boundaryCase"
+      }
+    },
+    "intentPairs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/intentPair"
+      }
+    },
+    "labelExpectations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/labelExpectation"
+      }
+    },
+    "workflowExpectations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workflowExpectation"
+      }
+    }
+  },
+  "$defs": {
+    "boundaryCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversationId", "expectedCaselets"],
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedCaselets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/expectedCaselet"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "expectedCaselet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turnStart", "turnEnd"],
+      "properties": {
+        "turnStart": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turnEnd": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issueObject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issueAction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "intentPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCaseletId", "targetCaseletId", "relation"],
+      "properties": {
+        "sourceCaseletId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targetCaseletId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "same_intent",
+            "different_intent_same_object",
+            "same_parent_intent_different_workflow_variant",
+            "same_workflow_pattern_different_intent",
+            "noise_or_filler",
+            "must_link",
+            "cannot_link"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "labelExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clusterGoldId", "object", "action"],
+      "properties": {
+        "clusterGoldId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memberCaseletIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "object": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowedLabels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbiddenTerms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "workflowExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caseletId", "expectedEvents"],
+      "properties": {
+        "caseletId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedEvents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "workflowVariant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedBranchConditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

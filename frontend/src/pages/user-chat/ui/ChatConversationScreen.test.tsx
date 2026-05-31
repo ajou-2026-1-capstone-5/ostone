@@ -34,9 +34,11 @@ function setup(overrides: Partial<Parameters<typeof ChatConversationScreen>[0]> 
   const props: Parameters<typeof ChatConversationScreen>[0] = {
     session: buildSession(),
     customerName: "김민지",
+    workspaceId: 42,
     isSending: false,
     messageError: null,
     onSend: vi.fn(),
+    onStartNewSession: vi.fn(),
     ...overrides,
   };
   render(<ChatConversationScreen {...props} />);
@@ -49,7 +51,9 @@ describe("ChatConversationScreen", () => {
 
     expect(screen.getByTestId("chat-header")).toBeInTheDocument();
     expect(screen.getByTestId("chat-meta-strip")).toHaveTextContent("연결됨");
-    expect(screen.getByTestId("chat-meta-strip")).toHaveTextContent("김민지");
+    expect(screen.getByTestId("chat-meta-strip")).toHaveTextContent("Workspace #42");
+    expect(screen.getByTestId("chat-meta-strip")).toHaveTextContent("운영 도메인 팩 기준");
+    expect(screen.getByTestId("chat-session-reuse-note")).toHaveTextContent("김민지 테스트 세션");
   });
 
   it("session.messages 의 본문이 화면에 렌더된다", () => {
@@ -81,6 +85,14 @@ describe("ChatConversationScreen", () => {
 
     expect(screen.getByLabelText("메시지 입력")).toBeDisabled();
     expect(screen.getByLabelText("메시지 보내기")).toBeDisabled();
+  });
+
+  it("새 테스트 세션 시작 클릭이 onStartNewSession 호출", () => {
+    const onStartNewSession = vi.fn();
+    setup({ onStartNewSession });
+
+    fireEvent.click(screen.getByRole("button", { name: "새 테스트 세션 시작" }));
+    expect(onStartNewSession).toHaveBeenCalled();
   });
 
   it("ChatHeader 가 session.id 와 status 를 노출한다", () => {

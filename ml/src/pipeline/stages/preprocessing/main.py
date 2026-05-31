@@ -11,12 +11,13 @@ import numpy as np
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.logging import get_stage_logger
 from pipeline.stages.preprocessing.canonicalize import apply_canonicalization, normalize_speaker_role
-from pipeline.stages.preprocessing.flow_signature import build_signature
+from pipeline.stages.preprocessing.flow_signature import build_signature, infer_event, infer_workflow_signal
 from pipeline.stages.preprocessing.io import (
     read_ingestion_artifact,
     read_stage_context,
     write_preprocessed_artifact,
 )
+from pipeline.stages.preprocessing.issue_caselet import extract_issue_caselets
 from pipeline.stages.preprocessing.types import (
     FLOW_SIGNATURE_DIM,
     SPEAKER_ROLE_CUSTOMER,
@@ -37,28 +38,32 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, str]:
     if not conversations:
         logger.warning("No ingestion conversations found for preprocessing.")
 
-    processed, stats = _process_conversations(conversations, upstream_manifest_path)
+    processed, issue_caselets, stats = _process_conversations(conversations, upstream_manifest_path)
     stats["processing_duration_seconds"] = time.time() - start_time
-    artifact_manifest = write_preprocessed_artifact(stage_context, runtime_config, processed, stats)
+    artifact_manifest = write_preprocessed_artifact(stage_context, runtime_config, processed, stats, issue_caselets)
     logger.info("Preprocessing completed: %s", stats)
     return artifact_manifest
 
 
 def _process_conversations(
     conversations: Sequence[Conversation], upstream_manifest_path: str | None
-) -> tuple[list[ProcessedConversation], dict[str, object]]:
+) -> tuple[list[ProcessedConversation], list[dict[str, object]], dict[str, object]]:
     processed: list[ProcessedConversation] = []
+    issue_caselets: list[dict[str, object]] = []
     pii_masked_count = 0
     filtered_count = 0
     empty_customer_count = 0
     total_canonical_text_length = 0
 
     for conversation in conversations:
-        processed_conversation, pii_count, customer_text_is_empty = _process_conversation(conversation)
+        processed_conversation, pii_count, customer_text_is_empty, conversation_caselets = _process_conversation(
+            conversation
+        )
         if customer_text_is_empty:
             empty_customer_count += 1
 
         processed.append(processed_conversation)
+        issue_caselets.extend(conversation_caselets)
         if pii_count > 0:
             pii_masked_count += 1
 
@@ -70,19 +75,40 @@ def _process_conversations(
 
     output_count = len(processed) - filtered_count
     avg_canonical_text_length = total_canonical_text_length / output_count if output_count > 0 else 0.0
+    filtered_caselet_count = sum(
+        1 for caselet in issue_caselets if isinstance(caselet.get("filtered"), bool) and caselet.get("filtered")
+    )
 
-    return processed, {
-        "input_count": len(conversations),
-        "output_count": output_count,
-        "filtered_count": filtered_count,
-        "pii_masked_count": pii_masked_count,
-        "empty_customer_text_count": empty_customer_count,
-        "avg_canonical_text_length": avg_canonical_text_length,
-        "upstream_manifest_path": upstream_manifest_path,
-    }
+    multi_caselet_count = len(
+        {
+            str(caselet.get("conversationId"))
+            for caselet in issue_caselets
+            if sum(1 for item in issue_caselets if item.get("conversationId") == caselet.get("conversationId")) > 1
+        }
+    )
+
+    return (
+        processed,
+        issue_caselets,
+        {
+            "input_count": len(conversations),
+            "output_count": output_count,
+            "filtered_count": filtered_count,
+            "pii_masked_count": pii_masked_count,
+            "empty_customer_text_count": empty_customer_count,
+            "issue_caselet_count": len(issue_caselets),
+            "issue_caselet_filtered_count": filtered_caselet_count,
+            "issue_caselet_analysis_count": len(issue_caselets) - filtered_caselet_count,
+            "multi_caselet_conversation_count": multi_caselet_count,
+            "avg_canonical_text_length": avg_canonical_text_length,
+            "upstream_manifest_path": upstream_manifest_path,
+        },
+    )
 
 
-def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversation, int, bool]:
+def _process_conversation(
+    conversation: Conversation,
+) -> tuple[ProcessedConversation, int, bool, list[dict[str, object]]]:
     normalized_conversation = _normalize_conversation(conversation)
     canonical_text, customer_text, pii_count = apply_canonicalization(normalized_conversation)
     customer_text_is_empty = not customer_text.strip()
@@ -95,12 +121,15 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
         raise TypeError(f"Expected flow signature dtype float32, got {signature.dtype}")
 
     normalized_turns = normalized_conversation.turns
+    flow_events = tuple(infer_event(turn.text, turn.speaker_role) for turn in normalized_turns)
+    issue_caselets = extract_issue_caselets(normalized_conversation)
     return (
         ProcessedConversation(
             id=normalized_conversation.conversation_id,
             dataset_id=normalized_conversation.dataset_id,
             channel=normalized_conversation.channel,
             ended_status=normalized_conversation.ended_status,
+            metadata=dict(normalized_conversation.metadata),
             canonical_text="" if filtered else canonical_text,
             customer_problem_text=customer_text,
             flow_signature=tuple(float(value) for value in cast(list[float], signature.tolist())),
@@ -109,9 +138,12 @@ def _process_conversation(conversation: Conversation) -> tuple[ProcessedConversa
             customer_turn_count=sum(1 for turn in normalized_turns if turn.speaker_role == SPEAKER_ROLE_CUSTOMER),
             pii_mask_count=pii_count,
             filtered=filtered,
+            workflow_signal=infer_workflow_signal(normalized_conversation),
+            flow_events=flow_events,
         ),
         pii_count,
         customer_text_is_empty,
+        issue_caselets,
     )
 
 

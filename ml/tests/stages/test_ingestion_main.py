@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 from typing import Any, cast
 
@@ -46,7 +47,82 @@ def test_parse_raw_payload_reads_json_conversations_with_turn_payloads() -> None
     ]
 
 
-def test_parse_raw_payload_reads_jsonl_and_consulting_content() -> None:
+def test_parse_raw_payload_reads_parsed_consultation_dataset_contract() -> None:
+    raw_bytes = json.dumps(
+        [
+            {
+                "source_id": "case-1",
+                "turns": [
+                    {"turn_index": 0, "speaker_role": "CUSTOMER", "message_text": "예약 가능한가요?"},
+                    {"turn_index": 1, "speaker_role": "AGENT", "message_text": "가능합니다"},
+                ],
+            }
+        ],
+        ensure_ascii=False,
+    ).encode()
+
+    conversations = list(ingestion._parse_raw_payload(raw_bytes, "dataset-1"))
+
+    assert conversations == [
+        {
+            "id": "case-1",
+            "dataset_id": "dataset-1",
+            "channel": None,
+            "ended_status": None,
+            "turns": [
+                {"turn_index": 0, "speaker_role": ingestion.CUSTOMER_ROLE, "message_text": "예약 가능한가요?"},
+                {"turn_index": 1, "speaker_role": ingestion.AGENT_ROLE, "message_text": "가능합니다"},
+            ],
+        }
+    ]
+
+
+def test_parse_raw_payload_reads_parsed_consultation_zip_archive(tmp_path: Path) -> None:
+    zip_path = tmp_path / "parsed.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(
+            "001.json",
+            json.dumps(
+                [
+                    {
+                        "source_id": "case-1",
+                        "turns": [
+                            {"turn_index": 0, "speaker_role": "CUSTOMER", "message_text": "예약 가능한가요?"},
+                            {"turn_index": 1, "speaker_role": "AGENT", "message_text": "가능합니다"},
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        )
+
+    conversations = list(ingestion._parse_raw_payload(zip_path.read_bytes(), "dataset-1"))
+
+    assert len(conversations) == 1
+    assert conversations[0]["id"] == "case-1"
+    assert conversations[0]["turns"] == [
+        {"turn_index": 0, "speaker_role": ingestion.CUSTOMER_ROLE, "message_text": "예약 가능한가요?"},
+        {"turn_index": 1, "speaker_role": ingestion.AGENT_ROLE, "message_text": "가능합니다"},
+    ]
+
+
+def test_parse_raw_payload_rejects_unavailable_consulting_category_metadata() -> None:
+    raw_bytes = json.dumps(
+        [
+            {
+                "source_id": "case-1",
+                "consulting_category": "test-only-label",
+                "turns": [{"turn_index": 0, "speaker_role": "CUSTOMER", "message_text": "문의합니다"}],
+            }
+        ],
+        ensure_ascii=False,
+    ).encode()
+
+    with pytest.raises(PipelineStageError, match="Forbidden unavailable metadata"):
+        list(ingestion._parse_raw_payload(raw_bytes, "dataset-1"))
+
+
+def test_parse_raw_payload_reads_legacy_jsonl_and_consulting_content() -> None:
     rows = [
         {
             "consultation_id": "case-1",

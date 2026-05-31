@@ -1,22 +1,153 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--paper);
+}
+
+.titleStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 340;
+  line-height: 1.45;
+  letter-spacing: -0.1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.headerButton {
+  min-width: 104px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  font-weight: 450;
+  letter-spacing: -0.1px;
+}
+
+.headerButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.backAction {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+}
+
+.backAction:hover {
+  border-color: var(--ink);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.detailAction {
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+}
+
+.detailAction:hover {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+  color: var(--paper);
+}
+
+.canvasFrame {
+  flex: 1;
+  position: relative;
+  margin: 12px 20px 20px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--line-2);
+  background: var(--paper);
+  overflow: hidden;
+  min-height: 400px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.015);
+}
+
+.loadingState,
+.centerState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 360px;
+}
+
 .loadingState {
-  padding: var(--s-8);
-  text-align: center;
-  color: var(--text-3);
+  flex-direction: column;
+  gap: 12px;
 }
 
-.errorState {
-  padding: var(--s-8);
-  text-align: center;
-  color: var(--danger);
-}
-
-.emptyState {
-  padding: var(--s-8);
-  text-align: center;
-  color: var(--text-3);
+.loadingText {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.54px;
 }
 
 .graphContainer {
   flex: 1;
+  width: 100%;
+  height: 100%;
   min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .headerButton {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .canvasFrame {
+    margin: 10px 12px 14px;
+  }
 }

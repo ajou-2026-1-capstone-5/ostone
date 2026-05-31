@@ -66,7 +66,7 @@ export function ChatEntryScreen({
                 color: "var(--dark-ink-2)",
               }}
             >
-              CSTONE · DEMO CHAT
+              CSTONE · 고객 채팅 미리보기
             </div>
             <p
               style={{
@@ -80,10 +80,11 @@ export function ChatEntryScreen({
                 color: "var(--paper)",
               }}
             >
-              환불 / 배송 / 결제 등<br />
-              실제 상담 도메인 팩을 시연합니다.
+              운영 중인 도메인 팩으로
               <br />
-              먼저 이름을 알려 주세요.
+              고객 화면을 미리 확인합니다.
+              <br />
+              먼저 테스트 고객 이름을 알려 주세요.
             </p>
             <p
               style={{
@@ -93,8 +94,8 @@ export function ChatEntryScreen({
                 color: "var(--dark-ink-2)",
               }}
             >
-              입력하신 이름은 상담 세션 헤더와 메시지 표기에만 사용되며, 데모 종료 후 자동
-              폐기됩니다.
+              같은 이름으로 다시 들어오면 저장된 테스트 세션을 이어서 엽니다. 대화 화면에서
+              새 테스트 세션을 시작할 수 있습니다.
             </p>
             <div
               style={{
@@ -145,7 +146,7 @@ export function ChatEntryScreen({
               color: "var(--dark-ink-3)",
             }}
           >
-            SESSION · NEW · Workspace #{workspaceId}
+            PREVIEW · CURRENT PACK · Workspace #{workspaceId}
           </div>
         </aside>
 
@@ -168,7 +169,7 @@ export function ChatEntryScreen({
               color: "var(--ink-3)",
             }}
           >
-            Step 1 / 1
+            Customer preview
           </div>
           <h1
             style={{
@@ -179,7 +180,7 @@ export function ChatEntryScreen({
               color: "var(--ink)",
             }}
           >
-            대화를 시작합니다
+            고객 채팅 미리보기
           </h1>
           <p
             style={{
@@ -189,7 +190,8 @@ export function ChatEntryScreen({
               color: "var(--ink-2)",
             }}
           >
-            상담 화면에 표시될 이름을 적어 주세요. 한글 / 영문 모두 가능합니다.
+            운영 중인 도메인 팩이 고객에게 어떻게 응답하는지 확인할 이름을 적어 주세요.
+            한글 / 영문 모두 가능합니다.
           </p>
 
           <div>
@@ -262,7 +264,7 @@ export function ChatEntryScreen({
               fontFamily: "inherit",
             }}
           >
-            채팅 시작
+            미리보기 시작
           </button>
           <div
             style={{
