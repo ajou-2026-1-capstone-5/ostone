@@ -20,7 +20,10 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import com.init.workflowruntime.domain.WorkflowExecutionRepository;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +47,8 @@ public class WorkflowRuntimeService {
   private final WorkflowExecutionRepository workflowExecutionRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
+  private final ChatSessionMetadataService chatSessionMetadataService;
+  private final ApplicationEventPublisher eventPublisher;
   private final ObjectMapper objectMapper;
 
   public WorkflowRuntimeService(
@@ -51,11 +56,15 @@ public class WorkflowRuntimeService {
       WorkflowExecutionRepository workflowExecutionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
+      ChatSessionMetadataService chatSessionMetadataService,
+      ApplicationEventPublisher eventPublisher,
       ObjectMapper objectMapper) {
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
+    this.chatSessionMetadataService = chatSessionMetadataService;
+    this.eventPublisher = eventPublisher;
     this.objectMapper = objectMapper;
   }
 
@@ -304,6 +313,7 @@ public class WorkflowRuntimeService {
   }
 
   private WorkflowAdvanceResponse response(AdvanceContext context, ResponseDraft draft) {
+    recordHandoffIfNeeded(context, draft);
     WorkflowExecution execution = context.execution();
     String policySnapshotJson = writeJson(draft.policySnapshot());
     boolean policySnapshotChanged = !policySnapshotJson.equals(execution.getPolicySnapshotJson());
@@ -330,6 +340,31 @@ public class WorkflowRuntimeService {
         draft.transitionPolicy(),
         draft.currentPolicy(),
         draft.reason());
+  }
+
+  private void recordHandoffIfNeeded(AdvanceContext context, ResponseDraft draft) {
+    if (!ACTION_HANDOFF.equals(draft.actionType())) {
+      return;
+    }
+    boolean changed =
+        chatSessionMetadataService.recordHandoff(
+            context.session(), handoffReason(draft.node()), draft.node().id());
+    if (changed) {
+      eventPublisher.publishEvent(
+          new ConsultationQueueChangedEvent(
+              context.session().getWorkspaceId(),
+              context.session().getId(),
+              ConsultationQueueEventType.SESSION_UPSERTED));
+    }
+  }
+
+  private String handoffReason(RuntimeNode node) {
+    String description = trimToNull(node.description());
+    if (description != null) {
+      return description;
+    }
+    String label = trimToNull(node.label());
+    return label != null ? label : "상담원 확인이 필요합니다.";
   }
 
   private record AdvanceContext(

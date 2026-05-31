@@ -177,7 +177,15 @@
   min-width: 0;
 }
 
+.customerNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .customerName {
+  min-width: 0;
   font-size: 0.9rem;
   letter-spacing: -0.1px;
   font-weight: 500;
@@ -185,6 +193,20 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.handoffBadge {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--ink);
+  border-radius: 50px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .handoffPreview {
@@ -195,6 +217,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+}
+
+.handoffReason {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 450;
+  letter-spacing: -0.1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sessionStatus {

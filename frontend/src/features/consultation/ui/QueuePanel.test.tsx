@@ -33,7 +33,11 @@ const renderQueuePanel = (props: Partial<QueuePanelProps> = {}) =>
 const getQueueItem = (customerName: string) =>
   screen.getByText(customerName).closest('[role="button"]') as HTMLElement;
 
-const getFilterButton = (filterName: string) => screen.getByText(filterName).closest("button")!;
+const getFilterButton = (filterName: string) => {
+  const element = screen.getAllByText(filterName).find((item) => item.closest("button"));
+  if (!element) throw new Error(`Filter not found: ${filterName}`);
+  return element.closest("button")!;
+};
 
 describe("QueuePanel", () => {
   it("고객이 없으면 큐 empty 상태 메시지를 표시한다", () => {
@@ -71,7 +75,7 @@ describe("QueuePanel", () => {
     renderQueuePanel({ customers });
 
     expect(screen.getByText("상담 큐")).toBeInTheDocument();
-    expect(screen.getByText("미배정 1건 · 진행 2건")).toBeInTheDocument();
+    expect(screen.getByText("AI 이관 0건 · 미배정 1건 · 진행 2건")).toBeInTheDocument();
     expect(screen.queryByText(/대기중$/)).not.toBeInTheDocument();
   });
 
@@ -79,6 +83,16 @@ describe("QueuePanel", () => {
     renderQueuePanel({ customers: [makeCustomer("1", { handoffReason: "카드 오류" })] });
     expect(screen.getByText("고객1")).toBeInTheDocument();
     expect(screen.getByText("카드 오류")).toBeInTheDocument();
+  });
+
+  it("handoffRequired 세션은 AI 이관 배지와 사유를 표시한다", () => {
+    renderQueuePanel({
+      customers: [makeCustomer("1", { handoffRequired: true, handoffReason: "관리자 승인 필요" })],
+    });
+
+    expect(screen.getAllByText("AI 이관").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("사유: 관리자 승인 필요")).toBeInTheDocument();
+    expect(screen.getByText("AI 이관 1건 · 미배정 1건 · 진행 0건")).toBeInTheDocument();
   });
 
   it("title이 있으면 handoffReason보다 우선 표시한다", () => {
@@ -203,6 +217,20 @@ describe("QueuePanel", () => {
     });
 
     fireEvent.click(getFilterButton("미배정"));
+
+    expect(screen.getByText("고객1")).toBeInTheDocument();
+    expect(screen.queryByText("고객2")).not.toBeInTheDocument();
+  });
+
+  it("AI 이관 필터를 선택하면 handoffRequired 세션만 표시한다", () => {
+    renderQueuePanel({
+      customers: [
+        makeCustomer("1", { handoffRequired: true, handoffReason: "상담사 확인 필요" }),
+        makeCustomer("2", { handoffRequired: false }),
+      ],
+    });
+
+    fireEvent.click(getFilterButton("AI 이관"));
 
     expect(screen.getByText("고객1")).toBeInTheDocument();
     expect(screen.queryByText("고객2")).not.toBeInTheDocument();

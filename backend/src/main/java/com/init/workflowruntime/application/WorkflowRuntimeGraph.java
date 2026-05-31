@@ -60,7 +60,9 @@ final class WorkflowRuntimeGraph {
             "WORKFLOW_GRAPH_INVALID", "Workflow graph node is invalid: " + workflowId);
       }
       String policyRef = trimToNull(node.path("policyRef").asText(null));
-      nodesById.put(id, new RuntimeNode(id, type, policyRef));
+      String label = trimToNull(node.path("label").asText(null));
+      String description = trimToNull(node.path("description").asText(null));
+      nodesById.put(id, new RuntimeNode(id, type, policyRef, label, description));
     }
     return nodesById;
   }
@@ -91,7 +93,7 @@ final class WorkflowRuntimeGraph {
     return trimmed.isEmpty() ? null : trimmed;
   }
 
-  record RuntimeNode(String id, String type, String policyRef) {}
+  record RuntimeNode(String id, String type, String policyRef, String label, String description) {}
 
   record RuntimeEdge(String id, String from, String to, JsonNode condition) {}
 }

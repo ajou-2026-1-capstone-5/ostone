@@ -308,6 +308,62 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
   });
 
+  it("orders AI handoff queue items before normal sessions and by oldest handoff time", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "일반 고객",
+          handoffRequired: false,
+          handoffReason: "일반 문의",
+        }),
+        startedAt: "2026-06-01T11:30:00+09:00",
+      },
+      {
+        id: 2,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "새 이관 고객",
+          handoffRequired: true,
+          handoffReason: "최근 승인 필요",
+          handoffAt: "2026-06-01T11:00:00+09:00",
+        }),
+        startedAt: "2026-06-01T09:00:00+09:00",
+      },
+      {
+        id: 3,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "오래된 이관 고객",
+          handoffRequired: true,
+          handoffReason: "오래된 승인 필요",
+          handoffAt: "2026-06-01T10:00:00+09:00",
+        }),
+        startedAt: "2026-06-01T08:00:00+09:00",
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("오래된 이관 고객")).toBeInTheDocument();
+    });
+
+    const queueItems = screen
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("고객"));
+    expect(queueItems.map((button) => button.textContent)).toEqual([
+      expect.stringContaining("오래된 이관 고객"),
+      expect.stringContaining("새 이관 고객"),
+      expect.stringContaining("일반 고객"),
+    ]);
+    expect(screen.getByText("AI 이관 2건 · 미배정 3건 · 진행 0건")).toBeInTheDocument();
+  });
+
   it("selects the route session and restores messages when opening a session URL directly", async () => {
     vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
       {

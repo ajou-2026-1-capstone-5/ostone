@@ -16,7 +16,9 @@ import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
@@ -54,6 +56,7 @@ public class ConsultationService {
         .findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
             workspaceId, Arrays.asList(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE))
         .stream()
+        .sorted(this::compareQueuePriority)
         .map(ChatSessionResponse::from)
         .collect(Collectors.toList());
   }
@@ -142,6 +145,10 @@ public class ConsultationService {
       case OPEN -> session.reopen();
     }
 
+    if (newStatus == ChatSessionStatus.RESOLVED || newStatus == ChatSessionStatus.COMPLETED) {
+      chatSessionMetadataService.resolveHandoff(session);
+    }
+
     if (outcome != null) {
       boolean followUpRequired =
           request.getFollowUpRequired() != null
@@ -191,6 +198,25 @@ public class ConsultationService {
       case OPEN, ACTIVE -> ConsultationQueueEventType.SESSION_UPSERTED;
       case RESOLVED, COMPLETED -> ConsultationQueueEventType.SESSION_REMOVED;
     };
+  }
+
+  private int compareQueuePriority(ChatSession left, ChatSession right) {
+    boolean leftHandoff = chatSessionMetadataService.isHandoffRequired(left);
+    boolean rightHandoff = chatSessionMetadataService.isHandoffRequired(right);
+    if (leftHandoff != rightHandoff) {
+      return leftHandoff ? -1 : 1;
+    }
+    if (leftHandoff) {
+      return Comparator.nullsLast(Comparator.<OffsetDateTime>naturalOrder())
+          .compare(queueHandoffTime(left), queueHandoffTime(right));
+    }
+    return Comparator.nullsLast(Comparator.<OffsetDateTime>reverseOrder())
+        .compare(left.getStartedAt(), right.getStartedAt());
+  }
+
+  private OffsetDateTime queueHandoffTime(ChatSession session) {
+    OffsetDateTime handoffAt = chatSessionMetadataService.handoffAt(session);
+    return handoffAt != null ? handoffAt : session.getStartedAt();
   }
 
   private void validateWorkspaceMembership(Long workspaceId, Long userId) {
