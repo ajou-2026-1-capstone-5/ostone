@@ -231,6 +231,8 @@ def _mixed_unknown_candidate(fallback_terms: list[str], sampled: list[ProcessedC
 def _deterministic_sample(conversations: list[ProcessedConversation], sample_size: int) -> list[ProcessedConversation]:
     if sample_size <= 0 or len(conversations) <= sample_size:
         return list(conversations)
+    if sample_size == 1:
+        return [conversations[(len(conversations) - 1) // 2]]
     last_index = len(conversations) - 1
     indices = {round(position * last_index / (sample_size - 1)) for position in range(sample_size)}
     return [conversations[index] for index in sorted(indices)]

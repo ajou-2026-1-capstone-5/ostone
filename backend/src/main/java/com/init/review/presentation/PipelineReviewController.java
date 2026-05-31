@@ -3,6 +3,7 @@ package com.init.review.presentation;
 import com.init.review.application.PipelineReviewCheckpointUseCase;
 import com.init.shared.presentation.AuthenticationUtils;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -72,8 +73,8 @@ public class PipelineReviewController {
 
   public record ConfirmDomainRequest(@NotNull Long reviewTaskId, String reason) {}
 
-  public record SubmitFeedbackRequest(@NotEmpty List<FeedbackDecisionRequest> decisions) {}
+  public record SubmitFeedbackRequest(@NotEmpty List<@Valid FeedbackDecisionRequest> decisions) {}
 
   public record FeedbackDecisionRequest(
-      @NotNull Long reviewTaskId, @NotNull String decisionType, String reason) {}
+      @NotNull Long reviewTaskId, @NotBlank String decisionType, String reason) {}
 }

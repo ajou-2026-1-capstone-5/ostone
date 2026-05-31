@@ -170,10 +170,39 @@ class RawFileUploadServiceTest {
     assertThat(conversations).hasSize(2);
     assertThat(conversations.get(0).sourceId()).isEqualTo("active-001");
     assertThat(conversations.get(0).consultingContent())
-        .contains("고객: 예약 변경하고 싶어요.", "상담사: 예약 번호를 확인해 드릴게요.");
+        .containsSubsequence("고객: 예약 변경하고 싶어요.", "상담사: 예약 번호를 확인해 드릴게요.");
     assertThat(conversations.get(1).sourceId()).isEqualTo("active-002");
     assertThat(conversations.get(1).consultingContent())
-        .contains("상담사: 상담원입니다.", "고객: 취소 수수료 문의드립니다.");
+        .containsSubsequence("상담사: 상담원입니다.", "고객: 취소 수수료 문의드립니다.");
+  }
+
+  @Test
+  @DisplayName("should_reject_empty_json_file")
+  void upload_emptyJsonFile_throwsRawFileParseException() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "empty-json")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] emptyJson = "  \n ".getBytes(StandardCharsets.UTF_8);
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "empty-json",
+            "빈 JSON",
+            "PARSED_FLAT_JSON",
+            1L,
+            emptyJson,
+            "empty.json",
+            "application/json",
+            (long) emptyJson.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("상담 데이터가 없습니다");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
   }
 
   @Test
@@ -410,6 +439,44 @@ class RawFileUploadServiceTest {
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("DB save error");
+
+    verify(storagePort).delete(anyString());
+  }
+
+  @Test
+  @DisplayName("should_delete_S3_orphan_when_ingestion_trigger_fails")
+  void upload_ingestionTriggerFails_deletesS3Orphan() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "key")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    DatasetUploadResult uploadResult =
+        new DatasetUploadResult(42L, "key", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1);
+    given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                42L, "some-key", "f.json", "application/json", 100L, "a".repeat(64)));
+    willThrow(new RuntimeException("trigger error"))
+        .given(triggerPort)
+        .trigger(anyLong(), anyLong(), anyString());
+
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "key",
+            "name",
+            "src",
+            1L,
+            VALID_JSON,
+            "f.json",
+            "application/json",
+            (long) VALID_JSON.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("trigger error");
 
     verify(storagePort).delete(anyString());
   }

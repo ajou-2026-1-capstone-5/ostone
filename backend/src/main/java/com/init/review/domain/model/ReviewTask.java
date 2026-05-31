@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -72,22 +73,26 @@ public class ReviewTask {
       String proposedChangeJson,
       OffsetDateTime now) {
     ReviewTask task = new ReviewTask();
-    task.reviewSessionId = reviewSessionId;
-    task.targetType = targetType;
-    task.targetRefJson = targetRefJson != null ? targetRefJson : "{}";
-    task.title = title;
+    task.reviewSessionId = Objects.requireNonNull(reviewSessionId, "reviewSessionId는 필수입니다.");
+    task.targetType = Objects.requireNonNull(targetType, "targetType은 필수입니다.");
+    task.targetRefJson = Objects.requireNonNull(targetRefJson, "targetRefJson은 필수입니다.");
+    task.title = Objects.requireNonNull(title, "title은 필수입니다.");
     task.status = STATUS_OPEN;
-    task.priority = priority != null ? priority : "NORMAL";
-    task.proposedChangeJson = proposedChangeJson != null ? proposedChangeJson : "{}";
-    task.createdAt = now;
+    task.priority = Objects.requireNonNull(priority, "priority는 필수입니다.");
+    task.proposedChangeJson =
+        Objects.requireNonNull(proposedChangeJson, "proposedChangeJson은 필수입니다.");
+    task.createdAt = Objects.requireNonNull(now, "now는 필수입니다.");
     task.updatedAt = now;
     return task;
   }
 
   public void resolve(Long resolvedBy, OffsetDateTime resolvedAt) {
+    if (STATUS_RESOLVED.equals(this.status)) {
+      throw new IllegalStateException("이미 resolve된 ReviewTask입니다.");
+    }
     this.status = STATUS_RESOLVED;
-    this.resolvedBy = resolvedBy;
-    this.resolvedAt = resolvedAt;
+    this.resolvedBy = Objects.requireNonNull(resolvedBy, "resolvedBy는 필수입니다.");
+    this.resolvedAt = Objects.requireNonNull(resolvedAt, "resolvedAt은 필수입니다.");
     this.updatedAt = resolvedAt;
   }
 

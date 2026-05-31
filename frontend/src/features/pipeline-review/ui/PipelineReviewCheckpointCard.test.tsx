@@ -86,6 +86,32 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(mutate).toHaveBeenCalledWith(101);
   });
 
+  it("shows an empty task state for active review sessions without open tasks", () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        pipelineJobId: 7,
+        pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
+        reviewKind: "DOMAIN_CONFIRMATION",
+        tasks: [
+          {
+            id: 101,
+            targetType: "DOMAIN_CANDIDATE",
+            status: "RESOLVED",
+            priority: "HIGH",
+            title: "카드 상담",
+            payload: {},
+          },
+        ],
+      },
+    } as never);
+
+    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+
+    expect(screen.getByText("현재 확인할 리뷰 작업이 없습니다.")).toBeInTheDocument();
+  });
+
   it("submits pairwise feedback with conversation evidence", () => {
     const mutate = vi.fn();
     mockedUseSubmitFeedback.mockReturnValue({ isPending: false, mutate } as never);

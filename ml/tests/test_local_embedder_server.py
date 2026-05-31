@@ -139,9 +139,23 @@ def test_read_json_requires_valid_content_length() -> None:
     with pytest.raises(ValueError, match="integer"):
         handler._read_json()
 
+    handler.headers = {"Content-Length": "0"}
+    with pytest.raises(ValueError, match="between 1"):
+        handler._read_json()
+
     handler.headers = {"Content-Length": "11"}
     handler.rfile = BytesIO(b'{"ok":true}')
     assert handler._read_json() == {"ok": True}
+
+
+def test_read_json_rejects_body_larger_than_limit(monkeypatch) -> None:
+    handler = _handler()
+    handler.headers = {"Content-Length": "12"}
+    handler.rfile = BytesIO(b'{"ok":true}')
+    monkeypatch.setenv("LOCAL_EMBEDDER_MAX_BODY_BYTES", "8")
+
+    with pytest.raises(ValueError, match="between 1 and 8"):
+        handler._read_json()
 
 
 def test_write_json_sets_headers_and_body() -> None:

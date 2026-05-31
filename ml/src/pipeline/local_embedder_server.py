@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -12,17 +13,23 @@ from pipeline.common.exceptions import PipelineConfigurationError
 from pipeline.common.runtime import FlagEmbeddingRuntime
 
 logger = logging.getLogger(__name__)
+DEFAULT_MAX_BODY_BYTES = 2 * 1024 * 1024
 _runtime: FlagEmbeddingRuntime | None = None
+_runtime_lock = threading.Lock()
 
 
 def _runtime_from_env() -> FlagEmbeddingRuntime:
     global _runtime
     if _runtime is None:
-        model_name = os.getenv("EMBEDDING_MODEL_NAME", DEFAULT_EMBEDDING_MODEL_NAME)
-        runtime_profile = os.getenv("ML_RUNTIME_PROFILE", DEFAULT_RUNTIME_PROFILE)
-        logger.info("Loading local embedding model=%s profile=%s", model_name, runtime_profile)
-        _runtime = FlagEmbeddingRuntime(model_name=model_name, runtime_profile=runtime_profile, auto_device=True)
-        logger.info("Local embedding model loaded device=%s", _runtime.device or "default")
+        with _runtime_lock:
+            if _runtime is None:
+                model_name = os.getenv("EMBEDDING_MODEL_NAME", DEFAULT_EMBEDDING_MODEL_NAME)
+                runtime_profile = os.getenv("ML_RUNTIME_PROFILE", DEFAULT_RUNTIME_PROFILE)
+                logger.info("Loading local embedding model=%s profile=%s", model_name, runtime_profile)
+                _runtime = FlagEmbeddingRuntime(
+                    model_name=model_name, runtime_profile=runtime_profile, auto_device=True
+                )
+                logger.info("Local embedding model loaded device=%s", _runtime.device or "default")
     return _runtime
 
 
@@ -82,6 +89,9 @@ class LocalEmbedderHandler(BaseHTTPRequestHandler):
             length = int(length_header)
         except ValueError as exc:
             raise ValueError("Content-Length must be an integer") from exc
+        max_body_bytes = _max_body_bytes()
+        if length <= 0 or length > max_body_bytes:
+            raise ValueError(f"Content-Length must be between 1 and {max_body_bytes}")
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
@@ -92,6 +102,15 @@ class LocalEmbedderHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
         self.wfile.write(raw)
+
+
+def _max_body_bytes() -> int:
+    raw = os.getenv("LOCAL_EMBEDDER_MAX_BODY_BYTES", str(DEFAULT_MAX_BODY_BYTES)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_MAX_BODY_BYTES
+    return value if value > 0 else DEFAULT_MAX_BODY_BYTES
 
 
 def main() -> None:

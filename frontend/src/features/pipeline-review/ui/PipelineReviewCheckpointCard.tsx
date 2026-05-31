@@ -25,7 +25,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   const allFeedbackResolved =
     openTasks.length > 0 && openTasks.every((task) => feedbackDecisions[task.id] !== undefined);
 
-  if (!pipelineJobId) {
+  if (pipelineJobId == null) {
     return null;
   }
 
@@ -42,6 +42,15 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
       <section className={styles.stateCard}>
         <strong className={styles.stateTitle}>{checkpointStateTitle(query.data?.pipelineStatus)}</strong>
         <span>{checkpointStateDescription(query.data?.pipelineStatus)}</span>
+      </section>
+    );
+  }
+
+  if (openTasks.length === 0) {
+    return (
+      <section className={styles.stateCard}>
+        <strong className={styles.stateTitle}>현재 확인할 리뷰 작업이 없습니다.</strong>
+        <span>열린 작업이 생기면 이 화면에서 바로 이어서 검토할 수 있습니다.</span>
       </section>
     );
   }

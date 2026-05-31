@@ -49,27 +49,41 @@ export interface ReviewCheckpointView {
   tasks: ReviewTaskView[];
 }
 
+function requirePipelineReviewIds(workspaceId?: number, pipelineJobId?: number) {
+  if (workspaceId == null || pipelineJobId == null) {
+    throw new Error("workspaceId and pipelineJobId are required");
+  }
+  return { workspaceId, pipelineJobId };
+}
+
 export function usePipelineReviewCheckpoint(workspaceId?: number, pipelineJobId?: number) {
   return useQuery({
     queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId],
-    enabled: Boolean(workspaceId && pipelineJobId),
-    queryFn: () =>
-      customFetch<ReviewCheckpointView>(
-        `/api/v1/workspaces/${workspaceId}/pipeline-jobs/${pipelineJobId}/review-checkpoint`,
+    enabled: workspaceId != null && pipelineJobId != null,
+    queryFn: () => {
+      const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
+      return customFetch<ReviewCheckpointView>(
+        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint`,
         { method: "GET" },
-      ),
+      );
+    },
   });
 }
 
 export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reviewTaskId: number) =>
-      customFetch(`/api/v1/workspaces/${workspaceId}/pipeline-jobs/${pipelineJobId}/review-checkpoint/domain-confirmation`, {
-        method: "POST",
-        body: JSON.stringify({ reviewTaskId }),
-        headers: { "Content-Type": "application/json" },
-      }),
+    mutationFn: (reviewTaskId: number) => {
+      const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
+      return customFetch(
+        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint/domain-confirmation`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reviewTaskId }),
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId] });
     },
@@ -79,12 +93,17 @@ export function useConfirmPipelineDomain(workspaceId?: number, pipelineJobId?: n
 export function useSubmitPipelineFeedback(workspaceId?: number, pipelineJobId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (decisions: Array<{ reviewTaskId: number; decisionType: string }>) =>
-      customFetch(`/api/v1/workspaces/${workspaceId}/pipeline-jobs/${pipelineJobId}/review-checkpoint/human-feedback`, {
-        method: "POST",
-        body: JSON.stringify({ decisions }),
-        headers: { "Content-Type": "application/json" },
-      }),
+    mutationFn: (decisions: Array<{ reviewTaskId: number; decisionType: string }>) => {
+      const ids = requirePipelineReviewIds(workspaceId, pipelineJobId);
+      return customFetch(
+        `/api/v1/workspaces/${ids.workspaceId}/pipeline-jobs/${ids.pipelineJobId}/review-checkpoint/human-feedback`,
+        {
+          method: "POST",
+          body: JSON.stringify({ decisions }),
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["pipeline-review-checkpoint", workspaceId, pipelineJobId] });
     },

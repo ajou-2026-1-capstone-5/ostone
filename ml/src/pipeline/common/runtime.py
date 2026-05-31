@@ -147,7 +147,11 @@ class HttpEmbeddingRuntime:
             raise PipelineConfigurationError("Local embedding worker returned a non-object JSON response.")
         embeddings = _dense_embeddings(response_payload.get("embeddings"))
         success_mask = response_payload.get("successMask")
-        if not isinstance(success_mask, list) or len(success_mask) != len(texts):
+        if (
+            not isinstance(success_mask, list)
+            or len(success_mask) != len(texts)
+            or any(not isinstance(value, bool) for value in success_mask)
+        ):
             raise PipelineConfigurationError("Local embedding worker returned an invalid successMask.")
         if embeddings.shape[0] != len(texts):
             raise PipelineConfigurationError(
@@ -156,7 +160,7 @@ class HttpEmbeddingRuntime:
         self.dim = embeddings.shape[1]
         return EmbeddingResult(
             embeddings=_l2norm(embeddings),
-            success_mask=[bool(value) for value in success_mask],
+            success_mask=success_mask,
             model_name=str(response_payload.get("modelName") or self.model_name),
             runtime_profile=str(response_payload.get("runtimeProfile") or self.runtime_profile),
         )

@@ -1,5 +1,7 @@
 services:
   airflow-init:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ML_EMBEDDING_RUNTIME: local_http
       EMBEDDING_RUNTIME_BASE_URL: ${LOCAL_EMBEDDER_BASE_URL:-http://host.docker.internal:18090}
@@ -22,6 +24,8 @@ services:
       PIPELINE_STABILITY_MAX_INPUTS: ${PIPELINE_STABILITY_MAX_INPUTS:-5000}
 
   airflow-apiserver:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ML_EMBEDDING_RUNTIME: local_http
       EMBEDDING_RUNTIME_BASE_URL: ${LOCAL_EMBEDDER_BASE_URL:-http://host.docker.internal:18090}
@@ -44,6 +48,8 @@ services:
       PIPELINE_STABILITY_MAX_INPUTS: ${PIPELINE_STABILITY_MAX_INPUTS:-5000}
 
   airflow-scheduler:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ML_EMBEDDING_RUNTIME: local_http
       EMBEDDING_RUNTIME_BASE_URL: ${LOCAL_EMBEDDER_BASE_URL:-http://host.docker.internal:18090}
@@ -66,6 +72,8 @@ services:
       PIPELINE_STABILITY_MAX_INPUTS: ${PIPELINE_STABILITY_MAX_INPUTS:-5000}
 
   airflow-dag-processor:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ML_EMBEDDING_RUNTIME: local_http
       EMBEDDING_RUNTIME_BASE_URL: ${LOCAL_EMBEDDER_BASE_URL:-http://host.docker.internal:18090}

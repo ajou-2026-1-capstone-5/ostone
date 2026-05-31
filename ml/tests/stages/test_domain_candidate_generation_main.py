@@ -81,6 +81,7 @@ def test_sampling_and_runtime_knobs_are_bounded(monkeypatch: pytest.MonkeyPatch)
     sampled = main._deterministic_sample(conversations, 4)
 
     assert [conversation.id for conversation in sampled] == ["c0", "c3", "c6", "c9"]
+    assert [conversation.id for conversation in main._deterministic_sample(conversations, 1)] == ["c4"]
 
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_SAMPLE_SIZE", "999")
     monkeypatch.setenv("PIPELINE_DOMAIN_CANDIDATE_LLM_TIMEOUT_SECONDS", "-3")

@@ -246,6 +246,26 @@ def test_local_http_runtime_rejects_invalid_worker_responses(monkeypatch) -> Non
         runtime.embed(["a", "b"])
 
 
+def test_local_http_runtime_rejects_non_boolean_success_mask(monkeypatch) -> None:
+    monkeypatch.setenv("EMBEDDING_RUNTIME_BASE_URL", "http://host.docker.internal:18090")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"embeddings":[[1,0]],"successMask":["true"]}'
+
+    monkeypatch.setattr("pipeline.common.runtime.urllib.request.urlopen", lambda *_args, **_kwargs: FakeResponse())
+    runtime = HttpEmbeddingRuntime("BAAI/bge-m3", "balanced")
+
+    with pytest.raises(PipelineConfigurationError, match="successMask"):
+        runtime.embed(["a"])
+
+
 def test_local_http_runtime_wraps_worker_request_errors(monkeypatch) -> None:
     monkeypatch.setenv("EMBEDDING_RUNTIME_BASE_URL", "http://host.docker.internal:18090")
 

@@ -1,6 +1,7 @@
 package com.init.review.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -13,6 +14,7 @@ import com.init.pipelinejob.application.DomainPackGenerationTriggerPort;
 import com.init.pipelinejob.application.DomainPackGenerationTriggerResult;
 import com.init.pipelinejob.application.PipelineJobCallbackSupportService;
 import com.init.pipelinejob.application.WorkspaceMembershipPort;
+import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.domain.model.PipelineArtifact;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
@@ -24,6 +26,7 @@ import com.init.review.domain.model.ReviewTask;
 import com.init.review.domain.repository.ReviewDecisionRepository;
 import com.init.review.domain.repository.ReviewSessionRepository;
 import com.init.review.domain.repository.ReviewTaskRepository;
+import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -55,6 +58,7 @@ class PipelineReviewCheckpointUseCaseTest {
   @Mock private ReviewTaskRepository reviewTaskRepository;
   @Mock private ReviewDecisionRepository reviewDecisionRepository;
   @Mock private PipelineJobCallbackSupportService callbackSupportService;
+  @Mock private PipelineJobFailurePersistenceService failurePersistenceService;
   @Mock private DomainPackGenerationTriggerPort triggerPort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
 
@@ -71,10 +75,61 @@ class PipelineReviewCheckpointUseCaseTest {
             reviewTaskRepository,
             reviewDecisionRepository,
             callbackSupportService,
+            failurePersistenceService,
             triggerPort,
             workspaceMembershipPort,
             objectMapper,
             CLOCK);
+  }
+
+  @Test
+  @DisplayName("domain checkpoint callback rejects missing artifact payload")
+  void receiveDomainConfirmationCheckpoint_nullPayload_throwsBadRequestException() {
+    PipelineJob job = job(PipelineJob.STATUS_RUNNING, "{}");
+    WebhookReceipt receipt =
+        WebhookReceipt.receive(
+            7L,
+            "evt-domain-null",
+            PipelineReviewCheckpointUseCase.WEBHOOK_TYPE_DOMAIN_CONFIRMATION,
+            "{}",
+            "{}",
+            NOW);
+
+    given(pipelineJobRepository.findById(7L)).willReturn(Optional.of(job));
+    given(callbackSupportService.findReceipt("evt-domain-null")).willReturn(Optional.empty());
+    given(
+            callbackSupportService.ensureReceivedReceipt(
+                eq(7L),
+                eq("evt-domain-null"),
+                eq(PipelineReviewCheckpointUseCase.WEBHOOK_TYPE_DOMAIN_CONFIRMATION),
+                eq("{}"),
+                eq("{}"),
+                eq(null)))
+        .willReturn(receipt);
+    given(callbackSupportService.now()).willReturn(NOW);
+    given(
+            callbackSupportService.executeInTransactionOrMarkFailure(
+                eq(7L), eq("evt-domain-null"), any()))
+        .willAnswer(invocation -> invocation.<Supplier<?>>getArgument(2).get());
+
+    assertThatThrownBy(
+            () ->
+                useCase.receiveDomainConfirmationCheckpoint(
+                    new PipelineReviewCheckpointUseCase.CheckpointCallbackCommand(
+                        7L,
+                        "secret",
+                        "evt-domain-null",
+                        "domain_pack_generation",
+                        "run-1",
+                        "INITIAL",
+                        null,
+                        "/artifacts/initial/manifest.json",
+                        "/artifacts/domain_candidates.json",
+                        objectMapper.nullNode(),
+                        "{}",
+                        "{}")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("artifactPayload");
   }
 
   @Test
@@ -212,6 +267,52 @@ class PipelineReviewCheckpointUseCaseTest {
     assertThat(triggerCaptor.getValue().runMode()).isEqualTo("DOMAIN_CONFIRMED_REPLAY");
     assertThat(triggerCaptor.getValue().confirmedDomainProfileJson()).contains("카드 상담");
     assertThat(triggerCaptor.getValue().skipFeedbackCheckpoint()).isFalse();
+  }
+
+  @Test
+  @DisplayName("confirm domain persists failed job in a new transaction when replay trigger fails")
+  void confirmDomain_replayTriggerFailure_marksParentJobFailed() throws Exception {
+    PipelineJob job =
+        job(
+            PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION,
+            "{\"upstreamManifestPath\":\"/artifacts/initial/manifest.json\"}");
+    ReviewSession session =
+        session(ReviewSession.KIND_DOMAIN_CONFIRMATION, ReviewSession.STATUS_OPEN, 55L);
+    ReviewTask selected =
+        task(
+            101L,
+            ReviewTask.TARGET_DOMAIN_CANDIDATE,
+            """
+            {
+              "candidateId": "card",
+              "displayName": "카드 상담",
+              "confidence": 0.92
+            }
+            """);
+
+    givenReviewAccess(job);
+    given(
+            reviewSessionRepository.findFirstByPipelineJobIdAndReviewKindOrderByOpenedAtDesc(
+                7L, ReviewSession.KIND_DOMAIN_CONFIRMATION))
+        .willReturn(Optional.of(session));
+    given(reviewTaskRepository.findById(101L)).willReturn(Optional.of(selected));
+    given(reviewTaskRepository.findByReviewSessionIdOrderByIdAsc(55L))
+        .willReturn(List.of(selected));
+    given(reviewDecisionRepository.save(any(ReviewDecision.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(pipelineArtifactRepository.save(any(PipelineArtifact.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+    given(triggerPort.trigger(any(DomainPackGenerationTriggerCommand.class)))
+        .willThrow(new AirflowTriggerFailedException(7L, "airflow offline"));
+
+    assertThatThrownBy(
+            () ->
+                useCase.confirmDomain(
+                    new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
+                        1L, 7L, 101L, 9L, "대표 도메인")))
+        .isInstanceOf(AirflowTriggerFailedException.class);
+
+    verify(failurePersistenceService).markFailed(eq(job), eq("airflow offline"), eq(NOW));
   }
 
   @Test

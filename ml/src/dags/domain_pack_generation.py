@@ -156,7 +156,23 @@ def _passthrough_manifest_from_conf() -> dict[str, str]:
     upstream_manifest_path = _conf_value("upstream_manifest_path")
     if not upstream_manifest_path:
         raise PipelineConfigurationError("Replay run requires upstream_manifest_path.")
-    return _materialize_replay_manifest(Path(upstream_manifest_path))
+    runtime_config = PipelineRuntimeConfig.from_env()
+    return _materialize_replay_manifest(_validated_replay_manifest_path(upstream_manifest_path, runtime_config))
+
+
+def _validated_replay_manifest_path(
+    upstream_manifest_path: str,
+    runtime_config: PipelineRuntimeConfig,
+) -> Path:
+    resolved = Path(upstream_manifest_path).expanduser().resolve()
+    artifact_root = runtime_config.artifact_root.expanduser().resolve()
+    try:
+        resolved.relative_to(artifact_root)
+    except ValueError as exc:
+        raise PipelineConfigurationError("upstream_manifest_path must be under PIPELINE_ARTIFACT_ROOT.") from exc
+    if resolved.name != "manifest.json":
+        raise PipelineConfigurationError("upstream_manifest_path must point to a manifest.json file.")
+    return resolved
 
 
 def _materialize_replay_manifest(upstream_manifest_path: Path) -> dict[str, str]:
@@ -221,6 +237,8 @@ def _post_checkpoint_callback(
 ) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
+    if not runtime_config.callback_enabled:
+        raise PipelineConfigurationError(f"{stage_name} requires PIPELINE_CALLBACK_ENABLED=true.")
     manifest = _load_manifest(Path(upstream_manifest_path))
     payload = manifest.get("payload")
     if not isinstance(payload, dict):

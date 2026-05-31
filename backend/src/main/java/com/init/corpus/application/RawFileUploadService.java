@@ -29,8 +29,10 @@ import java.util.zip.ZipInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class RawFileUploadService {
 
   private static final Logger log = LoggerFactory.getLogger(RawFileUploadService.class);
@@ -67,6 +69,7 @@ public class RawFileUploadService {
     this.objectMapper = objectMapper;
   }
 
+  @Transactional
   public RawFileUploadResult upload(RawFileUploadCommand command) {
     // 1. Fail-fast validation before S3 IO
     if (!workspaceExistenceRepository.existsById(command.workspaceId())) {
@@ -91,11 +94,7 @@ public class RawFileUploadService {
     // 3. Put file to S3/MinIO
     storagePort.put(objectKey, command.fileBytes(), command.contentType());
 
-    // 4. DB operations with orphan cleanup on failure (U-05: Confirmed)
-    // catch(Exception) is intentional here: this is a best-effort compensating transaction
-    // that must intercept any throwable — parse errors, DB errors, runtime errors — to delete
-    // the already-uploaded S3 object before re-throwing. Restricting to specific types would
-    // silently skip orphan cleanup for uncaught subtypes. (spec/114 U-05, error-handling.md 예외)
+    // 4. DB operations with orphan cleanup on runtime failure after object storage upload.
     RawFileUploadResult result;
     try {
       List<RawConversationInput> conversations = parseConversations(command.fileBytes());
@@ -132,7 +131,9 @@ public class RawFileUploadService {
               uploadResult.status(),
               uploadResult.piiRedactionStatus(),
               uploadResult.conversationCount());
-    } catch (Exception ex) {
+
+      triggerPort.trigger(command.workspaceId(), result.datasetId(), objectKey);
+    } catch (RuntimeException ex) {
       try {
         storagePort.delete(objectKey);
       } catch (Exception deleteEx) {
@@ -141,7 +142,6 @@ public class RawFileUploadService {
       throw ex;
     }
 
-    triggerPort.trigger(command.workspaceId(), result.datasetId(), objectKey);
     return result;
   }
 
@@ -252,7 +252,7 @@ public class RawFileUploadService {
   private List<RawConversationInput> parseJsonConversations(byte[] fileBytes, String sourceName) {
     String text = new String(fileBytes, StandardCharsets.UTF_8).strip();
     if (text.isEmpty()) {
-      return List.of();
+      throw new RawFileParseException(sourceName + " 파일에 상담 데이터가 없습니다.");
     }
     if (sourceName.toLowerCase().endsWith(".jsonl")) {
       return parseJsonlConversations(text, sourceName);

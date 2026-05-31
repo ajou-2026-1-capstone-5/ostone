@@ -60,6 +60,7 @@ public class PipelineReviewCheckpointUseCase {
   private final ReviewTaskRepository reviewTaskRepository;
   private final ReviewDecisionRepository reviewDecisionRepository;
   private final PipelineJobCallbackSupportService callbackSupportService;
+  private final PipelineJobFailurePersistenceService failurePersistenceService;
   private final DomainPackGenerationTriggerPort triggerPort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final ObjectMapper objectMapper;
@@ -72,6 +73,7 @@ public class PipelineReviewCheckpointUseCase {
       ReviewTaskRepository reviewTaskRepository,
       ReviewDecisionRepository reviewDecisionRepository,
       PipelineJobCallbackSupportService callbackSupportService,
+      PipelineJobFailurePersistenceService failurePersistenceService,
       DomainPackGenerationTriggerPort triggerPort,
       WorkspaceMembershipPort workspaceMembershipPort,
       ObjectMapper objectMapper,
@@ -82,6 +84,7 @@ public class PipelineReviewCheckpointUseCase {
     this.reviewTaskRepository = reviewTaskRepository;
     this.reviewDecisionRepository = reviewDecisionRepository;
     this.callbackSupportService = callbackSupportService;
+    this.failurePersistenceService = failurePersistenceService;
     this.triggerPort = triggerPort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.objectMapper = objectMapper;
@@ -327,7 +330,8 @@ public class PipelineReviewCheckpointUseCase {
       String waitingStatus) {
     PipelineJob job = runningJob(command.jobId());
     OffsetDateTime now = callbackSupportService.now();
-    String artifactPayload = toJson(command.artifactPayload());
+    JsonNode artifactPayloadNode = requireArtifactPayload(command.artifactPayload());
+    String artifactPayload = toJson(artifactPayloadNode);
     pipelineArtifactRepository.save(
         PipelineArtifact.create(
             job.getId(),
@@ -348,8 +352,7 @@ public class PipelineReviewCheckpointUseCase {
                 "Pipeline checkpoint review",
                 summaryJson(command, reviewKind),
                 now));
-    reviewTaskRepository.saveAll(
-        tasksFor(session.getId(), reviewKind, command.artifactPayload(), now));
+    reviewTaskRepository.saveAll(tasksFor(session.getId(), reviewKind, artifactPayloadNode, now));
     if (PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION.equals(waitingStatus)) {
       job.markAwaitingDomainConfirmation(summaryJson(command, reviewKind));
     } else {
@@ -418,10 +421,17 @@ public class PipelineReviewCheckpointUseCase {
               runMode, upstreamManifestPath, confirmedDomainProfileJson, feedbackConstraintsJson));
       pipelineJobRepository.saveAndFlush(parentJob);
     } catch (AirflowTriggerFailedException ex) {
-      parentJob.markFailed(ex.getMessage(), OffsetDateTime.now(clock));
-      pipelineJobRepository.saveAndFlush(parentJob);
+      failurePersistenceService.markFailed(parentJob, ex.getMessage(), OffsetDateTime.now(clock));
       throw ex;
     }
+  }
+
+  private JsonNode requireArtifactPayload(JsonNode artifactPayload) {
+    if (artifactPayload == null || artifactPayload.isNull()) {
+      throw new BadRequestException(
+          "CHECKPOINT_ARTIFACT_PAYLOAD_REQUIRED", "artifactPayload는 필수입니다.");
+    }
+    return artifactPayload;
   }
 
   private String upstreamManifestPath(PipelineJob job) {
