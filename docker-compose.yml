@@ -21,8 +21,10 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: init-backend
+    volumes:
+      - ./backend/build/libs/backend-0.0.1-SNAPSHOT.jar:/app/app.jar
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-init}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-init}
