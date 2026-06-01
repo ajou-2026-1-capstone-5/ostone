@@ -129,7 +129,7 @@ ml/
 ├── docs/
 │   ├── architecture.md   # 전체 시스템 아키텍처
 │   ├── schema.md         # PostgreSQL 스키마 정의
-│   └── deployment.md     # Render + Neon 배포 가이드
+│   └── deployment.md     # AWS ECS/S3/CloudFront 배포 가이드
 ├── rules/
 │   ├── principles.md     # KISS/YAGNI/DRY 등 핵심 원칙
 │   ├── java.md           # Java/Spring 코딩 규칙
@@ -160,7 +160,7 @@ ml/
 
 **로컬 개발 진입점**: `docker compose up -d` 한 번으로 FE(`http://localhost:5173`) / BE(`http://localhost:8080`) / MinIO 콘솔(`http://localhost:9001`) / Airflow(`http://localhost:8081`) 가 전부 구동된다. **호스트에서 별도로 `pnpm dev` 를 띄울 필요 없다** — frontend 는 Vite dev server 가 컨테이너 안에서 5173 으로 실행되며 `./frontend` 디렉터리는 volume mount 되어 HMR 이 즉시 반영된다.
 
-**포트 컨벤션**: `5173` = 로컬 개발 (Vite dev server, `frontend/Dockerfile.dev`). `3000` = production 배포 (nginx, `frontend/Dockerfile`, Render 전용). 로컬에서 3000 으로 접근할 일은 없다.
+**포트 컨벤션**: `5173` = 로컬 개발 (Vite dev server, `frontend/Dockerfile.dev`). `3000` = production 이미지 내부 nginx 포트 (`frontend/Dockerfile`). 로컬에서 3000 으로 접근할 일은 없다.
 
 ```bash
 # 최초 1회 env 파일 준비
@@ -189,7 +189,7 @@ docker compose logs -f airflow-apiserver
 - Airflow 로컬 런타임은 루트 `docker compose` 기준으로 함께 관리한다.
 - `backend` 이미지는 선행 `bootJar` 빌드를 전제한다. `frontend` 는 dev mode 라 선행 빌드 불필요.
 - Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
-- Render production 빌드를 로컬에서 검증할 때만 `docker build -f frontend/Dockerfile -t init-frontend-prod ./frontend` 로 별도 빌드한다 (compose 와 무관).
+- production frontend 이미지를 로컬에서 검증할 때만 `docker build -f frontend/Dockerfile -t init-frontend-prod ./frontend` 로 별도 빌드한다 (compose 와 무관).
 
 ### Backend (Gradle)
 
@@ -437,5 +437,5 @@ type(scope): subject
 - `.agent/rules/`: 상세 코딩 규칙 (principles, java, typescript, python, git, code-review)
 - `.agent/docs/architecture.md`: 상세 아키텍처 문서
 - `.agent/docs/schema.md`: PostgreSQL 스키마 DDL
-- `.agent/docs/deployment.md`: Render + Neon 배포 가이드
+- `.agent/docs/deployment.md`: AWS ECS/S3/CloudFront 배포 가이드
 - `.sisyphus/plans/`: 프로젝트 계획 문서

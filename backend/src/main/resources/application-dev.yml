@@ -1,5 +1,5 @@
-# Render 배포용 Spring Boot 프로필
-# 환경변수는 Render Dashboard 또는 Blueprint에서 설정
+# 개발/검증 배포용 Spring Boot 프로필
+# 운영 프로덕션은 application-prod.yml과 AWS ECS task definition을 기준으로 설정
 
 server:
   port: ${SERVER_PORT:10000}
@@ -9,7 +9,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 20s
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/neondb?sslmode=require}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/init}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
