@@ -30,6 +30,8 @@ import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -345,13 +347,32 @@ class CounselorServiceTest {
   void should_returnWorkspaceSessions_when_noStatusFilter() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     Page<ChatSession> page = new PageImpl<>(List.of(session));
-    given(chatSessionRepository.findByWorkspaceId(eq(1L), any(Pageable.class))).willReturn(page);
+    givenWorkspaceMember(1L, 7L);
+    given(
+            chatSessionRepository.searchByWorkspace(
+                eq(1L),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(Pageable.class)))
+        .willReturn(page);
 
-    CounselorSessionResponse result = service.getSessions(1L, null, 0, 20);
+    CounselorSessionResponse result =
+        service.getSessions(1L, 7L, null, null, null, null, null, 0, 20);
 
     assertThat(result.getContent()).hasSize(1);
     assertThat(result.getTotalElements()).isEqualTo(1);
-    verify(chatSessionRepository).findByWorkspaceId(eq(1L), any(Pageable.class));
+    verify(chatSessionRepository)
+        .searchByWorkspace(
+            eq(1L),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(Pageable.class));
   }
 
   @Test
@@ -359,22 +380,80 @@ class CounselorServiceTest {
   void should_returnFilteredWorkspaceSessions_when_statusGiven() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     Page<ChatSession> page = new PageImpl<>(List.of(session));
+    givenWorkspaceMember(1L, 7L);
     given(
-            chatSessionRepository.findByWorkspaceIdAndStatus(
-                eq(1L), eq(ChatSessionStatus.OPEN), any(Pageable.class)))
+            chatSessionRepository.searchByWorkspace(
+                eq(1L),
+                eq("OPEN"),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(Pageable.class)))
         .willReturn(page);
 
-    CounselorSessionResponse result = service.getSessions(1L, "OPEN", 0, 20);
+    CounselorSessionResponse result =
+        service.getSessions(1L, 7L, "OPEN", null, null, null, null, 0, 20);
 
     assertThat(result.getContent()).hasSize(1);
     verify(chatSessionRepository)
-        .findByWorkspaceIdAndStatus(eq(1L), eq(ChatSessionStatus.OPEN), any(Pageable.class));
+        .searchByWorkspace(
+            eq(1L),
+            eq("OPEN"),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("getSessions: 검색/기간/상담사 필터를 정규화해 전달")
+  void should_passSearchFilters_when_filtersGiven() {
+    Page<ChatSession> page = new PageImpl<>(List.of());
+    givenWorkspaceMember(1L, 7L);
+    given(
+            chatSessionRepository.searchByWorkspace(
+                eq(1L),
+                eq("COMPLETED"),
+                eq("홍길동"),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class),
+                eq(42L),
+                any(Pageable.class)))
+        .willReturn(page);
+
+    CounselorSessionResponse result =
+        service.getSessions(
+            1L,
+            7L,
+            "completed",
+            "  홍길동  ",
+            LocalDate.of(2026, 5, 1),
+            LocalDate.of(2026, 5, 31),
+            42L,
+            0,
+            20);
+
+    assertThat(result.getContent()).isEmpty();
+    verify(chatSessionRepository)
+        .searchByWorkspace(
+            eq(1L),
+            eq("COMPLETED"),
+            eq("홍길동"),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class),
+            eq(42L),
+            any(Pageable.class));
   }
 
   @Test
   @DisplayName("getSessions: 지원하지 않는 상태 → BadRequestException")
   void should_throwBadRequest_when_invalidStatus() {
-    assertThatThrownBy(() -> service.getSessions(1L, "INVALID", 0, 20))
+    givenWorkspaceMember(1L, 7L);
+
+    assertThatThrownBy(
+            () -> service.getSessions(1L, 7L, "INVALID", null, null, null, null, 0, 20))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("Unsupported status");
   }
@@ -382,9 +461,40 @@ class CounselorServiceTest {
   @Test
   @DisplayName("getSessions: 유효하지 않은 workspaceId → BadRequestException")
   void should_throwBadRequest_when_invalidWorkspaceId() {
-    assertThatThrownBy(() -> service.getSessions(0L, null, 0, 20))
+    assertThatThrownBy(() -> service.getSessions(0L, 7L, null, null, null, null, null, 0, 20))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("workspaceId");
+  }
+
+  @Test
+  @DisplayName("getSessions: 유효하지 않은 담당 상담사 ID → BadRequestException")
+  void should_throwBadRequest_when_invalidAssignedCounselorId() {
+    givenWorkspaceMember(1L, 7L);
+
+    assertThatThrownBy(() -> service.getSessions(1L, 7L, null, null, null, null, 0L, 0, 20))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("assignedCounselorId");
+  }
+
+  @Test
+  @DisplayName("getSessions: 시작일이 종료일보다 늦으면 BadRequestException")
+  void should_throwBadRequest_when_invalidDateRange() {
+    givenWorkspaceMember(1L, 7L);
+
+    assertThatThrownBy(
+            () ->
+                service.getSessions(
+                    1L,
+                    7L,
+                    null,
+                    null,
+                    LocalDate.of(2026, 6, 1),
+                    LocalDate.of(2026, 5, 31),
+                    null,
+                    0,
+                    20))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("startedFrom");
   }
 
   @Test

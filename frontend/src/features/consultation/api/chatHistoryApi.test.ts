@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./consultationApi", () => ({
   consultationApi: {
-    getSessions: vi.fn(),
+    getSessionPage: vi.fn(),
     getMessages: vi.fn(),
   },
 }));
@@ -14,7 +14,7 @@ import { ChatSessionResponse, ChatMessageResponse } from "../../../shared/api/ge
 import { useChatSessions, useChatMessages } from "./chatHistoryApi";
 import { consultationApi } from "./consultationApi";
 
-const mockedGetSessions = vi.mocked(consultationApi.getSessions);
+const mockedGetSessionPage = vi.mocked(consultationApi.getSessionPage);
 const mockedGetMessages = vi.mocked(consultationApi.getMessages);
 
 const stubSession: ChatSessionResponse = {
@@ -45,11 +45,18 @@ function makeWrapper() {
 
 describe("useChatSessions", () => {
   beforeEach(() => {
-    mockedGetSessions.mockReset();
+    mockedGetSessionPage.mockReset();
   });
 
   it("세션 목록을 조회한다", async () => {
-    mockedGetSessions.mockResolvedValue([stubSession]);
+    const stubPage = {
+      content: [stubSession],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    };
+    mockedGetSessionPage.mockResolvedValue(stubPage);
 
     const { result } = renderHook(
       () =>
@@ -59,26 +66,53 @@ describe("useChatSessions", () => {
       { wrapper: makeWrapper() },
     );
 
-    await waitFor(() => expect(result.current.data).toEqual([stubSession]));
-    expect(mockedGetSessions).toHaveBeenCalledWith(1, { status: undefined, page: 0, size: 20 });
+    await waitFor(() => expect(result.current.data).toEqual(stubPage));
+    expect(mockedGetSessionPage).toHaveBeenCalledWith(1, {
+      status: undefined,
+      keyword: undefined,
+      startedFrom: undefined,
+      startedTo: undefined,
+      assignedCounselorId: undefined,
+      page: 0,
+      size: 20,
+    });
   });
 
   it("상태 필터로 세션 목록을 조회한다", async () => {
-    mockedGetSessions.mockResolvedValue([stubSession]);
+    const stubPage = {
+      content: [stubSession],
+      page: 1,
+      size: 10,
+      totalElements: 11,
+      totalPages: 2,
+    };
+    mockedGetSessionPage.mockResolvedValue(stubPage);
 
     const { result } = renderHook(
       () =>
         useChatSessions({
           workspaceId: 1,
           status: "COMPLETED",
+          keyword: "환불",
+          startedFrom: "2026-05-01",
+          startedTo: "2026-05-31",
+          assignedCounselorId: 42,
           page: 1,
           size: 10,
         }),
       { wrapper: makeWrapper() },
     );
 
-    await waitFor(() => expect(result.current.data).toEqual([stubSession]));
-    expect(mockedGetSessions).toHaveBeenCalledWith(1, { status: "COMPLETED", page: 1, size: 10 });
+    await waitFor(() => expect(result.current.data).toEqual(stubPage));
+    expect(mockedGetSessionPage).toHaveBeenCalledWith(1, {
+      status: "COMPLETED",
+      keyword: "환불",
+      startedFrom: "2026-05-01",
+      startedTo: "2026-05-31",
+      assignedCounselorId: 42,
+      page: 1,
+      size: 10,
+    });
   });
 
   it("workspaceId가 없으면 세션 목록을 조회하지 않는다", () => {
@@ -91,7 +125,7 @@ describe("useChatSessions", () => {
     );
 
     expect(result.current.fetchStatus).toBe("idle");
-    expect(mockedGetSessions).not.toHaveBeenCalled();
+    expect(mockedGetSessionPage).not.toHaveBeenCalled();
   });
 });
 

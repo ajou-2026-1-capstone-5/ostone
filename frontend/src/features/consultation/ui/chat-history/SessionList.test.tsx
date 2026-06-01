@@ -22,6 +22,19 @@ function renderSessionList(props?: Partial<ComponentProps<typeof SessionList>>) 
       sessions={[]}
       selectedSessionId={null}
       onSelectSession={vi.fn()}
+      filters={{
+        keyword: "",
+        status: "COMPLETED",
+        startedFrom: "",
+        startedTo: "",
+        assignedCounselorId: "",
+      }}
+      onFiltersChange={vi.fn()}
+      onResetFilters={vi.fn()}
+      page={0}
+      totalPages={0}
+      totalElements={0}
+      onPageChange={vi.fn()}
       onRetry={vi.fn()}
       {...props}
     />,
@@ -39,6 +52,21 @@ describe("SessionList", () => {
     renderSessionList({ sessions: [] });
 
     expect(screen.getByText("아직 채팅 기록이 없습니다")).toBeTruthy();
+  });
+
+  it("검색 조건이 있으면 필터 빈 상태 메시지를 표시한다", () => {
+    renderSessionList({
+      sessions: [],
+      filters: {
+        keyword: "환불",
+        status: "COMPLETED",
+        startedFrom: "",
+        startedTo: "",
+        assignedCounselorId: "",
+      },
+    });
+
+    expect(screen.getByText("검색 조건에 맞는 상담 기록이 없습니다")).toBeTruthy();
   });
 
   it("오류 상태에서 메시지와 다시 시도 버튼을 표시한다", () => {
@@ -63,7 +91,7 @@ describe("SessionList", () => {
       screen.getByText(new Date("2026-05-22T09:00:00+09:00").toLocaleDateString("ko-KR")),
     ).toBeTruthy();
     expect(screen.getByText("메시지 3개")).toBeTruthy();
-    expect(screen.getByText("상담 종료")).toBeTruthy();
+    expect(screen.getAllByText("상담 종료").length).toBeGreaterThan(0);
     expect(screen.getByText("배송 상태를 확인해주세요")).toBeTruthy();
   });
 
@@ -83,7 +111,7 @@ describe("SessionList", () => {
       ],
     });
 
-    expect(screen.getByText("해결됨")).toBeTruthy();
+    expect(screen.getAllByText("해결됨").length).toBeGreaterThan(0);
     expect(screen.getAllByText("후속 연락 필요")).toHaveLength(2);
     expect(screen.getByText("배송사 확인 필요")).toBeTruthy();
   });
@@ -108,5 +136,23 @@ describe("SessionList", () => {
     fireEvent.click(screen.getByRole("button", { name: /카카오톡/ }));
 
     expect(onSelect).toHaveBeenCalledWith("7");
+  });
+
+  it("검색과 페이지 이동 이벤트를 전달한다", () => {
+    const onFiltersChange = vi.fn();
+    const onPageChange = vi.fn();
+    renderSessionList({
+      sessions: [makeSession(7)],
+      totalPages: 3,
+      totalElements: 45,
+      onFiltersChange,
+      onPageChange,
+    });
+
+    fireEvent.change(screen.getByLabelText("상담 기록 검색"), { target: { value: "배송" } });
+    fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith({ keyword: "배송" });
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 });

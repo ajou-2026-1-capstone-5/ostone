@@ -19,6 +19,22 @@ export type ChatMessage = ChatMessageResponse;
 export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
 export type ConsultationResponseMode = "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY";
 export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
+export interface ChatSessionPage {
+  content: ChatSession[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+export interface ChatSessionListParams {
+  status?: string;
+  keyword?: string;
+  startedFrom?: string;
+  startedTo?: string;
+  assignedCounselorId?: number;
+  page?: number;
+  size?: number;
+}
 export interface UpdateSessionStatusPayload {
   status: ConsultationSessionStatus;
   resolutionOutcome?: ResolutionOutcome;
@@ -50,16 +66,39 @@ export interface DraftResponse {
 
 type SessionListResponse =
   | ChatSession[]
-  | { data?: ChatSession[] | { content?: ChatSession[] }; content?: ChatSession[] };
+  | {
+      data?: ChatSession[] | Partial<ChatSessionPage>;
+      content?: ChatSession[];
+      page?: number;
+      size?: number;
+      totalElements?: number;
+      totalPages?: number;
+    };
 
 type MessageListResponse =
   | ChatMessage[]
   | { data?: ChatMessage[] | { content?: ChatMessage[] }; content?: ChatMessage[] };
 
-function unwrapSessionList(response: SessionListResponse): ChatSession[] {
-  const unwrapped = selectApiData<ChatSession[] | { content?: ChatSession[] }>(response);
-  if (Array.isArray(unwrapped)) return unwrapped;
-  return unwrapped?.content ?? [];
+function unwrapSessionPage(response: SessionListResponse): ChatSessionPage {
+  const unwrapped = selectApiData<ChatSession[] | Partial<ChatSessionPage>>(response);
+  if (Array.isArray(unwrapped)) {
+    return {
+      content: unwrapped,
+      page: 0,
+      size: unwrapped.length,
+      totalElements: unwrapped.length,
+      totalPages: unwrapped.length > 0 ? 1 : 0,
+    };
+  }
+
+  const content = unwrapped?.content ?? [];
+  return {
+    content,
+    page: unwrapped?.page ?? 0,
+    size: unwrapped?.size ?? content.length,
+    totalElements: unwrapped?.totalElements ?? content.length,
+    totalPages: unwrapped?.totalPages ?? (content.length > 0 ? 1 : 0),
+  };
 }
 
 function unwrapMessageList(response: MessageListResponse): ChatMessage[] {
@@ -79,20 +118,30 @@ export const consultationApi = {
 
   getSessions: async (
     workspaceId: number,
-    params?: {
-      status?: string;
-      page?: number;
-      size?: number;
-    },
+    params?: ChatSessionListParams,
   ): Promise<ChatSession[]> => {
+    const page = await consultationApi.getSessionPage(workspaceId, params);
+    return page.content;
+  },
+
+  getSessionPage: async (
+    workspaceId: number,
+    params?: ChatSessionListParams,
+  ): Promise<ChatSessionPage> => {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set("status", params.status);
+    if (params?.keyword) searchParams.set("keyword", params.keyword);
+    if (params?.startedFrom) searchParams.set("startedFrom", params.startedFrom);
+    if (params?.startedTo) searchParams.set("startedTo", params.startedTo);
+    if (params?.assignedCounselorId !== undefined) {
+      searchParams.set("assignedCounselorId", String(params.assignedCounselorId));
+    }
     if (params?.page !== undefined) searchParams.set("page", String(params.page));
     if (params?.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     const url = `/api/v1/workspaces/${workspaceId}/consultation/sessions${query ? `?${query}` : ""}`;
     const response = await customFetch<SessionListResponse>(url, { method: "GET" });
-    return unwrapSessionList(response);
+    return unwrapSessionPage(response);
   },
 
   getMessages: async (
