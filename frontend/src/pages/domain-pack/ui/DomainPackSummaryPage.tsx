@@ -1,10 +1,15 @@
 import { useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import type { UseQueryResult } from "@tanstack/react-query";
-import { ApiRequestError } from "@/shared/api";
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
+import { ApiRequestError, domainPackQueryKeys } from "@/shared/api";
 import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
-import { useActivate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import { activate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -61,12 +66,20 @@ interface ContentProps {
   setSearch: ReturnType<typeof useSearchParams>[1];
 }
 
+interface ActivateDraftVariables {
+  workspaceId: number;
+  packId: number;
+  versionId: number;
+  description?: string;
+}
+
 function DomainPackSummaryPageContent({
   wsId,
   packId,
   selectedVersionId,
   setSearch,
 }: ContentProps) {
+  const queryClient = useQueryClient();
   const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
   const pack = packQuery.data;
   const defaultVersionId = resolveDefaultVersionId(pack);
@@ -114,24 +127,41 @@ function DomainPackSummaryPageContent({
       },
     },
   });
-  const activateMutation = useActivate({
-    mutation: {
-      onSuccess: async (result, variables) => {
-        const activatedVersionId = resolveActivatedVersionId(result, variables.versionId);
-        setSearch(
-          (prev) => {
-            const next = new URLSearchParams(prev);
-            next.set("versionId", String(activatedVersionId));
-            return next;
-          },
-          { replace: true },
-        );
-        await Promise.allSettled([packQuery.refetch(), versionQuery.refetch()]);
-        toast.success("검토 중인 버전이 운영 버전으로 적용되었습니다.");
-      },
-      onError: (error) => {
-        toast.error(resolveVersionActionErrorMessage(error, "검토 중인 버전을 적용하지 못했습니다."));
-      },
+  const activateMutation = useMutation({
+    mutationKey: ["activate-domain-pack-version"],
+    mutationFn: ({ workspaceId, packId, versionId, description }: ActivateDraftVariables) =>
+      activate(workspaceId, packId, versionId, buildActivateRequest(description)),
+    onSuccess: async (result, variables) => {
+      const activatedVersionId = resolveActivatedVersionId(result, variables.versionId);
+      const activatedDescription =
+        resolveActivatedDescription(result) ?? normalizeOptionalText(variables.description);
+      updateVersionDescriptionCache(
+        queryClient,
+        variables.workspaceId,
+        variables.packId,
+        activatedVersionId,
+        activatedDescription,
+      );
+      setSearch(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("versionId", String(activatedVersionId));
+          return next;
+        },
+        { replace: true },
+      );
+      await Promise.allSettled([packQuery.refetch(), versionQuery.refetch()]);
+      updateVersionDescriptionCache(
+        queryClient,
+        variables.workspaceId,
+        variables.packId,
+        activatedVersionId,
+        activatedDescription,
+      );
+      toast.success("초안 수정버전이 적용되었습니다.");
+    },
+    onError: (error) => {
+      toast.error(resolveVersionActionErrorMessage(error, "초안 수정버전을 적용하지 못했습니다."));
     },
   });
   const discardMutation = useDiscard({
@@ -174,8 +204,8 @@ function DomainPackSummaryPageContent({
     deployMutation.mutate({ workspaceId: wsId, packId, versionId });
   };
 
-  const handleApplyDraft = (versionId: number) => {
-    activateMutation.mutate({ workspaceId: wsId, packId, versionId });
+  const handleApplyDraft = (versionId: number, description?: string) => {
+    activateMutation.mutate({ workspaceId: wsId, packId, versionId, description });
   };
 
   const handleDiscardDraft = (versionId: number) => {
@@ -283,6 +313,36 @@ function resolveVersionActionErrorMessage(error: unknown, fallback: string): str
   return fallback;
 }
 
+function buildActivateRequest(description?: string): RequestInit | undefined {
+  const normalizedDescription = normalizeOptionalText(description);
+  if (!normalizedDescription) return undefined;
+
+  return {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description: normalizedDescription }),
+  };
+}
+
+function normalizeOptionalText(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function updateVersionDescriptionCache(
+  queryClient: QueryClient,
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  description?: string,
+) {
+  if (description === undefined) return;
+
+  queryClient.setQueryData<DomainPackVersionDetail | undefined>(
+    domainPackQueryKeys.version(workspaceId, packId, versionId),
+    (current) => (current ? { ...current, description } : current),
+  );
+}
+
 function resolveDefaultVersionId(pack?: DomainPackDetail): number | null {
   const versions = pack?.versions?.filter((version) => version.versionId != null) ?? [];
   if (versions.length === 0) return null;
@@ -340,6 +400,18 @@ function resolveActivatedVersionId(result: unknown, fallback: number): number {
   const data = result.data;
   if (isRecord(data) && typeof data.id === "number") return data.id;
   return fallback;
+}
+
+function resolveActivatedDescription(result: unknown): string | undefined {
+  if (!isRecord(result)) return undefined;
+  const direct = readOptionalString(result.description);
+  if (direct !== undefined) return direct;
+  const data = result.data;
+  return isRecord(data) ? readOptionalString(data.description) : undefined;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? normalizeOptionalText(value) : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

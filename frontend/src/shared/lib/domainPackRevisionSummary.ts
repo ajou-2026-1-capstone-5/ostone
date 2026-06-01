@@ -75,8 +75,10 @@ interface GraphFingerprint {
   edgeCount: number | null;
 }
 
-function normalizeText(value: string | null | undefined): string {
-  return value ?? "";
+function normalizeText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  return JSON.stringify(value) ?? String(value);
 }
 
 function isRecord(value: unknown): value is JsonRecord {

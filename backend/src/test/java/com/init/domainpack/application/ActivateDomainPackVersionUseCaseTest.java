@@ -95,6 +95,32 @@ class ActivateDomainPackVersionUseCaseTest {
   }
 
   @Test
+  @DisplayName("정상 활성화: 변경사항 정리를 버전 description에 반영한다")
+  void should_description반영_when_변경사항정리있음() {
+    given(workspaceExistencePort.existsById(1L)).willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(any(), any(), any())).willReturn(true);
+    givenPackLock();
+
+    DomainPackVersion version = createDraftVersion(42L, 7L);
+    given(versionRepository.findByIdAndWorkspaceId(1L, 42L)).willReturn(Optional.of(version));
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(1));
+    given(
+            intentDefinitionRepository.countByDomainPackVersionIdAndStatus(
+                42L, IntentDefinition.STATUS_DRAFT))
+        .willReturn(0L);
+    given(versionRepository.saveAndFlush(any()))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    ActivateDomainPackVersionCommand command =
+        new ActivateDomainPackVersionCommand(
+            1L, 7L, 42L, 10L, "  상담 유형명을 정리했습니다.  ");
+
+    useCase.execute(command);
+
+    assertThat(version.getDescription()).isEqualTo("상담 유형명을 정리했습니다.");
+  }
+
+  @Test
   @DisplayName("workspace 없음 → DomainPackWorkspaceNotFoundException")
   void should_워크스페이스없음예외발생_when_워크스페이스없음() {
     given(workspaceExistencePort.existsById(1L)).willReturn(false);

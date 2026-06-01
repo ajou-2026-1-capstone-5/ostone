@@ -98,7 +98,7 @@ public class ActivateDomainPackVersionUseCase {
     }
 
     try {
-      version.activate(OffsetDateTime.now(clock));
+      version.activate(OffsetDateTime.now(clock), normalizeOptionalText(command.description()));
     } catch (IllegalStateException e) {
       throw new DomainPackVersionInvalidStateException(e.getMessage());
     }
@@ -113,5 +113,13 @@ public class ActivateDomainPackVersionUseCase {
     } catch (ObjectOptimisticLockingFailureException e) {
       throw new DomainPackVersionConflictException(command.versionId());
     }
+  }
+
+  private static String normalizeOptionalText(String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }

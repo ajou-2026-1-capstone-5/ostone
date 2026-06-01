@@ -104,9 +104,10 @@ function buildRevisionChanges(summary?: IntentRevisionSummary): RevisionChangeIt
 
 function buildSummary(data: SummaryData, revisionSummary?: IntentRevisionSummary) {
   const topic = typeof data.topic === "string" ? data.topic.trim() : "";
+  const draftSource = firstValue(data, [["draftSource"]]);
+  const finalMessage = typeof data.finalMessage === "string" ? data.finalMessage.trim() : "";
   const source = firstValue(data, [["generation", "source"], ["source"], ["sourceType"]]);
   const clusterCount = firstValue(data, [["generation", "clusterCount"], ["clusterCount"]]);
-  const draftSource = firstValue(data, [["draftSource"]]);
   const needsReviewCount = firstValue(data, [["review", "needsReviewCount"], ["needsReviewCount"]]);
 
   const highlights: SummaryItem[] = [];
@@ -142,11 +143,12 @@ function buildSummary(data: SummaryData, revisionSummary?: IntentRevisionSummary
   ];
   const revisionChanges = buildRevisionChanges(revisionSummary);
 
-  return { topic, highlights, metrics, issues, revisionChanges };
+  return { topic, finalMessage, highlights, metrics, issues, revisionChanges };
 }
 
 interface SummaryJsonCardProps {
   summaryJson: string;
+  finalMessage?: string | null;
   revisionSummary?: IntentRevisionSummary;
   isRevisionSummaryLoading?: boolean;
   revisionSummaryError?: string | null;
@@ -154,6 +156,7 @@ interface SummaryJsonCardProps {
 
 interface ReadableSummaryProps {
   data: SummaryData;
+  finalMessage?: string | null;
   revisionSummary?: IntentRevisionSummary;
   isRevisionSummaryLoading: boolean;
   revisionSummaryError: string | null;
@@ -161,6 +164,7 @@ interface ReadableSummaryProps {
 
 export function SummaryJsonCard({
   summaryJson,
+  finalMessage = null,
   revisionSummary,
   isRevisionSummaryLoading = false,
   revisionSummaryError = null,
@@ -203,6 +207,7 @@ export function SummaryJsonCard({
             {parsed.ok ? (
               <ReadableSummary
                 data={parsed.data}
+                finalMessage={finalMessage}
                 revisionSummary={revisionSummary}
                 isRevisionSummaryLoading={isRevisionSummaryLoading}
                 revisionSummaryError={revisionSummaryError}
@@ -223,24 +228,14 @@ export function SummaryJsonCard({
 
 function ReadableSummary({
   data,
+  finalMessage,
   revisionSummary,
   isRevisionSummaryLoading,
   revisionSummaryError,
 }: Readonly<ReadableSummaryProps>) {
   const summary = buildSummary(data, revisionSummary);
+  const normalizedFinalMessage = finalMessage?.trim() || summary.finalMessage;
   const hasRevisionSummary = revisionSummary !== undefined;
-  const hasContent =
-    summary.topic ||
-    summary.highlights.length > 0 ||
-    summary.metrics.length > 0 ||
-    summary.issues.length > 0 ||
-    summary.revisionChanges.length > 0 ||
-    hasRevisionSummary ||
-    isRevisionSummaryLoading ||
-    revisionSummaryError;
-
-  if (!hasContent) return <span className={styles.empty}>내용 없음</span>;
-
   const revisionChangeContent = renderRevisionChangeContent({
     changes: summary.revisionChanges,
     isLoading: isRevisionSummaryLoading,
@@ -266,6 +261,15 @@ function ReadableSummary({
           ))}
         </div>
       )}
+
+      <section className={styles.summarySection}>
+        <h4 className={styles.summarySectionTitle}>변경사항 정리</h4>
+        {normalizedFinalMessage ? (
+          <p className={styles.finalMessage}>{normalizedFinalMessage}</p>
+        ) : (
+          <span className={styles.empty}>작성된 변경사항이 없습니다</span>
+        )}
+      </section>
 
       {summary.metrics.length > 0 && (
         <section className={styles.summarySection}>

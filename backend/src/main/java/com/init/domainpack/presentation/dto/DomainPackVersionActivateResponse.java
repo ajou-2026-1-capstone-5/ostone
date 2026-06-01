@@ -7,5 +7,6 @@ public record DomainPackVersionActivateResponse(
     Long domainPackId,
     Integer versionNo,
     String lifecycleStatus,
+    String description,
     OffsetDateTime publishedAt,
     OffsetDateTime updatedAt) {}

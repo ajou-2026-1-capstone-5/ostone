@@ -121,9 +121,20 @@ public class DomainPackVersion {
 
   /** DRAFT 상태의 버전을 PUBLISHED로 전이한다. */
   public void activate(OffsetDateTime now) {
+    activate(now, null);
+  }
+
+  /**
+   * DRAFT 상태의 버전을 PUBLISHED로 전이하고,
+   * 변경사항 정리가 있으면 버전 설명에 반영한다.
+   */
+  public void activate(OffsetDateTime now, String description) {
     Objects.requireNonNull(now, "publishedAt (now) must not be null");
     if (!STATUS_DRAFT.equals(this.lifecycleStatus)) {
       throw new IllegalStateException("DRAFT 상태의 version에서만 수행할 수 있습니다.");
+    }
+    if (description != null) {
+      this.description = normalizeDescription(description);
     }
     this.lifecycleStatus = STATUS_PUBLISHED;
     this.publishedAt = now;
@@ -182,5 +193,10 @@ public class DomainPackVersion {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  private static String normalizeDescription(String description) {
+    String trimmed = description.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }
