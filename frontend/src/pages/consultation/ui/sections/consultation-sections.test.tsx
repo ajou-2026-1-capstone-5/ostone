@@ -188,7 +188,9 @@ describe("CustomerPanel", () => {
     );
 
     expect(screen.getByText("김민지")).toBeInTheDocument();
-    expect(screen.getAllByText("WEB").length).toBeGreaterThan(0);
+    expect(screen.queryByText("WEB")).not.toBeInTheDocument();
+    expect(screen.queryByText("채널")).not.toBeInTheDocument();
+    expect(screen.queryByText("회원 등급")).not.toBeInTheDocument();
     expect(screen.getAllByText("확인된 정보 없음").length).toBeGreaterThan(0);
     expect(screen.getByText("연동된 주문 정보가 없습니다.")).toBeInTheDocument();
     expect(screen.getByText("자동 발췌로 확인된 정보가 없습니다.")).toBeInTheDocument();
@@ -230,6 +232,7 @@ describe("CustomerPanel", () => {
     );
 
     expect(screen.getByText("VIP")).toBeInTheDocument();
+    expect(screen.getByText("회원 등급")).toBeInTheDocument();
     expect(screen.getByText("010-1111-2222")).toBeInTheDocument();
     expect(screen.getByText("customer@example.com")).toBeInTheDocument();
     expect(screen.getAllByText("ORD-REAL-1").length).toBeGreaterThan(0);
@@ -237,6 +240,23 @@ describe("CustomerPanel", () => {
     expect(screen.getByText("1111 **** **** 2222")).toBeInTheDocument();
     expect(screen.getByText("3,000원")).toBeInTheDocument();
     expect(screen.getByText("확인")).toBeInTheDocument();
+  });
+
+  it("hides membership tier when the provided value is blank", () => {
+    render(
+      <CustomerPanel
+        customer={{
+          name: "박지훈",
+          channel: "WEB",
+          membershipTier: "   ",
+        }}
+        memo=""
+        onMemoChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("박지훈")).toBeInTheDocument();
+    expect(screen.queryByText("회원 등급")).not.toBeInTheDocument();
   });
 
   it("renders AI handoff reason when selected customer requires handoff", () => {
