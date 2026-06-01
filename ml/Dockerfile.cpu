@@ -2,7 +2,7 @@
 FROM python:3.13-slim-bookworm
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates build-essential \
+    && apt-get install -y --no-install-recommends curl ca-certificates build-essential zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -13,7 +13,8 @@ ENV HF_HOME=/app/.cache/huggingface
 ENV TORCH_HOME=/app/.cache/torch
 ENV PYTHONPATH=/app/src
 
-COPY ml/pyproject.toml ml/uv.lock ./
+COPY ml/pyproject.toml ml/uv.lock ml/README.md ./
+COPY ml/src/ml/ ./src/ml/
 RUN uv sync --python 3.13 --frozen --no-dev
 
 COPY ml/src/ ./src/
