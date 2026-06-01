@@ -116,7 +116,8 @@ public class WorkflowAssistantStateService {
     // LLM 이 넘긴 slotCode 가 이 대화의 실제 슬롯이면 그대로 신뢰한다(사용자가 한 번에 여러 값을,
     // 또는 묻는 순서와 다르게 말해도 각 값이 올바른 슬롯에 저장된다). slotCode 가 비어 있거나
     // 한글 라벨/오타 등 알 수 없는 값이면 백엔드가 현재 요청 중인 슬롯으로 폴백한다.
-    String targetSlot = resolveTargetSlot(command.sessionId(), command.slotCode(), nextAction.slotCode());
+    String targetSlot =
+        resolveTargetSlot(command.sessionId(), command.slotCode(), nextAction.slotCode());
     llmToolService.upsertSlotValue(
         new UpsertLlmToolSlotValueCommand(
             command.sessionId(), targetSlot, TextNode.valueOf(value.trim())));
@@ -363,13 +364,21 @@ public class WorkflowAssistantStateService {
       return false;
     }
     int slotNameHits = 0;
+    String residual = trimmed;
     for (LlmToolSlotResponse slot : context.slots()) {
       if (hasText(slot.name()) && trimmed.contains(slot.name())) {
         slotNameHits++;
+        residual = residual.replace(slot.name(), " ");
       }
     }
-    // 슬롯 이름이 2개 이상 들어간 값은 실제 답변이 아니라 필드 목록(안내 문구)으로 간주한다.
-    return slotNameHits >= 2;
+    // 슬롯 이름이 2개 이상 들어가 있고, 그 이름들을 제거했을 때 실질적인 내용(실제 값)이 남지 않으면
+    // 사용자 답변이 아니라 필드 목록(안내 문구)으로 간주한다. "목적지는 제주도, 여행 인원은 2명"처럼
+    // 실제 값이 함께 있는 다중 답변은 잔여 텍스트가 남으므로 거부하지 않는다.
+    if (slotNameHits < 2) {
+      return false;
+    }
+    String residualContent = residual.replaceAll("[^0-9a-z가-힣]", "");
+    return residualContent.length() < 2;
   }
 
   private ChatSession findSession(Long sessionId) {

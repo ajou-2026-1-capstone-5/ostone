@@ -190,6 +190,8 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
     verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
     verifyQueueUpsertEventPublished();
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
@@ -222,6 +224,8 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
     verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
     verifyQueueUpsertEventPublished();
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
@@ -279,6 +283,8 @@ class DemoChatSessionRegistrationServiceTest {
     verify(chatSessionRepository, never()).findByIdForUpdate(SESSION_ID);
     verify(chatMessageRepository, never()).save(any(ChatMessage.class));
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(messagingTemplate, never()).convertAndSend(any(), any(ChatMessageResponse.class));
   }
 

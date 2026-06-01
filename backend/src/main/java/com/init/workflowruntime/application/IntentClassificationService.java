@@ -28,8 +28,8 @@ public class IntentClassificationService {
       Set.of("고객", "사용자", "요청", "문의", "확인", "처리", "의도", "하려는", "관련");
 
   /**
-   * 2위 점수가 1위 점수의 이 비율 이상이면 박빙으로 보고 모호(AMBIGUOUS)로 처리한다. 절대 점수차 대신 비율을 쓰는 이유는, 점수가 토큰
-   * 매칭 수에 비례해 스케일이 달라지기 때문이다. (예: 1위 3점 vs 2위 2점은 ratio 0.67 → 우세로 인정)
+   * 2위 점수가 1위 점수의 이 비율 이상이면 박빙으로 보고 모호(AMBIGUOUS)로 처리한다. 절대 점수차 대신 비율을 쓰는 이유는, 점수가 토큰 매칭 수에 비례해
+   * 스케일이 달라지기 때문이다. (예: 1위 3점 vs 2위 2점은 ratio 0.67 → 우세로 인정)
    */
   private static final double AMBIGUITY_RATIO_THRESHOLD = 0.8;
 

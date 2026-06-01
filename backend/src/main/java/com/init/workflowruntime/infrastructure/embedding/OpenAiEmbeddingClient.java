@@ -13,8 +13,8 @@ import org.springframework.web.client.RestClient;
 
 /**
  * OpenAI 호환 임베딩 클라이언트. {@code /v1/embeddings} 엔드포인트를 호출하며, 벡터 컬럼 차원(1024)에 맞추기 위해 {@code
- * dimensions} 파라미터를 함께 전송한다. Cohere 의 input_type 개념은 OpenAI 에 없으므로 무시한다(문서/질의 모두 동일 모델로 임베딩되어
- * 비교 가능하다).
+ * dimensions} 파라미터를 함께 전송한다. Cohere 의 input_type 개념은 OpenAI 에 없으므로 무시한다(문서/질의 모두 동일 모델로 임베딩되어 비교
+ * 가능하다).
  */
 public class OpenAiEmbeddingClient implements EmbeddingClient {
 
@@ -51,7 +51,11 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
           restClient.post().uri("/v1/embeddings").body(payload).retrieve().body(String.class);
 
       JsonNode embedding =
-          objectMapper.readTree(responseBody == null ? "{}" : responseBody).path("data").path(0).path("embedding");
+          objectMapper
+              .readTree(responseBody == null ? "{}" : responseBody)
+              .path("data")
+              .path(0)
+              .path("embedding");
       if (!embedding.isArray() || embedding.isEmpty()) {
         throw new IllegalStateException(
             "OpenAI embedding response did not contain data[0].embedding");

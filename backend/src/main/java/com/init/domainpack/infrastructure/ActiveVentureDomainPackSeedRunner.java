@@ -388,8 +388,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   }
 
   /**
-   * 정책이 실제 동작하는 모습을 시연하기 위해, 취소·환불 워크플로우는 정보 수집 후 verify_policy 노드에서 정책이 hit 되면 상담원
-   * 확인(HANDOFF)으로 라우팅한다. policy_hit 엣지를 verify_policy 의 기존 always 엣지보다 앞에 두어 정책 분기가 우선되게 한다.
+   * 정책이 실제 동작하는 모습을 시연하기 위해, 취소·환불 워크플로우는 정보 수집 후 verify_policy 노드에서 정책이 hit 되면 상담원 확인(HANDOFF)으로
+   * 라우팅한다. policy_hit 엣지를 verify_policy 의 기존 always 엣지보다 앞에 두어 정책 분기가 우선되게 한다.
    */
   private void injectPolicyHandoff(
       ObjectNode graph,
@@ -445,6 +445,10 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       condition.remove("requiredTerms");
       return objectMapper.writeValueAsString(condition);
     } catch (JsonProcessingException e) {
+      log.warn(
+          "ActiveVenture seed condition transform failed; keeping original conditionJson. value={}",
+          conditionJson,
+          e);
       return conditionJson;
     }
   }
@@ -458,6 +462,10 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       meta.put("autoRunEligible", true);
       return objectMapper.writeValueAsString(meta);
     } catch (JsonProcessingException e) {
+      log.warn(
+          "ActiveVenture seed meta transform failed; keeping original metaJson. value={}",
+          metaJson,
+          e);
       return metaJson;
     }
   }
