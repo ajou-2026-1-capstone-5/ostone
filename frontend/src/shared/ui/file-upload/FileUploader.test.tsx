@@ -4,14 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import { FileUploader } from "./FileUploader";
 
 describe("FileUploader", () => {
-  it("shows the default JSON 50MB upload policy", () => {
+  it("shows the default ZIP 50MB upload policy", () => {
     render(<FileUploader onFileSelect={vi.fn()} />);
 
-    expect(screen.getByText(/JSON 파일 1개를 업로드할 수 있습니다\. 최대 50MB\./)).toBeInTheDocument();
-    expect(screen.getByText("JSON")).toBeInTheDocument();
+    expect(screen.getByText(/ZIP 파일 1개를 업로드할 수 있습니다\. 최대 50MB\./)).toBeInTheDocument();
+    expect(screen.getByText("ZIP")).toBeInTheDocument();
   });
 
-  it("uses JSON wording while analyzing", () => {
+  it("uses 상담 로그 wording while analyzing", () => {
     render(<FileUploader onFileSelect={vi.fn()} status="analyzing" />);
 
     expect(screen.getByText("상담 로그 분석 중...")).toBeInTheDocument();

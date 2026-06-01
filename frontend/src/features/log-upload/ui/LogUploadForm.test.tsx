@@ -249,7 +249,7 @@ describe("LogUploadForm", () => {
 
   it("keeps domain pack fallback when generation response has no pipeline job id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
