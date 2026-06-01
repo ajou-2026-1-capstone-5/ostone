@@ -122,6 +122,9 @@ function VersionListItem({
           )}
         </div>
         <span className={styles.createdAt}>{formatDate(version.createdAt ?? "")}</span>
+        {version.description ? (
+          <span className={styles.description}>{version.description}</span>
+        ) : null}
       </button>
     </li>
   );

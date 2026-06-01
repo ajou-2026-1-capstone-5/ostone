@@ -189,4 +189,21 @@ describe("VersionListPanel", () => {
     expect(screen.getByRole("button", { name: /v3/ })).not.toHaveTextContent("ARCHIVED");
     expect(screen.getAllByText("날짜 확인 전")).toHaveLength(3);
   });
+
+  it("description이 있는 버전은 목록에 설명을 렌더링한다", () => {
+    render(
+      <VersionListPanel
+        query={makeQuery({
+          data: {
+            ...stubPack,
+            versions: [{ ...stubVersion, description: "환불 정책 재구성" }],
+          },
+        })}
+        selectedId={1}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("환불 정책 재구성")).toBeInTheDocument();
+  });
 });

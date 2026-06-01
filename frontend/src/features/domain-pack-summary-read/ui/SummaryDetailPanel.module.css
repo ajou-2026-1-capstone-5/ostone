@@ -125,13 +125,17 @@
 
 .versionDescription {
   margin: 0;
-  max-width: 240px;
+  max-width: 280px;
   font-size: 12px;
   line-height: 1.45;
   text-align: right;
-  color: var(--text-muted);
-  white-space: pre-wrap;
+  color: var(--text-secondary);
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .deployActions {
