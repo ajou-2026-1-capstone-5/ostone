@@ -1,5 +1,5 @@
 import { ArrowRightIcon } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { unwrapApiResponse } from "@/shared/api";
 import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
@@ -9,6 +9,7 @@ import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
+import { Button } from "@/shared/ui/button/Button";
 
 import styles from "./domain-pack-list-page.module.css";
 
@@ -125,6 +126,7 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
 
 export function DomainPackListPage() {
   const { workspaceId } = useParams();
+  const navigate = useNavigate();
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const safeWorkspaceId = parsedWorkspaceId ?? 0;
 
@@ -135,6 +137,8 @@ export function DomainPackListPage() {
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
   }
+
+  const uploadPath = `/workspaces/${parsedWorkspaceId}/upload`;
 
   if (query.isLoading) {
     return (
@@ -163,6 +167,9 @@ export function DomainPackListPage() {
       <div className={styles.pageWrapper}>
         <div className={styles.emptyPanel}>
           <EmptyState message="아직 도메인팩이 없습니다. 상담 로그를 업로드하여 첫 도메인팩을 생성하세요." />
+          <Button variant="primary" onClick={() => navigate(uploadPath)}>
+            상담 로그 업로드
+          </Button>
         </div>
       </div>
     );
