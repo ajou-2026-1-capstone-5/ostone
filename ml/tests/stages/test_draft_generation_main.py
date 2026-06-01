@@ -186,6 +186,55 @@ def test_build_intents_groups_duplicate_labels_as_parent_variants() -> None:
     assert metrics["single_variant_intent_rate"] == 0.0
 
 
+def test_build_intents_keeps_source_cluster_ref_under_callback_limit() -> None:
+    member_ids = [f"caselet-{index}" for index in range(80)]
+    clusters = [
+        {
+            "cluster_id": 10,
+            "suggested_name": "예약 취소 문의",
+            "suggested_description": "예약 취소",
+            "exemplar_conv_ids": member_ids[:2],
+            "segment_ids": member_ids,
+            "workflow_signal": {"requires_payment_check": True},
+            "flow_split_key": "requires_payment_check|action_object 예약 취소|sequence 정책안내",
+        },
+        {
+            "cluster_id": 11,
+            "suggested_name": "예약 취소 문의",
+            "suggested_description": "예약 취소 본인확인",
+            "exemplar_conv_ids": member_ids[2:4],
+            "segment_ids": member_ids,
+            "workflow_signal": {"requires_user_identification": True},
+            "flow_split_key": "requires_user_identification|action_object 예약 취소|sequence 본인확인",
+        },
+    ]
+    index = {
+        member_id: {
+            **_preprocessed_conv(
+                member_id,
+                canonical=("예약 취소 관련 상담 내용 " * 80),
+                problem=("예약 취소 문의 " * 30),
+            ),
+            "caseletId": member_id,
+            "conversationId": member_id.split("-")[-1],
+            "actionObjectFrame": {
+                "object": "예약",
+                "action": "취소",
+                "intentType": "request",
+                "confidence": 0.9,
+            },
+            "flowEvents": ["정책안내", "본인확인", "추가정보요청"],
+            "evidenceTurnIds": ["turn-1", "turn-2"],
+        }
+        for member_id in member_ids
+    }
+
+    intents, _metrics = _build_intents(clusters, index, cases_per_intent=2)
+
+    assert all(len(intent["sourceClusterRef"]) <= 5000 for intent in intents)
+    assert all(isinstance(json.loads(intent["sourceClusterRef"]), dict) for intent in intents)
+
+
 def test_build_intents_empty_exemplar_conv_ids() -> None:
     clusters = [
         {

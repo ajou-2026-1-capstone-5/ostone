@@ -17,6 +17,9 @@ class FeedbackConstraint:
     target_id: str
     type: ConstraintType
     confidence: float = 1.0
+    scope: str = "intent"
+    review_task_id: str | None = None
+    decision_id: str | None = None
 
 
 def load_feedback_constraints_from_env() -> list[FeedbackConstraint]:
@@ -45,10 +48,15 @@ def load_feedback_constraints(path: Path) -> list[FeedbackConstraint]:
 
 
 def _constraint_from_row(row: dict[str, Any]) -> FeedbackConstraint | None:
-    source_id = str(row.get("source_caselet_id") or row.get("sourceCaseletId") or row.get("source_id") or "").strip()
-    target_id = str(row.get("target_caselet_id") or row.get("targetCaseletId") or row.get("target_id") or "").strip()
+    source_id = str(
+        row.get("sourceId") or row.get("source_caselet_id") or row.get("sourceCaseletId") or row.get("source_id") or ""
+    ).strip()
+    target_id = str(
+        row.get("targetId") or row.get("target_caselet_id") or row.get("targetCaseletId") or row.get("target_id") or ""
+    ).strip()
     raw_type = str(row.get("type") or "").strip().lower()
-    if not source_id or not target_id or raw_type not in {"must_link", "cannot_link"}:
+    scope = str(row.get("scope") or "intent").strip().lower()
+    if not source_id or not target_id or raw_type not in {"must_link", "cannot_link"} or scope != "intent":
         return None
     confidence = row.get("confidence", 1.0)
     return FeedbackConstraint(
@@ -56,6 +64,9 @@ def _constraint_from_row(row: dict[str, Any]) -> FeedbackConstraint | None:
         target_id=target_id,
         type=cast(ConstraintType, raw_type),
         confidence=_bounded_float(confidence, default=1.0),
+        scope=scope,
+        review_task_id=_optional_str(row.get("reviewTaskId") or row.get("review_task_id")),
+        decision_id=_optional_str(row.get("decisionId") or row.get("decision_id")),
     )
 
 
@@ -63,6 +74,13 @@ def _bounded_float(value: object, *, default: float) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         return default
     return max(0.0, min(1.0, float(value)))
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 __all__ = ["FeedbackConstraint", "load_feedback_constraints", "load_feedback_constraints_from_env"]

@@ -246,6 +246,18 @@ variable "embedding_model_name" {
   default     = "BAAI/bge-m3"
 }
 
+variable "embedding_model_cache_mount_path" {
+  description = "Container path used as HF_HOME for the shared embedding model cache."
+  type        = string
+  default     = "/app/.cache/huggingface"
+}
+
+variable "embedding_model_cache_transition_to_ia" {
+  description = "EFS lifecycle policy for infrequently accessed embedding model cache files."
+  type        = string
+  default     = "AFTER_30_DAYS"
+}
+
 variable "ml_runtime_profile" {
   description = "ML runtime profile used by production pipeline jobs."
   type        = string

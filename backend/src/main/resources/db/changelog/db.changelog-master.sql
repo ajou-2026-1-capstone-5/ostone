@@ -408,6 +408,16 @@ create table pipeline.pipeline_job (
     unique (airflow_dag_id, airflow_run_id)
 );
 
+--changeset init:20250403-extend-review-session-for-pipeline-checkpoints
+--comment: Allow review sessions to target pre-draft pipeline checkpoints
+alter table review.review_session alter column domain_pack_version_id drop not null;
+alter table review.review_session add column pipeline_job_id bigint references pipeline.pipeline_job(id);
+alter table review.review_session add column dataset_id bigint references corpus.dataset(id);
+alter table review.review_session add column review_kind varchar(100) not null default 'DOMAIN_PACK_DRAFT';
+alter table review.review_session
+    add constraint review_session_target_chk
+    check (domain_pack_version_id is not null or pipeline_job_id is not null);
+
 --changeset init:20250403-create-pipeline-job-event-table
 --comment: Create pipeline_job_event table
 create table pipeline.pipeline_job_event (

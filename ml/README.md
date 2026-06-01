@@ -215,6 +215,24 @@ Airflow 컨테이너:
 - `airflow-scheduler`
 - `airflow-dag-processor`
 
+Mac host GPU로 embedding을 처리할 때:
+
+```bash
+cd ml
+uv run python -m pipeline.local_embedder_server
+```
+
+다른 터미널에서 저장소 루트 기준:
+
+```bash
+docker compose -f docker-compose.yml -f ml/docker-compose.local-embedder.yml up -d \
+  airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
+```
+
+- Airflow 컨테이너는 `host.docker.internal:18090`으로 embedding 요청만 전달한다.
+- host worker는 `torch.backends.mps.is_available()`이면 BGE-M3를 `devices="mps"`로 로드한다.
+- 강제로 장치를 지정하려면 host worker 실행 전에 `EMBEDDING_DEVICE=mps` 또는 `EMBEDDING_DEVICE=cpu`를 설정한다.
+
 상태 확인:
 
 ```bash

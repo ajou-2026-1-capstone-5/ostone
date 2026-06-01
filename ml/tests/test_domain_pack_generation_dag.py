@@ -15,6 +15,10 @@ from pipeline.common.exceptions import PipelineConfigurationError
 def _import_dag_module(monkeypatch: pytest.MonkeyPatch) -> Any:
     airflow_module = types.ModuleType("airflow")
     airflow_sdk_module = types.ModuleType("airflow.sdk")
+    airflow_exceptions_module = types.ModuleType("airflow.exceptions")
+
+    class AirflowSkipException(Exception):
+        pass
 
     def fake_dag(*_args: object, **_kwargs: object) -> Any:
         def decorator(_function: Any) -> Any:
@@ -28,11 +32,14 @@ def _import_dag_module(monkeypatch: pytest.MonkeyPatch) -> Any:
 
         return decorator
 
+    airflow_module.__path__ = []
     setattr(airflow_sdk_module, "dag", fake_dag)
     setattr(airflow_sdk_module, "task", fake_task)
     setattr(airflow_sdk_module, "get_current_context", lambda: {})
+    setattr(airflow_exceptions_module, "AirflowSkipException", AirflowSkipException)
     monkeypatch.setitem(sys.modules, "airflow", airflow_module)
     monkeypatch.setitem(sys.modules, "airflow.sdk", airflow_sdk_module)
+    monkeypatch.setitem(sys.modules, "airflow.exceptions", airflow_exceptions_module)
     sys.modules.pop("dags.domain_pack_generation", None)
     return importlib.import_module("dags.domain_pack_generation")
 
@@ -137,3 +144,47 @@ def test_run_evaluation_stage_delegates_to_evaluation_run(monkeypatch: pytest.Mo
 
     assert dag_module._run_evaluation_stage("/tmp/upstream.json") == {"candidateArtifactPath": "/tmp/candidate.json"}
     assert calls == ["/tmp/upstream.json"]
+
+
+def test_validated_replay_manifest_path_requires_artifact_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    runtime_config = dag_module.PipelineRuntimeConfig(
+        artifact_root=tmp_path / "artifacts",
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+    )
+    valid_manifest = tmp_path / "artifacts" / "domain_pack_generation" / "run" / "representation" / "manifest.json"
+    valid_manifest.parent.mkdir(parents=True)
+    valid_manifest.write_text("{}", encoding="utf-8")
+
+    assert dag_module._validated_replay_manifest_path(str(valid_manifest), runtime_config) == valid_manifest.resolve()
+
+    with pytest.raises(PipelineConfigurationError, match="PIPELINE_ARTIFACT_ROOT"):
+        dag_module._validated_replay_manifest_path(str(tmp_path / "outside" / "manifest.json"), runtime_config)
+
+    with pytest.raises(PipelineConfigurationError, match="manifest.json"):
+        dag_module._validated_replay_manifest_path(str(valid_manifest.with_name("payload.json")), runtime_config)
+
+
+def test_checkpoint_callback_requires_enabled_callbacks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
+    _patch_airflow_context(monkeypatch, dag_module)
+
+    upstream_manifest = tmp_path / "manifest.json"
+    upstream_manifest.write_text('{"payload":{"domainCandidatesPath":"domain_candidates.json"}}', encoding="utf-8")
+    (tmp_path / "domain_candidates.json").write_text('{"candidates":[]}', encoding="utf-8")
+
+    with pytest.raises(PipelineConfigurationError, match="PIPELINE_CALLBACK_ENABLED=true"):
+        dag_module._post_checkpoint_callback(
+            stage_name="domain_confirmation_checkpoint",
+            callback_type=dag_module.CALLBACK_DOMAIN_CONFIRMATION,
+            upstream_manifest_path=str(upstream_manifest),
+            artifact_payload_key="domainCandidates",
+            artifact_path_key="domainCandidatesPath",
+        )

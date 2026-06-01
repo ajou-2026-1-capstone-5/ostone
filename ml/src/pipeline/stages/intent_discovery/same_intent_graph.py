@@ -10,6 +10,7 @@ import igraph as ig  # type: ignore[import-untyped]
 import numpy as np
 
 from pipeline.stages.intent_discovery.feedback_constraints import FeedbackConstraint
+from pipeline.stages.intent_discovery.neighbor_search import batched_top_neighbors, l2norm, neighbor_search_vectors
 from pipeline.stages.intent_discovery.types import ProcessedConversation
 
 DEFAULT_SAME_INTENT_THRESHOLD = 0.55
@@ -62,6 +63,7 @@ class SameIntentPairFeatures:
     low_quality_pair: bool
     boundary_uncertainty: bool
     customer_issue_specificity: float
+    domain_lexicon_overlap: float
     mutual_neighbor: bool
 
 
@@ -73,6 +75,7 @@ def build_same_intent_probability_graph(
     k: int,
     base_threshold: float = DEFAULT_SAME_INTENT_THRESHOLD,
     constraints: Sequence[FeedbackConstraint] = (),
+    domain_lexicon: Sequence[str] = (),
 ) -> tuple[ig.Graph, dict[str, Any]]:
     node_count = len(conversations)
     if node_count == 0:
@@ -80,15 +83,15 @@ def build_same_intent_probability_graph(
     if node_count == 1:
         return ig.Graph(n=1, directed=False), {**_empty_report(), "nodeCount": 1}
 
-    semantic_similarity = _cosine_matrix(semantic_vectors)
-    flow_similarity = (
-        _cosine_matrix(flow_signatures) if flow_signatures is not None else np.zeros_like(semantic_similarity)
-    )
     neighbor_count = min(max(1, k), node_count - 1)
-    neighbor_indices = np.argsort(-semantic_similarity, axis=1, kind="stable")[:, :neighbor_count]
+    semantic_lookup: dict[tuple[int, int], float] = {}
+    neighbor_indices = _semantic_neighbor_indices(semantic_vectors, neighbor_count)
     neighbor_sets = [set(int(index) for index in row) for row in neighbor_indices]
     candidate_pairs = _candidate_pairs(conversations, neighbor_indices, constraints)
+    _augment_similarity_lookup(semantic_lookup, semantic_vectors, candidate_pairs)
+    flow_lookup = _flow_similarity_lookup(flow_signatures, candidate_pairs)
     constraint_lookup = _constraint_lookup(conversations, constraints)
+    normalized_domain_lexicon = frozenset(token.casefold() for token in domain_lexicon if token.strip())
 
     source_scores: dict[int, list[float]] = defaultdict(list)
     scored_pairs: dict[tuple[int, int], tuple[float, SameIntentPairFeatures]] = {}
@@ -103,9 +106,10 @@ def build_same_intent_probability_graph(
             source,
             target,
             conversations,
-            semantic_similarity,
-            flow_similarity,
+            semantic_lookup,
+            flow_lookup,
             mutual_neighbor=source in neighbor_sets[target] and target in neighbor_sets[source],
+            domain_lexicon=normalized_domain_lexicon,
         )
         score = _same_intent_score(features)
         if constraint is not None and constraint.type == "must_link":
@@ -196,6 +200,7 @@ def build_same_intent_probability_graph(
         ),
         "mustLinkEdgeCount": must_link_edges,
         "cannotLinkSkippedCount": cannot_link_skipped,
+        "domainLexiconTermCount": len(normalized_domain_lexicon),
         "hubnessMaxCandidateDegree": max(hubness.values(), default=0),
         "edgeHubnessMaxDegree": edge_hubness_max_degree,
         "edgeHubnessMeanDegree": float(np.mean(np.asarray(list(edge_hubness.values()), dtype=np.float32)))
@@ -261,10 +266,11 @@ def _pair_features(
     source: int,
     target: int,
     conversations: Sequence[ProcessedConversation],
-    semantic_similarity: np.ndarray,
-    flow_similarity: np.ndarray,
+    semantic_similarity: Mapping[tuple[int, int], float],
+    flow_similarity: Mapping[tuple[int, int], float],
     *,
     mutual_neighbor: bool,
+    domain_lexicon: frozenset[str],
 ) -> SameIntentPairFeatures:
     left = conversations[source]
     right = conversations[target]
@@ -279,7 +285,7 @@ def _pair_features(
     high_confidence_pair = (
         left_confidence >= MIN_FRAME_CONFIDENCE_FOR_CONFLICT and right_confidence >= MIN_FRAME_CONFIDENCE_FOR_CONFLICT
     )
-    semantic_score = _clip(float(semantic_similarity[source, target]))
+    semantic_score = _clip(float(semantic_similarity.get(_ordered_pair(source, target), 0.0)))
     outcome_match = 1.0 if (left.ended_status or "unknown") == (right.ended_status or "unknown") else 0.0
     quality = min(_quality_score(left), _quality_score(right))
     workflow_signal_jaccard = _jaccard(
@@ -307,7 +313,7 @@ def _pair_features(
         source=source,
         target=target,
         customer_issue_cosine=semantic_score,
-        flow_cosine=_clip(float(flow_similarity[source, target])) if flow_similarity.size else 0.0,
+        flow_cosine=_clip(float(flow_similarity.get(_ordered_pair(source, target), 0.0))),
         workflow_signal_jaccard=workflow_signal_jaccard,
         outcome_match=outcome_match,
         object_match=object_match,
@@ -326,6 +332,7 @@ def _pair_features(
         low_quality_pair=quality < 0.8,
         boundary_uncertainty=_boundary_uncertainty(left) or _boundary_uncertainty(right),
         customer_issue_specificity=min(_customer_issue_specificity(left), _customer_issue_specificity(right)),
+        domain_lexicon_overlap=_domain_lexicon_overlap(left, right, domain_lexicon),
         mutual_neighbor=mutual_neighbor,
     )
 
@@ -340,6 +347,7 @@ def _same_intent_score(features: SameIntentPairFeatures) -> float:
         + (0.12 * features.action_match)
         + (0.03 * features.quality_score)
         + (0.01 * features.customer_issue_specificity)
+        + (0.04 * features.domain_lexicon_overlap)
     )
     if features.object_conflict:
         score -= 0.25
@@ -517,6 +525,21 @@ def _customer_issue_specificity(conversation: ProcessedConversation) -> float:
     return _clip(len(set(useful_tokens)) / 5.0)
 
 
+def _domain_lexicon_overlap(
+    left: ProcessedConversation,
+    right: ProcessedConversation,
+    domain_lexicon: frozenset[str],
+) -> float:
+    if not domain_lexicon:
+        return 0.0
+    left_terms = set(_issue_tokens(left.customer_problem_text))
+    right_terms = set(_issue_tokens(right.customer_problem_text))
+    shared = left_terms & right_terms & domain_lexicon
+    if not shared:
+        return 0.0
+    return _clip(len(shared) / 3.0)
+
+
 def _issue_tokens(text: str) -> list[str]:
     return [token.casefold() for token in text.replace("/", " ").split() if len(token.strip()) > 1]
 
@@ -543,18 +566,39 @@ def _soft_match(left: str, right: str) -> float:
 def _cosine_matrix(vectors: np.ndarray | None) -> np.ndarray:
     if vectors is None or vectors.shape[0] == 0:
         return np.zeros((0, 0), dtype=np.float32)
-    normalized = _l2norm(vectors.astype(np.float32, copy=False))
+    normalized = l2norm(vectors.astype(np.float32, copy=False))
     similarity = normalized @ normalized.T
     np.fill_diagonal(similarity, -np.inf)
     return np.clip(similarity, 0.0, 1.0).astype(np.float32, copy=False)
 
 
-def _l2norm(vectors: np.ndarray) -> np.ndarray:
-    values = vectors.astype(np.float32, copy=True)
-    norms = np.linalg.norm(values, axis=1, keepdims=True)
-    normalized = np.zeros_like(values, dtype=np.float32)
-    _ = np.divide(values, norms, out=normalized, where=norms > 0.0)
-    return normalized.astype(np.float32, copy=False)
+def _semantic_neighbor_indices(vectors: np.ndarray, neighbor_count: int) -> np.ndarray:
+    search_vectors = neighbor_search_vectors(vectors)
+    neighbor_indices, _ = batched_top_neighbors(search_vectors, neighbor_count)
+    return neighbor_indices
+
+
+def _flow_similarity_lookup(
+    vectors: np.ndarray | None,
+    candidate_pairs: set[tuple[int, int]],
+) -> dict[tuple[int, int], float]:
+    if vectors is None or vectors.shape[0] == 0:
+        return {}
+    normalized = l2norm(vectors.astype(np.float32, copy=False))
+    return {
+        pair: _clip(float(normalized[pair[0]] @ normalized[pair[1]])) for pair in candidate_pairs if pair[0] != pair[1]
+    }
+
+
+def _augment_similarity_lookup(
+    lookup: dict[tuple[int, int], float],
+    vectors: np.ndarray,
+    candidate_pairs: set[tuple[int, int]],
+) -> None:
+    normalized = l2norm(vectors.astype(np.float32, copy=False))
+    for pair in candidate_pairs:
+        if pair not in lookup and pair[0] != pair[1]:
+            lookup[pair] = _clip(float(normalized[pair[0]] @ normalized[pair[1]]))
 
 
 def _ordered_pair(left: int, right: int) -> tuple[int, int]:

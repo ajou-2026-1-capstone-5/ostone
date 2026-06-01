@@ -91,7 +91,7 @@ def _nearest_centroid_similarity(
 def _is_final_semantic_runtime(embedding_runtime: str, embedding_model_name: str) -> bool:
     runtime = embedding_runtime.strip().lower()
     model = embedding_model_name.strip().lower()
-    return runtime == "flag_embedding" and FINAL_SEMANTIC_MODEL_HINT in model
+    return runtime in {"flag_embedding", "local_http"} and FINAL_SEMANTIC_MODEL_HINT in model
 
 
 def _l2norm(vectors: np.ndarray) -> np.ndarray:

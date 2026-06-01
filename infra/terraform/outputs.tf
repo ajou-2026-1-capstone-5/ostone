@@ -38,6 +38,11 @@ output "gpu_task_security_group_id" {
   value       = aws_security_group.gpu_task.id
 }
 
+output "efs_model_cache_security_group_id" {
+  description = "Embedding model cache EFS security group ID."
+  value       = aws_security_group.efs_model_cache.id
+}
+
 output "gpu_host_security_group_id" {
   description = "GPU EC2 host security group ID."
   value       = aws_security_group.gpu_host.id
@@ -201,6 +206,21 @@ output "ml_embedder_task_definition_arn" {
 output "ml_embedder_container_name" {
   description = "ML embedder ECS container name used by Airflow overrides."
   value       = "ml-embedder"
+}
+
+output "embedding_model_cache_file_system_id" {
+  description = "EFS file system ID for the embedding model cache."
+  value       = aws_efs_file_system.embedding_model_cache.id
+}
+
+output "embedding_model_cache_dns_name" {
+  description = "Regional EFS DNS name for mounting the embedding model cache."
+  value       = aws_efs_file_system.embedding_model_cache.dns_name
+}
+
+output "embedding_model_cache_access_point_id" {
+  description = "EFS access point ID for the embedding model cache."
+  value       = aws_efs_access_point.embedding_model_cache.id
 }
 
 output "ml_llm_service_name" {

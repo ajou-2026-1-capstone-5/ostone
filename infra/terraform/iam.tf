@@ -226,6 +226,15 @@ data "aws_iam_policy_document" "ec2_airflow" {
   }
 
   statement {
+    sid = "MountEmbeddingModelCache"
+    actions = [
+      "elasticfilesystem:ClientMount",
+      "elasticfilesystem:ClientWrite"
+    ]
+    resources = [aws_efs_file_system.embedding_model_cache.arn]
+  }
+
+  statement {
     sid = "CloudWatchLogs"
     actions = [
       "logs:CreateLogGroup",
@@ -264,6 +273,15 @@ data "aws_iam_policy_document" "gpu_task" {
       "s3:ListBucket"
     ]
     resources = local.ml_bucket_arns
+  }
+
+  statement {
+    sid = "MountEmbeddingModelCache"
+    actions = [
+      "elasticfilesystem:ClientMount",
+      "elasticfilesystem:ClientWrite"
+    ]
+    resources = [aws_efs_file_system.embedding_model_cache.arn]
   }
 
   statement {

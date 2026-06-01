@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportAny=false
 import math
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -10,7 +9,19 @@ import leidenalg  # type: ignore[import-untyped]
 import numpy as np
 from sklearn.neighbors import NearestNeighbors  # type: ignore[import-untyped]
 
-from pipeline.stages.intent_discovery.types import DEFAULT_KNN_K, DEFAULT_LEIDEN_RESOLUTION, DEFAULT_MIN_CLUSTER_SIZE
+from pipeline.stages.intent_discovery.neighbor_search import (
+    batched_top_neighbors,
+    knn_n_jobs,
+    l2norm,
+    local_scale_from_scores,
+    neighbor_search_vectors,
+    positive_int_env,
+)
+from pipeline.stages.intent_discovery.types import (
+    DEFAULT_KNN_K,
+    DEFAULT_LEIDEN_RESOLUTION,
+    DEFAULT_MIN_CLUSTER_SIZE,
+)
 
 DEFAULT_FLOW_AFFINITY_WEIGHT = 0.08
 DEFAULT_AFFINITY_MIN_SIMILARITY = 0.05
@@ -32,8 +43,8 @@ def combine_with_flow(embeddings: np.ndarray, flow_signatures: np.ndarray, weigh
 
     hybrid = np.concatenate(
         [
-            _l2norm(embeddings) * math.sqrt(1.0 - weight),
-            _l2norm(flow_signatures) * math.sqrt(weight),
+            l2norm(embeddings) * math.sqrt(1.0 - weight),
+            l2norm(flow_signatures) * math.sqrt(weight),
         ],
         axis=-1,
     )
@@ -46,7 +57,7 @@ def build_knn_graph(vectors: np.ndarray, k: int = DEFAULT_KNN_K, metric: str = "
         return ig.Graph(n=0, directed=False)
 
     neighbor_count = min(k + 1, node_count)
-    neighbors = NearestNeighbors(n_neighbors=neighbor_count, metric=metric)
+    neighbors = NearestNeighbors(n_neighbors=neighbor_count, metric=metric, n_jobs=knn_n_jobs())
     neighbors.fit(vectors)
     distances, indices = neighbors.kneighbors(vectors)
 
@@ -87,14 +98,16 @@ def build_hybrid_affinity_graph(
     if node_count == 1:
         return ig.Graph(n=1, directed=False)
 
-    similarity = _hybrid_similarity_matrix(semantic_vectors, flow_signatures, flow_weight=flow_weight)
     neighbor_count = min(max(1, k), node_count - 1)
-    neighbor_indices = np.argsort(-similarity, axis=1, kind="stable")[:, :neighbor_count]
+    neighbor_indices, neighbor_scores = _hybrid_neighbors(
+        semantic_vectors,
+        flow_signatures,
+        neighbor_count=neighbor_count,
+        flow_weight=flow_weight,
+    )
     neighbor_sets = [set(int(index) for index in row) for row in neighbor_indices]
-    sigma = _local_scale(similarity, neighbor_indices)
-    candidate_similarities = [
-        float(similarity[source, int(target)]) for source, row in enumerate(neighbor_indices) for target in row
-    ]
+    sigma = local_scale_from_scores(neighbor_scores)
+    candidate_similarities = [float(score) for row in neighbor_scores for score in row]
     non_mutual_threshold = (
         float(np.quantile(np.asarray(candidate_similarities, dtype=np.float32), non_mutual_keep_quantile))
         if candidate_similarities
@@ -103,11 +116,11 @@ def build_hybrid_affinity_graph(
 
     edge_weights: dict[tuple[int, int], float] = {}
     for source, row in enumerate(neighbor_indices):
-        for raw_target in row:
+        for position, raw_target in enumerate(row):
             target = int(raw_target)
             if source == target:
                 continue
-            score = float(similarity[source, target])
+            score = float(neighbor_scores[source, position])
             if score < min_similarity:
                 continue
             is_mutual = source in neighbor_sets[target]
@@ -126,6 +139,21 @@ def build_hybrid_affinity_graph(
     return graph
 
 
+def _hybrid_neighbors(
+    semantic_vectors: np.ndarray,
+    flow_signatures: np.ndarray | None,
+    *,
+    neighbor_count: int,
+    flow_weight: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    semantic = semantic_vectors.astype(np.float32, copy=False)
+    if flow_signatures is not None and flow_weight > 0.0:
+        search_vectors = combine_with_flow(semantic, flow_signatures.astype(np.float32, copy=False), flow_weight)
+    else:
+        search_vectors = l2norm(semantic)
+    return batched_top_neighbors(neighbor_search_vectors(search_vectors), neighbor_count)
+
+
 def estimate_cluster_stability(
     semantic_vectors: np.ndarray,
     flow_signatures: np.ndarray,
@@ -141,6 +169,17 @@ def estimate_cluster_stability(
             "clusterStability": None,
             "clusterStabilityRunCount": 0,
             "clusterStabilityByCluster": {},
+        }
+    node_count = int(semantic_vectors.shape[0])
+    max_inputs = positive_int_env("PIPELINE_STABILITY_MAX_INPUTS", 5000)
+    if node_count > max_inputs:
+        return {
+            "clusterStability": None,
+            "clusterStabilityRunCount": 0,
+            "clusterStabilityByCluster": {},
+            "clusterStabilityReason": "input_too_large",
+            "clusterStabilityInputCount": node_count,
+            "clusterStabilityMaxInputCount": max_inputs,
         }
     labels_by_run: list[list[int]] = []
     for k_value in k_values:
@@ -183,6 +222,17 @@ def hdbscan_assist_summary(
             "hdbscanSplitCandidateCount": 0,
             "hdbscanLabels": [],
         }
+    max_inputs = positive_int_env("PIPELINE_HDBSCAN_MAX_INPUTS", 5000)
+    if node_count > max_inputs:
+        return {
+            "hdbscanAvailable": False,
+            "hdbscanReason": "input_too_large",
+            "hdbscanNoiseRate": None,
+            "hdbscanSplitCandidateCount": 0,
+            "hdbscanLabels": [],
+            "hdbscanMaxInputCount": max_inputs,
+            "hdbscanInputCount": node_count,
+        }
     try:
         from sklearn.cluster import HDBSCAN  # type: ignore[import-untyped]
     except (ImportError, AttributeError):
@@ -197,7 +247,7 @@ def hdbscan_assist_summary(
     hdbscan_vectors = (
         combine_with_flow(vectors, flow_signatures, weight=flow_weight)
         if flow_signatures is not None and flow_signatures.shape[0] == vectors.shape[0] and flow_weight > 0.0
-        else _l2norm(vectors)
+        else l2norm(vectors)
     )
     labels = HDBSCAN(
         min_cluster_size=max(2, min_cluster_size),
@@ -312,9 +362,9 @@ def reassign_nearby_outliers(
     if not valid_clusters or not outlier_node_indices or semantic_vectors.shape[0] == 0:
         return set(outlier_node_indices), dict(valid_clusters), _outlier_reassignment_report(0, 0, [])
 
-    normalized = _l2norm(semantic_vectors.astype(np.float32, copy=False))
+    normalized = l2norm(semantic_vectors.astype(np.float32, copy=False))
     centroids = {
-        cluster_id: _l2norm(normalized[member_indices].mean(axis=0, keepdims=True))[0]
+        cluster_id: l2norm(normalized[member_indices].mean(axis=0, keepdims=True))[0]
         for cluster_id, member_indices in valid_clusters.items()
         if member_indices
     }
@@ -496,9 +546,9 @@ def compact_clusters_by_centroid_similarity(
         )
 
     cluster_ids = sorted(valid_clusters)
-    normalized = _l2norm(semantic_vectors.astype(np.float32, copy=False))
+    normalized = l2norm(semantic_vectors.astype(np.float32, copy=False))
     centroids = {
-        cluster_id: _l2norm(normalized[member_indices].mean(axis=0, keepdims=True))[0]
+        cluster_id: l2norm(normalized[member_indices].mean(axis=0, keepdims=True))[0]
         for cluster_id, member_indices in valid_clusters.items()
         if member_indices
     }
@@ -601,36 +651,6 @@ def compute_centroids(vectors: np.ndarray, valid_clusters: Mapping[int, list[int
     }
 
 
-def _hybrid_similarity_matrix(
-    semantic_vectors: np.ndarray,
-    flow_signatures: np.ndarray | None,
-    *,
-    flow_weight: float,
-) -> np.ndarray:
-    semantic = _l2norm(semantic_vectors)
-    similarity = np.clip(semantic @ semantic.T, 0.0, 1.0).astype(np.float32, copy=False)
-    if flow_signatures is None or flow_weight <= 0.0:
-        np.fill_diagonal(similarity, -np.inf)
-        return similarity
-
-    flow = _l2norm(flow_signatures)
-    flow_similarity = np.clip(flow @ flow.T, 0.0, 1.0).astype(np.float32, copy=False)
-    similarity = ((1.0 - flow_weight) * similarity + flow_weight * flow_similarity).astype(np.float32, copy=False)
-    np.fill_diagonal(similarity, -np.inf)
-    return similarity
-
-
-def _local_scale(similarity: np.ndarray, neighbor_indices: np.ndarray) -> np.ndarray:
-    scales = np.zeros((similarity.shape[0],), dtype=np.float32)
-    for row_index, row in enumerate(neighbor_indices):
-        if row.size == 0:
-            scales[row_index] = 1.0
-            continue
-        kth_similarity = float(similarity[row_index, int(row[-1])])
-        scales[row_index] = max(1e-3, 1.0 - kth_similarity)
-    return scales
-
-
 def _cluster_pair_stability(member_indices: list[int], labels_by_run: Sequence[Sequence[int]]) -> float:
     if len(member_indices) <= 1:
         return 1.0
@@ -701,14 +721,6 @@ def _cluster_compaction_report(
         "clusterCompactionBlockedByHdbscanCount": blocked_by_hdbscan_count,
         "clusterCompactionHdbscanAware": hdbscan_aware,
     }
-
-
-def _l2norm(vectors: np.ndarray) -> np.ndarray:
-    values = vectors.astype(np.float32, copy=True)
-    norms = np.linalg.norm(values, axis=1, keepdims=True)
-    normalized = np.zeros_like(values, dtype=np.float32)
-    _ = np.divide(values, norms, out=normalized, where=norms > 0.0)
-    return normalized.astype(np.float32, copy=False)
 
 
 def _distance_to_similarity(distance: float, metric: str) -> float:

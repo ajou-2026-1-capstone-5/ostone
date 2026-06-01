@@ -123,11 +123,32 @@ resource "aws_ecs_task_definition" "ml_embedder" {
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.gpu_task.arn
 
+  volume {
+    name = "embedding-model-cache"
+
+    efs_volume_configuration {
+      file_system_id     = aws_efs_file_system.embedding_model_cache.id
+      transit_encryption = "ENABLED"
+
+      authorization_config {
+        access_point_id = aws_efs_access_point.embedding_model_cache.id
+        iam             = "ENABLED"
+      }
+    }
+  }
+
   container_definitions = jsonencode([
     {
       name      = "ml-embedder"
       image     = "${aws_ecr_repository.repos["ml_embedder"].repository_url}:latest"
       essential = true
+      mountPoints = [
+        {
+          sourceVolume  = "embedding-model-cache"
+          containerPath = var.embedding_model_cache_mount_path
+          readOnly      = false
+        }
+      ]
       environment = [
         {
           name  = "ML_ARTIFACT_STORE"
@@ -148,6 +169,10 @@ resource "aws_ecs_task_definition" "ml_embedder" {
         {
           name  = "EMBEDDING_MODEL_NAME"
           value = var.embedding_model_name
+        },
+        {
+          name  = "HF_HOME"
+          value = var.embedding_model_cache_mount_path
         },
         {
           name  = "ML_RUNTIME_PROFILE"

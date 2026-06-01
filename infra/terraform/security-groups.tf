@@ -138,6 +138,16 @@ resource "aws_security_group_rule" "ec2_airflow_egress_https" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+resource "aws_security_group_rule" "ec2_airflow_egress_efs_model_cache" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.ec2_airflow.id
+  description              = "Allow Airflow EC2 to mount the embedding model cache EFS."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.efs_model_cache.id
+}
+
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"
   description = "Allow PostgreSQL from backend ECS and Airflow EC2 only."
@@ -188,6 +198,16 @@ resource "aws_security_group_rule" "gpu_host_egress_https" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+resource "aws_security_group_rule" "gpu_host_egress_efs_model_cache" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.gpu_host.id
+  description              = "Allow GPU ECS hosts to mount the embedding model cache EFS."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.efs_model_cache.id
+}
+
 resource "aws_security_group" "gpu_task" {
   name        = "${local.name_prefix}-gpu-task-sg"
   description = "One-shot GPU batch task security group."
@@ -206,6 +226,56 @@ resource "aws_security_group_rule" "gpu_task_egress" {
   to_port           = 443
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "gpu_task_egress_efs_model_cache" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.gpu_task.id
+  description              = "Allow GPU tasks to mount the embedding model cache EFS."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.efs_model_cache.id
+}
+
+resource "aws_security_group" "efs_model_cache" {
+  name        = "${local.name_prefix}-efs-model-cache-sg"
+  description = "Allow NFS access to the embedding model cache EFS."
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "${local.name_prefix}-efs-model-cache-sg"
+  }
+}
+
+resource "aws_security_group_rule" "efs_model_cache_ingress_airflow" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.efs_model_cache.id
+  source_security_group_id = aws_security_group.ec2_airflow.id
+  description              = "NFS traffic from Airflow EC2."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "efs_model_cache_ingress_gpu_host" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.efs_model_cache.id
+  source_security_group_id = aws_security_group.gpu_host.id
+  description              = "NFS traffic from GPU ECS hosts."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "efs_model_cache_ingress_gpu_task" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.efs_model_cache.id
+  source_security_group_id = aws_security_group.gpu_task.id
+  description              = "NFS traffic from GPU ECS tasks."
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
 }
 
 resource "aws_security_group" "ml_llm_alb" {

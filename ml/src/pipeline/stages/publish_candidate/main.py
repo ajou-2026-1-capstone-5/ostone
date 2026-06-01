@@ -52,7 +52,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
             _validate_pipeline_job_id(stage_context.pipeline_job_id)
 
         candidate = _load_valid_candidate(candidate_path)
-        _raise_if_evaluation_blocked(candidate, result, result_path)
+        _surface_evaluation_review(candidate, result, result_path)
 
         if _skip_callbacks_if_disabled(runtime_config, result, result_path, candidate):
             return _manifest_payload(result, result_path)
@@ -99,26 +99,44 @@ def _load_valid_candidate(candidate_path: Path) -> dict[str, Any]:
     return candidate
 
 
-def _raise_if_evaluation_blocked(candidate: dict[str, Any], result: dict[str, Any], result_path: Path) -> None:
+def _surface_evaluation_review(candidate: dict[str, Any], result: dict[str, Any], result_path: Path) -> None:
     if not _evaluation_blocked(candidate):
         return
 
-    result.update(
-        {
-            "publishStatus": "BLOCKED_BY_EVALUATION",
-            "blockReason": "evaluationSummary.passed=false",
-            "callbackResults": [],
-            "failedCallbackType": None,
-            "error": {
-                "type": "EvaluationBlocked",
-                "message": "Candidate did not pass evaluation gate",
-                "responseBody": None,
-                "parsedResponseBody": None,
-            },
-        }
-    )
+    evaluation_summary = candidate.get("evaluationSummary")
+    review_reasons = []
+    if isinstance(evaluation_summary, dict):
+        evaluation_summary["needsHumanReview"] = True
+        review_reasons = _string_list(evaluation_summary.get("qualityReviewReasons")) + _string_list(
+            evaluation_summary.get("blockReasons")
+        )
+    candidate["needsHumanReview"] = True
+    domain_pack_draft = _required_object(candidate, "domainPackDraft")
+    summary = _parse_json_object(domain_pack_draft.get("summaryJson"))
+    summary["needsHumanReview"] = True
+    summary["evaluationPassed"] = False
+    if review_reasons:
+        summary["qualityReviewReasons"] = review_reasons
+    domain_pack_draft["summaryJson"] = json.dumps(summary, ensure_ascii=False)
+    result["evaluationGateStatus"] = "NEEDS_HUMAN_REVIEW"
+    result["evaluationGateReason"] = "evaluationSummary.passed=false"
     _write_result(result_path, result)
-    raise _stage_error("Candidate did not pass evaluation gate.", result, result_path)
+
+
+def _parse_json_object(value: object) -> dict[str, Any]:
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if isinstance(item, str) and item]
 
 
 def _skip_callbacks_if_disabled(
@@ -573,7 +591,7 @@ def _manifest_status(result: dict[str, Any]) -> str:
     publish_status = result.get("publishStatus")
     if publish_status == "SUCCEEDED":
         return "completed"
-    if publish_status in {"FAILED", "BLOCKED_BY_EVALUATION"}:
+    if publish_status == "FAILED":
         return "failed"
     return str(publish_status).lower()
 

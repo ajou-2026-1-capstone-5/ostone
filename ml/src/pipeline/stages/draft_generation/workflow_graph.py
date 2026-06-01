@@ -186,6 +186,7 @@ def frequent_path_generator(
 
     if not any(edge.to_node.startswith("terminal") for edge in edge_specs):
         return signal_based_generator(context)
+    _remove_cycle_edges(edge_specs)
     edge_counter = _add_terminal_escape_edges(context, edge_specs, node_ids, edge_counter)
     edge_counter = _add_start_edges_to_unreachable_nodes(context, edge_specs, node_ids, edge_counter)
 
@@ -194,6 +195,32 @@ def frequent_path_generator(
         for token in sorted(node_ids, key=_node_sort_key)
     ]
     return WorkflowGraphSpec(direction="LR", nodes=tuple(node_specs), edges=tuple(edge_specs))
+
+
+def _remove_cycle_edges(edge_specs: list[GraphEdgeSpec]) -> None:
+    acyclic_edges: list[GraphEdgeSpec] = []
+    adjacency: dict[str, list[str]] = {}
+    for edge in edge_specs:
+        if _has_path(adjacency, edge.to_node, edge.from_node):
+            continue
+        acyclic_edges.append(edge)
+        adjacency.setdefault(edge.from_node, []).append(edge.to_node)
+        adjacency.setdefault(edge.to_node, [])
+    edge_specs[:] = acyclic_edges
+
+
+def _has_path(adjacency: dict[str, list[str]], start: str, target: str) -> bool:
+    stack = [start]
+    seen: set[str] = set()
+    while stack:
+        node_id = stack.pop()
+        if node_id == target:
+            return True
+        if node_id in seen:
+            continue
+        seen.add(node_id)
+        stack.extend(adjacency.get(node_id, ()))
+    return False
 
 
 def _add_terminal_escape_edges(
