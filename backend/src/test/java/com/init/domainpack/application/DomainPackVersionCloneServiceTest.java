@@ -133,6 +133,12 @@ class DomainPackVersionCloneServiceTest {
     assertThat(result.sourceType()).isEqualTo(DomainPackDraftSourceType.INTENT_REVISION);
     assertThat(result.baseVersionId()).isEqualTo(100L);
 
+    // clone reason은 새 draft version의 description(commit-log 성격)으로 영속화된다.
+    ArgumentCaptor<DomainPackVersion> savedVersion =
+        ArgumentCaptor.forClass(DomainPackVersion.class);
+    verify(versionRepository).saveAndFlush(savedVersion.capture());
+    assertThat(savedVersion.getValue().getDescription()).isEqualTo("보정");
+
     ArgumentCaptor<Iterable<IntentSlotBinding>> slotBindings =
         ArgumentCaptor.forClass(Iterable.class);
     verify(intentSlotBindingRepository).saveAllAndFlush(slotBindings.capture());
@@ -209,6 +215,31 @@ class DomainPackVersionCloneServiceTest {
                 service.createEmptyDraft(
                     new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}")))
         .isInstanceOf(DomainPackDraftAlreadyExistsException.class);
+  }
+
+  @Test
+  @DisplayName("createEmptyDraft: 사유 없는 빈 DRAFT는 description이 null이다")
+  void createEmptyDraft_createsDraftWithoutDescription() {
+    given(domainPackRepository.findByIdAndWorkspaceIdForUpdate(7L, 1L))
+        .willReturn(Optional.of(DomainPack.create(1L, "cs", "CS", null, 10L)));
+    given(
+            versionRepository.existsByDomainPackIdAndLifecycleStatus(
+                7L, DomainPackVersion.STATUS_DRAFT))
+        .willReturn(false);
+    given(versionRepository.findMaxVersionNoByDomainPackId(7L)).willReturn(Optional.of(2));
+    given(versionRepository.saveAndFlush(any(DomainPackVersion.class)))
+        .willAnswer(
+            invocation -> {
+              DomainPackVersion draft = invocation.getArgument(0);
+              ReflectionTestUtils.setField(draft, "id", 200L);
+              return draft;
+            });
+
+    DomainPackVersion result =
+        service.createEmptyDraft(new DomainPackVersionCreateCommand(1L, 7L, 10L, null, "{}"));
+
+    assertThat(result.getDescription()).isNull();
+    assertThat(result.getVersionNo()).isEqualTo(3);
   }
 
   @Test

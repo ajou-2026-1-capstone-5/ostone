@@ -152,7 +152,7 @@ class DomainPackControllerTest {
   void should_200_when_getDomainPackVersion() throws Exception {
     DomainPackVersionDetailResult fixture =
         new DomainPackVersionDetailResult(
-            1L, 10L, 1, "DRAFT", null, "{}", 5L, 3L, 2L, 1L, 4L, NOW, NOW);
+            1L, 10L, 1, "DRAFT", null, "{}", "v1 초안 생성", 5L, 3L, 2L, 1L, 4L, NOW, NOW);
     given(
             versionDetailUseCase.execute(
                 argThat(
@@ -168,6 +168,7 @@ class DomainPackControllerTest {
         .andExpect(jsonPath("$.versionId").value(1))
         .andExpect(jsonPath("$.packId").value(10))
         .andExpect(jsonPath("$.summaryJson").isString())
+        .andExpect(jsonPath("$.description").value("v1 초안 생성"))
         .andExpect(jsonPath("$.intentCount").value(5))
         .andExpect(jsonPath("$.slotCount").value(3))
         .andExpect(jsonPath("$.policyCount").value(2))

@@ -934,3 +934,8 @@ WHERE assigned_counselor_id IS NOT NULL;
 ALTER TABLE runtime.chat_session
     ADD CONSTRAINT chk_chat_session_response_mode
     CHECK (response_mode IN ('AI_ACTIVE', 'HUMAN_ACTIVE', 'AI_ASSIST_ONLY'));
+
+--changeset init:20260601-add-description-to-domain-pack-version
+--comment: Add commit-log style description to pack.domain_pack_version
+ALTER TABLE pack.domain_pack_version
+    ADD COLUMN description text;

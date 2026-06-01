@@ -81,7 +81,8 @@ public class DomainPackVersionCloneService {
             nextVersionNo,
             command.createdBy(),
             null,
-            buildSummaryJson(command.baseVersion(), command.sourceType(), command.reason()));
+            buildSummaryJson(command.baseVersion(), command.sourceType(), command.reason()),
+            command.reason());
 
     DomainPackVersion savedDraft;
     try {
@@ -110,7 +111,8 @@ public class DomainPackVersionCloneService {
             nextVersionNo,
             command.createdBy(),
             command.sourcePipelineJobId(),
-            command.summaryJson());
+            command.summaryJson(),
+            null);
     try {
       return versionRepository.saveAndFlush(draft);
     } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {

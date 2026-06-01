@@ -13,6 +13,7 @@ export const DomainPackVersionDetailResult = zod.object({
   lifecycleStatus: zod.string().optional(),
   sourcePipelineJobId: zod.number().optional(),
   summaryJson: zod.string().optional(),
+  description: zod.string().optional(),
   intentCount: zod.number().optional(),
   slotCount: zod.number().optional(),
   policyCount: zod.number().optional(),

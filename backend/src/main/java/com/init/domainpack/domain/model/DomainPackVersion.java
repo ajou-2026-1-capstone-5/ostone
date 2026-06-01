@@ -41,6 +41,9 @@ public class DomainPackVersion {
   @Column(name = "summary_json", columnDefinition = "jsonb", nullable = false)
   private String summaryJson;
 
+  @Column(name = "description")
+  private String description;
+
   @Column(name = "published_at")
   private OffsetDateTime publishedAt;
 
@@ -92,6 +95,7 @@ public class DomainPackVersion {
    * @param createdBy 생성자 ID
    * @param sourcePipelineJobId 파이프라인 Job ID (nullable)
    * @param summaryJson 요약 JSON
+   * @param description 버전 설명 (commit-log 성격, nullable)
    * @return 새로운 DRAFT 상태의 DomainPackVersion
    */
   public static DomainPackVersion createDraft(
@@ -99,7 +103,8 @@ public class DomainPackVersion {
       Integer versionNo,
       Long createdBy,
       Long sourcePipelineJobId,
-      String summaryJson) {
+      String summaryJson,
+      String description) {
     Objects.requireNonNull(domainPackId, "domainPackId must not be null");
     Objects.requireNonNull(versionNo, "versionNo must not be null");
 
@@ -110,6 +115,7 @@ public class DomainPackVersion {
     v.createdBy = createdBy;
     v.sourcePipelineJobId = sourcePipelineJobId;
     v.summaryJson = summaryJson != null ? summaryJson : "{}";
+    v.description = description;
     return v;
   }
 
@@ -156,6 +162,10 @@ public class DomainPackVersion {
 
   public String getSummaryJson() {
     return summaryJson;
+  }
+
+  public String getDescription() {
+    return description;
   }
 
   public OffsetDateTime getPublishedAt() {
