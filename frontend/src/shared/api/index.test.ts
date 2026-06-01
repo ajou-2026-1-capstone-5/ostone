@@ -10,8 +10,8 @@ afterAll(() => {
 
 describe("resolveApiBase", () => {
   it("VITE_API_BASE_URL 절대 URL override를 그대로 사용한다", () => {
-    expect(resolveApiBase("https://ostone-backend.onrender.com/api/v1")).toBe(
-      "https://ostone-backend.onrender.com/api/v1",
+    expect(resolveApiBase("https://api.ostone.example/api/v1")).toBe(
+      "https://api.ostone.example/api/v1",
     );
   });
 

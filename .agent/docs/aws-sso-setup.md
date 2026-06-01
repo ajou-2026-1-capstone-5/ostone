@@ -109,6 +109,6 @@ docker compose restart backend
 - **`ExpiredToken`**: 세션 만료. `aws sso login --profile ostone` 재실행.
 - **포털 URL 이 다르다**: 본 문서의 URL 은 ostone 계정 전용. 다른 조직 SSO 와 혼동하지 말 것.
 
-## 6. 운영(Render) 자격증명은 별개
+## 6. 운영 런타임 자격증명은 별개
 
-브라우저 SSO 는 사람용이라 Render 서버 런타임에서는 사용할 수 없다. 운영은 별도 IAM user `ostone-backend` 의 access key 를 Render Dashboard 환경변수로 주입한다. 상세는 [`deployment.md`](deployment.md) 의 AWS S3 / IAM 섹션 참조.
+브라우저 SSO 는 사람용이라 ECS task 런타임에서는 사용하지 않는다. 운영 서비스는 Terraform이 부여한 ECS task role과 Secrets Manager 값을 사용한다. 상세는 [`deployment.md`](deployment.md) 의 S3 / IAM 섹션 참조.

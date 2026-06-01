@@ -8,7 +8,7 @@
 
 ## 배포 (CD)
 
-main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 자동으로 Render에 배포된다.
+main 브랜치 머지 시 GitHub Actions가 CI를 통과하면 AWS ECS/S3/CloudFront 운영 환경에 배포된다.
 
 자세한 배포 가이드: [`.agent/docs/deployment.md`](.agent/docs/deployment.md)
 
