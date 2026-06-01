@@ -13,7 +13,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=builder /workspace/build/libs/backend-*.jar app.jar
+COPY --from=builder /workspace/build/libs/app.jar app.jar
 
 RUN addgroup --system appgroup && adduser --system --group appuser
 USER appuser

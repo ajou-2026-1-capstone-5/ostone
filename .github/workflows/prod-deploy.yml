@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: prod-deploy-${{ github.ref }}
-  cancel-in-progress: true
+  group: production-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -43,8 +43,98 @@ jobs:
               - "ml/**"
               - ".github/workflows/prod-deploy.yml"
 
+  terraform:
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      frontend_bucket_name: ${{ steps.tf_outputs.outputs.frontend_bucket_name }}
+      cloudfront_distribution_id: ${{ steps.tf_outputs.outputs.cloudfront_distribution_id }}
+      ecs_cluster_name: ${{ steps.tf_outputs.outputs.ecs_cluster_name }}
+      backend_service_name: ${{ steps.tf_outputs.outputs.backend_service_name }}
+    env:
+      TF_VAR_domain_name: ${{ vars.PROD_DOMAIN_NAME }}
+      TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
+      TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
+      TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
+      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
+      TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
+      TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
+      TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
+      TF_VAR_gpu_asg_desired_capacity: ${{ vars.PROD_GPU_ASG_DESIRED_CAPACITY || '0' }}
+      TF_VAR_embedding_model_name: ${{ vars.PROD_EMBEDDING_MODEL_NAME || 'BAAI/bge-m3' }}
+      TF_VAR_ml_runtime_profile: ${{ vars.PROD_ML_RUNTIME_PROFILE || 'balanced' }}
+      TF_VAR_llm_model_name: ${{ vars.PROD_LLM_MODEL_NAME || 'Qwen/Qwen3-14B' }}
+      TF_VAR_llm_model_path: ${{ vars.PROD_LLM_MODEL_PATH || '/models/model.gguf' }}
+      TF_VAR_llm_service_desired_count: ${{ vars.PROD_LLM_SERVICE_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_desired_count: ${{ vars.PROD_BACKEND_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_autoscaling_min_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MIN_CAPACITY || '0' }}
+      TF_VAR_backend_autoscaling_max_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
+      TF_VAR_db_master_password: ${{ secrets.PROD_DB_MASTER_PASSWORD }}
+      TF_VAR_app_db_password: ${{ secrets.PROD_APP_DB_PASSWORD }}
+      TF_VAR_airflow_db_password: ${{ secrets.PROD_AIRFLOW_DB_PASSWORD }}
+      TF_VAR_jwt_secret: ${{ secrets.PROD_JWT_SECRET }}
+      TF_VAR_airflow_api_username: ${{ secrets.PROD_AIRFLOW_API_USERNAME }}
+      TF_VAR_airflow_api_password: ${{ secrets.PROD_AIRFLOW_API_PASSWORD }}
+      TF_VAR_airflow_webhook_secret: ${{ secrets.PROD_AIRFLOW_WEBHOOK_SECRET }}
+      TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: 1.15.4
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Terraform Init
+        working-directory: infra/terraform
+        run: |
+          terraform init -backend-config=backend.hcl
+
+      - name: Validate required Terraform variables
+        shell: bash
+        run: |
+          required=(
+            TF_VAR_domain_name
+            TF_VAR_admin_cidr
+            TF_VAR_airflow_api_base_url
+            TF_VAR_db_master_password
+            TF_VAR_app_db_password
+            TF_VAR_airflow_db_password
+            TF_VAR_jwt_secret
+            TF_VAR_airflow_api_username
+            TF_VAR_airflow_api_password
+            TF_VAR_airflow_webhook_secret
+          )
+          for name in "${required[@]}"; do
+            test -n "${!name:-}" || { echo "$name is required"; exit 1; }
+          done
+
+      - name: Terraform Apply
+        working-directory: infra/terraform
+        run: |
+          terraform apply -auto-approve -lock-timeout=10m
+
+      - name: Read Terraform outputs
+        id: tf_outputs
+        working-directory: infra/terraform
+        run: |
+          {
+            echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)"
+            echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
+            echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)"
+            echo "backend_service_name=$(terraform output -raw backend_service_name)"
+          } >> "$GITHUB_OUTPUT"
+
   backend:
-    needs: paths-filter
+    needs: [paths-filter, terraform]
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -88,11 +178,13 @@ jobs:
           ECR_REPOSITORY: ostone/backend
           IMAGE_TAG: ${{ github.sha }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECS_CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
+          ECS_SERVICE: ${{ needs.terraform.outputs.backend_service_name }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           TASK_DEF_ARN="$(aws ecs describe-services \
-            --cluster ostone-prod-cluster \
-            --services ostone-backend \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
             --region ap-northeast-2 \
             --query 'services[0].taskDefinition' \
             --output text)"
@@ -120,19 +212,19 @@ jobs:
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)"
           aws ecs update-service \
-            --cluster ostone-prod-cluster \
-            --service ostone-backend \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
             --task-definition "$NEW_TASK_DEF_ARN" \
             --desired-count 1 \
             --force-new-deployment \
             --region ap-northeast-2
           aws ecs wait services-stable \
-            --cluster ostone-prod-cluster \
-            --services ostone-backend \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
             --region ap-northeast-2
 
   frontend:
-    needs: paths-filter
+    needs: [paths-filter, terraform]
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -169,18 +261,18 @@ jobs:
 
       - name: Sync to S3
         env:
-          FRONTEND_BUCKET: ${{ secrets.FRONTEND_S3_BUCKET }}
+          FRONTEND_BUCKET: ${{ needs.terraform.outputs.frontend_bucket_name }}
         run: |
           aws s3 sync frontend/dist/ "s3://$FRONTEND_BUCKET/" --delete
 
       - name: Invalidate CloudFront
         env:
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ needs.terraform.outputs.cloudfront_distribution_id }}
         run: |
           aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
 
   ml-embedder:
-    needs: paths-filter
+    needs: [paths-filter, terraform]
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml_embedder == 'true' }}
     runs-on: ubuntu-latest
     steps:
