@@ -57,7 +57,33 @@
 }
 
 .searchInput {
-  padding: 0 12px 0 34px;
+  padding: 0 42px 0 34px;
+}
+
+.searchButton {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    opacity 0.15s;
+}
+
+.searchButton:hover {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
 }
 
 .input,
@@ -70,6 +96,11 @@
 .select:focus {
   outline: none;
   border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
+.searchButton:focus-visible {
+  outline: none;
   box-shadow: var(--focus-ring);
 }
 

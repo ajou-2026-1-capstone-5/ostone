@@ -213,10 +213,21 @@ describe("ChatHistoryPage", () => {
     expect(search.get("page")).toBe("1");
   });
 
-  it("검색어를 변경하면 URL query를 갱신하고 page를 초기화한다", () => {
+  it("검색어 입력 중에는 URL query를 갱신하지 않는다", () => {
     renderPage("/workspaces/1/consultation/history?page=3");
 
     fireEvent.change(screen.getByLabelText("상담 기록 검색"), { target: { value: "배송" } });
+
+    const search = new URLSearchParams(currentSearch);
+    expect(search.has("q")).toBe(false);
+    expect(search.get("page")).toBe("3");
+  });
+
+  it("검색어를 제출하면 URL query를 갱신하고 page를 초기화한다", () => {
+    renderPage("/workspaces/1/consultation/history?page=3");
+
+    fireEvent.change(screen.getByLabelText("상담 기록 검색"), { target: { value: "배송" } });
+    fireEvent.click(screen.getByRole("button", { name: "검색어로 상담 기록 검색" }));
 
     const search = new URLSearchParams(currentSearch);
     expect(search.get("q")).toBe("배송");
