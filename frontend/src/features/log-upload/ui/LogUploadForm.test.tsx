@@ -129,30 +129,32 @@ describe("LogUploadForm", () => {
       screen.getByText("상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다."),
     ).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
-    expect(screen.getByTestId("accepted-types")).toHaveTextContent(".json,application/json");
-    expect(screen.getByTestId("policy-copy")).toHaveTextContent("JSON 50MB JSON");
+    expect(screen.getByTestId("accepted-types")).toHaveTextContent(
+      ".zip,application/zip,application/x-zip-compressed",
+    );
+    expect(screen.getByTestId("policy-copy")).toHaveTextContent("ZIP 50MB ZIP");
   });
 
   it("shows file preview and Start Processing button after selecting a file", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["test"], "test.json", { type: "application/json" });
+    const file = new File(["test"], "test.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     expect(screen.getByText("처리 시작")).toBeInTheDocument();
-    expect(screen.getByText("test.json")).toBeInTheDocument();
+    expect(screen.getByText("test.zip")).toBeInTheDocument();
   });
 
-  it("rejects non-JSON files with toast error", () => {
+  it("rejects non-ZIP files with toast error", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["test"], "test.csv", { type: "text/csv" });
+    const file = new File(["test"], "test.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("JSON 파일만 업로드할 수 있습니다.");
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("ZIP 파일만 업로드할 수 있습니다.");
   });
 
   it("rejects files larger than 50MB with toast error", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["test"], "big.json", { type: "application/json" });
+    const file = new File(["test"], "big.zip", { type: "application/zip" });
     Object.defineProperty(file, "size", { value: 51 * 1024 * 1024 });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
@@ -161,7 +163,7 @@ describe("LogUploadForm", () => {
 
   it("calls mutate on Start Processing click", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -170,7 +172,7 @@ describe("LogUploadForm", () => {
 
   it("does not call mutate when workspaceId is undefined", () => {
     render(<LogUploadForm />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     const btn = screen.queryByText("처리 시작");
@@ -180,7 +182,7 @@ describe("LogUploadForm", () => {
 
   it("shows generation CTA after successful upload", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -193,7 +195,7 @@ describe("LogUploadForm", () => {
   it("shows upload failure toast with retry action", () => {
     mockUploadError = new Error("업로드 실패");
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -214,7 +216,7 @@ describe("LogUploadForm", () => {
 
   it("triggers domain pack generation with uploaded dataset id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -224,7 +226,7 @@ describe("LogUploadForm", () => {
 
   it("shows review CTA after generation request succeeds with pipeline job id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -247,7 +249,7 @@ describe("LogUploadForm", () => {
 
   it("keeps domain pack fallback when generation response has no pipeline job id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -264,7 +266,7 @@ describe("LogUploadForm", () => {
 
   it("shows retry action when generation request fails", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
@@ -281,7 +283,7 @@ describe("LogUploadForm", () => {
 
   it("resets form state when Upload Another File is clicked", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
-    const file = new File(["data"], "data.json", { type: "application/json" });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));

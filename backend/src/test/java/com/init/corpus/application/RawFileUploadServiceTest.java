@@ -53,12 +53,12 @@ class RawFileUploadServiceTest {
 
   private RawFileUploadService service;
 
-  private static final byte[] VALID_JSON =
-      ("[{\"source_id\":\"001\",\"source\":\"테스트\","
-              + "\"consulting_category\":\"배송\",\"client_gender\":\"\","
-              + "\"client_age\":\"\",\"consulting_content\":"
-              + "\"상담사: 안녕하세요.\\n고객: 문의가 있어요.\"}]")
-          .getBytes(StandardCharsets.UTF_8);
+  private static final String VALID_JSON_TEXT =
+      "[{\"source_id\":\"001\",\"source\":\"테스트\","
+          + "\"consulting_category\":\"배송\",\"client_gender\":\"\","
+          + "\"client_age\":\"\",\"consulting_content\":"
+          + "\"상담사: 안녕하세요.\\n고객: 문의가 있어요.\"}]";
+  private static final byte[] VALID_JSON = VALID_JSON_TEXT.getBytes(StandardCharsets.UTF_8);
 
   @BeforeEach
   void setUp() {
@@ -88,10 +88,10 @@ class RawFileUploadServiceTest {
     given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
 
     DatasetRawFile savedFile =
-        DatasetRawFile.create(
-            42L, "some-key", "test.json", "application/json", 100L, "a".repeat(64));
+        DatasetRawFile.create(42L, "some-key", "test.zip", "application/zip", 100L, "a".repeat(64));
     given(rawFileRepository.save(any())).willReturn(savedFile);
 
+    byte[] zipBytes = validZipBytes();
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -99,10 +99,10 @@ class RawFileUploadServiceTest {
             "테스트",
             "CRM",
             1L,
-            VALID_JSON,
-            "test.json",
-            "application/json",
-            VALID_JSON.length);
+            zipBytes,
+            "test.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     RawFileUploadResult result = service.upload(command);
 
@@ -177,8 +177,8 @@ class RawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_parse_json_object_with_data_array")
-  void upload_jsonObjectWithDataArray_parsesConversations() {
+  @DisplayName("should_parse_json_object_with_data_array_inside_zip")
+  void upload_zipEntryWithJsonObjectDataArray_parsesConversations() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "object-json")).willReturn(false);
@@ -190,27 +190,28 @@ class RawFileUploadServiceTest {
     given(rawFileRepository.save(any()))
         .willReturn(
             DatasetRawFile.create(
-                44L, "some-key", "object.json", "application/json", 100L, "c".repeat(64)));
-    byte[] bytes =
-        """
+                44L, "some-key", "object.zip", "application/zip", 100L, "c".repeat(64)));
+    byte[] zipBytes =
+        zip(
+            "object.json",
+            """
         {"data":[
           {"id":"obj-001","channel":"톡","consulting_category":"카드","full_text":"분실 정지 문의"},
           {"case_id":"obj-002","source":"전화","conversation":"한도 상향 문의"}
         ]}
-        """
-            .getBytes(StandardCharsets.UTF_8);
+        """);
 
     service.upload(
         new RawFileUploadCommand(
             1L,
             "object-json",
             "객체 JSON",
-            "PARSED_FLAT_JSON",
+            "PARSED_FLAT_ZIP",
             1L,
-            bytes,
-            "object.json",
-            "application/json",
-            bytes.length));
+            zipBytes,
+            "object.zip",
+            "application/zip",
+            (long) zipBytes.length));
 
     ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
         ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
@@ -273,7 +274,7 @@ class RawFileUploadServiceTest {
 
   @Test
   @DisplayName("should_build_content_from_turns_with_korean_speaker_roles")
-  void upload_turnsWithKoreanSpeakerRoles_buildsConsultingContent() {
+  void upload_turnsWithKoreanSpeakerRoles_buildsConsultingContent() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "turn-json")).willReturn(false);
@@ -285,28 +286,29 @@ class RawFileUploadServiceTest {
     given(rawFileRepository.save(any()))
         .willReturn(
             DatasetRawFile.create(
-                46L, "some-key", "turns.json", "application/json", 100L, "e".repeat(64)));
-    byte[] bytes =
-        """
+                46L, "some-key", "turns.zip", "application/zip", 100L, "e".repeat(64)));
+    byte[] zipBytes =
+        zip(
+            "turns.json",
+            """
         [{"source_id":"turn-001","turns":[
           {"화자":"직원","발화":"본인 확인 도와드리겠습니다."},
           {"role":"customer","utterance":"네."},
           {"speaker":"system","text":""}
         ]}]
-        """
-            .getBytes(StandardCharsets.UTF_8);
+        """);
 
     service.upload(
         new RawFileUploadCommand(
             1L,
             "turn-json",
             "턴 JSON",
-            "PARSED_FLAT_JSON",
+            "PARSED_FLAT_ZIP",
             1L,
-            bytes,
-            "turns.json",
-            "application/json",
-            bytes.length));
+            zipBytes,
+            "turns.zip",
+            "application/zip",
+            (long) zipBytes.length));
 
     ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
         ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
@@ -317,25 +319,25 @@ class RawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_reject_empty_json_file")
-  void upload_emptyJsonFile_throwsRawFileParseException() {
+  @DisplayName("should_reject_empty_json_entry_inside_zip")
+  void upload_zipWithEmptyJsonEntry_throwsRawFileParseException() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "empty-json")).willReturn(false);
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
 
-    byte[] emptyJson = "  \n ".getBytes(StandardCharsets.UTF_8);
+    byte[] zipBytes = zip("empty.json", "  \n ");
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
             "empty-json",
             "빈 JSON",
-            "PARSED_FLAT_JSON",
+            "PARSED_FLAT_ZIP",
             1L,
-            emptyJson,
-            "empty.json",
-            "application/json",
-            (long) emptyJson.length);
+            zipBytes,
+            "empty.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RawFileParseException.class)
@@ -346,25 +348,25 @@ class RawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_reject_json_without_conversation_nodes")
-  void upload_scalarJson_throwsRawFileParseException() {
+  @DisplayName("should_reject_json_entry_without_conversation_nodes")
+  void upload_zipWithScalarJsonEntry_throwsRawFileParseException() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "scalar-json")).willReturn(false);
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
 
-    byte[] scalarJson = "123".getBytes(StandardCharsets.UTF_8);
+    byte[] zipBytes = zip("scalar.json", "123");
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
             "scalar-json",
             "스칼라 JSON",
-            "PARSED_FLAT_JSON",
+            "PARSED_FLAT_ZIP",
             1L,
-            scalarJson,
-            "scalar.json",
-            "application/json",
-            scalarJson.length);
+            zipBytes,
+            "scalar.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RawFileParseException.class)
@@ -375,26 +377,27 @@ class RawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_reject_json_missing_consulting_content")
-  void upload_jsonMissingConsultingContent_throwsRawFileParseException() {
+  @DisplayName("should_reject_json_entry_missing_consulting_content")
+  void upload_zipWithJsonEntryMissingConsultingContent_throwsRawFileParseException()
+      throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "missing-content"))
         .willReturn(false);
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
 
-    byte[] bytes = "[{\"source_id\":\"bad-001\",\"turns\":[]}]".getBytes(StandardCharsets.UTF_8);
+    byte[] zipBytes = zip("missing.json", "[{\"source_id\":\"bad-001\",\"turns\":[]}]");
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
             "missing-content",
             "본문 없음",
-            "PARSED_FLAT_JSON",
+            "PARSED_FLAT_ZIP",
             1L,
-            bytes,
-            "missing.json",
-            "application/json",
-            bytes.length);
+            zipBytes,
+            "missing.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RawFileParseException.class)
@@ -521,6 +524,34 @@ class RawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_reject_non_zip_before_storage")
+  void upload_nonZipFile_throwsRawFileParseExceptionBeforeStorage() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "json-file")).willReturn(false);
+
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "json-file",
+            "단일 JSON",
+            "PARSED_FLAT_JSON",
+            1L,
+            VALID_JSON,
+            "logs.json",
+            "application/json",
+            (long) VALID_JSON.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("ZIP 파일만 업로드할 수 있습니다.");
+
+    verify(storagePort, never()).put(anyString(), any(), anyString());
+    verify(storagePort, never()).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
   @DisplayName("should_throw_WorkspaceNotFoundException_when_워크스페이스_없음")
   void upload_workspaceNotFound_throwsException() {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(false);
@@ -593,17 +624,25 @@ class RawFileUploadServiceTest {
   }
 
   @Test
-  @DisplayName("should_throw_RawFileParseException_when_잘못된_JSON")
-  void upload_invalidJson_throwsRawFileParseException() {
+  @DisplayName("should_throw_RawFileParseException_when_ZIP_내부_JSON_잘못됨")
+  void upload_zipWithInvalidJsonEntry_throwsRawFileParseException() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "key")).willReturn(false);
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
 
-    byte[] badJson = "NOT JSON".getBytes(StandardCharsets.UTF_8);
+    byte[] zipBytes = zip("bad.json", "NOT JSON");
     RawFileUploadCommand command =
         new RawFileUploadCommand(
-            1L, "key", "name", "src", 1L, badJson, "f.json", "application/json", 8L);
+            1L,
+            "key",
+            "name",
+            "src",
+            1L,
+            zipBytes,
+            "bad.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command)).isInstanceOf(RawFileParseException.class);
 
@@ -620,6 +659,7 @@ class RawFileUploadServiceTest {
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
     given(rawDatasetUploadService.upload(any())).willThrow(new RuntimeException("DB error"));
 
+    byte[] zipBytes = validZipBytes();
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -627,10 +667,10 @@ class RawFileUploadServiceTest {
             "name",
             "src",
             1L,
-            VALID_JSON,
-            "f.json",
-            "application/json",
-            (long) VALID_JSON.length);
+            zipBytes,
+            "f.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RuntimeException.class)
@@ -652,6 +692,7 @@ class RawFileUploadServiceTest {
     given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
     given(rawFileRepository.save(any())).willThrow(new RuntimeException("DB save error"));
 
+    byte[] zipBytes = validZipBytes();
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -659,10 +700,10 @@ class RawFileUploadServiceTest {
             "name",
             "src",
             1L,
-            VALID_JSON,
-            "f.json",
-            "application/json",
-            (long) VALID_JSON.length);
+            zipBytes,
+            "f.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RuntimeException.class)
@@ -685,11 +726,12 @@ class RawFileUploadServiceTest {
     given(rawFileRepository.save(any()))
         .willReturn(
             DatasetRawFile.create(
-                42L, "some-key", "f.json", "application/json", 100L, "a".repeat(64)));
+                42L, "some-key", "f.zip", "application/zip", 100L, "a".repeat(64)));
     willThrow(new RuntimeException("trigger error"))
         .given(triggerPort)
         .trigger(anyLong(), anyLong(), anyString());
 
+    byte[] zipBytes = validZipBytes();
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -697,10 +739,10 @@ class RawFileUploadServiceTest {
             "name",
             "src",
             1L,
-            VALID_JSON,
-            "f.json",
-            "application/json",
-            (long) VALID_JSON.length);
+            zipBytes,
+            "f.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RuntimeException.class)
@@ -719,6 +761,7 @@ class RawFileUploadServiceTest {
     given(rawDatasetUploadService.upload(any())).willThrow(new RuntimeException("DB error"));
     willThrow(new RuntimeException("S3 delete failed")).given(storagePort).delete(anyString());
 
+    byte[] zipBytes = validZipBytes();
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -726,10 +769,10 @@ class RawFileUploadServiceTest {
             "name",
             "src",
             1L,
-            VALID_JSON,
-            "f.json",
-            "application/json",
-            (long) VALID_JSON.length);
+            zipBytes,
+            "f.zip",
+            "application/zip",
+            (long) zipBytes.length);
 
     // original DB exception must propagate, not the S3 delete exception
     assertThatThrownBy(() -> service.upload(command))
@@ -749,6 +792,14 @@ class RawFileUploadServiceTest {
       zip.closeEntry();
     }
     return bytes.toByteArray();
+  }
+
+  private byte[] validZipBytes() {
+    try {
+      return zip("logs.json", VALID_JSON_TEXT);
+    } catch (IOException e) {
+      throw new IllegalStateException("테스트 ZIP 생성 실패", e);
+    }
   }
 
   private byte[] zip(String name, String content) throws IOException {
