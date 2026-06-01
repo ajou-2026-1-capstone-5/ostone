@@ -365,9 +365,9 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
         </div>
         <span className={styles.resultCount}>현재 {visibleCustomers.length}건 표시</span>
         {syncNotice && (
-          <div className={styles.syncNotice} role="status">
+          <output className={styles.syncNotice}>
             {syncNotice}
-          </div>
+          </output>
         )}
       </div>
 
