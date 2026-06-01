@@ -494,6 +494,30 @@ describe("UserChatPage", () => {
     expect(screen.queryByText("Hello")).toBeNull();
   });
 
+  it("AI 응답 생성 중 충돌이면 전송 중 안내를 표시한다", async () => {
+    stompState.connectionStatus = "CONNECTED";
+    sendDemoChatMessageMock.mockRejectedValueOnce(
+      new ApiRequestError(
+        409,
+        "AI_RESPONSE_IN_PROGRESS",
+        "AI 응답 생성 중입니다. 잠시 후 다시 시도해 주세요.",
+      ),
+    );
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(
+      await screen.findByText("AI 응답 생성 중입니다. 잠시 후 다시 시도해 주세요."),
+    ).not.toBeNull();
+    expect(screen.queryByText("Hello")).toBeNull();
+  });
+
   it("상담사 WebSocket 메시지를 고객 화면에 반영한다", async () => {
     let topicHandler: ((message: unknown) => void) | undefined;
     stompState.connectionStatus = "CONNECTED";

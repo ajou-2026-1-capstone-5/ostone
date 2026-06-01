@@ -30,6 +30,13 @@ function resolveSessionStartErrorMessage(error: unknown): string {
   return "채팅 세션을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 }
 
+function resolveMessageSendErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError && error.code === "AI_RESPONSE_IN_PROGRESS") {
+    return "AI 응답 생성 중입니다. 잠시 후 다시 시도해 주세요.";
+  }
+  return "응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+}
+
 const DEMO_SESSION_STORAGE_PREFIX = "ostone:demo-chat-session";
 const LOCAL_USER_MESSAGE_PREFIX = "local-user-";
 const BOT_TYPING_MIN_MS = 1000;
@@ -392,7 +399,7 @@ export function UserChatPage() {
 
     try {
       await sendDemoChatMessage(workspaceId, activeSession.id, content);
-    } catch {
+    } catch (error) {
       setChatState((current) => {
         if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
           return current;
@@ -405,7 +412,7 @@ export function UserChatPage() {
           },
         };
       });
-      setMessageError("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setMessageError(resolveMessageSendErrorMessage(error));
       pendingBotMessagesRef.current = [];
       clearBotTypingTimeout();
       setBotTyping(false);

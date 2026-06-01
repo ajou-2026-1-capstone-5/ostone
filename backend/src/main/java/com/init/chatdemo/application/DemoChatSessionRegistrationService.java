@@ -8,10 +8,12 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.exception.AiResponseInProgressException;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -21,6 +23,7 @@ import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +54,7 @@ public class DemoChatSessionRegistrationService {
   private final SimpMessagingTemplate messagingTemplate;
   private final ApplicationEventPublisher eventPublisher;
   private final ChatSessionMetadataService chatSessionMetadataService;
+  private final AiResponseGenerationGuard aiResponseGenerationGuard;
 
   public DemoChatSessionRegistrationService(
       DomainPackVersionRepository domainPackVersionRepository,
@@ -59,7 +63,8 @@ public class DemoChatSessionRegistrationService {
       LlmAssistantService llmAssistantService,
       SimpMessagingTemplate messagingTemplate,
       ApplicationEventPublisher eventPublisher,
-      ChatSessionMetadataService chatSessionMetadataService) {
+      ChatSessionMetadataService chatSessionMetadataService,
+      AiResponseGenerationGuard aiResponseGenerationGuard) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
@@ -67,6 +72,7 @@ public class DemoChatSessionRegistrationService {
     this.messagingTemplate = messagingTemplate;
     this.eventPublisher = eventPublisher;
     this.chatSessionMetadataService = chatSessionMetadataService;
+    this.aiResponseGenerationGuard = aiResponseGenerationGuard;
   }
 
   @Transactional
@@ -104,6 +110,19 @@ public class DemoChatSessionRegistrationService {
   @Transactional
   public List<ChatMessageResponse> appendMessage(Long workspaceId, Long sessionId, String content) {
     String normalizedContent = normalizeMessageContent(content);
+    Optional<AiResponseGenerationGuard.Lease> lease = aiResponseGenerationGuard.tryEnter(sessionId);
+    if (lease.isEmpty()) {
+      ensureSessionBelongsToWorkspace(workspaceId, sessionId);
+      throw new AiResponseInProgressException();
+    }
+
+    try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
+      return appendMessageWithGenerationSlot(workspaceId, sessionId, normalizedContent);
+    }
+  }
+
+  private List<ChatMessageResponse> appendMessageWithGenerationSlot(
+      Long workspaceId, Long sessionId, String normalizedContent) {
     ChatSession session =
         chatSessionRepository
             .findByIdForUpdate(sessionId)
@@ -134,6 +153,18 @@ public class DemoChatSessionRegistrationService {
     publishQueueUpsert(session);
     broadcastAfterCommit(sessionId, responses);
     return responses;
+  }
+
+  private void ensureSessionBelongsToWorkspace(Long workspaceId, Long sessionId) {
+    ChatSession session =
+        chatSessionRepository
+            .findById(sessionId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    if (!workspaceId.equals(session.getWorkspaceId())) {
+      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId);
+    }
   }
 
   public ListDemoChatMessagesResult listMessages(ListDemoChatMessagesCommand command) {

@@ -17,10 +17,12 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.exception.AiResponseInProgressException;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -61,9 +63,11 @@ class DemoChatSessionRegistrationServiceTest {
   @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   private DemoChatSessionRegistrationService service;
+  private AiResponseGenerationGuard aiResponseGenerationGuard;
 
   @BeforeEach
   void setUp() {
+    aiResponseGenerationGuard = new AiResponseGenerationGuard();
     service =
         new DemoChatSessionRegistrationService(
             domainPackVersionRepository,
@@ -72,7 +76,8 @@ class DemoChatSessionRegistrationServiceTest {
             llmAssistantService,
             messagingTemplate,
             eventPublisher,
-            chatSessionMetadataService);
+            chatSessionMetadataService,
+            aiResponseGenerationGuard);
   }
 
   @Test
@@ -177,6 +182,32 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(responses.get(1).content()).contains("자동 응답 생성이 원활하지 않습니다");
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
+  @DisplayName("데모 세션 응답 생성 중이면 추가 메시지를 저장하지 않고 충돌로 거절한다")
+  void should_throwConflictWithoutSaving_when_generationAlreadyRunningForSession() {
+    Optional<AiResponseGenerationGuard.Lease> lease =
+        aiResponseGenerationGuard.tryEnter(SESSION_ID);
+    assertThat(lease).isPresent();
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+
+    try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
+      assertThatThrownBy(() -> service.appendMessage(WORKSPACE_ID, SESSION_ID, "추가 질문"))
+          .isInstanceOf(AiResponseInProgressException.class)
+          .satisfies(
+              throwable ->
+                  assertThat(((AiResponseInProgressException) throwable).getCode())
+                      .isEqualTo(AiResponseGenerationGuard.IN_PROGRESS_CODE));
+    }
+
+    verify(chatSessionRepository, never()).findByIdForUpdate(SESSION_ID);
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(messagingTemplate, never()).convertAndSend(any(), any(ChatMessageResponse.class));
   }
 
   @Test
