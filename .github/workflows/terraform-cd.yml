@@ -63,6 +63,16 @@ jobs:
           aws-region: ap-northeast-2
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
 
+      - name: Ensure Terraform Cloud Map permissions
+        env:
+          TERRAFORM_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          role_name="${TERRAFORM_ROLE_ARN##*/}"
+          aws iam put-role-policy \
+            --role-name "$role_name" \
+            --policy-name ostone-terraform-servicediscovery \
+            --policy-document file://infra/aws/github-actions-terraform-servicediscovery-policy.json
+
       - name: Terraform Init
         id: init
         working-directory: infra/terraform
@@ -165,6 +175,16 @@ jobs:
         with:
           aws-region: ap-northeast-2
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Ensure Terraform Cloud Map permissions
+        env:
+          TERRAFORM_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          role_name="${TERRAFORM_ROLE_ARN##*/}"
+          aws iam put-role-policy \
+            --role-name "$role_name" \
+            --policy-name ostone-terraform-servicediscovery \
+            --policy-document file://infra/aws/github-actions-terraform-servicediscovery-policy.json
 
       - name: Terraform Init
         working-directory: infra/terraform

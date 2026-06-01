@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageTerraformServiceDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "servicediscovery:CreatePrivateDnsNamespace",
+        "servicediscovery:DeleteNamespace",
+        "servicediscovery:GetNamespace",
+        "servicediscovery:ListNamespaces",
+        "servicediscovery:CreateService",
+        "servicediscovery:DeleteService",
+        "servicediscovery:GetService",
+        "servicediscovery:ListServices",
+        "servicediscovery:UpdateService",
+        "servicediscovery:GetOperation",
+        "servicediscovery:ListOperations",
+        "servicediscovery:TagResource",
+        "servicediscovery:UntagResource",
+        "servicediscovery:ListTagsForResource"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
