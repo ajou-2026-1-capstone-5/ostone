@@ -1,5 +1,5 @@
 import { ArrowRightIcon } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 
 import { unwrapApiResponse } from "@/shared/api";
 import { useListDomainPacks } from "@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller";
@@ -11,6 +11,19 @@ import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 
 import styles from "./domain-pack-list-page.module.css";
+
+type DomainPackStatusFilter = "all" | "operating" | "idle";
+
+const STATUS_FILTER_QUERY_KEY = "status";
+const STATUS_FILTERS: Array<{ value: DomainPackStatusFilter; label: string }> = [
+  { value: "all", label: "전체" },
+  { value: "operating", label: "운영중" },
+  { value: "idle", label: "비운영" },
+];
+
+function parseStatusFilter(value: string | null): DomainPackStatusFilter {
+  return value === "operating" || value === "idle" ? value : "all";
+}
 
 function isOperatingPack(pack: DomainPackSummaryResult): boolean {
   return pack.currentVersionId != null;
@@ -125,12 +138,29 @@ function PackSection({ id, title, count, emptyMessage, packs, workspaceId }: Pac
 
 export function DomainPackListPage() {
   const { workspaceId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const safeWorkspaceId = parsedWorkspaceId ?? 0;
+  const selectedStatusFilter = parseStatusFilter(searchParams.get(STATUS_FILTER_QUERY_KEY));
 
   const query = useListDomainPacks(safeWorkspaceId, {
     query: { enabled: parsedWorkspaceId !== null },
   });
+
+  const handleStatusFilterChange = (nextFilter: DomainPackStatusFilter) => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (nextFilter === "all") {
+          next.delete(STATUS_FILTER_QUERY_KEY);
+        } else {
+          next.set(STATUS_FILTER_QUERY_KEY, nextFilter);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -170,37 +200,59 @@ export function DomainPackListPage() {
 
   const operatingPacks = packs.filter(isOperatingPack);
   const idlePacks = packs.filter((pack) => !isOperatingPack(pack));
+  const filterCounts: Record<DomainPackStatusFilter, number> = {
+    all: packs.length,
+    operating: operatingPacks.length,
+    idle: idlePacks.length,
+  };
+  const showOperatingSection = selectedStatusFilter !== "idle";
+  const showIdleSection = selectedStatusFilter !== "operating";
 
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>도메인팩 관리</h1>
-          <div className={styles.summaryRow} aria-label="도메인팩 상태 요약">
-            <span className={styles.summaryPill}>전체 {packs.length}</span>
-            <span className={styles.summaryPill}>운영중 {operatingPacks.length}</span>
-            <span className={styles.summaryPill}>비운영 {idlePacks.length}</span>
+          <div className={styles.summaryRow} aria-label="도메인팩 상태 필터">
+            {STATUS_FILTERS.map((filter) => {
+              const selected = selectedStatusFilter === filter.value;
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  className={`${styles.summaryPill} ${selected ? styles.summaryPillActive : ""}`}
+                  aria-pressed={selected}
+                  onClick={() => handleStatusFilterChange(filter.value)}
+                >
+                  {filter.label} {filterCounts[filter.value]}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <div className={styles.sections}>
-        <PackSection
-          id="operating-domain-packs"
-          title="운영중인 도메인팩"
-          count={operatingPacks.length}
-          emptyMessage="운영중인 도메인팩이 없습니다."
-          packs={operatingPacks}
-          workspaceId={parsedWorkspaceId}
-        />
-        <PackSection
-          id="idle-domain-packs"
-          title="비운영 도메인팩"
-          count={idlePacks.length}
-          emptyMessage="비운영 도메인팩이 없습니다."
-          packs={idlePacks}
-          workspaceId={parsedWorkspaceId}
-        />
+        {showOperatingSection ? (
+          <PackSection
+            id="operating-domain-packs"
+            title="운영중인 도메인팩"
+            count={operatingPacks.length}
+            emptyMessage="운영중인 도메인팩이 없습니다."
+            packs={operatingPacks}
+            workspaceId={parsedWorkspaceId}
+          />
+        ) : null}
+        {showIdleSection ? (
+          <PackSection
+            id="idle-domain-packs"
+            title="비운영 도메인팩"
+            count={idlePacks.length}
+            emptyMessage="비운영 도메인팩이 없습니다."
+            packs={idlePacks}
+            workspaceId={parsedWorkspaceId}
+          />
+        ) : null}
       </div>
     </div>
   );

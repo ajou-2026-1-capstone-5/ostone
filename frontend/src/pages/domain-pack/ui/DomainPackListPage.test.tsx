@@ -137,6 +137,148 @@ describe("DomainPackListPage", () => {
     expect(screen.getByText("비운영 2")).toBeInTheDocument();
   });
 
+  it("운영중 필터를 선택하면 운영중 도메인팩만 표시한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "운영중 1" }));
+
+    expect(screen.getByRole("button", { name: "운영중 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Live Pack")).toBeInTheDocument();
+    expect(screen.queryByText("Draft Pack")).not.toBeInTheDocument();
+    expect(screen.getByText("운영중인 도메인팩")).toBeInTheDocument();
+    expect(screen.queryByText("비운영 도메인팩")).not.toBeInTheDocument();
+  });
+
+  it("비운영 필터를 선택하면 비운영 도메인팩만 표시한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "비운영 1" }));
+
+    expect(screen.getByRole("button", { name: "비운영 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Draft Pack")).toBeInTheDocument();
+    expect(screen.queryByText("Live Pack")).not.toBeInTheDocument();
+    expect(screen.getByText("비운영 도메인팩")).toBeInTheDocument();
+    expect(screen.queryByText("운영중인 도메인팩")).not.toBeInTheDocument();
+  });
+
+  it("URL query의 상태 필터를 초기 선택 상태로 반영한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+
+    renderPage("/workspaces/1/domain-packs?status=operating");
+
+    expect(screen.getByRole("button", { name: "운영중 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Live Pack")).toBeInTheDocument();
+    expect(screen.queryByText("Draft Pack")).not.toBeInTheDocument();
+  });
+
+  it("전체 필터를 선택하면 운영중과 비운영 도메인팩을 모두 표시한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    renderPage("/workspaces/1/domain-packs?status=operating");
+
+    fireEvent.click(screen.getByRole("button", { name: "전체 2" }));
+
+    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Live Pack")).toBeInTheDocument();
+    expect(screen.getByText("Draft Pack")).toBeInTheDocument();
+    expect(screen.getByText("운영중인 도메인팩")).toBeInTheDocument();
+    expect(screen.getByText("비운영 도메인팩")).toBeInTheDocument();
+  });
+
+  it("지원하지 않는 상태 query는 전체 필터로 처리한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [
+          { packId: 1, name: "Live Pack", currentVersionId: 10 },
+          { packId: 2, name: "Draft Pack" },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+
+    renderPage("/workspaces/1/domain-packs?status=unknown");
+
+    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Live Pack")).toBeInTheDocument();
+    expect(screen.getByText("Draft Pack")).toBeInTheDocument();
+  });
+
+  it("선택한 상태에 도메인팩이 없으면 섹션 빈 상태를 표시한다", () => {
+    useListDomainPacks.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        data: [{ packId: 2, name: "Draft Pack" }],
+      },
+      refetch: vi.fn(),
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "운영중 0" }));
+
+    expect(screen.getByText("운영중인 도메인팩")).toBeInTheDocument();
+    expect(screen.getByText("운영중인 도메인팩이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByText("Draft Pack")).not.toBeInTheDocument();
+  });
+
   it("name이 없으면 Pack {id} 폴백을 표시한다", () => {
     useListDomainPacks.mockReturnValue({
       isLoading: false,
