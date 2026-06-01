@@ -1,7 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { CompanyCard } from "./CompanyCard";
-import { DEMO_COMPANIES, type DemoCompany, getDefaultDemoCompany } from "../model/demoCompanies";
+import {
+  DEMO_COMPANIES,
+  type DemoCompany,
+  getDefaultDemoCompany,
+} from "../model/demoCompanies";
 
 const labelStyle = {
   fontFamily: "var(--mono)",
@@ -13,7 +18,9 @@ const labelStyle = {
 
 export function DemoPage() {
   const navigate = useNavigate();
-  const [activeCompany, setActiveCompany] = useState<DemoCompany>(getDefaultDemoCompany);
+  const [activeCompany, setActiveCompany] = useState<DemoCompany>(
+    getDefaultDemoCompany,
+  );
   const [draftName, setDraftName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -21,7 +28,9 @@ export function DemoPage() {
     event.preventDefault();
 
     if (!activeCompany.enabled) {
-      setNameError("선택한 회사는 아직 데모를 준비 중입니다. 다른 회사를 선택해 주세요.");
+      setNameError(
+        "선택한 회사는 아직 데모를 준비 중입니다. 다른 회사를 선택해 주세요.",
+      );
       return;
     }
 
@@ -32,7 +41,12 @@ export function DemoPage() {
     }
 
     setNameError(null);
-    navigate(`/demo/workspaces/${activeCompany.workspaceId}/chat?name=${encodeURIComponent(name)}`);
+    navigate(
+      buildDemoChatPath(
+        activeCompany.workspaceId,
+        new URLSearchParams({ name }),
+      ),
+    );
   };
 
   return (
@@ -62,13 +76,34 @@ export function DemoPage() {
           style={{ display: "flex", flexDirection: "column", gap: 12 }}
         >
           <div style={labelStyle}>Step 1 · 회사 선택</div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 540, letterSpacing: "-0.4px" }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 540,
+              letterSpacing: "-0.4px",
+            }}
+          >
             상담할 회사를 선택하세요
           </h1>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--ink-2)" }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--ink-2)",
+            }}
+          >
             카드를 클릭하거나 마우스를 올리면 회사 정보를 볼 수 있습니다.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              marginTop: 4,
+            }}
+          >
             {DEMO_COMPANIES.map((company) => (
               <CompanyCard
                 key={company.workspaceId}
@@ -90,7 +125,8 @@ export function DemoPage() {
             borderRadius: 12,
             border: "1px solid var(--line)",
             background: "var(--paper)",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 36px rgba(15, 23, 42, 0.06)",
+            boxShadow:
+              "0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 36px rgba(15, 23, 42, 0.06)",
           }}
         >
           <div
@@ -98,10 +134,24 @@ export function DemoPage() {
             style={{ display: "flex", flexDirection: "column", gap: 12 }}
           >
             <div style={labelStyle}>{activeCompany.industry}</div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 540, letterSpacing: "-0.3px" }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 22,
+                fontWeight: 540,
+                letterSpacing: "-0.3px",
+              }}
+            >
               {activeCompany.name}
             </h2>
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: "var(--ink-2)" }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13.5,
+                lineHeight: 1.65,
+                color: "var(--ink-2)",
+              }}
+            >
               {activeCompany.blurb}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -141,7 +191,10 @@ export function DemoPage() {
             }}
           >
             <div style={labelStyle}>Step 2 · 이름 입력</div>
-            <label htmlFor="demo-customer-name" style={{ ...labelStyle, marginBottom: 0 }}>
+            <label
+              htmlFor="demo-customer-name"
+              style={{ ...labelStyle, marginBottom: 0 }}
+            >
               이름
             </label>
             <input
@@ -185,7 +238,9 @@ export function DemoPage() {
                 padding: "0 18px",
                 borderRadius: 999,
                 border: "none",
-                background: activeCompany.enabled ? "var(--ink)" : "var(--ink-3)",
+                background: activeCompany.enabled
+                  ? "var(--ink)"
+                  : "var(--ink-3)",
                 color: "var(--paper)",
                 fontSize: 14,
                 fontWeight: 540,

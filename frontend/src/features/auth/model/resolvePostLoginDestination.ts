@@ -1,5 +1,9 @@
 const DEFAULT_POST_LOGIN_PATH = "/workspaces";
-const ALLOWED_RETURN_PREFIXES = ["/workspaces", "/demo/workspaces"];
+const ALLOWED_RETURN_PREFIXES = [
+  "/workspaces",
+  "/demo/chat",
+  "/demo/workspaces",
+];
 
 interface ReturnLocation {
   pathname?: unknown;
@@ -25,7 +29,9 @@ function extractReturnLocation(state: unknown): ReturnLocation | null {
 }
 
 function isExternalUrl(pathname: string): boolean {
-  return /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(pathname) || pathname.startsWith("//");
+  return (
+    /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(pathname) || pathname.startsWith("//")
+  );
 }
 
 function isAllowedPath(pathname: string): boolean {

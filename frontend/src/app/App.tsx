@@ -1,4 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { LoginPage } from "../pages/login/ui/LoginPage";
 import { SignupPage } from "../pages/signup/ui/SignupPage";
 import { WorkspaceRootRedirect } from "../pages/workspace/ui/WorkspaceRootRedirect";
@@ -27,6 +34,18 @@ import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
 import { Toaster } from "../shared/ui/sonner";
 import { WorkflowGraphViewerPage } from "../pages/domain-pack/ui/WorkflowGraphViewerPage";
 import { LegacyDomainPackVersionRedirect } from "../pages/domain-pack/ui/LegacyDomainPackVersionRedirect";
+import { buildDemoChatPath } from "../shared/lib/demoRoutes";
+
+function LegacyDemoChatRedirect() {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { search } = useLocation();
+
+  if (!workspaceId) {
+    return <Navigate to="/demo" replace />;
+  }
+
+  return <Navigate to={`${buildDemoChatPath(workspaceId)}${search}`} replace />;
+}
 
 export function App() {
   return (
@@ -37,7 +56,10 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordResetInitPage />} />
-        <Route path="/password-reset/complete" element={<PasswordResetCompletePage />} />
+        <Route
+          path="/password-reset/complete"
+          element={<PasswordResetCompletePage />}
+        />
         <Route
           path="/workspaces"
           element={
@@ -58,22 +80,37 @@ export function App() {
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="pipeline" element={<Navigate to="upload" replace />} />
           <Route path="consultation/history" element={<ChatHistoryPage />} />
-          <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
+          <Route
+            path="consultation/history/:sessionId"
+            element={<ChatHistoryPage />}
+          />
           <Route path="consultation" element={<ConsultationPage />} />
-          <Route path="consultation/:sessionId" element={<ConsultationPage />} />
+          <Route
+            path="consultation/:sessionId"
+            element={<ConsultationPage />}
+          />
           <Route path="upload" element={<WorkspaceUploadPage />} />
-          <Route path="pipeline-jobs/:pipelineJobId/review" element={<PipelineReviewPage />} />
+          <Route
+            path="pipeline-jobs/:pipelineJobId/review"
+            element={<PipelineReviewPage />}
+          />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
         <Route
           path="/demo"
           element={
-            <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+            <ErrorBoundary
+              fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
+            >
               <DemoPage />
             </ErrorBoundary>
           }
         />
-        <Route path="/demo/workspaces/:workspaceId/chat" element={<UserChatPage />} />
+        <Route path="/demo/chat/:workspaceId" element={<UserChatPage />} />
+        <Route
+          path="/demo/workspaces/:workspaceId/chat"
+          element={<LegacyDemoChatRedirect />}
+        />
         <Route
           path="/upload"
           element={
@@ -122,10 +159,19 @@ export function App() {
           <Route path="workflows">
             <Route index element={<PackWorkflowListPage />} />
             <Route path=":workflowId" element={<WorkflowDraftReadPage />} />
-            <Route path=":workflowId/graph" element={<WorkflowGraphViewerPage />} />
+            <Route
+              path=":workflowId/graph"
+              element={<WorkflowGraphViewerPage />}
+            />
           </Route>
-          <Route path="versions/:versionId/*" element={<LegacyDomainPackVersionRedirect />} />
-          <Route path="versions/:versionId" element={<LegacyDomainPackVersionRedirect />} />
+          <Route
+            path="versions/:versionId/*"
+            element={<LegacyDomainPackVersionRedirect />}
+          />
+          <Route
+            path="versions/:versionId"
+            element={<LegacyDomainPackVersionRedirect />}
+          />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

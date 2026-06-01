@@ -59,7 +59,10 @@ describe("Sidebar", () => {
   it("Domain Packs 링크는 active=consult이면 비활성이다", () => {
     renderSidebar({ active: "consult" });
 
-    expect(screen.getByTestId("sidebar-domain-link")).toHaveAttribute("data-active", "false");
+    expect(screen.getByTestId("sidebar-domain-link")).toHaveAttribute(
+      "data-active",
+      "false",
+    );
   });
 
   it("접기 버튼을 렌더하지 않는다", () => {
@@ -71,29 +74,44 @@ describe("Sidebar", () => {
   it("active=consult일 때 Consultation 항목이 강조된다", () => {
     renderSidebar({ active: "consult" });
 
-    expect(screen.getByTitle("상담 응대")).toHaveAttribute("data-active", "true");
+    expect(screen.getByTitle("상담 응대")).toHaveAttribute(
+      "data-active",
+      "true",
+    );
   });
 
   it("basePath prop을 지정하면 링크에 반영된다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
-    expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
+    expect(screen.getByTitle("상담 응대")).toHaveAttribute(
+      "href",
+      "/workspaces/7/consultation",
+    );
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
       "href",
-      "/demo/workspaces/7/chat",
+      "/demo/chat/7",
     );
-    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "target",
+      "_blank",
+    );
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
       "rel",
       "noopener noreferrer",
     );
-    expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute("href", "/workspaces/7/domain-packs");
+    expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute(
+      "href",
+      "/workspaces/7/domain-packs",
+    );
   });
 
   it("workspaceId를 추출할 수 없으면 사용자 화면 미리보기 링크를 안전한 내부 경로로 보낸다", () => {
     renderSidebar({ basePath: "/workspaces" });
 
-    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/workspaces");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute(
+      "href",
+      "/workspaces",
+    );
   });
 
   it("switcher가 주어지면 렌더링된다", () => {

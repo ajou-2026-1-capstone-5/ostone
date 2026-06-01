@@ -1,5 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import { App } from "./App";
 import { AppProviders } from "./providers";
 
@@ -54,6 +61,25 @@ describe("App", () => {
       </AppProviders>,
     );
     expect(screen.getByText(/CS Workflow Generator/i)).toBeInTheDocument();
+  });
+
+  it("redirects legacy demo workspace chat URLs to the canonical demo chat URL", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/demo/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80",
+    );
+
+    render(
+      <AppProviders>
+        <App />
+      </AppProviders>,
+    );
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/demo/chat/42");
+      expect(window.location.search).toBe("?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
+    });
   });
 
   it("redirects workspace home alias to workflows and renders the empty workflow state when there are no domain packs", async () => {
