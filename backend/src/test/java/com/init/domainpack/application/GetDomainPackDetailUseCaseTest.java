@@ -65,6 +65,7 @@ class GetDomainPackDetailUseCaseTest {
     StubDomainPack pack = new StubDomainPack(PACK_ID, WORKSPACE_ID, "my-key", "My Pack", null);
     DomainPackVersion version =
         DomainPackVersion.ofForTest(2L, PACK_ID, DomainPackVersion.STATUS_DRAFT);
+    ReflectionTestUtils.setField(version, "description", "사이드바 설명");
     given(domainPackRepository.findByIdAndWorkspaceId(PACK_ID, WORKSPACE_ID))
         .willReturn(Optional.of(pack));
     given(domainPackVersionRepository.findAllByDomainPackIdOrderByVersionNoDesc(PACK_ID))
@@ -87,6 +88,7 @@ class GetDomainPackDetailUseCaseTest {
     assertThat(result.currentVersionPublishedAt())
         .isEqualTo(OffsetDateTime.parse("2025-04-03T10:00:00+09:00"));
     assertThat(result.versions()).hasSize(1);
+    assertThat(result.versions().get(0).description()).isEqualTo("사이드바 설명");
   }
 
   @Test

@@ -152,7 +152,7 @@ describe("VersionListPanel", () => {
     expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
   });
 
-  it("운영 가능 버전과 상태가 없는 버전을 상담사 용어로 표시한다", () => {
+  it("PUBLISHED 버전은 운영 가능 배지를 숨기고 배포중/상태 배지만 표시한다", () => {
     render(
       <VersionListPanel
         query={makeQuery({
@@ -160,7 +160,12 @@ describe("VersionListPanel", () => {
             ...stubPack,
             versions: [
               { ...stubVersion, lifecycleStatus: "PUBLISHED", createdAt: "날짜 확인 전" },
-              { ...stubVersion2, versionNo: null, lifecycleStatus: null, createdAt: "날짜 확인 전" },
+              {
+                ...stubVersion2,
+                versionNo: null,
+                lifecycleStatus: null,
+                createdAt: "날짜 확인 전",
+              },
               {
                 ...stubVersion2,
                 versionId: 3,
@@ -177,11 +182,28 @@ describe("VersionListPanel", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("운영 가능");
+    expect(screen.getByRole("button", { name: /v1/ })).not.toHaveTextContent("운영 가능");
     expect(screen.getByRole("button", { name: /v1/ })).toHaveTextContent("배포중");
     expect(screen.getByRole("button", { name: /v-/ })).toHaveTextContent("상태 없음");
     expect(screen.getByRole("button", { name: /v3/ })).toHaveTextContent("상태 없음");
     expect(screen.getByRole("button", { name: /v3/ })).not.toHaveTextContent("ARCHIVED");
     expect(screen.getAllByText("날짜 확인 전")).toHaveLength(3);
+  });
+
+  it("description이 있는 버전은 목록에 설명을 렌더링한다", () => {
+    render(
+      <VersionListPanel
+        query={makeQuery({
+          data: {
+            ...stubPack,
+            versions: [{ ...stubVersion, description: "환불 정책 재구성" }],
+          },
+        })}
+        selectedId={1}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("환불 정책 재구성")).toBeInTheDocument();
   });
 });

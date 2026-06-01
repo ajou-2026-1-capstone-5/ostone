@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GetDomainPackVersionDetailUseCase")
@@ -106,6 +107,7 @@ class GetDomainPackVersionDetailUseCaseTest {
 
     DomainPackVersion version =
         DomainPackVersion.ofForTest(VERSION_ID, PACK_ID, DomainPackVersion.STATUS_DRAFT);
+    ReflectionTestUtils.setField(version, "description", "복원: v3 기준");
     given(domainPackVersionRepository.findById(VERSION_ID)).willReturn(Optional.of(version));
     given(domainPackVersionRepository.findByIdAndWorkspaceId(WORKSPACE_ID, VERSION_ID))
         .willReturn(Optional.of(version));
@@ -125,6 +127,7 @@ class GetDomainPackVersionDetailUseCaseTest {
 
     assertThat(result.versionId()).isEqualTo(VERSION_ID);
     assertThat(result.packId()).isEqualTo(PACK_ID);
+    assertThat(result.description()).isEqualTo("복원: v3 기준");
     assertThat(result.intentCount()).isEqualTo(4L);
     assertThat(result.slotCount()).isEqualTo(3L);
     assertThat(result.policyCount()).isEqualTo(2L);

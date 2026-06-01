@@ -7,6 +7,7 @@ public record DomainPackVersionSummaryEntry(
     Long versionId,
     Integer versionNo,
     String lifecycleStatus,
+    String description,
     Long sourcePipelineJobId,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {
@@ -16,6 +17,7 @@ public record DomainPackVersionSummaryEntry(
         v.getId(),
         v.getVersionNo(),
         v.getLifecycleStatus(),
+        v.getDescription(),
         v.getSourcePipelineJobId(),
         v.getCreatedAt(),
         v.getUpdatedAt());

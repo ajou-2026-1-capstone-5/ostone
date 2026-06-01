@@ -63,6 +63,7 @@ public class GetDomainPackVersionDetailUseCase {
         version.getLifecycleStatus(),
         version.getSourcePipelineJobId(),
         version.getSummaryJson(),
+        version.getDescription(),
         intentCount,
         slotDefinitionRepository.countByDomainPackVersionId(version.getId()),
         policyDefinitionRepository.countByDomainPackVersionId(version.getId()),

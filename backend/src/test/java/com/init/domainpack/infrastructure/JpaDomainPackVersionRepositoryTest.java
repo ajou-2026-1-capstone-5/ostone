@@ -46,7 +46,7 @@ class JpaDomainPackVersionRepositoryTest {
 
     DomainPackVersion version =
         ((DomainPackVersionRepository) repository)
-            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}"));
+            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}", null));
 
     // when
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(1L, version.getId());
@@ -66,7 +66,7 @@ class JpaDomainPackVersionRepositoryTest {
 
     DomainPackVersion version =
         ((DomainPackVersionRepository) repository)
-            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}"));
+            .saveAndFlush(DomainPackVersion.createDraft(pack.getId(), 1, null, null, "{}", null));
 
     // when — workspaceId=99L은 해당 pack의 workspaceId(1L)가 아님
     Optional<DomainPackVersion> result = repository.findByIdAndWorkspaceId(99L, version.getId());
@@ -116,7 +116,7 @@ class JpaDomainPackVersionRepositoryTest {
   private static DomainPackVersion publishedVersion(
       Long domainPackId, Integer versionNo, String publishedAt) {
     DomainPackVersion version =
-        DomainPackVersion.createDraft(domainPackId, versionNo, null, null, "{}");
+        DomainPackVersion.createDraft(domainPackId, versionNo, null, null, "{}", null);
     version.activate(OffsetDateTime.parse(publishedAt));
     return version;
   }

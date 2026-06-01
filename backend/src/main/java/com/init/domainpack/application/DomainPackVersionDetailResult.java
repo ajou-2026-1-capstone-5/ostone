@@ -9,6 +9,7 @@ public record DomainPackVersionDetailResult(
     String lifecycleStatus,
     Long sourcePipelineJobId,
     String summaryJson,
+    String description,
     long intentCount,
     long slotCount,
     long policyCount,

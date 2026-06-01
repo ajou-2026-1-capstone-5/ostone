@@ -323,4 +323,36 @@ describe("SummaryDetailPanel", () => {
 
     expect(onDiscardDraft).toHaveBeenCalledWith(3);
   });
+
+  it("PUBLISHED 버전은 운영 가능 배지를 렌더링하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel query={makeQuery({ data: publishedDetail })} wsId={1} packId={2} />,
+    );
+
+    expect(screen.queryByText("운영 가능")).not.toBeInTheDocument();
+  });
+
+  it("description이 있으면 우측에 연하게 렌더링한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: { ...stubDetail, description: "복원: v3 기준" } })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.getByText("복원: v3 기준")).toBeInTheDocument();
+  });
+
+  it("description이 없으면 설명 텍스트를 렌더링하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: { ...stubDetail, description: undefined } })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.queryByText("복원: v3 기준")).not.toBeInTheDocument();
+  });
 });
