@@ -2,7 +2,7 @@
 FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates \
+    curl ca-certificates zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -15,7 +15,8 @@ ENV TORCH_HOME=/app/.cache/torch
 ENV PYTHONPATH=/app/src
 
 # Copy dependency files first for layer caching
-COPY ml/pyproject.toml ml/uv.lock ./
+COPY ml/pyproject.toml ml/uv.lock ml/README.md ./
+COPY ml/src/ml/ ./src/ml/
 
 # Install runtime dependencies and the local BGE-M3 backend used in production.
 RUN uv sync --python 3.13 --frozen --no-dev \
