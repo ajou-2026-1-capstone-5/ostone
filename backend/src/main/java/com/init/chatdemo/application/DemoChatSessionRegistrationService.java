@@ -124,6 +124,13 @@ public class DemoChatSessionRegistrationService {
             ChatMessage.create(sessionId, nextSeqNo, "USER", "TEXT", normalizedContent));
     chatSessionMetadataService.updateAfterMessage(session, userMessage);
 
+    if (!session.allowsAiAutoResponse()) {
+      List<ChatMessageResponse> responses = List.of(ChatMessageResponse.from(userMessage));
+      publishQueueUpsert(session);
+      broadcastAfterCommit(sessionId, responses);
+      return responses;
+    }
+
     String assistantContent = generateAssistantContent(sessionId, normalizedContent);
     ChatMessage assistantMessage =
         chatMessageRepository.save(

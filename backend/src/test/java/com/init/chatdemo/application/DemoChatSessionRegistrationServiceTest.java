@@ -25,6 +25,7 @@ import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
@@ -150,6 +151,69 @@ class DemoChatSessionRegistrationServiceTest {
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
+  @DisplayName("상담사 배정 세션은 데모 사용자 메시지만 저장하고 assistant 자동응답을 생성하지 않는다")
+  void should_appendOnlyUserMessage_when_humanActiveSession() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    session.assignTo(11L);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.of(ChatMessage.create(SESSION_ID, 2, "ASSISTANT", "TEXT", "이전 답변")));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    List<ChatMessageResponse> responses =
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 아직 답변 없나요? ");
+
+    assertThat(responses).hasSize(1);
+    assertThat(responses.get(0).senderRole()).isEqualTo("USER");
+    assertThat(responses.get(0).seqNo()).isEqualTo(3);
+    assertThat(responses.get(0).content()).isEqualTo("아직 답변 없나요?");
+
+    ArgumentCaptor<ChatMessage> messageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+    verify(chatMessageRepository).save(messageCaptor.capture());
+    assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
+    verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
+    verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
+    verifyQueueUpsertEventPublished();
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
+  }
+
+  @Test
+  @DisplayName("AI 보조 모드 세션은 데모 사용자 메시지만 저장하고 assistant 자동응답을 생성하지 않는다")
+  void should_appendOnlyUserMessage_when_aiAssistOnlySession() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    session.assignTo(11L);
+    session.switchResponseMode(ChatSessionResponseMode.AI_ASSIST_ONLY);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.empty());
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    List<ChatMessageResponse> responses =
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 상담사에게 전달해주세요 ");
+
+    assertThat(responses).hasSize(1);
+    assertThat(responses.get(0).senderRole()).isEqualTo("USER");
+    assertThat(responses.get(0).seqNo()).isEqualTo(1);
+    assertThat(responses.get(0).content()).isEqualTo("상담사에게 전달해주세요");
+
+    ArgumentCaptor<ChatMessage> messageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+    verify(chatMessageRepository).save(messageCaptor.capture());
+    assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
+    verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
+    verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
+    verifyQueueUpsertEventPublished();
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
   }
 
   @Test
