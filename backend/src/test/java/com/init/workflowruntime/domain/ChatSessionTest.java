@@ -119,10 +119,31 @@ class ChatSessionTest {
   @DisplayName("switchResponseMode: AI 보조 모드로 전환하면 자동응답을 허용하지 않는다")
   void should_notAllowAutoResponse_when_assistOnly() {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    session.assignTo(42L);
 
     session.switchResponseMode(ChatSessionResponseMode.AI_ASSIST_ONLY);
 
     assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ASSIST_ONLY);
     assertThat(session.allowsAiAutoResponse()).isFalse();
+  }
+
+  @Test
+  @DisplayName("switchResponseMode: 상담사 모드는 배정 상담사가 필요하다")
+  void should_throw_when_switchingHumanModeWithoutAssignedCounselor() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+
+    assertThatThrownBy(() -> session.switchResponseMode(ChatSessionResponseMode.HUMAN_ACTIVE))
+        .isInstanceOf(InvalidSessionStateException.class)
+        .hasMessageContaining("requires an assigned counselor");
+  }
+
+  @Test
+  @DisplayName("switchResponseMode: 종료된 세션은 응대 모드를 변경할 수 없다")
+  void should_throw_when_switchingResponseModeForClosedSession() {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.COMPLETED, "WEB", "{}");
+
+    assertThatThrownBy(() -> session.switchResponseMode(ChatSessionResponseMode.AI_ACTIVE))
+        .isInstanceOf(InvalidSessionStateException.class)
+        .hasMessageContaining("requires an open or active session");
   }
 }

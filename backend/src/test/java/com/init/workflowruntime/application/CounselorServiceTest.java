@@ -408,6 +408,20 @@ class CounselorServiceTest {
   @DisplayName("updateResponseMode: 배정 상담사가 아니면 실패한다")
   void should_throwBadRequest_when_responseModeRequestedByOtherCounselor() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 99L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(42L, "AI_ACTIVE");
+
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("not assigned to counselor");
+  }
+
+  @Test
+  @DisplayName("updateResponseMode: 요청 상담사 ID가 인증 사용자와 다르면 실패한다")
+  void should_throwBadRequest_when_responseModeCounselorIdDoesNotMatchRequester() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
@@ -415,7 +429,7 @@ class CounselorServiceTest {
 
     assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
         .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("not assigned to counselor");
+        .hasMessageContaining("counselorId must match authenticated user");
   }
 
   @Test

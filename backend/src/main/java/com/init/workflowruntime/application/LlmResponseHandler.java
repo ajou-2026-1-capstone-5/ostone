@@ -82,7 +82,9 @@ public class LlmResponseHandler {
 
       ChatMessageResponse errorResponse =
           ChatMessageResponse.error("LLM_ERROR", "죄송합니다. 일시적인 오류가 발생했습니다.");
-      messagingTemplate.convertAndSend("/topic/chat." + event.sessionId(), errorResponse);
+      if (allowsAiAutoResponse(event.sessionId())) {
+        messagingTemplate.convertAndSend("/topic/chat." + event.sessionId(), errorResponse);
+      }
     }
   }
 
@@ -151,5 +153,12 @@ public class LlmResponseHandler {
               return Optional.of(saved);
             });
     return savedMessage;
+  }
+
+  private boolean allowsAiAutoResponse(Long sessionId) {
+    return chatSessionRepository
+        .findById(sessionId)
+        .map(ChatSession::allowsAiAutoResponse)
+        .orElse(false);
   }
 }

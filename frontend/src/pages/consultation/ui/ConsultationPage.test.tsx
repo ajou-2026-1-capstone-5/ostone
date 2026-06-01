@@ -70,7 +70,7 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
           metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
           startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
           assignedCounselorId: 7,
-          responseMode: "AI_ACTIVE",
+          responseMode: "HUMAN_ACTIVE",
         },
       ]),
     ),
@@ -1086,6 +1086,67 @@ describe("ConsultationPage", () => {
         "true",
       );
     });
+  });
+
+  it("shows an error toast when AI response mode update fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(consultationApi.updateResponseMode).mockRejectedValueOnce(new Error("forbidden"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("AI 응대 모드 변경에 실패했습니다.");
+    });
+    expect(screen.getByRole("button", { name: "상담사 응대중" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("disables AI response mode controls for unassigned sessions", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+        responseMode: "AI_ACTIVE",
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 응대중" })).toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: "상담사 응대중" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeDisabled();
   });
 
   it("releases the current counselor assignment through the backend API", async () => {

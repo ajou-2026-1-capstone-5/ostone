@@ -206,11 +206,24 @@ public class ChatSession {
     if (responseMode == null) {
       throw new InvalidSessionStateException("responseMode must not be null");
     }
+    if (this.status == ChatSessionStatus.COMPLETED || this.status == ChatSessionStatus.RESOLVED) {
+      throw new InvalidSessionStateException(
+          "switchResponseMode() requires an open or active session but was " + this.status);
+    }
+    if (requiresAssignedCounselor(responseMode) && this.assignedCounselorId == null) {
+      throw new InvalidSessionStateException(
+          "switchResponseMode() requires an assigned counselor for " + responseMode);
+    }
     this.responseMode = responseMode;
   }
 
   public void markHumanResponding() {
-    this.responseMode = ChatSessionResponseMode.HUMAN_ACTIVE;
+    switchResponseMode(ChatSessionResponseMode.HUMAN_ACTIVE);
+  }
+
+  private boolean requiresAssignedCounselor(ChatSessionResponseMode responseMode) {
+    return responseMode == ChatSessionResponseMode.HUMAN_ACTIVE
+        || responseMode == ChatSessionResponseMode.AI_ASSIST_ONLY;
   }
 
   public boolean allowsAiAutoResponse() {

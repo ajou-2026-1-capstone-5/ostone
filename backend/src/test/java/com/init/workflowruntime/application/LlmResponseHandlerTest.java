@@ -127,6 +127,24 @@ class LlmResponseHandlerTest {
   }
 
   @Test
+  @DisplayName("handleChatMessageReceived: LLM 예외 중 상담사 모드로 바뀌면 fallback 전송을 생략한다")
+  void should_skipFallback_when_responseModeChangesAfterLlmException() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(chatSessionRepository.findById(1L))
+        .willReturn(
+            Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)),
+            Optional.of(createSession(ChatSessionResponseMode.HUMAN_ACTIVE)));
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
+        .willThrow(new RuntimeException("API timeout"));
+
+    handler.handleChatMessageReceived(event);
+
+    verify(chatSessionRepository, never()).findByIdForUpdate(1L);
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
   @DisplayName("handleChatMessageReceived: 저장 트랜잭션이 null 반환 → fallback 메시지 STOMP push")
   void should_pushFallback_when_saveTransactionReturnsNull() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
@@ -190,7 +208,10 @@ class LlmResponseHandlerTest {
 
   private ChatSession createSession(ChatSessionResponseMode responseMode) {
     ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
-    session.switchResponseMode(responseMode);
+    if (responseMode != ChatSessionResponseMode.AI_ACTIVE) {
+      session.assignTo(42L);
+      session.switchResponseMode(responseMode);
+    }
     return session;
   }
 }

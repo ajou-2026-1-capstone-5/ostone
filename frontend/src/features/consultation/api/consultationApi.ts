@@ -155,6 +155,7 @@ export const consultationApi = {
     counselorId: number,
     responseMode: ConsultationResponseMode,
   ): Promise<ChatSession> => {
+    // OpenAPI generated endpoint is not available yet; replace this with generated API after api:gen exposes it.
     const response = await customFetch<ChatSession | { data?: ChatSession }>(
       `/api/v1/consultation/sessions/${sessionId}/response-mode`,
       {

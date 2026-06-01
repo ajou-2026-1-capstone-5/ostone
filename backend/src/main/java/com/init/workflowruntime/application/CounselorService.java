@@ -176,7 +176,7 @@ public class CounselorService {
   @Transactional
   public CounselorSessionResponse updateResponseMode(
       Long sessionId, UpdateResponseModeRequest request, Long userId) {
-    validateCounselorId(request.getCounselorId());
+    validateCounselorId(userId);
 
     ChatSession session =
         chatSessionRepository
@@ -186,10 +186,15 @@ public class CounselorService {
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
-    if (!Objects.equals(request.getCounselorId(), session.getAssignedCounselorId())) {
+    if (!Objects.equals(request.getCounselorId(), userId)) {
+      throw new BadRequestException(
+          "COUNSELOR_ID_MISMATCH", "counselorId must match authenticated user");
+    }
+
+    if (!Objects.equals(userId, session.getAssignedCounselorId())) {
       throw new BadRequestException(
           "SESSION_NOT_ASSIGNED",
-          "Session " + sessionId + " is not assigned to counselor: " + request.getCounselorId());
+          "Session " + sessionId + " is not assigned to counselor: " + userId);
     }
 
     session.switchResponseMode(parseResponseMode(request.getResponseMode()));
