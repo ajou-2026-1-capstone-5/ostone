@@ -49,6 +49,7 @@ const formatTime = (isoString: string) => {
 
 type RealtimeChatMessage = {
   id: string | number;
+  seqNo?: number | null;
   senderRole: string;
   content?: string | null;
   createdAt?: string | null;
@@ -57,6 +58,7 @@ type RealtimeChatMessage = {
 
 type MessageLike = {
   id?: string | number | null;
+  seqNo?: number | null;
   senderRole?: string | null;
   content?: string | null;
   createdAt?: string | null;
@@ -219,10 +221,37 @@ const toUiMessage = (message: MessageLike): UiChatMessage => {
   const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
   return {
     id: String(message.id ?? `message-${createdAt}-${message.content ?? ""}`),
+    ...(message.seqNo != null ? { seqNo: message.seqNo } : {}),
     senderRole: normalizeChatSenderRole(message.senderRole),
     content: message.content ?? "",
     timestamp: formatTime(createdAt),
   };
+};
+
+const sortMessagesByServerOrder = (messages: UiChatMessage[]) =>
+  messages
+    .map((message, index) => ({ message, index }))
+    .sort((a, b) => {
+      const leftSeqNo = a.message.seqNo;
+      const rightSeqNo = b.message.seqNo;
+      if (leftSeqNo != null && rightSeqNo != null && leftSeqNo !== rightSeqNo) {
+        return leftSeqNo - rightSeqNo;
+      }
+      if (leftSeqNo != null && rightSeqNo == null) return -1;
+      if (leftSeqNo == null && rightSeqNo != null) return 1;
+      return a.index - b.index;
+    })
+    .map(({ message }) => message);
+
+const mergeMessagesById = (
+  currentMessages: UiChatMessage[],
+  nextMessages: UiChatMessage[],
+): UiChatMessage[] => {
+  const byId = new Map<string, UiChatMessage>();
+  [...currentMessages, ...nextMessages].forEach((message) => {
+    byId.set(message.id, message);
+  });
+  return sortMessagesByServerOrder(Array.from(byId.values()));
 };
 
 const shouldRefreshMatchedWorkflow = (role: ChatSenderRole) =>
@@ -282,7 +311,9 @@ const reconcileCounselorEchoMessage = (
 
   clearTimeout(pendingMatch.timeoutId);
   pendingMessages.delete(pendingMatch.id);
-  return messages.map((message) => (message.id === pendingMatch.id ? serverMessage : message));
+  return sortMessagesByServerOrder(
+    messages.map((message) => (message.id === pendingMatch.id ? serverMessage : message)),
+  );
 };
 
 const markMessageSending = (messages: UiChatMessage[], messageId: string) =>
@@ -1148,7 +1179,8 @@ export const ConsultationPage: React.FC = () => {
           size: MESSAGE_PAGE_SIZE,
         });
         if (cancelled) return;
-        setMessages(messagePage.content.map(toUiMessage));
+        const loadedMessages = sortMessagesByServerOrder(messagePage.content.map(toUiMessage));
+        setMessages((prev) => mergeMessagesById(prev, loadedMessages));
         setMessagesCustomerId(activeCustomerId);
         setMessagePagination({
           nextPage: messagePage.page + 1,
@@ -1232,7 +1264,7 @@ export const ConsultationPage: React.FC = () => {
       setMessagesCustomerId(activeCustomerId);
       setMessages((prev) => {
         if (prev.some((m) => m.id === msgId)) return prev;
-        return [...prev, toUiMessage(msg)];
+        return sortMessagesByServerOrder([...prev, toUiMessage(msg)]);
       });
     });
 

@@ -18,6 +18,7 @@ vi.mock("sonner", () => ({
 
 type RealtimePayload = {
   id?: string | number;
+  seqNo?: number;
   senderRole?: string;
   content?: string | null;
   createdAt?: string | null;
@@ -2170,6 +2171,46 @@ describe("ConsultationPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("새로운 고객 메시지")).toBeInTheDocument();
+    });
+  });
+
+  it("renders realtime customer and assistant messages in server sequence order", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 302,
+        seqNo: 3,
+        senderRole: "ASSISTANT",
+        content: "챗봇 응답입니다.",
+        createdAt: "2026-05-27T00:00:03+09:00",
+      });
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 301,
+        seqNo: 2,
+        senderRole: "CUSTOMER",
+        content: "사용자 응답입니다.",
+        createdAt: "2026-05-27T00:00:02+09:00",
+      });
+    });
+
+    const messageList = screen.getByTestId("chat-message-list");
+    await waitFor(() => {
+      expect(messageList).toHaveTextContent(
+        /환불 문의 드립니다\.[\s\S]*사용자 응답입니다\.[\s\S]*챗봇 응답입니다\./,
+      );
     });
   });
 
