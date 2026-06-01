@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: terraform-cd-${{ github.ref }}
-  cancel-in-progress: true
+  group: production-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   id-token: write
@@ -55,6 +55,7 @@ jobs:
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_version: 1.15.4
+          terraform_wrapper: false
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
@@ -94,7 +95,7 @@ jobs:
         run: |
           set -o pipefail
           set +e
-          terraform plan -detailed-exitcode -no-color 2>&1 | tee plan_output.txt
+          terraform plan -detailed-exitcode -lock-timeout=10m -no-color 2>&1 | tee plan_output.txt
           plan_exit="${PIPESTATUS[0]}"
           set -e
           case "$plan_exit" in
@@ -148,6 +149,7 @@ jobs:
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_version: 1.15.4
+          terraform_wrapper: false
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
@@ -182,4 +184,4 @@ jobs:
       - name: Terraform Apply
         working-directory: infra/terraform
         run: |
-          terraform apply -auto-approve
+          terraform apply -auto-approve -lock-timeout=10m
