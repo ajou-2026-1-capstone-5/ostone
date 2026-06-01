@@ -78,6 +78,8 @@ describe("chatMessageSync", () => {
     ).toBe(true);
     expect(isRealtimeChatMessage({ id: "local-1", senderRole: "USER" })).toBe(false);
     expect(toSenderType("ASSISTANT")).toBe("BOT");
+    expect(toSenderType("SYSTEM")).toBe("SYSTEM");
+    expect(toSenderType("system")).toBe("SYSTEM");
 
     expect(
       toRealtimeChatMessage(

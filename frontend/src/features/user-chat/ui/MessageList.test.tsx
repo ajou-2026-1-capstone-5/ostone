@@ -58,6 +58,24 @@ describe("MessageList", () => {
     expect(screen.getByTestId("message-m2")).toHaveAttribute("data-sender", "bot");
   });
 
+  it("시스템 메시지를 중앙 안내로 렌더링한다", () => {
+    const systemMessages: ChatMessage[] = [
+      {
+        id: "sys-1",
+        sessionId: 1,
+        content: "상담사가 배정되었습니다.",
+        senderType: "SYSTEM",
+        createdAt: "2026-05-22T08:02:00Z",
+      },
+    ];
+    render(<MessageList messages={systemMessages} />);
+
+    const systemMessage = screen.getByTestId("message-sys-1");
+    expect(systemMessage).toHaveAttribute("data-sender", "system");
+    expect(systemMessage).toHaveAttribute("role", "status");
+    expect(systemMessage).toHaveTextContent("상담사가 배정되었습니다.");
+  });
+
   it("새 메시지가 렌더링되면 하단으로 스크롤한다", () => {
     const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
     const scrollIntoView = vi.fn();

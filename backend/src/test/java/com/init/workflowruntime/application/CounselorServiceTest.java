@@ -79,16 +79,55 @@ class CounselorServiceTest {
   void should_assignSession_when_sessionOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.empty());
+    given(chatMessageRepository.save(any()))
+        .willReturn(createMessage(1L, 1, "SYSTEM", "상담사가 배정되었습니다."));
     givenWorkspaceMember(1L, 42L);
 
-    CounselorSessionResponse result = service.assignSession(1L, 42L);
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      CounselorSessionResponse result = service.assignSession(1L, 42L);
 
-    assertThat(result.getStatus()).isEqualTo("ACTIVE");
-    assertThat(result.getAssignedCounselorId()).isEqualTo(42L);
-    assertThat(result.getResponseMode()).isEqualTo("HUMAN_ACTIVE");
-    verify(chatSessionRepository).save(session);
-    verify(eventPublisher).publishEvent(any(SessionAssignedEvent.class));
-    verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
+      assertThat(result.getStatus()).isEqualTo("ACTIVE");
+      assertThat(result.getAssignedCounselorId()).isEqualTo(42L);
+      assertThat(result.getResponseMode()).isEqualTo("HUMAN_ACTIVE");
+      verify(chatSessionRepository).save(session);
+      verify(eventPublisher).publishEvent(any(SessionAssignedEvent.class));
+      verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+  }
+
+  @Test
+  @DisplayName("assignSession: 사용자 채팅방에 SYSTEM 안내 메시지를 저장하고 afterCommit broadcast")
+  void should_persistAndBroadcastSystemMessage_when_assigned() {
+    ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
+        .willReturn(Optional.of(createMessage(1L, 3, "USER", "기존 메시지")));
+    ChatMessage savedSystemMessage = createMessage(1L, 4, "SYSTEM", "상담사가 배정되었습니다.");
+    given(chatMessageRepository.save(any())).willReturn(savedSystemMessage);
+    givenWorkspaceMember(1L, 42L);
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      service.assignSession(1L, 42L);
+
+      ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
+      verify(chatMessageRepository).save(captor.capture());
+      ChatMessage persisted = captor.getValue();
+      assertThat(persisted.getSenderRole()).isEqualTo("SYSTEM");
+      assertThat(persisted.getSeqNo()).isEqualTo(4);
+      assertThat(persisted.getContent()).isEqualTo("상담사가 배정되었습니다.");
+
+      verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+      TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
+      verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), any(ChatMessageResponse.class));
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
   }
 
   @Test
