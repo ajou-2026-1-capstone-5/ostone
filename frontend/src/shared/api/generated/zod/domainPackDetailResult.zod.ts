@@ -21,6 +21,7 @@ export const DomainPackDetailResult = zod.object({
         versionId: zod.number().optional(),
         versionNo: zod.number().optional(),
         lifecycleStatus: zod.string().optional(),
+        description: zod.string().optional(),
         sourcePipelineJobId: zod.number().optional(),
         createdAt: zod.iso.datetime({ offset: true }).optional(),
         updatedAt: zod.iso.datetime({ offset: true }).optional(),
