@@ -41,6 +41,16 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+function createDeferred<T>() {
+  let resolve: (value: T | PromiseLike<T>) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
@@ -340,7 +350,7 @@ describe("UserChatPage", () => {
     });
   });
 
-  it("메시지 전송 직후 사용자 메시지를 표시하고 REST 응답만으로는 봇 답변을 추가하지 않는다", async () => {
+  it("REST 응답에 봇 메시지가 있으면 최소 입력 표시 시간 이후 렌더링한다", async () => {
     stompState.connectionStatus = "CONNECTED";
 
     render(<UserChatPage />);
@@ -359,11 +369,67 @@ describe("UserChatPage", () => {
     });
     expect(screen.getByText("Hello")).not.toBeNull();
     expect(screen.queryByText("LLM 응답입니다.")).toBeNull();
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+    expect(
+      await screen.findByText("LLM 응답입니다.", undefined, { timeout: 1500 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
+  });
+
+  it("USER-only 성공 응답은 사용자 메시지를 유지하고 봇 타이핑을 종료한다", async () => {
+    const response = createDeferred<
+      Array<{
+        id: string;
+        sessionId: number;
+        content: string;
+        senderType: "USER";
+        createdAt: string;
+      }>
+    >();
+    stompState.connectionStatus = "CONNECTED";
+    sendDemoChatMessageMock.mockReturnValueOnce(response.promise);
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
+    fireEvent.change(input, { target: { value: "아직 답변 없나요?" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByTestId("bot-typing-indicator")).toBeInTheDocument();
+
+    await act(async () => {
+      response.resolve([
+        {
+          id: "81",
+          sessionId: 77,
+          content: "아직 답변 없나요?",
+          senderType: "USER",
+          createdAt: "2026-05-22T00:00:01Z",
+        },
+      ]);
+      await response.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText("아직 답변 없나요?")).toHaveLength(1);
+    expect(screen.getByTestId("message-81")).toBeInTheDocument();
+    expect(
+      screen.queryByText("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    ).toBeNull();
   });
 
   it("WebSocket user 메시지는 optimistic 메시지를 서버 메시지로 교체한다", async () => {
+    const response = createDeferred<[]>();
     let topicHandler: ((message: unknown) => void) | undefined;
     stompState.connectionStatus = "CONNECTED";
+    sendDemoChatMessageMock.mockReturnValueOnce(response.promise);
     stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
       topicHandler = cb;
       return () => {};
@@ -393,6 +459,55 @@ describe("UserChatPage", () => {
 
     expect(screen.getAllByText("Hello")).toHaveLength(1);
     expect(screen.getByTestId("message-81")).not.toBeNull();
+
+    await act(async () => {
+      response.resolve([]);
+      await response.promise;
+    });
+  });
+
+  it("상담사 배정 SYSTEM 메시지가 오면 봇 타이핑을 종료한다", async () => {
+    const response = createDeferred<[]>();
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    sendDemoChatMessageMock.mockReturnValueOnce(response.promise);
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(topicHandler).toBeDefined();
+    });
+
+    fireEvent.change(input, { target: { value: "상담사 연결 부탁드립니다" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(await screen.findByTestId("bot-typing-indicator")).toBeInTheDocument();
+
+    act(() => {
+      topicHandler?.({
+        id: 90,
+        senderRole: "SYSTEM",
+        content: "상담사가 배정되었습니다.",
+        createdAt: "2026-05-22T00:00:03Z",
+      });
+    });
+
+    expect(await screen.findByText("상담사가 배정되었습니다.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      response.resolve([]);
+      await response.promise;
+    });
   });
 
   it("사용자 전송 후 WebSocket 봇 응답을 최소 입력 표시 시간 이후 렌더링한다", async () => {
