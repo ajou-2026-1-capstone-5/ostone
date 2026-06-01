@@ -239,7 +239,7 @@ resource "aws_ecs_service" "backend" {
 
 resource "aws_appautoscaling_target" "backend" {
   service_namespace  = "ecs"
-  resource_id        = "service/${local.name_prefix}-cluster/ostone-backend"
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.backend.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   min_capacity       = var.backend_autoscaling_min_capacity
   max_capacity       = var.backend_autoscaling_max_capacity
@@ -249,8 +249,8 @@ resource "aws_appautoscaling_policy" "backend_cpu" {
   name               = "${local.name_prefix}-backend-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   service_namespace  = "ecs"
-  resource_id        = "service/${local.name_prefix}-cluster/ostone-backend"
-  scalable_dimension = "ecs:service:DesiredCount"
+  resource_id        = aws_appautoscaling_target.backend.resource_id
+  scalable_dimension = aws_appautoscaling_target.backend.scalable_dimension
 
   target_tracking_scaling_policy_configuration {
     target_value       = 70
