@@ -38,9 +38,15 @@ interface QueuePanelProps {
 }
 
 type QueueFilter = "all" | "handoff" | "mine" | "unassigned" | "unread";
+type QueueSortMode = "handoffPriority" | "waitLongest" | "latest";
 
 interface QueueFilterOption {
   value: QueueFilter;
+  label: string;
+}
+
+interface QueueSortOption {
+  value: QueueSortMode;
   label: string;
 }
 
@@ -50,6 +56,12 @@ const FILTER_OPTIONS: QueueFilterOption[] = [
   { value: "mine", label: "내 상담" },
   { value: "unassigned", label: "미배정" },
   { value: "unread", label: "읽지 않음" },
+];
+
+const SORT_OPTIONS: QueueSortOption[] = [
+  { value: "handoffPriority", label: "AI 이관 우선" },
+  { value: "waitLongest", label: "오래 기다린 순" },
+  { value: "latest", label: "최신순" },
 ];
 
 const isAssignedToCurrentCounselor = (
@@ -112,6 +124,63 @@ const getInProgressCount = (customers: QueueCustomer[]) =>
   )
     .length;
 
+const getTimestamp = (value?: string | null, fallback = 0) => {
+  if (!value) return fallback;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? fallback : timestamp;
+};
+
+const getHandoffTimestamp = (customer: QueueCustomer) =>
+  getTimestamp(customer.handoffAt ?? customer.startedAt, Number.MAX_SAFE_INTEGER);
+
+const getActivityTimestamp = (customer: QueueCustomer) =>
+  getTimestamp(customer.lastMessageAt ?? customer.startedAt ?? customer.handoffAt);
+
+const compareByOriginalOrder = (
+  left: { index: number },
+  right: { index: number },
+) => left.index - right.index;
+
+const sortVisibleCustomers = (customers: QueueCustomer[], sortMode: QueueSortMode) =>
+  customers
+    .map((customer, index) => ({ customer, index }))
+    .sort((left, right) => {
+      if (sortMode === "waitLongest") {
+        return (
+          right.customer.waitMinutes - left.customer.waitMinutes ||
+          compareByOriginalOrder(left, right)
+        );
+      }
+
+      if (sortMode === "latest") {
+        return (
+          getActivityTimestamp(right.customer) - getActivityTimestamp(left.customer) ||
+          compareByOriginalOrder(left, right)
+        );
+      }
+
+      const leftHandoff = left.customer.handoffRequired === true;
+      const rightHandoff = right.customer.handoffRequired === true;
+      if (leftHandoff !== rightHandoff) {
+        return leftHandoff ? -1 : 1;
+      }
+
+      if (leftHandoff && rightHandoff) {
+        return (
+          getHandoffTimestamp(left.customer) - getHandoffTimestamp(right.customer) ||
+          right.customer.waitMinutes - left.customer.waitMinutes ||
+          compareByOriginalOrder(left, right)
+        );
+      }
+
+      return (
+        right.customer.waitMinutes - left.customer.waitMinutes ||
+        getActivityTimestamp(right.customer) - getActivityTimestamp(left.customer) ||
+        compareByOriginalOrder(left, right)
+      );
+    })
+    .map(({ customer }) => customer);
+
 const getEmptyMessage = (
   customers: QueueCustomer[],
   selectedFilter: QueueFilter,
@@ -136,6 +205,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   onRetry,
 }) => {
   const [selectedFilter, setSelectedFilter] = useState<QueueFilter>("all");
+  const [selectedSort, setSelectedSort] = useState<QueueSortMode>("handoffPriority");
   const [searchTerm, setSearchTerm] = useState("");
 
   const filterCounts = useMemo(
@@ -145,12 +215,15 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
 
   const visibleCustomers = useMemo(
     () =>
-      customers.filter(
-        (customer) =>
-          matchesFilter(customer, selectedFilter, currentCounselorId) &&
-          matchesSearch(customer, searchTerm),
+      sortVisibleCustomers(
+        customers.filter(
+          (customer) =>
+            matchesFilter(customer, selectedFilter, currentCounselorId) &&
+            matchesSearch(customer, searchTerm),
+        ),
+        selectedSort,
       ),
-    [customers, currentCounselorId, searchTerm, selectedFilter],
+    [customers, currentCounselorId, searchTerm, selectedFilter, selectedSort],
   );
 
   const inProgressCount = useMemo(() => getInProgressCount(customers), [customers]);
@@ -197,6 +270,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           key={c.id}
           role="button"
           tabIndex={0}
+          aria-current={activeCustomerId === c.id ? "true" : undefined}
           className={`${styles.queueItem} ${activeCustomerId === c.id ? styles.queueItemActive : ""}`}
           onClick={() => onSelectCustomer(c.id)}
           onKeyDown={(e) => {
@@ -268,6 +342,24 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
               <span className={styles.filterCount}>{filterCounts[option.value]}</span>
             </button>
           ))}
+        </div>
+        <div className={styles.sortControl} aria-label="상담 큐 정렬">
+          <span className={styles.sortLabel}>정렬</span>
+          <div className={styles.sortButtons}>
+            {SORT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`${styles.sortButton} ${
+                  selectedSort === option.value ? styles.sortButtonActive : ""
+                }`}
+                aria-pressed={selectedSort === option.value}
+                onClick={() => setSelectedSort(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
         <span className={styles.resultCount}>현재 {visibleCustomers.length}건 표시</span>
       </div>

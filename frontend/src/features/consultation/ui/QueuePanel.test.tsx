@@ -39,6 +39,13 @@ const getFilterButton = (filterName: string) => {
   return element.closest("button")!;
 };
 
+const getSortButton = (sortName: string) => screen.getByRole("button", { name: sortName });
+
+const getRenderedQueueItems = () =>
+  screen
+    .getAllByRole("button")
+    .filter((button) => button.textContent?.includes("고객"));
+
 describe("QueuePanel", () => {
   it("고객이 없으면 큐 empty 상태 메시지를 표시한다", () => {
     renderQueuePanel();
@@ -184,6 +191,103 @@ describe("QueuePanel", () => {
     });
     expect(screen.getByText("2분 전")).toBeInTheDocument();
     expect(screen.queryByText("20분 전")).not.toBeInTheDocument();
+  });
+
+  it("기본 정렬은 AI 이관을 우선하고 이관 시각이 오래된 고객을 먼저 표시한다", () => {
+    renderQueuePanel({
+      customers: [
+        makeCustomer("1", {
+          name: "일반 고객",
+          waitMinutes: 60,
+          handoffRequired: false,
+          startedAt: "2026-06-01T09:00:00+09:00",
+        }),
+        makeCustomer("2", {
+          name: "새 이관 고객",
+          waitMinutes: 10,
+          handoffRequired: true,
+          handoffAt: "2026-06-01T11:00:00+09:00",
+        }),
+        makeCustomer("3", {
+          name: "오래된 이관 고객",
+          waitMinutes: 20,
+          handoffRequired: true,
+          handoffAt: "2026-06-01T10:00:00+09:00",
+        }),
+      ],
+    });
+
+    expect(getSortButton("AI 이관 우선")).toHaveAttribute("aria-pressed", "true");
+    expect(getRenderedQueueItems().map((button) => button.textContent)).toEqual([
+      expect.stringContaining("오래된 이관 고객"),
+      expect.stringContaining("새 이관 고객"),
+      expect.stringContaining("일반 고객"),
+    ]);
+  });
+
+  it("오래 기다린 순 정렬을 선택하면 waitMinutes가 큰 고객부터 표시한다", () => {
+    renderQueuePanel({
+      customers: [
+        makeCustomer("1", { name: "짧게 기다린 고객", waitMinutes: 3 }),
+        makeCustomer("2", { name: "오래 기다린 고객", waitMinutes: 42 }),
+        makeCustomer("3", { name: "중간 대기 고객", waitMinutes: 17 }),
+      ],
+    });
+
+    fireEvent.click(getSortButton("오래 기다린 순"));
+
+    expect(getSortButton("오래 기다린 순")).toHaveAttribute("aria-pressed", "true");
+    expect(getRenderedQueueItems().map((button) => button.textContent)).toEqual([
+      expect.stringContaining("오래 기다린 고객"),
+      expect.stringContaining("중간 대기 고객"),
+      expect.stringContaining("짧게 기다린 고객"),
+    ]);
+  });
+
+  it("최신순 정렬을 선택하면 최근 활동 고객부터 표시한다", () => {
+    renderQueuePanel({
+      customers: [
+        makeCustomer("1", {
+          name: "오전 고객",
+          startedAt: "2026-06-01T09:00:00+09:00",
+          lastMessageAt: "2026-06-01T09:10:00+09:00",
+        }),
+        makeCustomer("2", {
+          name: "정오 고객",
+          startedAt: "2026-06-01T12:00:00+09:00",
+        }),
+        makeCustomer("3", {
+          name: "오후 고객",
+          startedAt: "2026-06-01T10:00:00+09:00",
+          lastMessageAt: "2026-06-01T13:30:00+09:00",
+        }),
+      ],
+    });
+
+    fireEvent.click(getSortButton("최신순"));
+
+    expect(getSortButton("최신순")).toHaveAttribute("aria-pressed", "true");
+    expect(getRenderedQueueItems().map((button) => button.textContent)).toEqual([
+      expect.stringContaining("오후 고객"),
+      expect.stringContaining("정오 고객"),
+      expect.stringContaining("오전 고객"),
+    ]);
+  });
+
+  it("정렬을 변경해도 active selection과 unread 표시를 유지한다", () => {
+    renderQueuePanel({
+      activeCustomerId: "2",
+      customers: [
+        makeCustomer("1", { waitMinutes: 5 }),
+        makeCustomer("2", { waitMinutes: 30 }),
+        makeCustomer("3", { waitMinutes: 10, hasUnread: true }),
+      ],
+    });
+
+    fireEvent.click(getSortButton("오래 기다린 순"));
+
+    expect(getQueueItem("고객2")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
   });
 
   it("세션 상태 라벨을 표시한다", () => {

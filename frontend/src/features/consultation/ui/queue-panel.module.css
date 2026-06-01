@@ -111,6 +111,57 @@
   opacity: 0.72;
 }
 
+.sortControl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.sortLabel {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.sortButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sortButton {
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  background: var(--paper);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 450;
+  letter-spacing: normal;
+  line-height: 1;
+}
+
+.sortButton:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.sortButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
+.sortButtonActive {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
 .resultCount {
   display: block;
   margin-top: 10px;
