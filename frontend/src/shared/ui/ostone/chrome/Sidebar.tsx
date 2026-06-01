@@ -1,4 +1,5 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import { ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
@@ -277,18 +278,31 @@ function SidebarLink({
     }
   };
 
+  const isExternal = target === "_blank";
+  const externalIconTestId = testId ? `${testId}-external-icon` : "sidebar-link-external-icon";
   const content = (
     <>
       <Icon name={icon} size={16} />
-      <span>{label}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
+      {isExternal && (
+        <ExternalLink
+          size={14}
+          strokeWidth={1.5}
+          aria-hidden="true"
+          focusable="false"
+          data-testid={externalIconTestId}
+          style={{ flexShrink: 0 }}
+        />
+      )}
     </>
   );
 
-  if (target === "_blank") {
+  if (isExternal) {
     return (
       <a
         href={to}
         title={label}
+        aria-label={`${label} (새 탭에서 열림)`}
         target="_blank"
         rel="noopener noreferrer"
         data-active={isActive ? "true" : "false"}

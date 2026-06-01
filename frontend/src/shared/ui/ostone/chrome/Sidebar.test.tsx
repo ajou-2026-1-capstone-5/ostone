@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 
@@ -88,6 +88,19 @@ describe("Sidebar", () => {
       "noopener noreferrer",
     );
     expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute("href", "/workspaces/7/domain-packs");
+  });
+
+  it("외부 링크에는 새 탭 안내와 아이콘이 표시된다", () => {
+    renderSidebar({ basePath: "/workspaces/7" });
+
+    const externalLink = screen.getByTestId("sidebar-link-chat");
+    expect(externalLink).toHaveAttribute("aria-label", "사용자 화면 미리보기 (새 탭에서 열림)");
+    expect(within(externalLink).getByTestId("sidebar-link-chat-external-icon")).toBeInTheDocument();
+
+    const internalLink = screen.getByTestId("sidebar-link-consult");
+    expect(
+      within(internalLink).queryByTestId("sidebar-link-consult-external-icon"),
+    ).not.toBeInTheDocument();
   });
 
   it("workspaceId를 추출할 수 없으면 사용자 화면 미리보기 링크를 안전한 내부 경로로 보낸다", () => {
