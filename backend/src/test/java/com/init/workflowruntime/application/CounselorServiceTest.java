@@ -286,6 +286,7 @@ class CounselorServiceTest {
       assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.HUMAN_ACTIVE);
       verify(chatMessageRepository).save(any());
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
+      verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
 
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
 
@@ -317,6 +318,7 @@ class CounselorServiceTest {
       assertThat(result.senderRole()).isEqualTo("NOTE");
       assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ACTIVE);
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
+      verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }

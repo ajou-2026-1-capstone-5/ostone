@@ -77,12 +77,11 @@ public class ChatWebSocketService {
     ChatMessage savedMessage = chatMessageRepository.save(message);
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
     ConsultationQueueChangedEvent queueChangedEvent =
-        isCustomerRole(command.senderRole())
-            ? new ConsultationQueueChangedEvent(
-                session.getWorkspaceId(),
-                command.sessionId(),
-                ConsultationQueueEventType.SESSION_UPSERTED)
-            : null;
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(),
+            command.sessionId(),
+            ConsultationQueueEventType.SESSION_UPSERTED);
+    eventPublisher.publishEvent(queueChangedEvent);
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + command.sessionId();
@@ -96,17 +95,10 @@ public class ChatWebSocketService {
             } finally {
               eventPublisher.publishEvent(
                   new ChatMessageReceivedEvent(command.sessionId(), command.content(), null));
-              if (queueChangedEvent != null) {
-                eventPublisher.publishEvent(queueChangedEvent);
-              }
             }
           }
         });
 
     return response;
-  }
-
-  private static boolean isCustomerRole(String senderRole) {
-    return "USER".equals(senderRole) || "CUSTOMER".equals(senderRole);
   }
 }

@@ -93,14 +93,13 @@ class ChatWebSocketServiceTest {
 
       // 즉시 전송되지 않음
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
-      verify(eventPublisher, never()).publishEvent(any(Object.class));
+      assertQueueUpsertEventPublished();
 
       // afterCommit 수동 트리거
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 
       // 커밋 후 전송 확인
       verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
-      assertQueueUpsertEventPublished();
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
@@ -170,20 +169,19 @@ class ChatWebSocketServiceTest {
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
       verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
-      verify(eventPublisher, never()).publishEvent(any(Object.class));
+      assertQueueUpsertEventPublished();
 
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 
       verify(messagingTemplate).convertAndSend("/topic/chat.1", result);
-      assertQueueUpsertEventPublished();
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
   }
 
   @Test
-  @DisplayName("saveAndBroadcast: 상담사 역할 메시지는 queue unread 이벤트를 발행하지 않는다")
-  void should_notPublishQueueEvent_when_senderIsAgent() {
+  @DisplayName("saveAndBroadcast: 상담사 역할 메시지도 큐 최신화를 위해 upsert 이벤트를 발행한다")
+  void should_publishQueueEvent_when_senderIsAgent() {
     ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
@@ -197,10 +195,7 @@ class ChatWebSocketServiceTest {
 
       TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
 
-      ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
-      verify(eventPublisher, atLeastOnce()).publishEvent(eventCaptor.capture());
-      assertThat(eventCaptor.getAllValues())
-          .noneMatch(ConsultationQueueChangedEvent.class::isInstance);
+      assertQueueUpsertEventPublished();
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }

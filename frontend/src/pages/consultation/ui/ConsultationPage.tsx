@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Dot, Mono, Avatar } from "@/shared/ui/ostone/atoms";
-import { useStomp } from "@/shared/lib/websocket";
+import { useStomp, type ConnectionStatus } from "@/shared/lib/websocket";
 import { getAuthUser } from "@/shared/lib/auth";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
@@ -652,6 +652,8 @@ export const ConsultationPage: React.FC = () => {
   const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
+  const hasQueueLoadedRef = useRef(false);
+  const previousConnectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const metricsErrorToastShownRef = useRef(false);
   const queueErrorToastShownRef = useRef(false);
   const currentCounselorId = getAuthUser()?.id ?? null;
@@ -754,6 +756,10 @@ export const ConsultationPage: React.FC = () => {
     ? undefined
     : activeAssignment?.description;
   const activeResponseModeView = getResponseModeView(activeCustomer?.responseMode);
+  const queueSyncNotice =
+    workspaceId && connectionStatus !== "CONNECTED"
+      ? "실시간 연결이 불안정합니다. 복구되면 대기열을 다시 동기화합니다."
+      : null;
 
   const clearActiveConversation = useCallback(() => {
     setActiveCustomerId(null);
@@ -811,6 +817,10 @@ export const ConsultationPage: React.FC = () => {
   useEffect(() => {
     activeCustomerIdRef.current = activeCustomerId;
   }, [activeCustomerId]);
+
+  useEffect(() => {
+    hasQueueLoadedRef.current = hasQueueLoaded;
+  }, [hasQueueLoaded]);
 
   useEffect(() => {
     setTopbarRight(
@@ -995,6 +1005,17 @@ export const ConsultationPage: React.FC = () => {
     queueErrorToastShownRef.current = false;
     void loadQueue();
   }, [loadQueue]);
+
+  useEffect(() => {
+    const previousStatus = previousConnectionStatusRef.current;
+    previousConnectionStatusRef.current = connectionStatus;
+
+    if (!workspaceId) return;
+    if (connectionStatus !== "CONNECTED" || previousStatus === "CONNECTED") return;
+    if (!hasQueueLoadedRef.current) return;
+
+    void loadQueue();
+  }, [connectionStatus, loadQueue, workspaceId]);
 
   const activateCustomer = useCallback((id: string) => {
     setActiveCustomerId(id);
@@ -1604,6 +1625,7 @@ export const ConsultationPage: React.FC = () => {
           onSelectCustomer={handleSelectCustomer}
           isLoading={isQueueLoading}
           loadError={queueLoadError}
+          syncNotice={queueSyncNotice}
           onRetry={handleQueueRetry}
         />
       </div>

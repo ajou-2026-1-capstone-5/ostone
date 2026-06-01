@@ -29,7 +29,7 @@ type RealtimePayload = {
 const { mockSubscribe, mockSendTo, stompState } = vi.hoisted(() => {
   const mockUnsubscribe = vi.fn();
   const stompState = {
-    connectionStatus: "CONNECTED" as "CONNECTED" | "DISCONNECTED",
+    connectionStatus: "CONNECTED" as "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "ERROR",
     latestCallback: null as ((msg: RealtimePayload) => void) | null,
     onServerError: null as ((error: unknown) => void) | null,
     callbacks: new Map<string, (msg: RealtimePayload) => void>(),
@@ -1955,6 +1955,40 @@ describe("ConsultationPage", () => {
       .mocked(toast.error)
       .mock.calls.filter(([message]) => message === "대기열을 불러오지 못했습니다.");
     expect(errorToasts).toHaveLength(0);
+  });
+
+  it("shows a queue sync notice while the websocket connection is unstable", async () => {
+    stompState.connectionStatus = "ERROR";
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText("실시간 연결이 불안정합니다. 복구되면 대기열을 다시 동기화합니다."),
+    ).toBeInTheDocument();
+  });
+
+  it("refetches the queue snapshot after websocket reconnect", async () => {
+    stompState.connectionStatus = "DISCONNECTED";
+    const { rerender } = render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    stompState.connectionStatus = "CONNECTED";
+    rerender(<ConsultationPage />);
+
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+    });
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      "/topic/workspaces.2.consultation.queue",
+      expect.any(Function),
+    );
   });
 
   it("deduplicates queue error toast across multiple failed loads", async () => {

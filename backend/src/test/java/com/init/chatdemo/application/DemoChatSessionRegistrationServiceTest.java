@@ -17,6 +17,7 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
@@ -25,6 +26,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -52,6 +56,8 @@ class DemoChatSessionRegistrationServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
   @Mock private LlmAssistantService llmAssistantService;
   @Mock private SimpMessagingTemplate messagingTemplate;
+  @Mock private ApplicationEventPublisher eventPublisher;
+  @Mock private ChatSessionMetadataService chatSessionMetadataService;
 
   private DemoChatSessionRegistrationService service;
 
@@ -63,7 +69,9 @@ class DemoChatSessionRegistrationServiceTest {
             chatSessionRepository,
             chatMessageRepository,
             llmAssistantService,
-            messagingTemplate);
+            messagingTemplate,
+            eventPublisher,
+            chatSessionMetadataService);
   }
 
   @Test
@@ -103,6 +111,8 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(greeting.getChatSessionId()).isEqualTo(SESSION_ID);
     assertThat(greeting.getSenderRole()).isEqualTo("ASSISTANT");
     assertThat(greeting.getContent()).contains("김민지");
+    verify(chatSessionMetadataService).updateAfterMessage(savedSession, greeting);
+    verifyQueueUpsertEventPublished();
   }
 
   @Test
@@ -133,6 +143,9 @@ class DemoChatSessionRegistrationServiceTest {
         .extracting(ChatMessage::getSeqNo)
         .containsExactly(1, 2);
     assertThat(messageCaptor.getAllValues().get(1).getContent()).isEqualTo("LLM 응답입니다.");
+    verify(chatSessionMetadataService)
+        .updateAfterMessage(session, messageCaptor.getAllValues().get(0));
+    verifyQueueUpsertEventPublished();
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
@@ -257,5 +270,15 @@ class DemoChatSessionRegistrationServiceTest {
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
+  }
+
+  private void verifyQueueUpsertEventPublished() {
+    ArgumentCaptor<ConsultationQueueChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(ConsultationQueueChangedEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(WORKSPACE_ID);
+    assertThat(eventCaptor.getValue().sessionId()).isEqualTo(SESSION_ID);
+    assertThat(eventCaptor.getValue().type())
+        .isEqualTo(ConsultationQueueEventType.SESSION_UPSERTED);
   }
 }
