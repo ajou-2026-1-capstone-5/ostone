@@ -82,7 +82,7 @@ describe("QueuePanel", () => {
     renderQueuePanel({ customers });
 
     expect(screen.getByText("상담 큐")).toBeInTheDocument();
-    expect(screen.getByText("AI 이관 0건 · 미배정 1건 · 진행 2건")).toBeInTheDocument();
+    expect(screen.getByText("연결 요청 0건 · 미배정 1건 · 진행 2건")).toBeInTheDocument();
     expect(screen.queryByText(/대기중$/)).not.toBeInTheDocument();
   });
 
@@ -92,14 +92,14 @@ describe("QueuePanel", () => {
     expect(screen.getByText("카드 오류")).toBeInTheDocument();
   });
 
-  it("handoffRequired 세션은 AI 이관 배지와 사유를 표시한다", () => {
+  it("handoffRequired 세션은 상담사 연결 요청 배지와 사유를 표시한다", () => {
     renderQueuePanel({
       customers: [makeCustomer("1", { handoffRequired: true, handoffReason: "관리자 승인 필요" })],
     });
 
-    expect(screen.getAllByText("AI 이관").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("상담사 연결 요청").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("사유: 관리자 승인 필요")).toBeInTheDocument();
-    expect(screen.getByText("AI 이관 1건 · 미배정 1건 · 진행 0건")).toBeInTheDocument();
+    expect(screen.getByText("연결 요청 1건 · 미배정 1건 · 진행 0건")).toBeInTheDocument();
   });
 
   it("title이 있으면 handoffReason보다 우선 표시한다", () => {
@@ -193,7 +193,7 @@ describe("QueuePanel", () => {
     expect(screen.queryByText("20분 전")).not.toBeInTheDocument();
   });
 
-  it("기본 정렬은 AI 이관을 우선하고 이관 시각이 오래된 고객을 먼저 표시한다", () => {
+  it("기본 정렬은 연결 요청을 우선하고 이관 시각이 오래된 고객을 먼저 표시한다", () => {
     renderQueuePanel({
       customers: [
         makeCustomer("1", {
@@ -217,7 +217,7 @@ describe("QueuePanel", () => {
       ],
     });
 
-    expect(getSortButton("AI 이관 우선")).toHaveAttribute("aria-pressed", "true");
+    expect(getSortButton("연결 요청 우선")).toHaveAttribute("aria-pressed", "true");
     expect(getRenderedQueueItems().map((button) => button.textContent)).toEqual([
       expect.stringContaining("오래된 이관 고객"),
       expect.stringContaining("새 이관 고객"),
@@ -326,7 +326,7 @@ describe("QueuePanel", () => {
     expect(screen.queryByText("고객2")).not.toBeInTheDocument();
   });
 
-  it("AI 이관 필터를 선택하면 handoffRequired 세션만 표시한다", () => {
+  it("상담사 연결 요청 필터를 선택하면 handoffRequired 세션만 표시한다", () => {
     renderQueuePanel({
       customers: [
         makeCustomer("1", { handoffRequired: true, handoffReason: "상담사 확인 필요" }),
@@ -334,10 +334,20 @@ describe("QueuePanel", () => {
       ],
     });
 
-    fireEvent.click(getFilterButton("AI 이관"));
+    fireEvent.click(getFilterButton("상담사 연결 요청"));
 
     expect(screen.getByText("고객1")).toBeInTheDocument();
     expect(screen.queryByText("고객2")).not.toBeInTheDocument();
+  });
+
+  it("상담사 연결 요청 필터 결과가 없으면 연결 요청 빈 상태를 표시한다", () => {
+    renderQueuePanel({
+      customers: [makeCustomer("1", { handoffRequired: false })],
+    });
+
+    fireEvent.click(getFilterButton("상담사 연결 요청"));
+
+    expect(screen.getByText("상담사 연결 요청이 없습니다")).toBeInTheDocument();
   });
 
   it("읽지 않음 필터를 선택하면 읽지 않은 세션만 표시한다", () => {

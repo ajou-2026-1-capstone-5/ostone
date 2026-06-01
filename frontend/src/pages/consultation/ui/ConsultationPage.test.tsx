@@ -464,7 +464,8 @@ describe("ConsultationPage", () => {
       expect.stringContaining("새 이관 고객"),
       expect.stringContaining("일반 고객"),
     ]);
-    expect(screen.getByText("AI 이관 2건 · 미배정 3건 · 진행 0건")).toBeInTheDocument();
+    expect(screen.getByText("연결 요청 2건 · 미배정 3건 · 진행 0건")).toBeInTheDocument();
+    expect(screen.getAllByText("상담사 연결 요청 · 미배정").length).toBeGreaterThan(0);
   });
 
   it("selects the route session and restores messages when opening a session URL directly", async () => {

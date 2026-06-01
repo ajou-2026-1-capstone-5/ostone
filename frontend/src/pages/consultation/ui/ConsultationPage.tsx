@@ -346,7 +346,7 @@ const getSessionStatusLabel = (
   currentCounselorId?: number | null,
   handoffRequired?: boolean,
 ) => {
-  const prefix = handoffRequired ? "AI 이관 · " : "";
+  const prefix = handoffRequired ? "상담사 연결 요청 · " : "";
   if (status === "COMPLETED") return "상담 종료";
   if (status === "RESOLVED") return "해결됨";
   if (assignedCounselorId && assignedCounselorId === currentCounselorId)

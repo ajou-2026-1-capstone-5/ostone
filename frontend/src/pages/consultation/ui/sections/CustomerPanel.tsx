@@ -151,7 +151,7 @@ export function CustomerPanel({
       </InfoCard>
 
       {customer.handoffRequired && (
-        <InfoCard title="AI 이관" meta="HANDOFF">
+        <InfoCard title="상담사 확인 필요" meta="HANDOFF">
           <InfoRow label="상태" tone="warn" value={<Pill tone="warn">상담사 확인 필요</Pill>} />
           <InfoRow label="사유" value={customer.handoffReason || "상담원 확인이 필요합니다."} />
           <InfoRow label="발생 시각" value={customer.handoffAt || "기록 없음"} />
