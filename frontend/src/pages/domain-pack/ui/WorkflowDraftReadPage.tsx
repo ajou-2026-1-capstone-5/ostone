@@ -368,16 +368,23 @@ export function WorkflowDraftReadPage() {
           if (!open) setPendingClose(null);
         }}
       >
-        <AlertDialogContent size="sm">
-          <AlertDialogTitle>변경 내역을 버릴까요?</AlertDialogTitle>
-          <AlertDialogDescription>
+        <AlertDialogContent size="sm" className={styles.discardDialog}>
+          <AlertDialogTitle className={styles.discardTitle}>
+            변경 내역을 버릴까요?
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.discardDescription}>
             저장하지 않고 이동하면 현재 편집 중인 변경 내역이 버려집니다.
           </AlertDialogDescription>
-          <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPendingClose(null)}>
+          <AlertDialogFooter className={styles.discardFooter}>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.discardButton}
+              onClick={() => setPendingClose(null)}
+            >
               계속 편집
             </Button>
-            <Button type="button" onClick={confirmPendingClose}>
+            <Button type="button" className={styles.discardButton} onClick={confirmPendingClose}>
               변경 내역 버리기
             </Button>
           </AlertDialogFooter>
