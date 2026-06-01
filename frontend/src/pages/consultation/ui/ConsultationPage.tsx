@@ -103,6 +103,13 @@ type QueueCustomerPanelData = {
 type QueueCustomerWithPanelData = QueueCustomer & QueueCustomerPanelData;
 
 const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
+const MESSAGE_PAGE_SIZE = 50;
+
+type MessagePaginationState = {
+  nextPage: number;
+  totalPages: number;
+  isLoadingPrevious: boolean;
+};
 
 type ResponseModeView = {
   value: ConsultationResponseMode;
@@ -518,6 +525,14 @@ const getClaimSessionErrorMessage = (error: unknown) => {
   return "상담 세션 배정에 실패했습니다.";
 };
 
+const dedupePrependMessages = (
+  olderMessages: UiChatMessage[],
+  currentMessages: UiChatMessage[],
+) => {
+  const existingIds = new Set(currentMessages.map((message) => message.id));
+  return [...olderMessages.filter((message) => !existingIds.has(message.id)), ...currentMessages];
+};
+
 const formatAverageFirstResponse = (seconds?: number | null) => {
   if (seconds == null) return "--";
   const minutes = Math.floor(seconds / 60);
@@ -603,6 +618,11 @@ export const ConsultationPage: React.FC = () => {
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [messagesCustomerId, setMessagesCustomerId] = useState<string | null>(null);
+  const [messagePagination, setMessagePagination] = useState<MessagePaginationState>({
+    nextPage: 0,
+    totalPages: 0,
+    isLoadingPrevious: false,
+  });
   const [metrics, setMetrics] = useState<ConsultationMetrics | null>(null);
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
@@ -698,6 +718,10 @@ export const ConsultationPage: React.FC = () => {
         : "empty";
   const visibleMessages =
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
+  const hasPreviousMessages =
+    !!activeCustomer &&
+    messagesCustomerId === activeCustomer.id &&
+    messagePagination.nextPage < messagePagination.totalPages;
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
   const activeComposerDraft = activeCustomerId
     ? (composerDrafts[activeCustomerId] ?? EMPTY_COMPOSER_DRAFT)
@@ -736,6 +760,7 @@ export const ConsultationPage: React.FC = () => {
     setSelectedMessageId(null);
     setMessages([]);
     setMessagesCustomerId(null);
+    setMessagePagination({ nextPage: 0, totalPages: 0, isLoadingPrevious: false });
     setMatchedWorkflow(null);
     setIsMatchedWorkflowLoading(false);
     setIsDraftResponseLoading(false);
@@ -1072,6 +1097,7 @@ export const ConsultationPage: React.FC = () => {
       clearPendingMessages();
       setMessages([]);
       setMessagesCustomerId(null);
+      setMessagePagination({ nextPage: 0, totalPages: 0, isLoadingPrevious: false });
       setSelectedMessageId(null);
       return;
     }
@@ -1079,16 +1105,25 @@ export const ConsultationPage: React.FC = () => {
     clearPendingMessages();
     setMessages([]);
     setMessagesCustomerId(null);
+    setMessagePagination({ nextPage: 0, totalPages: 0, isLoadingPrevious: false });
     setSelectedMessageId(null);
 
     let cancelled = false;
 
     const loadMessages = async () => {
       try {
-        const msgs = await consultationApi.getMessages(Number(activeCustomerId));
+        const messagePage = await consultationApi.getMessagePage(Number(activeCustomerId), {
+          page: 0,
+          size: MESSAGE_PAGE_SIZE,
+        });
         if (cancelled) return;
-        setMessages(msgs.map(toUiMessage));
+        setMessages(messagePage.content.map(toUiMessage));
         setMessagesCustomerId(activeCustomerId);
+        setMessagePagination({
+          nextPage: messagePage.page + 1,
+          totalPages: messagePage.totalPages,
+          isLoadingPrevious: false,
+        });
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to load messages:", error);
@@ -1103,6 +1138,41 @@ export const ConsultationPage: React.FC = () => {
       cancelled = true;
     };
   }, [activeCustomerId, clearPendingMessages]);
+
+  const handleLoadPreviousMessages = useCallback(async () => {
+    if (
+      !activeCustomerId ||
+      messagesCustomerId !== activeCustomerId ||
+      messagePagination.isLoadingPrevious ||
+      messagePagination.nextPage >= messagePagination.totalPages
+    ) {
+      return;
+    }
+
+    const targetSessionId = activeCustomerId;
+    const targetPage = messagePagination.nextPage;
+    setMessagePagination((current) => ({ ...current, isLoadingPrevious: true }));
+    try {
+      const messagePage = await consultationApi.getMessagePage(Number(targetSessionId), {
+        page: targetPage,
+        size: MESSAGE_PAGE_SIZE,
+      });
+      if (activeCustomerIdRef.current !== targetSessionId) return;
+      setMessages((current) =>
+        dedupePrependMessages(messagePage.content.map(toUiMessage), current),
+      );
+      setMessagesCustomerId(targetSessionId);
+      setMessagePagination({
+        nextPage: messagePage.page + 1,
+        totalPages: messagePage.totalPages,
+        isLoadingPrevious: false,
+      });
+    } catch (error) {
+      console.error("Failed to load previous messages:", error);
+      toast.error("이전 메시지를 불러오지 못했습니다.");
+      setMessagePagination((current) => ({ ...current, isLoadingPrevious: false }));
+    }
+  }, [activeCustomerId, messagePagination, messagesCustomerId]);
 
   useEffect(() => {
     if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
@@ -1639,6 +1709,9 @@ export const ConsultationPage: React.FC = () => {
               sessionStatusDescription={activeAssignment?.description}
               disabledReason={messageInputDisabledReason}
               disabled={!isAssignedToCurrentCounselor}
+              hasPreviousMessages={hasPreviousMessages}
+              isLoadingPreviousMessages={messagePagination.isLoadingPrevious}
+              onLoadPreviousMessages={handleLoadPreviousMessages}
               draftResponseAction={
                 matchedWorkflow && isAssignedToCurrentCounselor
                   ? {

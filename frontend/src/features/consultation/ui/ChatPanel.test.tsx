@@ -869,4 +869,59 @@ describe("ChatPanel", () => {
 
     expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
   });
+
+  it("이전 메시지를 불러올 때 기존 스크롤 위치를 유지한다", async () => {
+    const onLoadPreviousMessages = vi.fn(() => Promise.resolve());
+    const { rerender } = render(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={baseMessages}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        hasPreviousMessages
+        onLoadPreviousMessages={onLoadPreviousMessages}
+      />,
+    );
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 48,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "이전 메시지 불러오기" }));
+    await waitFor(() => expect(onLoadPreviousMessages).toHaveBeenCalledTimes(1));
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1500,
+      clientHeight: 300,
+      scrollTop: 48,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "msg-0",
+            senderRole: "CUSTOMER",
+            content: "이전 문의입니다.",
+            timestamp: "10:01",
+          },
+          ...baseMessages,
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        hasPreviousMessages
+        onLoadPreviousMessages={onLoadPreviousMessages}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(348);
+  });
 });

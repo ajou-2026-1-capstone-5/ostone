@@ -2,6 +2,7 @@ package com.init.workflowruntime.application;
 
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.dto.ChatMessagePageResponse;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
@@ -12,12 +13,16 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class ConsultationService {
+
+  private static final int DEFAULT_MESSAGE_PAGE = 0;
+  private static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
+  private static final int MAX_MESSAGE_PAGE_SIZE = 100;
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -62,6 +71,13 @@ public class ConsultationService {
   }
 
   public List<ChatMessageResponse> getMessages(@NonNull Long sessionId, @NonNull Long userId) {
+    return getMessages(sessionId, userId, DEFAULT_MESSAGE_PAGE, DEFAULT_MESSAGE_PAGE_SIZE)
+        .content();
+  }
+
+  public ChatMessagePageResponse getMessages(
+      @NonNull Long sessionId, @NonNull Long userId, int page, int size) {
+    validateMessagePaging(page, size);
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
@@ -75,9 +91,21 @@ public class ConsultationService {
       throw new IllegalStateException("Session ID cannot be null");
     }
 
-    return chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(id).stream()
-        .map(ChatMessageResponse::from)
-        .collect(Collectors.toList());
+    DomainPage<ChatMessage> messagePage =
+        chatMessageRepository.findByChatSessionIdOrderBySeqNoDesc(
+            id, new DomainPageRequest(page, size));
+    List<ChatMessage> chronologicalMessages = new ArrayList<>(messagePage.content());
+    Collections.reverse(chronologicalMessages);
+
+    List<ChatMessageResponse> content =
+        chronologicalMessages.stream().map(ChatMessageResponse::from).collect(Collectors.toList());
+
+    return new ChatMessagePageResponse(
+        content,
+        messagePage.page(),
+        messagePage.size(),
+        messagePage.totalElements(),
+        messagePage.totalPages());
   }
 
   @Transactional
@@ -202,6 +230,14 @@ public class ConsultationService {
       case OPEN, ACTIVE -> ConsultationQueueEventType.SESSION_UPSERTED;
       case RESOLVED, COMPLETED -> ConsultationQueueEventType.SESSION_REMOVED;
     };
+  }
+
+  private void validateMessagePaging(int page, int size) {
+    if (page < 0 || size <= 0 || size > MAX_MESSAGE_PAGE_SIZE) {
+      throw new BadRequestException(
+          "INVALID_PAGING",
+          "page must be >= 0 and size must be between 1 and " + MAX_MESSAGE_PAGE_SIZE);
+    }
   }
 
   private int compareQueuePriority(ChatSession left, ChatSession right) {

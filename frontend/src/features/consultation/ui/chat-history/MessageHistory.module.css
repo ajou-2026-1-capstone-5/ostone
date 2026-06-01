@@ -53,6 +53,41 @@
     linear-gradient(180deg, var(--paper) 0%, var(--bg) 100%);
 }
 
+.loadPreviousButton {
+  align-self: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 540;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  padding: var(--s-3) var(--s-4);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.loadPreviousButton:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+
+.loadPreviousButton:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.loadPreviousButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
 .messageRow {
   display: flex;
   width: 100%;

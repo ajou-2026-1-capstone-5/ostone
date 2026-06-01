@@ -16,6 +16,13 @@ export type ChatSession = ChatSessionResponse & {
   responseMode?: ConsultationResponseMode | null;
 };
 export type ChatMessage = ChatMessageResponse;
+export interface ChatMessagePage {
+  content: ChatMessage[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
 export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
 export type ConsultationResponseMode = "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY";
 export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
@@ -77,7 +84,33 @@ type SessionListResponse =
 
 type MessageListResponse =
   | ChatMessage[]
-  | { data?: ChatMessage[] | { content?: ChatMessage[] }; content?: ChatMessage[] };
+  | {
+      data?: ChatMessage[] | Partial<ChatMessagePage>;
+      content?: ChatMessage[];
+      page?: number;
+      size?: number;
+      totalElements?: number;
+      totalPages?: number;
+    };
+
+const DEFAULT_MESSAGE_PAGE = 0;
+const DEFAULT_MESSAGE_PAGE_SIZE = 50;
+const MAX_MESSAGE_PAGE_SIZE = 100;
+
+function normalizeMessagePage(page: number | null | undefined): number {
+  if (typeof page !== "number" || !Number.isFinite(page)) return DEFAULT_MESSAGE_PAGE;
+  return Math.max(DEFAULT_MESSAGE_PAGE, Math.floor(page));
+}
+
+function normalizeMessagePageSize(size: number | null | undefined): number {
+  if (typeof size !== "number" || !Number.isFinite(size)) return DEFAULT_MESSAGE_PAGE_SIZE;
+  return Math.min(MAX_MESSAGE_PAGE_SIZE, Math.max(1, Math.floor(size)));
+}
+
+function normalizeMessageTotalPages(totalPages: number | null | undefined): number | undefined {
+  if (typeof totalPages !== "number" || !Number.isFinite(totalPages)) return undefined;
+  return Math.max(0, Math.floor(totalPages));
+}
 
 function unwrapSessionPage(response: SessionListResponse): ChatSessionPage {
   const unwrapped = selectApiData<ChatSession[] | Partial<ChatSessionPage>>(response);
@@ -105,6 +138,53 @@ function unwrapMessageList(response: MessageListResponse): ChatMessage[] {
   const unwrapped = selectApiData<ChatMessage[] | { content?: ChatMessage[] }>(response);
   if (Array.isArray(unwrapped)) return unwrapped;
   return unwrapped?.content ?? [];
+}
+
+function unwrapMessagePage(
+  response: MessageListResponse,
+  fallback: { page: number; size: number },
+): ChatMessagePage {
+  const fallbackPage = normalizeMessagePage(fallback.page);
+  const fallbackSize = normalizeMessagePageSize(fallback.size);
+  const unwrapped = selectApiData<ChatMessage[] | Partial<ChatMessagePage>>(response);
+  if (Array.isArray(unwrapped)) {
+    return {
+      content: unwrapped,
+      page: fallbackPage,
+      size: fallbackSize,
+      totalElements: unwrapped.length,
+      totalPages: unwrapped.length > 0 ? 1 : 0,
+    };
+  }
+
+  const content = unwrapped?.content ?? [];
+  const totalElements = unwrapped?.totalElements ?? content.length;
+  const page = normalizeMessagePage(unwrapped?.page ?? fallbackPage);
+  const size = normalizeMessagePageSize(unwrapped?.size ?? fallbackSize);
+  const totalPages =
+    normalizeMessageTotalPages(unwrapped?.totalPages) ??
+    (totalElements > 0 ? Math.ceil(totalElements / size) : 0);
+  return {
+    content,
+    page,
+    size,
+    totalElements,
+    totalPages,
+  };
+}
+
+async function fetchMessagePage(
+  sessionId: number,
+  params: { page?: number; size?: number } = {},
+): Promise<ChatMessagePage> {
+  const page = normalizeMessagePage(params.page);
+  const size = normalizeMessagePageSize(params.size);
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(page));
+  searchParams.set("size", String(size));
+  const url = `${getGetMessagesUrl(sessionId)}?${searchParams.toString()}`;
+  const response = await customFetch<MessageListResponse>(url, { method: "GET" });
+  return unwrapMessagePage(response, { page, size });
 }
 
 export const consultationApi = {
@@ -149,15 +229,16 @@ export const consultationApi = {
     params?: { page?: number; size?: number },
   ): Promise<ChatMessage[]> => {
     if (!params) {
-      return selectApiData<ChatMessage[]>(await getMessages(sessionId)) ?? [];
+      return unwrapMessageList(await getMessages(sessionId));
     }
-    const searchParams = new URLSearchParams();
-    if (params.page !== undefined) searchParams.set("page", String(params.page));
-    if (params.size !== undefined) searchParams.set("size", String(params.size));
-    const query = searchParams.toString();
-    const url = `${getGetMessagesUrl(sessionId)}${query ? `?${query}` : ""}`;
-    const response = await customFetch<MessageListResponse>(url, { method: "GET" });
-    return unwrapMessageList(response);
+    return (await fetchMessagePage(sessionId, params)).content;
+  },
+
+  getMessagePage: async (
+    sessionId: number,
+    params?: { page?: number; size?: number },
+  ): Promise<ChatMessagePage> => {
+    return fetchMessagePage(sessionId, params);
   },
 
   sendMessage: async (

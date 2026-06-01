@@ -405,6 +405,92 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubMessages);
   });
 
+  it("getMessagePage가 page metadata와 content를 반환한다", async () => {
+    const stubMessages: ChatMessageResponse[] = [
+      {
+        id: 1,
+        seqNo: 51,
+        senderRole: "CUSTOMER",
+        messageType: "TEXT",
+        content: "최근 메시지",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    mockedCustomFetch.mockResolvedValue({
+      content: stubMessages,
+      page: 0,
+      size: 50,
+      totalElements: 75,
+      totalPages: 2,
+    });
+
+    const result = await consultationApi.getMessagePage(1);
+
+    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=0&size=50",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: stubMessages,
+      page: 0,
+      size: 50,
+      totalElements: 75,
+      totalPages: 2,
+    });
+  });
+
+  it("getMessagePage가 legacy array 응답을 metadata로 보정한다", async () => {
+    const stubMessages: ChatMessageResponse[] = [
+      {
+        id: 1,
+        seqNo: 1,
+        senderRole: "AGENT",
+        messageType: "TEXT",
+        content: "legacy",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    mockedCustomFetch.mockResolvedValue(stubMessages);
+
+    const result = await consultationApi.getMessagePage(1, { page: 2, size: 10 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=2&size=10",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: stubMessages,
+      page: 2,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+    });
+  });
+
+  it("getMessagePage가 잘못된 page/size를 요청과 응답에서 보정한다", async () => {
+    mockedCustomFetch.mockResolvedValue({
+      content: [],
+      page: -3,
+      size: 0,
+      totalElements: 12,
+    });
+
+    const result = await consultationApi.getMessagePage(1, { page: -1, size: 0 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=0&size=1",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: [],
+      page: 0,
+      size: 1,
+      totalElements: 12,
+      totalPages: 12,
+    });
+  });
+
   it("assignSession이 상담사 ID 없이 assign API를 호출한다", async () => {
     const stubSession = {
       id: 1,
@@ -418,10 +504,9 @@ describe("consultationApi", () => {
 
     const result = await consultationApi.assignSession(1);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/assign",
-      { method: "POST" },
-    );
+    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/consultation/sessions/1/assign", {
+      method: "POST",
+    });
     expect(result).toEqual(stubSession);
   });
 
@@ -438,10 +523,9 @@ describe("consultationApi", () => {
 
     const result = await consultationApi.releaseSession(1);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/release",
-      { method: "POST" },
-    );
+    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/consultation/sessions/1/release", {
+      method: "POST",
+    });
     expect(result).toEqual(stubSession);
   });
 

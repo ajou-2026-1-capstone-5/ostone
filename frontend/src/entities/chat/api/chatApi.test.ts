@@ -78,6 +78,38 @@ describe("chatApi", () => {
     expect(customFetchMock).not.toHaveBeenCalled();
   });
 
+  it("pagination 응답의 세션 메시지를 채팅 UI 모델로 변환한다", async () => {
+    getMessagesMock.mockResolvedValue({
+      content: [
+        {
+          id: 22,
+          seqNo: 2,
+          senderRole: "USER",
+          messageType: "TEXT",
+          content: "배송 조회 부탁드립니다",
+          createdAt: "2026-05-22T00:01:00Z",
+        },
+      ],
+      page: 0,
+      size: 50,
+      totalElements: 1,
+      totalPages: 1,
+    });
+
+    await expect(listChatMessages(7)).resolves.toEqual([
+      {
+        id: "22",
+        sessionId: 7,
+        senderType: "USER",
+        content: "배송 조회 부탁드립니다",
+        createdAt: "2026-05-22T00:01:00Z",
+      },
+    ]);
+
+    expect(getMessagesMock).toHaveBeenCalledWith(7);
+    expect(customFetchMock).not.toHaveBeenCalled();
+  });
+
   it("데모 채팅 워크플로우를 채팅 UI 모델로 변환한다", async () => {
     getChatWorkflowMock.mockResolvedValue({
       chatSession: {
