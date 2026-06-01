@@ -18,7 +18,11 @@ import {
   VersionListPanel,
   SummaryDetailPanel,
 } from "@/features/domain-pack-summary-read";
-import type { DomainPackDetail, DomainPackVersionDetail } from "@/entities/domain-pack";
+import type {
+  DomainPackDetail,
+  DomainPackVersionDetail,
+  DomainPackVersionSummary,
+} from "@/entities/domain-pack";
 import styles from "./domain-pack-summary-page.module.css";
 
 export function DomainPackSummaryPage() {
@@ -64,6 +68,9 @@ function DomainPackSummaryPageContent({
   setSearch,
 }: ContentProps) {
   const packQuery = usePackDetail(wsId, packId) as UseQueryResult<DomainPackDetail>;
+  const pack = packQuery.data;
+  const defaultVersionId = resolveDefaultVersionId(pack);
+  const effectiveSelectedVersionId = selectedVersionId ?? defaultVersionId;
 
   useEffect(() => {
     if (!packQuery.isError) return;
@@ -71,19 +78,30 @@ function DomainPackSummaryPageContent({
     toast.error(is404 ? "Pack을 찾을 수 없습니다." : "Pack 정보를 불러오지 못했습니다.");
   }, [packQuery.isError, packQuery.error]);
 
+  useEffect(() => {
+    if (selectedVersionId !== null || defaultVersionId === null) return;
+    setSearch(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("versionId", String(defaultVersionId));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [defaultVersionId, selectedVersionId, setSearch]);
+
   const versionQuery = useVersionDetail(
     wsId,
     packId,
-    selectedVersionId,
+    effectiveSelectedVersionId,
   ) as UseQueryResult<DomainPackVersionDetail>;
-  const pack = packQuery.data;
   const currentVersionId = pack?.currentVersionId ?? null;
   const currentVersionNo =
     pack?.currentVersionNo ??
     pack?.versions?.find((version) => version.versionId === currentVersionId)?.versionNo ??
     null;
   const selectedVersionNo =
-    pack?.versions?.find((v) => v.versionId === selectedVersionId)?.versionNo ?? null;
+    pack?.versions?.find((v) => v.versionId === effectiveSelectedVersionId)?.versionNo ?? null;
 
   const deployMutation = useDeploy({
     mutation: {
@@ -176,10 +194,10 @@ function DomainPackSummaryPageContent({
         href: domainPackPath(wsId, packId),
       },
     ];
-    if (selectedVersionId !== null && selectedVersionNo !== null) {
+    if (effectiveSelectedVersionId !== null && selectedVersionNo !== null) {
       items.push({
         label: `#${selectedVersionNo}`,
-        href: withVersionSearch(domainPackPath(wsId, packId), selectedVersionId),
+        href: withVersionSearch(domainPackPath(wsId, packId), effectiveSelectedVersionId),
       });
     }
     return items;
@@ -222,7 +240,7 @@ function DomainPackSummaryPageContent({
         <div className={styles.twoPane}>
           <VersionListPanel
             query={packQuery}
-            selectedId={selectedVersionId}
+            selectedId={effectiveSelectedVersionId}
             currentVersionId={currentVersionId}
             onSelect={handleSelectVersion}
           />
@@ -263,6 +281,57 @@ function resolveVersionActionErrorMessage(error: unknown, fallback: string): str
     return error.message;
   }
   return fallback;
+}
+
+function resolveDefaultVersionId(pack?: DomainPackDetail): number | null {
+  const versions = pack?.versions?.filter((version) => version.versionId != null) ?? [];
+  if (versions.length === 0) return null;
+
+  if (
+    pack?.currentVersionId != null &&
+    versions.some((version) => version.versionId === pack.currentVersionId)
+  ) {
+    return pack.currentVersionId;
+  }
+
+  return (
+    pickLatestVersionId(versions.filter((version) => version.lifecycleStatus === "DRAFT")) ??
+    pickLatestVersionId(versions)
+  );
+}
+
+function pickLatestVersionId(versions: DomainPackVersionSummary[]): number | null {
+  const latest = versions.reduce<DomainPackVersionSummary | null>((best, version) => {
+    if (version.versionId == null) return best;
+    if (best === null) return version;
+    return compareVersionSummary(version, best) > 0 ? version : best;
+  }, null);
+
+  return latest?.versionId ?? null;
+}
+
+function compareVersionSummary(
+  left: DomainPackVersionSummary,
+  right: DomainPackVersionSummary,
+): number {
+  const leftVersionNo = left.versionNo ?? Number.NEGATIVE_INFINITY;
+  const rightVersionNo = right.versionNo ?? Number.NEGATIVE_INFINITY;
+  if (leftVersionNo !== rightVersionNo) return leftVersionNo - rightVersionNo;
+
+  const leftCreatedAt = parseTime(left.createdAt);
+  const rightCreatedAt = parseTime(right.createdAt);
+  if (leftCreatedAt !== rightCreatedAt) return leftCreatedAt - rightCreatedAt;
+
+  return (
+    (left.versionId ?? Number.NEGATIVE_INFINITY) -
+    (right.versionId ?? Number.NEGATIVE_INFINITY)
+  );
+}
+
+function parseTime(value?: string): number {
+  if (value == null) return Number.NEGATIVE_INFINITY;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
 }
 
 function resolveActivatedVersionId(result: unknown, fallback: number): number {
