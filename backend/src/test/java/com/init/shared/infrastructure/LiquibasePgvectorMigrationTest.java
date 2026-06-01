@@ -23,20 +23,52 @@ class LiquibasePgvectorMigrationTest {
   }
 
   @Test
-  @DisplayName("pgvector extension이 준비된 PostgreSQL에 master changelog를 적용할 수 있다")
-  void should_applyMasterChangelog_when_pgvectorExtensionExists() throws Exception {
+  @DisplayName("운영 app_user 권한으로 master changelog가 앱 스키마를 생성할 수 있다")
+  void should_applyMasterChangelogAndCreateApplicationSchemas_when_appUserHasCreatePrivilege()
+      throws Exception {
+    DriverManagerDataSource adminDataSource = new DriverManagerDataSource();
+    adminDataSource.setUrl(postgres.getJdbcUrl());
+    adminDataSource.setUsername(postgres.getUsername());
+    adminDataSource.setPassword(postgres.getPassword());
+    JdbcTemplate adminJdbcTemplate = new JdbcTemplate(adminDataSource);
+    adminJdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS vector");
+    adminJdbcTemplate.execute(
+        """
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_user') THEN
+            CREATE ROLE app_user LOGIN PASSWORD 'app-password';
+          END IF;
+        END
+        $$;
+        """);
+    String databaseName = postgres.getDatabaseName();
+    adminJdbcTemplate.execute("GRANT CONNECT ON DATABASE " + databaseName + " TO app_user");
+    adminJdbcTemplate.execute("GRANT CREATE ON DATABASE " + databaseName + " TO app_user");
+    adminJdbcTemplate.execute("GRANT USAGE, CREATE ON SCHEMA public TO app_user");
+    adminJdbcTemplate.execute(
+        "ALTER ROLE app_user SET search_path TO app, corpus, pack, review, pipeline, runtime, public");
+
     DriverManagerDataSource dataSource = new DriverManagerDataSource();
     dataSource.setUrl(postgres.getJdbcUrl());
-    dataSource.setUsername(postgres.getUsername());
-    dataSource.setPassword(postgres.getPassword());
+    dataSource.setUsername("app_user");
+    dataSource.setPassword("app-password");
     JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-    jdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS vector");
 
     SpringLiquibase liquibase = new SpringLiquibase();
     liquibase.setDataSource(dataSource);
     liquibase.setChangeLog("classpath:db/changelog/db.changelog-master.sql");
     liquibase.afterPropertiesSet();
 
+    Integer changelogCount =
+        jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = 'databasechangelog'
+            """,
+            Integer.class);
     Integer count =
         jdbcTemplate.queryForObject(
             """
@@ -47,6 +79,7 @@ class LiquibasePgvectorMigrationTest {
             """,
             Integer.class);
 
+    assertThat(changelogCount).isEqualTo(1);
     assertThat(count).isEqualTo(1);
   }
 }
