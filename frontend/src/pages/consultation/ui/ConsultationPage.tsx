@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { ApiRequestError } from "@/shared/api";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Dot, Mono, Avatar } from "@/shared/ui/ostone/atoms";
 import { useStomp } from "@/shared/lib/websocket";
@@ -498,6 +499,25 @@ const replaceAssignedQueueCustomer = (
     ),
   );
 
+const getClaimSessionErrorMessage = (error: unknown) => {
+  if (error instanceof ApiRequestError) {
+    switch (error.code) {
+      case "SESSION_ALREADY_ASSIGNED":
+        return "이미 다른 상담사에게 배정된 상담입니다.";
+      case "SESSION_NOT_ASSIGNABLE":
+        return "현재 배정할 수 없는 상담 상태입니다.";
+      case "SESSION_NOT_FOUND":
+        return "상담 세션을 찾을 수 없습니다.";
+      case "WORKSPACE_ACCESS_DENIED":
+      case "FORBIDDEN":
+        return "상담 배정 권한이 없습니다.";
+      default:
+        return "상담 세션 배정에 실패했습니다.";
+    }
+  }
+  return "상담 세션 배정에 실패했습니다.";
+};
+
 const formatAverageFirstResponse = (seconds?: number | null) => {
   if (seconds == null) return "--";
   const minutes = Math.floor(seconds / 60);
@@ -875,6 +895,37 @@ export const ConsultationPage: React.FC = () => {
     void loadQueue(true);
   }, [loadQueue]);
 
+  const synchronizeQueueAfterClaimFailure = useCallback(
+    async (targetSessionId: string) => {
+      if (!workspaceId) return;
+
+      try {
+        const sessions = await consultationApi.getQueue(workspaceId);
+        const formattedQueue = (Array.isArray(sessions) ? sessions : []).map((s) =>
+          toQueueCustomer(s, currentCounselorId),
+        );
+        setQueue(sortQueueCustomers(formattedQueue));
+        setQueueLoadError(null);
+        setHasQueueLoaded(true);
+        queueErrorToastShownRef.current = false;
+
+        const latestTarget = formattedQueue.find((customer) => customer.id === targetSessionId);
+        const isAssignedToAnotherCounselor =
+          latestTarget?.assignedCounselorId != null &&
+          latestTarget.assignedCounselorId !== currentCounselorId;
+        if (!latestTarget || isAssignedToAnotherCounselor) {
+          clearActiveConversation();
+          navigateToConsultationRoot();
+        }
+      } catch (syncError) {
+        console.error("Failed to synchronize queue after claim failure:", syncError);
+        setQueueLoadError("대기열을 불러오지 못했습니다.");
+        toast.error("배정 실패 후 최신 대기열을 불러오지 못했습니다.");
+      }
+    },
+    [clearActiveConversation, currentCounselorId, navigateToConsultationRoot, workspaceId],
+  );
+
   const handleQueueEvent = useCallback(
     (raw: unknown) => {
       const event = raw as Partial<ConsultationQueueEvent>;
@@ -1140,7 +1191,8 @@ export const ConsultationPage: React.FC = () => {
       toast.success("상담 세션이 배정되었습니다.");
     } catch (error) {
       console.error("Failed to claim session:", error);
-      toast.error("상담 세션 배정에 실패했습니다.");
+      toast.error(getClaimSessionErrorMessage(error));
+      await synchronizeQueueAfterClaimFailure(targetSessionId);
     } finally {
       setClaimingSessionId((current) => (current === targetSessionId ? null : current));
     }
@@ -1150,6 +1202,7 @@ export const ConsultationPage: React.FC = () => {
     claimingSessionId,
     currentCounselorId,
     isActiveSessionClosed,
+    synchronizeQueueAfterClaimFailure,
   ]);
 
   const handleSendMessage = useCallback(

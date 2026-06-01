@@ -7,6 +7,7 @@ import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import { getCurrentWorkflow } from "../../../features/consultation/api/llmToolWorkflowApi";
 import { toast } from "sonner";
+import { ApiRequestError } from "@/shared/api";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -200,6 +201,17 @@ function saveTestUser(id: number) {
     "user",
     JSON.stringify({ id, email: "agent@example.com", name: "상담사", role: "OPERATOR" }),
   );
+}
+
+function createUnassignedQueueSession() {
+  return {
+    id: 1,
+    status: "OPEN" as const,
+    channel: "카카오톡",
+    metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+    startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+    assignedCounselorId: null,
+  };
 }
 
 describe("ConsultationPage", () => {
@@ -1043,16 +1055,10 @@ describe("ConsultationPage", () => {
 
   it("keeps the session read-only when claim fails", async () => {
     saveTestUser(7);
-    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
-      {
-        id: 1,
-        status: "OPEN",
-        channel: "카카오톡",
-        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
-        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
-        assignedCounselorId: null,
-      },
-    ]);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockResolvedValueOnce([unassignedSession]);
     vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(new Error("already assigned"));
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -1074,8 +1080,139 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("상담 세션 배정에 실패했습니다.");
     });
+    expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
     expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it.each([
+    ["SESSION_NOT_ASSIGNABLE", "현재 배정할 수 없는 상담 상태입니다."],
+    ["SESSION_NOT_FOUND", "상담 세션을 찾을 수 없습니다."],
+    ["WORKSPACE_ACCESS_DENIED", "상담 배정 권한이 없습니다."],
+    ["FORBIDDEN", "상담 배정 권한이 없습니다."],
+    ["UNKNOWN_ERROR", "상담 세션 배정에 실패했습니다."],
+  ])("shows a claim failure message for %s", async (code, message) => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockResolvedValueOnce([unassignedSession]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(
+      new ApiRequestError(400, code, "배정 실패"),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(message);
+    });
+    expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("shows a queue sync error when refetching after claim failure fails", async () => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockRejectedValueOnce(new Error("queue sync failed"));
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(new Error("claim failed"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "배정 실패 후 최신 대기열을 불러오지 못했습니다.",
+      );
+    });
+    expect(screen.getByText("대기열을 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
+  it("syncs queue and clears the selected chat when claim fails because another counselor assigned it", async () => {
+    saveTestUser(7);
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          status: "OPEN",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          status: "ACTIVE",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: 99,
+          responseMode: "HUMAN_ACTIVE",
+        },
+      ]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(
+      new ApiRequestError(
+        400,
+        "SESSION_ALREADY_ASSIGNED",
+        "이미 다른 상담사에게 배정된 상담입니다.",
+      ),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("이미 다른 상담사에게 배정된 상담입니다.");
+    });
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+      expect(screen.getAllByText("다른 상담사 배정").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "배정받기" })).not.toBeInTheDocument();
   });
 
   it("keeps sessions assigned to another counselor read-only with a reason", async () => {
