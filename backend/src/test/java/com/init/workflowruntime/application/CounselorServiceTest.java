@@ -350,13 +350,7 @@ class CounselorServiceTest {
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
-                eq(1L),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                any(Pageable.class)))
+                eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -366,13 +360,7 @@ class CounselorServiceTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     verify(chatSessionRepository)
         .searchByWorkspace(
-            eq(1L),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            any(Pageable.class));
+            eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class));
   }
 
   @Test
@@ -383,13 +371,7 @@ class CounselorServiceTest {
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
-                eq(1L),
-                eq("OPEN"),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                any(Pageable.class)))
+                eq(1L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -398,13 +380,7 @@ class CounselorServiceTest {
     assertThat(result.getContent()).hasSize(1);
     verify(chatSessionRepository)
         .searchByWorkspace(
-            eq(1L),
-            eq("OPEN"),
-            eq(null),
-            eq(null),
-            eq(null),
-            eq(null),
-            any(Pageable.class));
+            eq(1L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), any(Pageable.class));
   }
 
   @Test
@@ -452,8 +428,7 @@ class CounselorServiceTest {
   void should_throwBadRequest_when_invalidStatus() {
     givenWorkspaceMember(1L, 7L);
 
-    assertThatThrownBy(
-            () -> service.getSessions(1L, 7L, "INVALID", null, null, null, null, 0, 20))
+    assertThatThrownBy(() -> service.getSessions(1L, 7L, "INVALID", null, null, null, null, 0, 20))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("Unsupported status");
   }

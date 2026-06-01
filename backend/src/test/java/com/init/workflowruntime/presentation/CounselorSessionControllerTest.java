@@ -200,15 +200,7 @@ class CounselorSessionControllerTest {
 
     given(
             counselorService.getSessions(
-                eq(1L),
-                eq(7L),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(0),
-                eq(20)))
+                eq(1L), eq(7L), eq(null), eq(null), eq(null), eq(null), eq(null), eq(0), eq(20)))
         .willReturn(response);
 
     mockMvc
@@ -216,7 +208,7 @@ class CounselorSessionControllerTest {
             get("/api/v1/workspaces/1/consultation/sessions")
                 .param("page", "0")
                 .param("size", "20")
-                .principal(auth()))
+                .principal(auth(7L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray());
   }
@@ -228,15 +220,7 @@ class CounselorSessionControllerTest {
 
     given(
             counselorService.getSessions(
-                eq(1L),
-                eq(7L),
-                eq("OPEN"),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(null),
-                eq(0),
-                eq(20)))
+                eq(1L), eq(7L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), eq(0), eq(20)))
         .willReturn(response);
 
     mockMvc
@@ -245,7 +229,7 @@ class CounselorSessionControllerTest {
                 .param("status", "OPEN")
                 .param("page", "0")
                 .param("size", "20")
-                .principal(auth()))
+                .principal(auth(7L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray());
   }
@@ -278,7 +262,7 @@ class CounselorSessionControllerTest {
                 .param("assignedCounselorId", "42")
                 .param("page", "1")
                 .param("size", "20")
-                .principal(auth()))
+                .principal(auth(7L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.page").value(1));
   }
@@ -305,7 +289,7 @@ class CounselorSessionControllerTest {
                 .param("status", "INVALID")
                 .param("page", "0")
                 .param("size", "20")
-                .principal(auth()))
+                .principal(auth(7L)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
   }
