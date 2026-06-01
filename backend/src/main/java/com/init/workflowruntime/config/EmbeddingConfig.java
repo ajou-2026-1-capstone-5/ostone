@@ -37,6 +37,13 @@ public class EmbeddingConfig {
     }
     String provider = properties.providerOrDefault();
     if ("openai".equalsIgnoreCase(provider)) {
+      if (openAiApiKey == null || openAiApiKey.isBlank()) {
+        throw new IllegalStateException(
+            "spring.ai.openai.api-key must be set when app.ai.embedding.provider=openai");
+      }
+      if (dimensions <= 0) {
+        throw new IllegalArgumentException("app.ai.embedding.dimensions must be positive");
+      }
       Duration timeout = properties.timeoutOrDefault();
       SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
       requestFactory.setConnectTimeout(timeout);

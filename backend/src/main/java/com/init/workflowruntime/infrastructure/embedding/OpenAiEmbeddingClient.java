@@ -9,6 +9,8 @@ import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -17,6 +19,8 @@ import org.springframework.web.client.RestClient;
  * 가능하다).
  */
 public class OpenAiEmbeddingClient implements EmbeddingClient {
+
+  private static final Logger log = LoggerFactory.getLogger(OpenAiEmbeddingClient.class);
 
   private final RestClient restClient;
   private final ObjectMapper objectMapper;
@@ -67,11 +71,13 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
       meterRegistry.counter("workflow_matching.openai.embedding", "result", "success").increment();
       return vector;
     } catch (IOException e) {
+      log.warn("OpenAI embedding response parse failed. model={}", model, e);
       meterRegistry
           .counter("workflow_matching.openai.embedding", "result", "serialization_error")
           .increment();
       throw new IllegalStateException("Failed to parse OpenAI embedding response", e);
     } catch (RuntimeException e) {
+      log.warn("OpenAI embedding request failed. model={}", model, e);
       meterRegistry.counter("workflow_matching.openai.embedding", "result", "error").increment();
       throw e;
     } finally {

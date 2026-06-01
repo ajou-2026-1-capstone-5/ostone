@@ -131,6 +131,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     try (InputStream inputStream = resource.getInputStream()) {
       return objectMapper.readTree(inputStream);
     } catch (IOException e) {
+      log.error("ActiveVenture seed resource read failed. path={}", RESOURCE_PATH, e);
       throw new IllegalStateException("ActiveVenture seed resource cannot be read", e);
     }
   }
@@ -383,6 +384,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       injectPolicyHandoff(graph, edges, policyRefByNode, nodeTypeById, workflowCode);
       return objectMapper.writeValueAsString(graph);
     } catch (JsonProcessingException | ClassCastException e) {
+      log.error(
+          "ActiveVenture workflow graph preparation failed. workflowCode={}", workflowCode, e);
       throw new IllegalStateException("ActiveVenture workflow graph cannot be prepared", e);
     }
   }
@@ -528,6 +531,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     try {
       return objectMapper.readTree(graphJson);
     } catch (JsonProcessingException e) {
+      log.error("ActiveVenture workflow graph parse failed", e);
       throw new IllegalStateException("ActiveVenture workflow graph cannot be parsed", e);
     }
   }
@@ -541,12 +545,14 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       parseAndValidate.setAccessible(true);
       parseAndValidate.invoke(null, graphJson, workflowCode);
     } catch (InvocationTargetException e) {
+      log.error("워크플로우 그래프 검증 중 예외가 발생했습니다. workflowCode={}", workflowCode, e);
       Throwable cause = e.getCause();
       if (cause instanceof RuntimeException runtimeException) {
         throw runtimeException;
       }
       throw new IllegalStateException("워크플로우 그래프 검증에 실패했습니다.", cause);
     } catch (ReflectiveOperationException e) {
+      log.error("워크플로우 그래프 검증기 호출에 실패했습니다. workflowCode={}", workflowCode, e);
       throw new IllegalStateException("워크플로우 그래프 검증기를 호출할 수 없습니다.", e);
     }
   }
@@ -632,6 +638,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {
+      log.error("ActiveVenture seed JSON serialization failed", e);
       throw new IllegalStateException("ActiveVenture seed JSON cannot be serialized", e);
     }
   }

@@ -97,7 +97,8 @@ public class WorkflowAssistantStateService {
   @Transactional
   public AssistantConversationResult updateSlot(UpdateAssistantSlotCommand command) {
     String value = command.value();
-    AssistantConversationState currentState = inspectState(command.sessionId());
+    InspectedState inspectedState = inspectStateWithContext(command.sessionId());
+    AssistantConversationState currentState = inspectedState.state();
     AssistantNextAction nextAction = currentState.nextAction();
     // 슬롯 요청 상태가 아니거나 값이 비어 있으면 저장하지 않고 현재 상태를 그대로 반환한다.
     // BadRequestException 을 던지면 공유 트랜잭션이 rollback-only 로 마킹되어 상위 호출(appendMessage)이
@@ -110,14 +111,14 @@ public class WorkflowAssistantStateService {
     }
     // 값이 실제 답변이 아니라 안내 문구(질문 문장)나 필드 목록(슬롯 이름 나열)이면 저장하지 않는다.
     // LLM 이 사용자 입력이 없을 때 질문/필드목록을 그대로 슬롯 값으로 넣는 현상을 차단한다.
-    if (looksLikePlaceholderValue(command.sessionId(), value, nextAction)) {
+    if (looksLikePlaceholderValue(value, nextAction, inspectedState.context())) {
       return AssistantConversationResult.of(currentState);
     }
     // LLM 이 넘긴 slotCode 가 이 대화의 실제 슬롯이면 그대로 신뢰한다(사용자가 한 번에 여러 값을,
     // 또는 묻는 순서와 다르게 말해도 각 값이 올바른 슬롯에 저장된다). slotCode 가 비어 있거나
     // 한글 라벨/오타 등 알 수 없는 값이면 백엔드가 현재 요청 중인 슬롯으로 폴백한다.
     String targetSlot =
-        resolveTargetSlot(command.sessionId(), command.slotCode(), nextAction.slotCode());
+        resolveTargetSlot(inspectedState.context(), command.slotCode(), nextAction.slotCode());
     llmToolService.upsertSlotValue(
         new UpsertLlmToolSlotValueCommand(
             command.sessionId(), targetSlot, TextNode.valueOf(value.trim())));
@@ -125,14 +126,18 @@ public class WorkflowAssistantStateService {
   }
 
   private AssistantConversationState inspectState(Long sessionId) {
+    return inspectStateWithContext(sessionId).state();
+  }
+
+  private InspectedState inspectStateWithContext(Long sessionId) {
     LlmToolContextResponse context = getContext(sessionId);
     if (!hasSelectedWorkflow(context)) {
-      return AssistantConversationState.needIntent();
+      return new InspectedState(AssistantConversationState.needIntent(), context);
     }
 
     WorkflowAdvanceResponse advanceResponse = autoAdvance(sessionId);
     context = getContext(sessionId);
-    return toAssistantState(context, advanceResponse);
+    return new InspectedState(toAssistantState(context, advanceResponse), context);
   }
 
   private WorkflowAdvanceResponse autoAdvance(Long sessionId) {
@@ -337,10 +342,10 @@ public class WorkflowAssistantStateService {
     return llmToolService.getContext(new GetLlmToolContextCommand(sessionId));
   }
 
-  private String resolveTargetSlot(Long sessionId, String llmSlotCode, String requestedSlotCode) {
+  private String resolveTargetSlot(
+      LlmToolContextResponse context, String llmSlotCode, String requestedSlotCode) {
     if (hasText(llmSlotCode)) {
       String trimmed = llmSlotCode.trim();
-      LlmToolContextResponse context = getContext(sessionId);
       if (context.slots() != null) {
         for (LlmToolSlotResponse slot : context.slots()) {
           if (trimmed.equals(slot.slotCode())) {
@@ -353,13 +358,12 @@ public class WorkflowAssistantStateService {
   }
 
   private boolean looksLikePlaceholderValue(
-      Long sessionId, String value, AssistantNextAction nextAction) {
+      String value, AssistantNextAction nextAction, LlmToolContextResponse context) {
     String trimmed = value.trim();
     String question = nextAction.question();
     if (hasText(question) && (trimmed.equals(question.trim()) || question.contains(trimmed))) {
       return true;
     }
-    LlmToolContextResponse context = getContext(sessionId);
     if (context.slots() == null) {
       return false;
     }
@@ -405,4 +409,6 @@ public class WorkflowAssistantStateService {
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
   }
+
+  private record InspectedState(AssistantConversationState state, LlmToolContextResponse context) {}
 }
