@@ -110,6 +110,12 @@ app:
       route-evidence-floor: ${AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR:0.50}
       lexical-evidence-floor: ${AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR:0.30}
     chat:
+      auto-response:
+        executor:
+          core-size: ${AI_CHAT_AUTO_RESPONSE_CORE_SIZE:4}
+          max-size: ${AI_CHAT_AUTO_RESPONSE_MAX_SIZE:8}
+          queue-capacity: ${AI_CHAT_AUTO_RESPONSE_QUEUE_CAPACITY:16}
+          keep-alive-seconds: ${AI_CHAT_AUTO_RESPONSE_KEEP_ALIVE_SECONDS:60}
       system-prompt: |
         You are a customer support assistant.
 
