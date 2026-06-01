@@ -46,3 +46,19 @@ def test_semantic_quality_report_marks_bge_runtime_as_final_validation() -> None
     assert report["finalSemanticQuality"] is True
     assert report["status"] == "final_semantic_validation"
     assert report["blockingReason"] is None
+
+
+def test_semantic_quality_report_marks_local_http_bge_runtime_as_final_validation() -> None:
+    vectors = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+
+    report = build_semantic_quality_report(
+        semantic_embeddings=vectors,
+        valid_clusters={1: [0], 2: [1]},
+        embedding_runtime="local_http",
+        embedding_model_name="BAAI/bge-m3",
+        embedding_source="representation",
+    )
+
+    assert report["finalSemanticQuality"] is True
+    assert report["status"] == "final_semantic_validation"
+    assert report["blockingReason"] is None

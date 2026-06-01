@@ -92,7 +92,7 @@ function buildSummary(data: SummaryData) {
       value: formatRate(firstValue(data, [["quality", "outlierRate"], ["outlierRate"]])) ?? "",
     },
     {
-      label: "워크플로우 분리도",
+      label: "응대 흐름 분리도",
       value:
         formatRate(
           firstValue(data, [["quality", "workflowSeparability"], ["workflowSeparability"]]),

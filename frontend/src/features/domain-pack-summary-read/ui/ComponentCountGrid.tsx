@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
@@ -19,7 +18,6 @@ interface ComponentCountGridProps {
   slotCount: number;
   policyCount: number;
   workflowCount: number;
-  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => ReactNode;
 }
 
 export function ComponentCountGrid({
@@ -30,10 +28,8 @@ export function ComponentCountGrid({
   slotCount,
   policyCount,
   workflowCount,
-  renderSlotEditSheet,
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
-  const [slotEditOpen, setSlotEditOpen] = useState(false);
 
   const intentPreview = useIntentPreview(wsId, packId, versionId);
   const slotPreview = useSlotPreview(wsId, packId, versionId);
@@ -41,71 +37,72 @@ export function ComponentCountGrid({
   const workflowPreview = useWorkflowPreview(wsId, packId, versionId);
 
   useEffect(() => {
-    if (intentPreview.isError) toast.error("Intent 미리보기 로드 실패");
+    if (intentPreview.isError) toast.error("상담 유형 미리보기를 불러오지 못했습니다.");
   }, [intentPreview.isError]);
 
   useEffect(() => {
-    if (slotPreview.isError) toast.error("Slot 미리보기 로드 실패");
+    if (slotPreview.isError) toast.error("확인 항목 미리보기를 불러오지 못했습니다.");
   }, [slotPreview.isError]);
 
   useEffect(() => {
-    if (policyPreview.isError) toast.error("Policy 미리보기 로드 실패");
+    if (policyPreview.isError) toast.error("응대 기준 미리보기를 불러오지 못했습니다.");
   }, [policyPreview.isError]);
 
   useEffect(() => {
-    if (workflowPreview.isError) toast.error("Workflow 미리보기 로드 실패");
+    if (workflowPreview.isError) toast.error("응대 흐름 미리보기를 불러오지 못했습니다.");
   }, [workflowPreview.isError]);
 
-  const firstSlotId = slotPreview.data?.[0]?.id;
-
   return (
-    <>
-      <div className={styles.grid}>
-        <CountCard
-          label="Intent"
-          count={intentCount}
-          disabled={false}
-          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
-          previewNames={intentPreview.data?.map((i) => i.name) as string[]}
-          isLoadingPreview={intentPreview.isLoading}
-        />
-        <CountCard
-          label="Slot"
-          count={slotCount}
-          disabled={firstSlotId === undefined}
-          tooltip="수정할 Slot이 없습니다"
-          onNavigate={() => setSlotEditOpen(true)}
-          previewNames={slotPreview.data?.map((s) => s.name) as string[]}
-          isLoadingPreview={slotPreview.isLoading}
-        />
-        <CountCard
-          label="Policy"
-          count={policyCount}
-          disabled={false}
-          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
-          previewNames={policyPreview.data?.map((p) => p.name) as string[]}
-          isLoadingPreview={policyPreview.isLoading}
-        />
-        <CountCard
-          label="Workflow"
-          count={workflowCount}
-          disabled={false}
-          onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}
-          previewItems={
-            workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as {
-              id: number;
-              name: string;
-            }[]
-          }
-          isLoadingPreview={workflowPreview.isLoading}
-          onPreviewItemClick={(id) =>
-            navigate(domainPackSectionPath(wsId, packId, versionId, "workflows", id))
-          }
-        />
-      </div>
-      {firstSlotId !== undefined &&
-        renderSlotEditSheet?.(firstSlotId, slotEditOpen, () => setSlotEditOpen(false))}
-    </>
+    <div className={styles.grid}>
+      <CountCard
+        label="상담 유형"
+        count={intentCount}
+        disabled={false}
+        onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
+        previewNames={intentPreview.data?.map((i) => i.name) as string[]}
+        isLoadingPreview={intentPreview.isLoading}
+      />
+      <CountCard
+        label="확인 항목"
+        count={slotCount}
+        disabled={false}
+        onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "slots"))}
+        previewItems={
+          slotPreview.data?.map((s) => ({ id: s.id, name: s.name })) as {
+            id: number;
+            name: string;
+          }[]
+        }
+        isLoadingPreview={slotPreview.isLoading}
+        onPreviewItemClick={(id) =>
+          navigate(domainPackSectionPath(wsId, packId, versionId, "slots", id))
+        }
+      />
+      <CountCard
+        label="응대 기준"
+        count={policyCount}
+        disabled={false}
+        onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
+        previewNames={policyPreview.data?.map((p) => p.name) as string[]}
+        isLoadingPreview={policyPreview.isLoading}
+      />
+      <CountCard
+        label="응대 흐름"
+        count={workflowCount}
+        disabled={false}
+        onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}
+        previewItems={
+          workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as {
+            id: number;
+            name: string;
+          }[]
+        }
+        isLoadingPreview={workflowPreview.isLoading}
+        onPreviewItemClick={(id) =>
+          navigate(domainPackSectionPath(wsId, packId, versionId, "workflows", id))
+        }
+      />
+    </div>
   );
 }
 

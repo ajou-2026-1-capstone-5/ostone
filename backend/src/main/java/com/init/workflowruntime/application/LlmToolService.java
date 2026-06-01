@@ -45,6 +45,9 @@ import com.init.workflowruntime.domain.WorkflowExecutionRepository;
 import com.init.workflowruntime.domain.WorkflowExecutionStep;
 import com.init.workflowruntime.domain.WorkflowExecutionStepActionType;
 import com.init.workflowruntime.domain.WorkflowExecutionStepRepository;
+import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -68,7 +71,9 @@ public class LlmToolService {
   private final WorkflowPolicyRuntimeService workflowPolicyRuntimeService;
   private final DecisionLogRepository decisionLogRepository;
   private final WorkflowExecutionStepRepository workflowExecutionStepRepository;
+  private final WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository;
   private final ObjectMapper objectMapper;
+  private final WorkspaceMemberRepository workspaceMemberRepository;
 
   public LlmToolService(
       ChatSessionRepository chatSessionRepository,
@@ -81,7 +86,9 @@ public class LlmToolService {
       WorkflowPolicyRuntimeService workflowPolicyRuntimeService,
       DecisionLogRepository decisionLogRepository,
       WorkflowExecutionStepRepository workflowExecutionStepRepository,
-      ObjectMapper objectMapper) {
+      WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository,
+      ObjectMapper objectMapper,
+      WorkspaceMemberRepository workspaceMemberRepository) {
     this.chatSessionRepository = chatSessionRepository;
     this.workflowExecutionRepository = workflowExecutionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
@@ -92,7 +99,18 @@ public class LlmToolService {
     this.workflowPolicyRuntimeService = workflowPolicyRuntimeService;
     this.decisionLogRepository = decisionLogRepository;
     this.workflowExecutionStepRepository = workflowExecutionStepRepository;
+    this.workflowMatchDecisionRepository = workflowMatchDecisionRepository;
     this.objectMapper = objectMapper;
+    this.workspaceMemberRepository = workspaceMemberRepository;
+  }
+
+  @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
+  @Transactional
+  public LlmToolWorkflowResponse getCurrentWorkflowForOperator(
+      GetCurrentWorkflowCommand command, Long userId) {
+    ChatSession session = findSession(command.sessionId());
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
+    return getCurrentWorkflow(command, session);
   }
 
   @SuppressWarnings("java:S2201") // false positive: PESSIMISTIC_WRITE lock only, return ignored
@@ -100,6 +118,12 @@ public class LlmToolService {
   public LlmToolWorkflowResponse getCurrentWorkflow(GetCurrentWorkflowCommand command) {
     Long sessionId = command.sessionId();
     ChatSession session = findSession(sessionId);
+    return getCurrentWorkflow(command, session);
+  }
+
+  private LlmToolWorkflowResponse getCurrentWorkflow(
+      GetCurrentWorkflowCommand command, ChatSession session) {
+    Long sessionId = command.sessionId();
     WorkflowExecution execution = findExecution(sessionId);
 
     Long executionId = execution != null ? execution.getId() : null;
@@ -360,10 +384,13 @@ public class LlmToolService {
           "INTENT_NOT_SELECTABLE", "Rejected intent cannot be selected: " + intentCode);
     }
 
-    WorkflowDefinition workflow = resolveWorkflow(session.getDomainPackVersionId(), intent);
+    WorkflowDefinition workflow =
+        resolveWorkflow(session.getDomainPackVersionId(), intent, command.workflowDefinitionId());
     WorkflowExecution execution = findOrCreateExecutionForUpdate(session);
     execution.assignIntentWorkflow(intent.getId(), workflow.getId(), resolveInitialState(workflow));
     WorkflowExecution saved = workflowExecutionRepository.save(execution);
+    workflowMatchDecisionRepository.attachLatestExecution(
+        session.getId(), workflow.getId(), saved.getId());
 
     ObjectNode slotValues = readObjectNode(saved.getSlotValuesJson());
     List<LlmToolSlotResponse> requiredSlots =
@@ -464,6 +491,12 @@ public class LlmToolService {
             () -> new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
   }
 
+  private void validateWorkspaceMembership(Long workspaceId, Long userId) {
+    workspaceMemberRepository
+        .findByWorkspaceIdAndUserId(workspaceId, userId)
+        .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+  }
+
   private WorkflowExecution findExecution(Long sessionId) {
     return workflowExecutionRepository
         .findTopByChatSessionIdOrderByStartedAtDescIdDesc(sessionId)
@@ -559,7 +592,24 @@ public class LlmToolService {
                     "INTENT_DEFINITION_NOT_FOUND", "IntentDefinition not found: " + intentCode));
   }
 
-  private WorkflowDefinition resolveWorkflow(Long domainPackVersionId, IntentDefinition intent) {
+  private WorkflowDefinition resolveWorkflow(
+      Long domainPackVersionId, IntentDefinition intent, Long preferredWorkflowDefinitionId) {
+    if (preferredWorkflowDefinitionId != null) {
+      WorkflowDefinition workflow =
+          workflowDefinitionRepository
+              .findByIdAndDomainPackVersionId(preferredWorkflowDefinitionId, domainPackVersionId)
+              .orElseThrow(
+                  () ->
+                      new NotFoundException(
+                          "WORKFLOW_DEFINITION_NOT_FOUND",
+                          "WorkflowDefinition not found: " + preferredWorkflowDefinitionId));
+      if (!workflow.getIntentDefinitionId().equals(intent.getId())) {
+        throw new BadRequestException(
+            "WORKFLOW_INTENT_MISMATCH", "Selected workflow does not belong to selected intent.");
+      }
+      return workflow;
+    }
+
     List<WorkflowDefinition> workflows =
         workflowDefinitionRepository
             .findAllByIntentDefinitionIdAndDomainPackVersionId(intent.getId(), domainPackVersionId)

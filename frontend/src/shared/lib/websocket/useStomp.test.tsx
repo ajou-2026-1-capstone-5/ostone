@@ -45,8 +45,8 @@ function makeMessage(body: string): IMessage {
   return { body } as unknown as IMessage;
 }
 
-async function renderUseStompHelper() {
-  const rendered = renderHook(() => useStomp());
+async function renderUseStompHelper(options?: Parameters<typeof useStomp>[0]) {
+  const rendered = renderHook(() => useStomp(options));
   await act(async () => {
     await Promise.resolve();
   });
@@ -242,6 +242,29 @@ describe("useStomp", () => {
         errorQueueOnMessage?.(makeMessage("invalid-json"));
       });
     }).not.toThrow();
+  });
+
+  it("onConnect 내부의 에러 큐(/user/queue/errors) 구독에서 JSON 수신 시 호출부 콜백으로 전달한다", async () => {
+    const onServerError = vi.fn();
+    await renderUseStompHelper({ onServerError });
+
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    const errorQueueOnMessage = client.subscribe.mock.calls.find(
+      (call) => call[0] === "/user/queue/errors",
+    )?.[1];
+
+    act(() => {
+      errorQueueOnMessage?.(makeMessage('{"messageType":"ERROR","content":"failed"}'));
+    });
+
+    expect(onServerError).toHaveBeenCalledWith({
+      messageType: "ERROR",
+      content: "failed",
+    });
   });
 
   it("onDisconnect가 호출되면 DISCONNECTED 상태로 전환한다", async () => {

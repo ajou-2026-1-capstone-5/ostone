@@ -150,6 +150,28 @@ public class AirflowDomainPackGenerationTriggerAdapter extends AirflowHttpSuppor
     conf.put("dataset_id", command.datasetId());
     conf.put("pipeline_job_id", command.pipelineJobId());
     conf.put("object_key", command.objectKey());
+    putIfNotBlank(conf, "run_mode", command.runMode());
+    putIfNotNull(conf, "parent_pipeline_job_id", command.parentPipelineJobId());
+    putIfNotBlank(conf, "upstream_manifest_path", command.upstreamManifestPath());
+    putIfNotBlank(conf, "confirmed_domain_profile_path", command.confirmedDomainProfilePath());
+    putIfNotBlank(conf, "feedback_constraints_path", command.feedbackConstraintsPath());
+    putIfNotBlank(conf, "confirmed_domain_profile_json", command.confirmedDomainProfileJson());
+    putIfNotBlank(conf, "feedback_constraints_json", command.feedbackConstraintsJson());
+    if (command.skipFeedbackCheckpoint() != null) {
+      conf.put("skip_feedback_checkpoint", command.skipFeedbackCheckpoint());
+    }
     return request;
+  }
+
+  private void putIfNotBlank(ObjectNode node, String fieldName, String value) {
+    if (!isBlank(value)) {
+      node.put(fieldName, value);
+    }
+  }
+
+  private void putIfNotNull(ObjectNode node, String fieldName, Long value) {
+    if (value != null) {
+      node.put(fieldName, value);
+    }
   }
 }

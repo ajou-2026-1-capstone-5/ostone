@@ -27,7 +27,6 @@ interface SummaryDetailPanelProps {
   onDeploy?: (versionId: number) => void;
   onApplyDraft?: (versionId: number) => void;
   onDiscardDraft?: (versionId: number) => void;
-  renderSlotEditSheet?: (slotId: number, isOpen: boolean, onClose: () => void) => React.ReactNode;
 }
 
 export function SummaryDetailPanel({
@@ -41,7 +40,6 @@ export function SummaryDetailPanel({
   onDeploy,
   onApplyDraft,
   onDiscardDraft,
-  renderSlotEditSheet,
 }: Readonly<SummaryDetailPanelProps>) {
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
@@ -122,7 +120,7 @@ export function SummaryDetailPanel({
                   v.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : ""
                 }`}
               >
-                {v.lifecycleStatus}
+                {formatLifecycleStatus(v.lifecycleStatus)}
               </span>
               {isCurrentVersion && (
                 <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
@@ -188,7 +186,7 @@ export function SummaryDetailPanel({
             이 버전을 배포할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            배포하면 현재 운영 중인 Domain Pack 버전이 선택한 버전으로 전환됩니다.
+            배포하면 현재 운영 중인 도메인팩 버전이 선택한 버전으로 전환됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
@@ -227,10 +225,10 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            Draft 버전을 적용할까요?
+            검토 중인 버전을 적용할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            적용하면 이 Draft가 운영 가능한 Published 버전으로 전환됩니다.
+            적용하면 이 버전이 상담 응대에 사용할 수 있는 운영 버전으로 전환됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
@@ -269,10 +267,10 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            Draft 버전을 삭제할까요?
+            검토 중인 버전을 삭제할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            삭제하면 이 Draft 버전과 저장된 수정 내용이 모두 삭제됩니다.
+            삭제하면 이 검토 중인 버전과 저장된 수정 내용이 모두 삭제됩니다.
           </AlertDialogDescription>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
@@ -316,7 +314,6 @@ export function SummaryDetailPanel({
             slotCount={v.slotCount ?? 0}
             policyCount={v.policyCount ?? 0}
             workflowCount={v.workflowCount ?? 0}
-            renderSlotEditSheet={renderSlotEditSheet}
           />
         )}
       </div>
@@ -328,4 +325,10 @@ function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString("ko-KR");
+}
+
+function formatLifecycleStatus(status?: string | null): string {
+  if (status === "PUBLISHED") return "운영 가능";
+  if (status === "DRAFT") return "검토 중";
+  return status ?? "상태 없음";
 }

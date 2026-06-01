@@ -41,14 +41,14 @@ export function RiskEditPanel({
   const showEmptyState = !isLoading && !isError && !hasRisk;
 
   return (
-    <section className={styles.panel} aria-label="위험요소 수정">
+    <section className={styles.panel} aria-label="주의 사항 수정">
       <header className={styles.header}>
         <div className={styles.headerText}>
-          <span className={styles.eyebrow}>EDIT RISK</span>
+          <span className={styles.eyebrow}>주의 사항 수정</span>
           <h2 className={styles.title}>
-            {risk ? `${risk.riskCode} · ${risk.name}` : "위험요소 수정"}
+            {risk ? `${risk.riskCode} · ${risk.name}` : "주의 사항 수정"}
           </h2>
-          <p className={styles.description}>위험요소 필드와 상태를 수정합니다.</p>
+          <p className={styles.description}>주의 사항 필드와 상태를 수정합니다.</p>
         </div>
         <button
           type="button"
@@ -90,7 +90,7 @@ export function RiskEditPanel({
 
       {showEmptyState && (
         <div className={styles.statePanel}>
-          <span>위험요소 정보를 찾을 수 없습니다.</span>
+          <span>주의 사항 정보를 찾을 수 없습니다.</span>
         </div>
       )}
     </section>

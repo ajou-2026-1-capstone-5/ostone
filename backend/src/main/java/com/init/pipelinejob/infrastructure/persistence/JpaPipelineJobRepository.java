@@ -21,6 +21,8 @@ public interface JpaPipelineJobRepository
         List.of(
             PipelineJob.STATUS_QUEUED,
             PipelineJob.STATUS_RUNNING,
+            PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION,
+            PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK,
             PipelineJob.STATUS_WAITING_INTENT_CALLBACK,
             PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK));
   }

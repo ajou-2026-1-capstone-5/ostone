@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -37,6 +38,7 @@ VARIANT_CLUSTER_DISTINCTIVENESS_GATE = 0.45
 VARIANT_POSITIVE_MARGIN_GATE = 0.65
 MIN_CLUSTERING_SELECTION_SCORE_GAIN = 0.02
 MAX_CLUSTERING_DISTINCTIVENESS_REGRESSION = 0.005
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -95,7 +97,10 @@ def _run_graph_leiden(
         compute_centroids,
         estimate_cluster_stability,
     )
-    from pipeline.stages.intent_discovery.domain_profile import infer_root_domain_profile
+    from pipeline.stages.intent_discovery.domain_profile import (
+        infer_root_domain_profile,
+        load_confirmed_domain_profile_from_env,
+    )
     from pipeline.stages.intent_discovery.embedding import embed_texts
     from pipeline.stages.intent_discovery.evaluation import interpretability_score
     from pipeline.stages.intent_discovery.feedback_constraints import load_feedback_constraints_from_env
@@ -109,7 +114,7 @@ def _run_graph_leiden(
     logger = get_stage_logger(context)
     conversations, flow_signatures = read_preprocessed_artifact(runtime_config, context)
     logger.info("Loaded %d preprocessed conversations", len(conversations))
-    root_domain_profile = infer_root_domain_profile(conversations)
+    root_domain_profile = load_confirmed_domain_profile_from_env() or infer_root_domain_profile(conversations)
     profile_path = _write_root_domain_profile(runtime_config, context, root_domain_profile)
     logger.info(
         "Root domain profile: root_domain=%s confidence=%.3f",
@@ -139,10 +144,22 @@ def _run_graph_leiden(
         embedding_model_name = str(embedding_metadata.get("modelName") or runtime_config.embedding_model_name)
     logger.info("Embedded %d/%d texts", sum(success_mask), len(texts))
 
+    feedback_constraints = load_feedback_constraints_from_env()
+    feedback_replay = bool(os.getenv("PIPELINE_FEEDBACK_CONSTRAINTS_PATH", "").strip())
+
     success_indices = [index for index, ok in enumerate(success_mask) if ok]
     embedding_vectors = embeddings[success_indices]
     success_flow_signatures = flow_signatures[success_indices]
     success_conversations = [conversations[index] for index in success_indices]
+    clustering_selection_max_inputs = _resolve_positive_int_env("PIPELINE_CLUSTERING_SELECTION_MAX_INPUTS", 5000)
+    selection_default_enabled = not feedback_replay and len(success_conversations) <= clustering_selection_max_inputs
+    if not selection_default_enabled and not feedback_replay:
+        logger.info(
+            "Large input disables expensive clustering candidate selection by default: "
+            "input_count=%d max_inputs=%d",
+            len(success_conversations),
+            clustering_selection_max_inputs,
+        )
 
     if embedding_vectors.shape[0] == 0:
         semantic_quality = build_semantic_quality_report(
@@ -207,7 +224,10 @@ def _run_graph_leiden(
         low=0.0,
         high=1.0,
     )
-    clustering_selection_enabled = _resolve_bool_env("PIPELINE_CLUSTERING_CONFIG_SELECTION_ENABLED", default=True)
+    clustering_selection_enabled = _resolve_bool_env(
+        "PIPELINE_CLUSTERING_CONFIG_SELECTION_ENABLED",
+        default=selection_default_enabled,
+    )
     same_intent_threshold_candidates = _resolve_float_sequence_env(
         "PIPELINE_SAME_INTENT_THRESHOLD_CANDIDATES",
         default=_candidate_float_values(
@@ -245,7 +265,10 @@ def _run_graph_leiden(
         min_compacted_clusters=min_compacted_clusters,
     )
 
-    if embedding_candidates and _resolve_bool_env("PIPELINE_REPRESENTATION_VARIANT_SELECTION_ENABLED", default=True):
+    if embedding_candidates and _resolve_bool_env(
+        "PIPELINE_REPRESENTATION_VARIANT_SELECTION_ENABLED",
+        default=selection_default_enabled,
+    ):
         embeddings, representation_variant_name, representation_variant_report = _select_representation_variant(
             candidates=embedding_candidates,
             success_indices=success_indices,
@@ -275,7 +298,6 @@ def _run_graph_leiden(
     vectors = embedding_vectors.astype(np.float32, copy=False)
     logger.info("Built semantic vectors shape=%s", list(vectors.shape))
 
-    feedback_constraints = load_feedback_constraints_from_env()
     selected_clustering = _select_clustering_candidate(
         vectors=vectors,
         success_conversations=success_conversations,
@@ -289,6 +311,7 @@ def _run_graph_leiden(
         else (same_intent_threshold,),
         resolution_candidates=leiden_resolution_candidates if clustering_selection_enabled else (leiden_resolution,),
         feedback_constraints=feedback_constraints,
+        domain_lexicon=root_domain_profile.domain_lexicon,
         safe_merge_enabled=safe_merge_enabled,
         safe_merge_min_score=safe_merge_min_score,
     )
@@ -785,6 +808,7 @@ def _select_clustering_candidate(
     threshold_candidates: Sequence[float],
     resolution_candidates: Sequence[float],
     feedback_constraints: Sequence[FeedbackConstraint],
+    domain_lexicon: Sequence[str],
     safe_merge_enabled: bool,
     safe_merge_min_score: float,
 ) -> _ClusteringCandidateResult:
@@ -803,6 +827,7 @@ def _select_clustering_candidate(
                     same_intent_threshold=threshold,
                     leiden_resolution=resolution,
                     feedback_constraints=feedback_constraints,
+                    domain_lexicon=domain_lexicon,
                     safe_merge_enabled=safe_merge_enabled,
                     safe_merge_min_score=safe_merge_min_score,
                 )
@@ -885,6 +910,7 @@ def _run_clustering_candidate(
     same_intent_threshold: float,
     leiden_resolution: float,
     feedback_constraints: Sequence[FeedbackConstraint],
+    domain_lexicon: Sequence[str],
     safe_merge_enabled: bool,
     safe_merge_min_score: float,
 ) -> _ClusteringCandidateResult:
@@ -898,6 +924,13 @@ def _run_clustering_candidate(
     from pipeline.stages.intent_discovery.safe_merge import safe_merge_microclusters
     from pipeline.stages.intent_discovery.same_intent_graph import build_same_intent_probability_graph
 
+    logger.info(
+        "Clustering candidate start: threshold=%.3f resolution=%.3f input_count=%d constraints=%d",
+        same_intent_threshold,
+        leiden_resolution,
+        len(success_conversations),
+        len(feedback_constraints),
+    )
     graph, same_intent_report = build_same_intent_probability_graph(
         success_conversations,
         vectors,
@@ -905,8 +938,16 @@ def _run_clustering_candidate(
         k=clustering_config.knn_k,
         base_threshold=same_intent_threshold,
         constraints=feedback_constraints,
+        domain_lexicon=domain_lexicon,
+    )
+    logger.info(
+        "Clustering candidate graph built: nodes=%s edges=%s candidates=%s",
+        same_intent_report.get("nodeCount"),
+        same_intent_report.get("edgeCount"),
+        same_intent_report.get("candidatePairCount"),
     )
     memberships = detect_communities(graph, resolution=leiden_resolution)
+    logger.info("Clustering candidate communities detected: community_count=%d", len(set(memberships)))
     outlier_node_indices, valid_clusters = identify_outliers(
         memberships,
         min_size=clustering_config.min_cluster_size,
@@ -918,6 +959,11 @@ def _run_clustering_candidate(
         flow_signatures=flow_signatures,
         flow_weight=clustering_config.flow_affinity_weight,
         min_samples=clustering_config.hdbscan_min_samples,
+    )
+    logger.info(
+        "Clustering candidate HDBSCAN assist: available=%s reason=%s",
+        hdbscan_summary.get("hdbscanAvailable"),
+        hdbscan_summary.get("hdbscanReason"),
     )
     hdbscan_labels = hdbscan_summary.get("hdbscanLabels")
     typed_hdbscan_labels = hdbscan_labels if isinstance(hdbscan_labels, list) else []

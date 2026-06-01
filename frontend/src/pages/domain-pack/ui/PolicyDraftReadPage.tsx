@@ -40,7 +40,7 @@ export function PolicyDraftReadPage() {
 
   if (wsId === null || pId === null || vId === null || hasInvalidPolicyId) {
     return (
-      <OstoneShell active="domain" crumbs={["Domain Packs"]}>
+      <OstoneShell active="domain" crumbs={["도메인팩 관리"]}>
         <div className={styles.invalidParams} role="alert">
           잘못된 URL 파라미터입니다.
         </div>
@@ -70,11 +70,11 @@ export function PolicyDraftReadPage() {
     vId,
     packName,
     versionNo,
-    section: { label: "POLICIES", path: "policies" },
+    section: { label: "응대 기준", path: "policies" },
     selectedLabel: selectedPolicyId !== null ? `#${selectedPolicyId}` : null,
   });
 
-  const topbarRight = <Pill tone="mute">READ / EDIT</Pill>;
+  const topbarRight = <Pill tone="mute">조회/수정</Pill>;
 
   return (
     <OstoneShell active="policy" crumbs={crumbs} topbarRight={topbarRight}>

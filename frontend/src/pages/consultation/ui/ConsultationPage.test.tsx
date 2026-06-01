@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import "@testing-library/jest-dom/vitest";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import { getCurrentWorkflow } from "../../../features/consultation/api/llmToolWorkflowApi";
 import { toast } from "sonner";
+import { ApiRequestError } from "@/shared/api";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -30,6 +31,7 @@ const { mockSubscribe, mockSendTo, stompState } = vi.hoisted(() => {
   const stompState = {
     connectionStatus: "CONNECTED" as "CONNECTED" | "DISCONNECTED",
     latestCallback: null as ((msg: RealtimePayload) => void) | null,
+    onServerError: null as ((error: unknown) => void) | null,
     callbacks: new Map<string, (msg: RealtimePayload) => void>(),
   };
   return {
@@ -64,10 +66,12 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
       Promise.resolve([
         {
           id: 1,
-          status: "OPEN",
+          status: "ACTIVE",
           channel: "카카오톡",
           metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
           startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: 7,
+          responseMode: "HUMAN_ACTIVE",
         },
       ]),
     ),
@@ -83,15 +87,34 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         },
       ]),
     ),
-    updateStatus: vi.fn(() => Promise.resolve({})),
-    assignSession: vi.fn((_sessionId: number, counselorId: number) =>
+    getMessagePage: vi.fn(() =>
       Promise.resolve({
-        id: 1,
+        content: [
+          {
+            id: 100,
+            seqNo: 1,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "환불 문의 드립니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    ),
+    updateStatus: vi.fn(() => Promise.resolve({})),
+    assignSession: vi.fn((sessionId: number) =>
+      Promise.resolve({
+        id: sessionId,
         status: "ACTIVE",
         channel: "카카오톡",
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
         startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
-        assignedCounselorId: counselorId,
+        assignedCounselorId: 7,
+        responseMode: "HUMAN_ACTIVE",
       }),
     ),
     releaseSession: vi.fn(() =>
@@ -102,6 +125,18 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
         startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
         assignedCounselorId: null,
+        responseMode: "AI_ACTIVE",
+      }),
+    ),
+    updateResponseMode: vi.fn((sessionId: number, counselorId: number, responseMode: string) =>
+      Promise.resolve({
+        id: sessionId,
+        status: "ACTIVE",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: counselorId,
+        responseMode,
       }),
     ),
     getMetrics: vi.fn(() =>
@@ -127,6 +162,11 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         createdAt: new Date().toISOString(),
       }),
     ),
+    generateDraftResponse: vi.fn(() =>
+      Promise.resolve({
+        content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      }),
+    ),
   },
 }));
 
@@ -137,19 +177,41 @@ vi.mock("../../../features/consultation/api/llmToolWorkflowApi", () => ({
 }));
 
 vi.mock("@/shared/lib/websocket", () => ({
-  useStomp: () => ({
-    connectionStatus: stompState.connectionStatus,
-    subscribe: mockSubscribe,
-    sendTo: mockSendTo,
-    sendMessage: vi.fn(),
-    lastMessage: null,
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-  }),
+  useStomp: (options?: { onServerError?: (error: unknown) => void }) => {
+    stompState.onServerError = options?.onServerError ?? null;
+    return {
+      connectionStatus: stompState.connectionStatus,
+      subscribe: mockSubscribe,
+      sendTo: mockSendTo,
+      sendMessage: vi.fn(),
+      lastMessage: null,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    };
+  },
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
+
+function createRoutedWrapper(initialPath: string) {
+  return function RoutedWrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <MemoryRouter initialEntries={[initialPath]}>
+        <LocationProbe />
+        <Routes>
+          <Route path="/workspaces/:workspaceId/consultation" element={children} />
+          <Route path="/workspaces/:workspaceId/consultation/:sessionId" element={children} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
 }
 
 function saveTestUser(id: number) {
@@ -159,11 +221,23 @@ function saveTestUser(id: number) {
   );
 }
 
+function createUnassignedQueueSession() {
+  return {
+    id: 1,
+    status: "OPEN" as const,
+    channel: "카카오톡",
+    metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+    startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+    assignedCounselorId: null,
+  };
+}
+
 describe("ConsultationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     stompState.connectionStatus = "CONNECTED";
     stompState.latestCallback = null;
+    stompState.onServerError = null;
     stompState.callbacks.clear();
     shellContext.workspace = { id: 2, name: "QA Alpha" };
     window.alert = vi.fn();
@@ -278,9 +352,272 @@ describe("ConsultationPage", () => {
       "/topic/workspaces.2.consultation.queue",
       expect.any(Function),
     );
-    expect(screen.getByText("대기 고객")).toBeInTheDocument();
+    expect(screen.getByText("상담 큐")).toBeInTheDocument();
     expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
+  });
+
+  it("renders customer panel data from session metadata without fallback mock business values", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "정세션",
+          customerInfo: {
+            membershipTier: "VIP",
+            contact: "010-2222-3333",
+            email: "real@example.com",
+          },
+          orderInfo: {
+            orderNumber: "ORD-SESSION-1",
+            orderDate: "2026-06-01",
+            paymentAmount: "22,000원",
+            deliveryStatus: "결제 확인",
+          },
+          extractedInfo: {
+            cardNumber: "2222 **** **** 3333",
+            refundAmount: "5,000원",
+            refundReason: "부분 취소",
+            dueDate: "2026-06-05",
+          },
+        }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("정세션")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("정세션").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    expect(screen.getByText("010-2222-3333")).toBeInTheDocument();
+    expect(screen.getByText("real@example.com")).toBeInTheDocument();
+    expect(screen.getAllByText("ORD-SESSION-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("22,000원")).toBeInTheDocument();
+    expect(screen.getByText("2222 **** **** 3333")).toBeInTheDocument();
+    expect(screen.getByText("5,000원")).toBeInTheDocument();
+    expect(screen.queryByText("010-****-1234")).not.toBeInTheDocument();
+    expect(screen.queryByText("#ORD-2024-08921")).not.toBeInTheDocument();
+    expect(screen.queryByText("89,000원")).not.toBeInTheDocument();
+    expect(screen.queryByText("5432 **** **** 8912")).not.toBeInTheDocument();
+  });
+
+  it("orders AI handoff queue items before normal sessions and by oldest handoff time", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "일반 고객",
+          handoffRequired: false,
+          handoffReason: "일반 문의",
+        }),
+        startedAt: "2026-06-01T11:30:00+09:00",
+      },
+      {
+        id: 2,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "새 이관 고객",
+          handoffRequired: true,
+          handoffReason: "최근 승인 필요",
+          handoffAt: "2026-06-01T11:00:00+09:00",
+        }),
+        startedAt: "2026-06-01T09:00:00+09:00",
+      },
+      {
+        id: 3,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "오래된 이관 고객",
+          handoffRequired: true,
+          handoffReason: "오래된 승인 필요",
+          handoffAt: "2026-06-01T10:00:00+09:00",
+        }),
+        startedAt: "2026-06-01T08:00:00+09:00",
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("오래된 이관 고객")).toBeInTheDocument();
+    });
+
+    const queueItems = screen
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("고객"));
+    expect(queueItems.map((button) => button.textContent)).toEqual([
+      expect.stringContaining("오래된 이관 고객"),
+      expect.stringContaining("새 이관 고객"),
+      expect.stringContaining("일반 고객"),
+    ]);
+    expect(screen.getByText("AI 이관 2건 · 미배정 3건 · 진행 0건")).toBeInTheDocument();
+  });
+
+  it("selects the route session and restores messages when opening a session URL directly", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+      },
+    ]);
+
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/1"),
+    });
+
+    await waitFor(() => {
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(1, { page: 0, size: 50 });
+    });
+    expect(screen.getByText("김민지 고객")).toBeInTheDocument();
+    expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+    expect(consultationApi.assignSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("loads previous message pages from the top of the live chat", async () => {
+    vi.mocked(consultationApi.getMessagePage)
+      .mockResolvedValueOnce({
+        content: [
+          {
+            id: 101,
+            seqNo: 51,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "최근 문의입니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalElements: 51,
+        totalPages: 2,
+      })
+      .mockResolvedValueOnce({
+        content: [
+          {
+            id: 10,
+            seqNo: 1,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "이전 문의입니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 1,
+        size: 50,
+        totalElements: 51,
+        totalPages: 2,
+      });
+
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/1"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("최근 문의입니다.")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 메시지 불러오기" }));
+
+    await waitFor(() => {
+      expect(consultationApi.getMessagePage).toHaveBeenLastCalledWith(1, { page: 1, size: 50 });
+    });
+    expect(screen.getByText("이전 문의입니다.")).toBeInTheDocument();
+    expect(screen.getByText("최근 문의입니다.")).toBeInTheDocument();
+  });
+
+  it("updates the browser URL when a queue session is selected", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/2/consultation/1");
+    });
+  });
+
+  it("shows an unavailable state for an inaccessible route session without loading messages", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/999"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+    });
+    expect(
+      vi.mocked(consultationApi.getMessagePage).mock.calls.some(([sessionId]) => sessionId === 999),
+    ).toBe(false);
+  });
+
+  it("treats non-numeric route session IDs as unavailable without loading messages", async () => {
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/abc"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+    });
+    expect(consultationApi.getMessagePage).not.toHaveBeenCalled();
+  });
+
+  it("selects a route session when it arrives later through the queue websocket", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([]);
+
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/9"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 9,
+          status: "OPEN",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "박지훈", handoffReason: "배송 문의" }),
+          startedAt: new Date().toISOString(),
+          assignedCounselorId: 7,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("요청한 상담 세션을 찾을 수 없습니다")).not.toBeInTheDocument();
+      expect(screen.getByText("박지훈 고객")).toBeInTheDocument();
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(9, { page: 0, size: 50 });
+    });
   });
 
   describe("MatchedWorkflowBar integration", () => {
@@ -341,9 +678,7 @@ describe("ConsultationPage", () => {
         expect(screen.getByTestId("matched-workflow-bar")).toBeInTheDocument();
       });
       expect(screen.queryByTestId("matched-workflow-bar-skeleton")).not.toBeInTheDocument();
-      expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent(
-        "환불 워크플로우",
-      );
+      expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("환불 워크플로우");
       // collapsed by default — meta only appears after toggle
       expect(screen.queryByTestId("matched-workflow-bar-meta")).not.toBeInTheDocument();
     });
@@ -428,6 +763,68 @@ describe("ConsultationPage", () => {
         { timeout: 1500 },
       );
     });
+
+    it("inserts a matched workflow draft into the message input without sending it", async () => {
+      vi.mocked(getCurrentWorkflow).mockResolvedValueOnce(matchedPayload);
+      vi.mocked(consultationApi.generateDraftResponse).mockResolvedValueOnce({
+        content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      });
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("답변 초안 삽입")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+      await waitFor(() => {
+        expect(consultationApi.generateDraftResponse).toHaveBeenCalledWith(1);
+      });
+      expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue(
+        "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      );
+      expect(mockSendTo).not.toHaveBeenCalledWith(
+        "/app/chat.counselor.send",
+        expect.objectContaining({
+          content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+        }),
+      );
+    });
+
+    it("keeps the existing input and shows a toast when draft generation fails", async () => {
+      vi.mocked(getCurrentWorkflow).mockResolvedValueOnce(matchedPayload);
+      vi.mocked(consultationApi.generateDraftResponse).mockRejectedValueOnce(
+        new Error("draft failed"),
+      );
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("답변 초안 삽입")).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText("메시지를 입력하세요...");
+      await userEvent.type(input, "기존 작성 내용");
+      fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "답변 초안을 생성하지 못했습니다. 기존 입력 내용은 유지됩니다.",
+        );
+      });
+      expect(input).toHaveValue("기존 작성 내용");
+    });
   });
 
   it("does not load or subscribe to queue without a workspace id", async () => {
@@ -436,7 +833,7 @@ describe("ConsultationPage", () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText("대기중인 고객이 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("현재 상담 큐가 비어 있습니다")).toBeInTheDocument();
     });
 
     expect(consultationApi.getQueue).not.toHaveBeenCalled();
@@ -478,6 +875,133 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("박서연")).toBeInTheDocument();
     });
     expect(screen.getByText("배송 문의")).toBeInTheDocument();
+  });
+
+  it("marks inactive queue item as unread when a customer message queue event arrives", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "배송이 아직 도착하지 않았어요",
+            lastMessageRole: "CUSTOMER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("배송이 아직 도착하지 않았어요")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
+  });
+
+  it("clears unread state when selecting an unread queue item", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(stompState.callbacks.has("/topic/workspaces.2.consultation.queue")).toBe(true);
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "확인 부탁드립니다",
+            lastMessageRole: "USER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("박서연").closest('[role="button"]');
+    if (customerItem) fireEvent.click(customerItem);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("읽지 않은 고객 메시지")).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not mark active or non-customer queue events as unread", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) fireEvent.click(customerItem);
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeInTheDocument();
+    });
+
+    act(() => {
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 1,
+          status: "ACTIVE",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({
+            customerName: "김민지",
+            handoffReason: "환불 문의",
+            lastMessagePreview: "활성 세션의 새 고객 메시지",
+            lastMessageRole: "CUSTOMER",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: 7,
+        },
+      });
+      stompState.callbacks.get("/topic/workspaces.2.consultation.queue")?.({
+        type: "SESSION_UPSERTED",
+        session: {
+          id: 2,
+          status: "OPEN",
+          channel: "WEB",
+          metaJson: JSON.stringify({
+            customerName: "박서연",
+            handoffReason: "배송 문의",
+            lastMessagePreview: "내부 확인 메모",
+            lastMessageRole: "NOTE",
+            lastMessageAt: new Date().toISOString(),
+          }),
+          startedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("활성 세션의 새 고객 메시지")).toBeInTheDocument();
+      expect(screen.getByText("내부 확인 메모")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("읽지 않은 고객 메시지")).not.toBeInTheDocument();
   });
 
   it("removes queue item and clears active selection from workspace queue remove events", async () => {
@@ -528,7 +1052,276 @@ describe("ConsultationPage", () => {
     expect(screen.queryByText("카드 환불 — 부분환불")).not.toBeInTheDocument();
   });
 
-  it("assigns an unassigned session to the current counselor when selected", async () => {
+  it("opens an unassigned session as read-only when selected", async () => {
+    saveTestUser(7);
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(1, { page: 0, size: 50 });
+    });
+    expect(consultationApi.assignSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    expect(
+      screen.getAllByText("배정받기 전에는 메시지와 내부 메모를 보낼 수 없습니다.").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it("assigns an unassigned session only when the counselor clicks claim", async () => {
+    saveTestUser(7);
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(consultationApi.assignSession).toHaveBeenCalledWith(1);
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("내게 배정됨").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByPlaceholderText("메시지를 입력하세요...")).not.toBeDisabled();
+  });
+
+  it("keeps the session read-only when claim fails", async () => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockResolvedValueOnce([unassignedSession]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(new Error("already assigned"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("상담 세션 배정에 실패했습니다.");
+    });
+    expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it.each([
+    ["SESSION_NOT_ASSIGNABLE", "현재 배정할 수 없는 상담 상태입니다."],
+    ["SESSION_NOT_FOUND", "상담 세션을 찾을 수 없습니다."],
+    ["WORKSPACE_ACCESS_DENIED", "상담 배정 권한이 없습니다."],
+    ["FORBIDDEN", "상담 배정 권한이 없습니다."],
+    ["UNKNOWN_ERROR", "상담 세션 배정에 실패했습니다."],
+  ])("shows a claim failure message for %s", async (code, message) => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockResolvedValueOnce([unassignedSession]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(
+      new ApiRequestError(400, code, "배정 실패"),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(message);
+    });
+    expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("shows a queue sync error when refetching after claim failure fails", async () => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockRejectedValueOnce(new Error("queue sync failed"));
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(new Error("claim failed"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "배정 실패 후 최신 대기열을 불러오지 못했습니다.",
+      );
+    });
+    expect(screen.getByText("대기열을 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
+  it("syncs queue and clears the selected chat when claim fails because another counselor assigned it", async () => {
+    saveTestUser(7);
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          status: "OPEN",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          status: "ACTIVE",
+          channel: "카카오톡",
+          metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+          startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+          assignedCounselorId: 99,
+          responseMode: "HUMAN_ACTIVE",
+        },
+      ]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(
+      new ApiRequestError(
+        400,
+        "SESSION_ALREADY_ASSIGNED",
+        "이미 다른 상담사에게 배정된 상담입니다.",
+      ),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("이미 다른 상담사에게 배정된 상담입니다.");
+    });
+    await waitFor(() => {
+      expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+      expect(screen.getAllByText("다른 상담사 배정").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText("좌측 대기 목록에서 고객을 선택해주세요")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "배정받기" })).not.toBeInTheDocument();
+  });
+
+  it("keeps sessions assigned to another counselor read-only with a reason", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "ACTIVE",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: 99,
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getAllByText("다른 상담사 배정").length).toBeGreaterThan(0);
+    });
+    expect(
+      screen.getAllByText("다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다.").length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "배정받기" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it("updates AI response mode for the assigned session", async () => {
+    const user = userEvent.setup();
     saveTestUser(7);
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -543,14 +1336,85 @@ describe("ConsultationPage", () => {
     }
 
     await waitFor(() => {
-      expect(consultationApi.assignSession).toHaveBeenCalledWith(1, 7);
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
     });
+
+    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
+
     await waitFor(() => {
-      expect(screen.getAllByText("내 상담 진행중").length).toBeGreaterThan(0);
+      expect(consultationApi.updateResponseMode).toHaveBeenCalledWith(1, 7, "AI_ASSIST_ONLY");
+    });
+    expect(toast.success).toHaveBeenCalledWith("AI 응대 모드가 변경되었습니다.");
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
     });
   });
 
-  it("releases the current counselor assignment through the backend API", async () => {
+  it("shows an error toast when AI response mode update fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(consultationApi.updateResponseMode).mockRejectedValueOnce(new Error("forbidden"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("AI 응대 모드 변경에 실패했습니다.");
+    });
+    expect(screen.getByRole("button", { name: "상담사 응대중" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("disables AI response mode controls for unassigned sessions", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "카카오톡",
+        metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+        responseMode: "AI_ACTIVE",
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "AI 응대중" })).toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: "상담사 응대중" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeDisabled();
+  });
+
+  it("opens confirmation before releasing the current counselor assignment", async () => {
     saveTestUser(7);
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -565,15 +1429,67 @@ describe("ConsultationPage", () => {
     }
 
     await waitFor(() => {
-      expect(consultationApi.assignSession).toHaveBeenCalledWith(1, 7);
       expect(screen.getByText("배정 해제")).toBeEnabled();
     });
 
     fireEvent.click(screen.getByText("배정 해제"));
 
+    expect(consultationApi.releaseSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toHaveTextContent("김민지 고객 배정 해제");
+    expect(screen.getByText(/다시 미배정 대기열로 돌아가며/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "해제 확인" }));
+
     await waitFor(() => {
-      expect(consultationApi.releaseSession).toHaveBeenCalledWith(1, 7);
+      expect(consultationApi.releaseSession).toHaveBeenCalledWith(1);
     });
+  });
+
+  it("warns about in-progress content and preserves it when release is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "임시 답변");
+
+    const memo = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
+    await user.type(memo, "카드사 확인 필요");
+
+    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    if (!messageGroup) throw new Error("message group not found");
+    fireEvent.click(messageGroup);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("message-domain-empty")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("배정 해제"));
+
+    expect(screen.getByText("메시지 입력창에 작성 중인 답변이 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("우측 패널에 저장하지 않은 내부 메모가 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("선택한 메시지 상세 맥락이 닫힙니다.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(consultationApi.releaseSession).not.toHaveBeenCalled();
+    expect(input).toHaveValue("임시 답변");
+    expect(screen.getByTestId("message-domain-empty")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(
+      screen.getByPlaceholderText("타임라인에 내부 메모로 남길 내용을 입력하세요..."),
+    ).toHaveValue("카드사 확인 필요");
   });
 
   it("does not render hard-coded suggestion strip when customer is active", async () => {
@@ -614,15 +1530,45 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("상담 종료")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("상담 종료"));
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+
+    expect(consultationApi.updateStatus).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /고객 이탈/ }));
+    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
 
     await waitFor(() => {
-      expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, "COMPLETED");
+      expect(consultationApi.updateStatus).toHaveBeenCalledWith(1, {
+        status: "COMPLETED",
+        resolutionOutcome: "CUSTOMER_LEFT",
+        resolutionReason: undefined,
+        followUpRequired: false,
+      });
     });
 
     await waitFor(() => {
       expect(screen.queryByText("상담 종료")).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps the session unchanged when end session modal is cancelled", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "상담 종료" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(consultationApi.updateStatus).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "상담 종료" })).toBeInTheDocument();
   });
 
   it("subscribes to STOMP topic when a customer is selected and connection is established", async () => {
@@ -664,6 +1610,163 @@ describe("ConsultationPage", () => {
     });
     expect(consultationApi.sendMessage).not.toHaveBeenCalled();
     expect(screen.getByText("처리 도와드리겠습니다.")).toBeInTheDocument();
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+  });
+
+  it("marks an optimistic counselor message as sent when the server echo arrives", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "처리 도와드리겠습니다.");
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 201,
+        senderRole: "COUNSELOR",
+        content: "처리 도와드리겠습니다.",
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("전송 중")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("전송 실패")).not.toBeInTheDocument();
+    expect(screen.getAllByText("처리 도와드리겠습니다.")).toHaveLength(1);
+  });
+
+  it("marks the oldest pending message as failed when the server error queue reports a send error", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "권한 오류가 날 메시지");
+    await user.keyboard("{Enter}");
+
+    act(() => {
+      stompState.onServerError?.({
+        senderRole: "SYSTEM",
+        messageType: "ERROR",
+        content: "[SESSION_NOT_ASSIGNED] Session is not assigned",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("전송 실패")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "다시 보내기" })).toBeInTheDocument();
+  });
+
+  it("marks a pending message as failed when the server echo times out", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(input, { target: { value: "응답이 늦는 메시지" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      expect(screen.getByText("전송 중")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(8000);
+      });
+
+      expect(screen.getByText("전송 실패")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "다시 보내기" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries a failed message without leaving a duplicate after the echo succeeds", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("상담 종료")).toBeEnabled();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "다시 보낼 메시지");
+    await user.keyboard("{Enter}");
+
+    act(() => {
+      stompState.onServerError?.({
+        senderRole: "SYSTEM",
+        messageType: "ERROR",
+        content: "[INTERNAL_ERROR] failed",
+      });
+    });
+
+    const retryButton = await screen.findByRole("button", { name: "다시 보내기" });
+    await user.click(retryButton);
+
+    await waitFor(() => {
+      expect(mockSendTo).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+    expect(screen.queryByText("전송 실패")).not.toBeInTheDocument();
+
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 202,
+        senderRole: "COUNSELOR",
+        content: "다시 보낼 메시지",
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("전송 중")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText("다시 보낼 메시지")).toHaveLength(1);
   });
 
   it("cleans up topbar and crumbs on unmount", () => {
@@ -691,7 +1794,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByText("닫기"));
@@ -719,7 +1822,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     fireEvent.click(messageEl);
@@ -749,7 +1852,7 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
     messageButton.focus();
@@ -780,7 +1883,7 @@ describe("ConsultationPage", () => {
     await user.keyboard(" ");
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
   });
 
@@ -888,7 +1991,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    vi.mocked(consultationApi.getMessages).mockRejectedValueOnce(new Error("DB Error"));
+    vi.mocked(consultationApi.getMessagePage).mockRejectedValueOnce(new Error("DB Error"));
 
     const customerItem = screen.getByText("김민지").closest("div");
     if (customerItem) {
@@ -939,17 +2042,23 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("가격 문의")).toBeInTheDocument();
+      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
-    vi.mocked(consultationApi.getMessages).mockResolvedValueOnce([]);
+    vi.mocked(consultationApi.getMessagePage).mockResolvedValueOnce({
+      content: [],
+      page: 0,
+      size: 50,
+      totalElements: 0,
+      totalPages: 0,
+    });
 
     const hongEl = screen.getByText("홍길동").closest("div");
     if (hongEl) hongEl.click();
 
     await waitFor(() => {
       expect(screen.getByText("고객 정보")).toBeInTheDocument();
-      expect(screen.queryByText("가격 문의")).not.toBeInTheDocument();
+      expect(screen.queryByText("연결된 도메인 팩 요소가 없습니다")).not.toBeInTheDocument();
     });
   });
 
@@ -975,9 +2084,7 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "연결이 불안정합니다. 잠시 후 다시 시도해주세요.",
-      );
+      expect(toast.error).toHaveBeenCalledWith("연결이 불안정합니다. 잠시 후 다시 시도해주세요.");
     });
     expect(mockSendTo).not.toHaveBeenCalled();
     expect(consultationApi.sendMessage).not.toHaveBeenCalled();
@@ -1126,11 +2233,14 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("상담 종료")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("상담 종료"));
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+    fireEvent.click(screen.getByRole("button", { name: /해결됨/ }));
+    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("세션 종료 실패");
     });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("updates active customer's memo when typing in the textarea", async () => {
@@ -1144,7 +2254,9 @@ describe("ConsultationPage", () => {
     const customerItem = screen.getByText("김민지").closest("div");
     if (customerItem) customerItem.click();
 
-    const textarea = await screen.findByPlaceholderText("상담 메모를 입력하세요...");
+    const textarea = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
     await user.type(textarea, "고객이 매우 다급함");
 
     expect(textarea).toHaveValue("고객이 매우 다급함");
@@ -1161,9 +2273,11 @@ describe("ConsultationPage", () => {
     const customerItem = screen.getByText("김민지").closest('[role="button"]');
     if (customerItem) fireEvent.click(customerItem);
 
-    const textarea = await screen.findByPlaceholderText("상담 메모를 입력하세요...");
+    const textarea = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
     await user.type(textarea, "카드사 확인 필요");
-    await user.click(screen.getByText("메모 저장"));
+    await user.click(screen.getByText("내부 메모로 남기기"));
 
     await waitFor(() => {
       expect(mockSendTo).toHaveBeenCalledWith("/app/chat.counselor.send", {

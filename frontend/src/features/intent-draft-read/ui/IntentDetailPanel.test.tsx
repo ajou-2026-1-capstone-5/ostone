@@ -116,7 +116,7 @@ describe("IntentDetailPanel", () => {
       ]),
     });
 
-    expect(screen.getByText("Parent Intent")).toBeInTheDocument();
+    expect(screen.getByText("상위 상담 유형")).toBeInTheDocument();
     expect(screen.getByText("주문 상태 문의")).toBeInTheDocument();
     expect(screen.queryByText("20")).not.toBeInTheDocument();
   });

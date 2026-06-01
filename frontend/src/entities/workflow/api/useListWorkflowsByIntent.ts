@@ -87,7 +87,7 @@ export function useListWorkflowsByIntent({
 
   const loading = enabled && (packQuery.isLoading || workflowsQuery.isLoading);
   const error = workflowsQuery.isError
-    ? "워크플로우 목록 조회 실패"
+    ? "응대 흐름 목록 조회 실패"
     : packQuery.isError
       ? "도메인팩 정보 조회 실패"
       : null;

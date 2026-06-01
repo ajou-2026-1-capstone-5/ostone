@@ -7,6 +7,7 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
+import com.init.workflowruntime.application.matching.WorkflowMatchingService;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
@@ -26,12 +27,15 @@ class IntentClassificationServiceTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
+  @Mock private WorkflowMatchingService workflowMatchingService;
 
   private IntentClassificationService service;
 
   @BeforeEach
   void setUp() {
-    service = new IntentClassificationService(chatSessionRepository, intentDefinitionRepository);
+    service =
+        new IntentClassificationService(
+            chatSessionRepository, intentDefinitionRepository, workflowMatchingService);
   }
 
   @Test

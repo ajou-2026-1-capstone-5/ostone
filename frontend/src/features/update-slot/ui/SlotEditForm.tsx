@@ -84,7 +84,7 @@ export function SlotEditForm({ slot, workspaceId, packId, versionId, onClose }: 
         </div>
 
         <div className="grid gap-2">
-          <span className="text-sm font-medium leading-none">슬롯 코드</span>
+          <span className="text-sm font-medium leading-none">항목 코드</span>
           <Input value={slot.slotCode} readOnly disabled />
         </div>
 

@@ -21,6 +21,8 @@ public class PipelineJob {
 
   public static final String STATUS_QUEUED = "QUEUED";
   public static final String STATUS_RUNNING = "RUNNING";
+  public static final String STATUS_WAITING_DOMAIN_CONFIRMATION = "WAITING_DOMAIN_CONFIRMATION";
+  public static final String STATUS_WAITING_HUMAN_FEEDBACK = "WAITING_HUMAN_FEEDBACK";
   public static final String STATUS_WAITING_INTENT_CALLBACK = "WAITING_INTENT_CALLBACK";
   public static final String STATUS_WAITING_WORKFLOW_CALLBACK = "WAITING_WORKFLOW_CALLBACK";
   public static final String STATUS_SUCCEEDED = "SUCCEEDED";
@@ -217,6 +219,20 @@ public class PipelineJob {
     this.domainPackId = domainPackId;
     this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
     this.status = STATUS_WAITING_INTENT_CALLBACK;
+    this.lastErrorMessage = null;
+  }
+
+  public void markAwaitingDomainConfirmation(String resultSummaryJson) {
+    this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
+    this.status = STATUS_WAITING_DOMAIN_CONFIRMATION;
+    this.finishedAt = null;
+    this.lastErrorMessage = null;
+  }
+
+  public void markAwaitingHumanFeedback(String resultSummaryJson) {
+    this.resultSummaryJson = resultSummaryJson != null ? resultSummaryJson : "{}";
+    this.status = STATUS_WAITING_HUMAN_FEEDBACK;
+    this.finishedAt = null;
     this.lastErrorMessage = null;
   }
 

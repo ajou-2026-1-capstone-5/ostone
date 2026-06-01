@@ -31,7 +31,7 @@ export function DomainPackApprovalDialog({
     >
       <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
         <AlertDialogTitle className={styles.approvalDialogTitle}>
-          Domain Pack 버전을 승인할까요?
+          도메인팩 버전을 승인할까요?
         </AlertDialogTitle>
         <AlertDialogDescription className={styles.approvalDialogDescription}>
           승인하면 이 버전은 운영에 사용되며, 이후 구성요소를 수정할 수 없습니다.

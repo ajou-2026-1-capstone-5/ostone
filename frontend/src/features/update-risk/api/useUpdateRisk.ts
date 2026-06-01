@@ -25,7 +25,7 @@ export function useUpdateRisk() {
       const res = await updateRisk(workspaceId, packId, versionId, riskId, body);
       return requireApiData<RiskDefinitionResponse>(
         res,
-        "위험요소 수정 응답을 확인할 수 없습니다.",
+        "주의 사항 수정 응답을 확인할 수 없습니다.",
       );
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
@@ -49,7 +49,7 @@ export function useUpdateRisk() {
               : item,
           ),
       );
-      toast.success("위험요소가 수정되었습니다.");
+      toast.success("주의 사항이 수정되었습니다.");
     },
     onError: (error: unknown) => {
       if (error instanceof ApiRequestError) {

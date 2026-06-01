@@ -1,10 +1,9 @@
 package com.init.workflowruntime.domain;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 /** 채팅 세션 영속성을 위한 도메인 포트 인터페이스입니다. */
 public interface ChatSessionRepository {
@@ -27,7 +26,21 @@ public interface ChatSessionRepository {
   Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
       Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses);
 
-  Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
+  DomainPage<ChatSession> findByWorkspaceId(Long workspaceId, DomainPageRequest pageRequest);
 
-  Page<ChatSession> findAll(Pageable pageable);
+  DomainPage<ChatSession> findByWorkspaceIdAndStatus(
+      Long workspaceId, ChatSessionStatus status, DomainPageRequest pageRequest);
+
+  DomainPage<ChatSession> findByStatus(ChatSessionStatus status, DomainPageRequest pageRequest);
+
+  DomainPage<ChatSession> findAll(DomainPageRequest pageRequest);
+
+  DomainPage<ChatSession> searchByWorkspace(
+      Long workspaceId,
+      String status,
+      String keyword,
+      OffsetDateTime startedFrom,
+      OffsetDateTime startedBefore,
+      Long assignedCounselorId,
+      DomainPageRequest pageRequest);
 }

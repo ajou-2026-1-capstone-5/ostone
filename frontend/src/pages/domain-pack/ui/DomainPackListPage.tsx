@@ -175,7 +175,7 @@ export function DomainPackListPage() {
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Domain Packs</h1>
+          <h1 className={styles.pageTitle}>도메인팩 관리</h1>
           <div className={styles.summaryRow} aria-label="도메인팩 상태 요약">
             <span className={styles.summaryPill}>전체 {packs.length}</span>
             <span className={styles.summaryPill}>운영중 {operatingPacks.length}</span>

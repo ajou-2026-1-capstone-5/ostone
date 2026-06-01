@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  domainPackListPath,
   domainPackPath,
   domainPackPathFromBase,
   domainPackSectionPath,
@@ -26,6 +27,7 @@ describe("domainPackRoutes", () => {
   });
 
   it("domain pack 기본 경로를 만든다", () => {
+    expect(domainPackListPath(1)).toBe("/workspaces/1/domain-packs");
     expect(domainPackPath(1, 2)).toBe("/workspaces/1/domain-packs/2");
     expect(domainPackPathFromBase("/workspaces/1", 2)).toBe("/workspaces/1/domain-packs/2");
   });

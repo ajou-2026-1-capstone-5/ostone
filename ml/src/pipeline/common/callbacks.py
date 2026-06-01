@@ -9,7 +9,14 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-CALLBACK_TYPES = {"domain-pack-drafts", "intent-drafts", "workflow-drafts"}
+CALLBACK_TYPES = {
+    "domain-pack-drafts",
+    "domain-confirmation-checkpoints",
+    "failures",
+    "human-feedback-checkpoints",
+    "intent-drafts",
+    "workflow-drafts",
+}
 WEBHOOK_SECRET_HEADER = "X-Airflow-Webhook-Secret"
 MAX_ARTIFACT_BODY_CHARS = 64 * 1024
 SENSITIVE_HEADER_NAMES = {"authorization", "cookie", "set-cookie", WEBHOOK_SECRET_HEADER.lower()}

@@ -25,16 +25,16 @@ export function SlotListPanel({
 
   useEffect(() => {
     if (state.status === "error") {
-      toast.error(errorMessage ?? "목록을 불러오지 못했습니다.");
+      toast.error(errorMessage ?? "확인 항목 목록을 불러오지 못했습니다.");
     }
   }, [state.status, errorMessage]);
 
   return (
-    <aside className={styles.panel} aria-label="슬롯 목록">
+    <aside className={styles.panel} aria-label="확인 항목 목록">
       <header className={styles.header}>
-        <span className={styles.headerTitle}>Slots</span>
+        <span className={styles.headerTitle}>확인 항목</span>
         <span className={styles.headerMeta}>
-          {state.status === "ready" ? `${state.data.length} · LIST` : "— · LIST"}
+          {state.status === "ready" ? `${state.data.length}개` : "—개"}
         </span>
       </header>
 
@@ -49,7 +49,7 @@ export function SlotListPanel({
 
         {state.status === "error" && (
           <div className={styles.emptyState}>
-            <span>목록을 불러오지 못했습니다.</span>
+            <span>확인 항목 목록을 불러오지 못했습니다.</span>
             <button
               type="button"
               className={styles.retryButton}
@@ -62,7 +62,7 @@ export function SlotListPanel({
 
         {state.status === "ready" && state.data.length === 0 && (
           <div className={styles.emptyState}>
-            <span>등록된 슬롯 초안이 없습니다.</span>
+            <span>등록된 확인 항목 초안이 없습니다.</span>
           </div>
         )}
 

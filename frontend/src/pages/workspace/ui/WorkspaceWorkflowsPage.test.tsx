@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+
 import { WorkspaceWorkflowsPage } from "./WorkspaceWorkflowsPage";
 
 const mockNavigate = vi.fn();
@@ -16,8 +17,6 @@ const mockHook = vi.fn();
 vi.mock("@/entities/workflow", () => ({
   useListAllWorkspaceWorkflows: (...args: unknown[]) => mockHook(...args),
 }));
-
-vi.mock("sonner", () => ({ toast: vi.fn() }));
 
 vi.mock("@/features/workflow-list", () => ({
   WorkflowListView: vi.fn(({ entries, onOpen }) => (
@@ -68,16 +67,21 @@ describe("WorkspaceWorkflowsPage", () => {
   });
 
   it("error 상태에서는 ErrorState를 보여준다", () => {
-    mockHook.mockReturnValue({ loading: false, error: "워크플로우 목록 조회 실패", entries: [] });
+    mockHook.mockReturnValue({ loading: false, error: "응대 흐름 목록 조회 실패", entries: [] });
     renderPage();
     expect(screen.getByTestId("workspace-workflows-error")).toBeInTheDocument();
-    expect(screen.getByText("워크플로우 목록 조회 실패")).toBeInTheDocument();
+    expect(screen.getByText("응대 흐름 목록 조회 실패")).toBeInTheDocument();
   });
 
   it("entries 비어 있으면 empty state를 보여준다", () => {
     mockHook.mockReturnValue({ loading: false, error: null, entries: [] });
     renderPage();
     expect(screen.getByTestId("workspace-workflows-empty")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("entries가 있으면 WorkflowListView로 전달한다", () => {
@@ -124,11 +128,17 @@ describe("WorkspaceWorkflowsPage", () => {
     );
   });
 
-  it("새 워크플로우 버튼 클릭 시 toast 호출", async () => {
+  it("헤더 CTA 클릭 시 도메인팩 목록으로 이동한다", () => {
     mockHook.mockReturnValue({ loading: false, error: null, entries: [] });
-    const sonner = await import("sonner");
     renderPage();
-    fireEvent.click(screen.getByText("새 워크플로우"));
-    expect(sonner.toast).toHaveBeenCalledWith("준비 중입니다");
+    fireEvent.click(screen.getByText("도메인팩 관리"));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
+  });
+
+  it("empty state CTA 클릭 시 도메인팩 목록으로 이동한다", () => {
+    mockHook.mockReturnValue({ loading: false, error: null, entries: [] });
+    renderPage();
+    fireEvent.click(screen.getByText("도메인팩으로 이동"));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
   });
 });

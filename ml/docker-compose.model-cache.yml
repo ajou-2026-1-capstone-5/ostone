@@ -1,0 +1,16 @@
+services:
+  airflow-init:
+    volumes:
+      - ${AIRFLOW_MODEL_CACHE_PATH:?AIRFLOW_MODEL_CACHE_PATH is required}:${HF_HOME:-/opt/airflow/.cache/huggingface}
+
+  airflow-apiserver:
+    volumes:
+      - ${AIRFLOW_MODEL_CACHE_PATH:?AIRFLOW_MODEL_CACHE_PATH is required}:${HF_HOME:-/opt/airflow/.cache/huggingface}
+
+  airflow-scheduler:
+    volumes:
+      - ${AIRFLOW_MODEL_CACHE_PATH:?AIRFLOW_MODEL_CACHE_PATH is required}:${HF_HOME:-/opt/airflow/.cache/huggingface}
+
+  airflow-dag-processor:
+    volumes:
+      - ${AIRFLOW_MODEL_CACHE_PATH:?AIRFLOW_MODEL_CACHE_PATH is required}:${HF_HOME:-/opt/airflow/.cache/huggingface}

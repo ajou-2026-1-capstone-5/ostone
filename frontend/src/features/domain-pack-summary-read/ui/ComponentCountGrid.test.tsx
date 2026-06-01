@@ -36,10 +36,6 @@ const defaultProps = {
   workflowCount: 4,
 };
 
-function renderSlotEditSheet(_slotId: number, isOpen: boolean) {
-  return isOpen ? <div role="dialog">슬롯 수정</div> : null;
-}
-
 describe("ComponentCountGrid", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -51,29 +47,38 @@ describe("ComponentCountGrid", () => {
   });
 
   it("카드 레이블과 카운트를 렌더링한다", () => {
-    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
-    expect(screen.getByText("Intent")).toBeInTheDocument();
+    render(<ComponentCountGrid {...defaultProps} />);
+    expect(screen.getByText("상담 유형")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Workflow")).toBeInTheDocument();
+    expect(screen.getByText("응대 흐름")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
   });
 
   it("Intent, Policy 카드 클릭 시 상세 목록으로 이동한다", () => {
-    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
-    fireEvent.click(screen.getByRole("button", { name: /Intent/ }));
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /상담 유형/ }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/intents?versionId=3");
 
-    fireEvent.click(screen.getByRole("button", { name: /Policy/ }));
+    fireEvent.click(screen.getByRole("button", { name: /응대 기준/ }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/policies?versionId=3");
   });
 
-  it("Slot 카드 클릭 시 SlotEditSheet를 연다", () => {
+  it("Slot 카드 클릭 시 Slot 목록으로 이동한다", () => {
     vi.mocked(previewLists.useSlotPreview).mockReturnValue(
       makeHook({ data: [{ id: 9, name: "slot-1" }] }),
     );
-    render(<ComponentCountGrid {...defaultProps} renderSlotEditSheet={renderSlotEditSheet} />);
-    fireEvent.click(screen.getByRole("button", { name: /Slot/ }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("슬롯 수정");
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /확인 항목/ }));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/slots?versionId=3");
+  });
+
+  it("Slot 미리보기 항목 클릭 시 해당 id로 navigate를 호출한다", () => {
+    vi.mocked(previewLists.useSlotPreview).mockReturnValue(
+      makeHook({ data: [{ id: 9, name: "slot-1" }] }),
+    );
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.click(screen.getByText("slot-1"));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/slots/9?versionId=3");
   });
 
   it("로딩 중일 때 스켈레톤을 렌더링한다", () => {
@@ -85,19 +90,25 @@ describe("ComponentCountGrid", () => {
   it("intent isError 시 toast.error를 호출한다", async () => {
     vi.mocked(previewLists.useIntentPreview).mockReturnValue(makeHook({ isError: true }));
     render(<ComponentCountGrid {...defaultProps} />);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Intent 미리보기 로드 실패"));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("상담 유형 미리보기를 불러오지 못했습니다."),
+    );
   });
 
   it("slot isError 시 toast.error를 호출한다", async () => {
     vi.mocked(previewLists.useSlotPreview).mockReturnValue(makeHook({ isError: true }));
     render(<ComponentCountGrid {...defaultProps} />);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Slot 미리보기 로드 실패"));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("확인 항목 미리보기를 불러오지 못했습니다."),
+    );
   });
 
   it("workflow isError 시 toast.error를 호출한다", async () => {
     vi.mocked(previewLists.useWorkflowPreview).mockReturnValue(makeHook({ isError: true }));
     render(<ComponentCountGrid {...defaultProps} />);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Workflow 미리보기 로드 실패"));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("응대 흐름 미리보기를 불러오지 못했습니다."),
+    );
   });
 
   it("workflow previewItems가 있으면 이름 목록을 렌더링한다", () => {

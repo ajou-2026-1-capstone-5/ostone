@@ -105,7 +105,7 @@ export function RiskEditForm({
               <FormLabel>위험도 *</FormLabel>
               <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
-                  <SelectTrigger className="w-full" aria-label="위험요소 위험도">
+                  <SelectTrigger className="w-full" aria-label="주의 사항 수준">
                     <SelectValue placeholder="위험도 선택" />
                   </SelectTrigger>
                 </FormControl>
@@ -126,7 +126,7 @@ export function RiskEditForm({
           )}
         />
 
-        <ReadonlyRiskValue label="위험요소 코드" value={risk.riskCode ?? ""} />
+        <ReadonlyRiskValue label="주의 코드" value={risk.riskCode ?? ""} />
         <ReadonlyRiskValue label="버전 ID" value={risk.domainPackVersionId ?? 0} />
 
         <RiskJsonFields />

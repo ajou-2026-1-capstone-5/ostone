@@ -395,6 +395,44 @@ describe("UserChatPage", () => {
     expect(screen.getByTestId("message-81")).not.toBeNull();
   });
 
+  it("사용자 전송 후 WebSocket 봇 응답을 최소 입력 표시 시간 이후 렌더링한다", async () => {
+    let topicHandler: ((message: unknown) => void) | undefined;
+    stompState.connectionStatus = "CONNECTED";
+    stompState.subscribe.mockImplementation((_topic: string, cb: (message: unknown) => void) => {
+      topicHandler = cb;
+      return () => {};
+    });
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(topicHandler).toBeDefined();
+    });
+
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+
+    act(() => {
+      topicHandler?.({
+        id: 82,
+        senderRole: "ASSISTANT",
+        content: "LLM 응답입니다.",
+        createdAt: "2026-05-22T00:00:02Z",
+      });
+    });
+
+    expect(screen.queryByText("LLM 응답입니다.")).toBeNull();
+    expect(
+      await screen.findByText("LLM 응답입니다.", undefined, { timeout: 1500 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
+  });
+
   it("WebSocket user/assistant 메시지를 표시하고 같은 id는 한 번만 렌더링한다", async () => {
     let topicHandler: ((message: unknown) => void) | undefined;
     stompState.connectionStatus = "CONNECTED";
@@ -408,6 +446,9 @@ describe("UserChatPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
 
     await screen.findByTestId("chat-header-eyebrow");
+    await waitFor(() => {
+      expect(topicHandler).toBeDefined();
+    });
 
     act(() => {
       topicHandler?.({

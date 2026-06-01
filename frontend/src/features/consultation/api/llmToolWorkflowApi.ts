@@ -1,5 +1,7 @@
 import { customFetch } from "@/shared/api/mutator";
 
+export type TerminalState = string;
+
 export interface LlmToolWorkflowPayload {
   sessionId: number | null;
   workspaceId: number | null;
@@ -13,6 +15,10 @@ export interface LlmToolWorkflowPayload {
   workflowName: string | null;
   workflowDescription: string | null;
   graphJson?: unknown;
+  initialState?: string | null;
+  terminalStates?: TerminalState[] | null;
+  intentCode?: string | null;
+  intentName?: string | null;
 }
 
 export type MatchedWorkflow = LlmToolWorkflowPayload & {

@@ -144,7 +144,7 @@ describe("WorkspaceRootRedirect", () => {
     renderPage();
     const createBtn = screen.getByText("생성 완료");
     createBtn.click();
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/999/workflows", { replace: true });
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/999/upload", { replace: true });
   });
 
   it("CreateWorkspaceDialog 닫기 시 페이지를 새로고침하지 않고 현재 route를 유지한다", () => {

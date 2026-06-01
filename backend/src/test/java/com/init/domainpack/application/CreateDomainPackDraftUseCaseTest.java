@@ -35,6 +35,7 @@ import com.init.domainpack.domain.repository.SlotDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.lang.reflect.Constructor;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -89,6 +90,7 @@ class CreateDomainPackDraftUseCaseTest {
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
   @Mock private DomainPackVersionCloneService domainPackVersionCloneService;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private CreateDomainPackDraftUseCase useCase;
   private DomainPackDraftPersistenceService domainPackDraftPersistenceService;
@@ -104,7 +106,8 @@ class CreateDomainPackDraftUseCaseTest {
             riskDefinitionRepository,
             workflowDefinitionRepository,
             intentSlotBindingRepository,
-            domainPackVersionCloneService);
+            domainPackVersionCloneService,
+            profileBuildRequestService);
     useCase =
         new CreateDomainPackDraftUseCase(
             domainPackRepository,

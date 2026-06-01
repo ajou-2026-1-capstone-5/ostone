@@ -1,4 +1,5 @@
 import { Avatar, Dot, Pill, Mono } from "@/shared/ui/ostone/atoms";
+import { formatWaitDuration } from "@/features/consultation/lib/formatWaitDuration";
 
 export interface QueueCustomer {
   id: string;
@@ -51,7 +52,7 @@ export function Queue({
               </span>
               <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>{item.channel}</Mono>
               <Mono style={{ fontSize: 10, color: "var(--ink-3)", marginLeft: "auto" }}>
-                {item.waitMinutes}분
+                {formatWaitDuration(item.waitMinutes)}
               </Mono>
               {item.urgent && <Dot tone="signal" />}
             </div>

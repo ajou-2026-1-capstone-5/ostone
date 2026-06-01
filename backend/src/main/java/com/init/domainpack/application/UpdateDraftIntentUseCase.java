@@ -11,6 +11,7 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +23,19 @@ public class UpdateDraftIntentUseCase {
   private final DomainPackVersionRepository versionRepository;
   private final IntentDefinitionRepository intentRepository;
   private final ObjectMapper objectMapper;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public UpdateDraftIntentUseCase(
       DomainPackValidator validator,
       DomainPackVersionRepository versionRepository,
       IntentDefinitionRepository intentRepository,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.validator = validator;
     this.versionRepository = versionRepository;
     this.intentRepository = intentRepository;
     this.objectMapper = objectMapper;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -73,7 +77,9 @@ public class UpdateDraftIntentUseCase {
     } catch (IllegalArgumentException ex) {
       throw new BadRequestException("VALIDATION_ERROR", ex.getMessage(), ex);
     }
-    return IntentDefinitionDetail.from(intentRepository.save(intent));
+    IntentDefinition saved = intentRepository.save(intent);
+    profileBuildRequestService.enqueue(command.draftVersionId(), "INTENT_UPDATED");
+    return IntentDefinitionDetail.from(saved);
   }
 
   private void validateJsonObject(String value, String fieldName) {

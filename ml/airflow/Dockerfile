@@ -3,7 +3,7 @@ FROM apache/airflow:3.2.0-python3.13
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl=7.88.1-10+deb12u14* \
+    && apt-get install -y --no-install-recommends curl=7.88.1-10+deb12u14* build-essential zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,5 +17,7 @@ COPY scripts/init-airflow.sh /opt/airflow/scripts/init-airflow.sh
 RUN chmod +x /opt/airflow/scripts/init-airflow.sh
 
 USER airflow
+
+ENV HF_HOME=/opt/airflow/.cache/huggingface
 
 RUN pip install --no-cache-dir -r /requirements.txt

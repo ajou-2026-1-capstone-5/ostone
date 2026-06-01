@@ -64,11 +64,56 @@
   color: var(--text-muted);
 }
 
+.afterUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fade-in 0.5s ease;
+}
+
+.uploadSummary,
+.generationPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.uploadSummary strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploadSummary span,
+.generationPanel p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: -0.1px;
+}
+
+.uploadSummary .statusLabel,
+.generationPanel .statusLabel {
+  color: var(--text-color);
+  font-size: 0.75rem;
+  font-weight: 450;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .successActions {
   display: flex;
   gap: 16px;
-  margin-top: 24px;
-  animation: fade-in 0.5s ease;
+  margin-top: 8px;
 }
 
 .successActions button {

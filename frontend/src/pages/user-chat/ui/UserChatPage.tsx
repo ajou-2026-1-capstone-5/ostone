@@ -32,6 +32,7 @@ function resolveSessionStartErrorMessage(error: unknown): string {
 
 const DEMO_SESSION_STORAGE_PREFIX = "ostone:demo-chat-session";
 const LOCAL_USER_MESSAGE_PREFIX = "local-user-";
+const BOT_TYPING_MIN_MS = 1000;
 
 function createStorageKey(workspaceId: number, customerName: string): string {
   const normalizedName = customerName.trim().toLowerCase();
@@ -186,9 +187,14 @@ export function UserChatPage() {
   });
   const [nameError, setNameError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const nameRequestIdRef = useRef(0);
   const autoStartedRef = useRef(false);
+  const isBotTypingRef = useRef(false);
+  const botTypingDelayUntilRef = useRef(0);
+  const botTypingTimeoutRef = useRef<number | null>(null);
+  const pendingBotMessagesRef = useRef<ChatMessage[]>([]);
   const [chatState, setChatState] = useState<{
     workspaceId: number | null;
     customerName: string | null;
@@ -201,6 +207,86 @@ export function UserChatPage() {
       ? chatState
       : { session: null, error: null };
   const activeSessionId = activeChatState.session?.id ?? null;
+
+  const setBotTyping = useCallback((nextValue: boolean) => {
+    isBotTypingRef.current = nextValue;
+    setIsBotTyping(nextValue);
+  }, []);
+
+  const clearBotTypingTimeout = useCallback(() => {
+    if (botTypingTimeoutRef.current == null) return;
+    window.clearTimeout(botTypingTimeoutRef.current);
+    botTypingTimeoutRef.current = null;
+  }, []);
+
+  const appendRealtimeMessages = useCallback(
+    (nextMessages: ChatMessage[]) => {
+      if (!activeSessionId || !customerName || nextMessages.length === 0) return;
+
+      setChatState((current) => {
+        if (current.session?.id !== activeSessionId || current.customerName !== customerName) {
+          return current;
+        }
+
+        const nextSession = {
+          ...current.session,
+          messages: nextMessages.reduce(
+            (messages, nextMessage) => mergeRealtimeMessage(messages, nextMessage),
+            current.session.messages,
+          ),
+        };
+        writeStoredSession(workspaceId, customerName, {
+          ...nextSession,
+          messages: withoutLocalUserMessages(nextSession.messages),
+        });
+        return {
+          ...current,
+          session: nextSession,
+        };
+      });
+    },
+    [activeSessionId, customerName, workspaceId],
+  );
+
+  const flushPendingBotMessages = useCallback(() => {
+    clearBotTypingTimeout();
+    const pendingMessages = pendingBotMessagesRef.current;
+    pendingBotMessagesRef.current = [];
+    appendRealtimeMessages(pendingMessages);
+    setBotTyping(false);
+  }, [appendRealtimeMessages, clearBotTypingTimeout, setBotTyping]);
+
+  const queueBotMessage = useCallback(
+    (message: ChatMessage) => {
+      if (!pendingBotMessagesRef.current.some((pending) => pending.id === message.id)) {
+        pendingBotMessagesRef.current = [...pendingBotMessagesRef.current, message];
+      }
+
+      const remainingMs = Math.max(botTypingDelayUntilRef.current - Date.now(), 0);
+      if (remainingMs === 0) {
+        flushPendingBotMessages();
+        return;
+      }
+
+      clearBotTypingTimeout();
+      botTypingTimeoutRef.current = window.setTimeout(flushPendingBotMessages, remainingMs);
+    },
+    [clearBotTypingTimeout, flushPendingBotMessages],
+  );
+
+  const startBotTypingDelay = useCallback(() => {
+    botTypingDelayUntilRef.current = Date.now() + BOT_TYPING_MIN_MS;
+    setBotTyping(true);
+  }, [setBotTyping]);
+
+  useEffect(() => {
+    pendingBotMessagesRef.current = [];
+    botTypingDelayUntilRef.current = 0;
+    setBotTyping(false);
+    clearBotTypingTimeout();
+  }, [activeSessionId, clearBotTypingTimeout, customerName, setBotTyping]);
+
+  useEffect(() => clearBotTypingTimeout, [clearBotTypingTimeout]);
 
   const startSession = useCallback(
     async (rawName: string) => {
@@ -290,6 +376,7 @@ export function UserChatPage() {
     const localMessage = createLocalUserMessage(numericSessionId, customerName, content);
     setMessageError(null);
     setIsSending(true);
+    startBotTypingDelay();
     setChatState((current) => {
       if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
         return current;
@@ -319,6 +406,9 @@ export function UserChatPage() {
         };
       });
       setMessageError("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      pendingBotMessagesRef.current = [];
+      clearBotTypingTimeout();
+      setBotTyping(false);
     } finally {
       setIsSending(false);
     }
@@ -378,25 +468,20 @@ export function UserChatPage() {
       if (!isRealtimeChatMessage(raw)) return;
 
       const nextMessage = toRealtimeChatMessage(raw, numericSessionId, customerName);
-      setChatState((current) => {
-        if (current.session?.id !== activeSessionId || current.customerName !== customerName) {
-          return current;
-        }
-        const nextSession = {
-          ...current.session,
-          messages: mergeRealtimeMessage(current.session.messages, nextMessage),
-        };
-        writeStoredSession(workspaceId, customerName, {
-          ...nextSession,
-          messages: withoutLocalUserMessages(nextSession.messages),
-        });
-        return {
-          ...current,
-          session: nextSession,
-        };
-      });
+      if (nextMessage.senderType === "BOT" && isBotTypingRef.current) {
+        queueBotMessage(nextMessage);
+        return;
+      }
+      appendRealtimeMessages([nextMessage]);
     });
-  }, [activeSessionId, connectionStatus, customerName, subscribe, workspaceId]);
+  }, [
+    activeSessionId,
+    appendRealtimeMessages,
+    connectionStatus,
+    customerName,
+    queueBotMessage,
+    subscribe,
+  ]);
 
   if (isInvalidWorkspace) {
     return (
@@ -452,7 +537,8 @@ export function UserChatPage() {
       session={activeChatState.session}
       customerName={customerName}
       workspaceId={workspaceId}
-      isSending={isSending || connectionStatus !== "CONNECTED"}
+      isSending={isSending}
+      botTyping={isBotTyping}
       connectionStatus={connectionStatus}
       messageError={messageError}
       onSend={(content) => {

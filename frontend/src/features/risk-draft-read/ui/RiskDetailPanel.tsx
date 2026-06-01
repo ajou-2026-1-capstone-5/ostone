@@ -7,16 +7,23 @@ import type { RiskDefinition } from "@/entities/risk";
 import styles from "./RiskDetailPanel.module.css";
 
 const RISK_JSON_FIELDS = [
-  ["Trigger Condition", "triggerConditionJson"],
-  ["Handling Action", "handlingActionJson"],
-  ["Evidence", "evidenceJson"],
-  ["Meta", "metaJson"],
+  ["감지 조건", "triggerConditionJson"],
+  ["응대 방법", "handlingActionJson"],
+  ["근거 로그", "evidenceJson"],
+  ["추가 정보", "metaJson"],
 ] as const;
 
 const STATUS_LABELS = {
-  ACTIVE: "● ACTIVE",
-  INACTIVE: "○ INACTIVE",
+  ACTIVE: "사용중",
+  INACTIVE: "사용 안 함",
 } as const;
+
+const RISK_LEVEL_LABELS: Record<string, string> = {
+  LOW: "낮음",
+  MEDIUM: "보통",
+  HIGH: "높음",
+  CRITICAL: "긴급",
+};
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
@@ -77,9 +84,9 @@ export function RiskDetailPanel({
 
   if (state.status === "idle") {
     return (
-      <section className={styles.panel} aria-label="위험요소 상세">
+      <section className={styles.panel} aria-label="주의 사항 상세">
         <div className={styles.placeholder}>
-          <span>위험요소를 선택하세요.</span>
+          <span>주의 사항을 선택하세요.</span>
         </div>
       </section>
     );
@@ -87,7 +94,7 @@ export function RiskDetailPanel({
 
   if (state.status === "loading") {
     return (
-      <section className={styles.panel} aria-label="위험요소 상세">
+      <section className={styles.panel} aria-label="주의 사항 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -97,7 +104,7 @@ export function RiskDetailPanel({
 
   if (state.status === "error") {
     return (
-      <section className={styles.panel} aria-label="위험요소 상세">
+      <section className={styles.panel} aria-label="주의 사항 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <span>{errorHttpStatus === 404 ? RISK_READ_ERROR_MESSAGES.NOT_FOUND : errorMessage}</span>
@@ -116,16 +123,16 @@ export function RiskDetailPanel({
 
   const detail = state.data;
   const infoFields: RiskInfoField[] = [
-    { label: "Risk Code", value: <span>{detail.riskCode}</span> },
-    { label: "Risk Level", value: <span>{detail.riskLevel}</span> },
-    { label: "Status", value: <StatusBadge status={detail.status} /> },
-    { label: "Version Id", value: <span>{detail.domainPackVersionId}</span> },
-    { label: "Created At", value: formatDate(detail.createdAt ?? "") },
-    { label: "Updated At", value: formatDate(detail.updatedAt ?? "") },
+    { label: "주의 코드", value: <span>{detail.riskCode}</span> },
+    { label: "주의 수준", value: <span>{formatRiskLevel(detail.riskLevel)}</span> },
+    { label: "상태", value: <StatusBadge status={detail.status} /> },
+    { label: "버전 ID", value: <span>{detail.domainPackVersionId}</span> },
+    { label: "생성일", value: formatDate(detail.createdAt ?? "") },
+    { label: "수정일", value: formatDate(detail.updatedAt ?? "") },
   ];
 
   return (
-    <section className={styles.panel} aria-label="위험요소 상세">
+    <section className={styles.panel} aria-label="주의 사항 상세">
       <DetailHeader detail={detail} onEdit={() => onEdit(detail.id!)} />
       <div className={styles.body}>
         <InfoGrid fields={infoFields} />
@@ -147,19 +154,23 @@ function DetailHeader({
         <span className={styles.code}>{detail.riskCode}</span>
         <span className={styles.name}>{detail.name}</span>
         {detail.description && <span className={styles.description}>{detail.description}</span>}
-        <span className={styles.updatedAt}>UPDATED · {formatDate(detail.updatedAt ?? "")}</span>
+        <span className={styles.updatedAt}>수정일 · {formatDate(detail.updatedAt ?? "")}</span>
       </div>
       <button
         type="button"
         className={styles.editButton}
         onClick={onEdit}
-        aria-label={`${detail.riskCode} 위험요소 수정`}
+        aria-label={`${detail.riskCode} 주의 사항 수정`}
       >
         <PencilIcon aria-hidden="true" />
         <span>수정</span>
       </button>
     </header>
   );
+}
+
+function formatRiskLevel(level: RiskDefinition["riskLevel"]): string {
+  return level ? (RISK_LEVEL_LABELS[level] ?? level) : "—";
 }
 
 function InfoGrid({ fields }: Readonly<{ fields: readonly RiskInfoField[] }>) {

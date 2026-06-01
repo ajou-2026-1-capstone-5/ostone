@@ -10,9 +10,11 @@ from pipeline.common.exceptions import PipelineConfigurationError
 DEFAULT_ARTIFACT_STORE = "local"
 DEFAULT_EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
 DEFAULT_EMBEDDING_RUNTIME = "flag_embedding"
+LOCAL_HTTP_EMBEDDING_RUNTIME = "local_http"
 DEFAULT_LLM_MODEL_NAME = "Qwen/Qwen3-14B"
 DEFAULT_RUNTIME_PROFILE = "balanced"
 DEFAULT_GPU_TASK_MODE = "run_task"
+SUPPORTED_EMBEDDING_RUNTIMES = {DEFAULT_EMBEDDING_RUNTIME, LOCAL_HTTP_EMBEDDING_RUNTIME}
 
 
 @dataclass(frozen=True)
@@ -48,9 +50,9 @@ class PipelineRuntimeConfig:
         if runtime_profile not in {"balanced", "quality"}:
             raise PipelineConfigurationError("ML_RUNTIME_PROFILE must be one of: balanced, quality.")
         embedding_runtime = self.embedding_runtime.strip().lower()
-        if embedding_runtime != DEFAULT_EMBEDDING_RUNTIME:
+        if embedding_runtime not in SUPPORTED_EMBEDDING_RUNTIMES:
             raise PipelineConfigurationError(
-                "Only ML_EMBEDDING_RUNTIME=flag_embedding is supported. "
+                "ML_EMBEDDING_RUNTIME must be one of: flag_embedding, local_http. "
                 "Hash, fake, and cheap embedding paths have been removed."
             )
         gpu_task_mode = self.gpu_task_mode.strip().lower()
@@ -116,11 +118,12 @@ def _embedding_runtime_from_env() -> str:
     if value is None or not value.strip():
         return DEFAULT_EMBEDDING_RUNTIME
     normalized = value.strip().lower()
-    if normalized != DEFAULT_EMBEDDING_RUNTIME:
+    if normalized not in SUPPORTED_EMBEDDING_RUNTIMES:
         raise PipelineConfigurationError(
-            "ML_EMBEDDING_RUNTIME no longer supports alternate runtimes. Use flag_embedding with BAAI/bge-m3."
+            "ML_EMBEDDING_RUNTIME no longer supports hash/fake/cheap runtimes. "
+            "Use flag_embedding or local_http with BAAI/bge-m3."
         )
-    return DEFAULT_EMBEDDING_RUNTIME
+    return normalized
 
 
 def _parse_bool(value: str) -> bool:

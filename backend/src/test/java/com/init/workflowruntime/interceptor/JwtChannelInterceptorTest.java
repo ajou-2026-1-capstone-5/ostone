@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.init.auth.application.JwtService;
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.InvalidTokenException;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
@@ -178,18 +179,56 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  @DisplayName("SUBSCRIBE with OPERATOR auth, chat topic → passes through")
-  void should_passThrough_when_operatorSubscribesChatTopic() {
+  @DisplayName("SUBSCRIBE with OPERATOR auth and workspace membership, chat topic → passes through")
+  void should_passThrough_when_operatorSubscribesChatTopicWithWorkspaceMembership() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
     accessor.setUser(() -> "42");
     accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 2L, 99L)));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
+        .willReturn(Optional.of(WorkspaceMember.create(2L, 42L, WorkspaceMemberRole.OPERATOR)));
 
     Message<?> result = interceptor.preSend(message, channel);
 
     assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName(
+      "SUBSCRIBE with OPERATOR auth but no workspace membership, chat topic → AccessDeniedException")
+  void should_throwAccessDenied_when_operatorSubscribesNonMemberChatTopic() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 2L, 99L)));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(2L, 42L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE with OPERATOR auth, missing chat session → BadRequestException")
+  void should_throwBadRequest_when_operatorSubscribesMissingChatSession() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setUser(() -> "42");
+    accessor.setSessionAttributes(new HashMap<>(Map.of("role", "OPERATOR")));
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOfSatisfying(
+            BadRequestException.class,
+            exception -> assertThat(exception.getCode()).isEqualTo("SESSION_NOT_FOUND"));
   }
 
   @Test
@@ -263,6 +302,9 @@ class JwtChannelInterceptorTest {
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(createSession(1L, 1L, 99L)));
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(1L, 42L))
+        .willReturn(Optional.of(WorkspaceMember.create(1L, 42L, WorkspaceMemberRole.OPERATOR)));
 
     Message<?> result = interceptor.preSend(message, channel);
 
@@ -369,8 +411,12 @@ class JwtChannelInterceptorTest {
   }
 
   private ChatSession createSession(Long id, Long startedBy) {
+    return createSession(id, 1L, startedBy);
+  }
+
+  private ChatSession createSession(Long id, Long workspaceId, Long startedBy) {
     ChatSession session =
-        ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}", startedBy);
+        ChatSession.create(workspaceId, 1L, ChatSessionStatus.OPEN, "WEB", "{}", startedBy);
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

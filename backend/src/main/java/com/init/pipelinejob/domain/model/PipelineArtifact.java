@@ -61,4 +61,12 @@ public class PipelineArtifact {
     artifact.createdAt = Objects.requireNonNullElseGet(createdAt, OffsetDateTime::now);
     return artifact;
   }
+
+  public String getArtifactUri() {
+    return artifactUri;
+  }
+
+  public String getPayloadJson() {
+    return payloadJson;
+  }
 }

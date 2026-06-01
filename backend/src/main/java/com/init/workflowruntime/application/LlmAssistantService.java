@@ -21,6 +21,25 @@ public class LlmAssistantService {
       Latest user message:
       {message}
       """;
+  private static final String COUNSELOR_DRAFT_PROMPT =
+      """
+      You are drafting a Korean customer-service reply for a human counselor.
+      The counselor will review and edit the text before sending it.
+      Do not mention that the text was generated.
+      Return only the draft message body.
+
+      Matched workflow:
+      {workflow}
+
+      Current workflow state:
+      {state}
+
+      Recent conversation:
+      {context}
+
+      Latest customer message:
+      {message}
+      """;
 
   private final ChatClient chatClient;
   private final WorkflowAssistantTools workflowAssistantTools;
@@ -54,6 +73,23 @@ public class LlmAssistantService {
                     u.text(WORKFLOW_AWARE_USER_PROMPT)
                         .param("context", nullToEmpty(command.conversationContext()))
                         .param("message", nullToEmpty(command.userMessage())))
+            .call()
+            .content();
+    return new GenerateWorkflowAwareResponseResult(content);
+  }
+
+  public GenerateWorkflowAwareResponseResult generateCounselorDraftResponse(
+      String workflowSummary, String currentState, String conversationContext, String userMessage) {
+    String content =
+        chatClient
+            .prompt()
+            .user(
+                u ->
+                    u.text(COUNSELOR_DRAFT_PROMPT)
+                        .param("workflow", nullToEmpty(workflowSummary))
+                        .param("state", nullToEmpty(currentState))
+                        .param("context", nullToEmpty(conversationContext))
+                        .param("message", nullToEmpty(userMessage)))
             .call()
             .content();
     return new GenerateWorkflowAwareResponseResult(content);

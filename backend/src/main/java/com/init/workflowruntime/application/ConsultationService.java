@@ -2,19 +2,28 @@ package com.init.workflowruntime.application;
 
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.dto.ChatMessagePageResponse;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
+import com.init.workflowruntime.application.dto.SessionResolutionOutcome;
+import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class ConsultationService {
+
+  private static final int DEFAULT_MESSAGE_PAGE = 0;
+  private static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
+  private static final int MAX_MESSAGE_PAGE_SIZE = 100;
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -52,37 +65,59 @@ public class ConsultationService {
         .findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
             workspaceId, Arrays.asList(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE))
         .stream()
+        .sorted(this::compareQueuePriority)
         .map(ChatSessionResponse::from)
         .collect(Collectors.toList());
   }
 
-  public List<ChatMessageResponse> getMessages(@NonNull Long sessionId) {
+  public List<ChatMessageResponse> getMessages(@NonNull Long sessionId, @NonNull Long userId) {
+    return getMessages(sessionId, userId, DEFAULT_MESSAGE_PAGE, DEFAULT_MESSAGE_PAGE_SIZE)
+        .content();
+  }
+
+  public ChatMessagePageResponse getMessages(
+      @NonNull Long sessionId, @NonNull Long userId, int page, int size) {
+    validateMessagePaging(page, size);
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     Long id = session.getId();
     if (id == null) {
       throw new IllegalStateException("Session ID cannot be null");
     }
 
-    return chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(id).stream()
-        .map(ChatMessageResponse::from)
-        .collect(Collectors.toList());
+    DomainPage<ChatMessage> messagePage =
+        chatMessageRepository.findByChatSessionIdOrderBySeqNoDesc(
+            id, new DomainPageRequest(page, size));
+    List<ChatMessage> chronologicalMessages = new ArrayList<>(messagePage.content());
+    Collections.reverse(chronologicalMessages);
+
+    List<ChatMessageResponse> content =
+        chronologicalMessages.stream().map(ChatMessageResponse::from).collect(Collectors.toList());
+
+    return new ChatMessagePageResponse(
+        content,
+        messagePage.page(),
+        messagePage.size(),
+        messagePage.totalElements(),
+        messagePage.totalPages());
   }
 
   @Transactional
   public ChatMessageResponse sendMessage(
-      @NonNull Long sessionId, @NonNull SendMessageRequest request) {
+      @NonNull Long sessionId, @NonNull SendMessageRequest request, @NonNull Long userId) {
     ChatSession session =
         chatSessionRepository
             .findByIdForUpdate(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
@@ -106,19 +141,33 @@ public class ConsultationService {
   }
 
   @Transactional
-  public ChatSessionResponse updateSessionStatus(@NonNull Long sessionId, @NonNull String status) {
+  public ChatSessionResponse updateSessionStatus(
+      @NonNull Long sessionId, @NonNull String status, @NonNull Long userId) {
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus(status);
+    return updateSessionStatus(sessionId, request, userId);
+  }
+
+  @Transactional
+  public ChatSessionResponse updateSessionStatus(
+      @NonNull Long sessionId, @NonNull UpdateStatusRequest request, @NonNull Long userId) {
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateWorkspaceMembership(session.getWorkspaceId(), userId);
 
-    ChatSessionStatus newStatus;
-    try {
-      newStatus = ChatSessionStatus.valueOf(status.toUpperCase());
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    ChatSessionStatus newStatus = parseStatus(request.getStatus());
+    SessionResolutionOutcome outcome = parseOutcome(request.getResolutionOutcome());
+    if (outcome != null && outcome.getDefaultStatus() != newStatus) {
+      throw new BadRequestException(
+          "INVALID_RESOLUTION_STATUS",
+          "Resolution outcome "
+              + outcome.name()
+              + " requires status "
+              + outcome.getDefaultStatus());
     }
 
     switch (newStatus) {
@@ -128,6 +177,24 @@ public class ConsultationService {
       case OPEN -> session.reopen();
     }
 
+    if (newStatus == ChatSessionStatus.RESOLVED || newStatus == ChatSessionStatus.COMPLETED) {
+      chatSessionMetadataService.resolveHandoff(session);
+    }
+
+    if (outcome != null) {
+      boolean followUpRequired =
+          request.getFollowUpRequired() != null
+              ? request.getFollowUpRequired()
+              : outcome.isDefaultFollowUpRequired();
+      chatSessionMetadataService.recordResolution(
+          session,
+          outcome.name(),
+          outcome.getLabel(),
+          newStatus.name(),
+          request.getResolutionReason(),
+          followUpRequired);
+    }
+
     eventPublisher.publishEvent(
         new ConsultationQueueChangedEvent(
             session.getWorkspaceId(), sessionId, queueEventTypeFor(newStatus)));
@@ -135,11 +202,61 @@ public class ConsultationService {
     return ChatSessionResponse.from(session);
   }
 
+  private ChatSessionStatus parseStatus(String status) {
+    if (status == null || status.isBlank()) {
+      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    }
+    try {
+      return ChatSessionStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: " + status);
+    }
+  }
+
+  private SessionResolutionOutcome parseOutcome(String resolutionOutcome) {
+    if (resolutionOutcome == null || resolutionOutcome.isBlank()) {
+      return null;
+    }
+    try {
+      return SessionResolutionOutcome.valueOf(resolutionOutcome.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(
+          "UNSUPPORTED_RESOLUTION_OUTCOME", "Unsupported resolution outcome: " + resolutionOutcome);
+    }
+  }
+
   private ConsultationQueueEventType queueEventTypeFor(ChatSessionStatus status) {
     return switch (status) {
       case OPEN, ACTIVE -> ConsultationQueueEventType.SESSION_UPSERTED;
       case RESOLVED, COMPLETED -> ConsultationQueueEventType.SESSION_REMOVED;
     };
+  }
+
+  private void validateMessagePaging(int page, int size) {
+    if (page < 0 || size <= 0 || size > MAX_MESSAGE_PAGE_SIZE) {
+      throw new BadRequestException(
+          "INVALID_PAGING",
+          "page must be >= 0 and size must be between 1 and " + MAX_MESSAGE_PAGE_SIZE);
+    }
+  }
+
+  private int compareQueuePriority(ChatSession left, ChatSession right) {
+    boolean leftHandoff = chatSessionMetadataService.isHandoffRequired(left);
+    boolean rightHandoff = chatSessionMetadataService.isHandoffRequired(right);
+    if (leftHandoff != rightHandoff) {
+      return leftHandoff ? -1 : 1;
+    }
+    if (leftHandoff) {
+      return Comparator.nullsLast(Comparator.<OffsetDateTime>naturalOrder())
+          .compare(queueHandoffTime(left), queueHandoffTime(right));
+    }
+    return Comparator.nullsLast(Comparator.<OffsetDateTime>reverseOrder())
+        .compare(left.getStartedAt(), right.getStartedAt());
+  }
+
+  private OffsetDateTime queueHandoffTime(ChatSession session) {
+    OffsetDateTime handoffAt = chatSessionMetadataService.handoffAt(session);
+    return handoffAt != null ? handoffAt : session.getStartedAt();
   }
 
   private void validateWorkspaceMembership(Long workspaceId, Long userId) {

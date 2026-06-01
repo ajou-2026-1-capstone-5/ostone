@@ -12,7 +12,7 @@ export interface UseApproveIntentProps {
 }
 
 const INTENT_ERROR_MESSAGES = {
-  INTENT_NOT_EDITABLE: "편집할 수 없는 상태의 intent입니다.",
+  INTENT_NOT_EDITABLE: "편집할 수 없는 상태의 상담 유형입니다.",
 } as const;
 
 export function useApproveIntent({
@@ -30,7 +30,7 @@ export function useApproveIntent({
       {
         onSuccess: () => {
           onStatusChanged?.(status);
-          toast.success("intent 상태가 변경되었습니다.");
+          toast.success("상담 유형 상태가 변경되었습니다.");
         },
         onError: (error) => {
           if (error instanceof ApiRequestError) {
@@ -39,7 +39,7 @@ export function useApproveIntent({
               return;
             }
           }
-          toast.error("intent 상태 변경에 실패했습니다.");
+          toast.error("상담 유형 상태 변경에 실패했습니다.");
         },
       },
     );

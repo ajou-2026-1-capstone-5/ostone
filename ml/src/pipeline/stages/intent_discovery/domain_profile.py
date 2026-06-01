@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import json
+import os
 import re
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+from pipeline.common.exceptions import PipelineStageError
 from pipeline.stages.preprocessing.types import ProcessedConversation
 
 UNKNOWN_ROOT_DOMAIN = "mixed_or_unknown"
 GENERIC_ROOT_DOMAIN = "generic"
+CONFIRMED_DOMAIN_METHOD = "llm_confirmed_domain.v1"
 _MIN_PROFILE_TERM_LENGTH = 2
 _PROFILE_STOPWORDS = frozenset(
     {
@@ -47,11 +53,15 @@ class RootDomainProfile:
     scores: dict[str, float]
     evidence_terms: dict[str, tuple[str, ...]]
     method: str = "unsupervised_keyword_profile.v1"
+    domain_lexicon: tuple[str, ...] = ()
+    domain_evidence: dict[str, object] | None = None
 
     @property
     def allowed_rule_domains(self) -> tuple[str, ...]:
         if self.root_domain == UNKNOWN_ROOT_DOMAIN:
             return ()
+        if self.method == CONFIRMED_DOMAIN_METHOD:
+            return (self.root_domain,)
         return (GENERIC_ROOT_DOMAIN,)
 
     def to_dict(self) -> dict[str, object]:
@@ -64,9 +74,48 @@ class RootDomainProfile:
             "evidenceTerms": {domain: list(terms) for domain, terms in self.evidence_terms.items()},
             "allowedRuleDomains": list(self.allowed_rule_domains),
             "method": self.method,
-            "usesOperatorCategoryMetadata": False,
-            "usesDomainSpecificLexicon": False,
+            "confirmedDomain": self.root_domain if self.method == CONFIRMED_DOMAIN_METHOD else None,
+            "domainLexicon": list(self.domain_lexicon),
+            "domainEvidence": self.domain_evidence or {},
+            "usesOperatorCategoryMetadata": self.method == CONFIRMED_DOMAIN_METHOD,
+            "usesDomainSpecificLexicon": bool(self.domain_lexicon),
         }
+
+
+def load_confirmed_domain_profile_from_env() -> RootDomainProfile | None:
+    path_value = os.getenv("PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH", "").strip()
+    if not path_value:
+        return None
+    return load_confirmed_domain_profile(Path(path_value))
+
+
+def load_confirmed_domain_profile(path: Path) -> RootDomainProfile:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PipelineStageError(f"Failed to read confirmed domain profile: {path}") from exc
+    if not isinstance(payload, dict):
+        raise PipelineStageError("Confirmed domain profile must be a JSON object.")
+    root_domain = _confirmed_domain(payload)
+    lexicon = tuple(_string_list(payload.get("domainLexicon") or payload.get("suggestedDomainLexicon")))
+    evidence_terms = tuple(_string_list(payload.get("evidenceTerms") or payload.get("domainLexicon")))[:24]
+    confidence = _bounded_float(payload.get("confidence") or payload.get("domainConfidence"), default=0.0)
+    return RootDomainProfile(
+        root_domain=root_domain,
+        confidence=confidence,
+        sample_size=_int_value(payload.get("sampleSize")),
+        total_conversation_count=_int_value(payload.get("totalConversationCount")),
+        scores={root_domain: confidence},
+        evidence_terms={root_domain: evidence_terms},
+        method=CONFIRMED_DOMAIN_METHOD,
+        domain_lexicon=lexicon,
+        domain_evidence={
+            "candidateId": payload.get("candidateId"),
+            "displayName": payload.get("displayName"),
+            "evidenceConversationIds": _string_list(payload.get("evidenceConversationIds")),
+            "sourceReviewTaskId": payload.get("sourceReviewTaskId"),
+        },
+    )
 
 
 def infer_root_domain_profile(
@@ -126,9 +175,36 @@ def _profile_terms(conversations: Sequence[ProcessedConversation]) -> Counter[st
     return counter
 
 
+def _confirmed_domain(payload: dict[str, Any]) -> str:
+    value = str(
+        payload.get("confirmedDomain") or payload.get("displayName") or payload.get("candidateId") or ""
+    ).strip()
+    return value or UNKNOWN_ROOT_DOMAIN
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := str(item).strip())]
+
+
+def _bounded_float(value: object, *, default: float) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return default
+    return max(0.0, min(1.0, float(value)))
+
+
+def _int_value(value: object) -> int:
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    return 0
+
+
 __all__ = [
     "GENERIC_ROOT_DOMAIN",
     "RootDomainProfile",
     "UNKNOWN_ROOT_DOMAIN",
     "infer_root_domain_profile",
+    "load_confirmed_domain_profile",
+    "load_confirmed_domain_profile_from_env",
 ]

@@ -35,6 +35,11 @@ x-airflow-common: &airflow-common
     PIPELINE_LLM_BASE_URL: ${PIPELINE_LLM_BASE_URL:-}
     PIPELINE_LLM_API_KEY: ${PIPELINE_LLM_API_KEY:-}
     PIPELINE_LLM_MODEL: ${PIPELINE_LLM_MODEL:-}
+    EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-BAAI/bge-m3}
+    EMBEDDING_MAX_LENGTH: ${EMBEDDING_MAX_LENGTH:-1024}
+    ML_EMBEDDING_RUNTIME: flag_embedding
+    HF_HOME: ${HF_HOME:-/opt/airflow/.cache/huggingface}
+    PIPELINE_TASK_TIMEOUT_MINUTES: ${PIPELINE_TASK_TIMEOUT_MINUTES:-90}
     PYTHONPATH: /opt/airflow/src
   volumes:
     - ./src:/opt/airflow/src

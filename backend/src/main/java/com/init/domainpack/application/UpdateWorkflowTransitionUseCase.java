@@ -17,6 +17,7 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -38,14 +39,17 @@ public class UpdateWorkflowTransitionUseCase {
   private final DomainPackValidator validator;
   private final DomainPackVersionRepository versionRepository;
   private final WorkflowDefinitionRepository workflowRepository;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public UpdateWorkflowTransitionUseCase(
       DomainPackValidator validator,
       DomainPackVersionRepository versionRepository,
-      WorkflowDefinitionRepository workflowRepository) {
+      WorkflowDefinitionRepository workflowRepository,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.validator = validator;
     this.versionRepository = versionRepository;
     this.workflowRepository = workflowRepository;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -113,6 +117,7 @@ public class UpdateWorkflowTransitionUseCase {
     }
 
     workflowRepository.save(workflow);
+    profileBuildRequestService.enqueue(command.versionId(), "WORKFLOW_TRANSITION_UPDATED");
     return document
         .findTransitionDetail(command.transitionId(), workflow.getDomainPackVersionId())
         .orElseThrow(() -> new WorkflowTransitionNotFoundException(command.transitionId()));

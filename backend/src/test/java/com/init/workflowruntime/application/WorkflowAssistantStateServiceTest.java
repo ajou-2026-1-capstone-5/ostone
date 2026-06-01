@@ -29,6 +29,7 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.WorkflowExecution;
 import com.init.workflowruntime.domain.WorkflowExecutionRepository;
+import com.init.workflowruntime.infrastructure.persistence.WorkflowMatchDecisionJdbcRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,7 @@ class WorkflowAssistantStateServiceTest {
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private WorkflowExecutionRepository workflowExecutionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private WorkflowMatchDecisionJdbcRepository workflowMatchDecisionRepository;
 
   private ObjectMapper objectMapper;
   private WorkflowAssistantStateService service;
@@ -62,6 +64,7 @@ class WorkflowAssistantStateServiceTest {
             chatSessionRepository,
             workflowExecutionRepository,
             workflowDefinitionRepository,
+            workflowMatchDecisionRepository,
             objectMapper);
   }
 

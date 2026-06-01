@@ -31,11 +31,11 @@ export function IntentRevisionDraftActions({
           : hasSummaryError
             ? errorMessage
             : changedCount > 0
-              ? `변경된 intent ${changedCount}개`
-              : "변경된 intent가 없습니다."}
+              ? `변경된 상담 유형 ${changedCount}개`
+              : "변경된 상담 유형이 없습니다."}
       </div>
       <div className={styles.summaryText}>
-        수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.
+        수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.
       </div>
       <div className={styles.actionButtons}>
         {hasSummaryError && (

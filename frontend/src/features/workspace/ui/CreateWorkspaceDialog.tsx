@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { AlertCircleIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import {
   type WorkspaceResponse,
 } from "@/entities/workspace";
 import { useCreateWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, selectApiData } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -43,13 +43,23 @@ export function CreateWorkspaceDialog({
   const nameErrorId = fieldErrors.name ? "workspace-name-error" : undefined;
   const createWorkspace = useCreateWorkspace();
 
-  useEffect(() => {
-    if (!open) {
-      setName("");
-      setFieldErrors({});
-      setIsSubmitting(false);
+  const resetForm = () => {
+    setName("");
+    setFieldErrors({});
+    setIsSubmitting(false);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetForm();
     }
-  }, [open]);
+    onOpenChange(nextOpen);
+  };
+
+  const closeDialog = () => {
+    resetForm();
+    onOpenChange(false);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,9 +80,15 @@ export function CreateWorkspaceDialog({
       { data: { workspaceKey, name: trimmedName } },
       {
         onSuccess: async (result) => {
-          const created = result.data;
+          const created = selectApiData<WorkspaceResponse>(result);
+          if (created?.id == null) {
+            toast.error("워크스페이스 생성 응답을 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            setIsSubmitting(false);
+            return;
+          }
+
           toast.success("워크스페이스를 생성했습니다.");
-          onOpenChange(false);
+          closeDialog();
           try {
             await onSuccess(created);
           } catch {
@@ -101,23 +117,23 @@ export function CreateWorkspaceDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className={styles.dialogContent}>
         <DialogHeader>
           <DialogTitle>워크스페이스 생성</DialogTitle>
           <DialogDescription>
-            팀이 함께 사용할 워크스페이스를 만들고 워크플로우 생성 작업을 시작합니다.
+            워크스페이스를 생성하여 상담 공간을 구축합니다.
           </DialogDescription>
         </DialogHeader>
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <Label htmlFor="workspace-name">이름</Label>
+            <Label htmlFor="workspace-name">제목</Label>
             <Input
               id="workspace-name"
               className={styles.dialogInput}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="CS Team Alpha"
+              placeholder="예: 아주대학교 운영팀"
               aria-invalid={fieldErrors.name ? "true" : "false"}
               aria-describedby={nameErrorId}
             />
@@ -128,13 +144,12 @@ export function CreateWorkspaceDialog({
               </p>
             )}
           </div>
-          <p className={styles.helperText}>워크스페이스 키는 이름을 바탕으로 자동 생성됩니다.</p>
           <DialogFooter className={styles.buttonRow}>
             <Button
               type="button"
               variant="outline"
               className={styles.cancelButton}
-              onClick={() => onOpenChange(false)}
+              onClick={closeDialog}
               disabled={isSubmitting}
             >
               취소

@@ -28,8 +28,10 @@ export function ApproveIntentDialog({
   onConfirm,
   isLoading,
 }: ApproveIntentDialogProps) {
-  const confirmLabel = action === "publish" ? "승인" : "반려";
-  const confirmVariant = action === "publish" ? "default" : "destructive";
+  const isPublish = action === "publish";
+  const actionLabel = isPublish ? "승인" : "반려";
+  const confirmLabel = actionLabel;
+  const confirmVariant = isPublish ? "default" : "destructive";
 
   return (
     <AlertDialog
@@ -39,9 +41,9 @@ export function ApproveIntentDialog({
       }}
     >
       <AlertDialogContent size="sm" className={styles.dialogContent}>
-        <AlertDialogTitle className={styles.title}>intent {action}하기</AlertDialogTitle>
+        <AlertDialogTitle className={styles.title}>상담 유형 {actionLabel}</AlertDialogTitle>
         <AlertDialogDescription className={styles.description}>
-          <strong>{intentName}</strong> intent를 {action} 처리합니다.
+          <strong>{intentName}</strong> 상담 유형을 {actionLabel} 처리합니다.
         </AlertDialogDescription>
         <AlertDialogFooter className={styles.buttonRow}>
           <Button

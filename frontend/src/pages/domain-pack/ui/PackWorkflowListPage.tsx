@@ -62,7 +62,7 @@ export function PackWorkflowListPage() {
     vId,
     packName,
     versionNo,
-    section: { label: "WORKFLOWS", path: "workflows" },
+    section: { label: "응대 흐름", path: "workflows" },
   });
 
   const handleOpen = (entry: WorkspaceWorkflowEntry) => {
@@ -87,20 +87,20 @@ export function PackWorkflowListPage() {
           >
             <LoadingSpinner />
             <p style={{ color: "var(--ink)", fontSize: "14px" }}>
-              워크플로우 목록을 불러오는 중입니다.
+              응대 흐름 목록을 불러오는 중입니다.
             </p>
           </div>
         )}
 
         {!query.isLoading && query.isError && (
           <div data-testid="pack-workflows-error">
-            <ErrorState message="워크플로우 목록을 불러오지 못했습니다." onRetry={query.refetch} />
+            <ErrorState message="응대 흐름 목록을 불러오지 못했습니다." onRetry={query.refetch} />
           </div>
         )}
 
         {!query.isLoading && !query.isError && entries.length === 0 && (
           <div data-testid="pack-workflows-empty">
-            <EmptyState message="아직 등록된 워크플로우가 없습니다." />
+            <EmptyState message="아직 등록된 응대 흐름이 없습니다." />
           </div>
         )}
 

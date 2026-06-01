@@ -50,15 +50,12 @@ vi.mock("@/shared/api/mutator", () => ({
   customFetch: mocks.customFetch,
 }));
 
-vi.mock(
-  "@/shared/api/generated/endpoints/consultation-controller/consultation-controller",
-  () => ({
-    getGetMessagesUrl: (sessionId: number) => `/api/v1/consultation/sessions/${sessionId}/messages`,
-    getMessages: mocks.getMessages,
-    sendMessage: mocks.sendMessage,
-    updateStatus: mocks.updateStatus,
-  }),
-);
+vi.mock("@/shared/api/generated/endpoints/consultation-controller/consultation-controller", () => ({
+  getGetMessagesUrl: (sessionId: number) => `/api/v1/consultation/sessions/${sessionId}/messages`,
+  getMessages: mocks.getMessages,
+  sendMessage: mocks.sendMessage,
+  updateStatus: mocks.updateStatus,
+}));
 
 function saveTestUser(id: number) {
   window.localStorage.setItem(
@@ -105,19 +102,25 @@ describe("ConsultationPage generated API integration", () => {
       if (url === "/api/v1/workspaces/2/consultation/queue") {
         return Promise.resolve({ data: [assignedSession] });
       }
+      if (url === "/api/v1/consultation/sessions/1/messages?page=0&size=50") {
+        return Promise.resolve({
+          content: [
+            {
+              id: 100,
+              seqNo: 1,
+              senderRole: "CUSTOMER",
+              messageType: "TEXT",
+              content: "generated 상담 메시지",
+              createdAt: "2026-05-22T00:01:00Z",
+            },
+          ],
+          page: 0,
+          size: 50,
+          totalElements: 1,
+          totalPages: 1,
+        });
+      }
       return Promise.reject(new Error(`Unexpected manual endpoint: ${url}`));
-    });
-    mocks.getMessages.mockResolvedValue({
-      data: [
-        {
-          id: 100,
-          seqNo: 1,
-          senderRole: "CUSTOMER",
-          messageType: "TEXT",
-          content: "generated 상담 메시지",
-          createdAt: "2026-05-22T00:01:00Z",
-        },
-      ],
     });
     mocks.updateStatus.mockResolvedValue({
       data: {
@@ -127,7 +130,7 @@ describe("ConsultationPage generated API integration", () => {
     });
   });
 
-  it("상담 화면에서 고객 선택 시 generated getMessages 응답을 렌더링한다", async () => {
+  it("상담 화면에서 고객 선택 시 generated 메시지 URL 응답을 렌더링한다", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     const customerItem = await screen.findByText("김민지");
@@ -137,20 +140,36 @@ describe("ConsultationPage generated API integration", () => {
     expect(mocks.customFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/queue", {
       method: "GET",
     });
-    expect(mocks.getMessages).toHaveBeenCalledWith(1);
+    expect(mocks.customFetch).toHaveBeenCalledWith(
+      "/api/v1/consultation/sessions/1/messages?page=0&size=50",
+      { method: "GET" },
+    );
+    expect(mocks.getMessages).not.toHaveBeenCalled();
   });
 
-  it("상담 종료 액션은 generated updateStatus를 통해 완료 상태를 전송한다", async () => {
+  it("상담 종료 액션은 확인 모달에서 처리 결과를 선택한 뒤 generated updateStatus로 전송한다", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
     const customerItem = await screen.findByText("김민지");
     fireEvent.click(customerItem.closest('[role="button"]') ?? customerItem);
     await screen.findByText("generated 상담 메시지");
 
-    fireEvent.click(screen.getByText("상담 종료"));
+    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /후속 연락 필요/ }));
+    fireEvent.change(screen.getByLabelText("종료 사유 또는 내부 메모"), {
+      target: { value: "배송사 확인 후 연락" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
 
     await waitFor(() => {
-      expect(mocks.updateStatus).toHaveBeenCalledWith(1, { status: "COMPLETED" });
+      expect(mocks.updateStatus).toHaveBeenCalledWith(1, {
+        status: "RESOLVED",
+        resolutionOutcome: "FOLLOW_UP_REQUIRED",
+        resolutionReason: "배송사 확인 후 연락",
+        followUpRequired: true,
+      });
     });
     expect(mocks.toastSuccess).toHaveBeenCalledWith("상담이 종료되었습니다.");
   });

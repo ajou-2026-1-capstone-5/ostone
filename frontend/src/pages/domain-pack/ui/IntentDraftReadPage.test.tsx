@@ -212,7 +212,7 @@ vi.mock("@/features/intent-revision-draft", () => ({
   IntentRevisionRecoveryBanner: () => <div>recovery banner</div>,
   IntentRevisionDraftActions: ({ onRetrySummary }: { onRetrySummary: () => void }) => (
     <div>
-      <span>수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다.</span>
+      <span>수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.</span>
       <button type="button" onClick={onRetrySummary}>
         retry summary
       </button>
@@ -418,14 +418,14 @@ describe("IntentDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mocks.toastError).toHaveBeenCalledWith(
-        "Intent 수정 초안에서 같은 intent를 찾지 못했습니다.",
+        "상담 유형 수정 초안에서 같은 상담 유형을 찾지 못했습니다.",
       ),
     );
     expect(mocks.navigate).toHaveBeenCalledWith(
       "/workspaces/1/domain-packs/7/intents?versionId=4",
       { replace: true },
     );
-    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("Intent 수정 초안이 생성되었습니다.");
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
   });
 
   it("운영 버전이 바뀐 상태에서 저장하면 pack을 새로고침하고 안내한다", async () => {
@@ -630,7 +630,7 @@ describe("IntentDraftReadPage", () => {
     renderPage("/workspaces/1/domain-packs/7/intents/10?versionId=6");
 
     expect(
-      screen.getByText("수정 내용의 적용 및 삭제는 Domain Pack 화면에서 진행할 수 있습니다."),
+      screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "apply revision" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "discard revision" })).not.toBeInTheDocument();

@@ -43,8 +43,8 @@ export function SlotEditSheet({
     >
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="px-4 pt-4">
-          <SheetTitle>{slot ? `${slot.slotCode} · ${slot.name}` : "슬롯 수정"}</SheetTitle>
-          <SheetDescription>슬롯 필드와 상태를 수정합니다.</SheetDescription>
+          <SheetTitle>{slot ? `${slot.slotCode} · ${slot.name}` : "확인 항목 수정"}</SheetTitle>
+          <SheetDescription>확인 항목 필드와 상태를 수정합니다.</SheetDescription>
         </SheetHeader>
 
         {isLoading && (
@@ -55,7 +55,7 @@ export function SlotEditSheet({
 
         {isError && (
           <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 text-sm text-muted-foreground">
-            <span>슬롯 정보를 불러오지 못했습니다.</span>
+            <span>확인 항목 정보를 불러오지 못했습니다.</span>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               다시 시도
             </Button>

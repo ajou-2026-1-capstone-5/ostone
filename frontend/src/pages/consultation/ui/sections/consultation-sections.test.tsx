@@ -4,6 +4,7 @@ import { Message, HandoffDivider } from "./Message";
 import { Queue } from "./Queue";
 import { DetectedItems } from "./DetectedItems";
 import { WorkflowProgress } from "./WorkflowProgress";
+import { CustomerPanel } from "./CustomerPanel";
 
 describe("Message", () => {
   it("renders customer variant with correct data-msg and left alignment", () => {
@@ -170,5 +171,92 @@ describe("WorkflowProgress", () => {
     expect(screen.getByText("환불 조건 확인")).toBeInTheDocument();
     expect(screen.getByText("환불 처리")).toBeInTheDocument();
     expect(screen.getByText("완료 안내")).toBeInTheDocument();
+  });
+});
+
+describe("CustomerPanel", () => {
+  it("does not show concrete mock business data when only session customer fields are available", () => {
+    render(
+      <CustomerPanel
+        customer={{
+          name: "김민지",
+          channel: "WEB",
+        }}
+        memo=""
+        onMemoChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("김민지")).toBeInTheDocument();
+    expect(screen.getAllByText("WEB").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("확인된 정보 없음").length).toBeGreaterThan(0);
+    expect(screen.getByText("연동된 주문 정보가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("자동 발췌로 확인된 정보가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("확인된 처리 단계가 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByText("010-****-1234")).not.toBeInTheDocument();
+    expect(screen.queryByText("mi***@example.com")).not.toBeInTheDocument();
+    expect(screen.queryByText("#ORD-2024-08921")).not.toBeInTheDocument();
+    expect(screen.queryByText("89,000원")).not.toBeInTheDocument();
+    expect(screen.queryByText("5432 **** **** 8912")).not.toBeInTheDocument();
+    expect(screen.queryByText("45,000원")).not.toBeInTheDocument();
+  });
+
+  it("renders customer panel values only when provided by session data", () => {
+    render(
+      <CustomerPanel
+        customer={{
+          name: "이성민",
+          channel: "카카오톡",
+          membershipTier: "VIP",
+          contact: "010-1111-2222",
+          email: "customer@example.com",
+        }}
+        orderInfo={{
+          orderNumber: "ORD-REAL-1",
+          orderDate: "2026-06-01",
+          paymentAmount: "12,000원",
+          deliveryStatus: "배송 준비",
+        }}
+        extractedInfo={{
+          cardNumber: "1111 **** **** 2222",
+          refundAmount: "3,000원",
+          refundReason: "오배송",
+          dueDate: "2026-06-05",
+        }}
+        workflowSteps={[{ label: "확인", value: "완료", state: "done" }]}
+        memo=""
+        onMemoChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("VIP")).toBeInTheDocument();
+    expect(screen.getByText("010-1111-2222")).toBeInTheDocument();
+    expect(screen.getByText("customer@example.com")).toBeInTheDocument();
+    expect(screen.getAllByText("ORD-REAL-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("12,000원")).toBeInTheDocument();
+    expect(screen.getByText("1111 **** **** 2222")).toBeInTheDocument();
+    expect(screen.getByText("3,000원")).toBeInTheDocument();
+    expect(screen.getByText("확인")).toBeInTheDocument();
+  });
+
+  it("renders AI handoff reason when selected customer requires handoff", () => {
+    render(
+      <CustomerPanel
+        customer={{
+          name: "김민지",
+          channel: "WEB",
+          handoffRequired: true,
+          handoffReason: "관리자 승인 필요",
+          handoffAt: "2026-06-01T10:00:00+09:00",
+        }}
+        memo=""
+        onMemoChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("AI 이관")).toBeInTheDocument();
+    expect(screen.getByText("상담사 확인 필요")).toBeInTheDocument();
+    expect(screen.getByText("관리자 승인 필요")).toBeInTheDocument();
+    expect(screen.getByText("2026-06-01T10:00:00+09:00")).toBeInTheDocument();
   });
 });

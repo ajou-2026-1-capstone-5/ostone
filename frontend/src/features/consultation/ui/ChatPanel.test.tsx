@@ -1,7 +1,65 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { ChatPanel } from "./ChatPanel";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ChatPanel, type ChatMessage } from "./ChatPanel";
+
+const baseMessages: ChatMessage[] = [
+  {
+    id: "msg-1",
+    senderRole: "CUSTOMER",
+    content: "환불 문의 드립니다.",
+    timestamp: "10:02",
+  },
+  {
+    id: "msg-2",
+    senderRole: "COUNSELOR",
+    content: "확인 후 안내드리겠습니다.",
+    timestamp: "10:03",
+  },
+];
+
+const nextMessage: ChatMessage = {
+  id: "msg-3",
+  senderRole: "ASSISTANT",
+  content: "AI가 환불 정책을 확인했습니다.",
+  timestamp: "10:04",
+};
+
+const renderChatPanel = (messages: ChatMessage[] = baseMessages, sessionId = "session-1") =>
+  render(
+    <ChatPanel
+      sessionId={sessionId}
+      customerName="김민지"
+      channel="카카오톡"
+      messages={messages}
+      onSendMessage={vi.fn()}
+      selectedMessageId={null}
+      onSelectMessage={vi.fn()}
+    />,
+  );
+
+const setScrollMetrics = (
+  element: HTMLElement,
+  metrics: { scrollHeight: number; clientHeight: number; scrollTop: number },
+) => {
+  Object.defineProperty(element, "scrollHeight", {
+    configurable: true,
+    value: metrics.scrollHeight,
+  });
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    value: metrics.clientHeight,
+  });
+  Object.defineProperty(element, "scrollTop", {
+    configurable: true,
+    writable: true,
+    value: metrics.scrollTop,
+  });
+};
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("ChatPanel", () => {
   it("고객이 선택되지 않으면 빈 상태 안내를 보여준다", () => {
@@ -42,6 +100,114 @@ describe("ChatPanel", () => {
     expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue("");
   });
 
+  it("답변 초안을 입력창에 삽입하되 자동 전송하지 않는다", async () => {
+    const onSendMessage = vi.fn();
+    const onInsert = vi.fn(() =>
+      Promise.resolve("주문번호를 확인해주시면 환불 상태를 안내드리겠습니다."),
+    );
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={onSendMessage}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        draftResponseAction={{ isLoading: false, onInsert }}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue(
+        "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      );
+    });
+    expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it("답변 초안 생성 실패 시 기존 입력값을 유지한다", async () => {
+    const onInsert = vi.fn(() => Promise.reject(new Error("draft failed")));
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        draftResponseAction={{ isLoading: false, onInsert }}
+      />,
+    );
+
+    const input = screen.getByPlaceholderText("메시지를 입력하세요...");
+    fireEvent.change(input, { target: { value: "기존 작성 내용" } });
+    fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+    await waitFor(() => {
+      expect(onInsert).toHaveBeenCalled();
+    });
+    expect(input).toHaveValue("기존 작성 내용");
+  });
+
+  it("controlled composer draft 값을 입력창에 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        composerDraft={{ input: "저장된 내부 메모", isNoteMode: true }}
+      />,
+    );
+
+    expect(
+      screen.getByPlaceholderText("내부 메모로 타임라인에 남길 내용을 입력하세요..."),
+    ).toHaveValue("저장된 내부 메모");
+  });
+
+  it("composer draft 변경을 부모 핸들러에 전달한다", () => {
+    const onComposerDraftChange = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        composerDraft={{ input: "", isNoteMode: false }}
+        onComposerDraftChange={onComposerDraftChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("메시지를 입력하세요..."), {
+      target: { value: "작성 중 답변" },
+    });
+    expect(onComposerDraftChange).toHaveBeenLastCalledWith({
+      input: "작성 중 답변",
+      isNoteMode: false,
+    });
+
+    fireEvent.click(screen.getByTitle("내부 메모로 남기기"));
+    expect(onComposerDraftChange).toHaveBeenLastCalledWith({
+      input: "",
+      isNoteMode: true,
+    });
+  });
+
+  it("답변 초안 액션이 없으면 초안 삽입 버튼을 숨긴다", () => {
+    renderChatPanel();
+
+    expect(screen.queryByLabelText("답변 초안 삽입")).not.toBeInTheDocument();
+  });
+
   it("세션 상태 라벨을 헤더에 표시한다", () => {
     render(
       <ChatPanel
@@ -73,7 +239,7 @@ describe("ChatPanel", () => {
       />,
     );
 
-    const noteToggle = screen.getByTitle("내부 메모 모드");
+    const noteToggle = screen.getByTitle("내부 메모로 남기기");
     const input = screen.getByPlaceholderText("메시지를 입력하세요...");
     const sendButton = screen.getByLabelText("메시지 전송");
 
@@ -83,6 +249,25 @@ describe("ChatPanel", () => {
 
     fireEvent.click(sendButton);
     expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it("disabled 사유가 있으면 입력 영역 위에 안내한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        disabled
+        disabledReason="다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다."
+      />,
+    );
+
+    expect(
+      screen.getByText("다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", () => {
@@ -151,11 +336,11 @@ describe("ChatPanel", () => {
     expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("내부 메모 내용")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle("내부 메모 모드"));
+    fireEvent.click(screen.getByTitle("내부 메모로 남기기"));
 
-    const input = screen.getByPlaceholderText("내부 메모를 입력하세요 (고객에게 보이지 않음)...");
+    const input = screen.getByPlaceholderText("내부 메모로 타임라인에 남길 내용을 입력하세요...");
     fireEvent.change(input, { target: { value: "메모로 남길 내용" } });
-    fireEvent.click(screen.getByLabelText("메시지 전송"));
+    fireEvent.click(screen.getByLabelText("내부 메모 남기기"));
 
     expect(onSendMessage).toHaveBeenCalledWith("메모로 남길 내용", true);
     expect(onSelectMessage).not.toHaveBeenCalled();
@@ -361,6 +546,93 @@ describe("ChatPanel", () => {
     expect(screen.getByText("A")).toBeInTheDocument();
   });
 
+  it("상담사 메시지의 전송 중 상태를 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "pending-1",
+            senderRole: "COUNSELOR",
+            content: "곧 확인해드리겠습니다.",
+            timestamp: "10:05",
+            deliveryStatus: "sending",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("곧 확인해드리겠습니다.")).toBeInTheDocument();
+    expect(screen.getByText("전송 중")).toBeInTheDocument();
+  });
+
+  it("실패한 상담사 메시지에 재전송 액션을 표시하고 메시지 선택과 분리한다", () => {
+    const onRetryMessage = vi.fn();
+    const onSelectMessage = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "failed-1",
+            senderRole: "COUNSELOR",
+            content: "다시 보내야 하는 메시지",
+            timestamp: "10:05",
+            deliveryStatus: "failed",
+            retryable: true,
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        onRetryMessage={onRetryMessage}
+        selectedMessageId={null}
+        onSelectMessage={onSelectMessage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 보내기" }));
+
+    expect(screen.getByText("전송 실패")).toBeInTheDocument();
+    expect(onRetryMessage).toHaveBeenCalledWith("failed-1");
+    expect(onSelectMessage).not.toHaveBeenCalled();
+  });
+
+  it("내부 메모 메시지의 실패 상태와 재전송 액션을 표시한다", () => {
+    const onRetryMessage = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "note-failed-1",
+            senderRole: "NOTE",
+            content: "내부 메모 재전송 필요",
+            timestamp: "10:05",
+            deliveryStatus: "failed",
+            retryable: true,
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        onRetryMessage={onRetryMessage}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("내부 메모 재전송 필요")).toBeInTheDocument();
+    expect(screen.getByText("전송 실패")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 보내기" }));
+    expect(onRetryMessage).toHaveBeenCalledWith("note-failed-1");
+  });
+
   it("USER, AGENT, NOTE, SYSTEM 역할 라벨을 일관되게 표시한다", () => {
     render(
       <ChatPanel
@@ -402,5 +674,254 @@ describe("ChatPanel", () => {
     expect(screen.getByText("상담사 ·")).toBeInTheDocument();
     expect(screen.getByText("내부 메모")).toBeInTheDocument();
     expect(screen.getByText("시스템 안내")).toBeInTheDocument();
+  });
+
+  it("초기 메시지 로딩과 세션 전환 시 최신 메시지로 이동한다", () => {
+    const { rerender } = render(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 0,
+    });
+
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={baseMessages}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1200);
+
+    messageList.scrollTop = 240;
+    fireEvent.scroll(messageList);
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+
+    rerender(
+      <ChatPanel
+        sessionId="session-2"
+        customerName="이서연"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "session-2-msg-1",
+            senderRole: "CUSTOMER",
+            content: "새 상담입니다.",
+            timestamp: "11:00",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("하단 근처에서 새 메시지가 도착하면 자동으로 최신 메시지를 따라간다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 840,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 840,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("과거 메시지를 읽는 중 새 메시지가 도착하면 위치를 유지하고 새 메시지 보기 버튼을 표시한다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(240);
+    expect(screen.getByRole("button", { name: "새 메시지 보기" })).toBeInTheDocument();
+  });
+
+  it("새 메시지 보기 버튼을 누르면 최신 메시지로 이동하고 버튼을 숨긴다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "새 메시지 보기" }));
+
+    expect(messageList.scrollTop).toBe(1400);
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("사용자가 직접 하단 근처로 스크롤하면 새 메시지 보기 버튼을 숨긴다", () => {
+    const { rerender } = renderChatPanel();
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    fireEvent.scroll(messageList);
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1400,
+      clientHeight: 300,
+      scrollTop: 240,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[...baseMessages, nextMessage]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "새 메시지 보기" })).toBeInTheDocument();
+
+    messageList.scrollTop = 1010;
+    fireEvent.scroll(messageList);
+
+    expect(screen.queryByRole("button", { name: "새 메시지 보기" })).not.toBeInTheDocument();
+  });
+
+  it("이전 메시지를 불러올 때 기존 스크롤 위치를 유지한다", async () => {
+    const onLoadPreviousMessages = vi.fn(() => Promise.resolve());
+    const { rerender } = render(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={baseMessages}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        hasPreviousMessages
+        onLoadPreviousMessages={onLoadPreviousMessages}
+      />,
+    );
+    const messageList = screen.getByTestId("chat-message-list");
+    setScrollMetrics(messageList, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 48,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "이전 메시지 불러오기" }));
+    await waitFor(() => expect(onLoadPreviousMessages).toHaveBeenCalledTimes(1));
+
+    setScrollMetrics(messageList, {
+      scrollHeight: 1500,
+      clientHeight: 300,
+      scrollTop: 48,
+    });
+    rerender(
+      <ChatPanel
+        sessionId="session-1"
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "msg-0",
+            senderRole: "CUSTOMER",
+            content: "이전 문의입니다.",
+            timestamp: "10:01",
+          },
+          ...baseMessages,
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        hasPreviousMessages
+        onLoadPreviousMessages={onLoadPreviousMessages}
+      />,
+    );
+
+    expect(messageList.scrollTop).toBe(348);
   });
 });

@@ -1,4 +1,4 @@
-import { MessageSquare } from "lucide-react";
+import { FileSearch, MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
 import { getChatRolePresentation } from "../lib/chatRoleLabels";
 import styles from "./MessageDetailPanel.module.css";
@@ -37,29 +37,6 @@ export interface MessageDetailPanelProps {
   onClose: () => void;
 }
 
-/* ─── Mock Data ─── */
-const MOCK_DATA: {
-  slots: SlotTag[];
-  policies: PolicyTag[];
-  risks: RiskTag[];
-} = {
-  slots: [
-    { name: "가격 문의", extracted: true, value: "89,000원" },
-    { name: "주문 번호", extracted: true, value: "#ORD-2024-08921" },
-    { name: "배송지 주소", extracted: false },
-  ],
-  policies: [
-    { name: "반품 정책", extracted: true, matched: true },
-    { name: "환불 정책", extracted: true, matched: false },
-    { name: "교환 정책", extracted: false, matched: false },
-  ],
-  risks: [
-    { name: "고객 불만 고조", extracted: true, level: "high" as const },
-    { name: "환불 요청", extracted: true, level: "medium" as const },
-    { name: "법적 대응", extracted: false, level: "low" as const },
-  ],
-} as const;
-
 /* ─── Helpers ─── */
 function riskTagClass(risk: RiskTag): string {
   if (!risk.extracted) return `${styles.tag} ${styles.tagNotExtracted}`;
@@ -73,11 +50,23 @@ function riskTagClass(risk: RiskTag): string {
 }
 
 /* ─── Sub-components ─── */
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  emptyText,
+  hasItems,
+  children,
+}: {
+  title: string;
+  emptyText: string;
+  hasItems: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className={styles.section}>
       <div className={styles.sectionTitle}>{title}</div>
-      <div className={styles.tagList}>{children}</div>
+      <div className={styles.tagList}>
+        {hasItems ? children : <span className={styles.sectionEmpty}>{emptyText}</span>}
+      </div>
     </div>
   );
 }
@@ -113,7 +102,10 @@ export function MessageDetailPanel({
   domainPackElements,
   onClose,
 }: MessageDetailPanelProps) {
-  const { slots, policies, risks } = domainPackElements ?? MOCK_DATA;
+  const slots = domainPackElements?.slots ?? [];
+  const policies = domainPackElements?.policies ?? [];
+  const risks = domainPackElements?.risks ?? [];
+  const hasDomainPackElements = slots.length > 0 || policies.length > 0 || risks.length > 0;
   const roleLabel = message ? getChatRolePresentation(message.senderRole).label : "";
 
   if (!message) {
@@ -137,23 +129,33 @@ export function MessageDetailPanel({
         <p className={styles.messagePreview}>{message.content}</p>
       </div>
 
-      <Section title="Slot">
-        {slots.map((slot) => (
-          <SlotTagItem key={slot.name} slot={slot} />
-        ))}
-      </Section>
+      {hasDomainPackElements ? (
+        <>
+          <Section title="확인 항목" emptyText="확인된 항목 없음" hasItems={slots.length > 0}>
+            {slots.map((slot) => (
+              <SlotTagItem key={slot.name} slot={slot} />
+            ))}
+          </Section>
 
-      <Section title="Policy">
-        {policies.map((policy) => (
-          <PolicyTagItem key={policy.name} policy={policy} />
-        ))}
-      </Section>
+          <Section title="응대 기준" emptyText="적용된 응대 기준 없음" hasItems={policies.length > 0}>
+            {policies.map((policy) => (
+              <PolicyTagItem key={policy.name} policy={policy} />
+            ))}
+          </Section>
 
-      <Section title="Risk">
-        {risks.map((risk) => (
-          <RiskTagItem key={risk.name} risk={risk} />
-        ))}
-      </Section>
+          <Section title="주의 사항" emptyText="감지된 주의 사항 없음" hasItems={risks.length > 0}>
+            {risks.map((risk) => (
+              <RiskTagItem key={risk.name} risk={risk} />
+            ))}
+          </Section>
+        </>
+      ) : (
+        <div className={styles.domainEmpty} data-testid="message-domain-empty">
+          <FileSearch size={28} className={styles.domainEmptyIcon} />
+          <strong>연결된 도메인 팩 요소가 없습니다</strong>
+          <p>확인 항목, 응대 기준, 주의 사항이 연결되면 이 영역에 표시됩니다.</p>
+        </div>
+      )}
 
       <div className={styles.closeArea}>
         <button type="button" className={styles.closeButton} onClick={onClose}>

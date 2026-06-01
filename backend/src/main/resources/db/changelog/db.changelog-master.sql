@@ -408,6 +408,16 @@ create table pipeline.pipeline_job (
     unique (airflow_dag_id, airflow_run_id)
 );
 
+--changeset init:20250403-extend-review-session-for-pipeline-checkpoints
+--comment: Allow review sessions to target pre-draft pipeline checkpoints
+alter table review.review_session alter column domain_pack_version_id drop not null;
+alter table review.review_session add column pipeline_job_id bigint references pipeline.pipeline_job(id);
+alter table review.review_session add column dataset_id bigint references corpus.dataset(id);
+alter table review.review_session add column review_kind varchar(100) not null default 'DOMAIN_PACK_DRAFT';
+alter table review.review_session
+    add constraint review_session_target_chk
+    check (domain_pack_version_id is not null or pipeline_job_id is not null);
+
 --changeset init:20250403-create-pipeline-job-event-table
 --comment: Create pipeline_job_event table
 create table pipeline.pipeline_job_event (
@@ -799,3 +809,128 @@ ALTER TABLE runtime.chat_session
 
 CREATE INDEX idx_chat_session_assigned_counselor_id
     ON runtime.chat_session (assigned_counselor_id);
+
+--changeset codex:20260531-require-pgvector-extension
+--comment: Fail startup when pgvector was not installed by the database bootstrap/admin user
+--preconditions onFail:HALT onError:HALT
+--precondition-sql-check expectedResult:1 SELECT COUNT(*) FROM pg_extension WHERE extname = 'vector'
+SELECT 1;
+
+--changeset codex:20260531-create-workflow-matching-profile-build
+--comment: Durable queue for workflow matching profile rebuilds
+CREATE TABLE pack.workflow_matching_profile_build (
+    id                     BIGSERIAL PRIMARY KEY,
+    domain_pack_version_id  BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    trigger_type            VARCHAR(100) NOT NULL,
+    status                  VARCHAR(50) NOT NULL DEFAULT 'QUEUED',
+    profile_version         VARCHAR(100) NOT NULL,
+    retry_count             INTEGER NOT NULL DEFAULT 0,
+    max_retries             INTEGER NOT NULL DEFAULT 3,
+    error_json              JSONB NOT NULL DEFAULT '{}'::jsonb,
+    started_at              TIMESTAMPTZ,
+    finished_at             TIMESTAMPTZ,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_workflow_matching_profile_build_status
+        CHECK (status IN ('QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED'))
+);
+
+CREATE INDEX idx_workflow_matching_profile_build_status
+    ON pack.workflow_matching_profile_build (status, created_at);
+
+CREATE INDEX idx_workflow_matching_profile_build_version
+    ON pack.workflow_matching_profile_build (domain_pack_version_id, profile_version);
+
+--changeset codex:20260531-create-workflow-matching-profile
+--comment: pgvector-backed workflow matching profiles
+CREATE TABLE pack.workflow_matching_profile (
+    id                     BIGSERIAL PRIMARY KEY,
+    domain_pack_version_id  BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    workflow_definition_id  BIGINT NOT NULL REFERENCES pack.workflow_definition(id) ON DELETE CASCADE,
+    intent_definition_id    BIGINT NOT NULL REFERENCES pack.intent_definition(id) ON DELETE CASCADE,
+    profile_kind            VARCHAR(50) NOT NULL DEFAULT 'WORKFLOW_ENTRYPOINT',
+    profile_status          VARCHAR(50) NOT NULL DEFAULT 'BUILDING',
+    profile_version         VARCHAR(100) NOT NULL,
+    profile_text_hash       VARCHAR(64) NOT NULL,
+    profile_text            TEXT NOT NULL,
+    embedding               vector(1024) NOT NULL,
+    embedding_provider      VARCHAR(50) NOT NULL,
+    embedding_model         VARCHAR(100) NOT NULL,
+    embedding_region        VARCHAR(50) NOT NULL,
+    embedding_input_type    VARCHAR(50) NOT NULL,
+    quality_json            JSONB NOT NULL DEFAULT '{}'::jsonb,
+    source_json             JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_workflow_matching_profile_status
+        CHECK (profile_status IN ('BUILDING', 'ACTIVE', 'STALE', 'FAILED')),
+    CONSTRAINT uq_workflow_matching_profile_version_hash
+        UNIQUE (workflow_definition_id, profile_version, profile_text_hash)
+);
+
+CREATE INDEX idx_workflow_matching_profile_version_status
+    ON pack.workflow_matching_profile (domain_pack_version_id, profile_version, profile_status);
+
+CREATE INDEX idx_workflow_matching_profile_domain_status
+    ON pack.workflow_matching_profile (domain_pack_version_id, profile_status);
+
+CREATE INDEX idx_workflow_matching_profile_workflow_version
+    ON pack.workflow_matching_profile (domain_pack_version_id, workflow_definition_id, profile_version);
+
+CREATE INDEX idx_workflow_matching_profile_embedding_hnsw
+    ON pack.workflow_matching_profile USING hnsw (embedding vector_cosine_ops);
+
+--changeset codex:20260601-add-workflow-matching-profile-lexical-index
+--comment: Add PostgreSQL full-text index for hybrid workflow matching retrieval
+ALTER TABLE pack.workflow_matching_profile
+    ADD COLUMN profile_search_vector tsvector
+    GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(profile_text, ''))) STORED;
+
+CREATE INDEX idx_workflow_matching_profile_search_vector_gin
+    ON pack.workflow_matching_profile USING gin (profile_search_vector);
+
+--changeset codex:20260531-create-workflow-match-decision
+--comment: Audit workflow matching decisions before and after workflow execution assignment
+CREATE TABLE runtime.workflow_match_decision (
+    id                     BIGSERIAL PRIMARY KEY,
+    chat_session_id         BIGINT NOT NULL REFERENCES runtime.chat_session(id) ON DELETE CASCADE,
+    workflow_execution_id   BIGINT REFERENCES runtime.workflow_execution(id) ON DELETE SET NULL,
+    domain_pack_version_id  BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    selected_workflow_id    BIGINT REFERENCES pack.workflow_definition(id) ON DELETE SET NULL,
+    selected_intent_id      BIGINT REFERENCES pack.intent_definition(id) ON DELETE SET NULL,
+    status                  VARCHAR(50) NOT NULL,
+    confidence_score        DOUBLE PRECISION NOT NULL DEFAULT 0,
+    redacted_text_hash      VARCHAR(64) NOT NULL,
+    profile_version         VARCHAR(100),
+    embedding_provider      VARCHAR(50),
+    embedding_model         VARCHAR(100),
+    embedding_region        VARCHAR(50),
+    threshold_json          JSONB NOT NULL DEFAULT '{}'::jsonb,
+    score_breakdown_json    JSONB NOT NULL DEFAULT '{}'::jsonb,
+    top_candidates_json     JSONB NOT NULL DEFAULT '[]'::jsonb,
+    failure_reason          VARCHAR(255),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_workflow_match_decision_status
+        CHECK (status IN ('CONFIDENT', 'AMBIGUOUS', 'UNKNOWN', 'BLOCKED', 'ERROR'))
+);
+
+CREATE INDEX idx_workflow_match_decision_session_created
+    ON runtime.workflow_match_decision (chat_session_id, created_at DESC);
+
+CREATE INDEX idx_workflow_match_decision_recent_confident_workflow
+    ON runtime.workflow_match_decision (domain_pack_version_id, selected_workflow_id, created_at DESC)
+    WHERE status = 'CONFIDENT'
+      AND selected_workflow_id IS NOT NULL;
+
+--changeset init:20260601-add-response-mode-to-chat-session
+--comment: Add session-level AI response mode for counselor intervention control
+ALTER TABLE runtime.chat_session
+    ADD COLUMN response_mode VARCHAR(50) NOT NULL DEFAULT 'AI_ACTIVE';
+
+UPDATE runtime.chat_session
+SET response_mode = 'HUMAN_ACTIVE'
+WHERE assigned_counselor_id IS NOT NULL;
+
+ALTER TABLE runtime.chat_session
+    ADD CONSTRAINT chk_chat_session_response_mode
+    CHECK (response_mode IN ('AI_ACTIVE', 'HUMAN_ACTIVE', 'AI_ASSIST_ONLY'));

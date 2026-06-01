@@ -113,7 +113,7 @@ export function PolicyEditForm({
                 onValueChange={(value) => field.onChange(value === "NONE" ? null : value)}
               >
                 <FormControl>
-                  <SelectTrigger className="w-full" aria-label="정책 심각도">
+                  <SelectTrigger className="w-full" aria-label="응대 기준 중요도">
                     <SelectValue placeholder="선택 안 함" />
                   </SelectTrigger>
                 </FormControl>
@@ -138,7 +138,7 @@ export function PolicyEditForm({
           )}
         />
 
-        <ReadonlyPolicyValue label="정책 코드" value={policy.policyCode ?? ""} />
+        <ReadonlyPolicyValue label="기준 코드" value={policy.policyCode ?? ""} />
         <ReadonlyPolicyValue label="버전 ID" value={policy.domainPackVersionId ?? 0} />
 
         <PolicyJsonFields />

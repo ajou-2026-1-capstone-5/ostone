@@ -20,6 +20,7 @@ import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOu
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
+import { PipelineReviewPage } from "../pages/pipeline-review/ui/PipelineReviewPage";
 import { DomainPackListPage } from "../pages/domain-pack/ui/DomainPackListPage";
 import { PrivateRoute } from "../shared/ui/PrivateRoute";
 import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
@@ -61,6 +62,7 @@ export function App() {
           <Route path="consultation" element={<ConsultationPage />} />
           <Route path="consultation/:sessionId" element={<ConsultationPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
+          <Route path="pipeline-jobs/:pipelineJobId/review" element={<PipelineReviewPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
         </Route>
         <Route

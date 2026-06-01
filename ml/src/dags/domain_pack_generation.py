@@ -1,20 +1,29 @@
 from __future__ import annotations
 
+import json
 import logging
+import os
+import shutil
 from collections.abc import Callable, Mapping
-from datetime import datetime, timedelta
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from traceback import format_exc
+from typing import Any
 
+from airflow.exceptions import AirflowSkipException
 from airflow.sdk import dag, get_current_context, task
 
 from pipeline.common.artifacts import write_stage_manifest
+from pipeline.common.callbacks import post_callback
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.dag_defaults import default_dag_args
 from pipeline.common.exceptions import PipelineConfigurationError
+from pipeline.stages.domain_candidate_generation.main import run as domain_candidate_generation_run
 from pipeline.stages.draft_generation.main import run as draft_generation_run
 from pipeline.stages.evaluation.main import run as evaluation_run
+from pipeline.stages.feedback_candidate_generation.main import run as feedback_candidate_generation_run
 from pipeline.stages.flow_splitting.main import run as flow_splitting_run
 from pipeline.stages.ingestion.main import run as ingestion_run
 from pipeline.stages.intent_discovery.main import run as intent_discovery_run
@@ -23,6 +32,13 @@ from pipeline.stages.publish_candidate.main import run as publish_candidate_run
 from pipeline.stages.representation.main import run as representation_run
 
 logger = logging.getLogger(__name__)
+
+RUN_MODE_INITIAL = "INITIAL"
+RUN_MODE_DOMAIN_CONFIRMED_REPLAY = "DOMAIN_CONFIRMED_REPLAY"
+RUN_MODE_FEEDBACK_REPLAY = "FEEDBACK_REPLAY"
+CALLBACK_DOMAIN_CONFIRMATION = "domain-confirmation-checkpoints"
+CALLBACK_HUMAN_FEEDBACK = "human-feedback-checkpoints"
+CALLBACK_FAILURE = "failures"
 
 
 def _build_stage_context(stage_name: str) -> StageContext:
@@ -48,6 +64,41 @@ def _context_value(context: Mapping[str, object], key: str) -> str | None:
         return str(params[key])
 
     return None
+
+
+def _run_mode() -> str:
+    value = _conf_value("run_mode") or RUN_MODE_INITIAL
+    normalized = value.strip().upper()
+    if normalized not in {RUN_MODE_INITIAL, RUN_MODE_DOMAIN_CONFIRMED_REPLAY, RUN_MODE_FEEDBACK_REPLAY}:
+        raise PipelineConfigurationError(f"Unsupported run_mode: {value}")
+    return normalized
+
+
+def _conf_value(key: str) -> str | None:
+    context = get_current_context()
+    return _context_value(context, key)
+
+
+def _conf_bool(key: str, default: bool = False) -> bool:
+    value = _conf_value(key)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _conf_json_file(key: str, filename: str) -> str | None:
+    value = _conf_value(key)
+    if not value:
+        return None
+    context = get_current_context()
+    runtime_config = PipelineRuntimeConfig.from_env()
+    input_dir = (
+        runtime_config.artifact_root / context["dag"].dag_id / context["run_id"].replace("/", "__") / "review_inputs"
+    )
+    input_dir.mkdir(parents=True, exist_ok=True)
+    path = input_dir / filename
+    path.write_text(value, encoding="utf-8")
+    return str(path.resolve())
 
 
 def _run_stage(
@@ -101,6 +152,207 @@ def _artifact_manifest_path_from(stage_result: Mapping[str, object]) -> str | No
     return None
 
 
+def _passthrough_manifest_from_conf() -> dict[str, str]:
+    upstream_manifest_path = _conf_value("upstream_manifest_path")
+    if not upstream_manifest_path:
+        raise PipelineConfigurationError("Replay run requires upstream_manifest_path.")
+    runtime_config = PipelineRuntimeConfig.from_env()
+    return _materialize_replay_manifest(_validated_replay_manifest_path(upstream_manifest_path, runtime_config))
+
+
+def _validated_replay_manifest_path(
+    upstream_manifest_path: str,
+    runtime_config: PipelineRuntimeConfig,
+) -> Path:
+    resolved = Path(upstream_manifest_path).expanduser().resolve()
+    artifact_root = runtime_config.artifact_root.expanduser().resolve()
+    try:
+        resolved.relative_to(artifact_root)
+    except ValueError as exc:
+        raise PipelineConfigurationError("upstream_manifest_path must be under PIPELINE_ARTIFACT_ROOT.") from exc
+    if resolved.name != "manifest.json":
+        raise PipelineConfigurationError("upstream_manifest_path must point to a manifest.json file.")
+    return resolved
+
+
+def _materialize_replay_manifest(upstream_manifest_path: Path) -> dict[str, str]:
+    context = get_current_context()
+    stage_context = StageContext(
+        dag_id=context["dag"].dag_id,
+        run_id=context["run_id"],
+        stage_name="representation",
+        workspace_id=_context_value(context, "workspace_id"),
+        dataset_id=_context_value(context, "dataset_id"),
+        pipeline_job_id=_context_value(context, "pipeline_job_id"),
+    )
+    runtime_config = PipelineRuntimeConfig.from_env()
+    upstream_manifest = _load_manifest(upstream_manifest_path)
+    source_representation_dir = upstream_manifest_path.parent
+    source_preprocessing_dir = source_representation_dir.parent / "preprocessing"
+    target_representation_dir = stage_context.artifact_dir(runtime_config)
+    target_preprocessing_dir = target_representation_dir.parent / "preprocessing"
+    _copy_directory(source_preprocessing_dir, target_preprocessing_dir)
+    _copy_directory(source_representation_dir, target_representation_dir)
+    upstream_payload = upstream_manifest.get("payload")
+    manifest_payload = dict(upstream_payload if isinstance(upstream_payload, dict) else {})
+    manifest_payload["upstream_manifest_path"] = str(upstream_manifest_path)
+    manifest_path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
+    return {"artifact_manifest_path": str(manifest_path.resolve())}
+
+
+def _copy_directory(source: Path, target: Path) -> None:
+    if not source.exists() or not source.is_dir():
+        raise PipelineConfigurationError(f"Replay source artifact directory does not exist: {source}")
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(source, target)
+
+
+@contextmanager
+def _stage_env(overrides: Mapping[str, str | None]):
+    previous: dict[str, str | None] = {}
+    for key, value in overrides.items():
+        previous[key] = os.environ.get(key)
+        if value is None or value == "":
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+def _post_checkpoint_callback(
+    *,
+    stage_name: str,
+    callback_type: str,
+    upstream_manifest_path: str,
+    artifact_payload_key: str,
+    artifact_path_key: str,
+) -> dict[str, str]:
+    stage_context = _build_stage_context(stage_name)
+    runtime_config = PipelineRuntimeConfig.from_env()
+    if not runtime_config.callback_enabled:
+        raise PipelineConfigurationError(f"{stage_name} requires PIPELINE_CALLBACK_ENABLED=true.")
+    manifest = _load_manifest(Path(upstream_manifest_path))
+    payload = manifest.get("payload")
+    if not isinstance(payload, dict):
+        raise PipelineConfigurationError(f"{stage_name} upstream manifest payload must be an object.")
+    artifact_name = payload.get(artifact_path_key)
+    if not isinstance(artifact_name, str) or not artifact_name:
+        raise PipelineConfigurationError(f"{stage_name} upstream manifest missing {artifact_path_key}.")
+    artifact_path = Path(artifact_name)
+    resolved_artifact_path = (
+        artifact_path if artifact_path.is_absolute() else Path(upstream_manifest_path).parent / artifact_path
+    )
+    artifact_payload = _load_manifest(resolved_artifact_path)
+    response = post_callback(
+        runtime_config.backend_base_url,
+        _require_pipeline_job_id(stage_context.pipeline_job_id),
+        callback_type,
+        {
+            "externalEventId": _external_event_id(stage_context, callback_type),
+            "dagId": stage_context.dag_id,
+            "dagRunId": stage_context.run_id,
+            "runMode": _run_mode(),
+            "parentPipelineJobId": _conf_value("parent_pipeline_job_id"),
+            "upstreamManifestPath": str(_representation_manifest_path(stage_context, runtime_config)),
+            artifact_path_key: str(resolved_artifact_path),
+            artifact_payload_key: artifact_payload,
+        },
+        runtime_config.airflow_webhook_secret or "",
+        runtime_config.callback_timeout_seconds,
+    )
+    if response.http_status >= 300:
+        raise PipelineConfigurationError(f"{stage_name} callback failed with HTTP {response.http_status}.")
+    return {"artifact_manifest_path": upstream_manifest_path}
+
+
+def _load_manifest(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise PipelineConfigurationError(f"JSON payload must be an object: {path}")
+    return payload
+
+
+def _representation_manifest_path(stage_context: StageContext, runtime_config: PipelineRuntimeConfig) -> Path:
+    return (
+        StageContext(
+            dag_id=stage_context.dag_id,
+            run_id=stage_context.run_id,
+            stage_name="representation",
+            workspace_id=stage_context.workspace_id,
+            dataset_id=stage_context.dataset_id,
+            pipeline_job_id=stage_context.pipeline_job_id,
+        ).artifact_dir(runtime_config)
+        / "manifest.json"
+    )
+
+
+def _external_event_id(stage_context: object, callback_type: str) -> str:
+    return f"{getattr(stage_context, 'dag_id')}:{getattr(stage_context, 'run_id')}:{callback_type}"
+
+
+def _require_pipeline_job_id(value: str | None) -> str:
+    if not value:
+        raise PipelineConfigurationError("pipeline_job_id is required for checkpoint callback.")
+    return value
+
+
+def _notify_failure_callback(context: Mapping[str, object]) -> None:
+    try:
+        runtime_config = PipelineRuntimeConfig.from_env()
+        if not runtime_config.callback_enabled:
+            return
+        pipeline_job_id = _context_value(context, "pipeline_job_id")
+        if not pipeline_job_id:
+            logger.warning("Skip failure callback because pipeline_job_id is missing.")
+            return
+        dag = context.get("dag")
+        dag_run = context.get("dag_run")
+        task_instance = context.get("task_instance")
+        exception = context.get("exception")
+        dag_id = str(getattr(dag, "dag_id", "") or _context_value(context, "dag_id") or "")
+        dag_run_id = str(getattr(dag_run, "run_id", "") or context.get("run_id") or "")
+        failed_stage = str(getattr(task_instance, "task_id", "") or "unknown")
+        reason = type(exception).__name__ if exception is not None else "TaskFailed"
+        message = str(exception).strip() if exception is not None else "Airflow task failed."
+        post_callback(
+            runtime_config.backend_base_url,
+            pipeline_job_id,
+            CALLBACK_FAILURE,
+            {
+                "externalEventId": _failure_external_event_id(dag_id, dag_run_id, failed_stage),
+                "dagId": dag_id,
+                "dagRunId": dag_run_id,
+                "failedStage": failed_stage,
+                "reason": reason[:100] or "TaskFailed",
+                "message": message[:5000] or "Airflow task failed.",
+                "occurredAt": datetime.now(timezone.utc).isoformat(),
+                "error": {
+                    "type": reason,
+                    "message": message,
+                },
+            },
+            runtime_config.airflow_webhook_secret or "",
+            runtime_config.callback_timeout_seconds,
+        )
+    except Exception:
+        logger.exception("Failed to send pipeline failure callback.")
+
+
+def _failure_external_event_id(dag_id: str, dag_run_id: str, failed_stage: str) -> str:
+    value = f"{dag_id}:{dag_run_id}:{failed_stage}:{CALLBACK_FAILURE}"
+    if len(value) <= 255:
+        return value
+    return f"{dag_id[:48]}:{dag_run_id[:120]}:{failed_stage[:48]}:{CALLBACK_FAILURE}"
+
+
 def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, object] | None:
     if upstream_manifest_path is None:
         raise PipelineConfigurationError("evaluation stage requires an upstream manifest path.")
@@ -114,7 +366,9 @@ def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, ob
     catchup=False,
     default_args=default_dag_args(),
     dagrun_timeout=timedelta(hours=2),
-    max_active_runs=1,
+    max_active_runs=int(os.getenv("PIPELINE_DAG_MAX_ACTIVE_RUNS", "4")),
+    max_active_tasks=int(os.getenv("PIPELINE_DAG_MAX_ACTIVE_TASKS", "1")),
+    on_failure_callback=_notify_failure_callback,
     params={
         "workspace_id": "local-workspace",
         "dataset_id": "local-dataset",
@@ -123,13 +377,17 @@ def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, ob
     },
     tags=["pipeline", "domain-pack"],
 )
-def domain_pack_generation() -> None:
+def domain_pack_generation() -> None:  # pragma: no cover - Airflow imports this DAG; stage helpers are unit-tested.
     @task(task_id="ingestion")
     def ingestion() -> dict[str, str]:
+        if _run_mode() != RUN_MODE_INITIAL:
+            return _passthrough_manifest_from_conf()
         return _run_stage("ingestion", ingestion_run)
 
     @task(task_id="preprocessing")
     def preprocessing(ingestion_result: dict[str, str]) -> dict[str, str]:
+        if _run_mode() != RUN_MODE_INITIAL:
+            return ingestion_result
         return _run_stage(
             "preprocessing",
             preprocessing_run,
@@ -138,14 +396,48 @@ def domain_pack_generation() -> None:
 
     @task(task_id="intent_discovery")
     def intent_discovery(representation_result: dict[str, str]) -> dict[str, str]:
+        if _run_mode() == RUN_MODE_INITIAL:
+            raise AirflowSkipException("Initial run stops after domain confirmation checkpoint.")
+        with _stage_env(
+            {
+                "PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH": _conf_value("confirmed_domain_profile_path")
+                or _conf_json_file("confirmed_domain_profile_json", "confirmed_domain_profile.json"),
+                "PIPELINE_FEEDBACK_CONSTRAINTS_PATH": _conf_value("feedback_constraints_path")
+                or _conf_json_file("feedback_constraints_json", "feedback_constraints.json"),
+            }
+        ):
+            return _run_stage(
+                "intent_discovery",
+                intent_discovery_run,
+                representation_result["artifact_manifest_path"],
+            )
+
+    @task(task_id="domain_candidate_generation")
+    def domain_candidate_generation(representation_result: dict[str, str]) -> dict[str, str]:
+        if _run_mode() != RUN_MODE_INITIAL:
+            return representation_result
         return _run_stage(
-            "intent_discovery",
-            intent_discovery_run,
+            "domain_candidate_generation",
+            domain_candidate_generation_run,
             representation_result["artifact_manifest_path"],
+        )
+
+    @task(task_id="domain_confirmation_checkpoint")
+    def domain_confirmation_checkpoint(domain_candidate_result: dict[str, str]) -> dict[str, str]:
+        if _run_mode() != RUN_MODE_INITIAL:
+            return domain_candidate_result
+        return _post_checkpoint_callback(
+            stage_name="domain_confirmation_checkpoint",
+            callback_type=CALLBACK_DOMAIN_CONFIRMATION,
+            upstream_manifest_path=domain_candidate_result["artifact_manifest_path"],
+            artifact_payload_key="domainCandidates",
+            artifact_path_key="domainCandidatesPath",
         )
 
     @task(task_id="representation")
     def representation(preprocessing_result: dict[str, str]) -> dict[str, str]:
+        if _run_mode() != RUN_MODE_INITIAL:
+            return preprocessing_result
         return _run_stage(
             "representation",
             representation_run,
@@ -160,12 +452,35 @@ def domain_pack_generation() -> None:
             intent_discovery_result["artifact_manifest_path"],
         )
 
+    @task(task_id="feedback_candidate_generation")
+    def feedback_candidate_generation(flow_splitting_result: dict[str, str]) -> dict[str, str]:
+        if _conf_bool("skip_feedback_checkpoint") or _run_mode() == RUN_MODE_FEEDBACK_REPLAY:
+            return flow_splitting_result
+        return _run_stage(
+            "feedback_candidate_generation",
+            feedback_candidate_generation_run,
+            flow_splitting_result["artifact_manifest_path"],
+        )
+
+    @task(task_id="human_feedback_checkpoint")
+    def human_feedback_checkpoint(feedback_candidate_result: dict[str, str]) -> dict[str, str]:
+        if _conf_bool("skip_feedback_checkpoint") or _run_mode() == RUN_MODE_FEEDBACK_REPLAY:
+            return feedback_candidate_result
+        _post_checkpoint_callback(
+            stage_name="human_feedback_checkpoint",
+            callback_type=CALLBACK_HUMAN_FEEDBACK,
+            upstream_manifest_path=feedback_candidate_result["artifact_manifest_path"],
+            artifact_payload_key="feedbackQuestions",
+            artifact_path_key="feedbackQuestionsPath",
+        )
+        raise AirflowSkipException("Domain-confirmed replay stops after human feedback checkpoint.")
+
     @task(task_id="draft_generation")
-    def draft_generation(flow_splitting_result: dict[str, str]) -> dict[str, str]:
+    def draft_generation(human_feedback_result: dict[str, str]) -> dict[str, str]:
         return _run_stage(
             "draft_generation",
             draft_generation_run,
-            flow_splitting_result["artifact_manifest_path"],
+            human_feedback_result["artifact_manifest_path"],
         )
 
     @task(task_id="evaluation")
@@ -187,14 +502,19 @@ def domain_pack_generation() -> None:
     ingestion_task = ingestion()
     preprocessing_task = preprocessing(ingestion_task)
     representation_task = representation(preprocessing_task)
-    intent_discovery_task = intent_discovery(representation_task)
+    domain_candidate_task = domain_candidate_generation(representation_task)
+    domain_confirmation_task = domain_confirmation_checkpoint(domain_candidate_task)
+    intent_discovery_task = intent_discovery(domain_confirmation_task)
     flow_splitting_task = flow_splitting(intent_discovery_task)
-    draft_generation_task = draft_generation(flow_splitting_task)
+    feedback_candidate_task = feedback_candidate_generation(flow_splitting_task)
+    human_feedback_task = human_feedback_checkpoint(feedback_candidate_task)
+    draft_generation_task = draft_generation(human_feedback_task)
     evaluation_task = evaluation(draft_generation_task)
     publish_candidate_task = publish_candidate(evaluation_task)
 
-    ingestion_task >> preprocessing_task >> representation_task >> intent_discovery_task >> flow_splitting_task
-    flow_splitting_task >> draft_generation_task
+    ingestion_task >> preprocessing_task >> representation_task >> domain_candidate_task >> domain_confirmation_task
+    domain_confirmation_task >> intent_discovery_task >> flow_splitting_task >> feedback_candidate_task
+    feedback_candidate_task >> human_feedback_task >> draft_generation_task
     draft_generation_task >> evaluation_task >> publish_candidate_task
 
 

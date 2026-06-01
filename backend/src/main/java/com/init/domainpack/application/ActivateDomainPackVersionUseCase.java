@@ -16,6 +16,7 @@ import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -36,6 +37,7 @@ public class ActivateDomainPackVersionUseCase {
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
   private final Clock clock;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public ActivateDomainPackVersionUseCase(
       DomainPackVersionRepository versionRepository,
@@ -43,13 +45,15 @@ public class ActivateDomainPackVersionUseCase {
       IntentDefinitionRepository intentDefinitionRepository,
       WorkspaceExistencePort workspaceExistencePort,
       WorkspaceMembershipPort workspaceMembershipPort,
-      Clock clock) {
+      Clock clock,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.versionRepository = versionRepository;
     this.domainPackRepository = domainPackRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.clock = clock;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -104,6 +108,7 @@ public class ActivateDomainPackVersionUseCase {
     // Domain Event 발행 없음 (U-004 Confirmed)
     try {
       DomainPackVersion saved = versionRepository.saveAndFlush(version);
+      profileBuildRequestService.enqueue(saved.getId(), "VERSION_ACTIVATED");
       return ActivateDomainPackVersionResult.from(saved);
     } catch (ObjectOptimisticLockingFailureException e) {
       throw new DomainPackVersionConflictException(command.versionId());

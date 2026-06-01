@@ -31,12 +31,12 @@ const PAGE_KEY = "ostone:page:workflow-settings";
 export const PAGE_SIZE_OPTIONS = [6, 12, 24] as const;
 export const TOP_N_OPTIONS = [3, 5, 10, 20] as const;
 export const SORT_FIELD_OPTIONS: ReadonlyArray<{ value: WorkflowSortField; label: string }> = [
-  { value: "workflowCode", label: "Code" },
-  { value: "name", label: "Name" },
+  { value: "workflowCode", label: "응대 코드" },
+  { value: "name", label: "이름" },
 ];
 export const SORT_DIR_OPTIONS: ReadonlyArray<{ value: SortDir; label: string }> = [
-  { value: "asc", label: "Asc" },
-  { value: "desc", label: "Desc" },
+  { value: "asc", label: "오름차순" },
+  { value: "desc", label: "내림차순" },
 ];
 
 function safeParse<T>(raw: string | null, fallback: T, validate: (v: unknown) => v is T): T {

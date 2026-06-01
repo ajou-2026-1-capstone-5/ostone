@@ -3,7 +3,7 @@ import { useState } from "react";
 const TABS = [
   { label: "문의 유형", count: 3 },
   { label: "필요 정보", count: 2 },
-  { label: "응대 정책", count: 4 },
+  { label: "응대 기준", count: 4 },
   { label: "주의 사항", count: 5 },
   { label: "응대 흐름", count: 3 },
   { label: "테스트", count: 0 },

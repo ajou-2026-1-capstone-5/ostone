@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from pipeline.stages.intent_discovery.domain_profile import (
+    CONFIRMED_DOMAIN_METHOD,
     GENERIC_ROOT_DOMAIN,
     UNKNOWN_ROOT_DOMAIN,
     infer_root_domain_profile,
+    load_confirmed_domain_profile,
+    load_confirmed_domain_profile_from_env,
 )
 from pipeline.stages.preprocessing.types import FLOW_SIGNATURE_DIM, ProcessedConversation
 
@@ -28,6 +31,39 @@ def test_should_mark_empty_profile_as_unknown() -> None:
 
     assert profile.root_domain == UNKNOWN_ROOT_DOMAIN
     assert profile.allowed_rule_domains == ()
+
+
+def test_should_load_confirmed_domain_profile(tmp_path) -> None:
+    profile_path = tmp_path / "confirmed.json"
+    profile_path.write_text(
+        """
+        {
+          "candidateId": "card",
+          "displayName": "카드 상담",
+          "confidence": 0.87,
+          "domainLexicon": ["분실", "한도"],
+          "evidenceTerms": ["카드", "결제"],
+          "evidenceConversationIds": ["c1"],
+          "sourceReviewTaskId": 10
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    profile = load_confirmed_domain_profile(profile_path)
+
+    assert profile.method == CONFIRMED_DOMAIN_METHOD
+    assert profile.root_domain == "카드 상담"
+    assert profile.allowed_rule_domains == ("카드 상담",)
+    assert profile.domain_lexicon == ("분실", "한도")
+    assert profile.to_dict()["confirmedDomain"] == "카드 상담"
+    assert profile.to_dict()["usesOperatorCategoryMetadata"] is True
+
+
+def test_load_confirmed_domain_profile_from_env_returns_none_without_path(monkeypatch) -> None:
+    monkeypatch.delenv("PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH", raising=False)
+
+    assert load_confirmed_domain_profile_from_env() is None
 
 
 def _processed_conversation(index: int, text: str) -> ProcessedConversation:

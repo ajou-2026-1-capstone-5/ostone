@@ -48,7 +48,7 @@ export function PackHeader() {
           }}
         >
           {" "}
-          — 환불 정책 v2 적용
+          — 환불 응대 기준 v2 적용
         </span>
       </h1>
 
@@ -57,7 +57,7 @@ export function PackHeader() {
         {[
           { label: "문의 유형", count: 28 },
           { label: "필요 정보", count: 14 },
-          { label: "응대 정책", count: 9 },
+          { label: "응대 기준", count: 9 },
           { label: "주의 사항", count: 6 },
           { label: "응대 흐름", count: 3 },
         ].map((meta) => (

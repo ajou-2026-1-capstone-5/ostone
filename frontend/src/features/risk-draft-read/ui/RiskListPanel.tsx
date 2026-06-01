@@ -33,15 +33,15 @@ export function RiskListPanel({
   }, [state.status, errorMessage]);
 
   return (
-    <aside className={styles.panel} aria-label="위험요소 목록">
+    <aside className={styles.panel} aria-label="주의 사항 목록">
       <header className={styles.header}>
-        <span className={styles.headerTitle}>Risks</span>
+        <span className={styles.headerTitle}>주의 사항</span>
         <span className={styles.headerMeta}>
           {state.status === "ready"
-            ? `${state.data.length} · LIST`
+            ? `${state.data.length}개`
             : state.status === "empty"
-              ? "0 · LIST"
-              : "— · LIST"}
+              ? "0개"
+              : "—개"}
         </span>
       </header>
 
@@ -76,7 +76,7 @@ function RiskListContent({
     const message =
       state.status === "error"
         ? RISK_READ_ERROR_MESSAGES.LOAD_LIST_FAILED
-        : "등록된 위험요소 초안이 없습니다.";
+        : "등록된 주의 사항 초안이 없습니다.";
 
     return (
       <RiskListMessage
@@ -157,7 +157,7 @@ function RiskListRow({
               risk.status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive
             }`}
           >
-            {risk.status === "ACTIVE" ? "● ACTIVE" : "○ INACTIVE"}
+            {formatStatus(risk.status)}
           </span>
           <span
             className={`${styles.badge} ${
@@ -166,10 +166,25 @@ function RiskListRow({
                 : ""
             }`}
           >
-            {risk.riskLevel}
+            {formatRiskLevel(risk.riskLevel)}
           </span>
         </span>
       </div>
     </button>
   );
+}
+
+function formatStatus(status: RiskSummary["status"]): string {
+  return status === "ACTIVE" ? "사용중" : "사용 안 함";
+}
+
+function formatRiskLevel(level: RiskSummary["riskLevel"]): string {
+  if (!level) return "위험도 없음";
+  const labels: Record<string, string> = {
+    LOW: "낮음",
+    MEDIUM: "보통",
+    HIGH: "높음",
+    CRITICAL: "긴급",
+  };
+  return labels[level] ?? level;
 }

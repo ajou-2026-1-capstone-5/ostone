@@ -54,7 +54,7 @@ export function WorkspaceRootRedirect() {
           navigate("/workspaces", { replace: true });
         }}
         onSuccess={async (created) => {
-          navigate(`/workspaces/${created.id}/workflows`, { replace: true });
+          navigate(`/workspaces/${created.id}/upload`, { replace: true });
         }}
       />
     </div>

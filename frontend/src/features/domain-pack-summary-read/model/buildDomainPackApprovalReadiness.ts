@@ -53,7 +53,7 @@ export function buildDomainPackApprovalReadiness({
       blockers: [
         {
           type: "VERSION",
-          message: "DRAFT 상태의 버전만 승인할 수 있습니다.",
+          message: "검토 중인 버전만 승인할 수 있습니다.",
         },
       ],
     };

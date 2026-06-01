@@ -21,6 +21,7 @@ import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -48,6 +49,7 @@ class DeployDomainPackVersionUseCaseTest {
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private WorkspaceExistencePort workspaceExistencePort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private DeployDomainPackVersionUseCase useCase;
 
@@ -60,7 +62,8 @@ class DeployDomainPackVersionUseCaseTest {
             intentDefinitionRepository,
             workspaceExistencePort,
             workspaceMembershipPort,
-            FIXED_CLOCK);
+            FIXED_CLOCK,
+            profileBuildRequestService);
   }
 
   @Test
