@@ -44,7 +44,7 @@ export function WorkspaceWorkflowsPage() {
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>응대 흐름</h1>
+        <h1 className={styles.pageTitle}>워크플로우</h1>
         <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
           <span>도메인팩 관리</span>
           <ArrowRightIcon className={styles.pageHeaderIcon} />
@@ -54,7 +54,7 @@ export function WorkspaceWorkflowsPage() {
       {loading && (
         <div className={styles.statePanel} data-testid="workspace-workflows-loading">
           <LoadingSpinner />
-          <p className={styles.stateText}>응대 흐름 목록을 불러오는 중입니다.</p>
+          <p className={styles.stateText}>워크플로우 목록을 불러오는 중입니다.</p>
         </div>
       )}
 
@@ -66,7 +66,7 @@ export function WorkspaceWorkflowsPage() {
 
       {!loading && !error && entries.length === 0 && (
         <div className={styles.statePanel} data-testid="workspace-workflows-empty">
-          <EmptyState message="아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다." />
+          <EmptyState message="아직 등록된 워크플로우가 없습니다. 워크플로우는 도메인팩에서 생성하고 관리합니다." />
           <Button variant="outline" size="sm" onClick={handleOpenDomainPacks}>
             <span>도메인팩으로 이동</span>
             <ArrowRightIcon className={styles.pageHeaderIcon} />

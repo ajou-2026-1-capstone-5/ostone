@@ -110,7 +110,7 @@ describe("WorkflowEditSheet", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetWorkflow>);
     render(<WorkflowEditSheet {...makeProps()} />);
-    expect(screen.getByText("응대 흐름 정보를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 정보를 불러오지 못했습니다.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 
@@ -157,7 +157,7 @@ describe("WorkflowEditSheet", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetWorkflow>);
     render(<WorkflowEditSheet {...makeProps()} />);
-    expect(screen.getByText("응대 흐름 수정")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 수정")).toBeInTheDocument();
   });
 
   it("Sheet onOpenChange(!open) 시 onClose가 호출된다", () => {

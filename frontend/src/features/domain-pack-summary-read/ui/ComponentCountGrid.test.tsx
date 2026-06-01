@@ -50,7 +50,7 @@ describe("ComponentCountGrid", () => {
     render(<ComponentCountGrid {...defaultProps} />);
     expect(screen.getByText("상담 유형")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe("ComponentCountGrid", () => {
     expect(screen.getByRole("button", { name: "상담 유형 상세 보기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "확인 항목 상세 보기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "응대 기준 상세 보기" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "응대 흐름 상세 보기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "워크플로우 상세 보기" })).toBeInTheDocument();
   });
 
   it("Intent, Policy 화살표 클릭 시 상세 목록으로 이동한다", () => {
@@ -115,7 +115,7 @@ describe("ComponentCountGrid", () => {
     vi.mocked(previewLists.useWorkflowPreview).mockReturnValue(makeHook({ isError: true }));
     render(<ComponentCountGrid {...defaultProps} />);
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("응대 흐름 미리보기를 불러오지 못했습니다."),
+      expect(toast.error).toHaveBeenCalledWith("워크플로우 미리보기를 불러오지 못했습니다."),
     );
   });
 

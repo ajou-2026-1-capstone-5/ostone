@@ -52,14 +52,14 @@ export function MatchedWorkflowSection({
     >
       <header className={styles.header}>
         <h2 id="matched-workflow-section-title" className={styles.title}>
-          연결된 응대 흐름
+          연결된 워크플로우
         </h2>
         <Mono className={styles.count}>{loading ? "확인 중…" : `${entries.length}개`}</Mono>
       </header>
 
       {loading && (
         <div className={styles.placeholder} data-testid="matched-workflow-section-loading">
-          <Mono>응대 흐름을 불러오는 중…</Mono>
+          <Mono>워크플로우를 불러오는 중…</Mono>
         </div>
       )}
 
@@ -71,7 +71,7 @@ export function MatchedWorkflowSection({
 
       {!loading && !error && entries.length === 0 && (
         <div className={styles.placeholder} data-testid="matched-workflow-section-empty">
-          <Mono>이 상담 유형에 연결된 응대 흐름이 없습니다.</Mono>
+          <Mono>이 상담 유형에 연결된 워크플로우가 없습니다.</Mono>
         </div>
       )}
 

@@ -67,10 +67,10 @@ describe("WorkspaceWorkflowsPage", () => {
   });
 
   it("error 상태에서는 ErrorState를 보여준다", () => {
-    mockHook.mockReturnValue({ loading: false, error: "응대 흐름 목록 조회 실패", entries: [] });
+    mockHook.mockReturnValue({ loading: false, error: "워크플로우 목록 조회 실패", entries: [] });
     renderPage();
     expect(screen.getByTestId("workspace-workflows-error")).toBeInTheDocument();
-    expect(screen.getByText("응대 흐름 목록 조회 실패")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 목록 조회 실패")).toBeInTheDocument();
   });
 
   it("entries 비어 있으면 empty state를 보여준다", () => {
@@ -79,7 +79,7 @@ describe("WorkspaceWorkflowsPage", () => {
     expect(screen.getByTestId("workspace-workflows-empty")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다.",
+        "아직 등록된 워크플로우가 없습니다. 워크플로우는 도메인팩에서 생성하고 관리합니다.",
       ),
     ).toBeInTheDocument();
   });

@@ -33,7 +33,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Top Navbar */}
       <header className={styles.topbar}>
         <div className={styles.logo}>
-          <span className={styles.logoHighlight}>Ostone</span> 응대 흐름
+          <span className={styles.logoHighlight}>Ostone</span> 워크플로우
         </div>
         <nav className={styles.navMenu}>
           <NavLink to="/workspaces" className={getNavLinkClass}>

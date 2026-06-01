@@ -40,9 +40,9 @@ export function WorkflowListPanel({
   }, [isError, errorMessage]);
 
   return (
-    <aside className={styles.panel} aria-label="응대 흐름 목록">
+    <aside className={styles.panel} aria-label="워크플로우 목록">
       <header className={styles.header}>
-        <span className={styles.headerTitle}>응대 흐름</span>
+        <span className={styles.headerTitle}>워크플로우</span>
         <span className={styles.headerMeta}>
           {isSuccess ? `${data.length}개` : "—개"}
         </span>
@@ -68,7 +68,7 @@ export function WorkflowListPanel({
 
         {isSuccess && data.length === 0 && (
           <div className={styles.emptyState}>
-            <span>해당 버전에 등록된 응대 흐름 초안이 없습니다.</span>
+            <span>해당 버전에 등록된 워크플로우 초안이 없습니다.</span>
           </div>
         )}
 

@@ -86,7 +86,7 @@ export function WorkflowSearchBar({
         onFocus={() => {
           if (query) setOpen(true);
         }}
-        placeholder="응대 흐름 검색"
+        placeholder="워크플로우 검색"
         data-testid={`${testIdPrefix}-input`}
         style={inputStyle}
       />

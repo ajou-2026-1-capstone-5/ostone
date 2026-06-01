@@ -280,7 +280,7 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "응대 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.",
+        "워크플로우 코드를 확인할 수 없어 수정 검토본을 만들 수 없습니다.",
       ),
     );
     expect(mockCreateRevisionDraft).not.toHaveBeenCalled();
@@ -322,7 +322,7 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "수정 검토본에서 같은 응대 흐름을 찾지 못했습니다.",
+        "수정 검토본에서 같은 워크플로우를 찾지 못했습니다.",
       ),
     );
     expect(screen.getByTestId("location")).toHaveTextContent(
@@ -448,7 +448,7 @@ describe("WorkflowDraftReadPage", () => {
 
     await waitFor(() =>
       expect(mockToastError).toHaveBeenCalledWith(
-        "기존 검토본에서 같은 응대 흐름을 찾지 못했습니다.",
+        "기존 검토본에서 같은 워크플로우를 찾지 못했습니다.",
       ),
     );
     expect(screen.queryByText("진행 중인 검토본이 있습니다")).not.toBeInTheDocument();

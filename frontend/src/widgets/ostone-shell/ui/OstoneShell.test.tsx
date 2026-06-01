@@ -62,7 +62,7 @@ describe("OstoneShell", () => {
 
     expect(screen.getByText("WS · 1")).toBeInTheDocument();
     expect(screen.getAllByText("도메인팩 관리")).toHaveLength(2);
-    expect(screen.getByText("응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우")).toBeInTheDocument();
   });
 
   it("renders children in main area", () => {
