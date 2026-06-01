@@ -59,7 +59,9 @@ const stubDetail: DomainPackVersionDetail = {
 
 const publishedDetail: DomainPackVersionDetail = {
   ...stubDetail,
+  versionNo: 2,
   lifecycleStatus: "PUBLISHED",
+  summaryJson: '{"topic":"환불 정책 업데이트"}',
 };
 
 function renderSummaryDetailPanel(ui: React.ReactElement) {
@@ -172,8 +174,27 @@ describe("SummaryDetailPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "배포" }));
 
-    expect(screen.getByText("이 버전을 배포할까요?")).toBeInTheDocument();
+    expect(screen.getByText("v2 버전을 배포할까요?")).toBeInTheDocument();
     expect(onDeploy).not.toHaveBeenCalled();
+  });
+
+  it("배포 확인 다이얼로그에 대상 버전과 운영 전환 정보를 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: publishedDetail })}
+        wsId={1}
+        packId={2}
+        currentVersionId={9}
+        currentVersionNo={1}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("대상 버전v2운영 가능");
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("운영 전환현재 v1 → v2");
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("변경 요약환불 정책 업데이트");
   });
 
   it("배포 확인 시 현재 versionId를 전달한다", () => {
@@ -302,6 +323,33 @@ describe("SummaryDetailPanel", () => {
     expect(onApplyDraft).toHaveBeenCalledWith(3);
   });
 
+  it("Draft 적용 확인 다이얼로그에 대상 draft 버전과 운영 전환 정보를 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            versionNo: 3,
+            summaryJson:
+              '{"draftSource":{"baseVersionNo":2,"reason":"상담 유형 이름을 정리했습니다."}}',
+          },
+        })}
+        wsId={1}
+        packId={2}
+        currentVersionId={8}
+        currentVersionNo={2}
+        onApplyDraft={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+
+    const context = screen.getByLabelText("대상 버전 정보");
+    expect(context).toHaveTextContent("대상 버전v3검토 중");
+    expect(context).toHaveTextContent("운영 전환현재 v2 → v3");
+    expect(context).toHaveTextContent("변경 요약상담 유형 이름을 정리했습니다.");
+  });
+
   it("Draft 삭제 확인 시 현재 versionId를 전달한다", () => {
     const onDiscardDraft = vi.fn();
 
@@ -315,10 +363,14 @@ describe("SummaryDetailPanel", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
-    expect(screen.getByText("검토 중인 버전을 삭제할까요?")).toBeInTheDocument();
+    expect(screen.getByText("검토 중인 v1 버전을 삭제할까요?")).toBeInTheDocument();
     expect(
-      screen.getByText("삭제하면 이 검토 중인 버전과 저장된 수정 내용이 모두 삭제됩니다."),
+      screen.getByText("삭제하면 v1 검토본과 저장된 수정 내용이 모두 삭제되며 되돌릴 수 없습니다."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("삭제 범위");
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent(
+      "버전 메타데이터와 저장된 draft 수정 내용",
+    );
     fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
 
     expect(onDiscardDraft).toHaveBeenCalledWith(3);

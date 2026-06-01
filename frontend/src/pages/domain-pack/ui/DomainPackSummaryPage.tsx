@@ -78,6 +78,10 @@ function DomainPackSummaryPageContent({
   ) as UseQueryResult<DomainPackVersionDetail>;
   const pack = packQuery.data;
   const currentVersionId = pack?.currentVersionId ?? null;
+  const currentVersionNo =
+    pack?.currentVersionNo ??
+    pack?.versions?.find((version) => version.versionId === currentVersionId)?.versionNo ??
+    null;
   const selectedVersionNo =
     pack?.versions?.find((v) => v.versionId === selectedVersionId)?.versionNo ?? null;
 
@@ -227,6 +231,7 @@ function DomainPackSummaryPageContent({
             wsId={wsId}
             packId={packId}
             currentVersionId={currentVersionId}
+            currentVersionNo={currentVersionNo}
             deployingVersionId={
               deployMutation.isPending ? deployMutation.variables?.versionId : null
             }

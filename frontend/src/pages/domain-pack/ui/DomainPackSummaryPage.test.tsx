@@ -59,17 +59,20 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
   ),
   SummaryDetailPanel: ({
     currentVersionId,
+    currentVersionNo,
     onDeploy,
     onApplyDraft,
     onDiscardDraft,
   }: {
     currentVersionId?: number | null;
+    currentVersionNo?: number | null;
     onDeploy: (versionId: number) => void;
     onApplyDraft: (versionId: number) => void;
     onDiscardDraft: (versionId: number) => void;
   }) => (
     <div data-testid="summary-detail-panel">
       <span data-testid="current-version-id">{currentVersionId ?? "none"}</span>
+      <span data-testid="current-version-no">{currentVersionNo ?? "none"}</span>
       <button type="button" onClick={() => onDeploy(4)}>
         deploy version
       </button>
@@ -478,6 +481,45 @@ describe("DomainPackSummaryPage", () => {
     renderPage("/workspaces/1/domain-packs/2?versionId=4");
 
     expect(screen.getByTestId("current-version-id")).toHaveTextContent("none");
+  });
+
+  it("packDetail의 현재 운영 버전 번호를 SummaryDetailPanel에 전달한다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          currentVersionId: 3,
+          currentVersionNo: 7,
+          versions: [{ versionId: 3, versionNo: 7, lifecycleStatus: "PUBLISHED" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=4");
+
+    expect(screen.getByTestId("current-version-id")).toHaveTextContent("3");
+    expect(screen.getByTestId("current-version-no")).toHaveTextContent("7");
+  });
+
+  it("currentVersionNo가 없으면 currentVersionId와 버전 목록으로 현재 운영 버전 번호를 전달한다", () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          currentVersionId: 3,
+          currentVersionNo: null,
+          versions: [{ versionId: 3, versionNo: 2, lifecycleStatus: "PUBLISHED" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=4");
+
+    expect(screen.getByTestId("current-version-no")).toHaveTextContent("2");
   });
 
   it("currentVersionId가 없고 PUBLISHED 버전이 여러 개면 운영 버전을 추론하지 않는다", () => {
