@@ -653,7 +653,9 @@ describe("ConsultationPage", () => {
       );
       expect(mockSendTo).not.toHaveBeenCalledWith(
         "/app/chat.counselor.send",
-        expect.objectContaining({ content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다." }),
+        expect.objectContaining({
+          content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+        }),
       );
     });
 
@@ -1149,7 +1151,7 @@ describe("ConsultationPage", () => {
     expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeDisabled();
   });
 
-  it("releases the current counselor assignment through the backend API", async () => {
+  it("opens confirmation before releasing the current counselor assignment", async () => {
     saveTestUser(7);
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -1169,9 +1171,62 @@ describe("ConsultationPage", () => {
 
     fireEvent.click(screen.getByText("배정 해제"));
 
+    expect(consultationApi.releaseSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toHaveTextContent("김민지 고객 배정 해제");
+    expect(screen.getByText(/다시 미배정 대기열로 돌아가며/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "해제 확인" }));
+
     await waitFor(() => {
       expect(consultationApi.releaseSession).toHaveBeenCalledWith(1);
     });
+  });
+
+  it("warns about in-progress content and preserves it when release is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
+    await user.type(input, "임시 답변");
+
+    const memo = await screen.findByPlaceholderText(
+      "타임라인에 내부 메모로 남길 내용을 입력하세요...",
+    );
+    await user.type(memo, "카드사 확인 필요");
+
+    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    if (!messageGroup) throw new Error("message group not found");
+    fireEvent.click(messageGroup);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("message-domain-empty")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("배정 해제"));
+
+    expect(screen.getByText("메시지 입력창에 작성 중인 답변이 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("우측 패널에 저장하지 않은 내부 메모가 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("선택한 메시지 상세 맥락이 닫힙니다.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(consultationApi.releaseSession).not.toHaveBeenCalled();
+    expect(input).toHaveValue("임시 답변");
+    expect(screen.getByTestId("message-domain-empty")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(
+      screen.getByPlaceholderText("타임라인에 내부 메모로 남길 내용을 입력하세요..."),
+    ).toHaveValue("카드사 확인 필요");
   });
 
   it("does not render hard-coded suggestion strip when customer is active", async () => {

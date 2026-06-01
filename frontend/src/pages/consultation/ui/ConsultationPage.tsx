@@ -8,7 +8,10 @@ import { getAuthUser } from "@/shared/lib/auth";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
 import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
 import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
-import type { ChatMessage as UiChatMessage } from "../../../features/consultation/ui/ChatPanel";
+import type {
+  ChatComposerDraft,
+  ChatMessage as UiChatMessage,
+} from "../../../features/consultation/ui/ChatPanel";
 import {
   normalizeChatSenderRole,
   type ChatSenderRole,
@@ -102,6 +105,17 @@ const RESPONSE_MODE_OPTIONS: ResponseModeView[] = [
 ];
 
 const DEFAULT_RESPONSE_MODE: ConsultationResponseMode = "AI_ACTIVE";
+const EMPTY_COMPOSER_DRAFT: ChatComposerDraft = {
+  input: "",
+  isNoteMode: false,
+};
+
+const getComposerDraftReleaseWarning = (draft: ChatComposerDraft) => {
+  if (!draft.input.trim()) return null;
+  return draft.isNoteMode
+    ? "메시지 입력창에 작성 중인 내부 메모가 있습니다."
+    : "메시지 입력창에 작성 중인 답변이 있습니다.";
+};
 
 const getResponseModeView = (mode?: ConsultationResponseMode | null) =>
   RESPONSE_MODE_OPTIONS.find((option) => option.value === mode) ?? RESPONSE_MODE_OPTIONS[0];
@@ -114,6 +128,16 @@ type EndSessionModalState =
       customerName: string;
       outcome: ResolutionOutcome | null;
       reason: string;
+      isSubmitting: boolean;
+      error: string | null;
+    };
+
+type ReleaseAssignmentModalState =
+  | { open: false }
+  | {
+      open: true;
+      sessionId: string;
+      customerName: string;
       isSubmitting: boolean;
       error: string | null;
     };
@@ -514,6 +538,7 @@ export const ConsultationPage: React.FC = () => {
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [memos, setMemos] = useState<Record<string, string>>({});
+  const [composerDrafts, setComposerDrafts] = useState<Record<string, ChatComposerDraft>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
@@ -521,9 +546,16 @@ export const ConsultationPage: React.FC = () => {
   const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
   const [isDraftResponseLoading, setIsDraftResponseLoading] = useState(false);
   const [endSessionModal, setEndSessionModal] = useState<EndSessionModalState>({ open: false });
+  const [releaseAssignmentModal, setReleaseAssignmentModal] = useState<ReleaseAssignmentModalState>(
+    { open: false },
+  );
   const [isResponseModeUpdating, setIsResponseModeUpdating] = useState(false);
   const isEndSessionModalOpen = endSessionModal.open;
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
+  const isReleaseAssignmentModalOpen = releaseAssignmentModal.open;
+  const isReleaseAssignmentSubmitting = releaseAssignmentModal.open
+    ? releaseAssignmentModal.isSubmitting
+    : false;
   const [hasQueueLoaded, setHasQueueLoaded] = useState(false);
   const [urlSessionUnavailable, setUrlSessionUnavailable] = useState(false);
   const [claimingSessionId, setClaimingSessionId] = useState<string | null>(null);
@@ -598,6 +630,15 @@ export const ConsultationPage: React.FC = () => {
   const visibleMessages =
     activeCustomer && messagesCustomerId === activeCustomer.id ? messages : [];
   const selectedMessage = visibleMessages.find((m) => m.id === selectedMessageId) || null;
+  const activeComposerDraft = activeCustomerId
+    ? (composerDrafts[activeCustomerId] ?? EMPTY_COMPOSER_DRAFT)
+    : EMPTY_COMPOSER_DRAFT;
+  const activeMemoDraft = activeCustomerId ? (memos[activeCustomerId] ?? "") : "";
+  const releaseWarningItems = [
+    getComposerDraftReleaseWarning(activeComposerDraft),
+    activeMemoDraft.trim() ? "우측 패널에 저장하지 않은 내부 메모가 있습니다." : null,
+    selectedMessage ? "선택한 메시지 상세 맥락이 닫힙니다." : null,
+  ].filter((item): item is string => item !== null);
   const activeAssignment = activeCustomer
     ? getAssignmentView(
         activeCustomer.status,
@@ -614,7 +655,8 @@ export const ConsultationPage: React.FC = () => {
   const isActiveSessionClosed =
     activeCustomer?.status === "COMPLETED" || activeCustomer?.status === "RESOLVED";
   const isActiveSessionUnassigned = !!activeCustomer && !activeCustomer.assignedCounselorId;
-  const isClaimingActiveSession = activeCustomerId != null && claimingSessionId === activeCustomerId;
+  const isClaimingActiveSession =
+    activeCustomerId != null && claimingSessionId === activeCustomerId;
   const messageInputDisabledReason = isAssignedToCurrentCounselor
     ? undefined
     : activeAssignment?.description;
@@ -629,6 +671,7 @@ export const ConsultationPage: React.FC = () => {
     setIsMatchedWorkflowLoading(false);
     setIsDraftResponseLoading(false);
     setEndSessionModal({ open: false });
+    setReleaseAssignmentModal({ open: false });
     clearPendingMessages();
   }, [clearPendingMessages]);
 
@@ -828,20 +871,17 @@ export const ConsultationPage: React.FC = () => {
     void loadQueue();
   }, [loadQueue]);
 
-  const activateCustomer = useCallback(
-    (id: string) => {
-      setActiveCustomerId(id);
-      setSelectedMessageId(null);
-      setQueue((prev) =>
-        prev.some((customer) => customer.id === id && customer.hasUnread)
-          ? prev.map((customer) =>
-              customer.id === id ? { ...customer, hasUnread: false } : customer,
-            )
-          : prev,
-      );
-    },
-    [],
-  );
+  const activateCustomer = useCallback((id: string) => {
+    setActiveCustomerId(id);
+    setSelectedMessageId(null);
+    setQueue((prev) =>
+      prev.some((customer) => customer.id === id && customer.hasUnread)
+        ? prev.map((customer) =>
+            customer.id === id ? { ...customer, hasUnread: false } : customer,
+          )
+        : prev,
+    );
+  }, []);
 
   useEffect(() => {
     if (!routeSessionIdParam) {
@@ -1197,6 +1237,21 @@ export const ConsultationPage: React.FC = () => {
     };
   }, [isEndSessionModalOpen, isEndSessionSubmitting]);
 
+  useEffect(() => {
+    if (!isReleaseAssignmentModalOpen || isReleaseAssignmentSubmitting) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setReleaseAssignmentModal({ open: false });
+      }
+    };
+
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => {
+      globalThis.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isReleaseAssignmentModalOpen, isReleaseAssignmentSubmitting]);
+
   const handleSelectResolutionOutcome = (outcome: ResolutionOutcome) => {
     setEndSessionModal((prev) => (prev.open ? { ...prev, outcome, error: null } : prev));
   };
@@ -1243,9 +1298,34 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
-  const handleReleaseAssignment = async () => {
+  const handleOpenReleaseAssignment = () => {
     if (!activeCustomerId || !currentCounselorId || !isAssignedToCurrentCounselor) return;
-    const releasedSessionId = activeCustomerId;
+    setReleaseAssignmentModal({
+      open: true,
+      sessionId: activeCustomerId,
+      customerName: activeCustomerName,
+      isSubmitting: false,
+      error: null,
+    });
+  };
+
+  const handleCancelReleaseAssignment = () => {
+    setReleaseAssignmentModal({ open: false });
+  };
+
+  const handleConfirmReleaseAssignment = async () => {
+    if (
+      !releaseAssignmentModal.open ||
+      releaseAssignmentModal.isSubmitting ||
+      !currentCounselorId
+    ) {
+      return;
+    }
+
+    const releasedSessionId = releaseAssignmentModal.sessionId;
+    setReleaseAssignmentModal((prev) =>
+      prev.open ? { ...prev, isSubmitting: true, error: null } : prev,
+    );
 
     try {
       const releasedSession = await consultationApi.releaseSession(Number(releasedSessionId));
@@ -1258,11 +1338,31 @@ export const ConsultationPage: React.FC = () => {
           ),
         ),
       );
+      setMemos((prev) => {
+        const next = { ...prev };
+        delete next[releasedSessionId];
+        return next;
+      });
+      setComposerDrafts((prev) => {
+        const next = { ...prev };
+        delete next[releasedSessionId];
+        return next;
+      });
       toast.success("상담 배정이 해제되었습니다.");
       clearActiveConversation();
+      setReleaseAssignmentModal({ open: false });
       navigateToConsultationRoot();
     } catch (error) {
       console.error("Failed to release session:", error);
+      setReleaseAssignmentModal((prev) =>
+        prev.open
+          ? {
+              ...prev,
+              isSubmitting: false,
+              error: "상담 배정 해제를 완료하지 못했습니다.",
+            }
+          : prev,
+      );
       toast.error("상담 배정 해제에 실패했습니다.");
     }
   };
@@ -1399,7 +1499,7 @@ export const ConsultationPage: React.FC = () => {
               </div>
               <button
                 className={styles.linkButton}
-                onClick={handleReleaseAssignment}
+                onClick={handleOpenReleaseAssignment}
                 disabled={!isAssignedToCurrentCounselor}
               >
                 배정 해제
@@ -1445,6 +1545,11 @@ export const ConsultationPage: React.FC = () => {
                     }
                   : undefined
               }
+              composerDraft={activeComposerDraft}
+              onComposerDraftChange={(draft) => {
+                if (!activeCustomerId) return;
+                setComposerDrafts((prev) => ({ ...prev, [activeCustomerId]: draft }));
+              }}
             />
           )}
         </div>
@@ -1572,6 +1677,71 @@ export const ConsultationPage: React.FC = () => {
                 disabled={endSessionModal.isSubmitting || !endSessionModal.outcome}
               >
                 {endSessionModal.isSubmitting ? "종료 중..." : "종료 확인"}
+              </button>
+            </div>
+          </dialog>
+        </div>
+      )}
+
+      {releaseAssignmentModal.open && (
+        <div className={styles.modalOverlay}>
+          <button
+            type="button"
+            className={styles.modalBackdrop}
+            aria-label="배정 해제 모달 닫기"
+            onClick={handleCancelReleaseAssignment}
+            disabled={releaseAssignmentModal.isSubmitting}
+          />
+          <dialog
+            open
+            className={styles.endSessionDialog}
+            aria-modal="true"
+            aria-labelledby="release-assignment-title"
+          >
+            <div className={styles.modalHeader}>
+              <Mono className={styles.modalEyebrow}>RELEASE ASSIGNMENT</Mono>
+              <h2 id="release-assignment-title" className={styles.modalTitle}>
+                {releaseAssignmentModal.customerName} 고객 배정 해제
+              </h2>
+            </div>
+
+            <div className={styles.releaseNotice}>
+              해제하면 이 세션은 다시 미배정 대기열로 돌아가며, 현재 상담 화면은 비워집니다.
+            </div>
+
+            {releaseWarningItems.length > 0 && (
+              <div className={styles.releaseWarning} role="alert">
+                <strong>해제 전에 확인하세요</strong>
+                <ul className={styles.releaseWarningList}>
+                  {releaseWarningItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {releaseAssignmentModal.error && (
+              <div className={styles.modalError} role="alert">
+                {releaseAssignmentModal.error}
+              </div>
+            )}
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryAction}
+                onClick={handleCancelReleaseAssignment}
+                disabled={releaseAssignmentModal.isSubmitting}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDangerAction}
+                onClick={handleConfirmReleaseAssignment}
+                disabled={releaseAssignmentModal.isSubmitting}
+              >
+                {releaseAssignmentModal.isSubmitting ? "해제 중..." : "해제 확인"}
               </button>
             </div>
           </dialog>

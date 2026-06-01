@@ -102,7 +102,9 @@ describe("ChatPanel", () => {
 
   it("답변 초안을 입력창에 삽입하되 자동 전송하지 않는다", async () => {
     const onSendMessage = vi.fn();
-    const onInsert = vi.fn(() => Promise.resolve("주문번호를 확인해주시면 환불 상태를 안내드리겠습니다."));
+    const onInsert = vi.fn(() =>
+      Promise.resolve("주문번호를 확인해주시면 환불 상태를 안내드리겠습니다."),
+    );
 
     render(
       <ChatPanel
@@ -149,6 +151,55 @@ describe("ChatPanel", () => {
       expect(onInsert).toHaveBeenCalled();
     });
     expect(input).toHaveValue("기존 작성 내용");
+  });
+
+  it("controlled composer draft 값을 입력창에 표시한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        composerDraft={{ input: "저장된 내부 메모", isNoteMode: true }}
+      />,
+    );
+
+    expect(
+      screen.getByPlaceholderText("내부 메모로 타임라인에 남길 내용을 입력하세요..."),
+    ).toHaveValue("저장된 내부 메모");
+  });
+
+  it("composer draft 변경을 부모 핸들러에 전달한다", () => {
+    const onComposerDraftChange = vi.fn();
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        composerDraft={{ input: "", isNoteMode: false }}
+        onComposerDraftChange={onComposerDraftChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("메시지를 입력하세요..."), {
+      target: { value: "작성 중 답변" },
+    });
+    expect(onComposerDraftChange).toHaveBeenLastCalledWith({
+      input: "작성 중 답변",
+      isNoteMode: false,
+    });
+
+    fireEvent.click(screen.getByTitle("내부 메모로 남기기"));
+    expect(onComposerDraftChange).toHaveBeenLastCalledWith({
+      input: "",
+      isNoteMode: true,
+    });
   });
 
   it("답변 초안 액션이 없으면 초안 삽입 버튼을 숨긴다", () => {
