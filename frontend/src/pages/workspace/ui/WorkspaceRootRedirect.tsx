@@ -2,9 +2,10 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import type { WorkspaceResponse } from "@/shared/api/generated/zod";
 import { useListWorkspaces } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
+import { selectDefaultWorkspace } from "@/entities/workspace";
 import { CreateWorkspaceDialog } from "@/features/workspace";
 import { Spinner } from "@/shared/ui/spinner";
-import { ApiRequestError } from "@/shared/api";
+import { ApiRequestError, selectApiData } from "@/shared/api";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 
 export function WorkspaceRootRedirect() {
@@ -38,10 +39,10 @@ export function WorkspaceRootRedirect() {
     );
   }
 
-  const workspaces = (workspacesData ?? []) as unknown as WorkspaceResponse[];
-  if (workspaces.length > 0) {
-    const active = workspaces.find((w) => w.status === "ACTIVE") ?? workspaces[0];
-    return <Navigate to={`/workspaces/${active.id}/workflows`} replace />;
+  const workspaces = selectApiData<WorkspaceResponse[]>(workspacesData) ?? [];
+  const workspace = selectDefaultWorkspace(workspaces);
+  if (typeof workspace?.id === "number") {
+    return <Navigate to={`/workspaces/${workspace.id}/workflows`} replace />;
   }
 
   return (

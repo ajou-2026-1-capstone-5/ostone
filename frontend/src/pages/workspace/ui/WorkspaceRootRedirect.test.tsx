@@ -139,6 +139,16 @@ describe("WorkspaceRootRedirect", () => {
     expect(screen.getByTestId("navigate-to")).toHaveTextContent("/workspaces/3/workflows");
   });
 
+  it("기본 워크스페이스 id를 확인할 수 없으면 CreateWorkspaceDialog를 표시한다", () => {
+    useListWorkspaces.mockReturnValue({
+      data: [{ name: "WS without id", status: "ACTIVE" }],
+      isLoading: false,
+      isError: false,
+    });
+    renderPage();
+    expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
+  });
+
   it("CreateWorkspaceDialog onSuccess가 navigate를 호출한다", () => {
     useListWorkspaces.mockReturnValue({ data: [], isLoading: false, isError: false });
     renderPage();
