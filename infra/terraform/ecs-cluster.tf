@@ -99,6 +99,58 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "AIRFLOW_API_ALLOW_INSECURE_HTTP"
           value = tostring(var.airflow_api_allow_insecure_http)
+        },
+        {
+          name  = "AI_EMBEDDING_PROVIDER"
+          value = var.ai_embedding_provider
+        },
+        {
+          name  = "AI_EMBEDDING_MODEL"
+          value = var.ai_embedding_model
+        },
+        {
+          name  = "AI_EMBEDDING_BEDROCK_REGION"
+          value = var.ai_embedding_bedrock_region
+        },
+        {
+          name  = "AI_EMBEDDING_ENABLED"
+          value = tostring(var.ai_embedding_enabled)
+        },
+        {
+          name  = "AI_EMBEDDING_TIMEOUT_SECONDS"
+          value = tostring(var.ai_embedding_timeout_seconds)
+        },
+        {
+          name  = "AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT"
+          value = var.ai_embedding_profile_build_running_timeout
+        },
+        {
+          name  = "AI_EMBEDDING_AUTO_RUN_REPLAY_FITNESS_THRESHOLD"
+          value = tostring(var.ai_embedding_auto_run_replay_fitness_threshold)
+        },
+        {
+          name  = "AI_EMBEDDING_CONFIDENT_THRESHOLD"
+          value = tostring(var.ai_embedding_confident_threshold)
+        },
+        {
+          name  = "AI_EMBEDDING_AMBIGUOUS_THRESHOLD"
+          value = tostring(var.ai_embedding_ambiguous_threshold)
+        },
+        {
+          name  = "AI_EMBEDDING_CONFIDENT_MARGIN"
+          value = tostring(var.ai_embedding_confident_margin)
+        },
+        {
+          name  = "AI_EMBEDDING_SEMANTIC_FLOOR"
+          value = tostring(var.ai_embedding_semantic_floor)
+        },
+        {
+          name  = "AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR"
+          value = tostring(var.ai_embedding_route_evidence_floor)
+        },
+        {
+          name  = "AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR"
+          value = tostring(var.ai_embedding_lexical_evidence_floor)
         }
       ]
 
@@ -172,7 +224,10 @@ resource "aws_ecs_service" "backend" {
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
 
-  depends_on = [aws_lb_listener.backend_https]
+  depends_on = [
+    aws_lb_listener.backend_https,
+    terraform_data.db_bootstrap
+  ]
 }
 
 resource "aws_appautoscaling_target" "backend" {

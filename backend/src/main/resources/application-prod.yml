@@ -58,6 +58,26 @@ storage:
     path-style-access: ${STORAGE_S3_PATH_STYLE:false}
     server-side-encryption-enabled: ${STORAGE_S3_SSE_ENABLED:true}
 
+app:
+  ai:
+    embedding:
+      provider: ${AI_EMBEDDING_PROVIDER:bedrock}
+      enabled: ${AI_EMBEDDING_ENABLED:true}
+      model: ${AI_EMBEDDING_MODEL:cohere.embed-multilingual-v3}
+      bedrock-region: ${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-1}
+      timeout: ${AI_EMBEDDING_TIMEOUT_SECONDS:5}s
+      profile-build-interval: ${AI_EMBEDDING_PROFILE_BUILD_INTERVAL:30s}
+      profile-build-running-timeout: ${AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT:15m}
+      query-cache-ttl: ${AI_EMBEDDING_QUERY_CACHE_TTL:5m}
+      top-k: ${AI_EMBEDDING_TOP_K:30}
+      auto-run-replay-fitness-threshold: ${AI_EMBEDDING_AUTO_RUN_REPLAY_FITNESS_THRESHOLD:0.70}
+      confident-threshold: ${AI_EMBEDDING_CONFIDENT_THRESHOLD:0.72}
+      ambiguous-threshold: ${AI_EMBEDDING_AMBIGUOUS_THRESHOLD:0.55}
+      confident-margin: ${AI_EMBEDDING_CONFIDENT_MARGIN:0.10}
+      semantic-floor: ${AI_EMBEDDING_SEMANTIC_FLOOR:0.65}
+      route-evidence-floor: ${AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR:0.50}
+      lexical-evidence-floor: ${AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR:0.30}
+
 airflow:
   api:
     base-url: ${AIRFLOW_API_BASE_URL}

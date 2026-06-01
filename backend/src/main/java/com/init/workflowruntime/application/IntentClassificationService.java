@@ -6,6 +6,9 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.IntentClassificationCommand;
 import com.init.workflowruntime.application.dto.IntentCandidate;
 import com.init.workflowruntime.application.dto.IntentClassificationResult;
+import com.init.workflowruntime.application.matching.WorkflowMatchCandidate;
+import com.init.workflowruntime.application.matching.WorkflowMatchResult;
+import com.init.workflowruntime.application.matching.WorkflowMatchingService;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import java.util.Arrays;
@@ -26,15 +29,37 @@ public class IntentClassificationService {
 
   private final ChatSessionRepository chatSessionRepository;
   private final IntentDefinitionRepository intentDefinitionRepository;
+  private final WorkflowMatchingService workflowMatchingService;
 
   public IntentClassificationService(
       ChatSessionRepository chatSessionRepository,
-      IntentDefinitionRepository intentDefinitionRepository) {
+      IntentDefinitionRepository intentDefinitionRepository,
+      WorkflowMatchingService workflowMatchingService) {
     this.chatSessionRepository = chatSessionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
+    this.workflowMatchingService = workflowMatchingService;
   }
 
   public IntentClassificationResult classify(IntentClassificationCommand command) {
+    if (workflowMatchingService.isEnabled()) {
+      WorkflowMatchResult matchResult =
+          workflowMatchingService.match(
+              command.sessionId(), command.latestUserMessage(), command.conversationContext());
+      if ("CONFIDENT".equals(matchResult.status())) {
+        WorkflowMatchCandidate candidate = matchResult.candidates().getFirst();
+        return IntentClassificationResult.confident(
+            candidate.intentCode(), candidate.confidence(), List.of(toIntentCandidate(candidate)));
+      }
+      if ("AMBIGUOUS".equals(matchResult.status())) {
+        return IntentClassificationResult.ambiguous(
+            matchResult.confirmationQuestion(),
+            matchResult.candidates().stream().map(this::toIntentCandidate).toList());
+      }
+      if (!"UNAVAILABLE".equals(matchResult.status())) {
+        return IntentClassificationResult.unknown(matchResult.message());
+      }
+    }
+
     ChatSession session = findSession(command.sessionId());
     String query =
         normalize(
@@ -100,6 +125,11 @@ public class IntentClassificationService {
         scoredIntent.intent().getIntentCode(),
         scoredIntent.intent().getName(),
         confidence(scoredIntent.score()));
+  }
+
+  private IntentCandidate toIntentCandidate(WorkflowMatchCandidate candidate) {
+    return new IntentCandidate(
+        candidate.intentCode(), candidate.intentName(), candidate.confidence());
   }
 
   private String buildConfirmationQuestion(List<IntentCandidate> candidates) {

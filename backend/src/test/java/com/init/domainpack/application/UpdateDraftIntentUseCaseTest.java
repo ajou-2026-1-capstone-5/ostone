@@ -14,6 +14,7 @@ import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,7 @@ class UpdateDraftIntentUseCaseTest {
   @Mock private DomainPackValidator validator;
   @Mock private DomainPackVersionRepository versionRepository;
   @Mock private IntentDefinitionRepository intentRepository;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private UpdateDraftIntentUseCase useCase;
 
@@ -37,7 +39,11 @@ class UpdateDraftIntentUseCaseTest {
   void setUp() {
     useCase =
         new UpdateDraftIntentUseCase(
-            validator, versionRepository, intentRepository, new ObjectMapper());
+            validator,
+            versionRepository,
+            intentRepository,
+            new ObjectMapper(),
+            profileBuildRequestService);
   }
 
   @Test

@@ -11,6 +11,7 @@ import com.init.domainpack.domain.repository.WorkspaceExistencePort;
 import com.init.domainpack.domain.repository.WorkspaceMembershipPort;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,16 +27,19 @@ public class UpdateIntentStatusUseCase {
   private final DomainPackVersionRepository versionRepository;
   private final WorkspaceExistencePort workspaceExistencePort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
+  private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   public UpdateIntentStatusUseCase(
       IntentDefinitionRepository intentRepository,
       DomainPackVersionRepository versionRepository,
       WorkspaceExistencePort workspaceExistencePort,
-      WorkspaceMembershipPort workspaceMembershipPort) {
+      WorkspaceMembershipPort workspaceMembershipPort,
+      WorkflowMatchingProfileBuildRequestService profileBuildRequestService) {
     this.intentRepository = intentRepository;
     this.versionRepository = versionRepository;
     this.workspaceExistencePort = workspaceExistencePort;
     this.workspaceMembershipPort = workspaceMembershipPort;
+    this.profileBuildRequestService = profileBuildRequestService;
   }
 
   @Transactional
@@ -83,6 +87,7 @@ public class UpdateIntentStatusUseCase {
     }
 
     intentRepository.save(intent);
+    profileBuildRequestService.enqueue(command.versionId(), "INTENT_STATUS_UPDATED");
     return IntentDefinitionStatusResponse.from(intent);
   }
 }

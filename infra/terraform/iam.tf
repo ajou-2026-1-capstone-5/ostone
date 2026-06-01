@@ -130,6 +130,12 @@ data "aws_iam_policy_document" "ecs_backend_task" {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = local.secrets_resource_arns
   }
+
+  statement {
+    sid       = "InvokeBedrockEmbeddingModel"
+    actions   = ["bedrock:InvokeModel"]
+    resources = ["arn:aws:bedrock:${var.ai_embedding_bedrock_region}::foundation-model/${var.ai_embedding_model}"]
+  }
 }
 
 resource "aws_iam_role_policy" "ecs_backend_task" {

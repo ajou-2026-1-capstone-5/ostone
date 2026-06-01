@@ -73,13 +73,13 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: testdb
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres -d testdb"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -93,6 +93,9 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
+
+      - name: Install pgvector extension
+        run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Build Backend
         working-directory: ./backend

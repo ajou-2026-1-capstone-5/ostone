@@ -287,3 +287,86 @@ variable "llm_runtime_api_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "ai_embedding_provider" {
+  description = "Embedding provider used by backend workflow matching."
+  type        = string
+  default     = "bedrock"
+
+  validation {
+    condition     = contains(["bedrock", "disabled"], var.ai_embedding_provider)
+    error_message = "ai_embedding_provider must be one of: bedrock, disabled."
+  }
+}
+
+variable "ai_embedding_model" {
+  description = "Bedrock embedding model id used by backend workflow matching."
+  type        = string
+  default     = "cohere.embed-multilingual-v3"
+}
+
+variable "ai_embedding_bedrock_region" {
+  description = "AWS region used for Bedrock embedding calls. This can differ from aws_region when the selected model is unavailable in the primary region."
+  type        = string
+  default     = "ap-northeast-1"
+}
+
+variable "ai_embedding_enabled" {
+  description = "Whether backend workflow matching should call the embedding provider."
+  type        = bool
+  default     = true
+}
+
+variable "ai_embedding_timeout_seconds" {
+  description = "Timeout in seconds for backend embedding calls."
+  type        = number
+  default     = 5
+}
+
+variable "ai_embedding_profile_build_running_timeout" {
+  description = "How long a RUNNING workflow matching profile build can remain untouched before another worker may reclaim it."
+  type        = string
+  default     = "15m"
+}
+
+variable "ai_embedding_auto_run_replay_fitness_threshold" {
+  description = "Minimum workflow replay fitness required before workflow matching may auto-run a confident workflow."
+  type        = number
+  default     = 0.70
+}
+
+variable "ai_embedding_confident_threshold" {
+  description = "Minimum final matching confidence required for automatic workflow execution."
+  type        = number
+  default     = 0.72
+}
+
+variable "ai_embedding_ambiguous_threshold" {
+  description = "Minimum final matching confidence required to ask an intent/workflow confirmation question."
+  type        = number
+  default     = 0.55
+}
+
+variable "ai_embedding_confident_margin" {
+  description = "Minimum score gap between top-1 and top-2 candidates required for automatic workflow execution."
+  type        = number
+  default     = 0.10
+}
+
+variable "ai_embedding_semantic_floor" {
+  description = "Minimum semantic score required before workflow matching may auto-run a workflow."
+  type        = number
+  default     = 0.65
+}
+
+variable "ai_embedding_route_evidence_floor" {
+  description = "Minimum route evidence score that can satisfy the auto-run evidence gate."
+  type        = number
+  default     = 0.50
+}
+
+variable "ai_embedding_lexical_evidence_floor" {
+  description = "Minimum lexical evidence score that can satisfy the auto-run evidence gate."
+  type        = number
+  default     = 0.30
+}
