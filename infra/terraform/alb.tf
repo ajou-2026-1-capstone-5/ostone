@@ -70,40 +70,18 @@ resource "aws_lb_listener" "backend_https" {
   }
 }
 
-resource "aws_lb_listener_rule" "airflow_admin" {
+moved {
+  from = aws_lb_listener_rule.airflow_admin
+  to   = aws_lb_listener_rule.airflow
+}
+
+resource "aws_lb_listener_rule" "airflow" {
   listener_arn = aws_lb_listener.backend_https.arn
   priority     = 10
 
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.airflow_api.arn
-  }
-
-  condition {
-    host_header {
-      values = ["airflow.${var.domain_name}"]
-    }
-  }
-
-  condition {
-    source_ip {
-      values = [var.admin_cidr]
-    }
-  }
-}
-
-resource "aws_lb_listener_rule" "airflow_forbidden" {
-  listener_arn = aws_lb_listener.backend_https.arn
-  priority     = 11
-
-  action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "Forbidden"
-      status_code  = "403"
-    }
   }
 
   condition {

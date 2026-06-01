@@ -394,7 +394,7 @@ resource "aws_ecs_service" "airflow_apiserver" {
   }
 
   depends_on = [
-    aws_lb_listener_rule.airflow_admin,
+    aws_lb_listener_rule.airflow,
     terraform_data.db_bootstrap
   ]
 
