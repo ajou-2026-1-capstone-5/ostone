@@ -110,6 +110,13 @@ const EMPTY_COMPOSER_DRAFT: ChatComposerDraft = {
   isNoteMode: false,
 };
 
+const getComposerDraftReleaseWarning = (draft: ChatComposerDraft) => {
+  if (!draft.input.trim()) return null;
+  return draft.isNoteMode
+    ? "메시지 입력창에 작성 중인 내부 메모가 있습니다."
+    : "메시지 입력창에 작성 중인 답변이 있습니다.";
+};
+
 const getResponseModeView = (mode?: ConsultationResponseMode | null) =>
   RESPONSE_MODE_OPTIONS.find((option) => option.value === mode) ?? RESPONSE_MODE_OPTIONS[0];
 
@@ -628,11 +635,7 @@ export const ConsultationPage: React.FC = () => {
     : EMPTY_COMPOSER_DRAFT;
   const activeMemoDraft = activeCustomerId ? (memos[activeCustomerId] ?? "") : "";
   const releaseWarningItems = [
-    activeComposerDraft.input.trim()
-      ? activeComposerDraft.isNoteMode
-        ? "메시지 입력창에 작성 중인 내부 메모가 있습니다."
-        : "메시지 입력창에 작성 중인 답변이 있습니다."
-      : null,
+    getComposerDraftReleaseWarning(activeComposerDraft),
     activeMemoDraft.trim() ? "우측 패널에 저장하지 않은 내부 메모가 있습니다." : null,
     selectedMessage ? "선택한 메시지 상세 맥락이 닫힙니다." : null,
   ].filter((item): item is string => item !== null);
