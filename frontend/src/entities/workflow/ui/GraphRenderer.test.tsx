@@ -51,7 +51,7 @@ describe("GraphRenderer", () => {
   it("노드/엣지 없는 그래프도 오류 없이 렌더링한다", () => {
     const emptyGraph = { direction: "TB" as const, nodes: [], edges: [] };
     render(<GraphRenderer graph={emptyGraph} />);
-    expect(screen.getByText("응대 흐름 데이터 없음")).toBeInTheDocument();
+    expect(screen.getByText("워크플로우 데이터 없음")).toBeInTheDocument();
   });
 
   it("interaction props가 spec대로 설정된다", () => {

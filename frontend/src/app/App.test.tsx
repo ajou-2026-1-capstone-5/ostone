@@ -131,10 +131,10 @@ describe("App", () => {
       expect(window.location.pathname).toBe("/workspaces/1/workflows");
     });
 
-    expect(await screen.findByText("응대 흐름")).toBeInTheDocument();
+    expect(await screen.findByText("워크플로우")).toBeInTheDocument();
     expect(
       await screen.findByText(
-        "아직 등록된 응대 흐름이 없습니다. 응대 흐름은 도메인팩에서 생성하고 관리합니다.",
+        "아직 등록된 워크플로우가 없습니다. 워크플로우는 도메인팩에서 생성하고 관리합니다.",
       ),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(

@@ -47,7 +47,7 @@ const mockedUseListPolicies = vi.mocked(useListPolicies);
 const stubDetail = {
   id: 10,
   workflowCode: "W001",
-  name: "테스트 응대 흐름",
+  name: "테스트 워크플로우",
   description: "설명입니다",
   graphJson: { direction: "LR" as const, nodes: [], edges: [] },
   initialState: "START",
@@ -107,7 +107,7 @@ describe("WorkflowDetailPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel({ workflowId: null });
-    expect(screen.getByText("좌측 목록에서 응대 흐름을 선택해 주세요.")).toBeInTheDocument();
+    expect(screen.getByText("좌측 목록에서 워크플로우를 선택해 주세요.")).toBeInTheDocument();
   });
 
   it("loading 상태에서는 skeleton 영역을 렌더링한다", () => {
@@ -119,7 +119,7 @@ describe("WorkflowDetailPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
-    expect(screen.getByRole("region", { name: "응대 흐름 상세" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "워크플로우 상세" })).toBeInTheDocument();
   });
 
   it("error 상태에서는 에러 메시지와 재시도 버튼을 보여준다", async () => {
@@ -144,7 +144,7 @@ describe("WorkflowDetailPanel", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("서버 오류"));
   });
 
-  it("404 error 시 응대 흐름 미존재 메시지로 toast를 호출한다", async () => {
+  it("404 error 시 워크플로우 미존재 메시지로 toast를 호출한다", async () => {
     const err = new ApiRequestError(404, "NOT_FOUND", "없음");
     mockedUseWorkflowDetail.mockReturnValue({
       data: undefined,
@@ -154,7 +154,7 @@ describe("WorkflowDetailPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("응대 흐름을 찾을 수 없습니다."));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("워크플로우를 찾을 수 없습니다."));
   });
 
   it("성공 상태에서는 헤더 정보와 탭 목록을 보여준다", () => {
@@ -167,7 +167,7 @@ describe("WorkflowDetailPanel", () => {
     } as unknown as ReturnType<typeof useWorkflowDetail>);
     renderPanel();
     expect(screen.getByText("W001")).toBeInTheDocument();
-    expect(screen.getByText("테스트 응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("테스트 워크플로우")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "흐름도" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "JSON" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "상세 정보" })).toBeInTheDocument();

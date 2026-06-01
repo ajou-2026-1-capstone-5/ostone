@@ -120,7 +120,7 @@ export function WorkflowDetailPanel({
     if (!isError) return;
     const msg =
       apiErrorStatus === 404
-        ? "응대 흐름을 찾을 수 없습니다."
+        ? "워크플로우를 찾을 수 없습니다."
         : apiErrorCode === "WORKFLOW_GRAPH_JSON_INVALID"
           ? "흐름도 데이터가 손상되어 표시할 수 없습니다."
           : apiErrorMessage || "상세 정보를 불러오지 못했습니다.";
@@ -143,9 +143,9 @@ export function WorkflowDetailPanel({
 
   if (workflowId === null) {
     return (
-      <section className={styles.panel} aria-label="응대 흐름 상세">
+      <section className={styles.panel} aria-label="워크플로우 상세">
         <div className={styles.placeholder}>
-          <span>좌측 목록에서 응대 흐름을 선택해 주세요.</span>
+          <span>좌측 목록에서 워크플로우를 선택해 주세요.</span>
         </div>
       </section>
     );
@@ -153,7 +153,7 @@ export function WorkflowDetailPanel({
 
   if (isLoading) {
     return (
-      <section className={styles.panel} aria-label="응대 흐름 상세">
+      <section className={styles.panel} aria-label="워크플로우 상세">
         <div className={styles.body}>
           <div className={styles.skeleton} />
         </div>
@@ -163,7 +163,7 @@ export function WorkflowDetailPanel({
 
   if (isError) {
     return (
-      <section className={styles.panel} aria-label="응대 흐름 상세">
+      <section className={styles.panel} aria-label="워크플로우 상세">
         <div className={styles.placeholder}>
           <span>상세 정보를 불러오지 못했습니다.</span>
           <button type="button" className={styles.retryButton} onClick={() => void refetch()}>
@@ -177,9 +177,9 @@ export function WorkflowDetailPanel({
   if (!detail) return null;
 
   return (
-    <section className={styles.panel} aria-label="응대 흐름 상세">
+    <section className={styles.panel} aria-label="워크플로우 상세">
       <DetailHeader detail={detail} onEdit={onEdit} />
-      <nav className={styles.tabs} role="tablist" aria-label="응대 흐름 상세 뷰">
+      <nav className={styles.tabs} role="tablist" aria-label="워크플로우 상세 뷰">
         {TABS.map((t, i) => (
           <button
             key={t}

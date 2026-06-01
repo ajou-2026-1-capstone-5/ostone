@@ -22,7 +22,7 @@ interface SidebarBaseProps {
 }
 
 const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
-  workflows: "응대 흐름 관리",
+  workflows: "워크플로우 관리",
   upload: "상담 로그 수집",
   consult: "상담 응대",
   domain: "도메인팩 관리",
@@ -54,8 +54,8 @@ function resolveDisplayCrumbs(active: SidebarActive, crumbs: Crumb[]): Crumb[] {
 
   if (second === "Domain Packs") {
     const sectionMap: Record<string, string> = {
-      Workflows: "응대 흐름",
-      WORKFLOWS: "응대 흐름",
+      Workflows: "워크플로우",
+      WORKFLOWS: "워크플로우",
       Intents: "상담 유형",
       INTENTS: "상담 유형",
       Slots: "확인 항목",

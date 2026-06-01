@@ -26,7 +26,7 @@ function resolveStatusTone(status: string | null): PillTone {
 
 function buildMeta(workflow: MatchedWorkflow): string {
   const parts: string[] = [];
-  if (workflow.workflowCode) parts.push(`응대 코드 ${workflow.workflowCode}`);
+  if (workflow.workflowCode) parts.push(`워크플로우 코드 ${workflow.workflowCode}`);
   if (workflow.domainPackVersionId != null) parts.push(`v${workflow.domainPackVersionId}`);
   if (workflow.currentState) parts.push(workflow.currentState);
   return parts.join(" · ");
@@ -46,7 +46,7 @@ function buildMatchBasis(workflow: MatchedWorkflow): string {
 export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
   const navigate = useNavigate();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const title = workflow.workflowName ?? workflow.workflowCode ?? "응대 흐름";
+  const title = workflow.workflowName ?? workflow.workflowCode ?? "워크플로우";
   const meta = buildMeta(workflow);
   const intentLabel = workflow.intentName ?? workflow.intentCode;
   const matchBasis = buildMatchBasis(workflow);
@@ -89,7 +89,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
       className={styles.bar}
       data-testid="matched-workflow-bar"
       data-state={previewOpen ? "open" : "closed"}
-      aria-label="매칭된 응대 흐름"
+      aria-label="매칭된 워크플로우"
       onMouseEnter={() => setPreviewOpen(true)}
       onMouseLeave={handleMouseLeave}
       onFocusCapture={() => setPreviewOpen(true)}
@@ -102,7 +102,7 @@ export function MatchedWorkflowBar({ workflow }: MatchedWorkflowBarProps) {
         disabled={!canNavigate}
         data-testid="matched-workflow-bar-open"
       >
-        <span className={styles.label}>응대 흐름</span>
+        <span className={styles.label}>워크플로우</span>
         <span className={styles.title} data-testid="matched-workflow-bar-title">
           {title}
         </span>
@@ -157,7 +157,7 @@ export function MatchedWorkflowBarSkeleton() {
       className={styles.skeleton}
       data-testid="matched-workflow-bar-skeleton"
       aria-busy="true"
-      aria-label="매칭된 응대 흐름 로딩 중"
+      aria-label="매칭된 워크플로우 로딩 중"
     >
       <span className={styles.skeletonBar} />
     </div>

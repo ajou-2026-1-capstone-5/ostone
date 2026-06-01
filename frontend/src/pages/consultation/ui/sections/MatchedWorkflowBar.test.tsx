@@ -72,7 +72,7 @@ describe("MatchedWorkflowBar", () => {
     expect(screen.getByText("진행 중")).toBeInTheDocument();
     expect(screen.getByText("의도 환불 요청")).toBeInTheDocument();
     expect(screen.getByTestId("matched-workflow-bar-meta")).toHaveTextContent(
-      "응대 코드 REFUND_FLOW · v12 · COLLECT_INFO",
+      "워크플로우 코드 REFUND_FLOW · v12 · COLLECT_INFO",
     );
     expect(screen.getByTestId("matched-workflow-bar-basis")).toHaveTextContent(
       "최근 AI 응답이 COLLECT_INFO 단계와 연결되어 표시 중입니다.",
@@ -137,7 +137,7 @@ describe("MatchedWorkflowBar", () => {
   it("falls back to literal label when both workflowName and workflowCode are null", () => {
     renderBar({ ...baseWorkflow, workflowName: null, workflowCode: null });
 
-    expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("응대 흐름");
+    expect(screen.getByTestId("matched-workflow-bar-title")).toHaveTextContent("워크플로우");
   });
 
   it("shows graph unavailable placeholder when graphJson is missing (after hover)", () => {

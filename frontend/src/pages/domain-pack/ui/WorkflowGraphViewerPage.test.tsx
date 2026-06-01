@@ -177,7 +177,7 @@ describe("WorkflowGraphViewerPage", () => {
 
     renderPage();
     expect(screen.getByTestId("graph-data-error-state")).toHaveTextContent(
-      "응대 흐름도 데이터 형식이 올바르지 않습니다.",
+      "워크플로우 그래프 데이터 형식이 올바르지 않습니다.",
     );
     expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
   });

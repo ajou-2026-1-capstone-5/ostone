@@ -16,7 +16,7 @@ const mockedUseWorkflowList = vi.mocked(useWorkflowList);
 const stubWorkflow = {
   id: 1,
   workflowCode: "W001",
-  name: "테스트 응대 흐름",
+  name: "테스트 워크플로우",
   description: null,
   initialState: "START",
   terminalStatesJson: '["DONE", "CANCEL"]',
@@ -49,11 +49,11 @@ describe("WorkflowListPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowList>);
     renderPanel();
-    expect(screen.getByLabelText("응대 흐름 목록")).toBeInTheDocument();
+    expect(screen.getByLabelText("워크플로우 목록")).toBeInTheDocument();
     expect(screen.getByText("—개")).toBeInTheDocument();
   });
 
-  it("success 상태에서는 응대 흐름 목록과 항목 수를 렌더링한다", () => {
+  it("success 상태에서는 워크플로우 목록과 항목 수를 렌더링한다", () => {
     mockedUseWorkflowList.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -65,7 +65,7 @@ describe("WorkflowListPanel", () => {
     renderPanel();
     expect(screen.getByText("1개")).toBeInTheDocument();
     expect(screen.getByText("W001")).toBeInTheDocument();
-    expect(screen.getByText("테스트 응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("테스트 워크플로우")).toBeInTheDocument();
   });
 
   it("success 상태에서 항목 클릭 시 onSelect를 호출한다", () => {
@@ -93,7 +93,7 @@ describe("WorkflowListPanel", () => {
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowList>);
     renderPanel();
-    expect(screen.getByText("해당 버전에 등록된 응대 흐름 초안이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("해당 버전에 등록된 워크플로우 초안이 없습니다.")).toBeInTheDocument();
   });
 
   it("error 상태에서는 에러 메시지와 재시도 버튼을 보여준다", () => {

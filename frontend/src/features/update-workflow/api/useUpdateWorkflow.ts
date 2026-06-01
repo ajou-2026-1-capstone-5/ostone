@@ -13,7 +13,7 @@ interface UpdateWorkflowParams {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  WORKFLOW_NOT_EDITABLE: "검토 중인 버전에서만 응대 흐름을 수정할 수 있습니다.",
+  WORKFLOW_NOT_EDITABLE: "검토 중인 버전에서만 워크플로우를 수정할 수 있습니다.",
   GRAPH_JSON_REQUIRED: "그래프 데이터가 필요합니다.",
   GRAPH_JSON_TOO_LARGE: "그래프 데이터가 너무 큽니다.",
   WORKFLOW_GRAPH_JSON_INVALID: "그래프 데이터 형식이 유효하지 않습니다.",
@@ -46,12 +46,12 @@ export function useUpdateWorkflow() {
       queryClient.invalidateQueries({
         queryKey: workflowQueryKeys.list(wsId, packId, versionId),
       });
-      toast.success("응대 흐름이 수정되었습니다.");
+      toast.success("워크플로우가 수정되었습니다.");
     },
     onError: (error: unknown) => {
       const code = error instanceof ApiRequestError ? error.code : "";
       const message = error instanceof ApiRequestError ? error.message : "";
-      toast.error((ERROR_MESSAGES[code] ?? message) || "응대 흐름 수정에 실패했습니다.");
+      toast.error((ERROR_MESSAGES[code] ?? message) || "워크플로우 수정에 실패했습니다.");
     },
   });
 }

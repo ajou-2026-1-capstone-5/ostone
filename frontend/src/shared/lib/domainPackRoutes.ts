@@ -5,7 +5,7 @@ export const SECTION_LABEL: Record<DomainPackSection, string> = {
   slots: "확인 항목",
   policies: "응대 기준",
   risks: "주의 사항",
-  workflows: "응대 흐름",
+  workflows: "워크플로우",
 };
 
 export interface DomainPackCrumbInput {
