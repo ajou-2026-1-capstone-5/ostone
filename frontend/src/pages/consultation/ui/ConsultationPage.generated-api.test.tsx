@@ -171,6 +171,12 @@ describe("ConsultationPage generated API integration", () => {
         followUpRequired: true,
       });
     });
+    await waitFor(() => {
+      const metricsCalls = mocks.customFetch.mock.calls.filter(
+        ([url]) => url === "/api/v1/workspaces/2/consultation/metrics",
+      );
+      expect(metricsCalls).toHaveLength(2);
+    });
     expect(mocks.toastSuccess).toHaveBeenCalledWith("상담이 종료되었습니다.");
   });
 });

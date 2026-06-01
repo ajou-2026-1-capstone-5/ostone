@@ -655,6 +655,7 @@ export const ConsultationPage: React.FC = () => {
   const hasQueueLoadedRef = useRef(false);
   const previousConnectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const metricsErrorToastShownRef = useRef(false);
+  const metricsRequestIdRef = useRef(0);
   const queueErrorToastShownRef = useRef(false);
   const currentCounselorId = getAuthUser()?.id ?? null;
 
@@ -842,27 +843,32 @@ export const ConsultationPage: React.FC = () => {
     };
   }, [setCrumbs]);
 
-  useEffect(() => {
-    if (!workspaceId) {
-      setMetrics(null);
+  const loadMetrics = useCallback(
+    async (options: { resetErrorToast?: boolean } = {}) => {
+      if (!workspaceId) {
+        metricsRequestIdRef.current += 1;
+        setMetrics(null);
+        setMetricsError(null);
+        setIsMetricsLoading(false);
+        return null;
+      }
+
+      const requestId = metricsRequestIdRef.current + 1;
+      metricsRequestIdRef.current = requestId;
+      if (options.resetErrorToast) {
+        metricsErrorToastShownRef.current = false;
+      }
+      setIsMetricsLoading(true);
       setMetricsError(null);
-      setIsMetricsLoading(false);
-      return;
-    }
 
-    let cancelled = false;
-    metricsErrorToastShownRef.current = false;
-    setIsMetricsLoading(true);
-    setMetricsError(null);
-
-    const loadMetrics = async () => {
       try {
         const data = await consultationApi.getMetrics(workspaceId);
-        if (cancelled) return;
+        if (metricsRequestIdRef.current !== requestId) return null;
         setMetrics(data);
         setMetricsError(null);
+        return data;
       } catch (error) {
-        if (cancelled) return;
+        if (metricsRequestIdRef.current !== requestId) return null;
         console.error("Failed to load consultation metrics:", error);
         setMetrics(null);
         setMetricsError("상담 지표를 불러오지 못했습니다.");
@@ -870,19 +876,23 @@ export const ConsultationPage: React.FC = () => {
           metricsErrorToastShownRef.current = true;
           toast.error("상담 지표를 불러오지 못했습니다.");
         }
+        return null;
       } finally {
-        if (!cancelled) {
+        if (metricsRequestIdRef.current === requestId) {
           setIsMetricsLoading(false);
         }
       }
-    };
+    },
+    [workspaceId],
+  );
 
-    void loadMetrics();
+  useEffect(() => {
+    void loadMetrics({ resetErrorToast: true });
 
     return () => {
-      cancelled = true;
+      metricsRequestIdRef.current += 1;
     };
-  }, [workspaceId]);
+  }, [loadMetrics]);
 
   const loadQueue = useCallback(
     async (isManualRetry = false) => {
@@ -1474,6 +1484,7 @@ export const ConsultationPage: React.FC = () => {
       });
       toast.success("상담이 종료되었습니다.");
       setQueue((prev) => prev.filter((customer) => customer.id !== endedSessionId));
+      void loadMetrics();
       clearActiveConversation();
       setEndSessionModal({ open: false });
       navigateToConsultationRoot();
