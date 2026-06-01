@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
+import com.init.workflowruntime.config.AiConfig;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -32,6 +33,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -62,6 +64,17 @@ class LlmResponseHandlerTest {
             messagingTemplate,
             chatSessionMetadataService,
             transactionManager);
+  }
+
+  @Test
+  @DisplayName("handleChatMessageReceived: LLM 자동 응답 전용 executor를 사용한다")
+  void should_useDedicatedExecutor_when_asyncEventRuns() throws NoSuchMethodException {
+    Async async =
+        LlmResponseHandler.class
+            .getMethod("handleChatMessageReceived", ChatMessageReceivedEvent.class)
+            .getAnnotation(Async.class);
+
+    assertThat(async.value()).isEqualTo(AiConfig.LLM_AUTO_RESPONSE_TASK_EXECUTOR);
   }
 
   @Test

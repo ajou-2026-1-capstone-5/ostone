@@ -3,6 +3,7 @@ package com.init.workflowruntime.application;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
+import com.init.workflowruntime.config.AiConfig;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -48,7 +49,7 @@ public class LlmResponseHandler {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
   }
 
-  @Async
+  @Async(AiConfig.LLM_AUTO_RESPONSE_TASK_EXECUTOR)
   @EventListener
   public void handleChatMessageReceived(ChatMessageReceivedEvent event) {
     try {
