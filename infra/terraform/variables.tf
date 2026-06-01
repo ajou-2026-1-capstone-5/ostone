@@ -107,9 +107,14 @@ variable "airflow_db_password" {
 }
 
 variable "rds_engine_version" {
-  description = "PostgreSQL engine version for RDS."
+  description = "PostgreSQL 16 engine version selector for RDS. Use major version 16 to resolve the latest available regional 16.x version, or an exact available 16.x version."
   type        = string
-  default     = "16.4"
+  default     = "16"
+
+  validation {
+    condition     = can(regex("^16(\\.[0-9]+)?$", var.rds_engine_version))
+    error_message = "rds_engine_version must be 16 or an exact available PostgreSQL 16 minor version such as 16.8."
+  }
 }
 
 variable "rds_instance_class" {

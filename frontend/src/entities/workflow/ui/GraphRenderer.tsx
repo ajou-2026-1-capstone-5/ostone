@@ -70,13 +70,13 @@ export default function GraphRenderer({
   return (
     <div className={styles.container}>
       {isLoading ? (
-        <div className={styles.loading}>응대 흐름을 불러오는 중...</div>
+        <div className={styles.loading}>워크플로우를 불러오는 중...</div>
       ) : error ? (
         <div className={styles.error}>
           Error: {typeof error === "string" ? error : error.message}
         </div>
       ) : !nodes || nodes.length === 0 ? (
-        <div className={styles.empty}>{emptyMessage ?? "응대 흐름 데이터 없음"}</div>
+        <div className={styles.empty}>{emptyMessage ?? "워크플로우 데이터 없음"}</div>
       ) : (
         <ErrorBoundary fallback={<div className={styles.error}>흐름도를 표시할 수 없습니다</div>}>
           <ReactFlow

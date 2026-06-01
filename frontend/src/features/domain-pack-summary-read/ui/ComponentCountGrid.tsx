@@ -50,7 +50,7 @@ export function ComponentCountGrid({
   }, [policyPreview.isError]);
 
   useEffect(() => {
-    if (workflowPreview.isError) toast.error("응대 흐름 미리보기를 불러오지 못했습니다.");
+    if (workflowPreview.isError) toast.error("워크플로우 미리보기를 불러오지 못했습니다.");
   }, [workflowPreview.isError]);
 
   return (
@@ -88,7 +88,7 @@ export function ComponentCountGrid({
         isLoadingPreview={policyPreview.isLoading}
       />
       <CountCard
-        label="응대 흐름"
+        label="워크플로우"
         count={workflowCount}
         disabled={false}
         onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}

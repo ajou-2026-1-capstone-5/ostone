@@ -5,7 +5,7 @@ const TABS = [
   { label: "필요 정보", count: 2 },
   { label: "응대 기준", count: 4 },
   { label: "주의 사항", count: 5 },
-  { label: "응대 흐름", count: 3 },
+  { label: "워크플로우", count: 3 },
   { label: "테스트", count: 0 },
   { label: "버전 기록", count: null },
 ];

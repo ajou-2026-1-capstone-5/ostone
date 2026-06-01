@@ -80,7 +80,7 @@ describe("useUpdateWorkflow", () => {
       await result.current.mutateAsync(mutateParams);
     });
 
-    expect(toast.success).toHaveBeenCalledWith("응대 흐름이 수정되었습니다.");
+    expect(toast.success).toHaveBeenCalledWith("워크플로우가 수정되었습니다.");
   });
 
   it("알려진 에러 코드 WORKFLOW_NOT_EDITABLE에 대해 매핑된 메시지를 표시한다", async () => {
@@ -97,7 +97,7 @@ describe("useUpdateWorkflow", () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        "검토 중인 버전에서만 응대 흐름을 수정할 수 있습니다.",
+        "검토 중인 버전에서만 워크플로우를 수정할 수 있습니다.",
       ),
     );
   });
@@ -147,7 +147,7 @@ describe("useUpdateWorkflow", () => {
     });
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("응대 흐름 수정에 실패했습니다."),
+      expect(toast.error).toHaveBeenCalledWith("워크플로우 수정에 실패했습니다."),
     );
   });
 });

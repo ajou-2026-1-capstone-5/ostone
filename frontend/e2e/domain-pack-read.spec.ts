@@ -82,7 +82,7 @@ test.describe("Domain pack generated read screens", () => {
         );
         await expect(page.getByText("환불 workflow")).toBeVisible();
         await expect(
-          page.getByText("이 응대 흐름에는 아직 흐름도가 정의되어 있지 않습니다."),
+          page.getByText("이 워크플로우에는 아직 흐름도가 정의되어 있지 않습니다."),
         ).toBeVisible();
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/workflows");
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/workflows/401");

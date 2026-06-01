@@ -22,7 +22,7 @@ import { WorkflowSearchBar } from "./WorkflowSearchBar";
 import styles from "./workflow-list-view.module.css";
 
 const SORT_FIELD_KO_LABELS: Record<(typeof SORT_FIELD_OPTIONS)[number]["value"], string> = {
-  workflowCode: "응대 코드",
+  workflowCode: "워크플로우 코드",
   name: "이름",
 };
 
@@ -167,7 +167,7 @@ export function WorkflowListView({
       )}
 
       {pageEntries.length === 0 && (
-        <EmptyState message={filterWorkflowId !== null ? "필터 결과 없음" : "응대 흐름 없음"} />
+        <EmptyState message={filterWorkflowId !== null ? "필터 결과 없음" : "워크플로우 없음"} />
       )}
 
       <div className={styles.list} data-testid={`${testIdPrefix}-list`}>

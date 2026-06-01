@@ -59,7 +59,7 @@ export function PackHeader() {
           { label: "필요 정보", count: 14 },
           { label: "응대 기준", count: 9 },
           { label: "주의 사항", count: 6 },
-          { label: "응대 흐름", count: 3 },
+          { label: "워크플로우", count: 3 },
         ].map((meta) => (
           <div key={meta.label} style={{ display: "inline-flex", gap: "4px" }}>
             <Mono style={{ color: "var(--ink-3)", fontSize: "11px" }}>{meta.label}</Mono>

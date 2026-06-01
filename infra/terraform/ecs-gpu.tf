@@ -2,6 +2,22 @@ data "aws_ssm_parameter" "ecs_gpu_ami" {
   name = "/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended/image_id"
 }
 
+data "aws_ec2_instance_type_offerings" "gpu" {
+  location_type = "availability-zone"
+
+  filter {
+    name   = "instance-type"
+    values = [var.gpu_instance_type]
+  }
+}
+
+locals {
+  gpu_private_subnet_ids = [
+    for subnet in values(aws_subnet.private) : subnet.id
+    if contains(data.aws_ec2_instance_type_offerings.gpu.locations, subnet.availability_zone)
+  ]
+}
+
 resource "aws_iam_instance_profile" "gpu" {
   name = "${local.name_prefix}-gpu-instance-profile"
   role = aws_iam_role.gpu_ec2_instance.name
@@ -59,13 +75,20 @@ resource "aws_autoscaling_group" "gpu" {
     id      = aws_launch_template.gpu.id
     version = "$Latest"
   }
-  vpc_zone_identifier       = values(aws_subnet.private)[*].id
+  vpc_zone_identifier       = local.gpu_private_subnet_ids
   min_size                  = var.gpu_asg_min_size
   max_size                  = var.gpu_asg_max_size
   desired_capacity          = var.gpu_asg_desired_capacity
   health_check_type         = "EC2"
   health_check_grace_period = 300
   protect_from_scale_in     = false
+
+  lifecycle {
+    precondition {
+      condition     = length(local.gpu_private_subnet_ids) > 0
+      error_message = "gpu_instance_type must be offered in at least one selected private subnet availability zone."
+    }
+  }
 
   tag {
     key                 = "Name"

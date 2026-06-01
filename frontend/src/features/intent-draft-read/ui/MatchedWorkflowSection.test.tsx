@@ -75,7 +75,7 @@ describe("MatchedWorkflowSection", () => {
           versionId: 4,
           workflowId: 7,
           workflowCode: "wf.x",
-          name: "응대 흐름",
+          name: "워크플로우",
           description: "d",
           intentDefinitionId: 100,
         },

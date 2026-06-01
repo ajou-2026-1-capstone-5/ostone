@@ -167,7 +167,7 @@ export function WorkflowEditForm({
                 id="wf-name"
                 {...field}
                 className={styles.fieldInput}
-                placeholder="응대 흐름 이름"
+                placeholder="워크플로우 이름"
                 aria-invalid={errors.name ? "true" : "false"}
                 data-testid="workflow-edit-name"
               />
@@ -182,7 +182,7 @@ export function WorkflowEditForm({
 
         <div className={styles.field}>
           <label className={styles.fieldLabel} htmlFor="wf-code">
-            응대 코드
+            워크플로우 코드
           </label>
           <input
             id="wf-code"
@@ -210,7 +210,7 @@ export function WorkflowEditForm({
                 name={field.name}
                 ref={field.ref}
                 className={styles.fieldInput}
-                placeholder="이 응대 흐름의 목적을 한 줄로 설명"
+                placeholder="이 워크플로우의 목적을 한 줄로 설명"
                 data-testid="workflow-edit-description"
               />
             )}

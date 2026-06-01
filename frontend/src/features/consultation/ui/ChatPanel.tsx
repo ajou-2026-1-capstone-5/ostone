@@ -11,6 +11,7 @@ export type MessageDeliveryStatus = "sending" | "sent" | "failed";
 
 export interface ChatMessage {
   id: string;
+  seqNo?: number;
   senderRole: ChatSenderRole;
   content: string;
   timestamp: string;

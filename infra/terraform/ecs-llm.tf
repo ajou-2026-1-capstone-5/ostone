@@ -138,7 +138,7 @@ resource "aws_ecs_service" "ml_llm" {
   }
 
   network_configuration {
-    subnets          = values(aws_subnet.private)[*].id
+    subnets          = local.gpu_private_subnet_ids
     security_groups  = [aws_security_group.ml_llm_service.id]
     assign_public_ip = false
   }
