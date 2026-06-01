@@ -16,6 +16,7 @@ import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.CounselorService;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -197,13 +198,17 @@ class CounselorSessionControllerTest {
   void should_returnSessions_when_noStatusFilter() throws Exception {
     CounselorSessionResponse response = new CounselorSessionResponse(List.of(), 0, 20, 0, 0);
 
-    given(counselorService.getSessions(eq(1L), eq(null), eq(0), eq(20))).willReturn(response);
+    given(
+            counselorService.getSessions(
+                eq(1L), eq(7L), eq(null), eq(null), eq(null), eq(null), eq(null), eq(0), eq(20)))
+        .willReturn(response);
 
     mockMvc
         .perform(
             get("/api/v1/workspaces/1/consultation/sessions")
                 .param("page", "0")
-                .param("size", "20"))
+                .param("size", "20")
+                .principal(auth(7L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray());
   }
@@ -213,22 +218,69 @@ class CounselorSessionControllerTest {
   void should_returnSessions_when_statusFilter() throws Exception {
     CounselorSessionResponse response = new CounselorSessionResponse(List.of(), 0, 20, 0, 0);
 
-    given(counselorService.getSessions(eq(1L), eq("OPEN"), eq(0), eq(20))).willReturn(response);
+    given(
+            counselorService.getSessions(
+                eq(1L), eq(7L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), eq(0), eq(20)))
+        .willReturn(response);
 
     mockMvc
         .perform(
             get("/api/v1/workspaces/1/consultation/sessions")
                 .param("status", "OPEN")
                 .param("page", "0")
-                .param("size", "20"))
+                .param("size", "20")
+                .principal(auth(7L)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray());
   }
 
   @Test
+  @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/sessions - 검색/필터 query 전달")
+  void should_returnSessions_when_searchFiltersGiven() throws Exception {
+    CounselorSessionResponse response = new CounselorSessionResponse(List.of(), 1, 20, 0, 0);
+
+    given(
+            counselorService.getSessions(
+                eq(1L),
+                eq(7L),
+                eq("COMPLETED"),
+                eq("환불"),
+                eq(LocalDate.of(2026, 5, 1)),
+                eq(LocalDate.of(2026, 5, 31)),
+                eq(42L),
+                eq(1),
+                eq(20)))
+        .willReturn(response);
+
+    mockMvc
+        .perform(
+            get("/api/v1/workspaces/1/consultation/sessions")
+                .param("status", "COMPLETED")
+                .param("keyword", "환불")
+                .param("startedFrom", "2026-05-01")
+                .param("startedTo", "2026-05-31")
+                .param("assignedCounselorId", "42")
+                .param("page", "1")
+                .param("size", "20")
+                .principal(auth(7L)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(1));
+  }
+
+  @Test
   @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/sessions - 유효하지 않은 상태 → 400")
   void should_return400_when_invalidStatus() throws Exception {
-    given(counselorService.getSessions(eq(1L), eq("INVALID"), anyInt(), anyInt()))
+    given(
+            counselorService.getSessions(
+                eq(1L),
+                eq(7L),
+                eq("INVALID"),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                anyInt(),
+                anyInt()))
         .willThrow(new BadRequestException("UNSUPPORTED_STATUS", "Unsupported status: INVALID"));
 
     mockMvc
@@ -236,7 +288,8 @@ class CounselorSessionControllerTest {
             get("/api/v1/workspaces/1/consultation/sessions")
                 .param("status", "INVALID")
                 .param("page", "0")
-                .param("size", "20"))
+                .param("size", "20")
+                .principal(auth(7L)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_STATUS"));
   }

@@ -4,6 +4,7 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import jakarta.persistence.LockModeType;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -36,4 +37,59 @@ public interface JpaChatSessionRepository
 
   @Override
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
+
+  @Override
+  @Query(
+      value =
+          """
+          SELECT cs.*
+          FROM runtime.chat_session cs
+          WHERE cs.workspace_id = :workspaceId
+            AND (:status IS NULL OR cs.status = :status)
+            AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
+            AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)
+            AND (:startedBefore IS NULL OR cs.started_at < :startedBefore)
+            AND (
+              :keyword IS NULL
+              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR EXISTS (
+                SELECT 1
+                FROM runtime.chat_message cm
+                WHERE cm.chat_session_id = cs.id
+                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              )
+            )
+          ORDER BY cs.started_at DESC, cs.id DESC
+          """,
+      countQuery =
+          """
+          SELECT COUNT(*)
+          FROM runtime.chat_session cs
+          WHERE cs.workspace_id = :workspaceId
+            AND (:status IS NULL OR cs.status = :status)
+            AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
+            AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)
+            AND (:startedBefore IS NULL OR cs.started_at < :startedBefore)
+            AND (
+              :keyword IS NULL
+              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR EXISTS (
+                SELECT 1
+                FROM runtime.chat_message cm
+                WHERE cm.chat_session_id = cs.id
+                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              )
+            )
+          """,
+      nativeQuery = true)
+  Page<ChatSession> searchByWorkspace(
+      @Param("workspaceId") Long workspaceId,
+      @Param("status") String status,
+      @Param("keyword") String keyword,
+      @Param("startedFrom") OffsetDateTime startedFrom,
+      @Param("startedBefore") OffsetDateTime startedBefore,
+      @Param("assignedCounselorId") Long assignedCounselorId,
+      Pageable pageable);
 }

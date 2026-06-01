@@ -17,7 +17,11 @@ import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,6 +36,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 @Transactional(readOnly = true)
 public class CounselorService {
+
+  private static final ZoneId HISTORY_FILTER_ZONE = ZoneId.of("Asia/Seoul");
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -206,13 +212,31 @@ public class CounselorService {
     return CounselorSessionResponse.from(session);
   }
 
-  public CounselorSessionResponse getSessions(Long workspaceId, String status, int page, int size) {
+  public CounselorSessionResponse getSessions(
+      Long workspaceId,
+      Long userId,
+      String status,
+      String keyword,
+      LocalDate startedFrom,
+      LocalDate startedTo,
+      Long assignedCounselorId,
+      int page,
+      int size) {
     if (workspaceId == null || workspaceId <= 0) {
       throw new BadRequestException(
           "INVALID_WORKSPACE_ID", "workspaceId must be a positive number");
     }
+    validateWorkspaceMembership(workspaceId, userId);
     if (page < 0 || size <= 0) {
       throw new BadRequestException("INVALID_PAGING", "page must be >= 0 and size must be > 0");
+    }
+    if (assignedCounselorId != null && assignedCounselorId <= 0) {
+      throw new BadRequestException(
+          "INVALID_COUNSELOR_ID", "assignedCounselorId must be a positive number");
+    }
+    if (startedFrom != null && startedTo != null && startedFrom.isAfter(startedTo)) {
+      throw new BadRequestException(
+          "INVALID_DATE_RANGE", "startedFrom must be before or equal to startedTo");
     }
 
     ChatSessionStatus sessionStatus = null;
@@ -224,14 +248,19 @@ public class CounselorService {
       }
     }
 
+    String normalizedKeyword = normalizeKeyword(keyword);
+    OffsetDateTime startedFromDateTime = toStartOfDay(startedFrom);
+    OffsetDateTime startedBeforeDateTime = toExclusiveEndDate(startedTo);
     PageRequest pageRequest = PageRequest.of(page, size);
-    Page<ChatSession> sessionPage;
-    if (sessionStatus != null) {
-      sessionPage =
-          chatSessionRepository.findByWorkspaceIdAndStatus(workspaceId, sessionStatus, pageRequest);
-    } else {
-      sessionPage = chatSessionRepository.findByWorkspaceId(workspaceId, pageRequest);
-    }
+    Page<ChatSession> sessionPage =
+        chatSessionRepository.searchByWorkspace(
+            workspaceId,
+            sessionStatus != null ? sessionStatus.name() : null,
+            normalizedKeyword,
+            startedFromDateTime,
+            startedBeforeDateTime,
+            assignedCounselorId,
+            pageRequest);
 
     List<ChatSessionResponse> content =
         sessionPage.getContent().stream()
@@ -269,5 +298,31 @@ public class CounselorService {
       throw new BadRequestException(
           "UNSUPPORTED_RESPONSE_MODE", "Unsupported response mode: " + responseMode);
     }
+  }
+
+  private String normalizeKeyword(String keyword) {
+    if (keyword == null || keyword.isBlank()) {
+      return null;
+    }
+    return keyword
+        .trim()
+        .toLowerCase(Locale.ROOT)
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_");
+  }
+
+  private OffsetDateTime toStartOfDay(LocalDate date) {
+    if (date == null) {
+      return null;
+    }
+    return date.atStartOfDay(HISTORY_FILTER_ZONE).toOffsetDateTime();
+  }
+
+  private OffsetDateTime toExclusiveEndDate(LocalDate date) {
+    if (date == null) {
+      return null;
+    }
+    return date.plusDays(1).atStartOfDay(HISTORY_FILTER_ZONE).toOffsetDateTime();
   }
 }

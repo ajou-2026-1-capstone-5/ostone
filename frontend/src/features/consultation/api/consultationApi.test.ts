@@ -278,6 +278,45 @@ describe("consultationApi", () => {
     );
   });
 
+  it("getSessionPage가 검색/필터 파라미터를 전달하고 page envelope를 반환한다", async () => {
+    const stubSessions: ChatSessionResponse[] = [];
+    mockedCustomFetch.mockResolvedValue({
+      data: {
+        content: stubSessions,
+        page: 1,
+        size: 20,
+        totalElements: 24,
+        totalPages: 2,
+      },
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getSessionPage(2, {
+      status: "COMPLETED",
+      keyword: "환불",
+      startedFrom: "2026-05-01",
+      startedTo: "2026-05-31",
+      assignedCounselorId: 42,
+      page: 1,
+      size: 20,
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/consultation/sessions?status=COMPLETED&keyword=%ED%99%98%EB%B6%88&startedFrom=2026-05-01&startedTo=2026-05-31&assignedCounselorId=42&page=1&size=20",
+      {
+        method: "GET",
+      },
+    );
+    expect(result).toEqual({
+      content: stubSessions,
+      page: 1,
+      size: 20,
+      totalElements: 24,
+      totalPages: 2,
+    });
+  });
+
   it("getMessages가 params 없이 호출되면 generated 함수를 사용한다", async () => {
     const stubMessages: ChatMessageResponse[] = [];
     mockedGetMessages.mockResolvedValue({

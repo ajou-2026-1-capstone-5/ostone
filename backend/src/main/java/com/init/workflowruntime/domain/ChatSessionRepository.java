@@ -1,5 +1,6 @@
 package com.init.workflowruntime.domain;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -35,4 +36,13 @@ public interface ChatSessionRepository {
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
 
   Page<ChatSession> findAll(Pageable pageable);
+
+  Page<ChatSession> searchByWorkspace(
+      Long workspaceId,
+      String status,
+      String keyword,
+      OffsetDateTime startedFrom,
+      OffsetDateTime startedBefore,
+      Long assignedCounselorId,
+      Pageable pageable);
 }
