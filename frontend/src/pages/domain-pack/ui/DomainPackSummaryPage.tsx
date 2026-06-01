@@ -134,7 +134,7 @@ function DomainPackSummaryPageContent({
     onSuccess: async (result, variables) => {
       const activatedVersionId = resolveActivatedVersionId(result, variables.versionId);
       const activatedDescription =
-        resolveActivatedDescription(result) ?? normalizeOptionalText(variables.description);
+        resolveActivatedDescription(result) ?? normalizeDescription(variables.description);
       updateVersionDescriptionCache(
         queryClient,
         variables.workspaceId,
@@ -314,8 +314,8 @@ function resolveVersionActionErrorMessage(error: unknown, fallback: string): str
 }
 
 function buildActivateRequest(description?: string): RequestInit | undefined {
-  const normalizedDescription = normalizeOptionalText(description);
-  if (!normalizedDescription) return undefined;
+  const normalizedDescription = normalizeDescription(description);
+  if (normalizedDescription === undefined) return undefined;
 
   return {
     headers: { "Content-Type": "application/json" },
@@ -323,9 +323,8 @@ function buildActivateRequest(description?: string): RequestInit | undefined {
   };
 }
 
-function normalizeOptionalText(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed || undefined;
+function normalizeDescription(value?: string): string | undefined {
+  return value === undefined ? undefined : value.trim();
 }
 
 function updateVersionDescriptionCache(
@@ -411,7 +410,7 @@ function resolveActivatedDescription(result: unknown): string | undefined {
 }
 
 function readOptionalString(value: unknown): string | undefined {
-  return typeof value === "string" ? normalizeOptionalText(value) : undefined;
+  return typeof value === "string" ? value.trim() : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

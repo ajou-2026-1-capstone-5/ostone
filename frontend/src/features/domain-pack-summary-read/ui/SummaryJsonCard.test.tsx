@@ -42,11 +42,12 @@ describe("SummaryJsonCard", () => {
     expect(screen.queryByText("내용 없음")).not.toBeInTheDocument();
   });
 
-  it("summaryJson finalMessage를 도메인팩 정보 요약에 렌더링한다", () => {
+  it("summaryJson finalMessage는 변경사항 정리로 렌더링하지 않는다", () => {
     render(<SummaryJsonCard summaryJson='{"finalMessage":"확인 항목을 보강했습니다."}' />);
 
     expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
-    expect(screen.getByText("확인 항목을 보강했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
+    expect(screen.queryByText("확인 항목을 보강했습니다.")).not.toBeInTheDocument();
   });
 
   it("summaryJson draftSource.reason은 변경사항 정리로 렌더링하지 않는다", () => {

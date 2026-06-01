@@ -98,7 +98,7 @@ public class ActivateDomainPackVersionUseCase {
     }
 
     try {
-      version.activate(OffsetDateTime.now(clock), normalizeOptionalText(command.description()));
+      version.activate(OffsetDateTime.now(clock), normalizeDescription(command.description()));
     } catch (IllegalStateException e) {
       throw new DomainPackVersionInvalidStateException(e.getMessage());
     }
@@ -115,11 +115,10 @@ public class ActivateDomainPackVersionUseCase {
     }
   }
 
-  private static String normalizeOptionalText(String value) {
+  private static String normalizeDescription(String value) {
     if (value == null) {
       return null;
     }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? null : trimmed;
+    return value.trim();
   }
 }

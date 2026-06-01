@@ -87,6 +87,9 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
       <button type="button" onClick={() => onApplyDraft(5, "변경사항 정리 메모")}>
         apply draft
       </button>
+      <button type="button" onClick={() => onApplyDraft(5, "")}>
+        apply empty draft
+      </button>
       <button type="button" onClick={() => onDiscardDraft(5)}>
         delete draft
       </button>
@@ -494,6 +497,33 @@ describe("DomainPackSummaryPage", () => {
       expect.objectContaining({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: "변경사항 정리 메모" }),
+      }),
+    );
+  });
+
+  it("Draft 적용 버튼 클릭 시 빈 변경사항 정리도 activate API에 전달한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply empty draft" }));
+
+    await waitFor(() => expect(activate).toHaveBeenCalled());
+    expect(activate).toHaveBeenCalledWith(
+      1,
+      2,
+      5,
+      expect.objectContaining({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "" }),
       }),
     );
   });

@@ -406,6 +406,32 @@ describe("SummaryDetailPanel", () => {
     expect(onApplyDraft).toHaveBeenCalledWith(3, "상담 유형명을 정리했습니다.");
   });
 
+  it("Draft 적용 확인 시 빈 변경사항 정리도 전달한다", () => {
+    const onApplyDraft = vi.fn();
+
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            description: "기존 수정 메모",
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onApplyDraft={onApplyDraft}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+    fireEvent.change(screen.getByLabelText("변경사항 정리"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "적용하기" }));
+
+    expect(onApplyDraft).toHaveBeenCalledWith(3, "");
+  });
+
   it("Draft 적용 확인 다이얼로그에 대상 draft 버전과 수정 반영 정보를 표시한다", () => {
     renderSummaryDetailPanel(
       <SummaryDetailPanel

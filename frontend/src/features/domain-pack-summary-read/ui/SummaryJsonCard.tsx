@@ -105,7 +105,6 @@ function buildRevisionChanges(summary?: IntentRevisionSummary): RevisionChangeIt
 function buildSummary(data: SummaryData, revisionSummary?: IntentRevisionSummary) {
   const topic = typeof data.topic === "string" ? data.topic.trim() : "";
   const draftSource = firstValue(data, [["draftSource"]]);
-  const finalMessage = typeof data.finalMessage === "string" ? data.finalMessage.trim() : "";
   const source = firstValue(data, [["generation", "source"], ["source"], ["sourceType"]]);
   const clusterCount = firstValue(data, [["generation", "clusterCount"], ["clusterCount"]]);
   const needsReviewCount = firstValue(data, [["review", "needsReviewCount"], ["needsReviewCount"]]);
@@ -143,7 +142,7 @@ function buildSummary(data: SummaryData, revisionSummary?: IntentRevisionSummary
   ];
   const revisionChanges = buildRevisionChanges(revisionSummary);
 
-  return { topic, finalMessage, highlights, metrics, issues, revisionChanges };
+  return { topic, highlights, metrics, issues, revisionChanges };
 }
 
 interface SummaryJsonCardProps {
@@ -234,7 +233,7 @@ function ReadableSummary({
   revisionSummaryError,
 }: Readonly<ReadableSummaryProps>) {
   const summary = buildSummary(data, revisionSummary);
-  const normalizedFinalMessage = finalMessage?.trim() || summary.finalMessage;
+  const normalizedFinalMessage = finalMessage?.trim() ?? "";
   const hasRevisionSummary = revisionSummary !== undefined;
   const revisionChangeContent = renderRevisionChangeContent({
     changes: summary.revisionChanges,

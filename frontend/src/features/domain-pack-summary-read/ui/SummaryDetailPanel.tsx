@@ -77,7 +77,7 @@ export function SummaryDetailPanel({
   };
   const handleConfirmApply = () => {
     if (!canApplyDraft) return;
-    onApplyDraft(versionId, normalizeOptionalText(applyDescription));
+    onApplyDraft(versionId, normalizeDescription(applyDescription));
     setApplyDialogOpen(false);
   };
   const handleConfirmDiscard = () => {
@@ -487,9 +487,8 @@ function readTrimmedString(value: unknown): string | null {
   return trimmed || null;
 }
 
-function normalizeOptionalText(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed || undefined;
+function normalizeDescription(value: string): string {
+  return value.trim();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
