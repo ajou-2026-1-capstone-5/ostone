@@ -123,6 +123,7 @@ jobs:
             --cluster ostone-prod-cluster \
             --service ostone-backend \
             --task-definition "$NEW_TASK_DEF_ARN" \
+            --desired-count 1 \
             --force-new-deployment \
             --region ap-northeast-2
           aws ecs wait services-stable \

@@ -143,7 +143,7 @@ resource "aws_cloudfront_distribution" "frontend" {
 
 # Route53 A record → CloudFront
 resource "aws_route53_record" "app" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = local.route53_zone_id
   name    = "app.${var.domain_name}"
   type    = "A"
 

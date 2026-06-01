@@ -25,23 +25,10 @@ data "aws_iam_policy_document" "observability_kms" {
     resources = ["*"]
   }
 
-  statement {
-    sid = "AllowSns"
-    principals {
-      type        = "Service"
-      identifiers = ["sns.amazonaws.com"]
-    }
-    actions = [
-      "kms:Decrypt",
-      "kms:GenerateDataKey",
-      "kms:DescribeKey"
-    ]
-    resources = ["*"]
-  }
 }
 
 resource "aws_kms_key" "observability" {
-  description             = "KMS key for ${local.name_prefix} CloudWatch Logs and SNS alerts."
+  description             = "KMS key for ${local.name_prefix} CloudWatch Logs."
   deletion_window_in_days = 30
   enable_key_rotation     = true
   policy                  = data.aws_iam_policy_document.observability_kms.json

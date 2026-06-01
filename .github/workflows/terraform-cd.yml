@@ -21,10 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_domain_name: ${{ vars.PROD_DOMAIN_NAME }}
+      TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
+      TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
       TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
       TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
       TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
-      TF_VAR_sns_email: ${{ vars.PROD_SNS_EMAIL }}
       TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
       TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
       TF_VAR_gpu_asg_desired_capacity: ${{ vars.PROD_GPU_ASG_DESIRED_CAPACITY || '0' }}
@@ -33,6 +34,9 @@ jobs:
       TF_VAR_llm_model_name: ${{ vars.PROD_LLM_MODEL_NAME || 'Qwen/Qwen3-14B' }}
       TF_VAR_llm_model_path: ${{ vars.PROD_LLM_MODEL_PATH || '/models/model.gguf' }}
       TF_VAR_llm_service_desired_count: ${{ vars.PROD_LLM_SERVICE_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_desired_count: ${{ vars.PROD_BACKEND_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_autoscaling_min_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MIN_CAPACITY || '0' }}
+      TF_VAR_backend_autoscaling_max_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
       TF_VAR_db_master_password: ${{ secrets.PROD_DB_MASTER_PASSWORD }}
       TF_VAR_app_db_password: ${{ secrets.PROD_APP_DB_PASSWORD }}
       TF_VAR_airflow_db_password: ${{ secrets.PROD_AIRFLOW_DB_PASSWORD }}
@@ -71,7 +75,6 @@ jobs:
             TF_VAR_domain_name
             TF_VAR_admin_cidr
             TF_VAR_airflow_api_base_url
-            TF_VAR_sns_email
             TF_VAR_db_master_password
             TF_VAR_app_db_password
             TF_VAR_airflow_db_password
@@ -113,10 +116,11 @@ jobs:
     environment: prod
     env:
       TF_VAR_domain_name: ${{ vars.PROD_DOMAIN_NAME }}
+      TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
+      TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
       TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
       TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
       TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
-      TF_VAR_sns_email: ${{ vars.PROD_SNS_EMAIL }}
       TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
       TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
       TF_VAR_gpu_asg_desired_capacity: ${{ vars.PROD_GPU_ASG_DESIRED_CAPACITY || '0' }}
@@ -125,6 +129,9 @@ jobs:
       TF_VAR_llm_model_name: ${{ vars.PROD_LLM_MODEL_NAME || 'Qwen/Qwen3-14B' }}
       TF_VAR_llm_model_path: ${{ vars.PROD_LLM_MODEL_PATH || '/models/model.gguf' }}
       TF_VAR_llm_service_desired_count: ${{ vars.PROD_LLM_SERVICE_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_desired_count: ${{ vars.PROD_BACKEND_DESIRED_COUNT || '0' }}
+      TF_VAR_backend_autoscaling_min_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MIN_CAPACITY || '0' }}
+      TF_VAR_backend_autoscaling_max_capacity: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
       TF_VAR_db_master_password: ${{ secrets.PROD_DB_MASTER_PASSWORD }}
       TF_VAR_app_db_password: ${{ secrets.PROD_APP_DB_PASSWORD }}
       TF_VAR_airflow_db_password: ${{ secrets.PROD_AIRFLOW_DB_PASSWORD }}
@@ -160,7 +167,6 @@ jobs:
             TF_VAR_domain_name
             TF_VAR_admin_cidr
             TF_VAR_airflow_api_base_url
-            TF_VAR_sns_email
             TF_VAR_db_master_password
             TF_VAR_app_db_password
             TF_VAR_airflow_db_password

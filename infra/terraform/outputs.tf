@@ -90,7 +90,12 @@ output "s3_bucket_names" {
 
 output "route53_zone_id" {
   description = "Route53 hosted zone ID."
-  value       = aws_route53_zone.main.zone_id
+  value       = local.route53_zone_id
+}
+
+output "route53_name_servers" {
+  description = "Name servers for the Terraform-created hosted zone. Empty when using an existing hosted zone."
+  value       = local.route53_name_servers
 }
 
 output "acm_certificate_arn" {

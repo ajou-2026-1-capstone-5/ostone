@@ -67,7 +67,7 @@ resource "aws_lb_listener" "backend_http" {
 
 # Route53 A record for api.${domain_name} -> ALB
 resource "aws_route53_record" "api" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = local.route53_zone_id
   name    = "api.${var.domain_name}"
   type    = "A"
 

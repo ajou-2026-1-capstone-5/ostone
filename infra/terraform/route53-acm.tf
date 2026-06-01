@@ -1,9 +1,26 @@
+data "aws_route53_zone" "main" {
+  count = trimspace(var.route53_zone_id) == "" && !var.manage_route53_zone ? 1 : 0
+
+  name         = var.domain_name
+  private_zone = false
+}
+
 resource "aws_route53_zone" "main" {
+  count = var.manage_route53_zone ? 1 : 0
+
   name = var.domain_name
 
   tags = {
     Name = var.domain_name
   }
+}
+
+locals {
+  route53_zone_id = trimspace(var.route53_zone_id) != "" ? trimspace(var.route53_zone_id) : (
+    var.manage_route53_zone ? aws_route53_zone.main[0].zone_id : data.aws_route53_zone.main[0].zone_id
+  )
+
+  route53_name_servers = var.manage_route53_zone ? aws_route53_zone.main[0].name_servers : []
 }
 
 resource "aws_acm_certificate" "regional" {
@@ -54,7 +71,7 @@ locals {
 resource "aws_route53_record" "acm_validation" {
   for_each = local.acm_validation_records
 
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = local.route53_zone_id
   name    = each.value.name
   type    = each.value.type
   ttl     = 60

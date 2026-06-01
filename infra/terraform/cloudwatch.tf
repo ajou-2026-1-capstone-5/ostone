@@ -1,24 +1,4 @@
 # =============================================================================
-# SNS Topic for Alarm Notifications
-# =============================================================================
-
-resource "aws_sns_topic" "alerts" {
-  name              = "${local.name_prefix}-alerts"
-  kms_master_key_id = aws_kms_key.observability.arn
-
-  tags = local.common_tags
-}
-
-resource "aws_sns_topic_subscription" "alerts_email" {
-  topic_arn = aws_sns_topic.alerts.arn
-  protocol  = "email"
-  endpoint  = var.sns_email
-
-  # After terraform apply, confirm the subscription via the email received
-  # from AWS SNS. The subscription remains PendingConfirmation until confirmed.
-}
-
-# =============================================================================
 # CloudWatch Metric Alarms
 # =============================================================================
 
@@ -40,9 +20,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
     LoadBalancer = aws_lb.backend.arn_suffix
     TargetGroup  = aws_lb_target_group.backend.arn_suffix
   }
-
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
 
   tags = local.common_tags
 }
@@ -66,9 +43,6 @@ resource "aws_cloudwatch_metric_alarm" "ecs_backend_cpu" {
     ServiceName = aws_ecs_service.backend.name
   }
 
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
-
   tags = local.common_tags
 }
 
@@ -89,9 +63,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
   }
-
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
 
   tags = local.common_tags
 }
@@ -114,9 +85,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
   }
 
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
-
   tags = local.common_tags
 }
 
@@ -138,9 +106,6 @@ resource "aws_cloudwatch_metric_alarm" "gpu_cpu" {
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.gpu.name
   }
-
-  alarm_actions = [aws_sns_topic.alerts.arn]
-  ok_actions    = [aws_sns_topic.alerts.arn]
 
   tags = local.common_tags
 }
