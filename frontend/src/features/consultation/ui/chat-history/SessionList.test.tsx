@@ -138,7 +138,19 @@ describe("SessionList", () => {
     expect(onSelect).toHaveBeenCalledWith("7");
   });
 
-  it("검색과 페이지 이동 이벤트를 전달한다", () => {
+  it("검색어 입력 중에는 필터 변경을 전달하지 않는다", () => {
+    const onFiltersChange = vi.fn();
+    renderSessionList({
+      sessions: [makeSession(7)],
+      onFiltersChange,
+    });
+
+    fireEvent.change(screen.getByLabelText("상담 기록 검색"), { target: { value: "배송" } });
+
+    expect(onFiltersChange).not.toHaveBeenCalled();
+  });
+
+  it("검색어 제출과 페이지 이동 이벤트를 전달한다", () => {
     const onFiltersChange = vi.fn();
     const onPageChange = vi.fn();
     renderSessionList({
@@ -150,9 +162,66 @@ describe("SessionList", () => {
     });
 
     fireEvent.change(screen.getByLabelText("상담 기록 검색"), { target: { value: "배송" } });
+    fireEvent.click(screen.getByRole("button", { name: "검색어로 상담 기록 검색" }));
     fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
 
     expect(onFiltersChange).toHaveBeenCalledWith({ keyword: "배송" });
     expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("기존 검색어와 같은 값은 다시 제출하지 않는다", () => {
+    const onFiltersChange = vi.fn();
+    renderSessionList({
+      filters: {
+        keyword: "배송",
+        status: "COMPLETED",
+        startedFrom: "",
+        startedTo: "",
+        assignedCounselorId: "",
+      },
+      onFiltersChange,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "검색어로 상담 기록 검색" }));
+
+    expect(onFiltersChange).not.toHaveBeenCalled();
+  });
+
+  it("외부 필터 검색어가 바뀌면 입력값을 동기화한다", () => {
+    const { rerender } = renderSessionList({
+      filters: {
+        keyword: "배송",
+        status: "COMPLETED",
+        startedFrom: "",
+        startedTo: "",
+        assignedCounselorId: "",
+      },
+    });
+
+    expect(screen.getByLabelText("상담 기록 검색")).toHaveValue("배송");
+
+    rerender(
+      <SessionList
+        sessions={[]}
+        selectedSessionId={null}
+        onSelectSession={vi.fn()}
+        filters={{
+          keyword: "",
+          status: "COMPLETED",
+          startedFrom: "",
+          startedTo: "",
+          assignedCounselorId: "",
+        }}
+        onFiltersChange={vi.fn()}
+        onResetFilters={vi.fn()}
+        page={0}
+        totalPages={0}
+        totalElements={0}
+        onPageChange={vi.fn()}
+        onRetry={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("상담 기록 검색")).toHaveValue("");
   });
 });

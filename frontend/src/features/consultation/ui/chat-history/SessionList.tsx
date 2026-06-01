@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, RotateCcwIcon, SearchIcon } from "lucide-react";
 import { EmptyState, ErrorState, Eyebrow, LoadingSpinner } from "@/shared/ui/ostone/atoms";
 import {
@@ -33,9 +34,41 @@ interface SessionListProps {
   onRetry: () => void;
 }
 
+interface KeywordSearchFormProps {
+  keyword: string;
+  onSubmitKeyword: (keyword: string) => void;
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "채팅 기록을 불러오지 못했습니다";
+}
+
+function KeywordSearchForm({ keyword, onSubmitKeyword }: KeywordSearchFormProps) {
+  const [keywordDraft, setKeywordDraft] = useState(keyword);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (keywordDraft === keyword) return;
+    onSubmitKeyword(keywordDraft);
+  };
+
+  return (
+    <form className={styles.searchBox} onSubmit={handleSubmit}>
+      <SearchIcon size={14} className={styles.searchIcon} aria-hidden="true" />
+      <input
+        aria-label="상담 기록 검색"
+        value={keywordDraft}
+        onChange={(event) => setKeywordDraft(event.target.value)}
+        placeholder="고객명, 키워드"
+        className={styles.searchInput}
+      />
+      <button type="submit" className={styles.searchButton} aria-label="검색어로 상담 기록 검색">
+        <SearchIcon size={14} aria-hidden="true" />
+      </button>
+    </form>
+  );
 }
 
 export function SessionList({
@@ -122,16 +155,11 @@ export function SessionList({
       </div>
 
       <div className={styles.filters} aria-label="상담 기록 검색 필터">
-        <label className={styles.searchBox}>
-          <SearchIcon size={14} className={styles.searchIcon} aria-hidden="true" />
-          <input
-            aria-label="상담 기록 검색"
-            value={filters.keyword}
-            onChange={(event) => onFiltersChange({ keyword: event.target.value })}
-            placeholder="고객명, 키워드"
-            className={styles.searchInput}
-          />
-        </label>
+        <KeywordSearchForm
+          key={filters.keyword}
+          keyword={filters.keyword}
+          onSubmitKeyword={(keyword) => onFiltersChange({ keyword })}
+        />
 
         <label className={styles.field}>
           <span>상태</span>
