@@ -1,4 +1,8 @@
 import { useState, useMemo } from "react";
+import type {
+  IntentRevisionSummary,
+  WorkflowRevisionChangedField,
+} from "@/shared/lib/domainPackRevisionSummary";
 import { parseSummaryJson } from "../model/parseSummaryJson";
 import styles from "./SummaryJsonCard.module.css";
 
@@ -7,6 +11,13 @@ type SummaryData = Record<string, unknown>;
 interface SummaryItem {
   label: string;
   value: string;
+}
+
+interface RevisionChangeItem {
+  type: "상담 유형" | "응대 흐름";
+  code: string;
+  name: string;
+  fields: string;
 }
 
 function renderValue(v: unknown): string {
@@ -66,7 +77,32 @@ function readStringList(value: unknown): string[] {
     .filter((item): item is string => Boolean(item));
 }
 
-function buildSummary(data: SummaryData) {
+function workflowFieldLabel(field: WorkflowRevisionChangedField): string {
+  if (field === "graphText") return "그래프 텍스트";
+  if (field === "graphStructure") return "그래프 구조";
+  if (field === "name") return "이름";
+  return "설명";
+}
+
+function buildRevisionChanges(summary?: IntentRevisionSummary): RevisionChangeItem[] {
+  if (!summary) return [];
+  return [
+    ...summary.changedIntents.map((change) => ({
+      type: "상담 유형" as const,
+      code: change.intentCode,
+      name: change.name,
+      fields: change.fields.map((field) => (field === "name" ? "이름" : "설명")).join(", "),
+    })),
+    ...summary.changedWorkflows.map((change) => ({
+      type: "응대 흐름" as const,
+      code: change.workflowCode,
+      name: change.name,
+      fields: change.fields.map(workflowFieldLabel).join(", "),
+    })),
+  ];
+}
+
+function buildSummary(data: SummaryData, revisionSummary?: IntentRevisionSummary) {
   const topic = typeof data.topic === "string" ? data.topic.trim() : "";
   const source = firstValue(data, [["generation", "source"], ["source"], ["sourceType"]]);
   const clusterCount = firstValue(data, [["generation", "clusterCount"], ["clusterCount"]]);
@@ -104,15 +140,31 @@ function buildSummary(data: SummaryData) {
     ...readStringList(firstValue(data, [["review", "topIssues"], ["topIssues"]])),
     ...readStringList(firstValue(data, [["review", "issues"], ["issues"]])),
   ];
+  const revisionChanges = buildRevisionChanges(revisionSummary);
 
-  return { topic, highlights, metrics, issues };
+  return { topic, highlights, metrics, issues, revisionChanges };
 }
 
 interface SummaryJsonCardProps {
   summaryJson: string;
+  revisionSummary?: IntentRevisionSummary;
+  isRevisionSummaryLoading?: boolean;
+  revisionSummaryError?: string | null;
 }
 
-export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
+interface ReadableSummaryProps {
+  data: SummaryData;
+  revisionSummary?: IntentRevisionSummary;
+  isRevisionSummaryLoading: boolean;
+  revisionSummaryError: string | null;
+}
+
+export function SummaryJsonCard({
+  summaryJson,
+  revisionSummary,
+  isRevisionSummaryLoading = false,
+  revisionSummaryError = null,
+}: Readonly<SummaryJsonCardProps>) {
   const [mode, setMode] = useState<"card" | "raw">("card");
 
   const parsed = useMemo(() => parseSummaryJson(summaryJson), [summaryJson]);
@@ -149,7 +201,12 @@ export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
               </p>
             )}
             {parsed.ok ? (
-              <ReadableSummary data={parsed.data} />
+              <ReadableSummary
+                data={parsed.data}
+                revisionSummary={revisionSummary}
+                isRevisionSummaryLoading={isRevisionSummaryLoading}
+                revisionSummaryError={revisionSummaryError}
+              />
             ) : (
               <pre className={styles.rawPre}>
                 <code>{parsed.raw}</code>
@@ -164,15 +221,31 @@ export function SummaryJsonCard({ summaryJson }: SummaryJsonCardProps) {
   );
 }
 
-function ReadableSummary({ data }: { data: SummaryData }) {
-  const summary = buildSummary(data);
+function ReadableSummary({
+  data,
+  revisionSummary,
+  isRevisionSummaryLoading,
+  revisionSummaryError,
+}: Readonly<ReadableSummaryProps>) {
+  const summary = buildSummary(data, revisionSummary);
+  const hasRevisionSummary = revisionSummary !== undefined;
   const hasContent =
     summary.topic ||
     summary.highlights.length > 0 ||
     summary.metrics.length > 0 ||
-    summary.issues.length > 0;
+    summary.issues.length > 0 ||
+    summary.revisionChanges.length > 0 ||
+    hasRevisionSummary ||
+    isRevisionSummaryLoading ||
+    revisionSummaryError;
 
   if (!hasContent) return <span className={styles.empty}>내용 없음</span>;
+
+  const revisionChangeContent = renderRevisionChangeContent({
+    changes: summary.revisionChanges,
+    isLoading: isRevisionSummaryLoading,
+    error: revisionSummaryError,
+  });
 
   return (
     <div className={styles.summaryLayout}>
@@ -208,6 +281,16 @@ function ReadableSummary({ data }: { data: SummaryData }) {
         </section>
       )}
 
+      {(summary.revisionChanges.length > 0 ||
+        hasRevisionSummary ||
+        isRevisionSummaryLoading ||
+        revisionSummaryError) && (
+        <section className={styles.summarySection}>
+          <h4 className={styles.summarySectionTitle}>구성 변경</h4>
+          {revisionChangeContent}
+        </section>
+      )}
+
       {summary.issues.length > 0 && (
         <section className={styles.summarySection}>
           <h4 className={styles.summarySectionTitle}>검토 포인트</h4>
@@ -222,13 +305,42 @@ function ReadableSummary({ data }: { data: SummaryData }) {
   );
 }
 
+function renderRevisionChangeContent({
+  changes,
+  isLoading,
+  error,
+}: Readonly<{
+  changes: RevisionChangeItem[];
+  isLoading: boolean;
+  error: string | null;
+}>) {
+  if (isLoading) return <span className={styles.empty}>변경 요약 계산 중</span>;
+  if (error) return <span className={styles.empty}>{error}</span>;
+  if (changes.length === 0) {
+    return <span className={styles.empty}>변경된 구성 요소가 없습니다.</span>;
+  }
+
+  return (
+    <ul className={styles.changeList}>
+      {changes.map((change) => (
+        <li key={`${change.type}-${change.code}`}>
+          <span className={styles.changeType}>{change.type}</span>
+          <strong>{change.name || change.code}</strong>
+          <span className={styles.changeCode}>{change.code}</span>
+          <span>{change.fields}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function StructuredJsonView({
   parsed,
   raw,
-}: {
+}: Readonly<{
   parsed: ReturnType<typeof parseSummaryJson>;
   raw: string;
-}) {
+}>) {
   if (!parsed.ok) {
     return (
       <pre className={styles.rawPre}>
@@ -252,7 +364,7 @@ function StructuredJsonView({
   );
 }
 
-function JsonValue({ value }: { value: unknown }) {
+function JsonValue({ value }: Readonly<{ value: unknown }>) {
   if (isRecord(value) || Array.isArray(value)) {
     return <code className={styles.jsonCode}>{JSON.stringify(value, null, 2)}</code>;
   }

@@ -62,6 +62,92 @@ describe("SummaryJsonCard", () => {
     expect(screen.queryByText(/INTENT_REVISION/)).not.toBeInTheDocument();
   });
 
+  it("revision summary가 있으면 intent와 workflow 변경을 구성 변경으로 구분해 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        revisionSummary={{
+          changedIntents: [
+            {
+              intentId: 10,
+              intentCode: "refund",
+              name: "환불 문의",
+              fields: ["name"],
+              before: { name: "환불", description: "" },
+              after: { name: "환불 문의", description: "" },
+            },
+          ],
+          changedWorkflows: [
+            {
+              workflowId: 20,
+              workflowCode: "refund-flow",
+              name: "환불 응대 흐름",
+              fields: ["name", "graphText", "graphStructure"],
+              before: { name: "환불 흐름", description: "", nodeCount: 2, edgeCount: 1 },
+              after: { name: "환불 응대 흐름", description: "", nodeCount: 3, edgeCount: 2 },
+            },
+          ],
+          changedFieldCounts: { name: 1, description: 0 },
+          changedWorkflowFieldCounts: { name: 1, description: 0, graphText: 1, graphStructure: 1 },
+          changedByDraftIntentId: {},
+          changedByDraftWorkflowId: {},
+          totalChangedComponents: 2,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("상담 유형")).toBeInTheDocument();
+    expect(screen.getByText("환불 문의")).toBeInTheDocument();
+    expect(screen.getByText("응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("환불 응대 흐름")).toBeInTheDocument();
+    expect(screen.getByText("이름, 그래프 텍스트, 그래프 구조")).toBeInTheDocument();
+  });
+
+  it("revision summary가 있고 변경된 구성 요소가 없으면 empty 문구를 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        revisionSummary={{
+          changedIntents: [],
+          changedWorkflows: [],
+          changedFieldCounts: { name: 0, description: 0 },
+          changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
+          changedByDraftIntentId: {},
+          changedByDraftWorkflowId: {},
+          totalChangedComponents: 0,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("변경된 구성 요소가 없습니다.")).toBeInTheDocument();
+  });
+
+  it("revision summary 계산 중이면 구성 변경 로딩 문구를 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        isRevisionSummaryLoading
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("변경 요약 계산 중")).toBeInTheDocument();
+  });
+
+  it("revision summary 조회 실패 문구를 구성 변경 영역에 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        revisionSummaryError="도메인팩 변경 요약을 불러오지 못했습니다."
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("도메인팩 변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
   it("빈 JSON 객체는 '내용 없음'을 표시한다", () => {
     render(<SummaryJsonCard summaryJson="{}" />);
     expect(screen.getByText("내용 없음")).toBeInTheDocument();

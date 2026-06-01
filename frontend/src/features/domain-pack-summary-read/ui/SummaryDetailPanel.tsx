@@ -14,6 +14,7 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { SummaryJsonCard } from "./SummaryJsonCard";
 import { ComponentCountGrid } from "./ComponentCountGrid";
+import { useDomainPackRevisionSummary } from "../model/useDomainPackRevisionSummary";
 import styles from "./SummaryDetailPanel.module.css";
 
 interface SummaryDetailPanelProps {
@@ -61,6 +62,12 @@ export function SummaryDetailPanel({
     onApplyDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
   const canDiscardDraft =
     onDiscardDraft != null && versionId != null && isDraftVersion && !isApplying && !isDiscarding;
+  const revisionSummaryState = useDomainPackRevisionSummary({
+    workspaceId: wsId,
+    packId,
+    versionId,
+    summaryJson: v?.summaryJson,
+  });
 
   const handleConfirmDeploy = () => {
     if (!canDeploy) return;
@@ -319,7 +326,16 @@ export function SummaryDetailPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
+      <SummaryJsonCard
+        summaryJson={v.summaryJson ?? ""}
+        revisionSummary={
+          revisionSummaryState.status === "ready" ? revisionSummaryState.data : undefined
+        }
+        isRevisionSummaryLoading={revisionSummaryState.status === "loading"}
+        revisionSummaryError={
+          revisionSummaryState.status === "error" ? revisionSummaryState.message : null
+        }
+      />
 
       <div>
         <div className={styles.sectionTitle}>구성요소</div>

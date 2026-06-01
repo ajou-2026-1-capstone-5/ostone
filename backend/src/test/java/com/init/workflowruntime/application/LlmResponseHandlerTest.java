@@ -53,9 +53,11 @@ class LlmResponseHandlerTest {
   @Captor private ArgumentCaptor<ChatMessageResponse> responseCaptor;
 
   private LlmResponseHandler handler;
+  private AiResponseGenerationGuard aiResponseGenerationGuard;
 
   @BeforeEach
   void setUp() {
+    aiResponseGenerationGuard = new AiResponseGenerationGuard();
     handler =
         new LlmResponseHandler(
             llmAssistantService,
@@ -63,7 +65,8 @@ class LlmResponseHandlerTest {
             chatSessionRepository,
             messagingTemplate,
             chatSessionMetadataService,
-            transactionManager);
+            transactionManager,
+            aiResponseGenerationGuard);
   }
 
   @Test
@@ -116,6 +119,30 @@ class LlmResponseHandlerTest {
     ChatMessageResponse pushed = responseCaptor.getValue();
     assertThat(pushed.content()).isEqualTo("안녕하세요! 무엇을 도와드릴까요?");
     assertThat(pushed.senderRole()).isEqualTo("ASSISTANT");
+  }
+
+  @Test
+  @DisplayName("handleChatMessageReceived: 동일 세션 응답 생성 중이면 LLM 호출 없이 안내한다")
+  void should_sendInProgressNotice_when_generationAlreadyRunningForSession() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "추가 질문", 1L);
+    given(chatSessionRepository.findById(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)));
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L)).willReturn(List.of());
+    Optional<AiResponseGenerationGuard.Lease> lease = aiResponseGenerationGuard.tryEnter(1L);
+    assertThat(lease).isPresent();
+
+    try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
+      handler.handleChatMessageReceived(event);
+    }
+
+    verify(llmAssistantService, never()).generateWorkflowAwareResponse(any());
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate).convertAndSend(eq("/topic/chat.1"), responseCaptor.capture());
+
+    ChatMessageResponse pushed = responseCaptor.getValue();
+    assertThat(pushed.senderRole()).isEqualTo("SYSTEM");
+    assertThat(pushed.messageType()).isEqualTo("ERROR");
+    assertThat(pushed.content()).contains(AiResponseGenerationGuard.IN_PROGRESS_CODE);
   }
 
   @Test

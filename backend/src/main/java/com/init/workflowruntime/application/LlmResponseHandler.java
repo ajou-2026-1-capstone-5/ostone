@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class LlmResponseHandler {
 
   private static final Logger log = LoggerFactory.getLogger(LlmResponseHandler.class);
+  private static final String CHAT_TOPIC_PREFIX = "/topic/chat.";
 
   private final LlmAssistantService llmAssistantService;
   private final ChatMessageRepository chatMessageRepository;
@@ -33,6 +34,7 @@ public class LlmResponseHandler {
   private final SimpMessagingTemplate messagingTemplate;
   private final ChatSessionMetadataService chatSessionMetadataService;
   private final TransactionTemplate transactionTemplate;
+  private final AiResponseGenerationGuard aiResponseGenerationGuard;
 
   public LlmResponseHandler(
       LlmAssistantService llmAssistantService,
@@ -40,13 +42,15 @@ public class LlmResponseHandler {
       ChatSessionRepository chatSessionRepository,
       SimpMessagingTemplate messagingTemplate,
       ChatSessionMetadataService chatSessionMetadataService,
-      PlatformTransactionManager transactionManager) {
+      PlatformTransactionManager transactionManager,
+      AiResponseGenerationGuard aiResponseGenerationGuard) {
     this.llmAssistantService = llmAssistantService;
     this.chatMessageRepository = chatMessageRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.messagingTemplate = messagingTemplate;
     this.chatSessionMetadataService = chatSessionMetadataService;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
+    this.aiResponseGenerationGuard = aiResponseGenerationGuard;
   }
 
   @Async(AiConfig.LLM_AUTO_RESPONSE_TASK_EXECUTOR)
@@ -58,22 +62,16 @@ public class LlmResponseHandler {
         return;
       }
 
-      String llmResponse =
-          llmAssistantService
-              .generateWorkflowAwareResponse(
-                  new GenerateWorkflowAwareResponseCommand(
-                      event.sessionId(), conversationContext.get(), event.content()))
-              .content();
-
-      Optional<ChatMessage> savedMessage = saveAssistantMessage(event.sessionId(), llmResponse);
-      if (savedMessage.isEmpty()) {
+      Optional<AiResponseGenerationGuard.Lease> lease =
+          aiResponseGenerationGuard.tryEnter(event.sessionId());
+      if (lease.isEmpty()) {
+        sendGenerationInProgressNotice(event.sessionId());
         return;
       }
 
-      ChatMessageResponse response = ChatMessageResponse.from(savedMessage.get());
-      String destination = "/topic/chat." + event.sessionId();
-      messagingTemplate.convertAndSend(destination, response);
-
+      try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
+        generateAndSendResponse(event, conversationContext.get());
+      }
     } catch (Exception e) {
       log.error(
           "LLM response generation failed for session {}: {}",
@@ -84,9 +82,35 @@ public class LlmResponseHandler {
       ChatMessageResponse errorResponse =
           ChatMessageResponse.error("LLM_ERROR", "죄송합니다. 일시적인 오류가 발생했습니다.");
       if (allowsAiAutoResponse(event.sessionId())) {
-        messagingTemplate.convertAndSend("/topic/chat." + event.sessionId(), errorResponse);
+        messagingTemplate.convertAndSend(CHAT_TOPIC_PREFIX + event.sessionId(), errorResponse);
       }
     }
+  }
+
+  private void generateAndSendResponse(ChatMessageReceivedEvent event, String conversationContext) {
+    String llmResponse =
+        llmAssistantService
+            .generateWorkflowAwareResponse(
+                new GenerateWorkflowAwareResponseCommand(
+                    event.sessionId(), conversationContext, event.content()))
+            .content();
+
+    Optional<ChatMessage> savedMessage = saveAssistantMessage(event.sessionId(), llmResponse);
+    if (savedMessage.isEmpty()) {
+      return;
+    }
+
+    ChatMessageResponse response = ChatMessageResponse.from(savedMessage.get());
+    String destination = CHAT_TOPIC_PREFIX + event.sessionId();
+    messagingTemplate.convertAndSend(destination, response);
+  }
+
+  private void sendGenerationInProgressNotice(Long sessionId) {
+    ChatMessageResponse response =
+        ChatMessageResponse.error(
+            AiResponseGenerationGuard.IN_PROGRESS_CODE,
+            AiResponseGenerationGuard.IN_PROGRESS_MESSAGE);
+    messagingTemplate.convertAndSend(CHAT_TOPIC_PREFIX + sessionId, response);
   }
 
   private Optional<String> loadConversationContextIfAutoResponseEnabled(

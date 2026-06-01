@@ -14,8 +14,12 @@ const summary: IntentRevisionSummary = {
       after: { name: "환불 문의", description: "새 설명" },
     },
   ],
+  changedWorkflows: [],
   changedFieldCounts: { name: 1, description: 1 },
+  changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
   changedByDraftIntentId: {},
+  changedByDraftWorkflowId: {},
+  totalChangedComponents: 1,
 };
 
 function renderActions(
@@ -37,7 +41,9 @@ describe("IntentRevisionDraftActions", () => {
   it("변경 요약과 Domain Pack 화면 안내 문구를 보여준다", () => {
     renderActions();
 
-    expect(screen.getByText("변경된 상담 유형 1개")).toBeInTheDocument();
+    expect(
+      screen.getByText("변경된 구성 요소 1개 (상담 유형 1개 · 응대 흐름 0개)"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),
     ).toBeInTheDocument();
@@ -66,7 +72,7 @@ describe("IntentRevisionDraftActions", () => {
     });
 
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
-    expect(screen.queryByText("변경된 상담 유형이 없습니다.")).not.toBeInTheDocument();
+    expect(screen.queryByText("변경된 구성 요소가 없습니다.")).not.toBeInTheDocument();
   });
 
   it("요약 로딩 중에는 로딩 문구와 안내 문구만 보여준다", () => {
@@ -83,11 +89,15 @@ describe("IntentRevisionDraftActions", () => {
     renderActions({
       summary: {
         changedIntents: [],
+        changedWorkflows: [],
         changedFieldCounts: { name: 0, description: 0 },
+        changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
         changedByDraftIntentId: {},
+        changedByDraftWorkflowId: {},
+        totalChangedComponents: 0,
       },
     });
 
-    expect(screen.getByText("변경된 상담 유형이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("변경된 구성 요소가 없습니다.")).toBeInTheDocument();
   });
 });
