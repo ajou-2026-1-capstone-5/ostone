@@ -42,6 +42,10 @@ locals {
       value = "LocalExecutor"
     },
     {
+      name  = "AIRFLOW__DATABASE__SQL_ALCHEMY_SCHEMA"
+      value = "airflow"
+    },
+    {
       name  = "AIRFLOW__API__BASE_URL"
       value = "https://airflow.${var.domain_name}"
     },
@@ -265,6 +269,62 @@ resource "aws_ecs_task_definition" "airflow_init" {
   tags = local.common_tags
 }
 
+resource "terraform_data" "airflow_init" {
+  triggers_replace = {
+    app_secret_version = aws_secretsmanager_secret_version.app.version_id
+    db_bootstrap       = terraform_data.db_bootstrap.id
+    task_definition    = aws_ecs_task_definition.airflow_init.arn
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/sh", "-c"]
+    command = <<-EOT
+      set -eu
+      TASK_ARN=$(aws ecs run-task \
+        --region '${var.aws_region}' \
+        --cluster '${aws_ecs_cluster.main.arn}' \
+        --task-definition '${aws_ecs_task_definition.airflow_init.arn}' \
+        --launch-type FARGATE \
+        --platform-version LATEST \
+        --network-configuration '${jsonencode({
+    awsvpcConfiguration = {
+      subnets        = values(aws_subnet.private)[*].id
+      securityGroups = [aws_security_group.ecs_airflow.id]
+      assignPublicIp = "DISABLED"
+    }
+})}' \
+        --query 'tasks[0].taskArn' \
+        --output text)
+
+      if [ "$TASK_ARN" = "None" ] || [ -z "$TASK_ARN" ]; then
+        echo "Failed to start Airflow init task" >&2
+        exit 1
+      fi
+
+      aws ecs wait tasks-stopped --region '${var.aws_region}' --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN"
+      EXIT_CODE=$(aws ecs describe-tasks \
+        --region '${var.aws_region}' \
+        --cluster '${aws_ecs_cluster.main.arn}' \
+        --tasks "$TASK_ARN" \
+        --query 'tasks[0].containers[0].exitCode' \
+        --output text)
+
+      if [ "$EXIT_CODE" != "0" ]; then
+        aws ecs describe-tasks --region '${var.aws_region}' --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN" >&2
+        exit 1
+      fi
+    EOT
+}
+
+depends_on = [
+  terraform_data.db_bootstrap,
+  aws_iam_role_policy.ecs_airflow_task,
+  aws_iam_role_policy_attachment.ecs_task_execution_managed,
+  aws_security_group_rule.ecs_airflow_egress_rds,
+  aws_security_group_rule.rds_ecs_airflow_ingress
+]
+}
+
 resource "aws_ecs_task_definition" "airflow_apiserver" {
   family                   = "${local.name_prefix}-airflow-apiserver-task"
   network_mode             = "awsvpc"
@@ -279,7 +339,7 @@ resource "aws_ecs_task_definition" "airflow_apiserver" {
       name      = "airflow-apiserver"
       image     = "${aws_ecr_repository.repos["airflow"].repository_url}:latest"
       essential = true
-      command   = ["airflow", "api-server"]
+      command   = ["bash", "-ceu", "/opt/airflow/scripts/write-simple-auth-passwords.sh && exec airflow api-server"]
       portMappings = [
         {
           containerPort = 8080
@@ -395,7 +455,7 @@ resource "aws_ecs_service" "airflow_apiserver" {
 
   depends_on = [
     aws_lb_listener_rule.airflow,
-    terraform_data.db_bootstrap
+    terraform_data.airflow_init
   ]
 
   lifecycle {
@@ -417,7 +477,7 @@ resource "aws_ecs_service" "airflow_scheduler" {
     assign_public_ip = false
   }
 
-  depends_on = [terraform_data.db_bootstrap]
+  depends_on = [terraform_data.airflow_init]
 
   lifecycle {
     ignore_changes = [task_definition]
@@ -438,7 +498,7 @@ resource "aws_ecs_service" "airflow_dag_processor" {
     assign_public_ip = false
   }
 
-  depends_on = [terraform_data.db_bootstrap]
+  depends_on = [terraform_data.airflow_init]
 
   lifecycle {
     ignore_changes = [task_definition]
