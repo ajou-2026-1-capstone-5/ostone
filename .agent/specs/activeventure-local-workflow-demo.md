@@ -1,0 +1,142 @@
+# 액티벤처 하드코딩 워크플로우 로컬 시연 (Seed + Embedding 매칭)
+
+## 1. 목적
+
+`activeventure_100` 상담 로그에서 만든 여행 상담 도메인팩(intent/slot/policy/workflow)을
+**DB 시드로 하드코딩**하여, 외부 LLM이 tool 호출로 워크플로우를 구동하는 데모를 **로컬에서 재현 가능**하게 한다.
+팀원은 이 브랜치를 pull 받고 백엔드를 재기동하면(시드 자동 실행) 동일한 워크플로우를 사용할 수 있다.
+
+ML 파이프라인을 거치지 않고 사람이 직접 도메인팩을 구성한 로컬 데모용 경로이며, 운영 발행/리뷰 경로와는 별개다.
+
+## 2. 동작 개요
+
+```
+사용자 발화
+  → (intent 분류)  ─ 임베딩 ON: 의미 기반 매칭(WorkflowMatchingService)
+                    └ 임베딩 OFF: 렉시컬 토큰 매칭(IntentClassificationService 폴백)
+  → start_workflow (workflow_execution 생성)
+  → 슬롯 수집 (collect_required_info, update_slot 도구)
+  → verify_policy (정책 평가)
+  → 분기: 자동 완료(TERMINAL) 또는 정책 hit 시 상담원 확인(HANDOFF)
+```
+
+- 데모 채팅 진입점(로그인 불필요): `http://localhost:5173/demo/chat/1`
+- 채팅 API: `POST /api/v1/workspaces/1/demo/chat-sessions` → `.../messages`
+- 외부 LLM 도구: `inspect_conversation`, `classify_intent`, `start_workflow`, `update_slot`
+
+## 3. 커밋 범위 (pull 시 자동 반영)
+
+### 3.1 시드 데이터/러너
+- `backend/src/main/resources/seed/activeventure-workflow-candidate.json`
+  - 하드코딩 도메인팩(intent 12, slot 19, policy 12, workflow 12, intentSlotBinding 64).
+- `backend/.../domainpack/infrastructure/ActiveVentureDomainPackSeedRunner.java`
+  - `@Profile({"local","dev"})` ApplicationRunner. workspace 1에 도메인팩을 **PUBLISHED 버전으로 시드**.
+  - 멱등: 이미 published 버전이 있으면 skip. (다시 시드하려면 해당 버전 삭제 후 재기동 — 6절 참고)
+  - 시드 시 다음 **런타임 보정(transform)을 자동 적용**하므로 별도 수동 DB 작업이 필요 없다:
+    1. **always 조건 주입**: 순차 진행 엣지(START/ACTION/HANDOFF 출발)에 `{"type":"always"}`.
+       (시드 원본 graphJson은 순차 엣지 조건이 비어 있어, 없으면 워크플로우가 시작 노드에서 멈춤)
+    2. **requiredTerms → requiredAnyTerms 변환**: intent `entryConditionJson` / workflow `routeConditionJson`.
+       (requiredTerms는 AND-전부 충족이라 자연어로 충족 불가 → OR-하나라도 의미로 치환)
+    3. **autoRunEligible 부여**: 각 workflow `metaJson`에 `autoRunEligible:true`
+       (하드코딩 시드는 replayFitness 평가가 없어 임베딩 autoRun 품질 게이트를 못 넘으므로 명시 부여)
+    4. **정책 시연 엣지**: 취소·환불 워크플로우에 `verify_policy --policy_hit--> handoff` 엣지 주입.
+
+### 3.2 임베딩 클라이언트 (OpenAI)
+- `backend/.../workflowruntime/infrastructure/embedding/OpenAiEmbeddingClient.java` (신규)
+  - OpenAI `/v1/embeddings` 호출. `dimensions=1024`로 요청해 기존 `vector(1024)` 컬럼과 호환(마이그레이션 불필요).
+- `backend/.../workflowruntime/config/EmbeddingConfig.java`
+  - provider 분기 추가: `openai` / `bedrock` / disabled(no-op).
+- `WorkflowMatchingProfileBuildWorker`, `WorkflowMatchingService`: provider/region 메타데이터 일반화("bedrock" 하드코딩 제거).
+
+### 3.3 런타임 버그 수정
+- `WorkflowAssistantStateService`
+  - `updateSlot`: 예외(BadRequestException)를 던지지 않고 상태로 응답 → 공유 트랜잭션 rollback-only로 인한
+    `UnexpectedRollbackException`(500) 방지.
+  - 슬롯 저장은 **백엔드 권위 + LLM slotCode 하이브리드**: LLM이 넘긴 slotCode가 유효하면 그 슬롯에,
+    아니면 현재 요청 슬롯에 저장 → 사용자가 한 메시지에 여러 값을(순서 무관) 줘도 처리.
+  - 헛값 가드: 값이 질문 문장이거나 슬롯 이름 2개 이상을 포함하면(필드 목록) 저장 거부.
+  - ASK_SLOT 안내: 누락된 필수 슬롯을 한 번에 나열해 안내(`composeSlotQuestion`).
+- `IntentClassificationService`: 렉시컬 폴백 모호성 판정을 절대 점수차 → **비율 기반(2위/1위 ≥ 0.8)** 으로 완화.
+- `DemoChatSessionRegistrationService`: 데모 채팅이 `generateWorkflowAwareResponse`(도구 노출 경로)를 사용.
+
+## 4. 개인이 구성해야 할 요소 (`.env`) — ⚠️ git에 올라가지 않음
+
+`.env`는 `.gitignore` 대상이라 **각자 로컬에서 직접 설정**해야 한다. (`.env.example` 복사 후 아래 값 추가)
+
+### 4.1 필수 — 채팅이 동작하려면 OpenAI 키 필요
+```bash
+AI_API_KEY=sk-...            # 각자 본인 OpenAI 키
+AI_BASE_URL=https://api.openai.com
+AI_CHAT_MODEL=gpt-4o-mini    # 데모 검증상 가장 안정적인 도구 호출
+AI_CHAT_TEMPERATURE=0.1      # 도구 호출 일관성 위해 낮게 (gpt-4o-mini/4o는 0.1 지원)
+```
+- 이것만 설정하면(임베딩 미설정) **렉시컬 매칭 모드**로 동작: 명확한 키워드 발화는 잘 분류되고
+  슬롯 수집·정책 HANDOFF까지 동작한다. 의미 기반(패러프레이즈) 매칭과 autoRun은 비활성.
+
+### 4.2 선택 — 임베딩 의미 매칭 + autoRun 활성화
+```bash
+AI_EMBEDDING_ENABLED=true
+AI_EMBEDDING_PROVIDER=openai
+AI_EMBEDDING_MODEL=text-embedding-3-large   # 3-small은 한국어 구분력 약함
+AI_EMBEDDING_DIMENSIONS=1024
+# OpenAI 임베딩 점수 스케일에 맞춘 매칭 임계값 (Cohere 기본값과 다름)
+AI_EMBEDDING_CONFIDENT_THRESHOLD=0.42
+AI_EMBEDDING_AMBIGUOUS_THRESHOLD=0.33
+AI_EMBEDDING_CONFIDENT_MARGIN=0.03
+AI_EMBEDDING_SEMANTIC_FLOOR=0.40
+AI_EMBEDDING_ROUTE_EVIDENCE_FLOOR=0.0
+```
+- 활성화 시: 백엔드 기동 후 프로파일 빌드 워커(30초 주기)가 12개 워크플로우를 임베딩한다(최초 ~1분).
+- 활성화 시 추가로 동작: 패러프레이즈("비행기표"→항공권) 의미 매칭, CONFIDENT 자동 실행(autoRun).
+- `temperature` 주의: gpt-5 계열 모델은 temperature 0.1을 거부(기본 1만 허용)하므로 gpt-4o-mini 권장.
+
+> 참고: 임베딩 OFF/ON과 무관하게 **정책 HANDOFF(취소·환불 → 상담원 확인)** 는 워크플로우 엔진이
+> 그래프 엣지를 평가하므로 동작한다.
+
+## 5. 실행 방법
+
+```bash
+cp .env.example .env          # 최초 1회, 위 4절 값 추가
+(cd backend && ./gradlew bootJar)
+docker compose up -d          # postgres/backend/frontend ...
+```
+- 백엔드 컨테이너는 `backend/build/libs/app.jar`를 마운트하므로, 코드 변경 시 `bootJar` 재빌드 후
+  `docker compose up -d backend`(env 변경 시) 또는 `docker compose restart backend`(코드만 변경 시).
+- 시드는 기동 시 자동 실행. workspace 1의 현재 published 버전이 액티벤처 도메인팩이 된다.
+
+## 6. 재시드(초기화) 방법
+
+시드 러너는 published 버전이 있으면 skip하므로, 다시 시드하려면 해당 버전을 삭제한다.
+(로컬 DB 작업이며 git과 무관. 운영 DB에서 수행 금지)
+
+```sql
+-- <VER> = pack.domain_pack_version.id (activeventure-travel)
+-- FK 순서대로 삭제 후 백엔드 재기동 → 새 버전으로 재시드
+-- (런타임/리뷰/매칭 자식 행 → 도메인팩 자식 행 → 버전 순)
+```
+> 상세 삭제 스크립트는 PR 설명 참조. 삭제 후 `docker compose restart backend`.
+
+## 7. 시연 시나리오
+
+첫 메시지는 **의도만**, 값은 다음 턴부터(한 번에 여러 개 가능).
+
+1. **항공권(슬롯 + autoRun)**
+   - `비행기표 예매 문의입니다`
+   - `일정은 7월 10~13일이고 목적지 제주도, 항공편 김포 출발 직항, 성인 2명이에요`
+   - → 4슬롯 수집 후 자동 완료(COMPLETED)
+2. **취소·환불(정책 → 상담원 확인)**
+   - `예약 취소하고 환불 받고 싶어요`
+   - `예약번호는 AV12345이고 출발일은 8월 10일이요`
+   - `취소 사유는 개인 사정이고 결제 금액은 80만원이요`
+   - → 정책 hit → "이 요청은 상담원 확인이 필요합니다"(HANDOFF)
+3. **픽업·교통(다른 도메인 매칭)**
+   - `공항 픽업 차량 문의해요`
+   - `픽업 장소는 세부 막탄공항이고 시간은 오후 3시요`
+   - `항공편은 필리핀항공 PR123이고 호텔은 제이파크 리조트요`
+
+## 8. 한계 / 주의
+
+- 슬롯 추출은 LLM 도구 호출에 의존하므로 100% 결정적이지 않다. 특히 **첫 인사 메시지에 의도+모든 값을
+  몰아넣으면** 그 턴은 분류/시작에 쓰여 슬롯 추출이 약하다 → 의도 먼저, 값은 다음 턴.
+- 의미 매칭은 `text-embedding-3-large` 기준으로 보정됨. 모델/차원 변경 시 4.2 임계값 재보정 필요.
+- 임베딩 OFF면 "예약/문의" 같은 범용 단어 단독 발화는 이웃 intent로 튈 수 있다(렉시컬 한계).

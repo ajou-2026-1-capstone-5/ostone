@@ -1,0 +1,1456 @@
+{
+  "schemaVersion": "1.0",
+  "domainPackDraft": {
+    "packKey": "activeventure-travel",
+    "packName": "액티벤처 여행 상담 도메인팩",
+    "summaryJson": "{\"domain\":\"액티벤처\",\"sourceSplit\":\"Validation\",\"consultationCount\":100,\"turnCount\":1190,\"sentenceUnitCount\":2970,\"intentCount\":12,\"slotCount\":19,\"policyCount\":12,\"riskCount\":10,\"workflowCount\":12,\"notes\":[\"Generated from activeventure 100 validation consultations. Slot/manager/final constructor completed locally after subagent timeout.\"]}"
+  },
+  "intentDraft": {
+    "intents": [
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "name": "항공권 견적 및 예약",
+        "description": "항공권 요금, 좌석 가능 여부, 항공사/경유 스케줄 확인 후 예약으로 이어지는 문의",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C01\",\"support\":45,\"confidence\":0.88,\"memberSourceIds\":[\"90801\",\"90803\",\"90804\",\"90805\",\"90806\",\"90809\",\"90811\",\"90813\",\"90814\",\"90816\",\"90819\",\"90820\",\"90821\",\"90823\",\"90824\",\"90829\",\"90832\",\"90834\",\"90835\",\"90838\",\"90839\",\"90840\",\"90841\",\"90844\",\"90846\",\"90847\",\"90848\",\"90850\",\"90851\",\"90853\",\"90856\",\"90857\",\"90861\",\"90863\",\"90867\",\"90869\",\"90870\",\"90871\",\"90872\",\"90873\",\"90881\",\"90883\",\"90885\",\"90888\",\"90893\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"항공권\",\"항공편\",\"항공사\",\"비행기\",\"좌석\"],\"optionalTerms\":[\"가루다\",\"대한항공\",\"아시아나\",\"싱가폴 항공\",\"직항\",\"경유\",\"리턴\",\"오픈티켓\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:0:1\"},{\"type\":\"unit_id\",\"value\":\"90803:6:0\"},{\"type\":\"unit_id\",\"value\":\"90804:0:1\"},{\"type\":\"unit_id\",\"value\":\"90805:0:5\"},{\"type\":\"unit_id\",\"value\":\"90806:0:2\"},{\"type\":\"unit_id\",\"value\":\"90809:0:1\"},{\"type\":\"unit_id\",\"value\":\"90811:0:4\"},{\"type\":\"unit_id\",\"value\":\"90813:0:3\"},{\"type\":\"unit_id\",\"value\":\"90814:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:0:1\"},{\"type\":\"unit_id\",\"value\":\"90819:0:2\"},{\"type\":\"unit_id\",\"value\":\"90820:0:1\"},{\"type\":\"unit_id\",\"value\":\"90821:4:0\"},{\"type\":\"unit_id\",\"value\":\"90823:0:1\"},{\"type\":\"unit_id\",\"value\":\"90824:0:3\"}]",
+        "metaJson": "{\"categoryHints\":[\"요금 및 견적\",\"상품예약 및 결제\",\"예약변경 및 취소\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90801",
+            "canonicalText": "추석 연휴에 항공권 예약하려고 하는데, 홈페이지에서 예약할 수 있는 곳이 없더라고요.",
+            "customerProblemText": "항공권 견적 및 예약",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90803",
+            "canonicalText": "마지막 날 비행기를 새벽에 타야 하는데, 저녁을 먹고 남는 시간에는 뭘 하나요?",
+            "customerProblemText": "항공권 견적 및 예약",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90804",
+            "canonicalText": "가족여행으로 여름 성수기쯤 4박 6일 가루다 항공으로 가려하는데요.",
+            "customerProblemText": "항공권 견적 및 예약",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "name": "숙소 객실 견적 및 가능 여부",
+        "description": "호텔/리조트 객실, 룸타입, 조식, 인원 조건에 맞는 요금과 예약 가능 여부 확인",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C02\",\"support\":69,\"confidence\":0.88,\"memberSourceIds\":[\"90801\",\"90804\",\"90805\",\"90806\",\"90807\",\"90808\",\"90811\",\"90813\",\"90814\",\"90815\",\"90817\",\"90818\",\"90819\",\"90821\",\"90822\",\"90824\",\"90827\",\"90828\",\"90830\",\"90831\",\"90834\",\"90836\",\"90837\",\"90838\",\"90841\",\"90844\",\"90845\",\"90847\",\"90848\",\"90851\",\"90852\",\"90853\",\"90854\",\"90855\",\"90856\",\"90858\",\"90859\",\"90860\",\"90861\",\"90862\",\"90864\",\"90865\",\"90869\",\"90873\",\"90875\",\"90876\",\"90877\",\"90878\",\"90879\",\"90880\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"호텔\",\"리조트\",\"숙소\",\"객실\",\"룸\"],\"optionalTerms\":[\"조식\",\"스위트\",\"풀빌라\",\"오션뷰\",\"엑스트라베드\",\"체크인\",\"체크아웃\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:2:4\"},{\"type\":\"unit_id\",\"value\":\"90804:0:2\"},{\"type\":\"unit_id\",\"value\":\"90805:0:2\"},{\"type\":\"unit_id\",\"value\":\"90806:6:1\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90808:0:1\"},{\"type\":\"unit_id\",\"value\":\"90811:2:1\"},{\"type\":\"unit_id\",\"value\":\"90813:0:4\"},{\"type\":\"unit_id\",\"value\":\"90814:0:1\"},{\"type\":\"unit_id\",\"value\":\"90815:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:2\"},{\"type\":\"unit_id\",\"value\":\"90818:0:0\"},{\"type\":\"unit_id\",\"value\":\"90819:0:2\"},{\"type\":\"unit_id\",\"value\":\"90821:6:0\"},{\"type\":\"unit_id\",\"value\":\"90822:0:4\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\",\"예약변경 및 취소\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90801",
+            "canonicalText": "리조트 예약도 같이 하고 싶어요.",
+            "customerProblemText": "숙소 객실 견적 및 가능 여부",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90804",
+            "canonicalText": "어떤 룸에 묵는지 궁금해요.",
+            "customerProblemText": "숙소 객실 견적 및 가능 여부",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90805",
+            "canonicalText": "자카르타에 괜찮은 호텔 요금이 얼마인지 궁금해요.",
+            "customerProblemText": "숙소 객실 견적 및 가능 여부",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "name": "패키지 상품 견적 및 조건 확인",
+        "description": "가족특선, 효도여행, 에어텔, 자유여행팩 등 정형 상품의 일정, 포함사항, 출발 조건, 요금 확인",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C03\",\"support\":48,\"confidence\":0.88,\"memberSourceIds\":[\"90801\",\"90802\",\"90803\",\"90807\",\"90808\",\"90811\",\"90813\",\"90815\",\"90816\",\"90817\",\"90818\",\"90819\",\"90821\",\"90822\",\"90825\",\"90826\",\"90828\",\"90830\",\"90834\",\"90837\",\"90838\",\"90841\",\"90844\",\"90845\",\"90846\",\"90849\",\"90850\",\"90851\",\"90853\",\"90854\",\"90856\",\"90857\",\"90858\",\"90859\",\"90860\",\"90861\",\"90864\",\"90865\",\"90868\",\"90872\",\"90875\",\"90876\",\"90879\",\"90884\",\"90886\",\"90887\",\"90888\",\"90892\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"패키지\",\"상품\",\"특선\",\"에어텔\"],\"optionalTerms\":[\"효도여행\",\"올인클루시브\",\"자유여행팩\",\"출발 조건\",\"포함사항\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:2:1\"},{\"type\":\"unit_id\",\"value\":\"90802:0:4\"},{\"type\":\"unit_id\",\"value\":\"90803:0:1\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90808:4:1\"},{\"type\":\"unit_id\",\"value\":\"90811:4:0\"},{\"type\":\"unit_id\",\"value\":\"90813:0:2\"},{\"type\":\"unit_id\",\"value\":\"90815:4:0\"},{\"type\":\"unit_id\",\"value\":\"90816:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:1\"},{\"type\":\"unit_id\",\"value\":\"90818:0:2\"},{\"type\":\"unit_id\",\"value\":\"90819:0:5\"},{\"type\":\"unit_id\",\"value\":\"90821:8:0\"},{\"type\":\"unit_id\",\"value\":\"90822:0:4\"},{\"type\":\"unit_id\",\"value\":\"90825:0:2\"}]",
+        "metaJson": "{\"categoryHints\":[\"요금 및 견적\",\"상품예약 및 결제\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\",\"예약변경 및 취소\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90801",
+            "canonicalText": "출발일은 ▲▲월 ▲▲일이고, 인원은 저 포함 2명이에요.",
+            "customerProblemText": "패키지 상품 견적 및 조건 확인",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90802",
+            "canonicalText": "현재 파트라 발리 가족 상품이나 그랜드 미라지 효도상품을 고려 중인데, 미라지 상품도 같은 일정과 식사로 가족여행 가능한가요?",
+            "customerProblemText": "패키지 상품 견적 및 조건 확인",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90803",
+            "canonicalText": "그랜드미라지 효도여행으로 되어있는데, 일정을 어른들과 같이 해야 하나요?",
+            "customerProblemText": "패키지 상품 견적 및 조건 확인",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "name": "허니문 및 풀빌라 일정 상담",
+        "description": "예식일, 허니문 예산, 풀빌라/단독빌라, 휴양·관광 비중에 맞춘 신혼여행 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C04\",\"support\":31,\"confidence\":0.84,\"memberSourceIds\":[\"90812\",\"90813\",\"90814\",\"90817\",\"90819\",\"90826\",\"90827\",\"90828\",\"90834\",\"90836\",\"90838\",\"90839\",\"90843\",\"90844\",\"90848\",\"90849\",\"90850\",\"90851\",\"90858\",\"90859\",\"90860\",\"90861\",\"90862\",\"90863\",\"90864\",\"90866\",\"90868\",\"90879\",\"90883\",\"90888\",\"90891\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"허니문\",\"신혼여행\",\"결혼\",\"예식\",\"풀빌라\"],\"optionalTerms\":[\"단독빌라\",\"신랑\",\"예비신부\",\"로맨틱\",\"캔들\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90812:4:1\"},{\"type\":\"unit_id\",\"value\":\"90813:0:1\"},{\"type\":\"unit_id\",\"value\":\"90814:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:2\"},{\"type\":\"unit_id\",\"value\":\"90819:0:1\"},{\"type\":\"unit_id\",\"value\":\"90826:0:1\"},{\"type\":\"unit_id\",\"value\":\"90827:0:3\"},{\"type\":\"unit_id\",\"value\":\"90828:0:1\"},{\"type\":\"unit_id\",\"value\":\"90834:0:1\"},{\"type\":\"unit_id\",\"value\":\"90836:0:1\"},{\"type\":\"unit_id\",\"value\":\"90838:0:0\"},{\"type\":\"unit_id\",\"value\":\"90839:0:0\"},{\"type\":\"unit_id\",\"value\":\"90843:2:1\"},{\"type\":\"unit_id\",\"value\":\"90844:0:1\"},{\"type\":\"unit_id\",\"value\":\"90848:0:2\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\",\"예약변경 및 취소\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90812",
+            "canonicalText": "그럼 결혼 준비도 잘 할 수 있을 것 같아요.",
+            "customerProblemText": "허니문 및 풀빌라 일정 상담",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90813",
+            "canonicalText": "결혼 5년차 부부입니다.",
+            "customerProblemText": "허니문 및 풀빌라 일정 상담",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90814",
+            "canonicalText": "추천해주신 드림랜드빌라 원베드 풀빌라 ▲▲일 요금이 얼마나 되는지 궁금하고, ▲▲월 중 예약 가능한 날짜도 알려주세요.",
+            "customerProblemText": "허니문 및 풀빌라 일정 상담",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "name": "가족 및 단체 여행 견적",
+        "description": "가족/단체 인원, 아동·유아 동반, 커넥팅룸·키즈룸·어린이 요금을 반영한 견적 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C05\",\"support\":26,\"confidence\":0.84,\"memberSourceIds\":[\"90802\",\"90803\",\"90804\",\"90805\",\"90806\",\"90807\",\"90808\",\"90815\",\"90820\",\"90821\",\"90822\",\"90825\",\"90830\",\"90837\",\"90845\",\"90854\",\"90855\",\"90861\",\"90870\",\"90874\",\"90875\",\"90877\",\"90887\",\"90889\",\"90893\",\"90897\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"가족\",\"단체\",\"어린이\",\"아동\",\"유아\"],\"optionalTerms\":[\"부모님\",\"아이\",\"아기\",\"소인\",\"커넥팅룸\",\"키즈\",\"어린이 요금\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90802:0:1\"},{\"type\":\"unit_id\",\"value\":\"90803:4:0\"},{\"type\":\"unit_id\",\"value\":\"90804:0:1\"},{\"type\":\"unit_id\",\"value\":\"90805:0:1\"},{\"type\":\"unit_id\",\"value\":\"90806:0:4\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90808:0:1\"},{\"type\":\"unit_id\",\"value\":\"90815:0:1\"},{\"type\":\"unit_id\",\"value\":\"90820:0:2\"},{\"type\":\"unit_id\",\"value\":\"90821:0:1\"},{\"type\":\"unit_id\",\"value\":\"90822:0:3\"},{\"type\":\"unit_id\",\"value\":\"90825:0:1\"},{\"type\":\"unit_id\",\"value\":\"90830:0:1\"},{\"type\":\"unit_id\",\"value\":\"90837:0:1\"},{\"type\":\"unit_id\",\"value\":\"90845:0:2\"}]",
+        "metaJson": "{\"categoryHints\":[\"요금 및 견적\",\"상품예약 및 결제\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90802",
+            "canonicalText": "아버님 칠순 여행을 가족이 가고자 하는데요.",
+            "customerProblemText": "가족 및 단체 여행 견적",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90803",
+            "canonicalText": "출발할 때 저희 가족만 있으면 출발을 못하지 않나요?",
+            "customerProblemText": "가족 및 단체 여행 견적",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90804",
+            "canonicalText": "가족여행으로 여름 성수기쯤 4박 6일 가루다 항공으로 가려하는데요.",
+            "customerProblemText": "가족 및 단체 여행 견적",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "name": "여행 상품 및 숙소 추천",
+        "description": "예산, 지역, 분위기, 가성비, 동반자 조건에 맞는 호텔·리조트·상품 추천 요청",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C06\",\"support\":26,\"confidence\":0.84,\"memberSourceIds\":[\"90801\",\"90807\",\"90809\",\"90811\",\"90813\",\"90814\",\"90817\",\"90818\",\"90821\",\"90825\",\"90826\",\"90832\",\"90834\",\"90836\",\"90841\",\"90845\",\"90846\",\"90848\",\"90862\",\"90865\",\"90869\",\"90873\",\"90881\",\"90888\",\"90897\",\"90900\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"추천\",\"가성비\",\"좋은 곳\"],\"optionalTerms\":[\"권해\",\"다른 호텔\",\"다른 리조트\",\"저렴한\",\"비슷한 가격대\",\"조언\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:4:0\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90809:0:1\"},{\"type\":\"unit_id\",\"value\":\"90811:4:1\"},{\"type\":\"unit_id\",\"value\":\"90813:0:7\"},{\"type\":\"unit_id\",\"value\":\"90814:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:4\"},{\"type\":\"unit_id\",\"value\":\"90818:4:0\"},{\"type\":\"unit_id\",\"value\":\"90821:6:0\"},{\"type\":\"unit_id\",\"value\":\"90825:0:8\"},{\"type\":\"unit_id\",\"value\":\"90826:2:0\"},{\"type\":\"unit_id\",\"value\":\"90832:6:1\"},{\"type\":\"unit_id\",\"value\":\"90834:10:0\"},{\"type\":\"unit_id\",\"value\":\"90836:0:4\"},{\"type\":\"unit_id\",\"value\":\"90841:2:1\"}]",
+        "metaJson": "{\"categoryHints\":[\"요금 및 견적\",\"상품예약 및 결제\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90801",
+            "canonicalText": "리조트는 발리에서 유명한 곳으로 추천해 주세요.",
+            "customerProblemText": "여행 상품 및 숙소 추천",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90807",
+            "canonicalText": "가족 여행을 계획 중인데, 5인 가족(3살 유아 포함)에게 올인클루시브 가능한 호텔이나 리조트 추천해 주실 수 있나요?",
+            "customerProblemText": "여행 상품 및 숙소 추천",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90809",
+            "canonicalText": "발리에서 시드니, 오클랜드를 거쳐 유럽으로 가고 싶은데, 가장 저렴한 항공사는 어디인지, 가격은 얼마나 하는지 궁금해요.",
+            "customerProblemText": "여행 상품 및 숙소 추천",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "name": "일정 관광 및 옵션 상담",
+        "description": "관광 코스, 스파/마사지, 워터파크, 골프, 해양레포츠, 옵션 변경 및 포함 여부 문의",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C07\",\"support\":28,\"confidence\":0.84,\"memberSourceIds\":[\"90802\",\"90803\",\"90804\",\"90810\",\"90812\",\"90817\",\"90821\",\"90822\",\"90833\",\"90834\",\"90838\",\"90843\",\"90844\",\"90848\",\"90849\",\"90850\",\"90851\",\"90854\",\"90857\",\"90859\",\"90860\",\"90861\",\"90868\",\"90877\",\"90879\",\"90887\",\"90889\",\"90894\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"관광\",\"투어\",\"옵션\",\"스파\",\"마사지\"],\"optionalTerms\":[\"워터파크\",\"워터붐\",\"골프\",\"티오프\",\"크루즈\",\"해양레포츠\",\"일정 변경\",\"교체\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90802:6:0\"},{\"type\":\"unit_id\",\"value\":\"90803:8:0\"},{\"type\":\"unit_id\",\"value\":\"90804:8:0\"},{\"type\":\"unit_id\",\"value\":\"90810:0:4\"},{\"type\":\"unit_id\",\"value\":\"90812:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:2\"},{\"type\":\"unit_id\",\"value\":\"90821:8:1\"},{\"type\":\"unit_id\",\"value\":\"90822:0:5\"},{\"type\":\"unit_id\",\"value\":\"90833:8:1\"},{\"type\":\"unit_id\",\"value\":\"90834:0:4\"},{\"type\":\"unit_id\",\"value\":\"90838:2:0\"},{\"type\":\"unit_id\",\"value\":\"90843:6:1\"},{\"type\":\"unit_id\",\"value\":\"90844:0:2\"},{\"type\":\"unit_id\",\"value\":\"90848:0:4\"},{\"type\":\"unit_id\",\"value\":\"90849:4:0\"}]",
+        "metaJson": "{\"categoryHints\":[\"요금 및 견적\",\"상품예약 및 결제\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\",\"예약변경 및 취소\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90802",
+            "canonicalText": "하루는 워터파크에 갈 수 있는지 궁금해요.",
+            "customerProblemText": "일정 관광 및 옵션 상담",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90803",
+            "canonicalText": "절벽사원에 꼭 가보고 싶은데, 가려면 가이드분께 따로 지불해야 하나요?",
+            "customerProblemText": "일정 관광 및 옵션 상담",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90804",
+            "canonicalText": "옵션이나 쇼핑센터 강제 방문은 없는 거죠?",
+            "customerProblemText": "일정 관광 및 옵션 상담",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "reservation_progress_and_documents",
+        "name": "예약 진행 상태 및 필요 정보 확인",
+        "description": "예약 접수 후 확정서, 예약 변동 여부, 필요한 고객 정보·서류·이메일 회신을 확인하는 문의",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C08\",\"support\":47,\"confidence\":0.88,\"memberSourceIds\":[\"90801\",\"90806\",\"90808\",\"90811\",\"90815\",\"90816\",\"90819\",\"90820\",\"90823\",\"90824\",\"90825\",\"90826\",\"90827\",\"90828\",\"90831\",\"90836\",\"90839\",\"90840\",\"90842\",\"90843\",\"90844\",\"90848\",\"90852\",\"90859\",\"90870\",\"90873\",\"90874\",\"90876\",\"90877\",\"90878\",\"90879\",\"90880\",\"90881\",\"90882\",\"90883\",\"90885\",\"90886\",\"90887\",\"90889\",\"90891\",\"90892\",\"90893\",\"90896\",\"90897\",\"90898\",\"90899\",\"90900\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"예약\",\"확정서\",\"필요한 정보\",\"서류\"],\"optionalTerms\":[\"변동\",\"진행\",\"메일\",\"이메일\",\"확인서\",\"연락처\",\"성함\",\"여권\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:6:1\"},{\"type\":\"unit_id\",\"value\":\"90806:10:1\"},{\"type\":\"unit_id\",\"value\":\"90808:12:1\"},{\"type\":\"unit_id\",\"value\":\"90811:0:7\"},{\"type\":\"unit_id\",\"value\":\"90815:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:6:0\"},{\"type\":\"unit_id\",\"value\":\"90819:6:0\"},{\"type\":\"unit_id\",\"value\":\"90820:6:0\"},{\"type\":\"unit_id\",\"value\":\"90823:10:2\"},{\"type\":\"unit_id\",\"value\":\"90824:8:1\"},{\"type\":\"unit_id\",\"value\":\"90826:0:5\"},{\"type\":\"unit_id\",\"value\":\"90827:0:2\"},{\"type\":\"unit_id\",\"value\":\"90828:6:0\"},{\"type\":\"unit_id\",\"value\":\"90831:6:0\"},{\"type\":\"unit_id\",\"value\":\"90836:8:1\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90801",
+            "canonicalText": "그럼 항공권과 리조트 예약 진행해 주세요.",
+            "customerProblemText": "예약 진행 상태 및 필요 정보 확인",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90806",
+            "canonicalText": "그럼 예약 진행해 주시면 좋겠습니다.",
+            "customerProblemText": "예약 진행 상태 및 필요 정보 확인",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90808",
+            "canonicalText": "그럼 필요한 정보 정리해서 보내드릴게요.",
+            "customerProblemText": "예약 진행 상태 및 필요 정보 확인",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "payment_billing_method",
+        "name": "결제 및 청구 방법 안내",
+        "description": "카드/현금/입금, 예약금, 결제 링크, 통화, 수수료, 무이자 할부 등 결제 방식 문의",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C09\",\"support\":36,\"confidence\":0.88,\"memberSourceIds\":[\"90804\",\"90810\",\"90815\",\"90821\",\"90825\",\"90832\",\"90843\",\"90846\",\"90852\",\"90853\",\"90858\",\"90865\",\"90866\",\"90874\",\"90875\",\"90876\",\"90877\",\"90878\",\"90879\",\"90880\",\"90881\",\"90882\",\"90883\",\"90884\",\"90885\",\"90886\",\"90887\",\"90888\",\"90889\",\"90890\",\"90891\",\"90892\",\"90893\",\"90896\",\"90898\",\"90899\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"결제\",\"카드\",\"입금\",\"예약금\"],\"optionalTerms\":[\"현금\",\"무이자\",\"할부\",\"링크\",\"수수료\",\"원화\",\"달러\",\"청구\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90804:6:0\"},{\"type\":\"unit_id\",\"value\":\"90810:4:1\"},{\"type\":\"unit_id\",\"value\":\"90815:0:2\"},{\"type\":\"unit_id\",\"value\":\"90821:14:0\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90843:0:1\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90852:2:0\"},{\"type\":\"unit_id\",\"value\":\"90853:6:1\"},{\"type\":\"unit_id\",\"value\":\"90858:0:2\"},{\"type\":\"unit_id\",\"value\":\"90865:8:0\"},{\"type\":\"unit_id\",\"value\":\"90866:4:0\"},{\"type\":\"unit_id\",\"value\":\"90874:4:0\"},{\"type\":\"unit_id\",\"value\":\"90875:2:1\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"예약변경 및 취소\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90804",
+            "canonicalText": "현금 결제하면 할인이 되나요?",
+            "customerProblemText": "결제 및 청구 방법 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90810",
+            "canonicalText": "추가 비용은 현장에서 어떻게 결제하나요?",
+            "customerProblemText": "결제 및 청구 방법 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90815",
+            "canonicalText": "주니어 스위트룸에 투숙하고 싶은데, 업그레이드 특가로 디럭스룸 결제 후 주니어 스위트룸으로 업그레이드 가능한가요?",
+            "customerProblemText": "결제 및 청구 방법 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "cancellation_refund_change_policy",
+        "name": "취소 환불 및 변경 규정",
+        "description": "예약 취소, 계약금/환불, 취소 수수료, 일정·리턴 변경 가능 여부와 처리 절차 문의",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C10\",\"support\":34,\"confidence\":0.84,\"memberSourceIds\":[\"90811\",\"90812\",\"90817\",\"90821\",\"90823\",\"90825\",\"90832\",\"90840\",\"90842\",\"90846\",\"90853\",\"90861\",\"90864\",\"90866\",\"90867\",\"90874\",\"90875\",\"90876\",\"90878\",\"90879\",\"90880\",\"90882\",\"90883\",\"90884\",\"90885\",\"90886\",\"90887\",\"90889\",\"90890\",\"90891\",\"90892\",\"90893\",\"90898\",\"90899\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"취소\",\"환불\",\"변경\"],\"optionalTerms\":[\"취소 수수료\",\"계약금\",\"철회\",\"일정 변경\",\"리턴 변경\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90811:0:1\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:0:4\"},{\"type\":\"unit_id\",\"value\":\"90821:12:1\"},{\"type\":\"unit_id\",\"value\":\"90823:4:0\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90840:0:5\"},{\"type\":\"unit_id\",\"value\":\"90842:0:1\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90853:0:1\"},{\"type\":\"unit_id\",\"value\":\"90861:0:3\"},{\"type\":\"unit_id\",\"value\":\"90864:0:6\"},{\"type\":\"unit_id\",\"value\":\"90866:2:0\"},{\"type\":\"unit_id\",\"value\":\"90867:0:2\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"예약변경 및 취소\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90811",
+            "canonicalText": "예전에 친구랑 발리 여행 예약했었는데 개인 사정으로 취소했어요.",
+            "customerProblemText": "취소 환불 및 변경 규정",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90812",
+            "canonicalText": "곧 잔금 치루는 날인데, 다들 취소를 하니 더욱 불안해요.",
+            "customerProblemText": "취소 환불 및 변경 규정",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90817",
+            "canonicalText": "만약 이걸 취소하고 다른 호텔의 스파를 받을 수 있는지, 그럴 경우 요금은 어떻게 되나요?",
+            "customerProblemText": "취소 환불 및 변경 규정",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "name": "픽업 이동 및 현지 교통",
+        "description": "공항 픽업, 호텔 이동, 지역 간 이동, 택시/차량/버스 등 현지 교통편 확인",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C11\",\"support\":23,\"confidence\":0.84,\"memberSourceIds\":[\"90805\",\"90817\",\"90831\",\"90833\",\"90834\",\"90845\",\"90855\",\"90869\",\"90874\",\"90877\",\"90878\",\"90879\",\"90881\",\"90883\",\"90884\",\"90885\",\"90888\",\"90890\",\"90892\",\"90893\",\"90895\",\"90896\",\"90899\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"공항 픽업\",\"픽업\",\"차량\",\"교통\"],\"optionalTerms\":[\"택시\",\"차편\",\"이동\",\"버스\",\"공항에서 호텔\",\"자카르타에서 발리\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90805:0:3\"},{\"type\":\"unit_id\",\"value\":\"90817:6:0\"},{\"type\":\"unit_id\",\"value\":\"90831:0:2\"},{\"type\":\"unit_id\",\"value\":\"90833:0:5\"},{\"type\":\"unit_id\",\"value\":\"90834:4:2\"},{\"type\":\"unit_id\",\"value\":\"90845:0:4\"},{\"type\":\"unit_id\",\"value\":\"90855:4:1\"},{\"type\":\"unit_id\",\"value\":\"90869:0:2\"},{\"type\":\"unit_id\",\"value\":\"90874:8:0\"},{\"type\":\"unit_id\",\"value\":\"90877:8:0\"},{\"type\":\"unit_id\",\"value\":\"90878:8:0\"},{\"type\":\"unit_id\",\"value\":\"90879:10:0\"},{\"type\":\"unit_id\",\"value\":\"90881:4:0\"},{\"type\":\"unit_id\",\"value\":\"90883:10:0\"},{\"type\":\"unit_id\",\"value\":\"90884:8:0\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90805",
+            "canonicalText": "일주일 정도 있을 건데, 교통도 편리하고 아기가 있어서 깨끗한 호텔이어야 해요.",
+            "customerProblemText": "픽업 이동 및 현지 교통",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90817",
+            "canonicalText": "드림랜드 빌라에서 다른 지역으로 이동할 때 차편을 제공하나요?",
+            "customerProblemText": "픽업 이동 및 현지 교통",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90831",
+            "canonicalText": "그리고 공항 픽업 서비스가 없으면 호텔까지 가는 다른 방법이 있을까요?",
+            "customerProblemText": "픽업 이동 및 현지 교통",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "name": "여행 안전 및 준비 일반문의",
+        "description": "테러·안전 우려, 여행 전 준비물·주의사항, 출국 수속, 비자/여권, 기본 여행 정보 확인",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"C12\",\"support\":21,\"confidence\":0.84,\"memberSourceIds\":[\"90803\",\"90810\",\"90812\",\"90814\",\"90817\",\"90821\",\"90828\",\"90829\",\"90832\",\"90833\",\"90840\",\"90842\",\"90844\",\"90848\",\"90852\",\"90863\",\"90866\",\"90870\",\"90871\",\"90873\",\"90875\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"안전\",\"준비\",\"여권\",\"주의사항\"],\"optionalTerms\":[\"테러\",\"불안\",\"걱정\",\"비자\",\"출국 수속\",\"가이드\",\"인솔자\",\"소요시간\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90803:8:0\"},{\"type\":\"unit_id\",\"value\":\"90810:6:1\"},{\"type\":\"unit_id\",\"value\":\"90812:0:1\"},{\"type\":\"unit_id\",\"value\":\"90814:0:3\"},{\"type\":\"unit_id\",\"value\":\"90817:8:1\"},{\"type\":\"unit_id\",\"value\":\"90821:4:1\"},{\"type\":\"unit_id\",\"value\":\"90828:6:0\"},{\"type\":\"unit_id\",\"value\":\"90829:0:5\"},{\"type\":\"unit_id\",\"value\":\"90832:4:2\"},{\"type\":\"unit_id\",\"value\":\"90833:0:4\"},{\"type\":\"unit_id\",\"value\":\"90840:6:1\"},{\"type\":\"unit_id\",\"value\":\"90842:4:1\"},{\"type\":\"unit_id\",\"value\":\"90844:0:3\"},{\"type\":\"unit_id\",\"value\":\"90848:0:5\"},{\"type\":\"unit_id\",\"value\":\"90852:4:1\"}]",
+        "metaJson": "{\"categoryHints\":[\"상품예약 및 결제\",\"요금 및 견적\",\"예약변경 및 취소\",\"일반문의(여행준비, 인터넷, 교통, 안전 등)\"],\"source\":\"identifier_intent_clustering\"}",
+        "representativeCases": [
+          {
+            "conversationId": "90803",
+            "canonicalText": "절벽사원에 꼭 가보고 싶은데, 가려면 가이드분께 따로 지불해야 하나요?",
+            "customerProblemText": "여행 안전 및 준비 일반문의",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90810",
+            "canonicalText": "마지막으로, 여행 전에 준비해야 할 것들이나 주의사항이 있을까요?",
+            "customerProblemText": "여행 안전 및 준비 일반문의",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "90812",
+            "canonicalText": "발리에서 테러가 일어나서 우울하네요.",
+            "customerProblemText": "여행 안전 및 준비 일반문의",
+            "endedStatus": "resolved"
+          }
+        ]
+      }
+    ]
+  },
+  "workflowDraft": {
+    "slots": [
+      {
+        "slotCode": "travel_dates",
+        "name": "여행 일정",
+        "description": "출발일, 귀국일, 숙박 기간 등 여행 일정을 확인한다.",
+        "dataType": "DATE_RANGE",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"일정\",\"날짜\",\"연휴\",\"출발\",\"귀국\",\"기간\",\"몇박\",\"박\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:0:1\",\"90801:0:5\",\"90801:1:2\",\"90801:1:3\",\"90801:1:4\",\"90801:1:5\",\"90801:2:1\",\"90801:3:1\",\"90801:5:2\",\"90801:7:2\",\"90801:9:2\",\"90802:0:2\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "traveler_count",
+        "name": "여행 인원",
+        "description": "성인, 아동, 유아를 포함한 여행 인원 수를 확인한다.",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"인원\",\"명\",\"성인\",\"아이\",\"아동\",\"유아\",\"가족\",\"부부\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:1:5\",\"90801:2:1\",\"90801:3:1\",\"90801:4:0\",\"90802:0:1\",\"90802:0:3\",\"90802:0:4\",\"90802:1:1\",\"90802:1:2\",\"90802:8:0\",\"90802:9:1\",\"90803:2:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "destination",
+        "name": "목적지",
+        "description": "여행 국가, 도시, 지역 또는 공항 목적지를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"발리\",\"괌\",\"푸켓\",\"세부\",\"다낭\",\"싱가포르\",\"지역\",\"목적지\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:1:3\",\"90801:4:0\",\"90801:5:1\",\"90802:0:4\",\"90802:4:0\",\"90802:5:0\",\"90805:0:5\",\"90805:4:1\",\"90805:5:0\",\"90807:1:1\",\"90807:3:1\",\"90807:5:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "hotel_name",
+        "name": "호텔/리조트명",
+        "description": "상담 대상 호텔, 리조트, 숙소명을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"호텔\",\"리조트\",\"숙소\",\"풀빌라\",\"빌라\",\"객실\",\"오션뷰\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:2:4\",\"90801:3:2\",\"90801:4:0\",\"90801:5:1\",\"90801:5:2\",\"90801:5:3\",\"90801:6:1\",\"90804:1:3\",\"90804:5:0\",\"90805:0:2\",\"90805:0:3\",\"90805:1:2\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "room_type",
+        "name": "객실 타입",
+        "description": "룸타입, 스위트, 커넥팅룸, 침대 타입 등 객실 조건을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"룸타입\",\"객실\",\"룸\",\"스위트\",\"오션뷰\",\"커넥팅\",\"엑스트라베드\",\"침대\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90804:0:2\",\"90804:1:3\",\"90805:0:4\",\"90806:6:1\",\"90806:7:0\",\"90807:7:1\",\"90807:8:0\",\"90807:9:0\",\"90807:11:0\",\"90808:2:0\",\"90808:2:1\",\"90808:4:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "flight_info",
+        "name": "항공편 정보",
+        "description": "항공사, 항공편, 직항/경유, 좌석 가능 여부를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"항공\",\"항공권\",\"항공편\",\"비행기\",\"직항\",\"경유\",\"좌석\",\"가루다\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:0:1\",\"90801:1:3\",\"90801:1:4\",\"90801:6:1\",\"90803:6:0\",\"90803:11:0\",\"90804:0:1\",\"90804:5:0\",\"90805:0:5\",\"90805:2:1\",\"90805:3:0\",\"90805:5:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "budget_amount",
+        "name": "요금/예산",
+        "description": "요금, 견적, 세금, 추가금, 할인, 예산 등 금액 기준을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"요금\",\"가격\",\"견적\",\"금액\",\"비용\",\"얼마\",\"달러\",\"원\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:1:3\",\"90801:1:4\",\"90801:1:5\",\"90801:2:1\",\"90801:3:1\",\"90801:3:2\",\"90801:4:1\",\"90801:5:2\",\"90801:5:3\",\"90802:2:0\",\"90802:3:0\",\"90802:4:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "payment_method",
+        "name": "결제 수단",
+        "description": "카드, 현금, 입금, 예약금, 잔금 등 결제 정보를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"결제\",\"카드\",\"현금\",\"입금\",\"계약금\",\"예약금\",\"잔금\",\"환불\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90804:6:0\",\"90810:4:1\",\"90810:5:1\",\"90810:5:2\",\"90812:0:4\",\"90815:0:2\",\"90815:1:2\",\"90817:1:4\",\"90821:13:1\",\"90821:14:0\",\"90821:15:0\",\"90821:15:1\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "reservation_number",
+        "name": "예약 식별 정보",
+        "description": "기존 예약 번호 또는 예약 건을 식별할 정보를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"예약번호\",\"예약 번호\",\"예약건\",\"예약한\",\"예약 내역\",\"바우처\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90844:0:1\",\"90844:0:2\",\"90852:0:2\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "contact_email",
+        "name": "연락/이메일",
+        "description": "안내문, 티켓, 일정표 전달을 위한 연락처나 이메일을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"이메일\",\"메일\",\"연락\",\"전화\",\"문자\",\"카톡\",\"보내\",\"전달\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:0:5\",\"90801:1:2\",\"90801:1:5\",\"90801:7:1\",\"90801:9:2\",\"90802:9:0\",\"90805:6:1\",\"90805:7:1\",\"90805:9:0\",\"90808:10:0\",\"90808:11:1\",\"90808:12:1\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "pickup_location",
+        "name": "픽업/미팅 장소",
+        "description": "공항, 호텔 등 픽업 또는 미팅 위치를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"픽업\",\"미팅\",\"공항\",\"호텔\",\"장소\",\"위치\",\"샌딩\",\"차량\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90804:5:0\",\"90805:0:2\",\"90805:0:3\",\"90805:1:2\",\"90805:1:4\",\"90805:6:1\",\"90805:7:1\",\"90807:0:1\",\"90812:3:1\",\"90813:0:5\",\"90813:2:1\",\"90814:0:1\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "pickup_time",
+        "name": "픽업/미팅 시간",
+        "description": "픽업, 미팅, 도착, 출발 시각을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"픽업\",\"미팅\",\"시간\",\"오전\",\"오후\",\"시\",\"도착시간\",\"출발시간\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:1:3\",\"90801:1:4\",\"90801:1:5\",\"90801:3:2\",\"90801:4:1\",\"90801:5:3\",\"90801:7:1\",\"90801:7:2\",\"90802:1:1\",\"90802:9:0\",\"90802:9:1\",\"90802:11:1\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "activity_name",
+        "name": "액티비티/옵션명",
+        "description": "선택 관광, 투어, 스파, 마사지 등 현지 액티비티를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"액티비티\",\"투어\",\"마사지\",\"스파\",\"래프팅\",\"선택관광\",\"옵션\",\"일정표\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90803:7:0\",\"90804:8:0\",\"90810:0:4\",\"90810:1:5\",\"90810:3:1\",\"90810:3:2\",\"90811:5:0\",\"90814:6:1\",\"90817:0:2\",\"90817:0:3\",\"90817:0:4\",\"90817:1:1\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "cancellation_reason",
+        "name": "변경/취소 사유",
+        "description": "예약 변경, 취소, 환불 사유와 희망 처리를 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"취소\",\"변경\",\"환불\",\"사유\",\"일정 변경\",\"위약금\",\"수수료\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90811:0:1\",\"90812:0:4\",\"90812:3:1\",\"90812:4:2\",\"90812:5:0\",\"90813:1:5\",\"90817:0:4\",\"90817:1:4\",\"90817:8:0\",\"90817:9:2\",\"90821:12:1\",\"90821:13:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "passport_english_name",
+        "name": "여권 영문명",
+        "description": "항공권/예약에 필요한 여권상 영문 이름을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"여권\",\"영문\",\"영문명\",\"이름\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:1:4\",\"90801:1:5\",\"90801:2:2\",\"90801:3:1\",\"90801:5:3\",\"90808:11:1\",\"90810:7:0\",\"90815:7:3\",\"90816:6:0\",\"90820:6:0\",\"90822:6:1\",\"90828:6:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "birthdate",
+        "name": "생년월일",
+        "description": "본인 또는 탑승자 생년월일 정보를 확인한다.",
+        "dataType": "DATE",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"생년월일\",\"생년\",\"생일\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90808:11:1\",\"90815:7:3\",\"90822:6:1\",\"90830:9:1\",\"90837:13:1\",\"90845:11:1\",\"90855:11:1\",\"90873:7:1\",\"90874:11:0\",\"90875:9:0\",\"90876:9:0\",\"90877:13:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "child_age",
+        "name": "아동/유아 나이",
+        "description": "아동, 유아 요금 및 객실 조건 판단을 위한 나이를 확인한다.",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"아이\",\"아동\",\"어린이\",\"유아\",\"나이\",\"만\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90801:5:2\",\"90801:9:0\",\"90802:0:3\",\"90802:2:0\",\"90802:3:0\",\"90803:1:2\",\"90803:4:0\",\"90803:5:1\",\"90803:10:0\",\"90804:2:0\",\"90804:3:0\",\"90804:5:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "special_request",
+        "name": "특별 요청사항",
+        "description": "허니문, 기념일, 조식, 침대, 룸 위치 등 특별 요청을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"허니문\",\"신혼\",\"결혼\",\"예식\",\"기념일\",\"조식\",\"침대\",\"요청\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90805:1:5\",\"90806:7:1\",\"90807:9:0\",\"90808:3:0\",\"90808:3:1\",\"90808:4:1\",\"90808:5:2\",\"90812:4:1\",\"90812:9:1\",\"90813:0:1\",\"90813:1:3\",\"90815:3:0\"],\"source\":\"local_slot_generation\"}"
+      },
+      {
+        "slotCode": "document_type",
+        "name": "전달 문서 유형",
+        "description": "티켓, 일정표, 바우처, 견적서 등 전달할 문서 유형을 확인한다.",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"티켓\",\"일정표\",\"바우처\",\"견적서\",\"영수증\",\"확인서\",\"메일로 보내\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"representativeUnitIds\":[\"90815:8:1\",\"90836:7:0\",\"90837:13:0\",\"90842:7:1\",\"90843:2:1\",\"90845:11:1\",\"90855:11:0\",\"90856:6:0\",\"90856:7:0\",\"90858:2:1\",\"90867:0:3\",\"90867:3:0\"],\"source\":\"local_slot_generation\"}"
+      }
+    ],
+    "policies": [
+      {
+        "policyCode": "reservation_info_collection",
+        "name": "예약 필수 정보 수집",
+        "description": "예약 진행 전 일정, 인원, 여권상 영문 이름, 생년월일, 연락처, 항공편/픽업 정보를 확인한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"reservation_request\",\"observedSignals\":[\"예약\",\"여권\",\"영문 이름\",\"생년월일\",\"연락처\",\"항공편명\"]}",
+        "actionJson": "{\"collect\":[\"travel_dates\",\"traveler_count\",\"passport_english_name\",\"birthdate_prefix\",\"contact\",\"flight_or_pickup_info\"],\"channel\":\"email_or_phone_when_needed\"}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90808:11:1\"},{\"type\":\"unit_id\",\"value\":\"90816:5:2\"},{\"type\":\"unit_id\",\"value\":\"90819:7:1\"},{\"type\":\"unit_id\",\"value\":\"90820:5:2\"},{\"type\":\"unit_id\",\"value\":\"90821:13:1\"},{\"type\":\"unit_id\",\"value\":\"90824:9:0\"},{\"type\":\"unit_id\",\"value\":\"90825:7:1\"},{\"type\":\"unit_id\",\"value\":\"90839:15:0\"},{\"type\":\"unit_id\",\"value\":\"90840:5:0\"},{\"type\":\"unit_id\",\"value\":\"90848:9:1\"},{\"type\":\"unit_id\",\"value\":\"90869:9:1\"},{\"type\":\"unit_id\",\"value\":\"90869:11:1\"},{\"type\":\"unit_id\",\"value\":\"90871:3:1\"},{\"type\":\"unit_id\",\"value\":\"90873:9:1\"},{\"type\":\"unit_id\",\"value\":\"90874:11:0\"},{\"type\":\"unit_id\",\"value\":\"90875:9:0\"},{\"type\":\"unit_id\",\"value\":\"90876:9:0\"},{\"type\":\"unit_id\",\"value\":\"90877:13:0\"},{\"type\":\"unit_id\",\"value\":\"90878:3:0\"},{\"type\":\"unit_id\",\"value\":\"90879:9:0\"},{\"type\":\"unit_id\",\"value\":\"90880:9:0\"},{\"type\":\"unit_id\",\"value\":\"90881:9:0\"},{\"type\":\"unit_id\",\"value\":\"90882:7:0\"},{\"type\":\"unit_id\",\"value\":\"90883:9:0\"},{\"type\":\"unit_id\",\"value\":\"90884:3:1\"},{\"type\":\"unit_id\",\"value\":\"90885:9:0\"},{\"type\":\"unit_id\",\"value\":\"90886:9:0\"},{\"type\":\"unit_id\",\"value\":\"90887:9:0\"},{\"type\":\"unit_id\",\"value\":\"90889:9:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"reserve_travel_product\",\"change_or_cancel_booking\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "availability_recheck_before_commit",
+        "name": "실예약 전 가능 여부 재확인",
+        "description": "좌석, 객실, 상품 가능 여부는 안내 시점과 실예약 시점이 달라질 수 있으므로 확정 전 재확인한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"availability_or_booking_status_discussed\",\"observedSignals\":[\"가능\",\"마감\",\"대기 예약\",\"좌석\",\"객실\",\"실예약\"]}",
+        "actionJson": "{\"verify\":[\"room_inventory\",\"flight_seat_status\",\"supplier_confirmation\"],\"avoidPromiseBefore\":\"supplier_recheck\"}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90801:5:3\"},{\"type\":\"unit_id\",\"value\":\"90801:7:0\"},{\"type\":\"unit_id\",\"value\":\"90802:0:4\"},{\"type\":\"unit_id\",\"value\":\"90802:1:2\"},{\"type\":\"unit_id\",\"value\":\"90802:7:0\"},{\"type\":\"unit_id\",\"value\":\"90802:8:0\"},{\"type\":\"unit_id\",\"value\":\"90804:7:0\"},{\"type\":\"unit_id\",\"value\":\"90805:7:1\"},{\"type\":\"unit_id\",\"value\":\"90806:1:4\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90807:1:1\"},{\"type\":\"unit_id\",\"value\":\"90807:5:1\"},{\"type\":\"unit_id\",\"value\":\"90808:3:0\"},{\"type\":\"unit_id\",\"value\":\"90810:0:4\"},{\"type\":\"unit_id\",\"value\":\"90810:1:4\"},{\"type\":\"unit_id\",\"value\":\"90810:2:2\"},{\"type\":\"unit_id\",\"value\":\"90810:3:2\"},{\"type\":\"unit_id\",\"value\":\"90810:3:3\"},{\"type\":\"unit_id\",\"value\":\"90813:0:3\"},{\"type\":\"unit_id\",\"value\":\"90813:1:4\"},{\"type\":\"unit_id\",\"value\":\"90813:2:2\"},{\"type\":\"unit_id\",\"value\":\"90814:0:2\"},{\"type\":\"unit_id\",\"value\":\"90814:1:2\"},{\"type\":\"unit_id\",\"value\":\"90814:2:1\"},{\"type\":\"unit_id\",\"value\":\"90815:0:2\"},{\"type\":\"unit_id\",\"value\":\"90815:1:1\"},{\"type\":\"unit_id\",\"value\":\"90815:9:1\"},{\"type\":\"unit_id\",\"value\":\"90816:3:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:3\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"reserve_travel_product\",\"quote_travel_price\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "quote_validity_and_inclusion_notice",
+        "name": "견적 유효성 및 포함 내역 고지",
+        "description": "요금, 세금, 성수기 추가금, 포함/불포함 항목, 할인 가능성은 확인된 기준과 변동 가능성을 함께 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"price_or_quote_discussed\",\"observedSignals\":[\"요금\",\"가격\",\"추가\",\"세금\",\"성수기\",\"포함\",\"할인\"]}",
+        "actionJson": "{\"disclose\":[\"currency\",\"tax\",\"included_items\",\"excluded_items\",\"valid_until_or_current_basis\",\"possible_change\"],\"verifyBeforeFinalQuote\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90801:2:1\"},{\"type\":\"unit_id\",\"value\":\"90801:3:2\"},{\"type\":\"unit_id\",\"value\":\"90801:4:1\"},{\"type\":\"unit_id\",\"value\":\"90801:5:2\"},{\"type\":\"unit_id\",\"value\":\"90801:5:3\"},{\"type\":\"unit_id\",\"value\":\"90802:2:0\"},{\"type\":\"unit_id\",\"value\":\"90802:3:0\"},{\"type\":\"unit_id\",\"value\":\"90802:4:0\"},{\"type\":\"unit_id\",\"value\":\"90802:5:0\"},{\"type\":\"unit_id\",\"value\":\"90802:7:0\"},{\"type\":\"unit_id\",\"value\":\"90802:7:1\"},{\"type\":\"unit_id\",\"value\":\"90802:8:0\"},{\"type\":\"unit_id\",\"value\":\"90802:8:1\"},{\"type\":\"unit_id\",\"value\":\"90802:9:0\"},{\"type\":\"unit_id\",\"value\":\"90803:1:2\"},{\"type\":\"unit_id\",\"value\":\"90803:8:0\"},{\"type\":\"unit_id\",\"value\":\"90803:9:0\"},{\"type\":\"unit_id\",\"value\":\"90803:9:1\"},{\"type\":\"unit_id\",\"value\":\"90803:10:0\"},{\"type\":\"unit_id\",\"value\":\"90803:11:0\"},{\"type\":\"unit_id\",\"value\":\"90803:11:1\"},{\"type\":\"unit_id\",\"value\":\"90804:0:1\"},{\"type\":\"unit_id\",\"value\":\"90804:2:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:1\"},{\"type\":\"unit_id\",\"value\":\"90804:4:0\"},{\"type\":\"unit_id\",\"value\":\"90804:5:0\"},{\"type\":\"unit_id\",\"value\":\"90804:6:0\"},{\"type\":\"unit_id\",\"value\":\"90804:7:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"quote_travel_price\",\"reserve_travel_product\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "child_age_occupancy_check",
+        "name": "아동 나이 및 투숙 조건 확인",
+        "description": "아동/유아 동반 예약은 나이, 베드쉐어, 엑스트라베드, 조식/라운지 이용 가능 조건을 확인한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"child_or_family_travel_discussed\",\"observedSignals\":[\"어린이\",\"아동\",\"유아\",\"개월\",\"베드쉐어\",\"엑스트라베드\",\"조식\"]}",
+        "actionJson": "{\"collect\":[\"child_ages\",\"bed_share_need\",\"extra_bed_need\"],\"verify\":[\"room_capacity\",\"meal_policy\",\"facility_age_rule\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90802:0:3\"},{\"type\":\"unit_id\",\"value\":\"90802:2:0\"},{\"type\":\"unit_id\",\"value\":\"90802:3:0\"},{\"type\":\"unit_id\",\"value\":\"90804:2:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:0\"},{\"type\":\"unit_id\",\"value\":\"90805:1:5\"},{\"type\":\"unit_id\",\"value\":\"90805:3:2\"},{\"type\":\"unit_id\",\"value\":\"90805:4:0\"},{\"type\":\"unit_id\",\"value\":\"90806:7:1\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90807:7:1\"},{\"type\":\"unit_id\",\"value\":\"90807:11:0\"},{\"type\":\"unit_id\",\"value\":\"90808:0:1\"},{\"type\":\"unit_id\",\"value\":\"90808:2:2\"},{\"type\":\"unit_id\",\"value\":\"90808:3:0\"},{\"type\":\"unit_id\",\"value\":\"90808:3:1\"},{\"type\":\"unit_id\",\"value\":\"90808:4:1\"},{\"type\":\"unit_id\",\"value\":\"90808:5:1\"},{\"type\":\"unit_id\",\"value\":\"90808:5:2\"},{\"type\":\"unit_id\",\"value\":\"90815:0:1\"},{\"type\":\"unit_id\",\"value\":\"90815:3:0\"},{\"type\":\"unit_id\",\"value\":\"90815:4:0\"},{\"type\":\"unit_id\",\"value\":\"90815:5:0\"},{\"type\":\"unit_id\",\"value\":\"90816:1:3\"},{\"type\":\"unit_id\",\"value\":\"90817:3:2\"},{\"type\":\"unit_id\",\"value\":\"90818:0:2\"},{\"type\":\"unit_id\",\"value\":\"90818:6:1\"},{\"type\":\"unit_id\",\"value\":\"90818:9:0\"},{\"type\":\"unit_id\",\"value\":\"90819:4:1\"},{\"type\":\"unit_id\",\"value\":\"90819:5:1\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"quote_travel_price\",\"reserve_travel_product\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "payment_fee_exchange_disclosure",
+        "name": "결제 수단, 수수료, 환율 고지",
+        "description": "원화/외화 입금, 카드 결제, 2.5% 수수료, 무이자 할부, 실시간 환율, 현금영수증 조건을 결제 전 고지한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"payment_discussed\",\"observedSignals\":[\"결제\",\"입금\",\"카드\",\"계좌\",\"수수료\",\"무이자\",\"실시간 환율\"]}",
+        "actionJson": "{\"disclose\":[\"payment_methods\",\"card_fee\",\"eligible_card_brands\",\"installment_terms\",\"exchange_rate_basis\",\"cash_receipt\"],\"requireCustomerConfirmation\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90804:6:0\"},{\"type\":\"unit_id\",\"value\":\"90810:4:1\"},{\"type\":\"unit_id\",\"value\":\"90810:5:1\"},{\"type\":\"unit_id\",\"value\":\"90810:5:2\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90815:0:2\"},{\"type\":\"unit_id\",\"value\":\"90815:1:2\"},{\"type\":\"unit_id\",\"value\":\"90821:14:0\"},{\"type\":\"unit_id\",\"value\":\"90821:15:0\"},{\"type\":\"unit_id\",\"value\":\"90821:15:1\"},{\"type\":\"unit_id\",\"value\":\"90823:5:2\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90825:8:2\"},{\"type\":\"unit_id\",\"value\":\"90825:9:0\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90832:1:2\"},{\"type\":\"unit_id\",\"value\":\"90832:2:1\"},{\"type\":\"unit_id\",\"value\":\"90832:2:2\"},{\"type\":\"unit_id\",\"value\":\"90832:10:1\"},{\"type\":\"unit_id\",\"value\":\"90843:0:1\"},{\"type\":\"unit_id\",\"value\":\"90843:1:2\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:1\"},{\"type\":\"unit_id\",\"value\":\"90852:2:0\"},{\"type\":\"unit_id\",\"value\":\"90852:2:1\"},{\"type\":\"unit_id\",\"value\":\"90852:3:2\"},{\"type\":\"unit_id\",\"value\":\"90853:5:1\"},{\"type\":\"unit_id\",\"value\":\"90853:6:1\"},{\"type\":\"unit_id\",\"value\":\"90853:7:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"handle_payment\",\"reserve_travel_product\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "cancellation_refund_rule_check",
+        "name": "취소 및 환불 규정 확인",
+        "description": "취소, 환불, 패널티, 여행사 수수료는 시즌, 체크인/출발일 기준, 항공/호텔 규정별로 확인 후 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"cancel_refund_or_penalty_discussed\",\"observedSignals\":[\"취소\",\"환불\",\"패널티\",\"15일\",\"31일\",\"2주 전\",\"발권 후\"]}",
+        "actionJson": "{\"verify\":[\"supplier_policy\",\"season_type\",\"deadline_from_checkin_or_departure\",\"agency_fee\"],\"doNotPromiseRefundWithoutRule\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90811:0:1\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:1:4\"},{\"type\":\"unit_id\",\"value\":\"90821:12:1\"},{\"type\":\"unit_id\",\"value\":\"90821:13:0\"},{\"type\":\"unit_id\",\"value\":\"90821:13:1\"},{\"type\":\"unit_id\",\"value\":\"90823:4:0\"},{\"type\":\"unit_id\",\"value\":\"90823:5:1\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90825:8:2\"},{\"type\":\"unit_id\",\"value\":\"90825:9:0\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90832:1:1\"},{\"type\":\"unit_id\",\"value\":\"90839:5:0\"},{\"type\":\"unit_id\",\"value\":\"90842:0:1\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:1\"},{\"type\":\"unit_id\",\"value\":\"90848:1:2\"},{\"type\":\"unit_id\",\"value\":\"90861:0:3\"},{\"type\":\"unit_id\",\"value\":\"90864:0:6\"},{\"type\":\"unit_id\",\"value\":\"90866:2:0\"},{\"type\":\"unit_id\",\"value\":\"90866:4:0\"},{\"type\":\"unit_id\",\"value\":\"90866:5:0\"},{\"type\":\"unit_id\",\"value\":\"90874:6:0\"},{\"type\":\"unit_id\",\"value\":\"90874:7:0\"},{\"type\":\"unit_id\",\"value\":\"90874:7:2\"},{\"type\":\"unit_id\",\"value\":\"90875:6:0\"},{\"type\":\"unit_id\",\"value\":\"90875:7:0\"},{\"type\":\"unit_id\",\"value\":\"90875:7:1\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"change_or_cancel_booking\",\"handle_payment\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "ticketing_restriction_disclosure",
+        "name": "항공권 발권 제한 고지",
+        "description": "할인/단체 항공권은 발권 후 환불, 날짜 변경, 마일리지, 사전좌석 배정 제한을 결제 또는 발권 전에 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"flight_ticket_or_fare_discussed\",\"observedSignals\":[\"항공권\",\"발권\",\"단체항공권\",\"할인 항공권\",\"마일리지\",\"사전좌석\"]}",
+        "actionJson": "{\"disclose\":[\"refundability\",\"date_change_rule\",\"seat_assignment_rule\",\"mileage_rule\"],\"confirmBeforeTicketing\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:0:1\"},{\"type\":\"unit_id\",\"value\":\"90801:1:3\"},{\"type\":\"unit_id\",\"value\":\"90801:6:1\"},{\"type\":\"unit_id\",\"value\":\"90803:11:0\"},{\"type\":\"unit_id\",\"value\":\"90805:0:5\"},{\"type\":\"unit_id\",\"value\":\"90805:2:1\"},{\"type\":\"unit_id\",\"value\":\"90805:3:0\"},{\"type\":\"unit_id\",\"value\":\"90805:6:1\"},{\"type\":\"unit_id\",\"value\":\"90809:0:2\"},{\"type\":\"unit_id\",\"value\":\"90809:1:2\"},{\"type\":\"unit_id\",\"value\":\"90809:5:1\"},{\"type\":\"unit_id\",\"value\":\"90811:0:4\"},{\"type\":\"unit_id\",\"value\":\"90811:1:4\"},{\"type\":\"unit_id\",\"value\":\"90811:6:1\"},{\"type\":\"unit_id\",\"value\":\"90814:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:0:1\"},{\"type\":\"unit_id\",\"value\":\"90816:1:3\"},{\"type\":\"unit_id\",\"value\":\"90816:3:3\"},{\"type\":\"unit_id\",\"value\":\"90816:4:1\"},{\"type\":\"unit_id\",\"value\":\"90816:5:1\"},{\"type\":\"unit_id\",\"value\":\"90819:0:2\"},{\"type\":\"unit_id\",\"value\":\"90819:2:2\"},{\"type\":\"unit_id\",\"value\":\"90819:3:0\"},{\"type\":\"unit_id\",\"value\":\"90819:5:3\"},{\"type\":\"unit_id\",\"value\":\"90819:6:1\"},{\"type\":\"unit_id\",\"value\":\"90820:0:1\"},{\"type\":\"unit_id\",\"value\":\"90820:2:2\"},{\"type\":\"unit_id\",\"value\":\"90820:3:1\"},{\"type\":\"unit_id\",\"value\":\"90823:2:1\"},{\"type\":\"unit_id\",\"value\":\"90823:5:1\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"reserve_travel_product\",\"quote_travel_price\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "itinerary_change_supplier_check",
+        "name": "일정 변경 가능 여부 확인",
+        "description": "날짜, 식사, 관광지, 객실, 항공 변경은 공급처 가능 여부와 추가 요금 여부를 확인한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"change_request_discussed\",\"observedSignals\":[\"변경\",\"교체\",\"바꿔\",\"조정\",\"연장\",\"요청만 가능\"]}",
+        "actionJson": "{\"verify\":[\"supplier_change_rule\",\"availability\",\"additional_charge\"],\"askAdvanceNoticeWhenNeeded\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:5:2\"},{\"type\":\"unit_id\",\"value\":\"90803:11:0\"},{\"type\":\"unit_id\",\"value\":\"90810:1:5\"},{\"type\":\"unit_id\",\"value\":\"90812:0:2\"},{\"type\":\"unit_id\",\"value\":\"90812:2:1\"},{\"type\":\"unit_id\",\"value\":\"90812:3:1\"},{\"type\":\"unit_id\",\"value\":\"90812:4:2\"},{\"type\":\"unit_id\",\"value\":\"90812:5:0\"},{\"type\":\"unit_id\",\"value\":\"90813:1:5\"},{\"type\":\"unit_id\",\"value\":\"90814:0:1\"},{\"type\":\"unit_id\",\"value\":\"90817:8:0\"},{\"type\":\"unit_id\",\"value\":\"90817:9:2\"},{\"type\":\"unit_id\",\"value\":\"90821:9:1\"},{\"type\":\"unit_id\",\"value\":\"90821:12:1\"},{\"type\":\"unit_id\",\"value\":\"90821:13:0\"},{\"type\":\"unit_id\",\"value\":\"90823:5:1\"},{\"type\":\"unit_id\",\"value\":\"90834:7:1\"},{\"type\":\"unit_id\",\"value\":\"90840:0:5\"},{\"type\":\"unit_id\",\"value\":\"90849:1:3\"},{\"type\":\"unit_id\",\"value\":\"90853:0:1\"},{\"type\":\"unit_id\",\"value\":\"90853:1:1\"},{\"type\":\"unit_id\",\"value\":\"90854:0:3\"},{\"type\":\"unit_id\",\"value\":\"90854:5:1\"},{\"type\":\"unit_id\",\"value\":\"90854:7:0\"},{\"type\":\"unit_id\",\"value\":\"90863:3:1\"},{\"type\":\"unit_id\",\"value\":\"90863:5:0\"},{\"type\":\"unit_id\",\"value\":\"90867:0:2\"},{\"type\":\"unit_id\",\"value\":\"90867:2:2\"},{\"type\":\"unit_id\",\"value\":\"90867:3:2\"},{\"type\":\"unit_id\",\"value\":\"90867:4:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"change_or_cancel_booking\",\"reserve_travel_product\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "pickup_transfer_rule",
+        "name": "공항 픽업 및 이동 조건 확인",
+        "description": "공항 픽업, 차량, 택시, 호텔 간 이동은 숙박 박수, 지역, 항공편, 조인 여부, 추가 비용을 확인한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"pickup_or_transfer_discussed\",\"observedSignals\":[\"픽업\",\"공항\",\"차량\",\"택시\",\"교통\",\"항공편명\",\"우붓\"]}",
+        "actionJson": "{\"collect\":[\"arrival_or_departure_flight\",\"hotel_region\",\"night_count\"],\"disclose\":[\"free_or_paid\",\"shared_transfer_possibility\",\"regional_surcharge\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90805:0:3\"},{\"type\":\"unit_id\",\"value\":\"90805:1:2\"},{\"type\":\"unit_id\",\"value\":\"90808:11:1\"},{\"type\":\"unit_id\",\"value\":\"90814:3:2\"},{\"type\":\"unit_id\",\"value\":\"90814:5:1\"},{\"type\":\"unit_id\",\"value\":\"90815:7:3\"},{\"type\":\"unit_id\",\"value\":\"90816:0:1\"},{\"type\":\"unit_id\",\"value\":\"90817:6:0\"},{\"type\":\"unit_id\",\"value\":\"90817:6:1\"},{\"type\":\"unit_id\",\"value\":\"90817:7:0\"},{\"type\":\"unit_id\",\"value\":\"90817:7:1\"},{\"type\":\"unit_id\",\"value\":\"90817:7:2\"},{\"type\":\"unit_id\",\"value\":\"90817:7:3\"},{\"type\":\"unit_id\",\"value\":\"90817:9:1\"},{\"type\":\"unit_id\",\"value\":\"90817:9:3\"},{\"type\":\"unit_id\",\"value\":\"90819:1:2\"},{\"type\":\"unit_id\",\"value\":\"90821:4:1\"},{\"type\":\"unit_id\",\"value\":\"90821:5:0\"},{\"type\":\"unit_id\",\"value\":\"90822:4:2\"},{\"type\":\"unit_id\",\"value\":\"90822:6:1\"},{\"type\":\"unit_id\",\"value\":\"90827:0:3\"},{\"type\":\"unit_id\",\"value\":\"90827:1:4\"},{\"type\":\"unit_id\",\"value\":\"90829:1:2\"},{\"type\":\"unit_id\",\"value\":\"90829:1:3\"},{\"type\":\"unit_id\",\"value\":\"90829:7:0\"},{\"type\":\"unit_id\",\"value\":\"90831:0:2\"},{\"type\":\"unit_id\",\"value\":\"90831:1:4\"},{\"type\":\"unit_id\",\"value\":\"90831:1:5\"},{\"type\":\"unit_id\",\"value\":\"90831:2:1\"},{\"type\":\"unit_id\",\"value\":\"90831:2:2\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"answer_travel_logistics\",\"reserve_travel_product\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "local_activity_advance_booking_check",
+        "name": "현지 옵션 사전 예약 조건 확인",
+        "description": "마사지, 스파, 투어, 골프, 워터파크 등 현지 옵션은 운영 시간, 최소 인원, 사전 요청, 추가 비용을 확인한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"local_activity_discussed\",\"observedSignals\":[\"마사지\",\"스파\",\"투어\",\"골프\",\"워터\",\"크루즈\",\"가이드\",\"관광\"]}",
+        "actionJson": "{\"verify\":[\"operating_time\",\"minimum_party_size\",\"advance_notice\",\"extra_fee\"],\"routeToGuideOrSupplierWhenNeeded\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90802:6:0\"},{\"type\":\"unit_id\",\"value\":\"90802:7:0\"},{\"type\":\"unit_id\",\"value\":\"90803:7:0\"},{\"type\":\"unit_id\",\"value\":\"90803:8:0\"},{\"type\":\"unit_id\",\"value\":\"90803:9:0\"},{\"type\":\"unit_id\",\"value\":\"90810:0:4\"},{\"type\":\"unit_id\",\"value\":\"90810:1:5\"},{\"type\":\"unit_id\",\"value\":\"90810:2:1\"},{\"type\":\"unit_id\",\"value\":\"90810:3:0\"},{\"type\":\"unit_id\",\"value\":\"90810:3:1\"},{\"type\":\"unit_id\",\"value\":\"90810:3:2\"},{\"type\":\"unit_id\",\"value\":\"90810:4:0\"},{\"type\":\"unit_id\",\"value\":\"90810:5:0\"},{\"type\":\"unit_id\",\"value\":\"90814:6:1\"},{\"type\":\"unit_id\",\"value\":\"90817:0:2\"},{\"type\":\"unit_id\",\"value\":\"90817:0:3\"},{\"type\":\"unit_id\",\"value\":\"90817:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:1:1\"},{\"type\":\"unit_id\",\"value\":\"90817:1:3\"},{\"type\":\"unit_id\",\"value\":\"90817:1:4\"},{\"type\":\"unit_id\",\"value\":\"90817:1:5\"},{\"type\":\"unit_id\",\"value\":\"90817:2:0\"},{\"type\":\"unit_id\",\"value\":\"90817:3:0\"},{\"type\":\"unit_id\",\"value\":\"90817:4:0\"},{\"type\":\"unit_id\",\"value\":\"90817:5:0\"},{\"type\":\"unit_id\",\"value\":\"90817:7:0\"},{\"type\":\"unit_id\",\"value\":\"90817:8:1\"},{\"type\":\"unit_id\",\"value\":\"90817:9:0\"},{\"type\":\"unit_id\",\"value\":\"90817:11:1\"},{\"type\":\"unit_id\",\"value\":\"90821:4:1\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"answer_travel_logistics\",\"quote_travel_price\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "reservation_channel_routing",
+        "name": "예약 채널 및 외부 공급처 라우팅",
+        "description": "전화, 이메일, 게시판, 홈페이지, 외부 한국사무소 등 실제 접수 가능한 채널로 안내한다.",
+        "severity": "LOW",
+        "conditionJson": "{\"when\":\"booking_channel_or_external_supplier_discussed\",\"observedSignals\":[\"전화\",\"이메일\",\"게시판\",\"홈페이지\",\"한국사무소\",\"예약 불가\"]}",
+        "actionJson": "{\"route\":[\"phone\",\"email\",\"board\",\"homepage\",\"external_office_when_not_bookable\"],\"includeRequiredInfoList\":true}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:0:1\"},{\"type\":\"unit_id\",\"value\":\"90801:1:5\"},{\"type\":\"unit_id\",\"value\":\"90802:9:0\"},{\"type\":\"unit_id\",\"value\":\"90805:7:1\"},{\"type\":\"unit_id\",\"value\":\"90805:9:0\"},{\"type\":\"unit_id\",\"value\":\"90807:5:1\"},{\"type\":\"unit_id\",\"value\":\"90809:9:0\"},{\"type\":\"unit_id\",\"value\":\"90811:0:7\"},{\"type\":\"unit_id\",\"value\":\"90811:6:2\"},{\"type\":\"unit_id\",\"value\":\"90811:7:1\"},{\"type\":\"unit_id\",\"value\":\"90811:7:2\"},{\"type\":\"unit_id\",\"value\":\"90815:8:1\"},{\"type\":\"unit_id\",\"value\":\"90819:0:6\"},{\"type\":\"unit_id\",\"value\":\"90823:10:2\"},{\"type\":\"unit_id\",\"value\":\"90823:11:1\"},{\"type\":\"unit_id\",\"value\":\"90825:7:0\"},{\"type\":\"unit_id\",\"value\":\"90825:8:1\"},{\"type\":\"unit_id\",\"value\":\"90826:0:5\"},{\"type\":\"unit_id\",\"value\":\"90827:0:2\"},{\"type\":\"unit_id\",\"value\":\"90827:1:5\"},{\"type\":\"unit_id\",\"value\":\"90827:5:0\"},{\"type\":\"unit_id\",\"value\":\"90827:5:1\"},{\"type\":\"unit_id\",\"value\":\"90827:6:1\"},{\"type\":\"unit_id\",\"value\":\"90827:7:2\"},{\"type\":\"unit_id\",\"value\":\"90827:8:1\"},{\"type\":\"unit_id\",\"value\":\"90827:9:2\"},{\"type\":\"unit_id\",\"value\":\"90829:5:0\"},{\"type\":\"unit_id\",\"value\":\"90829:9:0\"},{\"type\":\"unit_id\",\"value\":\"90831:0:1\"},{\"type\":\"unit_id\",\"value\":\"90831:5:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"reserve_travel_product\",\"answer_travel_logistics\"],\"source\":\"policy_identifier\"}"
+      },
+      {
+        "policyCode": "post_booking_confirmation_delivery",
+        "name": "예약 후 확정 및 자료 발송",
+        "description": "예약 완료, 최종 확인, 확정서, 지도/맛집 파일, 택배 발송 등 후속 안내는 결제/확정 상태에 맞춰 처리한다.",
+        "severity": "LOW",
+        "conditionJson": "{\"when\":\"post_booking_material_discussed\",\"observedSignals\":[\"예약 완료\",\"확정서\",\"확인서\",\"지도\",\"맛집\",\"택배\",\"메일\"]}",
+        "actionJson": "{\"send\":[\"confirmation\",\"itinerary_or_voucher\",\"local_guide_files\",\"delivery_notice_when_applicable\"],\"onlyAfter\":\"booking_or_payment_confirmed\"}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:7:1\"},{\"type\":\"unit_id\",\"value\":\"90805:0:5\"},{\"type\":\"unit_id\",\"value\":\"90806:9:1\"},{\"type\":\"unit_id\",\"value\":\"90808:12:1\"},{\"type\":\"unit_id\",\"value\":\"90810:0:4\"},{\"type\":\"unit_id\",\"value\":\"90815:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:9:1\"},{\"type\":\"unit_id\",\"value\":\"90817:3:0\"},{\"type\":\"unit_id\",\"value\":\"90818:1:2\"},{\"type\":\"unit_id\",\"value\":\"90819:9:1\"},{\"type\":\"unit_id\",\"value\":\"90820:7:1\"},{\"type\":\"unit_id\",\"value\":\"90823:11:1\"},{\"type\":\"unit_id\",\"value\":\"90824:0:3\"},{\"type\":\"unit_id\",\"value\":\"90824:5:1\"},{\"type\":\"unit_id\",\"value\":\"90827:0:5\"},{\"type\":\"unit_id\",\"value\":\"90831:2:2\"},{\"type\":\"unit_id\",\"value\":\"90833:0:6\"},{\"type\":\"unit_id\",\"value\":\"90836:7:0\"},{\"type\":\"unit_id\",\"value\":\"90841:6:0\"},{\"type\":\"unit_id\",\"value\":\"90841:7:0\"},{\"type\":\"unit_id\",\"value\":\"90843:8:1\"},{\"type\":\"unit_id\",\"value\":\"90843:9:0\"},{\"type\":\"unit_id\",\"value\":\"90843:9:1\"},{\"type\":\"unit_id\",\"value\":\"90844:0:2\"},{\"type\":\"unit_id\",\"value\":\"90844:1:5\"},{\"type\":\"unit_id\",\"value\":\"90844:4:1\"},{\"type\":\"unit_id\",\"value\":\"90846:0:3\"},{\"type\":\"unit_id\",\"value\":\"90848:9:0\"},{\"type\":\"unit_id\",\"value\":\"90852:1:3\"},{\"type\":\"unit_id\",\"value\":\"90852:2:0\"}]",
+        "metaJson": "{\"likelyIntentCodes\":[\"reserve_travel_product\",\"handle_payment\"],\"source\":\"policy_identifier\"}"
+      }
+    ],
+    "risks": [
+      {
+        "riskCode": "misbooking_risk",
+        "name": "필수 정보 누락 예약 오류",
+        "description": "일정, 인원, 여권 영문명, 생년월일, 연락처, 항공편 정보가 누락되면 잘못된 예약으로 이어질 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"예약\",\"여권\",\"영문\",\"생년월일\",\"연락처\",\"날짜\",\"인원\"]}",
+        "handlingActionJson": "{\"require\":[\"complete_required_booking_fields\",\"human_or_supplier_confirmation_before_commit\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90808:11:1\"},{\"type\":\"unit_id\",\"value\":\"90814:0:2\"},{\"type\":\"unit_id\",\"value\":\"90814:1:2\"},{\"type\":\"unit_id\",\"value\":\"90816:5:2\"},{\"type\":\"unit_id\",\"value\":\"90819:7:1\"},{\"type\":\"unit_id\",\"value\":\"90820:5:2\"},{\"type\":\"unit_id\",\"value\":\"90821:3:1\"},{\"type\":\"unit_id\",\"value\":\"90821:12:1\"},{\"type\":\"unit_id\",\"value\":\"90821:13:0\"},{\"type\":\"unit_id\",\"value\":\"90824:9:0\"},{\"type\":\"unit_id\",\"value\":\"90825:7:1\"},{\"type\":\"unit_id\",\"value\":\"90827:3:1\"},{\"type\":\"unit_id\",\"value\":\"90831:5:1\"},{\"type\":\"unit_id\",\"value\":\"90839:15:0\"},{\"type\":\"unit_id\",\"value\":\"90840:0:6\"},{\"type\":\"unit_id\",\"value\":\"90840:5:0\"},{\"type\":\"unit_id\",\"value\":\"90846:7:0\"},{\"type\":\"unit_id\",\"value\":\"90848:9:1\"},{\"type\":\"unit_id\",\"value\":\"90869:9:1\"},{\"type\":\"unit_id\",\"value\":\"90869:11:1\"},{\"type\":\"unit_id\",\"value\":\"90871:3:1\"},{\"type\":\"unit_id\",\"value\":\"90873:9:1\"},{\"type\":\"unit_id\",\"value\":\"90874:11:0\"},{\"type\":\"unit_id\",\"value\":\"90875:9:0\"},{\"type\":\"unit_id\",\"value\":\"90876:9:0\"},{\"type\":\"unit_id\",\"value\":\"90877:13:0\"},{\"type\":\"unit_id\",\"value\":\"90878:3:0\"},{\"type\":\"unit_id\",\"value\":\"90879:9:0\"},{\"type\":\"unit_id\",\"value\":\"90880:7:1\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "availability_staleness_risk",
+        "name": "좌석/객실 가능 여부 변동 위험",
+        "description": "좌석, 객실, 특가, 대기 예약 상태가 안내 후 실예약 시점에 마감될 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"마감\",\"대기\",\"좌석\",\"객실\",\"남아\",\"실예약\",\"예약 시점\"]}",
+        "handlingActionJson": "{\"require\":[\"recheck_inventory_at_booking_time\",\"state_response_as_current_not_guaranteed\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90801:5:3\"},{\"type\":\"unit_id\",\"value\":\"90801:7:0\"},{\"type\":\"unit_id\",\"value\":\"90805:7:1\"},{\"type\":\"unit_id\",\"value\":\"90813:0:3\"},{\"type\":\"unit_id\",\"value\":\"90813:1:4\"},{\"type\":\"unit_id\",\"value\":\"90814:10:1\"},{\"type\":\"unit_id\",\"value\":\"90816:3:2\"},{\"type\":\"unit_id\",\"value\":\"90818:1:2\"},{\"type\":\"unit_id\",\"value\":\"90818:3:0\"},{\"type\":\"unit_id\",\"value\":\"90818:9:0\"},{\"type\":\"unit_id\",\"value\":\"90818:13:2\"},{\"type\":\"unit_id\",\"value\":\"90820:1:1\"},{\"type\":\"unit_id\",\"value\":\"90820:1:3\"},{\"type\":\"unit_id\",\"value\":\"90821:3:1\"},{\"type\":\"unit_id\",\"value\":\"90822:3:0\"},{\"type\":\"unit_id\",\"value\":\"90823:8:0\"},{\"type\":\"unit_id\",\"value\":\"90823:9:1\"},{\"type\":\"unit_id\",\"value\":\"90824:5:1\"},{\"type\":\"unit_id\",\"value\":\"90826:5:1\"},{\"type\":\"unit_id\",\"value\":\"90827:3:0\"},{\"type\":\"unit_id\",\"value\":\"90827:3:1\"},{\"type\":\"unit_id\",\"value\":\"90829:1:4\"},{\"type\":\"unit_id\",\"value\":\"90830:1:3\"},{\"type\":\"unit_id\",\"value\":\"90830:2:0\"},{\"type\":\"unit_id\",\"value\":\"90830:3:1\"},{\"type\":\"unit_id\",\"value\":\"90831:6:1\"},{\"type\":\"unit_id\",\"value\":\"90833:5:1\"},{\"type\":\"unit_id\",\"value\":\"90835:8:0\"},{\"type\":\"unit_id\",\"value\":\"90835:9:0\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "money_misquote_risk",
+        "name": "요금/세금/포함 내역 오안내 위험",
+        "description": "가격, 세금, 성수기 추가금, 할인, 포함/불포함 항목, 환율을 잘못 안내하면 금전 분쟁이 발생할 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"요금\",\"가격\",\"금액\",\"세금\",\"추가\",\"할인\",\"포함\",\"환율\"]}",
+        "handlingActionJson": "{\"require\":[\"show_currency_and_basis\",\"confirm_inclusion_and_exclusion\",\"mark_estimates_as_provisional\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90801:2:1\"},{\"type\":\"unit_id\",\"value\":\"90801:3:2\"},{\"type\":\"unit_id\",\"value\":\"90801:4:1\"},{\"type\":\"unit_id\",\"value\":\"90801:5:2\"},{\"type\":\"unit_id\",\"value\":\"90801:5:3\"},{\"type\":\"unit_id\",\"value\":\"90802:2:0\"},{\"type\":\"unit_id\",\"value\":\"90802:3:0\"},{\"type\":\"unit_id\",\"value\":\"90802:4:0\"},{\"type\":\"unit_id\",\"value\":\"90802:5:0\"},{\"type\":\"unit_id\",\"value\":\"90802:7:0\"},{\"type\":\"unit_id\",\"value\":\"90802:7:1\"},{\"type\":\"unit_id\",\"value\":\"90802:8:0\"},{\"type\":\"unit_id\",\"value\":\"90802:8:1\"},{\"type\":\"unit_id\",\"value\":\"90802:9:0\"},{\"type\":\"unit_id\",\"value\":\"90803:1:2\"},{\"type\":\"unit_id\",\"value\":\"90803:9:0\"},{\"type\":\"unit_id\",\"value\":\"90803:10:0\"},{\"type\":\"unit_id\",\"value\":\"90803:11:0\"},{\"type\":\"unit_id\",\"value\":\"90803:11:1\"},{\"type\":\"unit_id\",\"value\":\"90804:2:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:1\"},{\"type\":\"unit_id\",\"value\":\"90804:4:0\"},{\"type\":\"unit_id\",\"value\":\"90804:5:0\"},{\"type\":\"unit_id\",\"value\":\"90804:6:0\"},{\"type\":\"unit_id\",\"value\":\"90804:7:0\"},{\"type\":\"unit_id\",\"value\":\"90805:0:2\"},{\"type\":\"unit_id\",\"value\":\"90805:0:5\"},{\"type\":\"unit_id\",\"value\":\"90805:1:3\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "payment_processing_risk",
+        "name": "결제 처리 오류 위험",
+        "description": "카드 수수료, 계좌 입금, 실시간 환율, 무이자 조건, 예약금/잔금 처리 오류가 금전 사고로 이어질 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"결제\",\"입금\",\"카드\",\"계좌\",\"무이자\",\"수수료\",\"예약금\",\"잔금\"]}",
+        "handlingActionJson": "{\"require\":[\"confirm_payment_method\",\"disclose_fee_and_exchange_rate\",\"verify_deposit_or_refund_status\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90804:6:0\"},{\"type\":\"unit_id\",\"value\":\"90810:4:1\"},{\"type\":\"unit_id\",\"value\":\"90810:5:1\"},{\"type\":\"unit_id\",\"value\":\"90810:5:2\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90815:0:2\"},{\"type\":\"unit_id\",\"value\":\"90815:1:2\"},{\"type\":\"unit_id\",\"value\":\"90821:14:0\"},{\"type\":\"unit_id\",\"value\":\"90821:15:0\"},{\"type\":\"unit_id\",\"value\":\"90821:15:1\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90825:8:2\"},{\"type\":\"unit_id\",\"value\":\"90825:9:0\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90832:1:2\"},{\"type\":\"unit_id\",\"value\":\"90832:2:1\"},{\"type\":\"unit_id\",\"value\":\"90832:2:2\"},{\"type\":\"unit_id\",\"value\":\"90832:10:1\"},{\"type\":\"unit_id\",\"value\":\"90843:0:1\"},{\"type\":\"unit_id\",\"value\":\"90843:1:2\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:1\"},{\"type\":\"unit_id\",\"value\":\"90852:2:0\"},{\"type\":\"unit_id\",\"value\":\"90852:2:1\"},{\"type\":\"unit_id\",\"value\":\"90852:3:2\"},{\"type\":\"unit_id\",\"value\":\"90853:5:1\"},{\"type\":\"unit_id\",\"value\":\"90853:6:1\"},{\"type\":\"unit_id\",\"value\":\"90853:7:0\"},{\"type\":\"unit_id\",\"value\":\"90858:0:2\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "refund_penalty_risk",
+        "name": "취소/환불 패널티 오처리 위험",
+        "description": "출발/체크인 기준일, 성수기 여부, 항공/호텔 규정을 잘못 적용하면 환불 또는 패널티 안내가 틀릴 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"취소\",\"환불\",\"패널티\",\"수수료\",\"15일\",\"31일\",\"2주 전\",\"발권 후\"]}",
+        "handlingActionJson": "{\"require\":[\"calculate_deadline_from_correct_date\",\"check_supplier_policy\",\"avoid_unverified_refund_promise\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90810:1:4\"},{\"type\":\"unit_id\",\"value\":\"90811:0:1\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:0:4\"},{\"type\":\"unit_id\",\"value\":\"90817:1:4\"},{\"type\":\"unit_id\",\"value\":\"90821:12:1\"},{\"type\":\"unit_id\",\"value\":\"90821:13:0\"},{\"type\":\"unit_id\",\"value\":\"90821:13:1\"},{\"type\":\"unit_id\",\"value\":\"90823:4:0\"},{\"type\":\"unit_id\",\"value\":\"90823:5:1\"},{\"type\":\"unit_id\",\"value\":\"90825:0:9\"},{\"type\":\"unit_id\",\"value\":\"90825:8:2\"},{\"type\":\"unit_id\",\"value\":\"90825:9:0\"},{\"type\":\"unit_id\",\"value\":\"90832:0:1\"},{\"type\":\"unit_id\",\"value\":\"90832:1:1\"},{\"type\":\"unit_id\",\"value\":\"90839:5:0\"},{\"type\":\"unit_id\",\"value\":\"90842:0:1\"},{\"type\":\"unit_id\",\"value\":\"90844:0:2\"},{\"type\":\"unit_id\",\"value\":\"90846:8:0\"},{\"type\":\"unit_id\",\"value\":\"90846:9:1\"},{\"type\":\"unit_id\",\"value\":\"90848:1:2\"},{\"type\":\"unit_id\",\"value\":\"90861:0:3\"},{\"type\":\"unit_id\",\"value\":\"90864:0:6\"},{\"type\":\"unit_id\",\"value\":\"90866:2:0\"},{\"type\":\"unit_id\",\"value\":\"90866:4:0\"},{\"type\":\"unit_id\",\"value\":\"90866:5:0\"},{\"type\":\"unit_id\",\"value\":\"90874:6:0\"},{\"type\":\"unit_id\",\"value\":\"90874:7:0\"},{\"type\":\"unit_id\",\"value\":\"90874:7:2\"},{\"type\":\"unit_id\",\"value\":\"90875:6:0\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "personal_data_exposure_risk",
+        "name": "개인정보 노출 위험",
+        "description": "여권 영문 이름, 생년월일, 연락처, 이메일, 카톡 아이디를 수집/전달하는 과정에서 개인정보가 노출될 수 있다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"여권\",\"영문 이름\",\"생년월일\",\"핸드폰\",\"연락처\",\"카톡\",\"이메일\"]}",
+        "handlingActionJson": "{\"require\":[\"collect_minimum_required_data\",\"use_approved_channel\",\"avoid_repeating_sensitive_data_unnecessarily\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:1:4\"},{\"type\":\"unit_id\",\"value\":\"90801:1:5\"},{\"type\":\"unit_id\",\"value\":\"90801:2:2\"},{\"type\":\"unit_id\",\"value\":\"90801:3:1\"},{\"type\":\"unit_id\",\"value\":\"90805:9:0\"},{\"type\":\"unit_id\",\"value\":\"90808:11:1\"},{\"type\":\"unit_id\",\"value\":\"90809:9:0\"},{\"type\":\"unit_id\",\"value\":\"90810:7:0\"},{\"type\":\"unit_id\",\"value\":\"90815:7:3\"},{\"type\":\"unit_id\",\"value\":\"90815:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:5:2\"},{\"type\":\"unit_id\",\"value\":\"90816:6:0\"},{\"type\":\"unit_id\",\"value\":\"90819:7:1\"},{\"type\":\"unit_id\",\"value\":\"90819:8:0\"},{\"type\":\"unit_id\",\"value\":\"90820:5:2\"},{\"type\":\"unit_id\",\"value\":\"90820:6:0\"},{\"type\":\"unit_id\",\"value\":\"90822:6:1\"},{\"type\":\"unit_id\",\"value\":\"90823:11:1\"},{\"type\":\"unit_id\",\"value\":\"90826:0:5\"},{\"type\":\"unit_id\",\"value\":\"90827:0:2\"},{\"type\":\"unit_id\",\"value\":\"90828:6:0\"},{\"type\":\"unit_id\",\"value\":\"90828:7:1\"},{\"type\":\"unit_id\",\"value\":\"90828:7:2\"},{\"type\":\"unit_id\",\"value\":\"90829:9:0\"},{\"type\":\"unit_id\",\"value\":\"90830:9:1\"},{\"type\":\"unit_id\",\"value\":\"90831:5:0\"},{\"type\":\"unit_id\",\"value\":\"90831:6:0\"},{\"type\":\"unit_id\",\"value\":\"90837:13:0\"},{\"type\":\"unit_id\",\"value\":\"90837:13:1\"},{\"type\":\"unit_id\",\"value\":\"90839:15:0\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "flight_restriction_risk",
+        "name": "항공권 제한 조건 누락 위험",
+        "description": "할인/단체 항공권의 환불 불가, 변경 불가, 좌석 배정, 마일리지 제한이 누락되면 여행 일정과 비용에 영향을 준다.",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\":[\"항공권\",\"발권\",\"단체항공권\",\"할인 항공권\",\"마일리지\",\"사전좌석\",\"날짜 변경\"]}",
+        "handlingActionJson": "{\"require\":[\"present_ticket_restrictions_before_payment_or_issue\",\"get_customer_acknowledgement\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90801:0:1\"},{\"type\":\"unit_id\",\"value\":\"90801:1:3\"},{\"type\":\"unit_id\",\"value\":\"90801:6:1\"},{\"type\":\"unit_id\",\"value\":\"90803:11:0\"},{\"type\":\"unit_id\",\"value\":\"90805:0:5\"},{\"type\":\"unit_id\",\"value\":\"90805:2:1\"},{\"type\":\"unit_id\",\"value\":\"90805:3:0\"},{\"type\":\"unit_id\",\"value\":\"90805:6:1\"},{\"type\":\"unit_id\",\"value\":\"90809:0:2\"},{\"type\":\"unit_id\",\"value\":\"90809:1:2\"},{\"type\":\"unit_id\",\"value\":\"90809:5:1\"},{\"type\":\"unit_id\",\"value\":\"90811:0:4\"},{\"type\":\"unit_id\",\"value\":\"90811:1:4\"},{\"type\":\"unit_id\",\"value\":\"90811:6:1\"},{\"type\":\"unit_id\",\"value\":\"90814:8:1\"},{\"type\":\"unit_id\",\"value\":\"90816:0:1\"},{\"type\":\"unit_id\",\"value\":\"90816:1:3\"},{\"type\":\"unit_id\",\"value\":\"90816:3:3\"},{\"type\":\"unit_id\",\"value\":\"90816:4:1\"},{\"type\":\"unit_id\",\"value\":\"90816:5:1\"},{\"type\":\"unit_id\",\"value\":\"90819:0:2\"},{\"type\":\"unit_id\",\"value\":\"90819:2:2\"},{\"type\":\"unit_id\",\"value\":\"90819:3:0\"},{\"type\":\"unit_id\",\"value\":\"90819:5:3\"},{\"type\":\"unit_id\",\"value\":\"90819:6:1\"},{\"type\":\"unit_id\",\"value\":\"90820:0:1\"},{\"type\":\"unit_id\",\"value\":\"90820:2:2\"},{\"type\":\"unit_id\",\"value\":\"90820:3:1\"},{\"type\":\"unit_id\",\"value\":\"90823:2:1\"},{\"type\":\"unit_id\",\"value\":\"90823:5:1\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "logistics_coordination_risk",
+        "name": "픽업/이동/체크인 물류 오류 위험",
+        "description": "공항 픽업, 항공편명, 호텔 지역, 체크인/체크아웃, 차량/택시 안내 오류는 현지 이동 문제를 만든다.",
+        "riskLevel": "MEDIUM",
+        "triggerConditionJson": "{\"signals\":[\"픽업\",\"공항\",\"차량\",\"택시\",\"교통\",\"체크인\",\"체크아웃\",\"항공편명\"]}",
+        "handlingActionJson": "{\"require\":[\"confirm_flight_and_hotel_region\",\"disclose_shared_or_paid_transfer\",\"document_pickup_details\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90803:7:0\"},{\"type\":\"unit_id\",\"value\":\"90805:0:3\"},{\"type\":\"unit_id\",\"value\":\"90805:1:2\"},{\"type\":\"unit_id\",\"value\":\"90808:11:1\"},{\"type\":\"unit_id\",\"value\":\"90814:3:2\"},{\"type\":\"unit_id\",\"value\":\"90814:5:1\"},{\"type\":\"unit_id\",\"value\":\"90814:7:1\"},{\"type\":\"unit_id\",\"value\":\"90815:7:3\"},{\"type\":\"unit_id\",\"value\":\"90816:0:1\"},{\"type\":\"unit_id\",\"value\":\"90817:6:1\"},{\"type\":\"unit_id\",\"value\":\"90817:7:0\"},{\"type\":\"unit_id\",\"value\":\"90817:7:1\"},{\"type\":\"unit_id\",\"value\":\"90817:7:2\"},{\"type\":\"unit_id\",\"value\":\"90817:7:3\"},{\"type\":\"unit_id\",\"value\":\"90817:9:3\"},{\"type\":\"unit_id\",\"value\":\"90821:4:1\"},{\"type\":\"unit_id\",\"value\":\"90821:5:0\"},{\"type\":\"unit_id\",\"value\":\"90822:0:5\"},{\"type\":\"unit_id\",\"value\":\"90822:4:2\"},{\"type\":\"unit_id\",\"value\":\"90822:6:1\"},{\"type\":\"unit_id\",\"value\":\"90827:0:3\"},{\"type\":\"unit_id\",\"value\":\"90827:1:4\"},{\"type\":\"unit_id\",\"value\":\"90827:6:2\"},{\"type\":\"unit_id\",\"value\":\"90827:7:0\"},{\"type\":\"unit_id\",\"value\":\"90827:7:1\"},{\"type\":\"unit_id\",\"value\":\"90831:0:0\"},{\"type\":\"unit_id\",\"value\":\"90831:0:2\"},{\"type\":\"unit_id\",\"value\":\"90831:1:4\"},{\"type\":\"unit_id\",\"value\":\"90831:1:5\"},{\"type\":\"unit_id\",\"value\":\"90831:2:1\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "child_occupancy_risk",
+        "name": "아동 투숙/요금 조건 오류 위험",
+        "description": "아동 나이, 베드쉐어, 엑스트라베드, 조식/라운지 조건을 잘못 적용하면 객실 또는 추가금 문제가 생긴다.",
+        "riskLevel": "MEDIUM",
+        "triggerConditionJson": "{\"signals\":[\"어린이\",\"아동\",\"유아\",\"개월\",\"베드쉐어\",\"엑스트라베드\",\"조식\"]}",
+        "handlingActionJson": "{\"require\":[\"verify_child_age_and_room_capacity\",\"state_meal_and_facility_restrictions\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90802:0:3\"},{\"type\":\"unit_id\",\"value\":\"90802:2:0\"},{\"type\":\"unit_id\",\"value\":\"90802:3:0\"},{\"type\":\"unit_id\",\"value\":\"90804:2:0\"},{\"type\":\"unit_id\",\"value\":\"90804:3:0\"},{\"type\":\"unit_id\",\"value\":\"90805:1:5\"},{\"type\":\"unit_id\",\"value\":\"90805:3:2\"},{\"type\":\"unit_id\",\"value\":\"90805:4:0\"},{\"type\":\"unit_id\",\"value\":\"90806:7:1\"},{\"type\":\"unit_id\",\"value\":\"90807:0:1\"},{\"type\":\"unit_id\",\"value\":\"90807:7:1\"},{\"type\":\"unit_id\",\"value\":\"90807:11:0\"},{\"type\":\"unit_id\",\"value\":\"90808:2:2\"},{\"type\":\"unit_id\",\"value\":\"90808:3:0\"},{\"type\":\"unit_id\",\"value\":\"90808:3:1\"},{\"type\":\"unit_id\",\"value\":\"90808:4:1\"},{\"type\":\"unit_id\",\"value\":\"90808:5:1\"},{\"type\":\"unit_id\",\"value\":\"90808:5:2\"},{\"type\":\"unit_id\",\"value\":\"90815:0:1\"},{\"type\":\"unit_id\",\"value\":\"90815:3:0\"},{\"type\":\"unit_id\",\"value\":\"90815:4:0\"},{\"type\":\"unit_id\",\"value\":\"90815:5:0\"},{\"type\":\"unit_id\",\"value\":\"90816:1:3\"},{\"type\":\"unit_id\",\"value\":\"90817:3:2\"},{\"type\":\"unit_id\",\"value\":\"90818:0:2\"},{\"type\":\"unit_id\",\"value\":\"90818:6:1\"},{\"type\":\"unit_id\",\"value\":\"90818:9:0\"},{\"type\":\"unit_id\",\"value\":\"90819:4:1\"},{\"type\":\"unit_id\",\"value\":\"90819:5:1\"},{\"type\":\"unit_id\",\"value\":\"90820:0:2\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      },
+      {
+        "riskCode": "safety_disruption_risk",
+        "name": "안전/여행 준비 정보 오안내 위험",
+        "description": "테러, 안전 우려, 여권 유효기간, 비자, 보험 등 준비 정보는 오래되거나 부정확하면 여행 차질로 이어진다.",
+        "riskLevel": "MEDIUM",
+        "triggerConditionJson": "{\"signals\":[\"테러\",\"안전\",\"불안\",\"여권 유효기간\",\"비자\",\"보험\"]}",
+        "handlingActionJson": "{\"require\":[\"escalate_current_safety_or_entry_requirement_question\",\"avoid_claiming_legal_or_current_truth_from_old_logs\"]}",
+        "evidenceJson": "[{\"type\":\"unit_id\",\"value\":\"90803:3:1\"},{\"type\":\"unit_id\",\"value\":\"90803:5:0\"},{\"type\":\"unit_id\",\"value\":\"90810:1:4\"},{\"type\":\"unit_id\",\"value\":\"90810:7:0\"},{\"type\":\"unit_id\",\"value\":\"90810:7:2\"},{\"type\":\"unit_id\",\"value\":\"90812:0:1\"},{\"type\":\"unit_id\",\"value\":\"90812:0:2\"},{\"type\":\"unit_id\",\"value\":\"90812:0:3\"},{\"type\":\"unit_id\",\"value\":\"90812:0:4\"},{\"type\":\"unit_id\",\"value\":\"90812:1:1\"},{\"type\":\"unit_id\",\"value\":\"90812:1:2\"},{\"type\":\"unit_id\",\"value\":\"90812:1:3\"},{\"type\":\"unit_id\",\"value\":\"90812:2:1\"},{\"type\":\"unit_id\",\"value\":\"90812:3:2\"},{\"type\":\"unit_id\",\"value\":\"90812:5:0\"},{\"type\":\"unit_id\",\"value\":\"90812:9:1\"},{\"type\":\"unit_id\",\"value\":\"90814:0:3\"},{\"type\":\"unit_id\",\"value\":\"90817:3:1\"},{\"type\":\"unit_id\",\"value\":\"90817:7:3\"},{\"type\":\"unit_id\",\"value\":\"90821:11:2\"},{\"type\":\"unit_id\",\"value\":\"90825:9:1\"},{\"type\":\"unit_id\",\"value\":\"90828:1:2\"},{\"type\":\"unit_id\",\"value\":\"90832:4:2\"},{\"type\":\"unit_id\",\"value\":\"90832:5:0\"},{\"type\":\"unit_id\",\"value\":\"90833:3:0\"},{\"type\":\"unit_id\",\"value\":\"90838:7:0\"},{\"type\":\"unit_id\",\"value\":\"90838:7:1\"},{\"type\":\"unit_id\",\"value\":\"90842:1:4\"},{\"type\":\"unit_id\",\"value\":\"90844:0:3\"},{\"type\":\"unit_id\",\"value\":\"90844:1:1\"}]",
+        "metaJson": "{\"source\":\"policy_identifier\"}"
+      }
+    ],
+    "workflows": [
+      {
+        "workflowCode": "flight_quote_and_reservation_flow",
+        "name": "항공권 견적 및 예약 워크플로우",
+        "description": "항공권 요금, 좌석 가능 여부, 항공사/경유 스케줄 확인 후 예약으로 이어지는 문의",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"reservation_info_collection\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"견적 유효성 및 포함 내역 고지\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90801\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90803\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90804\"},{\"type\":\"member_conv_id\",\"value\":\"90805\"},{\"type\":\"member_conv_id\",\"value\":\"90806\"},{\"type\":\"member_conv_id\",\"value\":\"90809\"},{\"type\":\"member_conv_id\",\"value\":\"90811\"},{\"type\":\"member_conv_id\",\"value\":\"90813\"},{\"type\":\"member_conv_id\",\"value\":\"90814\"},{\"type\":\"member_conv_id\",\"value\":\"90816\"},{\"type\":\"member_conv_id\",\"value\":\"90819\"},{\"type\":\"member_conv_id\",\"value\":\"90820\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"availability_recheck_before_commit\",\"quote_validity_and_inclusion_notice\",\"reservation_info_collection\"]}",
+        "intentCode": "flight_quote_and_reservation",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"항공권\",\"항공편\",\"항공사\",\"비행기\",\"좌석\"],\"optionalTerms\":[\"가루다\",\"대한항공\",\"아시아나\",\"싱가폴 항공\",\"직항\",\"경유\",\"리턴\",\"오픈티켓\"]}"
+      },
+      {
+        "workflowCode": "hotel_room_quote_and_availability_flow",
+        "name": "숙소 객실 견적 및 가능 여부 워크플로우",
+        "description": "호텔/리조트 객실, 룸타입, 조식, 인원 조건에 맞는 요금과 예약 가능 여부 확인",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"child_age_occupancy_check\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"견적 유효성 및 포함 내역 고지\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90801\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90804\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90805\"},{\"type\":\"member_conv_id\",\"value\":\"90806\"},{\"type\":\"member_conv_id\",\"value\":\"90807\"},{\"type\":\"member_conv_id\",\"value\":\"90808\"},{\"type\":\"member_conv_id\",\"value\":\"90811\"},{\"type\":\"member_conv_id\",\"value\":\"90813\"},{\"type\":\"member_conv_id\",\"value\":\"90814\"},{\"type\":\"member_conv_id\",\"value\":\"90815\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90818\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"availability_recheck_before_commit\",\"quote_validity_and_inclusion_notice\",\"child_age_occupancy_check\"]}",
+        "intentCode": "hotel_room_quote_and_availability",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"호텔\",\"리조트\",\"숙소\",\"객실\",\"룸\"],\"optionalTerms\":[\"조식\",\"스위트\",\"풀빌라\",\"오션뷰\",\"엑스트라베드\",\"체크인\",\"체크아웃\"]}"
+      },
+      {
+        "workflowCode": "package_product_quote_and_conditions_flow",
+        "name": "패키지 상품 견적 및 조건 확인 워크플로우",
+        "description": "가족특선, 효도여행, 에어텔, 자유여행팩 등 정형 상품의 일정, 포함사항, 출발 조건, 요금 확인",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"reservation_info_collection\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"실예약 전 가능 여부 재확인\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90801\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90802\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90803\"},{\"type\":\"member_conv_id\",\"value\":\"90807\"},{\"type\":\"member_conv_id\",\"value\":\"90808\"},{\"type\":\"member_conv_id\",\"value\":\"90811\"},{\"type\":\"member_conv_id\",\"value\":\"90813\"},{\"type\":\"member_conv_id\",\"value\":\"90815\"},{\"type\":\"member_conv_id\",\"value\":\"90816\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90818\"},{\"type\":\"member_conv_id\",\"value\":\"90819\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"quote_validity_and_inclusion_notice\",\"availability_recheck_before_commit\",\"reservation_info_collection\"]}",
+        "intentCode": "package_product_quote_and_conditions",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"패키지\",\"상품\",\"특선\",\"에어텔\"],\"optionalTerms\":[\"효도여행\",\"올인클루시브\",\"자유여행팩\",\"출발 조건\",\"포함사항\"]}"
+      },
+      {
+        "workflowCode": "honeymoon_villa_planning_flow",
+        "name": "허니문 및 풀빌라 일정 상담 워크플로우",
+        "description": "예식일, 허니문 예산, 풀빌라/단독빌라, 휴양·관광 비중에 맞춘 신혼여행 상담",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"reservation_info_collection\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"실예약 전 가능 여부 재확인\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90812\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90813\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90814\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90819\"},{\"type\":\"member_conv_id\",\"value\":\"90826\"},{\"type\":\"member_conv_id\",\"value\":\"90827\"},{\"type\":\"member_conv_id\",\"value\":\"90828\"},{\"type\":\"member_conv_id\",\"value\":\"90834\"},{\"type\":\"member_conv_id\",\"value\":\"90836\"},{\"type\":\"member_conv_id\",\"value\":\"90838\"},{\"type\":\"member_conv_id\",\"value\":\"90839\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"reservation_info_collection\",\"availability_recheck_before_commit\",\"quote_validity_and_inclusion_notice\"]}",
+        "intentCode": "honeymoon_villa_planning",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"허니문\",\"신혼여행\",\"결혼\",\"예식\",\"풀빌라\"],\"optionalTerms\":[\"단독빌라\",\"신랑\",\"예비신부\",\"로맨틱\",\"캔들\"]}"
+      },
+      {
+        "workflowCode": "family_group_travel_quote_flow",
+        "name": "가족 및 단체 여행 견적 워크플로우",
+        "description": "가족/단체 인원, 아동·유아 동반, 커넥팅룸·키즈룸·어린이 요금을 반영한 견적 상담",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"child_age_occupancy_check\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"견적 유효성 및 포함 내역 고지\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90802\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90803\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90804\"},{\"type\":\"member_conv_id\",\"value\":\"90805\"},{\"type\":\"member_conv_id\",\"value\":\"90806\"},{\"type\":\"member_conv_id\",\"value\":\"90807\"},{\"type\":\"member_conv_id\",\"value\":\"90808\"},{\"type\":\"member_conv_id\",\"value\":\"90815\"},{\"type\":\"member_conv_id\",\"value\":\"90820\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90822\"},{\"type\":\"member_conv_id\",\"value\":\"90825\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"child_age_occupancy_check\",\"quote_validity_and_inclusion_notice\",\"availability_recheck_before_commit\"]}",
+        "intentCode": "family_group_travel_quote",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"가족\",\"단체\",\"어린이\",\"아동\",\"유아\"],\"optionalTerms\":[\"부모님\",\"아이\",\"아기\",\"소인\",\"커넥팅룸\",\"키즈\",\"어린이 요금\"]}"
+      },
+      {
+        "workflowCode": "travel_recommendation_consulting_flow",
+        "name": "여행 상품 및 숙소 추천 워크플로우",
+        "description": "예산, 지역, 분위기, 가성비, 동반자 조건에 맞는 호텔·리조트·상품 추천 요청",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"실예약 전 가능 여부 재확인\",\"policyRef\":\"availability_recheck_before_commit\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90801\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90807\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90809\"},{\"type\":\"member_conv_id\",\"value\":\"90811\"},{\"type\":\"member_conv_id\",\"value\":\"90813\"},{\"type\":\"member_conv_id\",\"value\":\"90814\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90818\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90825\"},{\"type\":\"member_conv_id\",\"value\":\"90826\"},{\"type\":\"member_conv_id\",\"value\":\"90832\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"quote_validity_and_inclusion_notice\",\"availability_recheck_before_commit\"]}",
+        "intentCode": "travel_recommendation_consulting",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"추천\",\"가성비\",\"좋은 곳\"],\"optionalTerms\":[\"권해\",\"다른 호텔\",\"다른 리조트\",\"저렴한\",\"비슷한 가격대\",\"조언\"]}"
+      },
+      {
+        "workflowCode": "itinerary_activity_options_flow",
+        "name": "일정 관광 및 옵션 상담 워크플로우",
+        "description": "관광 코스, 스파/마사지, 워터파크, 골프, 해양레포츠, 옵션 변경 및 포함 여부 문의",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"local_activity_advance_booking_check\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"견적 유효성 및 포함 내역 고지\",\"policyRef\":\"quote_validity_and_inclusion_notice\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90802\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90803\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90804\"},{\"type\":\"member_conv_id\",\"value\":\"90810\"},{\"type\":\"member_conv_id\",\"value\":\"90812\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90822\"},{\"type\":\"member_conv_id\",\"value\":\"90833\"},{\"type\":\"member_conv_id\",\"value\":\"90834\"},{\"type\":\"member_conv_id\",\"value\":\"90838\"},{\"type\":\"member_conv_id\",\"value\":\"90843\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"local_activity_advance_booking_check\",\"quote_validity_and_inclusion_notice\"]}",
+        "intentCode": "itinerary_activity_options",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"관광\",\"투어\",\"옵션\",\"스파\",\"마사지\"],\"optionalTerms\":[\"워터파크\",\"워터붐\",\"골프\",\"티오프\",\"크루즈\",\"해양레포츠\",\"일정 변경\",\"교체\"]}"
+      },
+      {
+        "workflowCode": "reservation_progress_and_documents_flow",
+        "name": "예약 진행 상태 및 필요 정보 확인 워크플로우",
+        "description": "예약 접수 후 확정서, 예약 변동 여부, 필요한 고객 정보·서류·이메일 회신을 확인하는 문의",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"post_booking_confirmation_delivery\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"reservation_channel_routing\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"예약 채널 및 외부 공급처 라우팅\",\"policyRef\":\"reservation_channel_routing\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90801\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90806\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90808\"},{\"type\":\"member_conv_id\",\"value\":\"90811\"},{\"type\":\"member_conv_id\",\"value\":\"90815\"},{\"type\":\"member_conv_id\",\"value\":\"90816\"},{\"type\":\"member_conv_id\",\"value\":\"90819\"},{\"type\":\"member_conv_id\",\"value\":\"90820\"},{\"type\":\"member_conv_id\",\"value\":\"90823\"},{\"type\":\"member_conv_id\",\"value\":\"90824\"},{\"type\":\"member_conv_id\",\"value\":\"90826\"},{\"type\":\"member_conv_id\",\"value\":\"90827\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"post_booking_confirmation_delivery\",\"reservation_channel_routing\"]}",
+        "intentCode": "reservation_progress_and_documents",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"예약\",\"확정서\",\"필요한 정보\",\"서류\"],\"optionalTerms\":[\"변동\",\"진행\",\"메일\",\"이메일\",\"확인서\",\"연락처\",\"성함\",\"여권\"]}"
+      },
+      {
+        "workflowCode": "payment_billing_method_flow",
+        "name": "결제 및 청구 방법 안내 워크플로우",
+        "description": "카드/현금/입금, 예약금, 결제 링크, 통화, 수수료, 무이자 할부 등 결제 방식 문의",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"payment_fee_exchange_disclosure\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"reservation_info_collection\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"예약 필수 정보 수집\",\"policyRef\":\"reservation_info_collection\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90804\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90810\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90815\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90825\"},{\"type\":\"member_conv_id\",\"value\":\"90832\"},{\"type\":\"member_conv_id\",\"value\":\"90843\"},{\"type\":\"member_conv_id\",\"value\":\"90846\"},{\"type\":\"member_conv_id\",\"value\":\"90852\"},{\"type\":\"member_conv_id\",\"value\":\"90853\"},{\"type\":\"member_conv_id\",\"value\":\"90858\"},{\"type\":\"member_conv_id\",\"value\":\"90865\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"payment_fee_exchange_disclosure\",\"reservation_info_collection\"]}",
+        "intentCode": "payment_billing_method",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"결제\",\"카드\",\"입금\",\"예약금\"],\"optionalTerms\":[\"현금\",\"무이자\",\"할부\",\"링크\",\"수수료\",\"원화\",\"달러\",\"청구\"]}"
+      },
+      {
+        "workflowCode": "cancellation_refund_change_policy_flow",
+        "name": "취소 환불 및 변경 규정 워크플로우",
+        "description": "예약 취소, 계약금/환불, 취소 수수료, 일정·리턴 변경 가능 여부와 처리 절차 문의",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"cancellation_refund_rule_check\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"itinerary_change_supplier_check\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"일정 변경 가능 여부 확인\",\"policyRef\":\"itinerary_change_supplier_check\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90811\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90812\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90823\"},{\"type\":\"member_conv_id\",\"value\":\"90825\"},{\"type\":\"member_conv_id\",\"value\":\"90832\"},{\"type\":\"member_conv_id\",\"value\":\"90840\"},{\"type\":\"member_conv_id\",\"value\":\"90842\"},{\"type\":\"member_conv_id\",\"value\":\"90846\"},{\"type\":\"member_conv_id\",\"value\":\"90853\"},{\"type\":\"member_conv_id\",\"value\":\"90861\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"cancellation_refund_rule_check\",\"itinerary_change_supplier_check\"]}",
+        "intentCode": "cancellation_refund_change_policy",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"취소\",\"환불\",\"변경\"],\"optionalTerms\":[\"취소 수수료\",\"계약금\",\"철회\",\"일정 변경\",\"리턴 변경\"]}"
+      },
+      {
+        "workflowCode": "pickup_transfer_local_transport_flow",
+        "name": "픽업 이동 및 현지 교통 워크플로우",
+        "description": "공항 픽업, 호텔 이동, 지역 간 이동, 택시/차량/버스 등 현지 교통편 확인",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"pickup_transfer_rule\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"itinerary_change_supplier_check\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"일정 변경 가능 여부 확인\",\"policyRef\":\"itinerary_change_supplier_check\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90805\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90817\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90831\"},{\"type\":\"member_conv_id\",\"value\":\"90833\"},{\"type\":\"member_conv_id\",\"value\":\"90834\"},{\"type\":\"member_conv_id\",\"value\":\"90845\"},{\"type\":\"member_conv_id\",\"value\":\"90855\"},{\"type\":\"member_conv_id\",\"value\":\"90869\"},{\"type\":\"member_conv_id\",\"value\":\"90874\"},{\"type\":\"member_conv_id\",\"value\":\"90877\"},{\"type\":\"member_conv_id\",\"value\":\"90878\"},{\"type\":\"member_conv_id\",\"value\":\"90879\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"pickup_transfer_rule\",\"itinerary_change_supplier_check\"]}",
+        "intentCode": "pickup_transfer_local_transport",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"공항 픽업\",\"픽업\",\"차량\",\"교통\"],\"optionalTerms\":[\"택시\",\"차편\",\"이동\",\"버스\",\"공항에서 호텔\",\"자카르타에서 발리\"]}"
+      },
+      {
+        "workflowCode": "safety_and_travel_preparation_flow",
+        "name": "여행 안전 및 준비 일반문의 워크플로우",
+        "description": "테러·안전 우려, 여행 전 준비물·주의사항, 출국 수속, 비자/여권, 기본 여행 정보 확인",
+        "graphJson": "{\"direction\":\"LR\",\"nodes\":[{\"id\":\"start\",\"type\":\"START\",\"label\":\"시작\"},{\"id\":\"capture_request\",\"type\":\"ACTION\",\"label\":\"요청 내용 확인\",\"policyRef\":\"ticketing_restriction_disclosure\"},{\"id\":\"collect_required_info\",\"type\":\"ACTION\",\"label\":\"필수 정보 수집\",\"policyRef\":\"post_booking_confirmation_delivery\"},{\"id\":\"verify_policy\",\"type\":\"ACTION\",\"label\":\"예약 후 확정 및 자료 발송\",\"policyRef\":\"post_booking_confirmation_delivery\"},{\"id\":\"decision\",\"type\":\"DECISION\",\"label\":\"처리 가능 여부 판단\"},{\"id\":\"terminal\",\"type\":\"TERMINAL\",\"label\":\"안내 완료\"},{\"id\":\"handoff\",\"type\":\"HANDOFF\",\"label\":\"상담원 추가 확인\"},{\"id\":\"terminal_handoff\",\"type\":\"TERMINAL\",\"label\":\"추가 확인 종료\"}],\"edges\":[{\"id\":\"e_1\",\"from\":\"start\",\"to\":\"capture_request\"},{\"id\":\"e_2\",\"from\":\"capture_request\",\"to\":\"collect_required_info\"},{\"id\":\"e_3\",\"from\":\"collect_required_info\",\"to\":\"verify_policy\"},{\"id\":\"e_4\",\"from\":\"verify_policy\",\"to\":\"decision\"},{\"id\":\"e_5\",\"from\":\"decision\",\"to\":\"terminal\",\"label\":\"resolved\"},{\"id\":\"e_6\",\"from\":\"decision\",\"to\":\"handoff\",\"label\":\"needs_manual_check\"},{\"id\":\"e_7\",\"from\":\"handoff\",\"to\":\"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\":\"exemplar_conv_id\",\"value\":\"90803\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90810\"},{\"type\":\"exemplar_conv_id\",\"value\":\"90812\"},{\"type\":\"member_conv_id\",\"value\":\"90814\"},{\"type\":\"member_conv_id\",\"value\":\"90817\"},{\"type\":\"member_conv_id\",\"value\":\"90821\"},{\"type\":\"member_conv_id\",\"value\":\"90828\"},{\"type\":\"member_conv_id\",\"value\":\"90829\"},{\"type\":\"member_conv_id\",\"value\":\"90832\"},{\"type\":\"member_conv_id\",\"value\":\"90833\"},{\"type\":\"member_conv_id\",\"value\":\"90840\"},{\"type\":\"member_conv_id\",\"value\":\"90842\"}]",
+        "metaJson": "{\"source\":\"workflow_constructor_local\",\"policyRefs\":[\"ticketing_restriction_disclosure\",\"post_booking_confirmation_delivery\"]}",
+        "intentCode": "safety_and_travel_preparation",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"안전\",\"준비\",\"여권\",\"주의사항\"],\"optionalTerms\":[\"테러\",\"불안\",\"걱정\",\"비자\",\"출국 수속\",\"가이드\",\"인솔자\",\"소요시간\"]}"
+      }
+    ],
+    "intentSlotBindings": [
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "flight_info",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "항공편 정보을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "traveler_count",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "budget_amount",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "payment_method",
+        "isRequired": false,
+        "collectionOrder": 6,
+        "promptHint": "결제 수단을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "flight_quote_and_reservation",
+        "slotCode": "contact_email",
+        "isRequired": false,
+        "collectionOrder": 7,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "hotel_name",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "호텔/리조트명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "room_type",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "객실 타입을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "traveler_count",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "budget_amount",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "child_age",
+        "isRequired": false,
+        "collectionOrder": 6,
+        "promptHint": "아동/유아 나이을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "hotel_room_quote_and_availability",
+        "slotCode": "contact_email",
+        "isRequired": false,
+        "collectionOrder": 7,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "traveler_count",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "budget_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "activity_name",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "액티비티/옵션명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "package_product_quote_and_conditions",
+        "slotCode": "special_request",
+        "isRequired": false,
+        "collectionOrder": 6,
+        "promptHint": "특별 요청사항을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "hotel_name",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "호텔/리조트명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "room_type",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "객실 타입을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "budget_amount",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "special_request",
+        "isRequired": false,
+        "collectionOrder": 6,
+        "promptHint": "특별 요청사항을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "honeymoon_villa_planning",
+        "slotCode": "contact_email",
+        "isRequired": false,
+        "collectionOrder": 7,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "traveler_count",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "child_age",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "아동/유아 나이을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "room_type",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "객실 타입을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "budget_amount",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "family_group_travel_quote",
+        "slotCode": "contact_email",
+        "isRequired": false,
+        "collectionOrder": 6,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "slotCode": "traveler_count",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "slotCode": "budget_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "travel_recommendation_consulting",
+        "slotCode": "special_request",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "특별 요청사항을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "slotCode": "activity_name",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "액티비티/옵션명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "slotCode": "budget_amount",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "itinerary_activity_options",
+        "slotCode": "document_type",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "전달 문서 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "reservation_progress_and_documents",
+        "slotCode": "reservation_number",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "reservation_progress_and_documents",
+        "slotCode": "contact_email",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "reservation_progress_and_documents",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "reservation_progress_and_documents",
+        "slotCode": "document_type",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "전달 문서 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_billing_method",
+        "slotCode": "reservation_number",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_billing_method",
+        "slotCode": "budget_amount",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_billing_method",
+        "slotCode": "payment_method",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "결제 수단을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_change_policy",
+        "slotCode": "reservation_number",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_change_policy",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_change_policy",
+        "slotCode": "cancellation_reason",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "변경/취소 사유을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_change_policy",
+        "slotCode": "budget_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "요금/예산을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "slotCode": "pickup_location",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "픽업/미팅 장소을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "slotCode": "pickup_time",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "픽업/미팅 시간을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "slotCode": "flight_info",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "항공편 정보을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "slotCode": "hotel_name",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "호텔/리조트명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "pickup_transfer_local_transport",
+        "slotCode": "traveler_count",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "여행 인원을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "slotCode": "travel_dates",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "여행 일정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "slotCode": "destination",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "목적지을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "slotCode": "document_type",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "전달 문서 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "slotCode": "contact_email",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "연락/이메일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "safety_and_travel_preparation",
+        "slotCode": "special_request",
+        "isRequired": false,
+        "collectionOrder": 5,
+        "promptHint": "특별 요청사항을 확인해 주세요.",
+        "conditionJson": "{}"
+      }
+    ]
+  },
+  "evaluationSummary": {
+    "passed": true,
+    "notes": [
+      "Schema and graph validation run locally."
+    ]
+  }
+}

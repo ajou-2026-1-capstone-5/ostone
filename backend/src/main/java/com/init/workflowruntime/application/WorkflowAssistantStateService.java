@@ -96,28 +96,30 @@ public class WorkflowAssistantStateService {
 
   @Transactional
   public AssistantConversationResult updateSlot(UpdateAssistantSlotCommand command) {
-    String slotCode = command.slotCode();
     String value = command.value();
-    if (!hasText(slotCode)) {
-      throw new BadRequestException("SLOT_CODE_REQUIRED", "slotCode is required");
-    }
-    if (!hasText(value)) {
-      throw new BadRequestException("SLOT_VALUE_REQUIRED", "slot value is required");
-    }
-
     AssistantConversationState currentState = inspectState(command.sessionId());
     AssistantNextAction nextAction = currentState.nextAction();
-    if (nextAction == null || !ACTION_ASK_SLOT.equals(nextAction.type())) {
-      throw new BadRequestException("SLOT_NOT_REQUESTED", "No slot is currently requested");
+    // 슬롯 요청 상태가 아니거나 값이 비어 있으면 저장하지 않고 현재 상태를 그대로 반환한다.
+    // BadRequestException 을 던지면 공유 트랜잭션이 rollback-only 로 마킹되어 상위 호출(appendMessage)이
+    // UnexpectedRollbackException 으로 깨지므로, 예외 대신 상태로 응답한다.
+    if (!hasText(value)
+        || nextAction == null
+        || !ACTION_ASK_SLOT.equals(nextAction.type())
+        || !hasText(nextAction.slotCode())) {
+      return AssistantConversationResult.of(currentState);
     }
-    if (!slotCode.trim().equals(nextAction.slotCode())) {
-      throw new BadRequestException(
-          "SLOT_NOT_REQUESTED", "Slot is not currently requested: " + slotCode);
+    // 값이 실제 답변이 아니라 안내 문구(질문 문장)나 필드 목록(슬롯 이름 나열)이면 저장하지 않는다.
+    // LLM 이 사용자 입력이 없을 때 질문/필드목록을 그대로 슬롯 값으로 넣는 현상을 차단한다.
+    if (looksLikePlaceholderValue(command.sessionId(), value, nextAction)) {
+      return AssistantConversationResult.of(currentState);
     }
-
+    // LLM 이 넘긴 slotCode 가 이 대화의 실제 슬롯이면 그대로 신뢰한다(사용자가 한 번에 여러 값을,
+    // 또는 묻는 순서와 다르게 말해도 각 값이 올바른 슬롯에 저장된다). slotCode 가 비어 있거나
+    // 한글 라벨/오타 등 알 수 없는 값이면 백엔드가 현재 요청 중인 슬롯으로 폴백한다.
+    String targetSlot = resolveTargetSlot(command.sessionId(), command.slotCode(), nextAction.slotCode());
     llmToolService.upsertSlotValue(
         new UpsertLlmToolSlotValueCommand(
-            command.sessionId(), slotCode.trim(), TextNode.valueOf(value.trim())));
+            command.sessionId(), targetSlot, TextNode.valueOf(value.trim())));
     return AssistantConversationResult.of(inspectState(command.sessionId()));
   }
 
@@ -208,8 +210,7 @@ public class WorkflowAssistantStateService {
       WorkflowAdvanceResponse advanceResponse) {
     List<String> missingSlotCodes = missingSlotCodes(advanceResponse);
     String slotCode = missingSlotCodes.isEmpty() ? null : missingSlotCodes.get(0);
-    LlmToolSlotResponse slot = findSlot(context, slotCode);
-    String question = slotQuestion(slot, slotCode);
+    String question = composeSlotQuestion(context, missingSlotCodes, slotCode);
     return state(
         "IN_WORKFLOW",
         workflow,
@@ -218,8 +219,25 @@ public class WorkflowAssistantStateService {
             slotCode,
             question,
             null,
-            "고객에게 question만 자연스럽게 묻고 다른 정보를 추가로 요구하지 마세요."),
+            "question에 안내된 필요한 정보를 한 번에 모두 고객에게 요청하세요. 고객이 실제로 제공한 값만 update_slot으로 저장하고, 제공하지 않은 값은 추측하지 마세요."),
         List.of("update_slot"));
+  }
+
+  private String composeSlotQuestion(
+      LlmToolContextResponse context, List<String> missingSlotCodes, String firstSlotCode) {
+    if (missingSlotCodes.size() <= 1) {
+      return slotQuestion(findSlot(context, firstSlotCode), firstSlotCode);
+    }
+    List<String> labels =
+        missingSlotCodes.stream().map(code -> slotLabel(findSlot(context, code), code)).toList();
+    return "원활한 처리를 위해 다음 정보를 알려주세요: " + String.join(", ", labels) + ".";
+  }
+
+  private String slotLabel(LlmToolSlotResponse slot, String slotCode) {
+    if (slot != null && hasText(slot.name())) {
+      return slot.name();
+    }
+    return slotCode;
   }
 
   private AssistantConversationState state(
@@ -316,6 +334,42 @@ public class WorkflowAssistantStateService {
 
   private LlmToolContextResponse getContext(Long sessionId) {
     return llmToolService.getContext(new GetLlmToolContextCommand(sessionId));
+  }
+
+  private String resolveTargetSlot(Long sessionId, String llmSlotCode, String requestedSlotCode) {
+    if (hasText(llmSlotCode)) {
+      String trimmed = llmSlotCode.trim();
+      LlmToolContextResponse context = getContext(sessionId);
+      if (context.slots() != null) {
+        for (LlmToolSlotResponse slot : context.slots()) {
+          if (trimmed.equals(slot.slotCode())) {
+            return trimmed;
+          }
+        }
+      }
+    }
+    return requestedSlotCode;
+  }
+
+  private boolean looksLikePlaceholderValue(
+      Long sessionId, String value, AssistantNextAction nextAction) {
+    String trimmed = value.trim();
+    String question = nextAction.question();
+    if (hasText(question) && (trimmed.equals(question.trim()) || question.contains(trimmed))) {
+      return true;
+    }
+    LlmToolContextResponse context = getContext(sessionId);
+    if (context.slots() == null) {
+      return false;
+    }
+    int slotNameHits = 0;
+    for (LlmToolSlotResponse slot : context.slots()) {
+      if (hasText(slot.name()) && trimmed.contains(slot.name())) {
+        slotNameHits++;
+      }
+    }
+    // 슬롯 이름이 2개 이상 들어간 값은 실제 답변이 아니라 필드 목록(안내 문구)으로 간주한다.
+    return slotNameHits >= 2;
   }
 
   private ChatSession findSession(Long sessionId) {
