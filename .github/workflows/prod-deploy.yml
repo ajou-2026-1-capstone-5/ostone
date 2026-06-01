@@ -202,6 +202,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419
 
+      - name: Free runner disk before Docker build
+        run: |
+          df -h
+          docker system prune -af || true
+          docker builder prune -af || true
+          if [ -n "${RUNNER_TEMP:-}" ]; then
+            rm -rf "${RUNNER_TEMP:?}"/* || true
+          fi
+          df -h
+
       - name: Build, tag, and push image to ECR
         env:
           ECR_REPOSITORY: ostone/backend
@@ -212,6 +222,11 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker image rm \
+            "$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+          docker system prune -af || true
 
       - name: Deploy to Amazon ECS
         env:
@@ -220,8 +235,70 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECS_CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
           ECS_SERVICE: ${{ needs.terraform.outputs.backend_service_name }}
+          BACKEND_AUTOSCALING_MAX_CAPACITY: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          BACKEND_RESOURCE_ID="service/$ECS_CLUSTER/$ECS_SERVICE"
+          BACKEND_MAX_CAPACITY="$BACKEND_AUTOSCALING_MAX_CAPACITY"
+          if ! [[ "$BACKEND_MAX_CAPACITY" =~ ^[0-9]+$ ]] || [ "$BACKEND_MAX_CAPACITY" -lt 1 ]; then
+            BACKEND_MAX_CAPACITY=1
+          fi
+
+          print_ecs_diagnostics() {
+            echo "::group::ECS service diagnostics"
+            aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --region ap-northeast-2 \
+              --query 'services[0].{desiredCount:desiredCount,runningCount:runningCount,pendingCount:pendingCount,deployments:deployments[].{id:id,status:status,rolloutState:rolloutState,rolloutStateReason:rolloutStateReason,taskDefinition:taskDefinition,desiredCount:desiredCount,runningCount:runningCount,pendingCount:pendingCount,failedTasks:failedTasks},events:events[0:10].{createdAt:createdAt,message:message}}' \
+              --output json || true
+            echo "::endgroup::"
+
+            echo "::group::Recent backend tasks"
+            task_arns="$(aws ecs list-tasks \
+              --cluster "$ECS_CLUSTER" \
+              --service-name "$ECS_SERVICE" \
+              --desired-status STOPPED \
+              --max-results 10 \
+              --region ap-northeast-2 \
+              --query 'taskArns' \
+              --output text || true)"
+            if [ -n "$task_arns" ] && [ "$task_arns" != "None" ]; then
+              read -r -a task_arn_array <<< "$task_arns"
+              aws ecs describe-tasks \
+                --cluster "$ECS_CLUSTER" \
+                --tasks "${task_arn_array[@]}" \
+                --region ap-northeast-2 \
+                --query 'tasks[].{taskArn:taskArn,lastStatus:lastStatus,stopCode:stopCode,stoppedReason:stoppedReason,stoppedAt:stoppedAt,containers:containers[].{name:name,lastStatus:lastStatus,exitCode:exitCode,reason:reason}}' \
+                --output json || true
+            else
+              echo "No stopped tasks were returned for $ECS_SERVICE."
+            fi
+            echo "::endgroup::"
+
+            LOG_GROUP="$(jq -r '.containerDefinitions[] | select(.name == "app-backend") | .logConfiguration.options["awslogs-group"] // empty' new-task-definition.json)"
+            if [ -n "$LOG_GROUP" ]; then
+              echo "::group::Recent backend logs"
+              start_time="$(($(date +%s%3N) - 600000))"
+              aws logs filter-log-events \
+                --log-group-name "$LOG_GROUP" \
+                --start-time "$start_time" \
+                --limit 80 \
+                --region ap-northeast-2 \
+                --query 'events[].message' \
+                --output text | tail -c 20000 || true
+              echo "::endgroup::"
+            fi
+          }
+
+          aws application-autoscaling register-scalable-target \
+            --service-namespace ecs \
+            --resource-id "$BACKEND_RESOURCE_ID" \
+            --scalable-dimension ecs:service:DesiredCount \
+            --min-capacity 1 \
+            --max-capacity "$BACKEND_MAX_CAPACITY" \
+            --region ap-northeast-2
+
           TASK_DEF_ARN="$(aws ecs describe-services \
             --cluster "$ECS_CLUSTER" \
             --services "$ECS_SERVICE" \
@@ -258,10 +335,13 @@ jobs:
             --desired-count 1 \
             --force-new-deployment \
             --region ap-northeast-2
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE" \
-            --region ap-northeast-2
+          if ! aws ecs wait services-stable \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --region ap-northeast-2; then
+            print_ecs_diagnostics
+            exit 1
+          fi
 
   frontend:
     needs: [paths-filter, terraform]
@@ -330,6 +410,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419
 
+      - name: Free runner disk before Docker build
+        run: |
+          df -h
+          docker system prune -af || true
+          docker builder prune -af || true
+          if [ -n "${RUNNER_TEMP:-}" ]; then
+            rm -rf "${RUNNER_TEMP:?}"/* || true
+          fi
+          df -h
+
       - name: Build, tag, and push ML stage CPU image to ECR
         env:
           ECR_REPOSITORY: ostone/ml-stage-cpu
@@ -340,6 +430,11 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker image rm \
+            "$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+          docker system prune -af || true
 
       - name: Build, tag, and push ML stage GPU image to ECR
         env:
@@ -351,6 +446,11 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker image rm \
+            "$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+          docker system prune -af || true
 
   airflow:
     needs: [paths-filter, terraform, ml]
@@ -371,6 +471,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419
 
+      - name: Free runner disk before Docker build
+        run: |
+          df -h
+          docker system prune -af || true
+          docker builder prune -af || true
+          if [ -n "${RUNNER_TEMP:-}" ]; then
+            rm -rf "${RUNNER_TEMP:?}"/* || true
+          fi
+          df -h
+
       - name: Build, tag, and push Airflow image to ECR
         env:
           ECR_REPOSITORY: ostone/airflow
@@ -381,6 +491,11 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker image rm \
+            "$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+          docker system prune -af || true
 
       - name: Deploy Airflow services
         env:
