@@ -141,14 +141,11 @@ export function CustomerPanel({
         gap: 10,
       }}
     >
-      <InfoCard title="고객 정보" meta={customer.channel || undefined}>
+      <InfoCard title="고객 정보">
         <InfoRow label="이름" value={customer.name} />
-        <InfoRow label="채널" value={customer.channel} />
-        <InfoRow
-          label="회원 등급"
-          value={displayText(customer.membershipTier)}
-          tone={hasText(customer.membershipTier) ? "signal" : "default"}
-        />
+        {hasText(customer.membershipTier) && (
+          <InfoRow label="회원 등급" value={customer.membershipTier.trim()} tone="signal" />
+        )}
         <InfoRow label="연락처" value={displayText(customer.contact)} />
         <InfoRow label="이메일" value={displayText(customer.email)} />
       </InfoCard>
