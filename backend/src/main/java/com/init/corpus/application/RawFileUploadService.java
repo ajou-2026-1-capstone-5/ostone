@@ -84,6 +84,7 @@ public class RawFileUploadService {
         command.workspaceId(), command.datasetKey())) {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
+    validateZipFile(command.fileBytes());
 
     // 2. Build objectKey and compute SHA-256 checksum (U-06: Assumption adopted from Recommended
     //    Default — computed from byte[] before upload)
@@ -163,10 +164,13 @@ public class RawFileUploadService {
   }
 
   private List<RawConversationInput> parseConversations(byte[] fileBytes) {
-    if (isZip(fileBytes)) {
-      return parseZipConversations(fileBytes);
+    return parseZipConversations(fileBytes);
+  }
+
+  private void validateZipFile(byte[] fileBytes) {
+    if (!isZip(fileBytes)) {
+      throw new RawFileParseException("ZIP 파일만 업로드할 수 있습니다.");
     }
-    return parseJsonConversations(fileBytes, "file");
   }
 
   private boolean isZip(byte[] fileBytes) {

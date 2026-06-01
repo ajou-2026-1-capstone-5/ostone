@@ -1,14 +1,14 @@
 export const RAW_LOG_UPLOAD_MAX_SIZE_BYTES = 50 * 1024 * 1024;
 export const RAW_LOG_UPLOAD_MAX_SIZE_LABEL = "50MB";
-export const RAW_LOG_UPLOAD_ACCEPT = ".json,application/json";
-export const RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL = "JSON";
-export const RAW_LOG_UPLOAD_FILE_TYPE_LABELS = ["JSON"];
+export const RAW_LOG_UPLOAD_ACCEPT = ".zip,application/zip,application/x-zip-compressed";
+export const RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL = "ZIP";
+export const RAW_LOG_UPLOAD_FILE_TYPE_LABELS = ["ZIP"];
 
 export function validateRawLogUploadFile(file: File): string | null {
   const name = file.name.toLowerCase();
 
-  if (!name.endsWith(".json")) {
-    return "JSON 파일만 업로드할 수 있습니다.";
+  if (!name.endsWith(".zip")) {
+    return "ZIP 파일만 업로드할 수 있습니다.";
   }
 
   if (file.size > RAW_LOG_UPLOAD_MAX_SIZE_BYTES) {

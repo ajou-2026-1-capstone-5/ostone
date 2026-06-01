@@ -51,17 +51,16 @@ class DatasetControllerRawFileTest {
 
   @MockitoBean private DatasetUploadService datasetUploadService;
 
-  private static final byte[] VALID_JSON =
-      "[{\"source_id\":\"001\",\"consulting_content\":\"상담사: hi\\n고객: hello\"}]".getBytes();
+  private static final byte[] VALID_ZIP = new byte[] {0x50, 0x4b, 0x03, 0x04};
 
   private RawFileUploadResult validResult() {
     return new RawFileUploadResult(
         42L,
         "test-key",
         1L,
-        "workspaces/1/datasets/test-key/uuid_test.json",
-        "test.json",
-        VALID_JSON.length,
+        "workspaces/1/datasets/test-key/uuid_test.zip",
+        "test.zip",
+        VALID_ZIP.length,
         DatasetStatus.READY,
         PiiRedactionStatus.PENDING,
         1);
@@ -74,7 +73,7 @@ class DatasetControllerRawFileTest {
     given(rawFileUploadService.upload(any())).willReturn(validResult());
 
     MockMultipartFile mockFile =
-        new MockMultipartFile("file", "test.json", "application/json", VALID_JSON);
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
 
     mockMvc
         .perform(
@@ -95,7 +94,7 @@ class DatasetControllerRawFileTest {
   @WithLongPrincipal(1L)
   void uploadRawFile_emptyFile_returns400() throws Exception {
     MockMultipartFile emptyFile =
-        new MockMultipartFile("file", "empty.json", "application/json", new byte[0]);
+        new MockMultipartFile("file", "empty.zip", "application/zip", new byte[0]);
 
     mockMvc
         .perform(
@@ -110,10 +109,11 @@ class DatasetControllerRawFileTest {
   }
 
   @Test
-  @DisplayName("POST /raw-file — 잘못된 JSON → 400 VALIDATION_ERROR")
+  @DisplayName("POST /raw-file — ZIP이 아닌 파일 → 400 VALIDATION_ERROR")
   @WithLongPrincipal(1L)
-  void uploadRawFile_parseError_returns400() throws Exception {
-    given(rawFileUploadService.upload(any())).willThrow(new RawFileParseException("JSON 파싱 실패"));
+  void uploadRawFile_nonZipFile_returns400() throws Exception {
+    given(rawFileUploadService.upload(any()))
+        .willThrow(new RawFileParseException("ZIP 파일만 업로드할 수 있습니다."));
 
     MockMultipartFile mockFile =
         new MockMultipartFile("file", "bad.json", "application/json", "NOT JSON".getBytes());
@@ -138,7 +138,7 @@ class DatasetControllerRawFileTest {
         .willThrow(new WorkspaceNotFoundException("워크스페이스 없음"));
 
     MockMultipartFile mockFile =
-        new MockMultipartFile("file", "test.json", "application/json", VALID_JSON);
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
 
     mockMvc
         .perform(
@@ -160,7 +160,7 @@ class DatasetControllerRawFileTest {
         .willThrow(new UnauthorizedWorkspaceAccessException("접근 권한 없음"));
 
     MockMultipartFile mockFile =
-        new MockMultipartFile("file", "test.json", "application/json", VALID_JSON);
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
 
     mockMvc
         .perform(
@@ -194,7 +194,7 @@ class DatasetControllerRawFileTest {
   @WithLongPrincipal(1L)
   void uploadRawFile_missingDatasetKey_returns400() throws Exception {
     MockMultipartFile mockFile =
-        new MockMultipartFile("file", "test.json", "application/json", VALID_JSON);
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
 
     mockMvc
         .perform(
@@ -215,7 +215,7 @@ class DatasetControllerRawFileTest {
         .willThrow(new DatasetKeyConflictException("이미 사용 중인 키"));
 
     MockMultipartFile mockFile =
-        new MockMultipartFile("file", "test.json", "application/json", VALID_JSON);
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
 
     mockMvc
         .perform(
