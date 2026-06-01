@@ -304,7 +304,12 @@ public class CounselorService {
     if (keyword == null || keyword.isBlank()) {
       return null;
     }
-    return keyword.trim().toLowerCase(Locale.ROOT);
+    return keyword
+        .trim()
+        .toLowerCase(Locale.ROOT)
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_");
   }
 
   private OffsetDateTime toStartOfDay(LocalDate date) {

@@ -1,5 +1,9 @@
 import { ChevronLeftIcon, ChevronRightIcon, RotateCcwIcon, SearchIcon } from "lucide-react";
 import { EmptyState, ErrorState, Eyebrow, LoadingSpinner } from "@/shared/ui/ostone/atoms";
+import {
+  CHAT_HISTORY_ALL_STATUS,
+  CHAT_HISTORY_DEFAULT_STATUS,
+} from "../../lib/chatHistoryFilterDefaults";
 import type { ChatSession } from "../../api/consultationApi";
 import { SessionCard } from "./SessionCard";
 import styles from "./SessionList.module.css";
@@ -55,7 +59,7 @@ export function SessionList({
   );
   const hasFilters =
     Boolean(filters.keyword) ||
-    filters.status !== "COMPLETED" ||
+    filters.status !== CHAT_HISTORY_DEFAULT_STATUS ||
     Boolean(filters.startedFrom) ||
     Boolean(filters.startedTo) ||
     Boolean(filters.assignedCounselorId);
@@ -137,7 +141,7 @@ export function SessionList({
             onChange={(event) => onFiltersChange({ status: event.target.value })}
             className={styles.select}
           >
-            <option value="ALL">전체 상태</option>
+            <option value={CHAT_HISTORY_ALL_STATUS}>전체 상태</option>
             <option value="COMPLETED">상담 종료</option>
             <option value="RESOLVED">해결됨</option>
             <option value="ACTIVE">진행 중</option>

@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useChatSessions } from "../../../../features/consultation/api/chatHistoryApi";
+import {
+  CHAT_HISTORY_ALL_STATUS,
+  CHAT_HISTORY_DEFAULT_STATUS,
+} from "../../../../features/consultation/lib/chatHistoryFilterDefaults";
 import { MessageHistory } from "../../../../features/consultation/ui/chat-history/MessageHistory";
 import type { SessionListFilters } from "../../../../features/consultation/ui/chat-history/SessionList";
 import { SessionList } from "../../../../features/consultation/ui/chat-history/SessionList";
@@ -11,8 +15,6 @@ interface ChatHistoryPageProps {
   workspaceId?: number;
 }
 
-const DEFAULT_STATUS = "COMPLETED";
-const ALL_STATUS = "ALL";
 const PAGE_SIZE = 20;
 
 function parsePage(value: string | null): number {
@@ -38,7 +40,7 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
   const page = parsePage(searchParams.get("page"));
   const filters: SessionListFilters = {
     keyword: searchParams.get("q") ?? "",
-    status: searchParams.get("status") ?? DEFAULT_STATUS,
+    status: searchParams.get("status") ?? CHAT_HISTORY_DEFAULT_STATUS,
     startedFrom: searchParams.get("startedFrom") ?? "",
     startedTo: searchParams.get("startedTo") ?? "",
     assignedCounselorId: searchParams.get("assignedCounselorId") ?? "",
@@ -51,7 +53,7 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
     refetch,
   } = useChatSessions({
     workspaceId,
-    status: filters.status === ALL_STATUS ? undefined : filters.status || undefined,
+    status: filters.status === CHAT_HISTORY_ALL_STATUS ? undefined : filters.status || undefined,
     keyword: filters.keyword || undefined,
     startedFrom: filters.startedFrom || undefined,
     startedTo: filters.startedTo || undefined,
@@ -121,7 +123,7 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
       (current) => {
         const next = new URLSearchParams(current);
         next.delete("q");
-        next.set("status", DEFAULT_STATUS);
+        next.set("status", CHAT_HISTORY_DEFAULT_STATUS);
         next.delete("startedFrom");
         next.delete("startedTo");
         next.delete("assignedCounselorId");

@@ -51,13 +51,13 @@ public interface JpaChatSessionRepository
             AND (:startedBefore IS NULL OR cs.started_at < :startedBefore)
             AND (
               :keyword IS NULL
-              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%')
-              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%')
+              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
               OR EXISTS (
                 SELECT 1
                 FROM runtime.chat_message cm
                 WHERE cm.chat_session_id = cs.id
-                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%')
+                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
               )
             )
           ORDER BY cs.started_at DESC, cs.id DESC
@@ -73,13 +73,13 @@ public interface JpaChatSessionRepository
             AND (:startedBefore IS NULL OR cs.started_at < :startedBefore)
             AND (
               :keyword IS NULL
-              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%')
-              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%')
+              OR LOWER(cs.channel) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
+              OR LOWER(CAST(cs.meta_json AS text)) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
               OR EXISTS (
                 SELECT 1
                 FROM runtime.chat_message cm
                 WHERE cm.chat_session_id = cs.id
-                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%')
+                  AND LOWER(COALESCE(cm.content, '')) LIKE CONCAT('%', :keyword, '%') ESCAPE '\\'
               )
             )
           """,

@@ -1,0 +1,2 @@
+export const CHAT_HISTORY_ALL_STATUS = "ALL";
+export const CHAT_HISTORY_DEFAULT_STATUS = "COMPLETED";

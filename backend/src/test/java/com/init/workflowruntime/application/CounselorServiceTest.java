@@ -424,6 +424,31 @@ class CounselorServiceTest {
   }
 
   @Test
+  @DisplayName("getSessions: LIKE 와일드카드를 리터럴 검색어로 escape")
+  void should_escapeLikeWildcards_when_keywordContainsSpecialChars() {
+    Page<ChatSession> page = new PageImpl<>(List.of());
+    givenWorkspaceMember(1L, 7L);
+    given(
+            chatSessionRepository.searchByWorkspace(
+                eq(1L),
+                eq(null),
+                eq("\\%\\_\\\\"),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(Pageable.class)))
+        .willReturn(page);
+
+    CounselorSessionResponse result =
+        service.getSessions(1L, 7L, null, "%_\\", null, null, null, 0, 20);
+
+    assertThat(result.getContent()).isEmpty();
+    verify(chatSessionRepository)
+        .searchByWorkspace(
+            eq(1L), eq(null), eq("\\%\\_\\\\"), eq(null), eq(null), eq(null), any(Pageable.class));
+  }
+
+  @Test
   @DisplayName("getSessions: 지원하지 않는 상태 → BadRequestException")
   void should_throwBadRequest_when_invalidStatus() {
     givenWorkspaceMember(1L, 7L);
