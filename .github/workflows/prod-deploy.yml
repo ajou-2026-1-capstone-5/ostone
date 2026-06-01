@@ -7,6 +7,7 @@ on:
       - "backend/**"
       - "frontend/**"
       - "ml/**"
+      - "infra/terraform/**"
       - ".github/workflows/prod-deploy.yml"
   workflow_dispatch:
 
@@ -24,7 +25,8 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      ml_embedder: ${{ steps.filter.outputs.ml_embedder }}
+      airflow: ${{ steps.filter.outputs.airflow }}
+      ml: ${{ steps.filter.outputs.ml }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -35,14 +37,21 @@ jobs:
           filters: |
             backend:
               - "backend/**"
+              - "infra/terraform/**"
               - ".github/workflows/prod-deploy.yml"
             frontend:
               - "frontend/**"
+              - "infra/terraform/**"
               - ".github/workflows/prod-deploy.yml"
-            ml_embedder:
+            airflow:
+              - "ml/airflow/**"
+              - "ml/src/**"
+              - "infra/terraform/**"
+              - ".github/workflows/prod-deploy.yml"
+            ml:
               - "ml/**"
+              - "infra/terraform/**"
               - ".github/workflows/prod-deploy.yml"
-
   terraform:
     runs-on: ubuntu-latest
     environment: prod
@@ -51,12 +60,18 @@ jobs:
       cloudfront_distribution_id: ${{ steps.tf_outputs.outputs.cloudfront_distribution_id }}
       ecs_cluster_name: ${{ steps.tf_outputs.outputs.ecs_cluster_name }}
       backend_service_name: ${{ steps.tf_outputs.outputs.backend_service_name }}
+      airflow_init_task_definition_arn: ${{ steps.tf_outputs.outputs.airflow_init_task_definition_arn }}
+      airflow_apiserver_service_name: ${{ steps.tf_outputs.outputs.airflow_apiserver_service_name }}
+      airflow_scheduler_service_name: ${{ steps.tf_outputs.outputs.airflow_scheduler_service_name }}
+      airflow_dag_processor_service_name: ${{ steps.tf_outputs.outputs.airflow_dag_processor_service_name }}
+      private_subnet_ids: ${{ steps.tf_outputs.outputs.private_subnet_ids }}
+      ecs_airflow_security_group_id: ${{ steps.tf_outputs.outputs.ecs_airflow_security_group_id }}
     env:
       TF_VAR_domain_name: ${{ vars.PROD_DOMAIN_NAME }}
       TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
       TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
       TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
-      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
+      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL || '' }}
       TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
       TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
       TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
@@ -76,6 +91,11 @@ jobs:
       TF_VAR_airflow_api_username: ${{ secrets.PROD_AIRFLOW_API_USERNAME }}
       TF_VAR_airflow_api_password: ${{ secrets.PROD_AIRFLOW_API_PASSWORD }}
       TF_VAR_airflow_webhook_secret: ${{ secrets.PROD_AIRFLOW_WEBHOOK_SECRET }}
+      TF_VAR_airflow_fernet_key: ${{ secrets.PROD_AIRFLOW_FERNET_KEY }}
+      TF_VAR_airflow_api_secret_key: ${{ secrets.PROD_AIRFLOW_API_SECRET_KEY }}
+      TF_VAR_airflow_api_auth_jwt_secret: ${{ secrets.PROD_AIRFLOW_API_AUTH_JWT_SECRET }}
+      TF_VAR_airflow_simple_admin_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD }}
+      TF_VAR_airflow_simple_viewer_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD }}
       TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -104,7 +124,6 @@ jobs:
           required=(
             TF_VAR_domain_name
             TF_VAR_admin_cidr
-            TF_VAR_airflow_api_base_url
             TF_VAR_db_master_password
             TF_VAR_app_db_password
             TF_VAR_airflow_db_password
@@ -112,6 +131,11 @@ jobs:
             TF_VAR_airflow_api_username
             TF_VAR_airflow_api_password
             TF_VAR_airflow_webhook_secret
+            TF_VAR_airflow_fernet_key
+            TF_VAR_airflow_api_secret_key
+            TF_VAR_airflow_api_auth_jwt_secret
+            TF_VAR_airflow_simple_admin_password
+            TF_VAR_airflow_simple_viewer_password
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }
@@ -131,6 +155,12 @@ jobs:
             echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
             echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)"
             echo "backend_service_name=$(terraform output -raw backend_service_name)"
+            echo "airflow_init_task_definition_arn=$(terraform output -raw airflow_init_task_definition_arn)"
+            echo "airflow_apiserver_service_name=$(terraform output -raw airflow_apiserver_service_name)"
+            echo "airflow_scheduler_service_name=$(terraform output -raw airflow_scheduler_service_name)"
+            echo "airflow_dag_processor_service_name=$(terraform output -raw airflow_dag_processor_service_name)"
+            echo "ecs_airflow_security_group_id=$(terraform output -raw ecs_airflow_security_group_id)"
+            echo "private_subnet_ids=$(terraform output -json private_subnet_ids | jq -r 'join(\",\")')"
           } >> "$GITHUB_OUTPUT"
 
   backend:
@@ -271,9 +301,9 @@ jobs:
         run: |
           aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
 
-  ml-embedder:
+  ml:
     needs: [paths-filter, terraform]
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml_embedder == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -290,9 +320,20 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419
 
-      - name: Build, tag, and push ML embedder image to ECR
+      - name: Build, tag, and push ML stage CPU image to ECR
         env:
-          ECR_REPOSITORY: ostone/ml-embedder
+          ECR_REPOSITORY: ostone/ml-stage-cpu
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" -f ml/Dockerfile.cpu .
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+
+      - name: Build, tag, and push ML stage GPU image to ECR
+        env:
+          ECR_REPOSITORY: ostone/ml-stage-gpu
           IMAGE_TAG: ${{ github.sha }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -300,3 +341,123 @@ jobs:
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+
+  airflow:
+    needs: [paths-filter, terraform, ml]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.airflow == 'true' || needs.paths-filter.outputs.ml == 'true') && needs.terraform.result == 'success' && (needs.ml.result == 'success' || needs.ml.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419
+
+      - name: Build, tag, and push Airflow image to ECR
+        env:
+          ECR_REPOSITORY: ostone/airflow
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" -f ml/airflow/Dockerfile ml
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push --all-tags "$ECR_REGISTRY/$ECR_REPOSITORY"
+
+      - name: Deploy Airflow services
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECS_CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
+          AIRFLOW_INIT_TASK_DEFINITION: ${{ needs.terraform.outputs.airflow_init_task_definition_arn }}
+          AIRFLOW_API_SERVICE: ${{ needs.terraform.outputs.airflow_apiserver_service_name }}
+          AIRFLOW_SCHEDULER_SERVICE: ${{ needs.terraform.outputs.airflow_scheduler_service_name }}
+          AIRFLOW_DAG_PROCESSOR_SERVICE: ${{ needs.terraform.outputs.airflow_dag_processor_service_name }}
+          PRIVATE_SUBNET_IDS: ${{ needs.terraform.outputs.private_subnet_ids }}
+          AIRFLOW_SECURITY_GROUP_ID: ${{ needs.terraform.outputs.ecs_airflow_security_group_id }}
+        run: |
+          IFS=',' read -ra SUBNETS <<< "$PRIVATE_SUBNET_IDS"
+          SUBNET_JSON="$(printf '%s\n' "${SUBNETS[@]}" | jq -R . | jq -cs .)"
+          NETWORK_CONFIG="$(jq -cn \
+            --argjson subnets "$SUBNET_JSON" \
+            --arg sg "$AIRFLOW_SECURITY_GROUP_ID" \
+            '{awsvpcConfiguration:{subnets:$subnets,securityGroups:[$sg],assignPublicIp:"DISABLED"}}')"
+
+          INIT_TASK_ARN="$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --task-definition "$AIRFLOW_INIT_TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --platform-version LATEST \
+            --network-configuration "$NETWORK_CONFIG" \
+            --query 'tasks[0].taskArn' \
+            --output text \
+            --region ap-northeast-2)"
+          test "$INIT_TASK_ARN" != "None"
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$INIT_TASK_ARN" --region ap-northeast-2
+          EXIT_CODE="$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$INIT_TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text \
+            --region ap-northeast-2)"
+          test "$EXIT_CODE" = "0"
+
+          update_service_image() {
+            local service="$1"
+            local container="$2"
+            local repository="ostone/airflow"
+            local image_uri="$ECR_REGISTRY/$repository:$IMAGE_TAG"
+            local task_def_arn
+            task_def_arn="$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$service" \
+              --region ap-northeast-2 \
+              --query 'services[0].taskDefinition' \
+              --output text)"
+            aws ecs describe-task-definition \
+              --task-definition "$task_def_arn" \
+              --region ap-northeast-2 \
+              --query 'taskDefinition' > "task-definition-${service}.json"
+            jq --arg image "$image_uri" --arg container "$container" '
+              .containerDefinitions |= map(
+                if .name == $container then .image = $image else . end
+              )
+              | del(
+                .taskDefinitionArn,
+                .revision,
+                .status,
+                .requiresAttributes,
+                .compatibilities,
+                .registeredAt,
+                .registeredBy
+              )
+            ' "task-definition-${service}.json" > "new-task-definition-${service}.json"
+            local new_task_def_arn
+            new_task_def_arn="$(aws ecs register-task-definition \
+              --cli-input-json "file://new-task-definition-${service}.json" \
+              --region ap-northeast-2 \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)"
+            aws ecs update-service \
+              --cluster "$ECS_CLUSTER" \
+              --service "$service" \
+              --task-definition "$new_task_def_arn" \
+              --force-new-deployment \
+              --region ap-northeast-2
+          }
+
+          update_service_image "$AIRFLOW_API_SERVICE" "airflow-apiserver"
+          update_service_image "$AIRFLOW_SCHEDULER_SERVICE" "airflow-scheduler"
+          update_service_image "$AIRFLOW_DAG_PROCESSOR_SERVICE" "airflow-dag-processor"
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$AIRFLOW_API_SERVICE" "$AIRFLOW_SCHEDULER_SERVICE" "$AIRFLOW_DAG_PROCESSOR_SERVICE" \
+            --region ap-northeast-2

@@ -170,7 +170,7 @@ def _mirror_stage_directory_to_s3(
     prefix_parts = [
         runtime_config.artifact_prefix,
         stage_context.dag_id,
-        stage_context.run_id,
+        stage_context.run_id.replace("/", "__"),
         stage_context.stage_name,
     ]
     prefix = "/".join(part.strip("/") for part in prefix_parts if part)

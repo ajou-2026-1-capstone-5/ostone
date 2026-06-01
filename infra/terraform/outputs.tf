@@ -33,6 +33,11 @@ output "ec2_airflow_security_group_id" {
   value       = aws_security_group.ec2_airflow.id
 }
 
+output "ecs_airflow_security_group_id" {
+  description = "ECS Airflow service security group ID."
+  value       = aws_security_group.ecs_airflow.id
+}
+
 output "gpu_task_security_group_id" {
   description = "GPU task security group ID."
   value       = aws_security_group.gpu_task.id
@@ -211,6 +216,56 @@ output "ml_embedder_task_definition_arn" {
 output "ml_embedder_container_name" {
   description = "ML embedder ECS container name used by Airflow overrides."
   value       = "ml-embedder"
+}
+
+output "ml_stage_cpu_task_definition_arn" {
+  description = "CPU ML stage ECS task definition ARN."
+  value       = aws_ecs_task_definition.ml_stage_cpu.arn
+}
+
+output "ml_stage_gpu_task_definition_arn" {
+  description = "GPU ML stage ECS task definition ARN."
+  value       = aws_ecs_task_definition.ml_stage_gpu.arn
+}
+
+output "ml_stage_cpu_container_name" {
+  description = "CPU ML stage ECS container name used by Airflow overrides."
+  value       = "ml-stage-cpu"
+}
+
+output "ml_stage_gpu_container_name" {
+  description = "GPU ML stage ECS container name used by Airflow overrides."
+  value       = "ml-stage-gpu"
+}
+
+output "airflow_endpoint" {
+  description = "Administrator-restricted Airflow endpoint URL."
+  value       = "https://airflow.${var.domain_name}"
+}
+
+output "airflow_private_api_base_url" {
+  description = "VPC-private Airflow API base URL for backend ECS."
+  value       = local.airflow_private_api_base_url
+}
+
+output "airflow_apiserver_service_name" {
+  description = "Airflow API server ECS service name."
+  value       = aws_ecs_service.airflow_apiserver.name
+}
+
+output "airflow_scheduler_service_name" {
+  description = "Airflow scheduler ECS service name."
+  value       = aws_ecs_service.airflow_scheduler.name
+}
+
+output "airflow_dag_processor_service_name" {
+  description = "Airflow DAG processor ECS service name."
+  value       = aws_ecs_service.airflow_dag_processor.name
+}
+
+output "airflow_init_task_definition_arn" {
+  description = "Airflow DB/auth init ECS task definition ARN."
+  value       = aws_ecs_task_definition.airflow_init.arn
 }
 
 output "embedding_model_cache_file_system_id" {

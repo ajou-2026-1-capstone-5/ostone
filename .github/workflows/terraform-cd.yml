@@ -1,11 +1,6 @@
 name: Terraform CD
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'infra/terraform/**'
-      - '.github/workflows/terraform-cd.yml'
   workflow_dispatch:
 
 concurrency:
@@ -24,7 +19,7 @@ jobs:
       TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
       TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
       TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
-      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
+      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL || '' }}
       TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
       TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
       TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
@@ -44,6 +39,11 @@ jobs:
       TF_VAR_airflow_api_username: ${{ secrets.PROD_AIRFLOW_API_USERNAME }}
       TF_VAR_airflow_api_password: ${{ secrets.PROD_AIRFLOW_API_PASSWORD }}
       TF_VAR_airflow_webhook_secret: ${{ secrets.PROD_AIRFLOW_WEBHOOK_SECRET }}
+      TF_VAR_airflow_fernet_key: ${{ secrets.PROD_AIRFLOW_FERNET_KEY }}
+      TF_VAR_airflow_api_secret_key: ${{ secrets.PROD_AIRFLOW_API_SECRET_KEY }}
+      TF_VAR_airflow_api_auth_jwt_secret: ${{ secrets.PROD_AIRFLOW_API_AUTH_JWT_SECRET }}
+      TF_VAR_airflow_simple_admin_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD }}
+      TF_VAR_airflow_simple_viewer_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD }}
       TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
@@ -75,7 +75,6 @@ jobs:
           required=(
             TF_VAR_domain_name
             TF_VAR_admin_cidr
-            TF_VAR_airflow_api_base_url
             TF_VAR_db_master_password
             TF_VAR_app_db_password
             TF_VAR_airflow_db_password
@@ -83,6 +82,11 @@ jobs:
             TF_VAR_airflow_api_username
             TF_VAR_airflow_api_password
             TF_VAR_airflow_webhook_secret
+            TF_VAR_airflow_fernet_key
+            TF_VAR_airflow_api_secret_key
+            TF_VAR_airflow_api_auth_jwt_secret
+            TF_VAR_airflow_simple_admin_password
+            TF_VAR_airflow_simple_viewer_password
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }
@@ -120,7 +124,7 @@ jobs:
       TF_VAR_route53_zone_id: ${{ vars.PROD_ROUTE53_ZONE_ID || '' }}
       TF_VAR_manage_route53_zone: ${{ vars.PROD_MANAGE_ROUTE53_ZONE || 'false' }}
       TF_VAR_admin_cidr: ${{ vars.PROD_ADMIN_CIDR }}
-      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL }}
+      TF_VAR_airflow_api_base_url: ${{ vars.PROD_AIRFLOW_API_BASE_URL || '' }}
       TF_VAR_airflow_api_allow_insecure_http: ${{ vars.PROD_AIRFLOW_API_ALLOW_INSECURE_HTTP || 'false' }}
       TF_VAR_gpu_instance_type: ${{ vars.PROD_GPU_INSTANCE_TYPE || 'g6.2xlarge' }}
       TF_VAR_gpu_asg_max_size: ${{ vars.PROD_GPU_ASG_MAX_SIZE || '1' }}
@@ -140,6 +144,11 @@ jobs:
       TF_VAR_airflow_api_username: ${{ secrets.PROD_AIRFLOW_API_USERNAME }}
       TF_VAR_airflow_api_password: ${{ secrets.PROD_AIRFLOW_API_PASSWORD }}
       TF_VAR_airflow_webhook_secret: ${{ secrets.PROD_AIRFLOW_WEBHOOK_SECRET }}
+      TF_VAR_airflow_fernet_key: ${{ secrets.PROD_AIRFLOW_FERNET_KEY }}
+      TF_VAR_airflow_api_secret_key: ${{ secrets.PROD_AIRFLOW_API_SECRET_KEY }}
+      TF_VAR_airflow_api_auth_jwt_secret: ${{ secrets.PROD_AIRFLOW_API_AUTH_JWT_SECRET }}
+      TF_VAR_airflow_simple_admin_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD }}
+      TF_VAR_airflow_simple_viewer_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD }}
       TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -168,7 +177,6 @@ jobs:
           required=(
             TF_VAR_domain_name
             TF_VAR_admin_cidr
-            TF_VAR_airflow_api_base_url
             TF_VAR_db_master_password
             TF_VAR_app_db_password
             TF_VAR_airflow_db_password
@@ -176,6 +184,11 @@ jobs:
             TF_VAR_airflow_api_username
             TF_VAR_airflow_api_password
             TF_VAR_airflow_webhook_secret
+            TF_VAR_airflow_fernet_key
+            TF_VAR_airflow_api_secret_key
+            TF_VAR_airflow_api_auth_jwt_secret
+            TF_VAR_airflow_simple_admin_password
+            TF_VAR_airflow_simple_viewer_password
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }

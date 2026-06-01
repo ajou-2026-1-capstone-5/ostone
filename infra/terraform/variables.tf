@@ -251,8 +251,9 @@ variable "airflow_api_password" {
 }
 
 variable "airflow_api_base_url" {
-  description = "Backend-reachable URL for the production Airflow API."
+  description = "Optional override for the backend-reachable production Airflow API URL. Blank uses the private ECS Cloud Map endpoint."
   type        = string
+  default     = ""
 }
 
 variable "airflow_api_allow_insecure_http" {
@@ -265,6 +266,54 @@ variable "airflow_webhook_secret" {
   description = "Shared secret for Airflow callback webhooks."
   type        = string
   sensitive   = true
+}
+
+variable "airflow_fernet_key" {
+  description = "Airflow Fernet key used to encrypt Airflow metadata DB values."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_api_secret_key" {
+  description = "Airflow API secret key."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_api_auth_jwt_secret" {
+  description = "Airflow API auth JWT secret."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_simple_admin_password" {
+  description = "Airflow simple auth admin password."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_simple_viewer_password" {
+  description = "Airflow simple auth viewer password."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_api_desired_count" {
+  description = "Desired ECS task count for Airflow API server."
+  type        = number
+  default     = 1
+}
+
+variable "airflow_scheduler_desired_count" {
+  description = "Desired ECS task count for Airflow scheduler."
+  type        = number
+  default     = 1
+}
+
+variable "airflow_dag_processor_desired_count" {
+  description = "Desired ECS task count for Airflow DAG processor."
+  type        = number
+  default     = 1
 }
 
 variable "gpu_instance_type" {
