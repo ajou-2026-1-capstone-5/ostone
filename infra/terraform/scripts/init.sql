@@ -34,7 +34,8 @@ ALTER SCHEMA airflow OWNER TO airflow_user;
 ALTER ROLE app_user SET search_path TO app, corpus, pack, review, pipeline, runtime, public;
 ALTER ROLE airflow_user SET search_path TO airflow, public;
 
-GRANT CONNECT, CREATE ON DATABASE :"db_name" TO app_user;
+REVOKE CREATE ON DATABASE :"db_name" FROM app_user;
+GRANT CONNECT ON DATABASE :"db_name" TO app_user;
 GRANT CONNECT ON DATABASE :"db_name" TO airflow_user;
 
 GRANT USAGE, CREATE ON SCHEMA app, corpus, pack, review, pipeline, runtime TO app_user;

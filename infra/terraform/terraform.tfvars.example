@@ -1,5 +1,7 @@
 aws_region  = "ap-northeast-2"
 domain_name = "example.com"
+route53_zone_id = ""
+manage_route53_zone = false
 admin_cidr  = "203.0.113.10/32"
 
 db_name             = "ostone"
@@ -13,7 +15,10 @@ airflow_api_password = "replace-with-secure-airflow-api-password"
 airflow_api_base_url = "http://<airflow-private-ip>:8080"
 airflow_api_allow_insecure_http = true
 airflow_webhook_secret = "replace-with-secure-webhook-secret"
-sns_email           = "alerts@example.com"
+
+backend_desired_count = 0
+backend_autoscaling_min_capacity = 0
+backend_autoscaling_max_capacity = 3
 
 gpu_instance_type          = "g6.2xlarge"
 gpu_asg_min_size           = 0

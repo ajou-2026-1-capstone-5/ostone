@@ -203,7 +203,7 @@ resource "aws_ecs_service" "backend" {
   name             = "ostone-backend"
   cluster          = aws_ecs_cluster.main.id
   task_definition  = aws_ecs_task_definition.backend.arn
-  desired_count    = 1
+  desired_count    = var.backend_desired_count
   launch_type      = "FARGATE"
   platform_version = "LATEST"
 
@@ -228,14 +228,21 @@ resource "aws_ecs_service" "backend" {
     aws_lb_listener.backend_https,
     terraform_data.db_bootstrap
   ]
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,
+      task_definition
+    ]
+  }
 }
 
 resource "aws_appautoscaling_target" "backend" {
   service_namespace  = "ecs"
   resource_id        = "service/${local.name_prefix}-cluster/ostone-backend"
   scalable_dimension = "ecs:service:DesiredCount"
-  min_capacity       = 1
-  max_capacity       = 3
+  min_capacity       = var.backend_autoscaling_min_capacity
+  max_capacity       = var.backend_autoscaling_max_capacity
 }
 
 resource "aws_appautoscaling_policy" "backend_cpu" {

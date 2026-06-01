@@ -21,6 +21,18 @@ variable "domain_name" {
   type        = string
 }
 
+variable "route53_zone_id" {
+  description = "Existing public Route53 hosted zone ID for domain_name. When blank, Terraform looks up an existing zone unless manage_route53_zone is true."
+  type        = string
+  default     = ""
+}
+
+variable "manage_route53_zone" {
+  description = "Whether Terraform should create the public Route53 hosted zone. Keep false when the domain already has a delegated hosted zone."
+  type        = bool
+  default     = false
+}
+
 variable "vpc_cidr" {
   description = "CIDR block for the production VPC."
   type        = string
@@ -124,10 +136,45 @@ variable "rds_backup_retention_period" {
   default     = 7
 }
 
+variable "rds_performance_insights_retention_period" {
+  description = "Performance Insights retention period in days."
+  type        = number
+  default     = 7
+}
+
+variable "rds_monitoring_interval" {
+  description = "Enhanced Monitoring interval in seconds. Set 0 to disable."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = contains([0, 1, 5, 10, 15, 30, 60], var.rds_monitoring_interval)
+    error_message = "rds_monitoring_interval must be one of 0, 1, 5, 10, 15, 30, or 60."
+  }
+}
+
 variable "rds_multi_az" {
   description = "Whether to enable Multi-AZ failover for the production RDS instance."
   type        = bool
   default     = true
+}
+
+variable "backend_desired_count" {
+  description = "Initial desired count for the backend ECS service. Keep 0 for first infrastructure apply before an application image exists."
+  type        = number
+  default     = 0
+}
+
+variable "backend_autoscaling_min_capacity" {
+  description = "Minimum backend ECS service capacity managed by application autoscaling."
+  type        = number
+  default     = 0
+}
+
+variable "backend_autoscaling_max_capacity" {
+  description = "Maximum backend ECS service capacity managed by application autoscaling."
+  type        = number
+  default     = 3
 }
 
 variable "s3_bucket_names" {
@@ -203,11 +250,6 @@ variable "airflow_webhook_secret" {
   description = "Shared secret for Airflow callback webhooks."
   type        = string
   sensitive   = true
-}
-
-variable "sns_email" {
-  description = "Email address for SNS alarm notifications. Confirm subscription via AWS console after terraform apply."
-  type        = string
 }
 
 variable "gpu_instance_type" {

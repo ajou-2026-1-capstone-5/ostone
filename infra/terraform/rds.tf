@@ -36,6 +36,40 @@ resource "aws_db_option_group" "postgres" {
   }
 }
 
+data "aws_iam_policy_document" "rds_enhanced_monitoring_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["monitoring.rds.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+  name                 = "${local.name_prefix}-rds-enhanced-monitoring-role"
+  assume_role_policy   = data.aws_iam_policy_document.rds_enhanced_monitoring_assume_role.json
+  permissions_boundary = var.permissions_boundary_arn
+
+  tags = {
+    Name = "${local.name_prefix}-rds-enhanced-monitoring-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+  role       = aws_iam_role.rds_enhanced_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+resource "random_id" "rds_final_snapshot" {
+  byte_length = 4
+
+  keepers = {
+    db_instance_identifier = "${local.name_prefix}-postgres"
+  }
+}
+
 resource "aws_db_instance" "postgres" {
   identifier = "${local.name_prefix}-postgres"
 
@@ -58,14 +92,19 @@ resource "aws_db_instance" "postgres" {
   parameter_group_name   = aws_db_parameter_group.postgres.name
   option_group_name      = aws_db_option_group.postgres.name
 
-  multi_az                  = var.rds_multi_az
-  publicly_accessible       = false
-  backup_retention_period   = var.rds_backup_retention_period
-  backup_window             = "18:00-19:00"
-  maintenance_window        = "sun:19:00-sun:20:00"
-  deletion_protection       = true
-  skip_final_snapshot       = false
-  final_snapshot_identifier = "${local.name_prefix}-postgres-final"
+  multi_az                              = var.rds_multi_az
+  publicly_accessible                   = false
+  backup_retention_period               = var.rds_backup_retention_period
+  backup_window                         = "18:00-19:00"
+  maintenance_window                    = "sun:19:00-sun:20:00"
+  deletion_protection                   = true
+  skip_final_snapshot                   = false
+  final_snapshot_identifier             = "${local.name_prefix}-postgres-final-${random_id.rds_final_snapshot.hex}"
+  enabled_cloudwatch_logs_exports       = ["postgresql", "upgrade"]
+  performance_insights_enabled          = true
+  performance_insights_retention_period = var.rds_performance_insights_retention_period
+  monitoring_interval                   = var.rds_monitoring_interval
+  monitoring_role_arn                   = var.rds_monitoring_interval > 0 ? aws_iam_role.rds_enhanced_monitoring.arn : null
 
   copy_tags_to_snapshot = true
   apply_immediately     = false
