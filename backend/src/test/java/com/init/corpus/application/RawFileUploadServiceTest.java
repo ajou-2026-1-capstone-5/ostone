@@ -177,6 +177,146 @@ class RawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_parse_json_object_with_data_array")
+  void upload_jsonObjectWithDataArray_parsesConversations() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "object-json")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+    DatasetUploadResult uploadResult =
+        new DatasetUploadResult(
+            44L, "object-json", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 2);
+    given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                44L, "some-key", "object.json", "application/json", 100L, "c".repeat(64)));
+    byte[] bytes =
+        """
+        {"data":[
+          {"id":"obj-001","channel":"톡","consulting_category":"카드","full_text":"분실 정지 문의"},
+          {"case_id":"obj-002","source":"전화","conversation":"한도 상향 문의"}
+        ]}
+        """
+            .getBytes(StandardCharsets.UTF_8);
+
+    service.upload(
+        new RawFileUploadCommand(
+            1L,
+            "object-json",
+            "객체 JSON",
+            "PARSED_FLAT_JSON",
+            1L,
+            bytes,
+            "object.json",
+            "application/json",
+            bytes.length));
+
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+
+    List<RawConversationInput> conversations = commandCaptor.getValue().conversations();
+    assertThat(conversations)
+        .extracting(RawConversationInput::sourceId)
+        .containsExactly("obj-001", "obj-002");
+    assertThat(conversations).extracting(RawConversationInput::source).containsExactly("톡", "전화");
+    assertThat(conversations)
+        .extracting(RawConversationInput::consultingContent)
+        .containsExactly("분실 정지 문의", "한도 상향 문의");
+  }
+
+  @Test
+  @DisplayName("should_parse_jsonl_entries_inside_zip")
+  void upload_jsonlZipEntry_parsesConversations() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "jsonl-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+    DatasetUploadResult uploadResult =
+        new DatasetUploadResult(
+            45L, "jsonl-zip", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 2);
+    given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                45L, "some-key", "jsonl.zip", "application/zip", 100L, "d".repeat(64)));
+    byte[] zipBytes =
+        zip(
+            "logs.jsonl",
+            """
+            {"source_id":"jsonl-001","text":"배송지 변경"}
+
+            {"items":[{"source_id":"jsonl-002","content":"결제 취소"}]}
+            """);
+
+    service.upload(
+        new RawFileUploadCommand(
+            1L,
+            "jsonl-zip",
+            "JSONL ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "jsonl.zip",
+            "application/zip",
+            (long) zipBytes.length));
+
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+
+    assertThat(commandCaptor.getValue().conversations())
+        .extracting(RawConversationInput::sourceId)
+        .containsExactly("jsonl-001", "jsonl-002");
+  }
+
+  @Test
+  @DisplayName("should_build_content_from_turns_with_korean_speaker_roles")
+  void upload_turnsWithKoreanSpeakerRoles_buildsConsultingContent() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "turn-json")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+    DatasetUploadResult uploadResult =
+        new DatasetUploadResult(
+            46L, "turn-json", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1);
+    given(rawDatasetUploadService.upload(any())).willReturn(uploadResult);
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                46L, "some-key", "turns.json", "application/json", 100L, "e".repeat(64)));
+    byte[] bytes =
+        """
+        [{"source_id":"turn-001","turns":[
+          {"화자":"직원","발화":"본인 확인 도와드리겠습니다."},
+          {"role":"customer","utterance":"네."},
+          {"speaker":"system","text":""}
+        ]}]
+        """
+            .getBytes(StandardCharsets.UTF_8);
+
+    service.upload(
+        new RawFileUploadCommand(
+            1L,
+            "turn-json",
+            "턴 JSON",
+            "PARSED_FLAT_JSON",
+            1L,
+            bytes,
+            "turns.json",
+            "application/json",
+            bytes.length));
+
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+
+    assertThat(commandCaptor.getValue().conversations().getFirst().consultingContent())
+        .containsSubsequence("상담사: 본인 확인 도와드리겠습니다.", "고객: 네.");
+  }
+
+  @Test
   @DisplayName("should_reject_empty_json_file")
   void upload_emptyJsonFile_throwsRawFileParseException() {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
@@ -200,6 +340,65 @@ class RawFileUploadServiceTest {
     assertThatThrownBy(() -> service.upload(command))
         .isInstanceOf(RawFileParseException.class)
         .hasMessageContaining("상담 데이터가 없습니다");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
+  @DisplayName("should_reject_json_without_conversation_nodes")
+  void upload_scalarJson_throwsRawFileParseException() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "scalar-json")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] scalarJson = "123".getBytes(StandardCharsets.UTF_8);
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "scalar-json",
+            "스칼라 JSON",
+            "PARSED_FLAT_JSON",
+            1L,
+            scalarJson,
+            "scalar.json",
+            "application/json",
+            scalarJson.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("상담 데이터가 없습니다");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
+  @DisplayName("should_reject_json_missing_consulting_content")
+  void upload_jsonMissingConsultingContent_throwsRawFileParseException() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "missing-content"))
+        .willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] bytes = "[{\"source_id\":\"bad-001\",\"turns\":[]}]".getBytes(StandardCharsets.UTF_8);
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "missing-content",
+            "본문 없음",
+            "PARSED_FLAT_JSON",
+            1L,
+            bytes,
+            "missing.json",
+            "application/json",
+            bytes.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("상담 데이터 형식");
 
     verify(storagePort).delete(anyString());
     verify(rawDatasetUploadService, never()).upload(any());
@@ -252,6 +451,35 @@ class RawFileUploadServiceTest {
             1L,
             zipBytes,
             "absolute.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    assertThatThrownBy(() -> service.upload(command))
+        .isInstanceOf(RawFileParseException.class)
+        .hasMessageContaining("안전하지 않은 경로");
+
+    verify(storagePort).delete(anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+  }
+
+  @Test
+  @DisplayName("should_reject_zip_with_windows_drive_entry_path")
+  void upload_zipWithDriveEntryPath_throwsRawFileParseException() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "drive-zip")).willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+
+    byte[] zipBytes = zip("C:/evil.json", "[{\"source_id\":\"001\",\"consulting_content\":\"x\"}]");
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "drive-zip",
+            "위험 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "drive.zip",
             "application/zip",
             (long) zipBytes.length);
 
