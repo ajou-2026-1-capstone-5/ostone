@@ -92,6 +92,16 @@ variable "db_master_password" {
   description = "RDS PostgreSQL master password."
   type        = string
   sensitive   = true
+
+  validation {
+    condition = (
+      length(var.db_master_password) >= 8
+      && length(var.db_master_password) <= 128
+      && can(regex("^[!-~]+$", var.db_master_password))
+      && length(regexall("[/@\"]", var.db_master_password)) == 0
+    )
+    error_message = "db_master_password must be 8-128 printable ASCII characters and cannot contain '/', '@', double quote, or spaces."
+  }
 }
 
 variable "app_db_password" {
