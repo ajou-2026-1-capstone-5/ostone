@@ -11,6 +11,7 @@ public class CounselorSessionResponse {
   private String metaJson;
   private OffsetDateTime startedAt;
   private Long assignedCounselorId;
+  private String responseMode;
 
   private List<ChatSessionResponse> content;
   private int page;
@@ -37,6 +38,7 @@ public class CounselorSessionResponse {
     resp.metaJson = session.getMetaJson();
     resp.startedAt = session.getStartedAt();
     resp.assignedCounselorId = session.getAssignedCounselorId();
+    resp.responseMode = session.getResponseMode().name();
     return resp;
   }
 
@@ -70,6 +72,14 @@ public class CounselorSessionResponse {
 
   public void setMetaJson(String metaJson) {
     this.metaJson = metaJson;
+  }
+
+  public String getResponseMode() {
+    return responseMode;
+  }
+
+  public void setResponseMode(String responseMode) {
+    this.responseMode = responseMode;
   }
 
   public OffsetDateTime getStartedAt() {

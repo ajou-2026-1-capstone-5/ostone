@@ -2,11 +2,11 @@ package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -17,6 +17,8 @@ import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionResponseMode;
+import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.event.ChatMessageReceivedEvent;
 import java.util.List;
 import java.util.Optional;
@@ -66,8 +68,8 @@ class LlmResponseHandlerTest {
   @DisplayName("handleChatMessageReceived: 정상 응답 → DB 저장 및 STOMP push")
   void should_saveAndPush_when_llmRespondsSuccessfully() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
-    ChatSession precheckSession = mockSession();
-    ChatSession lockSession = mockSession();
+    ChatSession precheckSession = createSession(ChatSessionResponseMode.AI_ACTIVE);
+    ChatSession lockSession = createSession(ChatSessionResponseMode.AI_ACTIVE);
     given(
             llmAssistantService.generateWorkflowAwareResponse(
                 argThat(
@@ -107,7 +109,8 @@ class LlmResponseHandlerTest {
   @DisplayName("handleChatMessageReceived: LLM 예외 → fallback 메시지 STOMP push")
   void should_pushFallback_when_llmThrowsException() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
+    given(chatSessionRepository.findById(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)));
     given(llmAssistantService.generateWorkflowAwareResponse(any()))
         .willThrow(new RuntimeException("API timeout"));
 
@@ -124,14 +127,34 @@ class LlmResponseHandlerTest {
   }
 
   @Test
+  @DisplayName("handleChatMessageReceived: LLM 예외 중 상담사 모드로 바뀌면 fallback 전송을 생략한다")
+  void should_skipFallback_when_responseModeChangesAfterLlmException() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(chatSessionRepository.findById(1L))
+        .willReturn(
+            Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)),
+            Optional.of(createSession(ChatSessionResponseMode.HUMAN_ACTIVE)));
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
+        .willThrow(new RuntimeException("API timeout"));
+
+    handler.handleChatMessageReceived(event);
+
+    verify(chatSessionRepository, never()).findByIdForUpdate(1L);
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
   @DisplayName("handleChatMessageReceived: 저장 트랜잭션이 null 반환 → fallback 메시지 STOMP push")
   void should_pushFallback_when_saveTransactionReturnsNull() {
     ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
     given(llmAssistantService.generateWorkflowAwareResponse(any()))
         .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요! 무엇을 도와드릴까요?"));
-    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(mockSession()));
+    given(chatSessionRepository.findById(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)));
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(1L)).willReturn(List.of());
-    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(mockSession()));
+    given(chatSessionRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)));
     given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(1L))
         .willReturn(Optional.empty());
     given(transactionManager.getTransaction(any(TransactionDefinition.class)))
@@ -150,7 +173,45 @@ class LlmResponseHandlerTest {
     assertThat(pushed.content()).contains("LLM_ERROR");
   }
 
-  private ChatSession mockSession() {
-    return mock(ChatSession.class);
+  @Test
+  @DisplayName("handleChatMessageReceived: 상담사 응대 모드이면 LLM 호출과 자동 전송을 생략한다")
+  void should_skipLlmAutoResponse_when_humanActive() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(chatSessionRepository.findById(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.HUMAN_ACTIVE)));
+
+    handler.handleChatMessageReceived(event);
+
+    verify(llmAssistantService, never()).generateWorkflowAwareResponse(any());
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  @Test
+  @DisplayName("handleChatMessageReceived: 저장 직전 모드가 바뀌면 자동 전송을 생략한다")
+  void should_skipSaveAndPush_when_responseModeChangesBeforeSave() {
+    ChatMessageReceivedEvent event = new ChatMessageReceivedEvent(1L, "안녕하세요", 1L);
+    given(chatSessionRepository.findById(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.AI_ACTIVE)));
+    given(llmAssistantService.generateWorkflowAwareResponse(any()))
+        .willReturn(new GenerateWorkflowAwareResponseResult("안녕하세요!"));
+    given(chatSessionRepository.findByIdForUpdate(1L))
+        .willReturn(Optional.of(createSession(ChatSessionResponseMode.HUMAN_ACTIVE)));
+    given(transactionManager.getTransaction(any(TransactionDefinition.class)))
+        .willReturn(new SimpleTransactionStatus());
+
+    handler.handleChatMessageReceived(event);
+
+    verify(chatMessageRepository, never()).save(any(ChatMessage.class));
+    verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+  }
+
+  private ChatSession createSession(ChatSessionResponseMode responseMode) {
+    ChatSession session = ChatSession.create(1L, 1L, ChatSessionStatus.OPEN, "WEB", "{}");
+    if (responseMode != ChatSessionResponseMode.AI_ACTIVE) {
+      session.assignTo(42L);
+      session.switchResponseMode(responseMode);
+    }
+    return session;
   }
 }

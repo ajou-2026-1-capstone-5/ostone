@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AlertCircle, Inbox, LoaderCircle, Search } from "lucide-react";
+import type { ConsultationResponseMode } from "../api/consultationApi";
 import { formatWaitDuration } from "../lib/formatWaitDuration";
 import styles from "./queue-panel.module.css";
 
@@ -22,6 +23,7 @@ export interface QueueCustomer {
   status?: string | null;
   statusLabel?: string;
   assignedCounselorId?: number | null;
+  responseMode?: ConsultationResponseMode | null;
   startedAt?: string | null;
 }
 

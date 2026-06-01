@@ -38,6 +38,10 @@ public class ChatSession {
   @Column(name = "assigned_counselor_id")
   private Long assignedCounselorId;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "response_mode", nullable = false)
+  private ChatSessionResponseMode responseMode = ChatSessionResponseMode.AI_ACTIVE;
+
   @Column(name = "started_by")
   private Long startedBy;
 
@@ -76,6 +80,7 @@ public class ChatSession {
     session.channel = channel;
     session.metaJson = metaJson != null ? metaJson : "{}";
     session.startedBy = startedBy;
+    session.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     return session;
   }
 
@@ -83,6 +88,9 @@ public class ChatSession {
   protected void onPersist() {
     if (this.startedAt == null) {
       this.startedAt = OffsetDateTime.now();
+    }
+    if (this.responseMode == null) {
+      this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     }
   }
 
@@ -112,6 +120,10 @@ public class ChatSession {
 
   public Long getAssignedCounselorId() {
     return assignedCounselorId;
+  }
+
+  public ChatSessionResponseMode getResponseMode() {
+    return responseMode != null ? responseMode : ChatSessionResponseMode.AI_ACTIVE;
   }
 
   public String getMetaJson() {
@@ -156,6 +168,7 @@ public class ChatSession {
     }
     this.status = ChatSessionStatus.OPEN;
     this.assignedCounselorId = null;
+    this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
     this.endedAt = null;
   }
 
@@ -173,6 +186,7 @@ public class ChatSession {
     }
     this.assignedCounselorId = counselorId;
     this.status = ChatSessionStatus.ACTIVE;
+    this.responseMode = ChatSessionResponseMode.HUMAN_ACTIVE;
   }
 
   public void releaseFrom() {
@@ -185,6 +199,35 @@ public class ChatSession {
     }
     this.assignedCounselorId = null;
     this.status = ChatSessionStatus.OPEN;
+    this.responseMode = ChatSessionResponseMode.AI_ACTIVE;
+  }
+
+  public void switchResponseMode(ChatSessionResponseMode responseMode) {
+    if (responseMode == null) {
+      throw new InvalidSessionStateException("responseMode must not be null");
+    }
+    if (this.status == ChatSessionStatus.COMPLETED || this.status == ChatSessionStatus.RESOLVED) {
+      throw new InvalidSessionStateException(
+          "switchResponseMode() requires an open or active session but was " + this.status);
+    }
+    if (requiresAssignedCounselor(responseMode) && this.assignedCounselorId == null) {
+      throw new InvalidSessionStateException(
+          "switchResponseMode() requires an assigned counselor for " + responseMode);
+    }
+    this.responseMode = responseMode;
+  }
+
+  public void markHumanResponding() {
+    switchResponseMode(ChatSessionResponseMode.HUMAN_ACTIVE);
+  }
+
+  private boolean requiresAssignedCounselor(ChatSessionResponseMode responseMode) {
+    return responseMode == ChatSessionResponseMode.HUMAN_ACTIVE
+        || responseMode == ChatSessionResponseMode.AI_ASSIST_ONLY;
+  }
+
+  public boolean allowsAiAutoResponse() {
+    return getResponseMode() == ChatSessionResponseMode.AI_ACTIVE;
   }
 
   /** 세션을 종료하고 상태를 COMPLETED로 변경하며 종료 시각을 기록합니다. */

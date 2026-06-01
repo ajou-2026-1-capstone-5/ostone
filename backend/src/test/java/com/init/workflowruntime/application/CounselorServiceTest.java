@@ -15,10 +15,12 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.CounselorSessionResponse;
+import com.init.workflowruntime.application.dto.UpdateResponseModeRequest;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
+import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.InvalidSessionStateException;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
@@ -83,6 +85,7 @@ class CounselorServiceTest {
 
     assertThat(result.getStatus()).isEqualTo("ACTIVE");
     assertThat(result.getAssignedCounselorId()).isEqualTo(42L);
+    assertThat(result.getResponseMode()).isEqualTo("HUMAN_ACTIVE");
     verify(chatSessionRepository).save(session);
     verify(eventPublisher).publishEvent(any(SessionAssignedEvent.class));
     verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
@@ -151,6 +154,7 @@ class CounselorServiceTest {
 
     assertThat(result.getStatus()).isEqualTo("OPEN");
     assertThat(result.getAssignedCounselorId()).isNull();
+    assertThat(result.getResponseMode()).isEqualTo("AI_ACTIVE");
     verify(chatSessionRepository).save(session);
     verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
   }
@@ -271,6 +275,7 @@ class CounselorServiceTest {
       assertThat(result).isNotNull();
       assertThat(result.content()).isEqualTo("Hello from counselor");
       assertThat(result.senderRole()).isEqualTo("COUNSELOR");
+      assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.HUMAN_ACTIVE);
       verify(chatMessageRepository).save(any());
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
 
@@ -302,6 +307,7 @@ class CounselorServiceTest {
           service.sendCounselorMessage(1L, "Hello from counselor", 42L, true);
 
       assertThat(result.senderRole()).isEqualTo("NOTE");
+      assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ACTIVE);
       verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
@@ -381,7 +387,73 @@ class CounselorServiceTest {
         .hasMessageContaining("workspaceId");
   }
 
+  @Test
+  @DisplayName("updateResponseMode: 배정 상담사가 AI 보조 모드로 전환한다")
+  void should_updateResponseMode_when_assignedCounselorRequests() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+
+    CounselorSessionResponse result =
+        service.updateResponseMode(1L, updateResponseModeRequest(42L, "AI_ASSIST_ONLY"), 42L);
+
+    assertThat(result.getResponseMode()).isEqualTo("AI_ASSIST_ONLY");
+    assertThat(session.getResponseMode()).isEqualTo(ChatSessionResponseMode.AI_ASSIST_ONLY);
+    verify(chatSessionRepository).save(session);
+    verifyQueueEventPublished(1L, 1L, ConsultationQueueEventType.SESSION_UPSERTED);
+  }
+
+  @Test
+  @DisplayName("updateResponseMode: 배정 상담사가 아니면 실패한다")
+  void should_throwBadRequest_when_responseModeRequestedByOtherCounselor() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 99L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(42L, "AI_ACTIVE");
+
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("not assigned to counselor");
+  }
+
+  @Test
+  @DisplayName("updateResponseMode: 요청 상담사 ID가 인증 사용자와 다르면 실패한다")
+  void should_throwBadRequest_when_responseModeCounselorIdDoesNotMatchRequester() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(99L, "AI_ACTIVE");
+
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("counselorId must match authenticated user");
+  }
+
+  @Test
+  @DisplayName("updateResponseMode: 지원하지 않는 모드는 실패한다")
+  void should_throwBadRequest_when_responseModeUnsupported() {
+    ChatSession session = createSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+    UpdateResponseModeRequest request = updateResponseModeRequest(42L, "UNKNOWN");
+
+    assertThatThrownBy(() -> service.updateResponseMode(1L, request, 42L))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("Unsupported response mode");
+  }
+
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  private UpdateResponseModeRequest updateResponseModeRequest(Long counselorId, String mode) {
+    UpdateResponseModeRequest request = new UpdateResponseModeRequest();
+    request.setCounselorId(counselorId);
+    request.setResponseMode(mode);
+    return request;
+  }
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");

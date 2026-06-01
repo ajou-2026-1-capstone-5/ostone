@@ -18,6 +18,7 @@ import { consultationApi } from "../../../features/consultation/api/consultation
 import type {
   ChatSession,
   ConsultationSessionStatus,
+  ConsultationResponseMode,
   ConsultationMetrics,
   ConsultationQueueEvent,
   ResolutionOutcome,
@@ -75,6 +76,35 @@ type SessionMeta = {
 };
 
 const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
+
+type ResponseModeView = {
+  value: ConsultationResponseMode;
+  label: string;
+  description: string;
+};
+
+const RESPONSE_MODE_OPTIONS: ResponseModeView[] = [
+  {
+    value: "AI_ACTIVE",
+    label: "AI 응대중",
+    description: "고객 메시지에 AI가 자동응답합니다.",
+  },
+  {
+    value: "HUMAN_ACTIVE",
+    label: "상담사 응대중",
+    description: "AI 자동응답을 중지합니다.",
+  },
+  {
+    value: "AI_ASSIST_ONLY",
+    label: "AI 보조만 사용",
+    description: "고객 자동 전송 없이 보조 상태로 둡니다.",
+  },
+];
+
+const DEFAULT_RESPONSE_MODE: ConsultationResponseMode = "AI_ACTIVE";
+
+const getResponseModeView = (mode?: ConsultationResponseMode | null) =>
+  RESPONSE_MODE_OPTIONS.find((option) => option.value === mode) ?? RESPONSE_MODE_OPTIONS[0];
 
 type EndSessionModalState =
   | { open: false }
@@ -325,6 +355,10 @@ const toQueueCustomer = (
     session.assignedCounselorId !== undefined
       ? session.assignedCounselorId
       : (previous?.assignedCounselorId ?? null);
+  const responseMode =
+    session.responseMode ??
+    previous?.responseMode ??
+    (assignedCounselorId ? "HUMAN_ACTIVE" : DEFAULT_RESPONSE_MODE);
   const status = session.status !== undefined ? session.status : (previous?.status ?? null);
   const startedAt = session.startedAt ?? previous?.startedAt ?? null;
   const lastMessagePreview = meta.lastMessagePreview?.trim() || previous?.lastMessagePreview || "";
@@ -359,6 +393,7 @@ const toQueueCustomer = (
       handoffRequired,
     ),
     assignedCounselorId,
+    responseMode,
     startedAt,
   };
 };
@@ -486,6 +521,7 @@ export const ConsultationPage: React.FC = () => {
   const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
   const [isDraftResponseLoading, setIsDraftResponseLoading] = useState(false);
   const [endSessionModal, setEndSessionModal] = useState<EndSessionModalState>({ open: false });
+  const [isResponseModeUpdating, setIsResponseModeUpdating] = useState(false);
   const isEndSessionModalOpen = endSessionModal.open;
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
   const [hasQueueLoaded, setHasQueueLoaded] = useState(false);
@@ -582,6 +618,7 @@ export const ConsultationPage: React.FC = () => {
   const messageInputDisabledReason = isAssignedToCurrentCounselor
     ? undefined
     : activeAssignment?.description;
+  const activeResponseModeView = getResponseModeView(activeCustomer?.responseMode);
 
   const clearActiveConversation = useCallback(() => {
     setActiveCustomerId(null);
@@ -1230,6 +1267,42 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
+  const handleUpdateResponseMode = async (responseMode: ConsultationResponseMode) => {
+    if (
+      !activeCustomerId ||
+      !currentCounselorId ||
+      !isAssignedToCurrentCounselor ||
+      responseMode === activeCustomer?.responseMode ||
+      isResponseModeUpdating
+    ) {
+      return;
+    }
+
+    setIsResponseModeUpdating(true);
+    try {
+      const updatedSession = await consultationApi.updateResponseMode(
+        Number(activeCustomerId),
+        currentCounselorId,
+        responseMode,
+      );
+      setQueue((prev) =>
+        sortQueueCustomers(
+          prev.map((customer) =>
+            customer.id === activeCustomerId
+              ? toQueueCustomer(updatedSession, currentCounselorId, customer)
+              : customer,
+          ),
+        ),
+      );
+      toast.success("AI 응대 모드가 변경되었습니다.");
+    } catch (error) {
+      console.error("Failed to update response mode:", error);
+      toast.error("AI 응대 모드 변경에 실패했습니다.");
+    } finally {
+      setIsResponseModeUpdating(false);
+    }
+  };
+
   const handleSaveMemo = useCallback(() => {
     if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
 
@@ -1298,6 +1371,32 @@ export const ConsultationPage: React.FC = () => {
                   {isClaimingActiveSession ? "배정 중..." : "배정받기"}
                 </button>
               )}
+              <div className={styles.responseModePanel}>
+                <div className={styles.responseModeSummary}>
+                  <Mono className={styles.responseModeEyebrow}>AI MODE</Mono>
+                  <span>{activeResponseModeView.label}</span>
+                </div>
+                <div className={styles.responseModeControl} aria-label="AI 응대 모드">
+                  {RESPONSE_MODE_OPTIONS.map((option) => {
+                    const isSelected = activeResponseModeView.value === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`${styles.responseModeButton} ${
+                          isSelected ? styles.responseModeButtonActive : ""
+                        }`}
+                        aria-pressed={isSelected}
+                        title={option.description}
+                        disabled={!isAssignedToCurrentCounselor || isResponseModeUpdating}
+                        onClick={() => handleUpdateResponseMode(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <button
                 className={styles.linkButton}
                 onClick={handleReleaseAssignment}
