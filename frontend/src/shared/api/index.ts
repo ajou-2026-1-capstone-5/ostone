@@ -1,4 +1,10 @@
-import { clearAuthSession, getAccessToken } from "@/shared/lib/auth";
+import {
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  saveAuthTokens,
+  type AuthTokens,
+} from "@/shared/lib/auth";
 
 export function resolveApiBase(apiBaseUrl: string | undefined): string {
   return apiBaseUrl || "/api/v1";
@@ -20,8 +26,40 @@ interface ResponseHandlingOptions {
   clearSessionOnUnauthorized: boolean;
 }
 
+function selectTokenRefreshBody(body: unknown): AuthTokens | null {
+  const candidate =
+    body &&
+    typeof body === "object" &&
+    "data" in body &&
+    (body as { data?: unknown }).data !== undefined
+      ? (body as { data: unknown }).data
+      : body;
+
+  if (!candidate || typeof candidate !== "object") {
+    return null;
+  }
+
+  const tokens = candidate as Partial<AuthTokens>;
+  if (
+    typeof tokens.accessToken !== "string" ||
+    typeof tokens.refreshToken !== "string" ||
+    typeof tokens.tokenType !== "string" ||
+    typeof tokens.expiresIn !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    tokenType: tokens.tokenType,
+    expiresIn: tokens.expiresIn,
+  };
+}
+
 class ApiClient {
   private baseUrl: string;
+  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -53,6 +91,80 @@ class ApiClient {
     return { headers, hasSessionAuthHeader };
   }
 
+  private withLatestAuthHeader(path: string, init: RequestInit): RequestInit {
+    const headers = new Headers(init.headers);
+    const token = getAccessToken();
+    if (token && this.shouldAttachAuthHeader(path)) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return { ...init, headers };
+  }
+
+  private async fetchWithSessionRefresh(
+    path: string,
+    init: RequestInit,
+    retryOnUnauthorized: boolean,
+  ): Promise<Response> {
+    const response = await fetch(`${this.baseUrl}${path}`, init);
+    if (response.status !== 401 || !retryOnUnauthorized) {
+      return response;
+    }
+
+    const refreshed = await this.refreshAuthSession();
+    if (!refreshed) {
+      return response;
+    }
+
+    return fetch(`${this.baseUrl}${path}`, this.withLatestAuthHeader(path, init));
+  }
+
+  async refreshAuthSession(): Promise<boolean> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.refreshPromise = this.requestTokenRefresh().finally(() => {
+      this.refreshPromise = null;
+    });
+
+    return this.refreshPromise;
+  }
+
+  private async requestTokenRefresh(): Promise<boolean> {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      clearAuthSession();
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        clearAuthSession();
+        return false;
+      }
+
+      const tokens = selectTokenRefreshBody(await response.json());
+      if (!tokens) {
+        clearAuthSession();
+        return false;
+      }
+
+      saveAuthTokens(tokens);
+      return true;
+    } catch {
+      clearAuthSession();
+      return false;
+    }
+  }
+
   private async handleResponse<T>(
     response: Response,
     options: ResponseHandlingOptions,
@@ -79,11 +191,15 @@ class ApiClient {
 
   async post<T>(path: string, body: unknown): Promise<T> {
     const { headers, hasSessionAuthHeader } = this.getHeaders(path);
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    const response = await this.fetchWithSessionRefresh(
+      path,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      },
+      hasSessionAuthHeader,
+    );
 
     return this.handleResponse<T>(response, {
       clearSessionOnUnauthorized: hasSessionAuthHeader,
@@ -114,11 +230,15 @@ class ApiClient {
       new Headers(extra).forEach((v, k) => headers.set(k, v));
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      body,
-      headers,
-    });
+    const response = await this.fetchWithSessionRefresh(
+      path,
+      {
+        ...options,
+        body,
+        headers,
+      },
+      hasSessionAuthHeader,
+    );
     return this.handleResponse<T>(response, {
       clearSessionOnUnauthorized: hasSessionAuthHeader,
     });
@@ -126,11 +246,15 @@ class ApiClient {
 
   async get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
     const { headers, hasSessionAuthHeader } = this.getHeaders(path);
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "GET",
-      headers,
-      signal: options?.signal,
-    });
+    const response = await this.fetchWithSessionRefresh(
+      path,
+      {
+        method: "GET",
+        headers,
+        signal: options?.signal,
+      },
+      hasSessionAuthHeader,
+    );
 
     return this.handleResponse<T>(response, {
       clearSessionOnUnauthorized: hasSessionAuthHeader,
@@ -139,11 +263,15 @@ class ApiClient {
 
   async patch<T>(path: string, body: unknown): Promise<T> {
     const { headers, hasSessionAuthHeader } = this.getHeaders(path);
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify(body),
-    });
+    const response = await this.fetchWithSessionRefresh(
+      path,
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(body),
+      },
+      hasSessionAuthHeader,
+    );
 
     return this.handleResponse<T>(response, {
       clearSessionOnUnauthorized: hasSessionAuthHeader,
@@ -152,10 +280,14 @@ class ApiClient {
 
   async delete<T>(path: string): Promise<T> {
     const { headers, hasSessionAuthHeader } = this.getHeaders(path);
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "DELETE",
-      headers,
-    });
+    const response = await this.fetchWithSessionRefresh(
+      path,
+      {
+        method: "DELETE",
+        headers,
+      },
+      hasSessionAuthHeader,
+    );
 
     return this.handleResponse<T>(response, {
       clearSessionOnUnauthorized: hasSessionAuthHeader,
@@ -176,6 +308,9 @@ export class ApiRequestError extends Error {
 }
 
 export const apiClient = new ApiClient(API_BASE);
+export function refreshAuthSession(): Promise<boolean> {
+  return apiClient.refreshAuthSession();
+}
 export { requireApiData, selectApiData, selectApiList } from "./apiResponse";
 export {
   domainPackQueryKeys,

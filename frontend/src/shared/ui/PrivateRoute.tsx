@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { refreshAuthSession } from "../api";
 import { clearAuthSession, isAuthenticated } from "../lib/auth";
 
 interface PrivateRouteProps {
@@ -12,9 +13,39 @@ interface PrivateRouteProps {
  */
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const location = useLocation();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(() =>
+    isAuthenticated() ? true : null,
+  );
 
-  if (!isAuthenticated()) {
-    clearAuthSession();
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isAuthenticated()) return undefined;
+
+    refreshAuthSession().then((refreshed) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (refreshed) {
+        setIsAuthorized(true);
+        return;
+      }
+
+      clearAuthSession();
+      setIsAuthorized(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname]);
+
+  if (isAuthorized === null) {
+    return null;
+  }
+
+  if (!isAuthorized) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

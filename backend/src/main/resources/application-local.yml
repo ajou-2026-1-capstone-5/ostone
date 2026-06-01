@@ -19,6 +19,10 @@ logging:
     org.springframework.jdbc: DEBUG
     liquibase: DEBUG
 
+jwt:
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:43200000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
 airflow:
   api:
     base-url: ${AIRFLOW_API_BASE_URL:http://127.0.0.1:8081}

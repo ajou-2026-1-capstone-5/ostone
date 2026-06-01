@@ -58,6 +58,11 @@ export function saveAuthSession(tokens: AuthTokens, user: AuthUser): void {
   setAuthValue(USER_KEY, JSON.stringify(user));
 }
 
+export function saveAuthTokens(tokens: AuthTokens): void {
+  setAuthValue(ACCESS_TOKEN_KEY, tokens.accessToken);
+  setAuthValue(REFRESH_TOKEN_KEY, tokens.refreshToken);
+}
+
 export function clearAuthSession(): void {
   removeAuthValue(ACCESS_TOKEN_KEY);
   removeAuthValue(REFRESH_TOKEN_KEY);

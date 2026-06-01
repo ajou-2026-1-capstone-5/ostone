@@ -310,6 +310,90 @@ describe("apiClient", () => {
       expect(getStoredItem("user")).toBeNull();
     });
 
+    it("인증된 요청 401 후 refresh 성공 시 새 access token으로 원 요청을 한 번 재시도한다", async () => {
+      Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
+      localStorage.setItem("accessToken", "expired-access-token");
+      localStorage.setItem("refreshToken", "valid-refresh-token");
+      localStorage.setItem("user", JSON.stringify({ id: 1 }));
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({
+            code: "UNAUTHORIZED",
+            message: "인증이 필요합니다.",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
+            tokenType: "Bearer",
+            expiresIn: 3600,
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ id: 1 }),
+        });
+
+      const result = await apiClient.get<{ id: number }>("/test");
+
+      expect(result).toEqual({ id: 1 });
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "/api/v1/auth/refresh",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ refreshToken: "valid-refresh-token" }),
+        }),
+      );
+
+      const retryHeaders = mockFetch.mock.calls[2][1].headers as Headers;
+      expect(retryHeaders.get("Authorization")).toBe("Bearer new-access-token");
+      expect(getStoredItem("accessToken")).toBe("new-access-token");
+      expect(getStoredItem("refreshToken")).toBe("new-refresh-token");
+      expect(getStoredItem("user")).toBe(JSON.stringify({ id: 1 }));
+    });
+
+    it("인증된 요청 401 후 refresh 실패 시 auth session을 정리하고 원 응답 에러를 반환한다", async () => {
+      Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
+      localStorage.setItem("accessToken", "expired-access-token");
+      localStorage.setItem("refreshToken", "expired-refresh-token");
+      localStorage.setItem("user", JSON.stringify({ id: 1 }));
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({
+            code: "UNAUTHORIZED",
+            message: "인증이 필요합니다.",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({
+            code: "INVALID_TOKEN",
+            message: "만료되거나 폐기된 리프레시 토큰입니다.",
+          }),
+        });
+
+      await expect(apiClient.get<{ id: number }>("/test")).rejects.toMatchObject({
+        status: 401,
+        code: "UNAUTHORIZED",
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(getStoredItem("accessToken")).toBeNull();
+      expect(getStoredItem("refreshToken")).toBeNull();
+      expect(getStoredItem("user")).toBeNull();
+    });
+
     it("auth endpoint의 401 응답 시 기존 auth session을 유지한다", async () => {
       localStorage.setItem("accessToken", "mock-token");
       localStorage.setItem("refreshToken", "mock-refresh-token");
