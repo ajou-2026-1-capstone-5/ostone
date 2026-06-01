@@ -1,10 +1,18 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  ArrowRightIcon,
+  ListChecksIcon,
+  RefreshCwIcon,
+  UploadIcon,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   type ReviewCaseContext,
   useConfirmPipelineDomain,
   usePipelineReviewCheckpoint,
   useSubmitPipelineFeedback,
 } from "../api/pipelineReviewApi";
+import { domainPackListPath } from "@/shared/lib/domainPackRoutes";
 import styles from "./PipelineReviewCheckpointCard.module.css";
 
 interface Props {
@@ -25,7 +33,7 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   const allFeedbackResolved =
     openTasks.length > 0 && openTasks.every((task) => feedbackDecisions[task.id] !== undefined);
 
-  if (pipelineJobId == null) {
+  if (workspaceId == null || pipelineJobId == null) {
     return null;
   }
 
@@ -34,24 +42,99 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   }
 
   if (query.isError) {
-    return <section className={styles.stateCard}>리뷰 체크포인트를 불러오지 못했습니다.</section>;
+    return (
+      <StateActionCard
+        title="리뷰 체크포인트를 불러오지 못했습니다."
+        description="네트워크 상태를 확인한 뒤 같은 화면에서 다시 조회할 수 있습니다."
+      >
+        <button
+          type="button"
+          className={styles.stateActionPrimary}
+          disabled={query.isFetching}
+          onClick={() => void query.refetch()}
+        >
+          <RefreshCwIcon aria-hidden="true" />
+          다시 시도
+        </button>
+      </StateActionCard>
+    );
   }
 
   if (!query.data?.reviewKind) {
     return (
-      <section className={styles.stateCard}>
-        <strong className={styles.stateTitle}>{checkpointStateTitle(query.data?.pipelineStatus)}</strong>
-        <span>{checkpointStateDescription(query.data?.pipelineStatus)}</span>
-      </section>
+      <StateActionCard
+        title={checkpointStateTitle(query.data?.pipelineStatus)}
+        description={checkpointStateDescription(query.data?.pipelineStatus)}
+      >
+        {query.data?.pipelineStatus === "SUCCEEDED" ? (
+          <>
+            <Link to={domainPackListPath(workspaceId)} className={styles.stateActionPrimary}>
+              <ListChecksIcon aria-hidden="true" />
+              도메인팩 관리로 이동
+            </Link>
+            <button
+              type="button"
+              className={styles.stateActionSecondary}
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              <RefreshCwIcon aria-hidden="true" />
+              상태 새로고침
+            </button>
+          </>
+        ) : query.data?.pipelineStatus === "FAILED" ? (
+          <>
+            <Link to={`/workspaces/${workspaceId}/upload`} className={styles.stateActionPrimary}>
+              <UploadIcon aria-hidden="true" />
+              업로드 다시 시작
+            </Link>
+            <button
+              type="button"
+              className={styles.stateActionSecondary}
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              <RefreshCwIcon aria-hidden="true" />
+              현재 job 새로고침
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={styles.stateActionPrimary}
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              <RefreshCwIcon aria-hidden="true" />
+              상태 새로고침
+            </button>
+            <Link to={domainPackListPath(workspaceId)} className={styles.stateActionSecondary}>
+              <ArrowRightIcon aria-hidden="true" />
+              도메인팩 목록 보기
+            </Link>
+          </>
+        )}
+      </StateActionCard>
     );
   }
 
   if (openTasks.length === 0) {
     return (
-      <section className={styles.stateCard}>
-        <strong className={styles.stateTitle}>현재 확인할 리뷰 작업이 없습니다.</strong>
-        <span>열린 작업이 생기면 이 화면에서 바로 이어서 검토할 수 있습니다.</span>
-      </section>
+      <StateActionCard
+        title="현재 확인할 리뷰 작업이 없습니다."
+        description="열린 작업이 생기면 이 화면에서 바로 이어서 검토할 수 있습니다."
+      >
+        <button
+          type="button"
+          className={styles.stateActionPrimary}
+          disabled={query.isFetching}
+          onClick={() => void query.refetch()}
+        >
+          <RefreshCwIcon aria-hidden="true" />
+          작업 새로고침
+        </button>
+      </StateActionCard>
     );
   }
 
@@ -170,6 +253,26 @@ export function PipelineReviewCheckpointCard({ workspaceId, pipelineJobId }: Pro
   );
 }
 
+function StateActionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={styles.stateCard}>
+      <div className={styles.stateCopy}>
+        <strong className={styles.stateTitle}>{title}</strong>
+        <span>{description}</span>
+      </div>
+      <div className={styles.stateActions}>{children}</div>
+    </section>
+  );
+}
+
 function CaseContextCard({
   label,
   context,
@@ -274,7 +377,7 @@ function checkpointStateDescription(pipelineStatus?: string): string {
     return "생성된 Domain Pack 초안에서 최종 검토를 이어갈 수 있습니다.";
   }
   if (pipelineStatus === "FAILED") {
-    return "실패 원인은 파이프라인 job 상세에서 확인할 수 있습니다.";
+    return "업로드를 다시 시작하거나 현재 job 상태를 다시 조회할 수 있습니다.";
   }
   return "파이프라인이 검토 입력을 기다리는 상태가 되면 이 화면에 작업이 표시됩니다.";
 }
