@@ -170,6 +170,18 @@
   letter-spacing: normal;
 }
 
+.syncNotice {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  letter-spacing: normal;
+}
+
 .queueList {
   flex: 1;
   overflow-y: auto;

@@ -166,6 +166,9 @@ public class CounselorService {
       session.markHumanResponding();
     }
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
     String destination = "/topic/chat." + sessionId;

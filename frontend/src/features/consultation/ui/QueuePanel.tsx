@@ -34,6 +34,7 @@ interface QueuePanelProps {
   onSelectCustomer: (id: string) => void;
   isLoading?: boolean;
   loadError?: string | null;
+  syncNotice?: string | null;
   onRetry?: () => void;
 }
 
@@ -202,6 +203,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   onSelectCustomer,
   isLoading = false,
   loadError = null,
+  syncNotice = null,
   onRetry,
 }) => {
   const [selectedFilter, setSelectedFilter] = useState<QueueFilter>("all");
@@ -362,6 +364,11 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           </div>
         </div>
         <span className={styles.resultCount}>현재 {visibleCustomers.length}건 표시</span>
+        {syncNotice && (
+          <div className={styles.syncNotice} role="status">
+            {syncNotice}
+          </div>
+        )}
       </div>
 
       <div className={styles.queueList}>{renderQueueState()}</div>

@@ -237,6 +237,13 @@ class ConsultationServiceTest {
     assertThat(result.senderRole()).isEqualTo("AGENT");
     verify(chatMessageRepository).save(any());
     verify(chatSessionMetadataService).updateAfterMessage(session, savedMsg);
+    ArgumentCaptor<ConsultationQueueChangedEvent> eventCaptor =
+        ArgumentCaptor.forClass(ConsultationQueueChangedEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+    assertThat(eventCaptor.getValue().workspaceId()).isEqualTo(1L);
+    assertThat(eventCaptor.getValue().sessionId()).isEqualTo(1L);
+    assertThat(eventCaptor.getValue().type())
+        .isEqualTo(ConsultationQueueEventType.SESSION_UPSERTED);
   }
 
   @Test

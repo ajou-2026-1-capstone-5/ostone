@@ -136,6 +136,9 @@ public class ConsultationService {
         ChatMessage.create(session.getId(), nextSeqNo, role, messageType, request.getContent());
     ChatMessage savedMessage = chatMessageRepository.save(newMessage);
     chatSessionMetadataService.updateAfterMessage(session, savedMessage);
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
 
     return ChatMessageResponse.from(savedMessage);
   }

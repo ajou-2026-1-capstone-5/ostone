@@ -8,6 +8,7 @@ import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
@@ -16,11 +17,14 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
+import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,18 +45,24 @@ public class DemoChatSessionRegistrationService {
   private final ChatMessageRepository chatMessageRepository;
   private final LlmAssistantService llmAssistantService;
   private final SimpMessagingTemplate messagingTemplate;
+  private final ApplicationEventPublisher eventPublisher;
+  private final ChatSessionMetadataService chatSessionMetadataService;
 
   public DemoChatSessionRegistrationService(
       DomainPackVersionRepository domainPackVersionRepository,
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
       LlmAssistantService llmAssistantService,
-      SimpMessagingTemplate messagingTemplate) {
+      SimpMessagingTemplate messagingTemplate,
+      ApplicationEventPublisher eventPublisher,
+      ChatSessionMetadataService chatSessionMetadataService) {
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
     this.llmAssistantService = llmAssistantService;
     this.messagingTemplate = messagingTemplate;
+    this.eventPublisher = eventPublisher;
+    this.chatSessionMetadataService = chatSessionMetadataService;
   }
 
   @Transactional
@@ -77,9 +87,12 @@ public class DemoChatSessionRegistrationService {
                 createMetaJson(normalizedName),
                 null));
 
-    chatMessageRepository.save(
-        ChatMessage.create(
-            session.getId(), 1, "ASSISTANT", "TEXT", createGreeting(normalizedName)));
+    ChatMessage greeting =
+        chatMessageRepository.save(
+            ChatMessage.create(
+                session.getId(), 1, "ASSISTANT", "TEXT", createGreeting(normalizedName)));
+    chatSessionMetadataService.updateAfterMessage(session, greeting);
+    publishQueueUpsert(session);
 
     return ChatSessionResponse.from(session);
   }
@@ -105,6 +118,7 @@ public class DemoChatSessionRegistrationService {
     ChatMessage userMessage =
         chatMessageRepository.save(
             ChatMessage.create(sessionId, nextSeqNo, "USER", "TEXT", normalizedContent));
+    chatSessionMetadataService.updateAfterMessage(session, userMessage);
 
     String assistantContent =
         llmAssistantService.generateResponse(
@@ -115,6 +129,7 @@ public class DemoChatSessionRegistrationService {
 
     List<ChatMessageResponse> responses =
         List.of(ChatMessageResponse.from(userMessage), ChatMessageResponse.from(assistantMessage));
+    publishQueueUpsert(session);
     broadcastAfterCommit(sessionId, responses);
     return responses;
   }
@@ -170,6 +185,14 @@ public class DemoChatSessionRegistrationService {
     return recentDesc.reversed().stream()
         .map(message -> message.getSenderRole() + ": " + message.getContent())
         .collect(Collectors.joining("\n"));
+  }
+
+  private void publishQueueUpsert(ChatSession session) {
+    eventPublisher.publishEvent(
+        new ConsultationQueueChangedEvent(
+            session.getWorkspaceId(),
+            session.getId(),
+            ConsultationQueueEventType.SESSION_UPSERTED));
   }
 
   private void broadcastAfterCommit(Long sessionId, List<ChatMessageResponse> responses) {
