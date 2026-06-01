@@ -15,9 +15,7 @@ ALTER ROLE airflow_user WITH LOGIN PASSWORD :'airflow_db_password';
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE SCHEMA IF NOT EXISTS airflow AUTHORIZATION airflow_user;
-
-ALTER SCHEMA airflow OWNER TO airflow_user;
+CREATE SCHEMA IF NOT EXISTS airflow;
 
 ALTER ROLE app_user SET search_path TO app, corpus, pack, review, pipeline, runtime, public;
 ALTER ROLE airflow_user SET search_path TO airflow, public;

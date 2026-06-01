@@ -27,11 +27,11 @@ public record EmbeddingProperties(
   }
 
   public String modelOrDefault() {
-    return hasText(model) ? model : "cohere.embed-multilingual-v3";
+    return hasText(model) ? model : "cohere.embed-v4:0";
   }
 
   public String bedrockRegionOrDefault() {
-    return hasText(bedrockRegion) ? bedrockRegion : "ap-northeast-1";
+    return hasText(bedrockRegion) ? bedrockRegion : "ap-northeast-2";
   }
 
   public Duration timeoutOrDefault() {

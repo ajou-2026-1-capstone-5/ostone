@@ -199,8 +199,8 @@ class WorkflowMatchingProfileJdbcRepositoryTest {
                 "환불 요청",
                 VectorUtils.toVectorLiteral(vector(1.0f, 0.0f)),
                 "bedrock",
-                "cohere.embed-multilingual-v3",
-                "ap-northeast-1",
+                "cohere.embed-v4:0",
+                "ap-northeast-2",
                 "search_document",
                 "{}",
                 "{}")));
@@ -389,7 +389,7 @@ class WorkflowMatchingProfileJdbcRepositoryTest {
             embedding
         )
         VALUES (?, ?, ?, ?, 'profile-v1', ?, 'bedrock',
-                'cohere.embed-multilingual-v3', 'ap-northeast-1', ?::vector)
+                'cohere.embed-v4:0', 'ap-northeast-2', ?::vector)
         """,
         domainPackVersionId,
         workflowDefinitionId,
@@ -499,8 +499,8 @@ class WorkflowMatchingProfileJdbcRepositoryTest {
     return new EmbeddingProperties(
         "bedrock",
         true,
-        "cohere.embed-multilingual-v3",
-        "ap-northeast-1",
+        "cohere.embed-v4:0",
+        "ap-northeast-2",
         Duration.ofSeconds(5),
         Duration.ofSeconds(30),
         Duration.ofMinutes(15),

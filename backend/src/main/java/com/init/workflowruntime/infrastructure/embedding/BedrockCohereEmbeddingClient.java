@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.workflowruntime.application.matching.EmbeddingClient;
 import com.init.workflowruntime.application.matching.EmbeddingInputType;
 import com.init.workflowruntime.application.matching.EmbeddingProperties;
+import com.init.workflowruntime.application.matching.VectorUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
@@ -16,6 +17,9 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 public class BedrockCohereEmbeddingClient implements EmbeddingClient {
+
+  private static final String COHERE_EMBED_V4_MODEL = "cohere.embed-v4:0";
+  private static final String COHERE_EMBED_V4_INFERENCE_PROFILE = "global.cohere.embed-v4:0";
 
   private final BedrockRuntimeClient client;
   private final ObjectMapper objectMapper;
@@ -40,21 +44,24 @@ public class BedrockCohereEmbeddingClient implements EmbeddingClient {
       ObjectNode payload = objectMapper.createObjectNode();
       payload.putArray("texts").add(text == null ? "" : text);
       payload.put("input_type", inputType.wireValue());
+      if (usesCohereEmbedV4(properties.modelOrDefault())) {
+        payload.put("output_dimension", VectorUtils.COHERE_EMBEDDING_DIMENSION);
+      }
 
       InvokeModelResponse response =
           client.invokeModel(
               InvokeModelRequest.builder()
-                  .modelId(properties.modelOrDefault())
+                  .modelId(runtimeModelId(properties.modelOrDefault()))
                   .contentType("application/json")
                   .accept("application/json")
                   .body(SdkBytes.fromUtf8String(objectMapper.writeValueAsString(payload)))
                   .build());
 
       JsonNode root = objectMapper.readTree(response.body().asUtf8String());
-      JsonNode embedding = root.path("embeddings").path(0);
+      JsonNode embedding = embeddingNode(root);
       if (!embedding.isArray()) {
         throw new IllegalStateException(
-            "Bedrock Cohere embedding response did not contain embeddings[0]");
+            "Bedrock Cohere embedding response did not contain embeddings[0] or embeddings.float[0]");
       }
       float[] vector = new float[embedding.size()];
       for (int i = 0; i < embedding.size(); i++) {
@@ -93,5 +100,21 @@ public class BedrockCohereEmbeddingClient implements EmbeddingClient {
       return awsException.statusCode() == 429 || errorCode.toLowerCase().contains("throttl");
     }
     return e.getClass().getSimpleName().toLowerCase().contains("throttl");
+  }
+
+  private JsonNode embeddingNode(JsonNode root) {
+    JsonNode embeddings = root.path("embeddings");
+    if (embeddings.isArray()) {
+      return embeddings.path(0);
+    }
+    return embeddings.path("float").path(0);
+  }
+
+  private String runtimeModelId(String model) {
+    return COHERE_EMBED_V4_MODEL.equals(model) ? COHERE_EMBED_V4_INFERENCE_PROFILE : model;
+  }
+
+  private boolean usesCohereEmbedV4(String model) {
+    return COHERE_EMBED_V4_MODEL.equals(model) || COHERE_EMBED_V4_INFERENCE_PROFILE.equals(model);
   }
 }

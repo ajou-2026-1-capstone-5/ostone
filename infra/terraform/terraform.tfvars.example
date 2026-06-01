@@ -35,8 +35,10 @@ llm_service_container_port = 8000
 llm_runtime_api_key        = ""
 
 ai_embedding_provider                          = "bedrock"
-ai_embedding_model                             = "cohere.embed-multilingual-v3"
-ai_embedding_bedrock_region                    = "ap-northeast-1"
+ai_embedding_model                             = "cohere.embed-v4:0"
+ai_embedding_bedrock_region                    = "ap-northeast-2"
+ai_chat_bedrock_region                         = "ap-northeast-2"
+ai_chat_bedrock_model                          = "anthropic.claude-sonnet-4-6"
 ai_embedding_enabled                           = true
 ai_embedding_timeout_seconds                   = 5
 ai_embedding_profile_build_running_timeout     = "15m"

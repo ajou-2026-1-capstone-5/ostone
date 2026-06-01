@@ -2,6 +2,8 @@ spring:
   application:
     name: init-backend
   ai:
+    model:
+      chat: ${AI_CHAT_PROVIDER:openai}
     # ── AI Provider (OpenAI 호환 프로토콜) ──────────────────────────────
     # Gemini(기본)와 OpenAI 모두 OpenAI 호환 endpoint 로 동작하므로
     # 동일한 spring.ai.openai 바인딩을 공유한다. 제공자 전환은 아래
@@ -95,9 +97,9 @@ app:
     embedding:
       provider: ${AI_EMBEDDING_PROVIDER:bedrock}
       enabled: ${AI_EMBEDDING_ENABLED:false}
-      model: ${AI_EMBEDDING_MODEL:cohere.embed-multilingual-v3}
+      model: ${AI_EMBEDDING_MODEL:cohere.embed-v4:0}
       dimensions: ${AI_EMBEDDING_DIMENSIONS:1024}
-      bedrock-region: ${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-1}
+      bedrock-region: ${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-2}
       timeout: ${AI_EMBEDDING_TIMEOUT_SECONDS:5}s
       profile-build-interval: ${AI_EMBEDDING_PROFILE_BUILD_INTERVAL:30s}
       profile-build-running-timeout: ${AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT:15m}

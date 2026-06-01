@@ -184,8 +184,8 @@ class WorkflowMatchingProfileBuildWorkerTest {
     return new EmbeddingProperties(
         "bedrock",
         enabled,
-        "cohere.embed-multilingual-v3",
-        "ap-northeast-1",
+        "cohere.embed-v4:0",
+        "ap-northeast-2",
         Duration.ofSeconds(5),
         Duration.ofSeconds(30),
         Duration.ofMinutes(15),
