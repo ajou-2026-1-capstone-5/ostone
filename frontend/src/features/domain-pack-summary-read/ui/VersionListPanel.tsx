@@ -112,11 +112,11 @@ function VersionListItem({
       >
         <div className={styles.itemRow}>
           <span className={styles.versionNo}>v{versionNo}</span>
-          <span
-            className={`${styles.badge} ${isPublished ? styles.badgePublished : styles.badgeDraft}`}
-          >
-            {formatLifecycleStatus(version.lifecycleStatus)}
-          </span>
+          {!isPublished && (
+            <span className={`${styles.badge} ${styles.badgeDraft}`}>
+              {formatLifecycleStatus(version.lifecycleStatus)}
+            </span>
+          )}
           {isCurrentVersion && (
             <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
           )}

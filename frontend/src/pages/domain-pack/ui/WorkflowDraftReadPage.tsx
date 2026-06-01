@@ -301,7 +301,7 @@ export function WorkflowDraftReadPage() {
                 <p className={styles.detailDescription}>{workflow.description}</p>
               )}
             </div>
-            {workflow && lifecycleStatus && (
+            {workflow && lifecycleStatus && lifecycleStatus !== "PUBLISHED" && (
               <Pill tone="signal">{formatLifecycleStatus(lifecycleStatus)}</Pill>
             )}
             {workflow && isEditing && <Pill tone="ink">수정 중</Pill>}
@@ -369,9 +369,7 @@ export function WorkflowDraftReadPage() {
         }}
       >
         <AlertDialogContent size="sm" className={styles.discardDialog}>
-          <AlertDialogTitle className={styles.discardTitle}>
-            변경 내역을 버릴까요?
-          </AlertDialogTitle>
+          <AlertDialogTitle className={styles.discardTitle}>변경 내역을 버릴까요?</AlertDialogTitle>
           <AlertDialogDescription className={styles.discardDescription}>
             저장하지 않고 이동하면 현재 편집 중인 변경 내역이 버려집니다.
           </AlertDialogDescription>
