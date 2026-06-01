@@ -1,5 +1,5 @@
 import { customFetch } from "@/shared/api/mutator";
-import { selectApiData, selectApiList } from "@/shared/api";
+import { selectApiData } from "@/shared/api";
 import { getMessages } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { getChatWorkflow } from "@/shared/api/generated/endpoints/demo-runtime-controller/demo-runtime-controller";
 import type { ChatMessage, ChatSession } from "@/entities/chat/model/types";
@@ -29,6 +29,13 @@ interface DemoMessageResponse {
   timestamp?: string;
 }
 
+type ConsultationMessagesResponse =
+  | ChatMessageResponse[]
+  | {
+      data?: ChatMessageResponse[] | { content?: ChatMessageResponse[] };
+      content?: ChatMessageResponse[];
+    };
+
 export interface DemoChatSession {
   id: string;
   status: string;
@@ -49,6 +56,18 @@ function requireBackendSessionId(id: number | undefined): number {
     throw new Error("Demo chat session response is missing a numeric id.");
   }
   return id;
+}
+
+function selectConsultationMessages(response: ConsultationMessagesResponse): ChatMessageResponse[] {
+  const data = selectApiData<ChatMessageResponse[] | { content?: ChatMessageResponse[] }>(
+    response,
+  );
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return data?.content ?? [];
 }
 
 function toDemoChatMessage(
@@ -78,7 +97,9 @@ export function createChatSession(workspaceId: number, customerName: string): Pr
 }
 
 export async function listChatMessages(sessionId: number): Promise<ChatMessage[]> {
-  const messages = selectApiList<ChatMessageResponse>(await getMessages(sessionId));
+  const messages = selectConsultationMessages(
+    (await getMessages(sessionId)) as ConsultationMessagesResponse,
+  );
   return messages.map((message) => toChatMessage(message, sessionId));
 }
 

@@ -7,9 +7,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.dto.ChatMessagePageResponse;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
@@ -19,6 +21,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
@@ -158,19 +162,28 @@ class ConsultationServiceTest {
   }
 
   @Test
-  @DisplayName("getMessages: 세션 존재 → 메시지 목록 반환")
+  @DisplayName("getMessages: 세션 존재 → 최신 page를 시간순으로 반환")
   void should_메시지목록반환_when_세션존재() {
     // given
     ChatSession session = createSession(1L);
+    ChatMessage later = createMessage(1L, 3, "AGENT", "나중 메시지");
+    ChatMessage earlier = createMessage(1L, 2, "CUSTOMER", "이전 메시지");
     given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, USER_ID);
-    given(chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(1L)).willReturn(List.of());
+    given(
+            chatMessageRepository.findByChatSessionIdOrderBySeqNoDesc(
+                1L, new DomainPageRequest(0, 2)))
+        .willReturn(new DomainPage<>(List.of(later, earlier), 0, 2, 3, 2));
 
     // when
-    List<ChatMessageResponse> result = service.getMessages(1L, USER_ID);
+    ChatMessagePageResponse result = service.getMessages(1L, USER_ID, 0, 2);
 
     // then
-    assertThat(result).isEmpty();
+    assertThat(result.content()).extracting(ChatMessageResponse::seqNo).containsExactly(2, 3);
+    assertThat(result.page()).isZero();
+    assertThat(result.size()).isEqualTo(2);
+    assertThat(result.totalElements()).isEqualTo(3);
+    assertThat(result.totalPages()).isEqualTo(2);
   }
 
   @Test
@@ -183,7 +196,20 @@ class ConsultationServiceTest {
 
     assertThatThrownBy(() -> service.getMessages(1L, USER_ID))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
-    verify(chatMessageRepository, never()).findByChatSessionIdOrderBySeqNoAsc(1L);
+    verify(chatMessageRepository, never()).findByChatSessionIdOrderBySeqNoDesc(eq(1L), any());
+  }
+
+  @Test
+  @DisplayName("getMessages: 잘못된 pagination 값이면 거부한다")
+  void should_throwBadRequest_when_messagePagingInvalid() {
+    assertThatThrownBy(() -> service.getMessages(1L, USER_ID, -1, 50))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.getMessages(1L, USER_ID, 0, 0))
+        .isInstanceOf(BadRequestException.class);
+    assertThatThrownBy(() -> service.getMessages(1L, USER_ID, 0, 101))
+        .isInstanceOf(BadRequestException.class);
+    verify(chatSessionRepository, never()).findById(1L);
+    verifyNoInteractions(chatMessageRepository);
   }
 
   @Test

@@ -6,6 +6,7 @@ import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GenerateDraftResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
+import com.init.workflowruntime.application.dto.ChatMessagePageResponse;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
@@ -13,7 +14,8 @@ import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import jakarta.validation.Valid;
-import java.util.List;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 상담 운영자 대화 및 세션을 관리하는 REST 컨트롤러입니다. 상담 대기열 조회, 메시지 송수신, 세션 상태 변경 등의 기능을 제공합니다. */
@@ -56,10 +59,13 @@ public class ConsultationController {
    * @return 메시지 상세 목록 응답
    */
   @GetMapping("/sessions/{sessionId}/messages")
-  public ResponseEntity<List<ChatMessageResponse>> getMessages(
-      @PathVariable Long sessionId, Authentication authentication) {
+  public ResponseEntity<ChatMessagePageResponse> getMessages(
+      @PathVariable Long sessionId,
+      @RequestParam(defaultValue = "0") @Min(0) int page,
+      @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+      Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
-    return ResponseEntity.ok(consultationService.getMessages(sessionId, userId));
+    return ResponseEntity.ok(consultationService.getMessages(sessionId, userId, page, size));
   }
 
   /**

@@ -21,6 +21,7 @@ import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
 import com.init.workflowruntime.application.command.GenerateDraftResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
+import com.init.workflowruntime.application.dto.ChatMessagePageResponse;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
@@ -79,13 +80,42 @@ class ConsultationControllerTest {
     ChatMessageResponse msg =
         new ChatMessageResponse(1L, 1, "CUSTOMER", "TEXT", "Hello", OffsetDateTime.now());
 
-    given(consultationService.getMessages(1L, 7L)).willReturn(List.of(msg));
+    given(consultationService.getMessages(1L, 7L, 0, 50))
+        .willReturn(new ChatMessagePageResponse(List.of(msg), 0, 50, 1, 1));
 
     // when & then
     mockMvc
         .perform(get("/api/v1/consultation/sessions/1/messages").principal(auth()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].content").value("Hello"));
+        .andExpect(jsonPath("$.content[0].content").value("Hello"))
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(50))
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.totalPages").value(1));
+    verify(consultationService).getMessages(1L, 7L, 0, 50);
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - page/size 파라미터 전달")
+  void should_페이지파라미터전달_when_메시지조회() throws Exception {
+    ChatMessageResponse msg =
+        new ChatMessageResponse(2L, 45, "CUSTOMER", "TEXT", "Old", OffsetDateTime.now());
+    given(consultationService.getMessages(1L, 7L, 1, 25))
+        .willReturn(new ChatMessagePageResponse(List.of(msg), 1, 25, 80, 4));
+
+    mockMvc
+        .perform(
+            get("/api/v1/consultation/sessions/1/messages")
+                .param("page", "1")
+                .param("size", "25")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].seqNo").value(45))
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(25))
+        .andExpect(jsonPath("$.totalElements").value(80))
+        .andExpect(jsonPath("$.totalPages").value(4));
+    verify(consultationService).getMessages(1L, 7L, 1, 25);
   }
 
   @Test
@@ -199,7 +229,7 @@ class ConsultationControllerTest {
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 세션 없음 → 404 Not Found")
   void should_404반환_when_세션없음() throws Exception {
     // given
-    given(consultationService.getMessages(999L, 7L))
+    given(consultationService.getMessages(999L, 7L, 0, 50))
         .willThrow(new NotFoundException("SESSION_NOT_FOUND", "Session not found: 999"));
 
     // when & then
@@ -212,7 +242,7 @@ class ConsultationControllerTest {
   @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 비멤버 → 403")
   void should_403반환_when_메시지조회_워크스페이스비멤버() throws Exception {
-    given(consultationService.getMessages(1L, 7L))
+    given(consultationService.getMessages(1L, 7L, 0, 50))
         .willThrow(new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
 
     mockMvc

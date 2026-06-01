@@ -1,10 +1,10 @@
 package com.init.workflowruntime.infrastructure.persistence;
 
 import com.init.workflowruntime.domain.ChatSession;
-import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import jakarta.persistence.LockModeType;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -15,30 +15,33 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-/** ChatSessionRepository의 JPA 구현체입니다. Spring Data JPA의 프록시 메커니즘을 통해 도메인 포트 인터페이스를 자동으로 구현합니다. */
+/** ChatSession의 Spring Data JPA repository입니다. */
 @Repository
-public interface JpaChatSessionRepository
-    extends JpaRepository<ChatSession, Long>, ChatSessionRepository {
+public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Long> {
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select cs from ChatSession cs where cs.id = :id")
-  @Override
   Optional<ChatSession> findByIdForUpdate(@Param("id") Long id);
 
-  @Override
+  List<ChatSession> findByStatusOrderByStartedAtDesc(ChatSessionStatus status);
+
+  List<ChatSession> findByStatusInOrderByStartedAtDesc(Collection<ChatSessionStatus> statuses);
+
+  List<ChatSession> findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
+      Long workspaceId, Collection<ChatSessionStatus> statuses);
+
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
-  @Override
+  Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+      Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses);
+
   Page<ChatSession> findByWorkspaceId(Long workspaceId, Pageable pageable);
 
-  @Override
   Page<ChatSession> findByWorkspaceIdAndStatus(
       Long workspaceId, ChatSessionStatus status, Pageable pageable);
 
-  @Override
   Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
 
-  @Override
   @Query(
       value =
           """

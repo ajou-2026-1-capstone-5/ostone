@@ -164,6 +164,41 @@
     var(--focus-ring);
 }
 
+.loadPreviousButton {
+  align-self: center;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 50px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 540;
+  letter-spacing: -0.1px;
+  line-height: 1;
+  padding: 9px 14px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.loadPreviousButton:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.loadPreviousButton:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.loadPreviousButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
 .messageGroup {
   display: flex;
   gap: 10px;

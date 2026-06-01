@@ -12,6 +12,9 @@ public interface ChatMessageRepository {
 
   List<ChatMessage> findByChatSessionIdOrderBySeqNoAsc(Long chatSessionId);
 
+  DomainPage<ChatMessage> findByChatSessionIdOrderBySeqNoDesc(
+      Long chatSessionId, DomainPageRequest pageRequest);
+
   List<ChatMessage> findTop5ByChatSessionIdOrderBySeqNoDesc(Long chatSessionId);
 
   Optional<ChatMessage> findTopByChatSessionIdOrderBySeqNoDesc(Long chatSessionId);

@@ -7,15 +7,17 @@ vi.mock("./consultationApi", () => ({
   consultationApi: {
     getSessionPage: vi.fn(),
     getMessages: vi.fn(),
+    getMessagePage: vi.fn(),
   },
 }));
 
 import { ChatSessionResponse, ChatMessageResponse } from "../../../shared/api/generated/zod";
-import { useChatSessions, useChatMessages } from "./chatHistoryApi";
+import { useChatSessions, useChatMessages, useChatMessagePage } from "./chatHistoryApi";
 import { consultationApi } from "./consultationApi";
 
 const mockedGetSessionPage = vi.mocked(consultationApi.getSessionPage);
 const mockedGetMessages = vi.mocked(consultationApi.getMessages);
+const mockedGetMessagePage = vi.mocked(consultationApi.getMessagePage);
 
 const stubSession: ChatSessionResponse = {
   id: 1,
@@ -132,6 +134,7 @@ describe("useChatSessions", () => {
 describe("useChatMessages", () => {
   beforeEach(() => {
     mockedGetMessages.mockReset();
+    mockedGetMessagePage.mockReset();
   });
 
   it("sessionId가 있으면 메시지 목록을 조회한다", async () => {
@@ -157,5 +160,21 @@ describe("useChatMessages", () => {
 
     await waitFor(() => expect(result.current.data).toEqual([stubMessage]));
     expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 2, size: 30 });
+  });
+
+  it("메시지 page metadata를 조회한다", async () => {
+    const page = {
+      content: [stubMessage],
+      page: 0,
+      size: 50,
+      totalElements: 75,
+      totalPages: 2,
+    };
+    mockedGetMessagePage.mockResolvedValue(page);
+
+    const { result } = renderHook(() => useChatMessagePage("1"), { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(result.current.data).toEqual(page));
+    expect(mockedGetMessagePage).toHaveBeenCalledWith(1, { page: 0, size: 50 });
   });
 });
