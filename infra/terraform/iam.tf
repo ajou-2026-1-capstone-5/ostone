@@ -253,6 +253,78 @@ resource "aws_iam_role_policy" "ec2_airflow" {
   policy = data.aws_iam_policy_document.ec2_airflow.json
 }
 
+resource "aws_iam_role" "ecs_airflow_task" {
+  name                 = "${local.name_prefix}-ecs-airflow-task-role"
+  assume_role_policy   = data.aws_iam_policy_document.ecs_tasks_assume_role.json
+  permissions_boundary = var.permissions_boundary_arn
+
+  tags = {
+    Name = "${local.name_prefix}-ecs-airflow-task-role"
+  }
+}
+
+data "aws_iam_policy_document" "ecs_airflow_task" {
+  statement {
+    sid = "RunStageTasks"
+    actions = [
+      "ecs:RunTask",
+      "ecs:DescribeTasks",
+      "ecs:StopTask",
+      "ecs:DescribeTaskDefinition"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid     = "PassStageTaskRoles"
+    actions = ["iam:PassRole"]
+    resources = [
+      aws_iam_role.ecs_task_execution.arn,
+      aws_iam_role.gpu_task.arn
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid = "S3ReadWriteProjectBuckets"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:ListBucket"
+    ]
+    resources = local.all_bucket_arns
+  }
+
+  statement {
+    sid       = "ReadAirflowSecrets"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = local.secrets_resource_arns
+  }
+
+  statement {
+    sid = "CloudWatchLogs"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams"
+    ]
+    resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${local.name_prefix}*:*"]
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_airflow_task" {
+  name   = "${local.name_prefix}-ecs-airflow-task-policy"
+  role   = aws_iam_role.ecs_airflow_task.id
+  policy = data.aws_iam_policy_document.ecs_airflow_task.json
+}
+
 resource "aws_iam_role" "gpu_task" {
   name                 = "${local.name_prefix}-gpu-task-role"
   assume_role_policy   = data.aws_iam_policy_document.ecs_tasks_assume_role.json

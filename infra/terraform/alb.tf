@@ -34,6 +34,28 @@ resource "aws_lb_target_group" "backend" {
   tags = local.common_tags
 }
 
+resource "aws_lb_target_group" "airflow_api" {
+  name        = "${local.name_prefix}-airflow-api-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 30
+    timeout             = 5
+    path                = "/api/v2/version"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+  }
+
+  tags = local.common_tags
+}
+
 # HTTPS Listener (443) with ACM certificate
 resource "aws_lb_listener" "backend_https" {
   load_balancer_arn = aws_lb.backend.arn
@@ -45,6 +67,49 @@ resource "aws_lb_listener" "backend_https" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "airflow_admin" {
+  listener_arn = aws_lb_listener.backend_https.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.airflow_api.arn
+  }
+
+  condition {
+    host_header {
+      values = ["airflow.${var.domain_name}"]
+    }
+  }
+
+  condition {
+    source_ip {
+      values = [var.admin_cidr]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "airflow_forbidden" {
+  listener_arn = aws_lb_listener.backend_https.arn
+  priority     = 11
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Forbidden"
+      status_code  = "403"
+    }
+  }
+
+  condition {
+    host_header {
+      values = ["airflow.${var.domain_name}"]
+    }
   }
 }
 
@@ -69,6 +134,18 @@ resource "aws_lb_listener" "backend_http" {
 resource "aws_route53_record" "api" {
   zone_id = local.route53_zone_id
   name    = "api.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.backend.dns_name
+    zone_id                = aws_lb.backend.zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "airflow" {
+  zone_id = local.route53_zone_id
+  name    = "airflow.${var.domain_name}"
   type    = "A"
 
   alias {

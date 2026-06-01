@@ -1,7 +1,7 @@
 x-airflow-common: &airflow-common
   build:
-    context: ./airflow
-    dockerfile: Dockerfile
+    context: .
+    dockerfile: airflow/Dockerfile
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${DB_USER:-init}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-init}

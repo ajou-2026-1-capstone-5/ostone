@@ -1,9 +1,11 @@
 locals {
   ecr_repositories = {
-    backend     = "ostone/backend"
-    airflow     = "ostone/airflow"
-    ml_embedder = "ostone/ml-embedder"
-    ml_llm      = "ostone/ml-llm"
+    backend      = "ostone/backend"
+    airflow      = "ostone/airflow"
+    ml_embedder  = "ostone/ml-embedder"
+    ml_stage_cpu = "ostone/ml-stage-cpu"
+    ml_stage_gpu = "ostone/ml-stage-gpu"
+    ml_llm       = "ostone/ml-llm"
   }
 }
 

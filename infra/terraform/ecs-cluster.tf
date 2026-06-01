@@ -94,11 +94,11 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "AIRFLOW_API_BASE_URL"
-          value = var.airflow_api_base_url
+          value = local.airflow_backend_api_base_url
         },
         {
           name  = "AIRFLOW_API_ALLOW_INSECURE_HTTP"
-          value = tostring(var.airflow_api_allow_insecure_http)
+          value = tostring(var.airflow_api_allow_insecure_http || var.airflow_api_base_url == "")
         },
         {
           name  = "AI_EMBEDDING_PROVIDER"

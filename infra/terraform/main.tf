@@ -53,4 +53,8 @@ locals {
   }
 
   availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  airflow_private_namespace_name = "${local.name_prefix}.local"
+  airflow_private_api_base_url   = "http://airflow-api.${local.airflow_private_namespace_name}:8080"
+  airflow_backend_api_base_url   = var.airflow_api_base_url != "" ? var.airflow_api_base_url : local.airflow_private_api_base_url
 }

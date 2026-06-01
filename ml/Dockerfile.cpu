@@ -1,0 +1,26 @@
+# ML stage worker — one-shot CPU batch task for ECS RunTask
+FROM python:3.13-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+ENV UV_PYTHON=3.13
+ENV HF_HOME=/app/.cache/huggingface
+ENV TORCH_HOME=/app/.cache/torch
+ENV PYTHONPATH=/app/src
+
+COPY ml/pyproject.toml ml/uv.lock ./
+RUN uv sync --python 3.13 --frozen --no-dev
+
+COPY ml/src/ ./src/
+
+RUN groupadd --system appgroup \
+    && useradd --system --gid appgroup --home-dir /app appuser \
+    && chown -R appuser:appgroup /app
+USER appuser
+
+ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_stage_worker"]

@@ -11,13 +11,15 @@ RUN mkdir -p /opt/airflow/dags /opt/airflow/src /opt/airflow/logs /opt/airflow/a
     && chown -R airflow:0 /opt/airflow \
     && chmod -R g+rwX /opt/airflow
 
-COPY requirements.txt /requirements.txt
-COPY scripts/init-airflow.sh /opt/airflow/scripts/init-airflow.sh
+COPY airflow/requirements.txt /requirements.txt
+COPY airflow/scripts/init-airflow.sh /opt/airflow/scripts/init-airflow.sh
+COPY src/ /opt/airflow/src/
 
 RUN chmod +x /opt/airflow/scripts/init-airflow.sh
 
 USER airflow
 
 ENV HF_HOME=/opt/airflow/.cache/huggingface
+ENV PYTHONPATH=/opt/airflow/src
 
 RUN pip install --no-cache-dir -r /requirements.txt

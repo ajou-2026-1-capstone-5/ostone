@@ -1,4 +1,4 @@
-# ML embedder — one-shot GPU batch task for ECS RunTask
+# ML stage worker — one-shot GPU batch task for ECS RunTask
 FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,6 +12,7 @@ WORKDIR /app
 ENV UV_PYTHON=3.13
 ENV HF_HOME=/app/.cache/huggingface
 ENV TORCH_HOME=/app/.cache/torch
+ENV PYTHONPATH=/app/src
 
 # Copy dependency files first for layer caching
 COPY ml/pyproject.toml ml/uv.lock ./
@@ -27,6 +28,5 @@ RUN groupadd --system appgroup && useradd --system --gid appgroup --home-dir /ap
     && chown -R appuser:appgroup /app
 USER appuser
 
-# AWS credentials via ECS task role
-# Expected env vars: S3_INPUT_BUCKET, S3_INPUT_KEY, S3_OUTPUT_BUCKET, S3_OUTPUT_KEY, S3_EXPECTED_BUCKET_OWNER
-ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_embedder_worker"]
+# AWS credentials are provided through the ECS task role.
+ENTRYPOINT ["uv", "run", "python", "-m", "pipeline.ecs_stage_worker"]
