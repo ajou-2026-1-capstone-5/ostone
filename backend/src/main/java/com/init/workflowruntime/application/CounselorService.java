@@ -38,6 +38,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class CounselorService {
 
   private static final ZoneId HISTORY_FILTER_ZONE = ZoneId.of("Asia/Seoul");
+  private static final String SESSION_ASSIGNED_SYSTEM_MESSAGE = "상담사가 배정되었습니다.";
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -77,12 +78,36 @@ public class CounselorService {
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
 
+    broadcastSessionAssignedSystemMessage(sessionId);
+
     eventPublisher.publishEvent(new SessionAssignedEvent(sessionId, counselorId));
     eventPublisher.publishEvent(
         new ConsultationQueueChangedEvent(
             session.getWorkspaceId(), sessionId, ConsultationQueueEventType.SESSION_UPSERTED));
 
     return CounselorSessionResponse.from(session);
+  }
+
+  private void broadcastSessionAssignedSystemMessage(Long sessionId) {
+    Integer nextSeqNo =
+        chatMessageRepository
+            .findTopByChatSessionIdOrderBySeqNoDesc(sessionId)
+            .map(msg -> msg.getSeqNo() + 1)
+            .orElse(1);
+    ChatMessage systemMessage =
+        ChatMessage.create(
+            sessionId, nextSeqNo, "SYSTEM", "SYSTEM", SESSION_ASSIGNED_SYSTEM_MESSAGE);
+    ChatMessage savedMessage = chatMessageRepository.save(systemMessage);
+
+    ChatMessageResponse response = ChatMessageResponse.from(savedMessage);
+    String destination = "/topic/chat." + sessionId;
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            messagingTemplate.convertAndSend(destination, response);
+          }
+        });
   }
 
   @Transactional

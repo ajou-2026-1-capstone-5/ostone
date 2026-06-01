@@ -193,6 +193,13 @@ export function DomainPackListPage() {
       <div className={styles.pageWrapper}>
         <div className={styles.emptyPanel}>
           <EmptyState message="아직 도메인팩이 없습니다. 상담 로그를 업로드하여 첫 도메인팩을 생성하세요." />
+          <Link
+            to={`/workspaces/${parsedWorkspaceId}/upload`}
+            className={styles.uploadCta}
+            data-testid="empty-upload-cta"
+          >
+            상담 로그 업로드
+          </Link>
         </div>
       </div>
     );

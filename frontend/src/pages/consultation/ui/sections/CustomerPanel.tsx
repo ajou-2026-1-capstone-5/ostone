@@ -1,4 +1,5 @@
 import { Pill } from "@/shared/ui/ostone/atoms";
+import styles from "./CustomerPanel.module.css";
 import { InfoCard } from "./InfoCard";
 import { InfoRow } from "./InfoRow";
 import { ProgressStepper, type ProgressStepperStep } from "./ProgressStepper";
@@ -161,7 +162,10 @@ export function CustomerPanel({
       <InfoCard title="문의 관련 주문" meta={displayText(orderInfo?.orderNumber, "연동 정보 없음")}>
         {hasOrderInfo(orderInfo) ? (
           <>
-            <InfoRow label="주문번호" value={displayText(orderInfo?.orderNumber, "연동 정보 없음")} />
+            <InfoRow
+              label="주문번호"
+              value={displayText(orderInfo?.orderNumber, "연동 정보 없음")}
+            />
             <InfoRow label="주문일" value={displayText(orderInfo?.orderDate, "연동 정보 없음")} />
             <InfoRow
               label="결제금액"
@@ -184,7 +188,10 @@ export function CustomerPanel({
         )}
       </InfoCard>
 
-      <InfoCard title="처리 단계" meta={workflowSteps?.length ? `${workflowSteps.length} 단계` : "연동 정보 없음"}>
+      <InfoCard
+        title="처리 단계"
+        meta={workflowSteps?.length ? `${workflowSteps.length} 단계` : "연동 정보 없음"}
+      >
         {workflowSteps?.length ? (
           <ProgressStepper steps={workflowSteps} />
         ) : (
@@ -219,49 +226,26 @@ export function CustomerPanel({
         )}
       </InfoCard>
 
-      <InfoCard title="내부 메모" meta="NOTE 메시지">
-        <textarea
-          data-testid="customer-memo-textarea"
-          value={memo}
-          onChange={(e) => onMemoChange(e.target.value)}
-          placeholder="타임라인에 내부 메모로 남길 내용을 입력하세요..."
-          aria-label="내부 메모 입력"
-          style={{
-            width: "100%",
-            minHeight: 84,
-            padding: 10,
-            fontSize: 12.5,
-            lineHeight: 1.5,
-            border: "1px solid var(--line)",
-            borderRadius: "var(--r-3)",
-            background: "var(--paper)",
-            color: "var(--ink)",
-            resize: "vertical",
-            fontFamily: "inherit",
-          }}
-        />
-        <button
-          type="button"
-          data-testid="customer-memo-save"
-          onClick={onMemoSave}
-          disabled={isMemoSaveDisabled}
-          style={{
-            width: "100%",
-            marginTop: 10,
-            height: 36,
-            padding: "0 14px",
-            border: isMemoSaveDisabled ? "1px solid var(--line)" : "1px solid var(--ink)",
-            borderRadius: "var(--r-3)",
-            background: isMemoSaveDisabled ? "var(--paper-2)" : "var(--ink)",
-            color: isMemoSaveDisabled ? "var(--ink-4)" : "var(--paper)",
-            cursor: isMemoSaveDisabled ? "not-allowed" : "pointer",
-            fontSize: 12.5,
-            fontWeight: 600,
-            letterSpacing: "-0.1px",
-          }}
-        >
-          {isMemoSaving ? "남기는 중..." : "내부 메모로 남기기"}
-        </button>
+      <InfoCard title="내부 메모" meta="NOTE 메시지" style={{ padding: "14px 14px 14px" }}>
+        <div className={styles.memoComposer}>
+          <textarea
+            data-testid="customer-memo-textarea"
+            className={styles.memoTextarea}
+            value={memo}
+            onChange={(e) => onMemoChange(e.target.value)}
+            placeholder="타임라인에 내부 메모로 남길 내용을 입력하세요..."
+            aria-label="내부 메모 입력"
+          />
+          <button
+            type="button"
+            data-testid="customer-memo-save"
+            className={styles.memoSaveButton}
+            onClick={onMemoSave}
+            disabled={isMemoSaveDisabled}
+          >
+            {isMemoSaving ? "남기는 중..." : "내부 메모로 남기기"}
+          </button>
+        </div>
       </InfoCard>
     </div>
   );

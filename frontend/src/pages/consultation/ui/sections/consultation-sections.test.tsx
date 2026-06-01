@@ -279,4 +279,55 @@ describe("CustomerPanel", () => {
     expect(screen.getByText("관리자 승인 필요")).toBeInTheDocument();
     expect(screen.getByText("2026-06-01T10:00:00+09:00")).toBeInTheDocument();
   });
+
+  it("내부 메모 입력 시 onMemoChange를 호출하고 작성형 카드 레이아웃을 사용한다", () => {
+    const onMemoChange = vi.fn();
+    render(
+      <CustomerPanel
+        customer={{ name: "김민지", channel: "WEB" }}
+        memo=""
+        onMemoChange={onMemoChange}
+        onMemoSave={vi.fn()}
+      />,
+    );
+
+    const textarea = screen.getByTestId("customer-memo-textarea");
+    fireEvent.change(textarea, { target: { value: "환불 확인 필요" } });
+    expect(onMemoChange).toHaveBeenCalledWith("환불 확인 필요");
+
+    // textarea와 저장 버튼을 감싸는 작성형 컨테이너가 존재한다.
+    const composer = textarea.parentElement;
+    expect(composer).not.toBeNull();
+    expect(composer).toContainElement(screen.getByTestId("customer-memo-save"));
+  });
+
+  it("내부 메모가 비어 있으면 저장 버튼이 비활성화되고, 내용이 있으면 클릭 시 onMemoSave를 호출한다", () => {
+    const onMemoSave = vi.fn();
+    const { rerender } = render(
+      <CustomerPanel
+        customer={{ name: "김민지", channel: "WEB" }}
+        memo="   "
+        onMemoChange={vi.fn()}
+        onMemoSave={onMemoSave}
+      />,
+    );
+
+    const saveButton = screen.getByTestId("customer-memo-save");
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+    expect(onMemoSave).not.toHaveBeenCalled();
+
+    rerender(
+      <CustomerPanel
+        customer={{ name: "김민지", channel: "WEB" }}
+        memo="환불 확인 필요"
+        onMemoChange={vi.fn()}
+        onMemoSave={onMemoSave}
+      />,
+    );
+
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+    expect(onMemoSave).toHaveBeenCalledTimes(1);
+  });
 });
