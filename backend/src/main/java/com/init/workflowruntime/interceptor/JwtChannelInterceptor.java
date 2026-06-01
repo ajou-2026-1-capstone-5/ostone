@@ -130,10 +130,6 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     Long userId = parsePrincipalUserId(accessor);
     String role = sessionRole(accessor);
 
-    if (ROLE_OPERATOR.equals(role)) {
-      return;
-    }
-
     ChatSession session =
         chatSessionRepository
             .findById(sessionId)
@@ -141,6 +137,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 () ->
                     new BadRequestException(
                         "SESSION_NOT_FOUND", "Session not found: " + sessionId));
+
+    if (ROLE_OPERATOR.equals(role)) {
+      validateWorkspaceMembership(session.getWorkspaceId(), userId);
+      return;
+    }
+
     if (!userId.equals(session.getStartedBy())) {
       throw new AccessDeniedException(
           "User " + userId + " cannot subscribe to chat session " + sessionId);
@@ -155,6 +157,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     }
     Long workspaceId = parseWorkspaceId(destination);
     Long userId = parsePrincipalUserId(accessor);
+    validateWorkspaceMembership(workspaceId, userId);
+  }
+
+  private void validateWorkspaceMembership(Long workspaceId, Long userId) {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
         .orElseThrow(
