@@ -203,6 +203,17 @@ function saveTestUser(id: number) {
   );
 }
 
+function createUnassignedQueueSession() {
+  return {
+    id: 1,
+    status: "OPEN" as const,
+    channel: "카카오톡",
+    metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
+    startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+    assignedCounselorId: null,
+  };
+}
+
 describe("ConsultationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -988,14 +999,7 @@ describe("ConsultationPage", () => {
 
   it("keeps the session read-only when claim fails", async () => {
     saveTestUser(7);
-    const unassignedSession = {
-      id: 1,
-      status: "OPEN" as const,
-      channel: "카카오톡",
-      metaJson: JSON.stringify({ customerName: "김민지", handoffReason: "환불 문의" }),
-      startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
-      assignedCounselorId: null,
-    };
+    const unassignedSession = createUnassignedQueueSession();
     vi.mocked(consultationApi.getQueue)
       .mockResolvedValueOnce([unassignedSession])
       .mockResolvedValueOnce([unassignedSession]);
@@ -1023,6 +1027,77 @@ describe("ConsultationPage", () => {
     expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
     expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
+  });
+
+  it.each([
+    ["SESSION_NOT_ASSIGNABLE", "현재 배정할 수 없는 상담 상태입니다."],
+    ["SESSION_NOT_FOUND", "상담 세션을 찾을 수 없습니다."],
+    ["WORKSPACE_ACCESS_DENIED", "상담 배정 권한이 없습니다."],
+    ["FORBIDDEN", "상담 배정 권한이 없습니다."],
+    ["UNKNOWN_ERROR", "상담 세션 배정에 실패했습니다."],
+  ])("shows a claim failure message for %s", async (code, message) => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockResolvedValueOnce([unassignedSession]);
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(
+      new ApiRequestError(400, code, "배정 실패"),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(message);
+    });
+    expect(consultationApi.getQueue).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("shows a queue sync error when refetching after claim failure fails", async () => {
+    saveTestUser(7);
+    const unassignedSession = createUnassignedQueueSession();
+    vi.mocked(consultationApi.getQueue)
+      .mockResolvedValueOnce([unassignedSession])
+      .mockRejectedValueOnce(new Error("queue sync failed"));
+    vi.mocked(consultationApi.assignSession).mockRejectedValueOnce(new Error("claim failed"));
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "배정받기" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "배정 실패 후 최신 대기열을 불러오지 못했습니다.",
+      );
+    });
+    expect(screen.getByText("대기열을 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
   it("syncs queue and clears the selected chat when claim fails because another counselor assigned it", async () => {
