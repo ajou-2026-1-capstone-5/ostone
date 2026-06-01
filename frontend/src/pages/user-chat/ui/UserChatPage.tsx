@@ -70,6 +70,14 @@ function withoutLocalUserMessages(messages: ChatMessage[]): ChatMessage[] {
   return messages.filter((message) => !isLocalUserMessage(message));
 }
 
+function isBotMessage(message: ChatMessage): boolean {
+  return message.senderType === "BOT";
+}
+
+function shouldStopBotTypingForRealtimeMessage(message: ChatMessage): boolean {
+  return message.senderType === "AGENT" || message.senderType === "SYSTEM";
+}
+
 function createLocalUserMessage(
   sessionId: number,
   customerName: string,
@@ -202,6 +210,11 @@ export function UserChatPage() {
   const botTypingDelayUntilRef = useRef(0);
   const botTypingTimeoutRef = useRef<number | null>(null);
   const pendingBotMessagesRef = useRef<ChatMessage[]>([]);
+  const activeConversationRef = useRef<{ sessionId: string | null; customerName: string | null }>({
+    sessionId: null,
+    customerName: null,
+  });
+  const sendRequestIdRef = useRef(0);
   const [chatState, setChatState] = useState<{
     workspaceId: number | null;
     customerName: string | null;
@@ -214,10 +227,16 @@ export function UserChatPage() {
       ? chatState
       : { session: null, error: null };
   const activeSessionId = activeChatState.session?.id ?? null;
+  activeConversationRef.current = { sessionId: activeSessionId, customerName };
 
   const setBotTyping = useCallback((nextValue: boolean) => {
     isBotTypingRef.current = nextValue;
     setIsBotTyping(nextValue);
+  }, []);
+
+  const isCurrentConversation = useCallback((sessionId: string, nextCustomerName: string) => {
+    const current = activeConversationRef.current;
+    return current.sessionId === sessionId && current.customerName === nextCustomerName;
   }, []);
 
   const clearBotTypingTimeout = useCallback(() => {
@@ -225,6 +244,13 @@ export function UserChatPage() {
     window.clearTimeout(botTypingTimeoutRef.current);
     botTypingTimeoutRef.current = null;
   }, []);
+
+  const stopBotTyping = useCallback(() => {
+    pendingBotMessagesRef.current = [];
+    botTypingDelayUntilRef.current = 0;
+    clearBotTypingTimeout();
+    setBotTyping(false);
+  }, [clearBotTypingTimeout, setBotTyping]);
 
   const appendRealtimeMessages = useCallback(
     (nextMessages: ChatMessage[]) => {
@@ -259,6 +285,7 @@ export function UserChatPage() {
     clearBotTypingTimeout();
     const pendingMessages = pendingBotMessagesRef.current;
     pendingBotMessagesRef.current = [];
+    botTypingDelayUntilRef.current = 0;
     appendRealtimeMessages(pendingMessages);
     setBotTyping(false);
   }, [appendRealtimeMessages, clearBotTypingTimeout, setBotTyping]);
@@ -287,11 +314,9 @@ export function UserChatPage() {
   }, [setBotTyping]);
 
   useEffect(() => {
-    pendingBotMessagesRef.current = [];
-    botTypingDelayUntilRef.current = 0;
-    setBotTyping(false);
-    clearBotTypingTimeout();
-  }, [activeSessionId, clearBotTypingTimeout, customerName, setBotTyping]);
+    setIsSending(false);
+    stopBotTyping();
+  }, [activeSessionId, customerName, stopBotTyping]);
 
   useEffect(() => clearBotTypingTimeout, [clearBotTypingTimeout]);
 
@@ -380,12 +405,15 @@ export function UserChatPage() {
       return;
     }
 
-    const localMessage = createLocalUserMessage(numericSessionId, customerName, content);
+    const requestId = ++sendRequestIdRef.current;
+    const requestSessionId = activeSession.id;
+    const requestCustomerName = customerName;
+    const localMessage = createLocalUserMessage(numericSessionId, requestCustomerName, content);
     setMessageError(null);
     setIsSending(true);
     startBotTypingDelay();
     setChatState((current) => {
-      if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+      if (current.session?.id !== requestSessionId || current.customerName !== requestCustomerName) {
         return current;
       }
       return {
@@ -398,10 +426,23 @@ export function UserChatPage() {
     });
 
     try {
-      await sendDemoChatMessage(workspaceId, activeSession.id, content);
+      const responseMessages = withCustomerNames(
+        await sendDemoChatMessage(workspaceId, requestSessionId, content),
+        requestCustomerName,
+      );
+      if (!isCurrentConversation(requestSessionId, requestCustomerName)) return;
+
+      const botMessages = responseMessages.filter(isBotMessage);
+      appendRealtimeMessages(responseMessages.filter((message) => !isBotMessage(message)));
+
+      if (botMessages.length > 0) {
+        botMessages.forEach(queueBotMessage);
+      } else {
+        stopBotTyping();
+      }
     } catch (error) {
       setChatState((current) => {
-        if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+        if (current.session?.id !== requestSessionId || current.customerName !== requestCustomerName) {
           return current;
         }
         return {
@@ -412,12 +453,17 @@ export function UserChatPage() {
           },
         };
       });
-      setMessageError(resolveMessageSendErrorMessage(error));
-      pendingBotMessagesRef.current = [];
-      clearBotTypingTimeout();
-      setBotTyping(false);
+      if (isCurrentConversation(requestSessionId, requestCustomerName)) {
+        setMessageError(resolveMessageSendErrorMessage(error));
+        stopBotTyping();
+      }
     } finally {
-      setIsSending(false);
+      if (
+        sendRequestIdRef.current === requestId &&
+        isCurrentConversation(requestSessionId, requestCustomerName)
+      ) {
+        setIsSending(false);
+      }
     }
   };
 
@@ -480,6 +526,9 @@ export function UserChatPage() {
         return;
       }
       appendRealtimeMessages([nextMessage]);
+      if (isBotTypingRef.current && shouldStopBotTypingForRealtimeMessage(nextMessage)) {
+        stopBotTyping();
+      }
     });
   }, [
     activeSessionId,
@@ -487,6 +536,7 @@ export function UserChatPage() {
     connectionStatus,
     customerName,
     queueBotMessage,
+    stopBotTyping,
     subscribe,
   ]);
 
