@@ -3,34 +3,93 @@ import { InfoCard } from "./InfoCard";
 import { InfoRow } from "./InfoRow";
 import { ProgressStepper, type ProgressStepperStep } from "./ProgressStepper";
 
-interface CustomerInfo {
+export interface CustomerInfo {
   name: string;
   channel: string;
-  membershipTier?: string;
-  contact?: string;
-  email?: string;
+  membershipTier?: string | null;
+  contact?: string | null;
+  email?: string | null;
   handoffRequired?: boolean;
   handoffReason?: string;
   handoffAt?: string | null;
 }
 
+export interface CustomerOrderInfo {
+  orderNumber?: string | null;
+  orderDate?: string | null;
+  paymentAmount?: string | null;
+  deliveryStatus?: string | null;
+}
+
+export interface CustomerExtractedInfo {
+  cardNumber?: string | null;
+  refundAmount?: string | null;
+  refundReason?: string | null;
+  dueDate?: string | null;
+}
+
 interface CustomerPanelProps {
   customer: CustomerInfo | null;
+  orderInfo?: CustomerOrderInfo | null;
+  extractedInfo?: CustomerExtractedInfo | null;
+  workflowSteps?: ProgressStepperStep[] | null;
   memo: string;
   onMemoChange: (memo: string) => void;
   onMemoSave?: () => void;
   isMemoSaving?: boolean;
 }
 
-const STEPS: ProgressStepperStep[] = [
-  { label: "접수", value: "05-03", state: "done" },
-  { label: "확인 완료", value: "05-04", state: "done" },
-  { label: "처리", value: "진행중", state: "active" },
-  { label: "완료", value: "예정", state: "todo" },
-];
+const EMPTY_CUSTOMER_FIELD = "확인된 정보 없음";
+
+function hasText(value?: string | null): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function displayText(value?: string | null, fallback = EMPTY_CUSTOMER_FIELD) {
+  return hasText(value) ? value.trim() : fallback;
+}
+
+function hasOrderInfo(orderInfo?: CustomerOrderInfo | null) {
+  return (
+    hasText(orderInfo?.orderNumber) ||
+    hasText(orderInfo?.orderDate) ||
+    hasText(orderInfo?.paymentAmount) ||
+    hasText(orderInfo?.deliveryStatus)
+  );
+}
+
+function hasExtractedInfo(extractedInfo?: CustomerExtractedInfo | null) {
+  return (
+    hasText(extractedInfo?.cardNumber) ||
+    hasText(extractedInfo?.refundAmount) ||
+    hasText(extractedInfo?.refundReason) ||
+    hasText(extractedInfo?.dueDate)
+  );
+}
+
+function EmptyCardState({ children }: { children: string }) {
+  return (
+    <div
+      style={{
+        padding: "12px 10px",
+        border: "1px solid var(--line-2)",
+        borderRadius: "var(--r-2)",
+        background: "var(--paper-2)",
+        color: "var(--ink-3)",
+        fontSize: 12,
+        lineHeight: 1.5,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function CustomerPanel({
   customer,
+  orderInfo = null,
+  extractedInfo = null,
+  workflowSteps = null,
   memo,
   onMemoChange,
   onMemoSave,
@@ -87,11 +146,11 @@ export function CustomerPanel({
         <InfoRow label="채널" value={customer.channel} />
         <InfoRow
           label="회원 등급"
-          value={customer.membershipTier || "일반"}
-          tone={customer.membershipTier ? "signal" : "default"}
+          value={displayText(customer.membershipTier)}
+          tone={hasText(customer.membershipTier) ? "signal" : "default"}
         />
-        <InfoRow label="연락처" value={customer.contact || "010-****-1234"} />
-        <InfoRow label="이메일" value={customer.email || "mi***@example.com"} />
+        <InfoRow label="연락처" value={displayText(customer.contact)} />
+        <InfoRow label="이메일" value={displayText(customer.email)} />
       </InfoCard>
 
       {customer.handoffRequired && (
@@ -102,21 +161,65 @@ export function CustomerPanel({
         </InfoCard>
       )}
 
-      <InfoCard title="문의 관련 주문" meta="#ORD-2024-08921">
-        <InfoRow label="주문일" value="2024-05-03" />
-        <InfoRow label="결제금액" value="89,000원" />
-        <InfoRow label="상태" tone="signal" value={<Pill tone="signal">배송 완료</Pill>} />
+      <InfoCard title="문의 관련 주문" meta={displayText(orderInfo?.orderNumber, "연동 정보 없음")}>
+        {hasOrderInfo(orderInfo) ? (
+          <>
+            <InfoRow label="주문번호" value={displayText(orderInfo?.orderNumber, "연동 정보 없음")} />
+            <InfoRow label="주문일" value={displayText(orderInfo?.orderDate, "연동 정보 없음")} />
+            <InfoRow
+              label="결제금액"
+              value={displayText(orderInfo?.paymentAmount, "연동 정보 없음")}
+            />
+            <InfoRow
+              label="상태"
+              tone={hasText(orderInfo?.deliveryStatus) ? "signal" : "default"}
+              value={
+                hasText(orderInfo?.deliveryStatus) ? (
+                  <Pill tone="signal">{orderInfo.deliveryStatus.trim()}</Pill>
+                ) : (
+                  "연동 정보 없음"
+                )
+              }
+            />
+          </>
+        ) : (
+          <EmptyCardState>연동된 주문 정보가 없습니다.</EmptyCardState>
+        )}
       </InfoCard>
 
-      <InfoCard title="처리 단계" meta="3 of 4">
-        <ProgressStepper steps={STEPS} />
+      <InfoCard title="처리 단계" meta={workflowSteps?.length ? `${workflowSteps.length} 단계` : "연동 정보 없음"}>
+        {workflowSteps?.length ? (
+          <ProgressStepper steps={workflowSteps} />
+        ) : (
+          <EmptyCardState>확인된 처리 단계가 없습니다.</EmptyCardState>
+        )}
       </InfoCard>
 
       <InfoCard title="확인된 정보" meta="자동 발췌">
-        <InfoRow label="카드번호" value="5432 **** **** 8912" />
-        <InfoRow label="환불 요청액" value="45,000원" tone="warn" />
-        <InfoRow label="환불 사유" value="부분 환불 요청" />
-        <InfoRow label="처리 기한" value="2024-05-10" tone="danger" />
+        {hasExtractedInfo(extractedInfo) ? (
+          <>
+            <InfoRow
+              label="카드번호"
+              value={displayText(extractedInfo?.cardNumber, "확인된 정보 없음")}
+            />
+            <InfoRow
+              label="환불 요청액"
+              value={displayText(extractedInfo?.refundAmount, "확인된 정보 없음")}
+              tone={hasText(extractedInfo?.refundAmount) ? "warn" : "default"}
+            />
+            <InfoRow
+              label="환불 사유"
+              value={displayText(extractedInfo?.refundReason, "확인된 정보 없음")}
+            />
+            <InfoRow
+              label="처리 기한"
+              value={displayText(extractedInfo?.dueDate, "확인된 정보 없음")}
+              tone={hasText(extractedInfo?.dueDate) ? "danger" : "default"}
+            />
+          </>
+        ) : (
+          <EmptyCardState>자동 발췌로 확인된 정보가 없습니다.</EmptyCardState>
+        )}
       </InfoCard>
 
       <InfoCard title="내부 메모" meta="NOTE 메시지">

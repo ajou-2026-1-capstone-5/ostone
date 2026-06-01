@@ -327,6 +327,60 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("고객을 선택하면 정보가 표시됩니다")).toBeInTheDocument();
   });
 
+  it("renders customer panel data from session metadata without fallback mock business values", async () => {
+    vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
+      {
+        id: 1,
+        status: "OPEN",
+        channel: "WEB",
+        metaJson: JSON.stringify({
+          customerName: "정세션",
+          customerInfo: {
+            membershipTier: "VIP",
+            contact: "010-2222-3333",
+            email: "real@example.com",
+          },
+          orderInfo: {
+            orderNumber: "ORD-SESSION-1",
+            orderDate: "2026-06-01",
+            paymentAmount: "22,000원",
+            deliveryStatus: "결제 확인",
+          },
+          extractedInfo: {
+            cardNumber: "2222 **** **** 3333",
+            refundAmount: "5,000원",
+            refundReason: "부분 취소",
+            dueDate: "2026-06-05",
+          },
+        }),
+        startedAt: new Date(Date.now() - 4 * 60000).toISOString(),
+        assignedCounselorId: null,
+      },
+    ]);
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("정세션")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("정세션").closest('[role="button"]');
+    if (customerItem) {
+      fireEvent.click(customerItem);
+    }
+
+    expect(screen.getByText("010-2222-3333")).toBeInTheDocument();
+    expect(screen.getByText("real@example.com")).toBeInTheDocument();
+    expect(screen.getAllByText("ORD-SESSION-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("22,000원")).toBeInTheDocument();
+    expect(screen.getByText("2222 **** **** 3333")).toBeInTheDocument();
+    expect(screen.getByText("5,000원")).toBeInTheDocument();
+    expect(screen.queryByText("010-****-1234")).not.toBeInTheDocument();
+    expect(screen.queryByText("#ORD-2024-08921")).not.toBeInTheDocument();
+    expect(screen.queryByText("89,000원")).not.toBeInTheDocument();
+    expect(screen.queryByText("5432 **** **** 8912")).not.toBeInTheDocument();
+  });
+
   it("orders AI handoff queue items before normal sessions and by oldest handoff time", async () => {
     vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
       {
