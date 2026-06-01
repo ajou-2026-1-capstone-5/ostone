@@ -35,6 +35,14 @@ describe("MessageList", () => {
     expect(screen.getByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).not.toBeNull();
   });
 
+  it("봇 입력 표시 상태를 렌더링한다", () => {
+    render(<MessageList messages={[]} botTyping />);
+
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+    expect(screen.getByLabelText("봇이 응답을 입력하는 중입니다")).toBeInTheDocument();
+    expect(screen.queryByText("입력 중...")).not.toBeInTheDocument();
+  });
+
   it("에러 상태를 표시한다", () => {
     render(<MessageList messages={[]} error="세션을 만들 수 없습니다." />);
 

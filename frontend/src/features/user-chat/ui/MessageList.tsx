@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import type { ChatMessage } from "@/entities/chat";
+import styles from "./MessageList.module.css";
 
 export interface MessageListProps {
   messages: ChatMessage[];
   loading?: boolean;
   error?: string | null;
+  botTyping?: boolean;
 }
 
 function formatMessageTime(value: string): string {
@@ -33,12 +35,17 @@ const STATE_CONTAINER_BASE = {
   justifyContent: "center",
 };
 
-export function MessageList({ messages, loading = false, error = null }: MessageListProps) {
+export function MessageList({
+  messages,
+  loading = false,
+  error = null,
+  botTyping = false,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, botTyping]);
 
   if (error) {
     return (
@@ -72,7 +79,7 @@ export function MessageList({ messages, loading = false, error = null }: Message
     );
   }
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !botTyping) {
     return (
       <div
         style={{ ...STATE_CONTAINER_BASE, color: "var(--ink-3)" }}
@@ -163,6 +170,57 @@ export function MessageList({ messages, loading = false, error = null }: Message
             </div>
           );
         })}
+        {botTyping ? (
+          <div
+            data-testid="bot-typing-indicator"
+            data-sender="bot"
+            style={{
+              maxWidth: "72%",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              alignSelf: "flex-start",
+              alignItems: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: "var(--mono)",
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                color: "var(--ink-3)",
+              }}
+            >
+              <span>봇</span>
+            </div>
+            <div
+              aria-label="봇이 응답을 입력하는 중입니다"
+              role="status"
+              style={{
+                minWidth: 54,
+                height: 34,
+                padding: "0 14px",
+                borderRadius: 12,
+                borderBottomLeftRadius: 4,
+                background: "var(--ink)",
+                color: "var(--paper)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06)",
+              }}
+            >
+              <span className={styles.typingDot} aria-hidden="true" />
+              <span className={styles.typingDot} aria-hidden="true" />
+              <span className={styles.typingDot} aria-hidden="true" />
+            </div>
+          </div>
+        ) : null}
         <div ref={bottomRef} />
       </div>
     </div>

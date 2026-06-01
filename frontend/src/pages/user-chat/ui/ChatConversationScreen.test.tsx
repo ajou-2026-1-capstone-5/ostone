@@ -66,6 +66,12 @@ describe("ChatConversationScreen", () => {
     expect(screen.getByText("결제 오류 환불 진행 상태 알려주세요.")).toBeInTheDocument();
   });
 
+  it("botTyping 이 true 이면 봇 입력 표시를 렌더한다", () => {
+    setup({ botTyping: true });
+
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+  });
+
   it("messageError 와 연결 안내가 동시에 필요한 경우 각각 렌더", () => {
     setup({
       connectionStatus: "DISCONNECTED",

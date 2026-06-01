@@ -8,6 +8,7 @@ interface ChatConversationScreenProps {
   customerName: string;
   workspaceId: number;
   isSending: boolean;
+  botTyping?: boolean;
   connectionStatus: ConnectionStatus;
   messageError: string | null;
   onSend: (content: string) => void;
@@ -77,6 +78,7 @@ export function ChatConversationScreen({
   customerName,
   workspaceId,
   isSending,
+  botTyping = false,
   connectionStatus,
   messageError,
   onSend,
@@ -182,7 +184,7 @@ export function ChatConversationScreen({
           background: "var(--paper-2)",
         }}
       >
-        <MessageList messages={session.messages} />
+        <MessageList messages={session.messages} botTyping={botTyping} />
       </div>
       {messageError && (
         <div
