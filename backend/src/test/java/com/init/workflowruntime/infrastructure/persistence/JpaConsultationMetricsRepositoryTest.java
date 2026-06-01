@@ -66,6 +66,18 @@ class JpaConsultationMetricsRepositoryTest {
     persistMessage(oldHumanCompletedSessionId, 1, "USER", at("2026-05-26T15:00:00+09:00"));
     persistMessage(oldHumanCompletedSessionId, 2, "COUNSELOR", at("2026-05-26T15:02:00+09:00"));
 
+    Long resolvedTodaySessionId =
+        persistResolvedSession(
+            workspaceId, at("2026-05-26T16:00:00+09:00"), at("2026-05-27T13:00:00+09:00"));
+    persistMessage(resolvedTodaySessionId, 1, "CUSTOMER", at("2026-05-26T16:00:00+09:00"));
+    persistMessage(resolvedTodaySessionId, 2, "AGENT", at("2026-05-26T16:01:00+09:00"));
+
+    Long oldResolvedSessionId =
+        persistResolvedSession(
+            workspaceId, at("2026-05-26T17:00:00+09:00"), at("2026-05-26T18:00:00+09:00"));
+    persistMessage(oldResolvedSessionId, 1, "CUSTOMER", at("2026-05-26T17:00:00+09:00"));
+    persistMessage(oldResolvedSessionId, 2, "AGENT", at("2026-05-26T17:01:00+09:00"));
+
     persistSession(workspaceId, ChatSessionStatus.OPEN, at("2026-05-26T16:00:00+09:00"), null);
 
     List<ConsultationMetricsSessionFact> facts =
@@ -76,7 +88,8 @@ class JpaConsultationMetricsRepositoryTest {
                 Collectors.toMap(ConsultationMetricsSessionFact::sessionId, Function.identity()));
 
     assertThat(bySessionId)
-        .containsOnlyKeys(llmOnlySessionId, mixedSessionId, oldHumanCompletedSessionId);
+        .containsOnlyKeys(
+            llmOnlySessionId, mixedSessionId, oldHumanCompletedSessionId, resolvedTodaySessionId);
     assertThat(
             Duration.between(
                     bySessionId.get(llmOnlySessionId).firstCustomerAt(),
@@ -112,6 +125,11 @@ class JpaConsultationMetricsRepositoryTest {
     assertThat(bySessionId.get(oldHumanCompletedSessionId).firstCustomerAt()).isNull();
     assertThat(bySessionId.get(oldHumanCompletedSessionId).handledToday()).isTrue();
     assertThat(bySessionId.get(oldHumanCompletedSessionId).hasHumanMessage()).isTrue();
+
+    assertThat(bySessionId.get(resolvedTodaySessionId).firstCustomerAt()).isNull();
+    assertThat(bySessionId.get(resolvedTodaySessionId).handledToday()).isTrue();
+    assertThat(bySessionId.get(resolvedTodaySessionId).hasHumanMessage()).isTrue();
+    assertThat(bySessionId).doesNotContainKey(oldResolvedSessionId);
   }
 
   private Long persistWorkspaceAndVersion() {
@@ -143,6 +161,25 @@ class JpaConsultationMetricsRepositoryTest {
       ChatSessionStatus status,
       OffsetDateTime startedAt,
       OffsetDateTime endedAt) {
+    return persistSession(workspaceId, status, startedAt, endedAt, "{}");
+  }
+
+  private Long persistResolvedSession(
+      Long workspaceId, OffsetDateTime startedAt, OffsetDateTime resolvedAt) {
+    String metaJson =
+        """
+        {"resolution":{"outcome":"RESOLVED","label":"해결됨","status":"RESOLVED","resolvedAt":"%s"}}
+        """
+            .formatted(resolvedAt);
+    return persistSession(workspaceId, ChatSessionStatus.RESOLVED, startedAt, null, metaJson);
+  }
+
+  private Long persistSession(
+      Long workspaceId,
+      ChatSessionStatus status,
+      OffsetDateTime startedAt,
+      OffsetDateTime endedAt,
+      String metaJson) {
     Long sessionId =
         ((Number)
                 entityManager
@@ -154,11 +191,12 @@ class JpaConsultationMetricsRepositoryTest {
             """
             insert into runtime.chat_session
               (id, workspace_id, domain_pack_version_id, status, channel, meta_json, response_mode, started_at, ended_at)
-            values (:id, :workspaceId, 20, :status, 'WEB', '{}', 'AI_ACTIVE', :startedAt, :endedAt)
+            values (:id, :workspaceId, 20, :status, 'WEB', cast(:metaJson as jsonb), 'AI_ACTIVE', :startedAt, :endedAt)
             """);
     query.setParameter("id", sessionId);
     query.setParameter("workspaceId", workspaceId);
     query.setParameter("status", status.name());
+    query.setParameter("metaJson", metaJson);
     query.setParameter("startedAt", startedAt);
     query.setParameter("endedAt", endedAt);
     query.executeUpdate();

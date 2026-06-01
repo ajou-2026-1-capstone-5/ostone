@@ -1544,6 +1544,9 @@ describe("ConsultationPage", () => {
         followUpRequired: false,
       });
     });
+    await waitFor(() => {
+      expect(consultationApi.getMetrics).toHaveBeenCalledTimes(2);
+    });
 
     await waitFor(() => {
       expect(screen.queryByText("상담 종료")).not.toBeInTheDocument();
