@@ -197,6 +197,86 @@ describe("SummaryDetailPanel", () => {
     expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("변경 요약환불 정책 업데이트");
   });
 
+  it("배포 확인 다이얼로그는 review issue 문자열을 변경 요약으로 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...publishedDetail,
+            summaryJson: '{"review":{"topIssues":["워크플로우 미매핑"]}}',
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("변경 요약워크플로우 미매핑");
+  });
+
+  it("배포 확인 다이얼로그는 review issue 객체의 메시지를 변경 요약으로 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...publishedDetail,
+            summaryJson: '{"review":{"issues":[{"message":"슬롯 확인 필요"}]}}',
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+
+    expect(screen.getByLabelText("대상 버전 정보")).toHaveTextContent("변경 요약슬롯 확인 필요");
+  });
+
+  it("배포 확인 다이얼로그는 변경 요약을 해석할 수 없으면 요약 행을 표시하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...publishedDetail,
+            summaryJson: "{bad}",
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+
+    expect(screen.getByLabelText("대상 버전 정보")).not.toHaveTextContent("변경 요약");
+  });
+
+  it("배포 확인 다이얼로그는 빈 review issue 객체만 있으면 요약 행을 표시하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...publishedDetail,
+            summaryJson: '{"review":{"topIssues":[{}]}}',
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+
+    expect(screen.getByLabelText("대상 버전 정보")).not.toHaveTextContent("변경 요약");
+  });
+
   it("배포 확인 시 현재 versionId를 전달한다", () => {
     const onDeploy = vi.fn();
 
