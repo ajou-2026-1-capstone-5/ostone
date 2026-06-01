@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Paperclip, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import styles from "./MessageInput.module.css";
 
 export interface MessageInputProps {
@@ -36,27 +36,6 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
         gap: 12,
       }}
     >
-      <button
-        type="button"
-        aria-label="파일 첨부"
-        title="파일 첨부 (예정)"
-        disabled
-        data-testid="message-attach"
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 999,
-          background: "var(--paper-2)",
-          color: "var(--ink-3)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "1px solid var(--line-2)",
-          cursor: "not-allowed",
-        }}
-      >
-        <Paperclip size={16} aria-hidden="true" />
-      </button>
       <input
         className={styles.input}
         aria-label="메시지 입력"

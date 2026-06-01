@@ -3,6 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { MessageInput } from "./MessageInput";
 
 describe("MessageInput", () => {
+  it("지원하지 않는 파일 첨부 버튼을 노출하지 않는다", () => {
+    render(<MessageInput onSend={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "파일 첨부" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("message-attach")).not.toBeInTheDocument();
+  });
+
   it("입력 후 버튼 클릭으로 메시지를 전송하고 입력값을 비운다", () => {
     const onSend = vi.fn();
     render(<MessageInput onSend={onSend} />);
