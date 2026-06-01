@@ -27,10 +27,47 @@ import org.springframework.stereotype.Service;
 public class WorkflowMatchingService {
 
   private static final int MAX_CACHE_SIZE = 1_000;
+  private static final String CLARIFICATION_MESSAGE = "어떤 내용으로 문의하시려는지 조금 더 자세히 말씀해 주세요.";
   private static final Set<String> LEXICAL_STOP_WORDS =
       Set.of(
-          "고객", "고객님", "사용자", "문의", "요청", "확인", "처리", "관련", "하고", "싶어요", "합니다", "해주세요", "가능",
-          "가능한가", "어떻게", "무엇", "무슨", "어떤", "그럼", "그리고", "근데");
+          "고객",
+          "고객님",
+          "사용자",
+          "문의",
+          "문의하고",
+          "요청",
+          "요청하고",
+          "확인",
+          "확인하고",
+          "처리",
+          "처리하고",
+          "관련",
+          "하고",
+          "싶어요",
+          "합니다",
+          "해주세요",
+          "가능",
+          "가능한가",
+          "어떻게",
+          "무엇",
+          "무슨",
+          "어떤",
+          "그럼",
+          "그리고",
+          "근데",
+          "상담",
+          "도움",
+          "도와주세요",
+          "가능한가요",
+          "가능해요",
+          "user",
+          "assistant",
+          "system",
+          "counselor");
+  private static final Set<String> LOW_SIGNAL_TERMS =
+      Set.of(
+          "안녕", "안녕하세요", "안녕하십니까", "하이", "헬로", "hello", "hi", "네", "넵", "예", "응", "음", "아", "오",
+          "와", "감사", "감사합니다", "고마워", "고맙습니다");
 
   private final EmbeddingProperties properties;
   private final EmbeddingClient embeddingClient;
@@ -87,6 +124,13 @@ public class WorkflowMatchingService {
     String textHash = VectorUtils.sha256(redactedText);
 
     try {
+      if (lacksIntentSignal(latestUserMessage, conversationContext)) {
+        recordNoCandidate(session, textHash, "insufficient_context");
+        meterRegistry.counter("workflow_matching.insufficient_context").increment();
+        meterRegistry.counter("workflow_matching.result", "status", "UNKNOWN").increment();
+        return WorkflowMatchResult.unknown(CLARIFICATION_MESSAGE);
+      }
+
       int activeProfiles = profileRepository.countActiveProfiles(session.getDomainPackVersionId());
       if (activeProfiles == 0) {
         recordNoCandidate(session, textHash, "profile_missing");
@@ -119,6 +163,30 @@ public class WorkflowMatchingService {
     } finally {
       sample.stop(meterRegistry.timer("workflow_matching.match.latency"));
     }
+  }
+
+  private boolean lacksIntentSignal(String latestUserMessage, String conversationContext) {
+    String latest = normalizeForMatch(latestUserMessage);
+    if (latest.isBlank()) {
+      return !hasIntentSignal(conversationContext);
+    }
+    if (isLowSignalUtterance(latest)) {
+      return !hasIntentSignal(conversationContext);
+    }
+    return !hasIntentSignal(latestUserMessage) && !hasIntentSignal(conversationContext);
+  }
+
+  private boolean hasIntentSignal(String value) {
+    return lexicalTokens(value).stream().anyMatch(token -> !LOW_SIGNAL_TERMS.contains(token));
+  }
+
+  private boolean isLowSignalUtterance(String normalizedText) {
+    String compact = normalizedText.replace(" ", "");
+    if (LOW_SIGNAL_TERMS.contains(compact)) {
+      return true;
+    }
+    Set<String> tokens = rawTokens(normalizedText);
+    return !tokens.isEmpty() && tokens.stream().allMatch(LOW_SIGNAL_TERMS::contains);
   }
 
   private WorkflowMatchResult decide(List<WorkflowMatchCandidate> ranked) {
@@ -691,6 +759,14 @@ public class WorkflowMatchingService {
     Arrays.stream(nullToEmpty(value).toLowerCase(Locale.ROOT).split("[^0-9a-z가-힣]+"))
         .filter(token -> token.length() >= 2)
         .filter(token -> !LEXICAL_STOP_WORDS.contains(token))
+        .forEach(tokens::add);
+    return tokens;
+  }
+
+  private Set<String> rawTokens(String value) {
+    Set<String> tokens = new LinkedHashSet<>();
+    Arrays.stream(nullToEmpty(value).toLowerCase(Locale.ROOT).split("[^0-9a-z가-힣]+"))
+        .filter(token -> !token.isBlank())
         .forEach(tokens::add);
     return tokens;
   }

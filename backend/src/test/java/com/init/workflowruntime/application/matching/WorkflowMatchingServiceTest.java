@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.workflowruntime.domain.ChatSession;
@@ -51,6 +52,66 @@ class WorkflowMatchingServiceTest {
             new ObjectMapper(),
             new SimpleMeterRegistry(),
             Clock.fixed(Instant.parse("2026-05-31T00:00:00Z"), ZoneOffset.UTC));
+  }
+
+  @Test
+  @DisplayName("단문 인사말은 프로필 조회 없이 UNKNOWN으로 분기하고 추가 설명을 요청한다")
+  void should_returnUnknown_when_shortGreetingLacksIntentSignal() {
+    givenSession();
+
+    WorkflowMatchResult result = service.match(1L, "안녕", "USER: 안녕");
+
+    assertThat(result.status()).isEqualTo("UNKNOWN");
+    assertThat(result.message()).isEqualTo("어떤 내용으로 문의하시려는지 조금 더 자세히 말씀해 주세요.");
+    assertThat(result.candidates()).isEmpty();
+    verifyNoInteractions(embeddingClient, profileRepository);
+    verify(decisionRepository)
+        .record(
+            eq(1L),
+            eq(101L),
+            eq(null),
+            eq(null),
+            eq("UNKNOWN"),
+            eq(0.0),
+            anyString(),
+            eq(null),
+            eq("bedrock"),
+            eq("cohere.embed-multilingual-v3"),
+            eq("ap-northeast-1"),
+            anyString(),
+            eq("{}"),
+            eq("[]"),
+            eq("insufficient_context"));
+  }
+
+  @Test
+  @DisplayName("업무 키워드 없는 일반 문의 표현은 UNKNOWN으로 분기한다")
+  void should_returnUnknown_when_genericInquiryLacksIntentSignal() {
+    givenSession();
+
+    WorkflowMatchResult result = service.match(1L, "문의하고 싶어요", "USER: 문의하고 싶어요");
+
+    assertThat(result.status()).isEqualTo("UNKNOWN");
+    assertThat(result.message()).isEqualTo("어떤 내용으로 문의하시려는지 조금 더 자세히 말씀해 주세요.");
+    assertThat(result.candidates()).isEmpty();
+    verifyNoInteractions(embeddingClient, profileRepository);
+    verify(decisionRepository)
+        .record(
+            eq(1L),
+            eq(101L),
+            eq(null),
+            eq(null),
+            eq("UNKNOWN"),
+            eq(0.0),
+            anyString(),
+            eq(null),
+            eq("bedrock"),
+            eq("cohere.embed-multilingual-v3"),
+            eq("ap-northeast-1"),
+            anyString(),
+            eq("{}"),
+            eq("[]"),
+            eq("insufficient_context"));
   }
 
   @Test
