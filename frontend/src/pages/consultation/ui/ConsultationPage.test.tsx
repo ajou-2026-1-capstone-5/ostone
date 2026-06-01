@@ -87,6 +87,24 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         },
       ]),
     ),
+    getMessagePage: vi.fn(() =>
+      Promise.resolve({
+        content: [
+          {
+            id: 100,
+            seqNo: 1,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "환불 문의 드립니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    ),
     updateStatus: vi.fn(() => Promise.resolve({})),
     assignSession: vi.fn((sessionId: number) =>
       Promise.resolve({
@@ -466,12 +484,64 @@ describe("ConsultationPage", () => {
     });
 
     await waitFor(() => {
-      expect(consultationApi.getMessages).toHaveBeenCalledWith(1);
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(1, { page: 0, size: 50 });
     });
     expect(screen.getByText("김민지 고객")).toBeInTheDocument();
     expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
     expect(consultationApi.assignSession).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("loads previous message pages from the top of the live chat", async () => {
+    vi.mocked(consultationApi.getMessagePage)
+      .mockResolvedValueOnce({
+        content: [
+          {
+            id: 101,
+            seqNo: 51,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "최근 문의입니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalElements: 51,
+        totalPages: 2,
+      })
+      .mockResolvedValueOnce({
+        content: [
+          {
+            id: 10,
+            seqNo: 1,
+            senderRole: "CUSTOMER",
+            messageType: "TEXT",
+            content: "이전 문의입니다.",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        page: 1,
+        size: 50,
+        totalElements: 51,
+        totalPages: 2,
+      });
+
+    render(<ConsultationPage />, {
+      wrapper: createRoutedWrapper("/workspaces/2/consultation/1"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("최근 문의입니다.")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "이전 메시지 불러오기" }));
+
+    await waitFor(() => {
+      expect(consultationApi.getMessagePage).toHaveBeenLastCalledWith(1, { page: 1, size: 50 });
+    });
+    expect(screen.getByText("이전 문의입니다.")).toBeInTheDocument();
+    expect(screen.getByText("최근 문의입니다.")).toBeInTheDocument();
   });
 
   it("updates the browser URL when a queue session is selected", async () => {
@@ -501,7 +571,9 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
     });
-    expect(consultationApi.getMessages).not.toHaveBeenCalledWith(999);
+    expect(
+      vi.mocked(consultationApi.getMessagePage).mock.calls.some(([sessionId]) => sessionId === 999),
+    ).toBe(false);
   });
 
   it("treats non-numeric route session IDs as unavailable without loading messages", async () => {
@@ -512,7 +584,7 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(screen.getByText("요청한 상담 세션을 찾을 수 없습니다")).toBeInTheDocument();
     });
-    expect(consultationApi.getMessages).not.toHaveBeenCalled();
+    expect(consultationApi.getMessagePage).not.toHaveBeenCalled();
   });
 
   it("selects a route session when it arrives later through the queue websocket", async () => {
@@ -544,7 +616,7 @@ describe("ConsultationPage", () => {
     await waitFor(() => {
       expect(screen.queryByText("요청한 상담 세션을 찾을 수 없습니다")).not.toBeInTheDocument();
       expect(screen.getByText("박지훈 고객")).toBeInTheDocument();
-      expect(consultationApi.getMessages).toHaveBeenCalledWith(9);
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(9, { page: 0, size: 50 });
     });
   });
 
@@ -1005,7 +1077,7 @@ describe("ConsultationPage", () => {
     }
 
     await waitFor(() => {
-      expect(consultationApi.getMessages).toHaveBeenCalledWith(1);
+      expect(consultationApi.getMessagePage).toHaveBeenCalledWith(1, { page: 0, size: 50 });
     });
     expect(consultationApi.assignSession).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
@@ -1919,7 +1991,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    vi.mocked(consultationApi.getMessages).mockRejectedValueOnce(new Error("DB Error"));
+    vi.mocked(consultationApi.getMessagePage).mockRejectedValueOnce(new Error("DB Error"));
 
     const customerItem = screen.getByText("김민지").closest("div");
     if (customerItem) {
@@ -1973,7 +2045,13 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
     });
 
-    vi.mocked(consultationApi.getMessages).mockResolvedValueOnce([]);
+    vi.mocked(consultationApi.getMessagePage).mockResolvedValueOnce({
+      content: [],
+      page: 0,
+      size: 50,
+      totalElements: 0,
+      totalPages: 0,
+    });
 
     const hongEl = screen.getByText("홍길동").closest("div");
     if (hongEl) hongEl.click();

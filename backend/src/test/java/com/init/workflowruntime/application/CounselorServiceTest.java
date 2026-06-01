@@ -22,6 +22,8 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
@@ -41,9 +43,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -353,11 +352,17 @@ class CounselorServiceTest {
   @DisplayName("getSessions: 상태 필터 없음 → 워크스페이스 세션 페이지 반환")
   void should_returnWorkspaceSessions_when_noStatusFilter() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    Page<ChatSession> page = new PageImpl<>(List.of(session));
+    DomainPage<ChatSession> page = new DomainPage<>(List.of(session), 0, 20, 1, 1);
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
-                eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
+                eq(1L),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(DomainPageRequest.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -367,18 +372,24 @@ class CounselorServiceTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     verify(chatSessionRepository)
         .searchByWorkspace(
-            eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class));
+            eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null), any(DomainPageRequest.class));
   }
 
   @Test
   @DisplayName("getSessions: 상태 필터 있음 → 워크스페이스와 상태로 필터링된 페이지 반환")
   void should_returnFilteredWorkspaceSessions_when_statusGiven() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
-    Page<ChatSession> page = new PageImpl<>(List.of(session));
+    DomainPage<ChatSession> page = new DomainPage<>(List.of(session), 0, 20, 1, 1);
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
-                eq(1L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), any(Pageable.class)))
+                eq(1L),
+                eq("OPEN"),
+                eq(null),
+                eq(null),
+                eq(null),
+                eq(null),
+                any(DomainPageRequest.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -387,13 +398,19 @@ class CounselorServiceTest {
     assertThat(result.getContent()).hasSize(1);
     verify(chatSessionRepository)
         .searchByWorkspace(
-            eq(1L), eq("OPEN"), eq(null), eq(null), eq(null), eq(null), any(Pageable.class));
+            eq(1L),
+            eq("OPEN"),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(DomainPageRequest.class));
   }
 
   @Test
   @DisplayName("getSessions: 검색/기간/상담사 필터를 정규화해 전달")
   void should_passSearchFilters_when_filtersGiven() {
-    Page<ChatSession> page = new PageImpl<>(List.of());
+    DomainPage<ChatSession> page = new DomainPage<>(List.of(), 0, 20, 0, 0);
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
@@ -403,7 +420,7 @@ class CounselorServiceTest {
                 any(OffsetDateTime.class),
                 any(OffsetDateTime.class),
                 eq(42L),
-                any(Pageable.class)))
+                any(DomainPageRequest.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -427,13 +444,13 @@ class CounselorServiceTest {
             any(OffsetDateTime.class),
             any(OffsetDateTime.class),
             eq(42L),
-            any(Pageable.class));
+            any(DomainPageRequest.class));
   }
 
   @Test
   @DisplayName("getSessions: LIKE 와일드카드를 리터럴 검색어로 escape")
   void should_escapeLikeWildcards_when_keywordContainsSpecialChars() {
-    Page<ChatSession> page = new PageImpl<>(List.of());
+    DomainPage<ChatSession> page = new DomainPage<>(List.of(), 0, 20, 0, 0);
     givenWorkspaceMember(1L, 7L);
     given(
             chatSessionRepository.searchByWorkspace(
@@ -443,7 +460,7 @@ class CounselorServiceTest {
                 eq(null),
                 eq(null),
                 eq(null),
-                any(Pageable.class)))
+                any(DomainPageRequest.class)))
         .willReturn(page);
 
     CounselorSessionResponse result =
@@ -452,7 +469,13 @@ class CounselorServiceTest {
     assertThat(result.getContent()).isEmpty();
     verify(chatSessionRepository)
         .searchByWorkspace(
-            eq(1L), eq(null), eq("\\%\\_\\\\"), eq(null), eq(null), eq(null), any(Pageable.class));
+            eq(1L),
+            eq(null),
+            eq("\\%\\_\\\\"),
+            eq(null),
+            eq(null),
+            eq(null),
+            any(DomainPageRequest.class));
   }
 
   @Test

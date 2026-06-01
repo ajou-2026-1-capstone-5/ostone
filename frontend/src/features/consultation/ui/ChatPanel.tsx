@@ -37,6 +37,9 @@ interface ChatPanelProps {
   sessionStatusDescription?: string;
   disabled?: boolean;
   disabledReason?: string;
+  hasPreviousMessages?: boolean;
+  isLoadingPreviousMessages?: boolean;
+  onLoadPreviousMessages?: () => Promise<void>;
   draftResponseAction?: {
     isLoading: boolean;
     onInsert: () => Promise<string>;
@@ -79,6 +82,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   sessionStatusDescription,
   disabled = false,
   disabledReason,
+  hasPreviousMessages = false,
+  isLoadingPreviousMessages = false,
+  onLoadPreviousMessages,
   draftResponseAction,
   composerDraft,
   onComposerDraftChange,
@@ -88,6 +94,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     isNoteMode: false,
   });
   const listRef = useRef<HTMLDivElement>(null);
+  const previousScrollHeightRef = useRef<number | null>(null);
   const customerInitial = customerName?.trim().charAt(0) || "?";
   const sessionKey = sessionId ?? customerName;
   const activeDraft = composerDraft ?? uncontrolledDraft;
@@ -153,10 +160,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   }, []);
 
   useLayoutEffect(() => {
+    const previousScrollHeight = previousScrollHeightRef.current;
+    const messageList = listRef.current;
+    if (previousScrollHeight !== null && messageList) {
+      messageList.scrollTop += messageList.scrollHeight - previousScrollHeight;
+      previousScrollHeightRef.current = null;
+      return;
+    }
+
     if (scrollState.shouldScrollToBottom) {
       scrollToBottom();
     }
-  }, [scrollState.scrollRequestId, scrollState.shouldScrollToBottom, scrollToBottom]);
+  }, [messages, scrollState.scrollRequestId, scrollState.shouldScrollToBottom, scrollToBottom]);
 
   const handleMessageListScroll = () => {
     const messageList = listRef.current;
@@ -185,6 +200,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       showNewMessageNotice: false,
       shouldScrollToBottom: false,
     }));
+  };
+
+  const handleLoadPreviousMessages = async () => {
+    if (!onLoadPreviousMessages || isLoadingPreviousMessages) return;
+    previousScrollHeightRef.current = listRef.current?.scrollHeight ?? null;
+    try {
+      await onLoadPreviousMessages();
+    } catch {
+      previousScrollHeightRef.current = null;
+    }
   };
 
   const handleInsertDraft = async () => {
@@ -289,6 +314,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onScroll={handleMessageListScroll}
           data-testid="chat-message-list"
         >
+          {hasPreviousMessages && (
+            <button
+              type="button"
+              className={styles.loadPreviousButton}
+              onClick={() => void handleLoadPreviousMessages()}
+              disabled={isLoadingPreviousMessages}
+            >
+              {isLoadingPreviousMessages ? "불러오는 중..." : "이전 메시지 불러오기"}
+            </button>
+          )}
           {messages.map((msg) => {
             if (msg.senderRole === "SYSTEM") {
               const role = getChatRolePresentation(msg.senderRole);

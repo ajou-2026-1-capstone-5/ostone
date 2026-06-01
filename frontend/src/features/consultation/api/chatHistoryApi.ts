@@ -54,3 +54,14 @@ export function useChatMessages(sessionId: string, page: number = 0, size: numbe
     enabled: hasValidSessionId,
   });
 }
+
+export function useChatMessagePage(sessionId: string, page: number = 0, size: number = 50) {
+  const parsedSessionId = Number(sessionId);
+  const hasValidSessionId = Number.isSafeInteger(parsedSessionId) && parsedSessionId > 0;
+
+  return useQuery({
+    queryKey: [...chatHistoryKeys.messages(sessionId, page, size), "page"] as const,
+    queryFn: () => consultationApi.getMessagePage(parsedSessionId, { page, size }),
+    enabled: hasValidSessionId,
+  });
+}

@@ -12,6 +12,8 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
@@ -25,8 +27,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -252,8 +252,8 @@ public class CounselorService {
     String normalizedKeyword = normalizeKeyword(keyword);
     OffsetDateTime startedFromDateTime = toStartOfDay(startedFrom);
     OffsetDateTime startedBeforeDateTime = toExclusiveEndDate(startedTo);
-    PageRequest pageRequest = PageRequest.of(page, size);
-    Page<ChatSession> sessionPage =
+    DomainPageRequest pageRequest = new DomainPageRequest(page, size);
+    DomainPage<ChatSession> sessionPage =
         chatSessionRepository.searchByWorkspace(
             workspaceId,
             sessionStatus != null ? sessionStatus.name() : null,
@@ -264,16 +264,14 @@ public class CounselorService {
             pageRequest);
 
     List<ChatSessionResponse> content =
-        sessionPage.getContent().stream()
-            .map(ChatSessionResponse::from)
-            .collect(Collectors.toList());
+        sessionPage.content().stream().map(ChatSessionResponse::from).collect(Collectors.toList());
 
     return new CounselorSessionResponse(
         content,
-        sessionPage.getNumber(),
-        sessionPage.getSize(),
-        sessionPage.getTotalElements(),
-        sessionPage.getTotalPages());
+        sessionPage.page(),
+        sessionPage.size(),
+        sessionPage.totalElements(),
+        sessionPage.totalPages());
   }
 
   private void validateCounselorId(Long counselorId) {
