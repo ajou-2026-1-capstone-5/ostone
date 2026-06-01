@@ -53,14 +53,14 @@ interface QueueSortOption {
 
 const FILTER_OPTIONS: QueueFilterOption[] = [
   { value: "all", label: "전체" },
-  { value: "handoff", label: "AI 이관" },
+  { value: "handoff", label: "상담사 연결 요청" },
   { value: "mine", label: "내 상담" },
   { value: "unassigned", label: "미배정" },
   { value: "unread", label: "읽지 않음" },
 ];
 
 const SORT_OPTIONS: QueueSortOption[] = [
-  { value: "handoffPriority", label: "AI 이관 우선" },
+  { value: "handoffPriority", label: "연결 요청 우선" },
   { value: "waitLongest", label: "오래 기다린 순" },
   { value: "latest", label: "최신순" },
 ];
@@ -104,7 +104,7 @@ const matchesSearch = (customer: QueueCustomer, searchTerm: string) => {
     customer.lastMessage,
     customer.lastMessagePreview,
     customer.handoffReason,
-    customer.handoffRequired ? "AI 이관" : "",
+    customer.handoffRequired ? "상담사 연결 요청" : "",
   ]
     .filter(Boolean)
     .some((value) => normalizeSearch(String(value)).includes(normalizedTerm));
@@ -190,7 +190,7 @@ const getEmptyMessage = (
   if (customers.length === 0) return "현재 상담 큐가 비어 있습니다";
   if (normalizeSearch(searchTerm)) return "검색 조건에 맞는 상담이 없습니다";
   if (selectedFilter === "mine") return "내 상담이 없습니다";
-  if (selectedFilter === "handoff") return "AI 이관 상담이 없습니다";
+  if (selectedFilter === "handoff") return "상담사 연결 요청이 없습니다";
   if (selectedFilter === "unassigned") return "미배정 상담이 없습니다";
   if (selectedFilter === "unread") return "읽지 않은 상담이 없습니다";
   return "표시할 상담이 없습니다";
@@ -290,7 +290,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           <div className={styles.queueItemInfo}>
             <div className={styles.customerNameRow}>
               <div className={styles.customerName}>{displayName}</div>
-              {c.handoffRequired && <span className={styles.handoffBadge}>AI 이관</span>}
+              {c.handoffRequired && <span className={styles.handoffBadge}>상담사 연결 요청</span>}
             </div>
             <div className={styles.handoffPreview}>{subject}</div>
             {c.handoffRequired && c.handoffReason && (
@@ -316,7 +316,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
       <div className={styles.queueHeader}>
         <h3 className={styles.queueTitle}>상담 큐</h3>
         <span className={styles.queueCount}>
-          AI 이관 {filterCounts.handoff}건 · 미배정 {filterCounts.unassigned}건 · 진행{" "}
+          연결 요청 {filterCounts.handoff}건 · 미배정 {filterCounts.unassigned}건 · 진행{" "}
           {inProgressCount}건
         </span>
         <label className={styles.searchBox}>

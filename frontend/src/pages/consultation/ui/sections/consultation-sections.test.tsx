@@ -274,8 +274,7 @@ describe("CustomerPanel", () => {
       />,
     );
 
-    expect(screen.getByText("AI 이관")).toBeInTheDocument();
-    expect(screen.getByText("상담사 확인 필요")).toBeInTheDocument();
+    expect(screen.getAllByText("상담사 확인 필요")).toHaveLength(2);
     expect(screen.getByText("관리자 승인 필요")).toBeInTheDocument();
     expect(screen.getByText("2026-06-01T10:00:00+09:00")).toBeInTheDocument();
   });
