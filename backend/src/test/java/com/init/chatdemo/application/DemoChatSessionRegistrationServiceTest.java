@@ -37,6 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -147,6 +148,33 @@ class DemoChatSessionRegistrationServiceTest {
         .updateAfterMessage(session, messageCaptor.getAllValues().get(0));
     verifyQueueUpsertEventPublished();
     verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
+  @DisplayName("데모 LLM 호출이 실패해도 안내 응답을 저장하고 메시지 전송을 완료한다")
+  void should_appendFallbackAssistantMessage_when_llmCallFails() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.empty());
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(List.of());
+    given(llmAssistantService.generateResponse("", "배송 상태 확인하고 싶어요"))
+        .willThrow(new NonTransientAiException("quota exceeded"));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    List<ChatMessageResponse> responses =
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 배송 상태 확인하고 싶어요 ");
+
+    assertThat(responses).hasSize(2);
+    assertThat(responses.get(0).senderRole()).isEqualTo("USER");
+    assertThat(responses.get(1).senderRole()).isEqualTo("ASSISTANT");
+    assertThat(responses.get(1).content()).contains("자동 응답 생성이 원활하지 않습니다");
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
   }

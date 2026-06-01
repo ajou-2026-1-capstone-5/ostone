@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,8 @@ public class DemoChatSessionRegistrationService {
   private static final Logger log =
       LoggerFactory.getLogger(DemoChatSessionRegistrationService.class);
   private static final String DEFAULT_CHANNEL = "WEB";
+  private static final String AI_FALLBACK_MESSAGE =
+      "죄송합니다. 현재 자동 응답 생성이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final DomainPackVersionRepository domainPackVersionRepository;
@@ -120,9 +124,7 @@ public class DemoChatSessionRegistrationService {
             ChatMessage.create(sessionId, nextSeqNo, "USER", "TEXT", normalizedContent));
     chatSessionMetadataService.updateAfterMessage(session, userMessage);
 
-    String assistantContent =
-        llmAssistantService.generateResponse(
-            createConversationContext(sessionId), normalizedContent);
+    String assistantContent = generateAssistantContent(sessionId, normalizedContent);
     ChatMessage assistantMessage =
         chatMessageRepository.save(
             ChatMessage.create(sessionId, nextSeqNo + 1, "ASSISTANT", "TEXT", assistantContent));
@@ -193,6 +195,16 @@ public class DemoChatSessionRegistrationService {
             session.getWorkspaceId(),
             session.getId(),
             ConsultationQueueEventType.SESSION_UPSERTED));
+  }
+
+  private String generateAssistantContent(Long sessionId, String normalizedContent) {
+    try {
+      return llmAssistantService.generateResponse(
+          createConversationContext(sessionId), normalizedContent);
+    } catch (NonTransientAiException | TransientAiException e) {
+      log.warn("Demo chat AI response generation failed. sessionId={}", sessionId, e);
+      return AI_FALLBACK_MESSAGE;
+    }
   }
 
   private void broadcastAfterCommit(Long sessionId, List<ChatMessageResponse> responses) {
