@@ -27,14 +27,11 @@ resource "aws_db_parameter_group" "postgres" {
   }
 }
 
-resource "aws_db_option_group" "postgres" {
-  name                 = "${local.name_prefix}-postgres16"
-  engine_name          = "postgres"
-  major_engine_version = "16"
-
-  tags = {
-    Name = "${local.name_prefix}-postgres16"
-  }
+data "aws_rds_engine_version" "postgres" {
+  engine                 = "postgres"
+  version                = var.rds_engine_version
+  latest                 = true
+  parameter_group_family = "postgres16"
 }
 
 data "aws_iam_policy_document" "rds_enhanced_monitoring_assume_role" {
@@ -75,7 +72,7 @@ resource "aws_db_instance" "postgres" {
   identifier = "${local.name_prefix}-postgres"
 
   engine         = "postgres"
-  engine_version = var.rds_engine_version
+  engine_version = data.aws_rds_engine_version.postgres.version_actual
   instance_class = var.rds_instance_class
 
   allocated_storage     = var.rds_allocated_storage
@@ -91,7 +88,6 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   parameter_group_name   = aws_db_parameter_group.postgres.name
-  option_group_name      = aws_db_option_group.postgres.name
 
   multi_az                              = var.rds_multi_az
   publicly_accessible                   = false
