@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import {
   ReactFlow,
@@ -105,12 +106,17 @@ function InteractiveGraphEditorCore({
   }, [nodes, edges, onStateChange]);
 
   const onConnect = useCallback(
-    (params: Connection) =>
+    (params: Connection) => {
+      if (params.source === params.target) {
+        toast.warning("같은 노드로 연결할 수 없습니다.");
+        return;
+      }
       setEdges((eds) => {
         const sourceNode = getNode(params.source);
         const edgeType = sourceNode?.type === "decision" ? "decision" : undefined;
         return addEdge({ ...params, id: uuidv4(), type: edgeType }, eds);
-      }),
+      });
+    },
     [setEdges, getNode],
   );
 
