@@ -159,7 +159,7 @@ describe("useStomp", () => {
     expect(subscription.unsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("연결되지 않은 상태에서 subscribe를 호출하면 빈 함수를 반환한다", async () => {
+  it("연결되지 않은 상태에서 subscribe를 호출하면 활성 구독 없이 cleanup 함수를 반환한다", async () => {
     const { result } = await renderUseStompHelper();
 
     let unsubscribeFn: (() => void) | undefined;
@@ -173,6 +173,49 @@ describe("useStomp", () => {
       unsubscribeFn?.();
     });
     expect(subscription.unsubscribe).not.toHaveBeenCalled();
+  });
+
+  it("연결 전 등록한 custom subscribe를 onConnect 시 구독한다", async () => {
+    const { result } = await renderUseStompHelper();
+    const topicCallback = vi.fn();
+
+    act(() => {
+      result.current.subscribe("/topic/test", topicCallback);
+    });
+
+    expect(client.subscribe).not.toHaveBeenCalledWith("/topic/test", expect.any(Function));
+
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    expect(client.subscribe).toHaveBeenCalledWith("/topic/test", expect.any(Function));
+  });
+
+  it("재연결 onConnect 시 custom subscribe를 다시 등록한다", async () => {
+    const { result } = await renderUseStompHelper();
+
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+    act(() => {
+      result.current.subscribe("/topic/test", vi.fn());
+    });
+    client.subscribe.mockClear();
+
+    act(() => {
+      client.connected = false;
+      client.onDisconnect?.(dummyFrame);
+    });
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    expect(client.subscribe).toHaveBeenCalledWith("/user/queue/errors", expect.any(Function));
+    expect(client.subscribe).toHaveBeenCalledWith("/topic/test", expect.any(Function));
   });
 
   it("이미 동일 토픽을 subscribe 중일 때 재호출하면 이전 구독을 해제하고 덮어쓴다", async () => {

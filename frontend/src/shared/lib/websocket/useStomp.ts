@@ -20,10 +20,19 @@ export interface UseStompOptions {
   onServerError?: (error: unknown) => void;
 }
 
+const parseMessageBody = (body: string): unknown | null => {
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    return null;
+  }
+};
+
 export function useStomp(options: UseStompOptions = {}): UseStompResult {
   const clientRef = useRef<Client | null>(null);
   const errorSubscriptionRef = useRef<StompSubscription | null>(null);
-  const customSubscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
+  const desiredSubscriptionsRef = useRef<Map<string, (msg: unknown) => void>>(new Map());
+  const activeSubscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
   const connectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const onServerErrorRef = useRef<UseStompOptions["onServerError"]>(options.onServerError);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("DISCONNECTED");
@@ -36,16 +45,35 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     onServerErrorRef.current = options.onServerError;
   }, [options.onServerError]);
 
+  const unsubscribeActiveSubscriptions = useCallback(() => {
+    activeSubscriptionsRef.current.forEach((sub) => sub.unsubscribe());
+    activeSubscriptionsRef.current.clear();
+  }, []);
+
+  const subscribeActiveTopic = useCallback(
+    (client: Client, topic: string, cb: (msg: unknown) => void) => {
+      const subscription = client.subscribe(topic, (message) => {
+        const parsed = parseMessageBody(message.body);
+        if (parsed !== null) {
+          cb(parsed);
+        }
+      });
+      activeSubscriptionsRef.current.get(topic)?.unsubscribe();
+      activeSubscriptionsRef.current.set(topic, subscription);
+    },
+    [],
+  );
+
   const disconnect = useCallback(() => {
     errorSubscriptionRef.current?.unsubscribe();
     errorSubscriptionRef.current = null;
-    customSubscriptionsRef.current.forEach((sub) => sub.unsubscribe());
-    customSubscriptionsRef.current.clear();
+    unsubscribeActiveSubscriptions();
+    desiredSubscriptionsRef.current.clear();
     clientRef.current?.deactivate();
     clientRef.current = null;
     connectionStatusRef.current = "DISCONNECTED";
     setConnectionStatus("DISCONNECTED");
-  }, []);
+  }, [unsubscribeActiveSubscriptions]);
 
   const connect = useCallback(() => {
     if (
@@ -65,37 +93,49 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
       if (clientRef.current !== client) return;
       connectionStatusRef.current = "CONNECTED";
       setConnectionStatus("CONNECTED");
+      errorSubscriptionRef.current?.unsubscribe();
       errorSubscriptionRef.current = client.subscribe(ERROR_QUEUE, (message) => {
-        try {
-          const error = JSON.parse(message.body) as unknown;
+        const error = parseMessageBody(message.body);
+        if (error !== null) {
           console.error("WebSocket server error:", error);
           onServerErrorRef.current?.(error);
-        } catch {
-          // ignore malformed error frames
         }
+      });
+      unsubscribeActiveSubscriptions();
+      desiredSubscriptionsRef.current.forEach((cb, topic) => {
+        subscribeActiveTopic(client, topic, cb);
       });
     };
 
     client.onDisconnect = () => {
       if (clientRef.current !== client) return;
+      errorSubscriptionRef.current?.unsubscribe();
+      errorSubscriptionRef.current = null;
+      unsubscribeActiveSubscriptions();
       connectionStatusRef.current = "DISCONNECTED";
       setConnectionStatus("DISCONNECTED");
     };
 
     client.onStompError = () => {
       if (clientRef.current !== client) return;
+      errorSubscriptionRef.current?.unsubscribe();
+      errorSubscriptionRef.current = null;
+      unsubscribeActiveSubscriptions();
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 
     client.onWebSocketError = () => {
       if (clientRef.current !== client) return;
+      errorSubscriptionRef.current?.unsubscribe();
+      errorSubscriptionRef.current = null;
+      unsubscribeActiveSubscriptions();
       connectionStatusRef.current = "ERROR";
       setConnectionStatus("ERROR");
     };
 
     client.activate();
-  }, []);
+  }, [subscribeActiveTopic, unsubscribeActiveSubscriptions]);
 
   const sendMessage = useCallback((message: unknown) => {
     const client = clientRef.current;
@@ -108,30 +148,20 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
   }, []);
 
   const subscribe = useCallback((topic: string, cb: (msg: unknown) => void): (() => void) => {
+    desiredSubscriptionsRef.current.set(topic, cb);
     const client = clientRef.current;
-    if (!client?.connected) {
-      return () => {};
+    if (client?.connected) {
+      subscribeActiveTopic(client, topic, cb);
     }
 
-    const subscription = client.subscribe(topic, (message) => {
-      try {
-        cb(JSON.parse(message.body) as unknown);
-      } catch {
-        // Skip malformed messages
-      }
-    });
-    const prev = customSubscriptionsRef.current.get(topic);
-    prev?.unsubscribe();
-    customSubscriptionsRef.current.set(topic, subscription);
-
     return () => {
-      subscription.unsubscribe();
-      const current = customSubscriptionsRef.current.get(topic);
-      if (current === subscription) {
-        customSubscriptionsRef.current.delete(topic);
+      if (desiredSubscriptionsRef.current.get(topic) === cb) {
+        desiredSubscriptionsRef.current.delete(topic);
+        activeSubscriptionsRef.current.get(topic)?.unsubscribe();
+        activeSubscriptionsRef.current.delete(topic);
       }
     };
-  }, []);
+  }, [subscribeActiveTopic]);
 
   const sendTo = useCallback((destination: string, body: unknown) => {
     const client = clientRef.current;

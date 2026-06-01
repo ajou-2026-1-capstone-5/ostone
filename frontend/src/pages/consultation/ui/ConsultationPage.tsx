@@ -1079,7 +1079,7 @@ export const ConsultationPage: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (connectionStatus !== "CONNECTED" || !workspaceId) return;
+    if (!workspaceId) return;
 
     const unsubscribe = subscribe(
       `/topic/workspaces.${workspaceId}.consultation.queue`,
@@ -1089,7 +1089,7 @@ export const ConsultationPage: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [connectionStatus, handleQueueEvent, subscribe, workspaceId]);
+  }, [handleQueueEvent, subscribe, workspaceId]);
 
   useEffect(() => {
     if (!activeCustomerId) {
@@ -1206,7 +1206,7 @@ export const ConsultationPage: React.FC = () => {
   }, [activeCustomerId, messagePagination, messagesCustomerId]);
 
   useEffect(() => {
-    if (connectionStatus !== "CONNECTED" || !activeCustomerId) return;
+    if (!activeCustomerId) return;
 
     const topic = `/topic/chat.${activeCustomerId}`;
     const unsubscribe = subscribe(topic, (raw) => {
@@ -1243,7 +1243,7 @@ export const ConsultationPage: React.FC = () => {
         workflowRefetchTimerRef.current = null;
       }
     };
-  }, [connectionStatus, activeCustomerId, subscribe, scheduleMatchedWorkflowRefresh]);
+  }, [activeCustomerId, subscribe, scheduleMatchedWorkflowRefresh]);
 
   const registerPendingMessage = useCallback(
     (message: Omit<PendingMessage, "timeoutId">) => {

@@ -1974,6 +1974,20 @@ describe("ConsultationPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("registers queue subscription intent while initially disconnected", async () => {
+    stompState.connectionStatus = "DISCONNECTED";
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      "/topic/workspaces.2.consultation.queue",
+      expect.any(Function),
+    );
+  });
+
   it("refetches the queue snapshot after websocket reconnect", async () => {
     stompState.connectionStatus = "DISCONNECTED";
     const { rerender } = render(<ConsultationPage />, { wrapper: Wrapper });
