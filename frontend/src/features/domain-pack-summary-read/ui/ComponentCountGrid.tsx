@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRightIcon } from "lucide-react";
 import { toast } from "sonner";
 import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import {
@@ -129,29 +130,24 @@ function CountCard({
   isLoadingPreview,
   onPreviewItemClick,
 }: CountCardProps) {
-  const handleClick = () => {
-    if (!disabled && onNavigate) onNavigate();
-  };
-
   return (
     <div
       className={`${styles.countCard} ${disabled ? styles.disabled : ""}`}
       title={disabled ? tooltip : undefined}
-      onClick={handleClick}
-      role={!disabled ? "button" : undefined}
-      tabIndex={!disabled ? 0 : undefined}
-      onKeyDown={
-        !disabled
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleClick();
-              }
-            }
-          : undefined
-      }
     >
-      <span className={styles.cardLabel}>{label}</span>
+      <div className={styles.cardHeader}>
+        <span className={styles.cardLabel}>{label}</span>
+        {!disabled && onNavigate && (
+          <button
+            type="button"
+            className={styles.cardArrowButton}
+            aria-label={`${label} 상세 보기`}
+            onClick={onNavigate}
+          >
+            <ChevronRightIcon aria-hidden />
+          </button>
+        )}
+      </div>
       <span className={styles.countNumber}>{count}</span>
       {isLoadingPreview ? (
         <div>

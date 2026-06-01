@@ -54,21 +54,29 @@ describe("ComponentCountGrid", () => {
     expect(screen.getByText("4")).toBeInTheDocument();
   });
 
-  it("Intent, Policy 카드 클릭 시 상세 목록으로 이동한다", () => {
+  it("각 구성요소 카드 헤더에 상세 보기 화살표 버튼을 렌더링한다", () => {
     render(<ComponentCountGrid {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: /상담 유형/ }));
+    expect(screen.getByRole("button", { name: "상담 유형 상세 보기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "확인 항목 상세 보기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "응대 기준 상세 보기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "응대 흐름 상세 보기" })).toBeInTheDocument();
+  });
+
+  it("Intent, Policy 화살표 클릭 시 상세 목록으로 이동한다", () => {
+    render(<ComponentCountGrid {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: "상담 유형 상세 보기" }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/intents?versionId=3");
 
-    fireEvent.click(screen.getByRole("button", { name: /응대 기준/ }));
+    fireEvent.click(screen.getByRole("button", { name: "응대 기준 상세 보기" }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/policies?versionId=3");
   });
 
-  it("Slot 카드 클릭 시 Slot 목록으로 이동한다", () => {
+  it("Slot 화살표 클릭 시 Slot 목록으로 이동한다", () => {
     vi.mocked(previewLists.useSlotPreview).mockReturnValue(
       makeHook({ data: [{ id: 9, name: "slot-1" }] }),
     );
     render(<ComponentCountGrid {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: /확인 항목/ }));
+    fireEvent.click(screen.getByRole("button", { name: "확인 항목 상세 보기" }));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/2/slots?versionId=3");
   });
 

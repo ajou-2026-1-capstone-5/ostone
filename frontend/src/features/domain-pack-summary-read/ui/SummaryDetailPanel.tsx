@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronRightIcon } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
-import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -47,7 +44,6 @@ export function SummaryDetailPanel({
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
   const [isDiscardDialogOpen, setDiscardDialogOpen] = useState(false);
-  const navigate = useNavigate();
   const v = query.data;
   const versionId = v?.versionId;
   const isCurrentVersion = versionId != null && versionId === currentVersionId;
@@ -307,19 +303,7 @@ export function SummaryDetailPanel({
       <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
 
       <div>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>구성요소</div>
-          {versionId != null && (
-            <button
-              type="button"
-              className={styles.sectionArrowButton}
-              aria-label="구성요소 상세 보기"
-              onClick={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
-            >
-              <ChevronRightIcon aria-hidden />
-            </button>
-          )}
-        </div>
+        <div className={styles.sectionTitle}>구성요소</div>
         {versionId != null && (
           <ComponentCountGrid
             wsId={wsId}

@@ -2,15 +2,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider, type UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
-import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { ApiRequestError } from "@/shared/api";
 import { SummaryDetailPanel } from "./SummaryDetailPanel";
-
-const mockNavigate = vi.fn();
-
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => mockNavigate,
-}));
 
 vi.mock("./SummaryJsonCard", () => ({
   SummaryJsonCard: ({ summaryJson }: { summaryJson: string }) => (
@@ -361,15 +354,5 @@ describe("SummaryDetailPanel", () => {
     );
 
     expect(screen.queryByText("복원: v3 기준")).not.toBeInTheDocument();
-  });
-
-  it("구성요소 상세 보기 버튼 클릭 시 intents 섹션으로 이동한다", () => {
-    renderSummaryDetailPanel(
-      <SummaryDetailPanel query={makeQuery({ data: stubDetail })} wsId={1} packId={2} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "구성요소 상세 보기" }));
-
-    expect(mockNavigate).toHaveBeenCalledWith(domainPackSectionPath(1, 2, 3, "intents"));
   });
 });

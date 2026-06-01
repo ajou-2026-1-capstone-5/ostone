@@ -14,10 +14,6 @@
   transition: box-shadow var(--transition-fast);
 }
 
-.countCard:not(.disabled) {
-  cursor: pointer;
-}
-
 .countCard:not(.disabled):hover {
   box-shadow: var(--shadow-card);
 }
@@ -27,12 +23,47 @@
   cursor: default;
 }
 
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .cardLabel {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-heading);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.cardArrowButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.cardArrowButton:hover {
+  color: var(--text-primary);
+}
+
+.cardArrowButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.cardArrowButton svg {
+  width: 18px;
+  height: 18px;
 }
 
 .countNumber {
