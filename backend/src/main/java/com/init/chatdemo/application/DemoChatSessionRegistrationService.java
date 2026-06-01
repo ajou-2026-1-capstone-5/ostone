@@ -120,6 +120,13 @@ public class DemoChatSessionRegistrationService {
             ChatMessage.create(sessionId, nextSeqNo, "USER", "TEXT", normalizedContent));
     chatSessionMetadataService.updateAfterMessage(session, userMessage);
 
+    if (!session.allowsAiAutoResponse()) {
+      List<ChatMessageResponse> responses = List.of(ChatMessageResponse.from(userMessage));
+      publishQueueUpsert(session);
+      broadcastAfterCommit(sessionId, responses);
+      return responses;
+    }
+
     String assistantContent =
         llmAssistantService.generateResponse(
             createConversationContext(sessionId), normalizedContent);
