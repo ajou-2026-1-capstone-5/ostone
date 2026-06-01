@@ -317,6 +317,71 @@ describe("DomainPackSummaryPage", () => {
     expect(screen.getByTestId("selected-version-id")).toHaveTextContent("6");
   });
 
+  it("versionNo가 같으면 생성일이 더 최신인 draft를 기본 선택한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [
+            {
+              versionId: 5,
+              versionNo: 2,
+              lifecycleStatus: "DRAFT",
+              createdAt: "2026-05-30T00:00:00+09:00",
+            },
+            {
+              versionId: 6,
+              versionNo: 2,
+              lifecycleStatus: "DRAFT",
+              createdAt: "2026-05-31T00:00:00+09:00",
+            },
+          ],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2");
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=6",
+      ),
+    );
+    expect(useVersionDetail).toHaveBeenCalledWith(1, 2, 6);
+  });
+
+  it("versionNo와 생성일 비교가 불가능하면 versionId가 더 큰 draft를 기본 선택한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [
+            { versionId: 5, versionNo: 2, lifecycleStatus: "DRAFT" },
+            {
+              versionId: 6,
+              versionNo: 2,
+              lifecycleStatus: "DRAFT",
+              createdAt: "invalid-date",
+            },
+          ],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2");
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=6",
+      ),
+    );
+    expect(useVersionDetail).toHaveBeenCalledWith(1, 2, 6);
+  });
+
   it("버전이 없는 pack은 versionId를 자동 추가하지 않는다", async () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
@@ -481,6 +546,53 @@ describe("DomainPackSummaryPage", () => {
       "검토 중인 버전이 운영 버전으로 적용되었습니다.",
     );
     expect(toast.error).not.toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
+  });
+
+  it("Draft 적용 성공 응답이 data.id 형태여도 적용된 버전으로 이동한다", async () => {
+    let activateOnSuccess:
+      | ((
+          result: unknown,
+          variables: { workspaceId: number; packId: number; versionId: number },
+          context: unknown,
+        ) => unknown)
+      | undefined;
+    const mutate = vi.fn((variables) => {
+      void activateOnSuccess?.({ data: { id: 7 } }, variables, undefined);
+    });
+    vi.mocked(useActivate).mockImplementation((options) => {
+      activateOnSuccess = options?.mutation?.onSuccess;
+      return {
+        mutate,
+        isPending: false,
+        variables: undefined,
+      } as unknown as ReturnType<typeof useActivate>;
+    });
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+        refetch: vi.fn(),
+      }),
+    );
+    vi.mocked(useVersionDetail).mockReturnValue(
+      makePackQuery({
+        data: { versionId: 5, lifecycleStatus: "DRAFT" },
+        refetch: vi.fn(),
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=7",
+      ),
+    );
   });
 
   it("Draft 적용 실패 시 상담사 용어의 실패 toast를 띄운다", () => {
