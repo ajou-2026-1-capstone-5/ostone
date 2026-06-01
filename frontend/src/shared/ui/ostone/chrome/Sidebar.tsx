@@ -1,4 +1,5 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import { ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { Icon } from "../atoms/Icon";
@@ -94,14 +95,8 @@ export function Sidebar({
   basePath = "/workspaces",
   switcher,
 }: SidebarProps) {
-  const {
-    containerBg,
-    borderColor,
-    defaultColor,
-    hoverBg,
-    activeBg,
-    activeColor,
-  } = deriveSidebarColors(dark);
+  const { containerBg, borderColor, defaultColor, hoverBg, activeBg, activeColor } =
+    deriveSidebarColors(dark);
 
   return (
     <nav
@@ -284,14 +279,23 @@ function SidebarLink({
     }
   };
 
+  const isExternal = target === "_blank";
   const content = (
     <>
       <Icon name={icon} size={16} />
-      <span>{label}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
+      {isExternal ? (
+        <ExternalLink
+          size={13}
+          role="img"
+          aria-label="새 탭에서 열림"
+          style={{ flexShrink: 0, color: "var(--ink-3)" }}
+        />
+      ) : null}
     </>
   );
 
-  if (target === "_blank") {
+  if (isExternal) {
     return (
       <a
         href={to}

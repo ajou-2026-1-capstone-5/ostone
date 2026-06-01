@@ -229,6 +229,37 @@
   margin: var(--s-6) var(--s-8);
 }
 
+.uploadCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 var(--s-5);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 540;
+  letter-spacing: -0.14px;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.uploadCta:hover {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+
+.uploadCta:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .errorPanel {
   padding: var(--s-6) var(--s-8);
 }

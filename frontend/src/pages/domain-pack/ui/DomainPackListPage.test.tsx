@@ -75,7 +75,7 @@ describe("DomainPackListPage", () => {
     expect(refetch).toHaveBeenCalled();
   });
 
-  it("빈 목록일 때 EmptyState를 표시하고 업로드 링크는 표시하지 않는다", () => {
+  it("빈 목록일 때 EmptyState와 업로드 화면으로 이동하는 CTA를 표시한다", () => {
     useListDomainPacks.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -84,7 +84,10 @@ describe("DomainPackListPage", () => {
     });
     renderPage();
     expect(screen.getByTestId("empty-state")).toHaveTextContent("아직 도메인팩이 없습니다");
-    expect(screen.queryByText("상담 로그 업로드")).not.toBeInTheDocument();
+
+    const cta = screen.getByTestId("empty-upload-cta");
+    expect(cta).toHaveTextContent("상담 로그 업로드");
+    expect(cta).toHaveAttribute("href", "/workspaces/1/upload");
   });
 
   it("데이터가 있을 때 도메인팩 관리 제목과 목록을 렌더링한다", () => {
@@ -228,10 +231,7 @@ describe("DomainPackListPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "전체 2" }));
 
-    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Live Pack")).toBeInTheDocument();
     expect(screen.getByText("Draft Pack")).toBeInTheDocument();
     expect(screen.getByText("운영중인 도메인팩")).toBeInTheDocument();
@@ -253,10 +253,7 @@ describe("DomainPackListPage", () => {
 
     renderPage("/workspaces/1/domain-packs?status=unknown");
 
-    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: "전체 2" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Live Pack")).toBeInTheDocument();
     expect(screen.getByText("Draft Pack")).toBeInTheDocument();
   });

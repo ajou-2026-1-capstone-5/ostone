@@ -103,6 +103,31 @@ export function MessageList({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {messages.map((message) => {
+          if (message.senderType === "SYSTEM") {
+            return (
+              <div
+                key={message.id}
+                data-testid={`message-${message.id}`}
+                data-sender="system"
+                role="status"
+                style={{
+                  alignSelf: "center",
+                  maxWidth: "82%",
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  background: "var(--paper-3)",
+                  border: "1px solid var(--line)",
+                  color: "var(--ink-3)",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  textAlign: "center",
+                  letterSpacing: "-0.1px",
+                }}
+              >
+                {message.content}
+              </div>
+            );
+          }
           const isUser = message.senderType === "USER";
           const sender = isUser ? "user" : "bot";
           return (

@@ -2,7 +2,7 @@ export interface ChatMessage {
   id: string;
   sessionId: number;
   content: string;
-  senderType: "USER" | "BOT" | "AGENT";
+  senderType: "USER" | "BOT" | "AGENT" | "SYSTEM";
   senderId?: number;
   senderName?: string;
   createdAt: string;

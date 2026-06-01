@@ -79,6 +79,7 @@ export function toSenderType(senderRole: string): ChatMessage["senderType"] {
   const normalizedRole = senderRole.toUpperCase();
   if (normalizedRole === "USER" || normalizedRole === "CUSTOMER") return "USER";
   if (normalizedRole === "AGENT" || normalizedRole === "COUNSELOR") return "AGENT";
+  if (normalizedRole === "SYSTEM") return "SYSTEM";
   return "BOT";
 }
 
