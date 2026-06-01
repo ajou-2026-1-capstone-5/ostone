@@ -119,4 +119,19 @@ describe("MessageHistory", () => {
       expect(toastErrorMock).toHaveBeenCalledWith("이전 메시지를 불러오지 못했습니다.");
     });
   });
+
+  it("유효하지 않은 sessionId는 메시지 조회 없이 찾을 수 없음 상태를 표시한다", () => {
+    useChatMessagePageMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<MessageHistory sessionId="invalid" />);
+
+    expect(useChatMessagePageMock).toHaveBeenCalledWith("");
+    expect(screen.getByText("현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다")).toBeTruthy();
+  });
 });

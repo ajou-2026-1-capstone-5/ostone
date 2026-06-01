@@ -71,7 +71,11 @@ export function MessageHistory({
   isSelectionPending = false,
   missingSessionId = null,
 }: MessageHistoryProps) {
-  const activeSessionId = isSelectionPending || missingSessionId ? "" : (sessionId ?? "");
+  const parsedSessionId = Number(sessionId);
+  const hasInvalidSessionId =
+    sessionId != null && (!Number.isSafeInteger(parsedSessionId) || parsedSessionId <= 0);
+  const activeSessionId =
+    isSelectionPending || missingSessionId || hasInvalidSessionId ? "" : (sessionId ?? "");
   const [loadedPages, setLoadedPages] = useState<ChatMessagePage[]>([]);
   const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
   const {
@@ -130,7 +134,7 @@ export function MessageHistory({
     }
   };
 
-  if (missingSessionId) {
+  if (missingSessionId || hasInvalidSessionId) {
     return (
       <section className={styles.wrapper} aria-label="채팅 메시지 내역">
         <div className={styles.stateArea}>
