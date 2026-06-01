@@ -43,9 +43,33 @@
 }
 
 .summaryPill {
+  appearance: none;
   border: 1px solid var(--line);
   color: var(--ink-2);
   background: var(--paper);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 450;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.summaryPill:hover {
+  border-color: var(--ink-4);
+}
+
+.summaryPill:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+}
+
+.summaryPillActive {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .sections {
