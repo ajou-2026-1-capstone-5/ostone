@@ -185,6 +185,12 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   };
 
   const domainPacksPath = workspaceId ? `/workspaces/${workspaceId}/domain-packs` : "/workspaces";
+  const pipelineReviewPath =
+    workspaceId != null &&
+    generationStatus.kind === "success" &&
+    generationStatus.pipelineJobId != null
+      ? `/workspaces/${workspaceId}/pipeline-jobs/${generationStatus.pipelineJobId}/review`
+      : null;
   const canStartGeneration = Boolean(uploadedDataset?.datasetId);
   const isGenerationPending =
     generationStatus.kind === "triggering" || generationMutation.isPending;
@@ -292,7 +298,15 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
                 <Button variant="secondary" onClick={handleReset}>
                   다른 파일 업로드
                 </Button>
-                <Button onClick={() => navigate(domainPacksPath)}>도메인팩 보기</Button>
+                {pipelineReviewPath && (
+                  <Button onClick={() => navigate(pipelineReviewPath)}>검토 화면으로 이동</Button>
+                )}
+                <Button
+                  variant={pipelineReviewPath ? "secondary" : "primary"}
+                  onClick={() => navigate(domainPacksPath)}
+                >
+                  도메인팩 보기
+                </Button>
               </div>
             </div>
           )}
