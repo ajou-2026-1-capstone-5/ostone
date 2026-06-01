@@ -385,6 +385,50 @@
   letter-spacing: -0.14px;
 }
 
+.versionActionContext {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+}
+
+.versionActionRow {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: #000000;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.14px;
+}
+
+.versionActionRow dt {
+  color: var(--text-muted);
+}
+
+.versionActionRow dd {
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.versionActionRow strong {
+  font-family: var(--font-mono);
+  font-weight: 540;
+}
+
+.versionActionRow span {
+  color: var(--text-secondary);
+}
+
 .approvalDialogFooter {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -420,5 +464,10 @@
   .approvalActions,
   .approvalButton {
     width: 100%;
+  }
+
+  .versionActionRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }

@@ -21,6 +21,7 @@ interface SummaryDetailPanelProps {
   wsId: number;
   packId: number;
   currentVersionId?: number | null;
+  currentVersionNo?: number | null;
   deployingVersionId?: number | null;
   applyingVersionId?: number | null;
   discardingVersionId?: number | null;
@@ -34,6 +35,7 @@ export function SummaryDetailPanel({
   wsId,
   packId,
   currentVersionId = null,
+  currentVersionNo = null,
   deployingVersionId = null,
   applyingVersionId = null,
   discardingVersionId = null,
@@ -51,6 +53,8 @@ export function SummaryDetailPanel({
   const isApplying = versionId != null && versionId === applyingVersionId;
   const isDiscarding = versionId != null && versionId === discardingVersionId;
   const isDraftVersion = v?.lifecycleStatus === "DRAFT";
+  const targetVersionLabel = formatVersionNo(v?.versionNo);
+  const currentVersionLabel = formatCurrentVersionLabel(currentVersionNo, currentVersionId);
   const canDeploy =
     onDeploy != null && versionId != null && !isCurrentVersion && !isDeploying && !isDraftVersion;
   const canApplyDraft =
@@ -182,11 +186,15 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            이 버전을 배포할까요?
+            {targetVersionLabel} 버전을 배포할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            배포하면 현재 운영 중인 도메인팩 버전이 선택한 버전으로 전환됩니다.
+            배포하면 현재 운영 중인 도메인팩이 아래 대상 버전으로 전환됩니다.
           </AlertDialogDescription>
+          <VersionActionContext
+            version={v}
+            transitionLabel={`${currentVersionLabel} → ${targetVersionLabel}`}
+          />
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
               type="button"
@@ -224,11 +232,15 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            검토 중인 버전을 적용할까요?
+            검토 중인 {targetVersionLabel} 버전을 적용할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            적용하면 이 버전이 상담 응대에 사용할 수 있는 운영 버전으로 전환됩니다.
+            적용하면 검토 중인 {targetVersionLabel}이 상담 응대에 사용할 운영 버전으로 전환됩니다.
           </AlertDialogDescription>
+          <VersionActionContext
+            version={v}
+            transitionLabel={`${currentVersionLabel} → ${targetVersionLabel}`}
+          />
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
               type="button"
@@ -266,11 +278,18 @@ export function SummaryDetailPanel({
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            검토 중인 버전을 삭제할까요?
+            검토 중인 {targetVersionLabel} 버전을 삭제할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            삭제하면 이 검토 중인 버전과 저장된 수정 내용이 모두 삭제됩니다.
+            삭제하면 {targetVersionLabel} 검토본과 저장된 수정 내용이 모두 삭제되며 되돌릴 수
+            없습니다.
           </AlertDialogDescription>
+          <VersionActionContext
+            version={v}
+            transitionLabel={`${targetVersionLabel} 검토본 삭제`}
+            scopeLabel="삭제 범위"
+            scopeValue="버전 메타데이터와 저장된 draft 수정 내용"
+          />
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
               type="button"
@@ -326,8 +345,108 @@ function formatDate(iso: string): string {
   return d.toLocaleString("ko-KR");
 }
 
+function formatVersionNo(versionNo?: number | null): string {
+  return versionNo == null ? "선택한 버전" : `v${versionNo}`;
+}
+
+function formatCurrentVersionLabel(
+  currentVersionNo?: number | null,
+  currentVersionId?: number | null,
+): string {
+  if (currentVersionNo != null) return `현재 v${currentVersionNo}`;
+  if (currentVersionId != null) return "현재 운영 버전";
+  return "운영 버전 없음";
+}
+
 function formatLifecycleStatus(status?: string | null): string {
   if (status === "PUBLISHED") return "운영 가능";
   if (status === "DRAFT") return "검토 중";
   return status ?? "상태 없음";
+}
+
+function VersionActionContext({
+  version,
+  transitionLabel,
+  scopeLabel = "운영 전환",
+  scopeValue,
+}: Readonly<{
+  version: DomainPackVersionDetail;
+  transitionLabel: string;
+  scopeLabel?: string;
+  scopeValue?: string;
+}>) {
+  const summary = buildActionSummary(version.summaryJson);
+
+  return (
+    <dl className={styles.versionActionContext} aria-label="대상 버전 정보">
+      <div className={styles.versionActionRow}>
+        <dt>대상 버전</dt>
+        <dd>
+          <strong>{formatVersionNo(version.versionNo)}</strong>
+          <span>{formatLifecycleStatus(version.lifecycleStatus)}</span>
+        </dd>
+      </div>
+      <div className={styles.versionActionRow}>
+        <dt>{scopeLabel}</dt>
+        <dd>{scopeValue ?? transitionLabel}</dd>
+      </div>
+      <div className={styles.versionActionRow}>
+        <dt>생성</dt>
+        <dd>{formatDate(version.createdAt ?? "") || "생성일 없음"}</dd>
+      </div>
+      {summary && (
+        <div className={styles.versionActionRow}>
+          <dt>변경 요약</dt>
+          <dd>{summary}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+function buildActionSummary(summaryJson?: string | null): string | null {
+  if (!summaryJson) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(summaryJson);
+    if (!isRecord(parsed)) return null;
+    return (
+      readTrimmedString(parsed.topic) ??
+      readNestedString(parsed, ["draftSource", "reason"]) ??
+      readNestedString(parsed, ["generation", "description"]) ??
+      readFirstString(parsed, ["review", "topIssues"]) ??
+      readFirstString(parsed, ["review", "issues"])
+    );
+  } catch {
+    return null;
+  }
+}
+
+function readNestedString(data: Record<string, unknown>, path: string[]): string | null {
+  const value = path.reduce<unknown>((acc, key) => (isRecord(acc) ? acc[key] : undefined), data);
+  return readTrimmedString(value);
+}
+
+function readFirstString(data: Record<string, unknown>, path: string[]): string | null {
+  const value = path.reduce<unknown>((acc, key) => (isRecord(acc) ? acc[key] : undefined), data);
+  if (!Array.isArray(value)) return null;
+  for (const item of value) {
+    const text = readTrimmedString(item);
+    if (text) return text;
+    if (isRecord(item)) {
+      const message = readTrimmedString(item.message) ?? readTrimmedString(item.title);
+      if (message) return message;
+    }
+  }
+  return null;
+}
+
+function readTrimmedString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
