@@ -8,11 +8,16 @@
 
 .stateCard {
   display: grid;
-  gap: var(--s-2);
+  gap: var(--s-4);
   padding: var(--s-5);
   color: var(--ink-2);
   font-size: 13px;
   letter-spacing: -0.1px;
+}
+
+.stateCopy {
+  display: grid;
+  gap: var(--s-2);
 }
 
 .stateTitle {
@@ -20,6 +25,68 @@
   font-size: 15px;
   font-weight: 540;
   letter-spacing: -0.14px;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.stateActionPrimary,
+.stateActionSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 450;
+  letter-spacing: -0.1px;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    opacity var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.stateActionPrimary svg,
+.stateActionSecondary svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.stateActionPrimary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.stateActionSecondary {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.stateActionPrimary:hover,
+.stateActionSecondary:hover {
+  opacity: 0.84;
+}
+
+.stateActionPrimary:focus-visible,
+.stateActionSecondary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.stateActionPrimary:disabled,
+.stateActionSecondary:disabled {
+  cursor: wait;
+  opacity: 0.56;
 }
 
 .card {
@@ -413,5 +480,15 @@
 
   .caseGrid {
     grid-template-columns: 1fr;
+  }
+
+  .stateActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stateActionPrimary,
+  .stateActionSecondary {
+    width: 100%;
   }
 }

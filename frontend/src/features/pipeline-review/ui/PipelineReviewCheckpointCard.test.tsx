@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useConfirmPipelineDomain,
@@ -17,6 +18,14 @@ const mockedUseCheckpoint = vi.mocked(usePipelineReviewCheckpoint);
 const mockedUseConfirmDomain = vi.mocked(useConfirmPipelineDomain);
 const mockedUseSubmitFeedback = vi.mocked(useSubmitPipelineFeedback);
 
+function renderCard(props: { workspaceId?: number; pipelineJobId?: number } = { workspaceId: 1, pipelineJobId: 7 }) {
+  return render(
+    <MemoryRouter>
+      <PipelineReviewCheckpointCard {...props} />
+    </MemoryRouter>,
+  );
+}
+
 beforeEach(() => {
   mockedUseCheckpoint.mockReset();
   mockedUseConfirmDomain.mockReset();
@@ -29,7 +38,7 @@ describe("PipelineReviewCheckpointCard", () => {
   it("renders nothing without a pipeline job id", () => {
     mockedUseCheckpoint.mockReturnValue({ isLoading: false } as never);
 
-    const { container } = render(<PipelineReviewCheckpointCard workspaceId={1} />);
+    const { container } = renderCard({ workspaceId: 1 });
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -37,17 +46,25 @@ describe("PipelineReviewCheckpointCard", () => {
   it("renders loading state", () => {
     mockedUseCheckpoint.mockReturnValue({ isLoading: true } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("리뷰 체크포인트를 불러오는 중입니다.")).toBeInTheDocument();
   });
 
-  it("renders error state", () => {
-    mockedUseCheckpoint.mockReturnValue({ isLoading: false, isError: true } as never);
+  it("retries checkpoint loading from the error state", () => {
+    const refetch = vi.fn();
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      isFetching: false,
+      refetch,
+    } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("리뷰 체크포인트를 불러오지 못했습니다.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("confirms selected domain candidate", () => {
@@ -78,7 +95,7 @@ describe("PipelineReviewCheckpointCard", () => {
       },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     fireEvent.click(screen.getByRole("button", { name: /카드 상담/ }));
 
@@ -86,10 +103,13 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(mutate).toHaveBeenCalledWith(101);
   });
 
-  it("shows an empty task state for active review sessions without open tasks", () => {
+  it("refreshes active review sessions without open tasks", () => {
+    const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
       isError: false,
+      isFetching: false,
+      refetch,
       data: {
         pipelineJobId: 7,
         pipelineStatus: "WAITING_DOMAIN_CONFIRMATION",
@@ -107,9 +127,11 @@ describe("PipelineReviewCheckpointCard", () => {
       },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("현재 확인할 리뷰 작업이 없습니다.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "작업 새로고침" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("submits pairwise feedback with conversation evidence", () => {
@@ -158,7 +180,7 @@ describe("PipelineReviewCheckpointCard", () => {
       },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("카드를 잃어버렸어요.")).toBeInTheDocument();
     expect(screen.getByText("고객: 결제 한도를 올리고 싶어요.")).toBeInTheDocument();
@@ -206,35 +228,74 @@ describe("PipelineReviewCheckpointCard", () => {
       },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("같은 클러스터에서 서로 다른 workflow 후보로 갈라졌습니다.")).toBeInTheDocument();
     expect(screen.getByText("운영자 확인이 필요한 후보입니다.")).toBeInTheDocument();
     expect(screen.getAllByText("업무 내용을 확인할 수 없습니다.")).toHaveLength(3);
   });
 
-  it("shows completed state when there is no active review kind", () => {
+  it("shows completed state with a domain pack management CTA when there is no active review kind", () => {
+    const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
       isError: false,
+      isFetching: false,
+      refetch,
       data: { pipelineJobId: 7, pipelineStatus: "SUCCEEDED", reviewKind: null, tasks: [] },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("리뷰 체크포인트가 완료되었습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "도메인팩 관리로 이동" })).toHaveAttribute(
+      "href",
+      "/workspaces/1/domain-packs",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "상태 새로고침" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it("shows failed state when pipeline failed without an active review kind", () => {
+  it("shows failed state with upload retry and job refresh actions", () => {
+    const refetch = vi.fn();
     mockedUseCheckpoint.mockReturnValue({
       isLoading: false,
       isError: false,
+      isFetching: false,
+      refetch,
       data: { pipelineJobId: 7, pipelineStatus: "FAILED", reviewKind: null, tasks: [] },
     } as never);
 
-    render(<PipelineReviewCheckpointCard workspaceId={1} pipelineJobId={7} />);
+    renderCard();
 
     expect(screen.getByText("파이프라인이 실패했습니다.")).toBeInTheDocument();
-    expect(screen.getByText("실패 원인은 파이프라인 job 상세에서 확인할 수 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("업로드를 다시 시작하거나 현재 job 상태를 다시 조회할 수 있습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "업로드 다시 시작" })).toHaveAttribute(
+      "href",
+      "/workspaces/1/upload",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "현재 job 새로고침" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows refresh and list navigation for no active checkpoint waiting states", () => {
+    const refetch = vi.fn();
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch,
+      data: { pipelineJobId: 7, pipelineStatus: "RUNNING", reviewKind: null, tasks: [] },
+    } as never);
+
+    renderCard();
+
+    expect(screen.getByText("활성 리뷰 체크포인트가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "도메인팩 목록 보기" })).toHaveAttribute(
+      "href",
+      "/workspaces/1/domain-packs",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "상태 새로고침" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });
