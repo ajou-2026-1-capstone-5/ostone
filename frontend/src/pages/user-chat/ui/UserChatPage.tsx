@@ -210,6 +210,11 @@ export function UserChatPage() {
   const botTypingDelayUntilRef = useRef(0);
   const botTypingTimeoutRef = useRef<number | null>(null);
   const pendingBotMessagesRef = useRef<ChatMessage[]>([]);
+  const activeConversationRef = useRef<{ sessionId: string | null; customerName: string | null }>({
+    sessionId: null,
+    customerName: null,
+  });
+  const sendRequestIdRef = useRef(0);
   const [chatState, setChatState] = useState<{
     workspaceId: number | null;
     customerName: string | null;
@@ -222,10 +227,16 @@ export function UserChatPage() {
       ? chatState
       : { session: null, error: null };
   const activeSessionId = activeChatState.session?.id ?? null;
+  activeConversationRef.current = { sessionId: activeSessionId, customerName };
 
   const setBotTyping = useCallback((nextValue: boolean) => {
     isBotTypingRef.current = nextValue;
     setIsBotTyping(nextValue);
+  }, []);
+
+  const isCurrentConversation = useCallback((sessionId: string, nextCustomerName: string) => {
+    const current = activeConversationRef.current;
+    return current.sessionId === sessionId && current.customerName === nextCustomerName;
   }, []);
 
   const clearBotTypingTimeout = useCallback(() => {
@@ -303,6 +314,7 @@ export function UserChatPage() {
   }, [setBotTyping]);
 
   useEffect(() => {
+    setIsSending(false);
     stopBotTyping();
   }, [activeSessionId, customerName, stopBotTyping]);
 
@@ -393,12 +405,15 @@ export function UserChatPage() {
       return;
     }
 
-    const localMessage = createLocalUserMessage(numericSessionId, customerName, content);
+    const requestId = ++sendRequestIdRef.current;
+    const requestSessionId = activeSession.id;
+    const requestCustomerName = customerName;
+    const localMessage = createLocalUserMessage(numericSessionId, requestCustomerName, content);
     setMessageError(null);
     setIsSending(true);
     startBotTypingDelay();
     setChatState((current) => {
-      if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+      if (current.session?.id !== requestSessionId || current.customerName !== requestCustomerName) {
         return current;
       }
       return {
@@ -412,9 +427,11 @@ export function UserChatPage() {
 
     try {
       const responseMessages = withCustomerNames(
-        await sendDemoChatMessage(workspaceId, activeSession.id, content),
-        customerName,
+        await sendDemoChatMessage(workspaceId, requestSessionId, content),
+        requestCustomerName,
       );
+      if (!isCurrentConversation(requestSessionId, requestCustomerName)) return;
+
       const botMessages = responseMessages.filter(isBotMessage);
       appendRealtimeMessages(responseMessages.filter((message) => !isBotMessage(message)));
 
@@ -425,7 +442,7 @@ export function UserChatPage() {
       }
     } catch (error) {
       setChatState((current) => {
-        if (current.session?.id !== activeSession.id || current.customerName !== customerName) {
+        if (current.session?.id !== requestSessionId || current.customerName !== requestCustomerName) {
           return current;
         }
         return {
@@ -436,10 +453,17 @@ export function UserChatPage() {
           },
         };
       });
-      setMessageError(resolveMessageSendErrorMessage(error));
-      stopBotTyping();
+      if (isCurrentConversation(requestSessionId, requestCustomerName)) {
+        setMessageError(resolveMessageSendErrorMessage(error));
+        stopBotTyping();
+      }
     } finally {
-      setIsSending(false);
+      if (
+        sendRequestIdRef.current === requestId &&
+        isCurrentConversation(requestSessionId, requestCustomerName)
+      ) {
+        setIsSending(false);
+      }
     }
   };
 

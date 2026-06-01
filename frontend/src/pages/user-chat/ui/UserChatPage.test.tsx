@@ -51,6 +51,14 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+type DeferredChatMessage = {
+  id: string;
+  sessionId: number;
+  content: string;
+  senderType: "USER" | "BOT";
+  createdAt: string;
+};
+
 describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
@@ -377,15 +385,7 @@ describe("UserChatPage", () => {
   });
 
   it("USER-only 성공 응답은 사용자 메시지를 유지하고 봇 타이핑을 종료한다", async () => {
-    const response = createDeferred<
-      Array<{
-        id: string;
-        sessionId: number;
-        content: string;
-        senderType: "USER";
-        createdAt: string;
-      }>
-    >();
+    const response = createDeferred<DeferredChatMessage[]>();
     stompState.connectionStatus = "CONNECTED";
     sendDemoChatMessageMock.mockReturnValueOnce(response.promise);
 
@@ -423,6 +423,97 @@ describe("UserChatPage", () => {
     expect(
       screen.queryByText("응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     ).toBeNull();
+  });
+
+  it("이전 세션 전송 응답이 늦게 도착해도 현재 세션 봇 타이핑을 종료하지 않는다", async () => {
+    const previousResponse = createDeferred<DeferredChatMessage[]>();
+    const currentResponse = createDeferred<DeferredChatMessage[]>();
+    stompState.connectionStatus = "CONNECTED";
+    registerDemoChatSessionMock
+      .mockResolvedValueOnce({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [],
+      })
+      .mockResolvedValueOnce({
+        id: "88",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:10:00Z",
+        messages: [],
+      });
+    listDemoChatMessagesMock.mockImplementation((_workspaceId: number, sessionId: string) =>
+      Promise.resolve([
+        {
+          id: `greeting-${sessionId}`,
+          sessionId: Number(sessionId),
+          content: `세션 ${sessionId} 안내입니다.`,
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ]),
+    );
+    sendDemoChatMessageMock
+      .mockReturnValueOnce(previousResponse.promise)
+      .mockReturnValueOnce(currentResponse.promise);
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const firstInput = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.77", expect.any(Function));
+    });
+    fireEvent.change(firstInput, { target: { value: "첫 번째 문의" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+    expect(await screen.findByTestId("bot-typing-indicator")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "새 테스트 세션 시작" }));
+    expect(await screen.findByText("세션 88 안내입니다.")).toBeInTheDocument();
+
+    const secondInput = screen.getByLabelText("메시지 입력");
+    fireEvent.change(secondInput, { target: { value: "두 번째 문의" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    await waitFor(() => {
+      expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "88", "두 번째 문의");
+    });
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+
+    await act(async () => {
+      previousResponse.resolve([
+        {
+          id: "81",
+          sessionId: 77,
+          content: "첫 번째 문의",
+          senderType: "USER",
+          createdAt: "2026-05-22T00:00:01Z",
+        },
+      ]);
+      await previousResponse.promise;
+    });
+
+    expect(screen.getByTestId("bot-typing-indicator")).toBeInTheDocument();
+    expect(screen.queryByTestId("message-81")).toBeNull();
+
+    await act(async () => {
+      currentResponse.resolve([
+        {
+          id: "91",
+          sessionId: 88,
+          content: "두 번째 문의",
+          senderType: "USER",
+          createdAt: "2026-05-22T00:10:01Z",
+        },
+      ]);
+      await currentResponse.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("message-91")).toBeInTheDocument();
   });
 
   it("WebSocket user 메시지는 optimistic 메시지를 서버 메시지로 교체한다", async () => {
