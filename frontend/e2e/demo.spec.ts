@@ -18,7 +18,10 @@ test.describe("Demo company picker", () => {
           const path = url.pathname.replace(/^\/api\/v1/, "");
           const method = request.method();
 
-          if (method === "POST" && path === "/workspaces/1/demo/chat-sessions") {
+          if (
+            method === "POST" &&
+            path === "/workspaces/1/demo/chat-sessions"
+          ) {
             expect(request.postDataJSON()).toEqual({ customerName: "김민지" });
             await route.fulfill({
               status: 200,
@@ -33,7 +36,10 @@ test.describe("Demo company picker", () => {
             return;
           }
 
-          if (method === "GET" && path === "/workspaces/1/demo/chat-sessions/91/messages") {
+          if (
+            method === "GET" &&
+            path === "/workspaces/1/demo/chat-sessions/91/messages"
+          ) {
             await route.fulfill({
               status: 200,
               contentType: "application/json",
@@ -42,8 +48,13 @@ test.describe("Demo company picker", () => {
             return;
           }
 
-          if (method === "POST" && path === "/workspaces/1/demo/chat-sessions/91/messages") {
-            expect(request.postDataJSON()).toEqual({ content: "환불 문의입니다" });
+          if (
+            method === "POST" &&
+            path === "/workspaces/1/demo/chat-sessions/91/messages"
+          ) {
+            expect(request.postDataJSON()).toEqual({
+              content: "환불 문의입니다",
+            });
             await route.fulfill({
               status: 200,
               contentType: "application/json",
@@ -72,7 +83,10 @@ test.describe("Demo company picker", () => {
           await route.fulfill({
             status: 500,
             contentType: "application/json",
-            body: JSON.stringify({ code: "E2E_UNMOCKED", message: `${method} ${path}` }),
+            body: JSON.stringify({
+              code: "E2E_UNMOCKED",
+              message: `${method} ${path}`,
+            }),
           });
         });
 
@@ -81,21 +95,29 @@ test.describe("Demo company picker", () => {
         await page.getByTestId("demo-name-input").fill("김민지");
         await page.getByTestId("demo-start-chat").click();
 
-        await expect(page).toHaveURL(/\/demo\/workspaces\/1\/chat\?name=/);
-        await expect(page.getByTestId("chat-conversation-screen")).toBeVisible();
+        await expect(page).toHaveURL(/\/demo\/chat\/1\?name=/);
+        await expect(
+          page.getByTestId("chat-conversation-screen"),
+        ).toBeVisible();
         await expect(page.getByTestId("chat-entry-screen")).toHaveCount(0);
-        await expect(page.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).toBeVisible();
+        await expect(
+          page.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?"),
+        ).toBeVisible();
 
         await page.getByLabel("메시지 입력").fill("환불 문의입니다");
         await page.getByRole("button", { name: "메시지 보내기" }).click();
 
         await expect(page.getByText("환불 문의입니다")).toBeVisible();
-        await expect(page.getByText("환불 절차를 안내해드릴게요.")).toBeVisible();
+        await expect(
+          page.getByText("환불 절차를 안내해드릴게요."),
+        ).toBeVisible();
       });
     });
 
     test.describe("When a user focuses a preview company", () => {
-      test("Then its info shows but the chat cannot be started", async ({ page }) => {
+      test("Then its info shows but the chat cannot be started", async ({
+        page,
+      }) => {
         await page.goto("/demo");
         await page.getByTestId("demo-company-card-2").click();
 

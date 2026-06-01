@@ -28,22 +28,28 @@ describe("DemoPage", () => {
     expect(screen.getByTestId("demo-company-card-1")).toBeInTheDocument();
     expect(screen.getByTestId("demo-company-card-2")).toBeInTheDocument();
     expect(screen.getByTestId("demo-company-card-3")).toBeInTheDocument();
-    expect(screen.getByTestId("demo-company-info")).toHaveTextContent("컴플레인 테스트 워크스페이스");
+    expect(screen.getByTestId("demo-company-info")).toHaveTextContent(
+      "컴플레인 테스트 워크스페이스",
+    );
   });
 
   it("shows a company's info on hover", () => {
     renderDemoPage();
     fireEvent.mouseEnter(screen.getByTestId("demo-company-card-2"));
-    expect(screen.getByTestId("demo-company-info")).toHaveTextContent("카드 이용내역 조회 상담");
+    expect(screen.getByTestId("demo-company-info")).toHaveTextContent(
+      "카드 이용내역 조회 상담",
+    );
   });
 
   it("navigates to the chat with an encoded name for an enabled company", () => {
     renderDemoPage();
     fireEvent.click(screen.getByTestId("demo-company-card-1"));
-    fireEvent.change(screen.getByTestId("demo-name-input"), { target: { value: "김민지" } });
+    fireEvent.change(screen.getByTestId("demo-name-input"), {
+      target: { value: "김민지" },
+    });
     fireEvent.click(screen.getByTestId("demo-start-chat"));
     expect(navigateMock).toHaveBeenCalledWith(
-      `/demo/workspaces/1/chat?name=${encodeURIComponent("김민지")}`,
+      `/demo/chat/1?name=${encodeURIComponent("김민지")}`,
     );
   });
 
@@ -60,7 +66,9 @@ describe("DemoPage", () => {
     fireEvent.click(screen.getByTestId("demo-company-card-2"));
     expect(screen.getByTestId("demo-start-chat")).toBeDisabled();
     fireEvent.submit(screen.getByTestId("demo-name-form"));
-    expect(screen.getByTestId("demo-name-error")).toHaveTextContent("데모를 준비 중");
+    expect(screen.getByTestId("demo-name-error")).toHaveTextContent(
+      "데모를 준비 중",
+    );
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });

@@ -15,7 +15,12 @@ describe("resolvePostLoginDestination", () => {
     ).toBe("/workspaces/1/upload?tab=logs");
   });
 
-  it("allows demo workspace chat paths", () => {
+  it("allows canonical and legacy demo chat paths", () => {
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: "/demo/chat/1", search: "?preview=true" },
+      }),
+    ).toBe("/demo/chat/1?preview=true");
     expect(
       resolvePostLoginDestination({
         from: { pathname: "/demo/workspaces/1/chat", search: "?preview=true" },
@@ -24,20 +29,26 @@ describe("resolvePostLoginDestination", () => {
   });
 
   it("falls back for auth routes", () => {
-    expect(resolvePostLoginDestination({ from: { pathname: "/login" } })).toBe("/workspaces");
-    expect(resolvePostLoginDestination({ from: { pathname: "/signup" } })).toBe("/workspaces");
+    expect(resolvePostLoginDestination({ from: { pathname: "/login" } })).toBe(
+      "/workspaces",
+    );
+    expect(resolvePostLoginDestination({ from: { pathname: "/signup" } })).toBe(
+      "/workspaces",
+    );
   });
 
   it("falls back for paths outside the workspace route boundary", () => {
-    expect(resolvePostLoginDestination({ from: { pathname: "/workspaces-public" } })).toBe(
-      "/workspaces",
-    );
+    expect(
+      resolvePostLoginDestination({ from: { pathname: "/workspaces-public" } }),
+    ).toBe("/workspaces");
   });
 
   it("falls back for dot-segment workspace paths", () => {
-    expect(resolvePostLoginDestination({ from: { pathname: "/workspaces/../login" } })).toBe(
-      "/workspaces",
-    );
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: "/workspaces/../login" },
+      }),
+    ).toBe("/workspaces");
     expect(
       resolvePostLoginDestination({
         from: { pathname: "/workspaces/%2e%2e/login" },

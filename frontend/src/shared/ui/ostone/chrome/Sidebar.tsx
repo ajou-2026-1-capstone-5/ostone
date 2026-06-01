@@ -1,5 +1,6 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { NavLink } from "react-router-dom";
+import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
 import { AccountMenu } from "./AccountMenu";
@@ -36,7 +37,7 @@ function getDemoChatPath(base: string): string {
     return "/workspaces";
   }
 
-  return `/demo/workspaces/${match[1]}/chat`;
+  return buildDemoChatPath(match[1]);
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
@@ -93,8 +94,14 @@ export function Sidebar({
   basePath = "/workspaces",
   switcher,
 }: SidebarProps) {
-  const { containerBg, borderColor, defaultColor, hoverBg, activeBg, activeColor } =
-    deriveSidebarColors(dark);
+  const {
+    containerBg,
+    borderColor,
+    defaultColor,
+    hoverBg,
+    activeBg,
+    activeColor,
+  } = deriveSidebarColors(dark);
 
   return (
     <nav
