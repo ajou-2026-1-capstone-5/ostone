@@ -133,6 +133,7 @@ resource "terraform_data" "db_bootstrap" {
     command = <<-EOT
       set -eu
       TASK_ARN=$(aws ecs run-task \
+        --region '${var.aws_region}' \
         --cluster '${aws_ecs_cluster.main.arn}' \
         --task-definition '${aws_ecs_task_definition.db_bootstrap.arn}' \
         --launch-type FARGATE \
@@ -151,15 +152,16 @@ resource "terraform_data" "db_bootstrap" {
         exit 1
       fi
 
-      aws ecs wait tasks-stopped --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN"
+      aws ecs wait tasks-stopped --region '${var.aws_region}' --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN"
       EXIT_CODE=$(aws ecs describe-tasks \
+        --region '${var.aws_region}' \
         --cluster '${aws_ecs_cluster.main.arn}' \
         --tasks "$TASK_ARN" \
         --query 'tasks[0].containers[0].exitCode' \
         --output text)
 
       if [ "$EXIT_CODE" != "0" ]; then
-        aws ecs describe-tasks --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN" >&2
+        aws ecs describe-tasks --region '${var.aws_region}' --cluster '${aws_ecs_cluster.main.arn}' --tasks "$TASK_ARN" >&2
         exit 1
       fi
     EOT
