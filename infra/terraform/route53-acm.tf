@@ -53,23 +53,14 @@ resource "aws_acm_certificate" "cloudfront" {
   }
 }
 
-locals {
-  acm_validation_options = concat(
-    tolist(aws_acm_certificate.regional.domain_validation_options),
-    tolist(aws_acm_certificate.cloudfront.domain_validation_options)
-  )
-
-  acm_validation_records = {
-    for option in local.acm_validation_options : option.resource_record_name => {
+resource "aws_route53_record" "acm_validation" {
+  for_each = {
+    for option in aws_acm_certificate.regional.domain_validation_options : option.domain_name => {
       name   = option.resource_record_name
       record = option.resource_record_value
       type   = option.resource_record_type
     }
   }
-}
-
-resource "aws_route53_record" "acm_validation" {
-  for_each = local.acm_validation_records
 
   zone_id = local.route53_zone_id
   name    = each.value.name
@@ -84,7 +75,7 @@ resource "aws_acm_certificate_validation" "regional" {
   certificate_arn = aws_acm_certificate.regional.arn
   validation_record_fqdns = [
     for option in aws_acm_certificate.regional.domain_validation_options :
-    aws_route53_record.acm_validation[option.resource_record_name].fqdn
+    aws_route53_record.acm_validation[option.domain_name].fqdn
   ]
 }
 
@@ -94,6 +85,6 @@ resource "aws_acm_certificate_validation" "cloudfront" {
   certificate_arn = aws_acm_certificate.cloudfront.arn
   validation_record_fqdns = [
     for option in aws_acm_certificate.cloudfront.domain_validation_options :
-    aws_route53_record.acm_validation[option.resource_record_name].fqdn
+    aws_route53_record.acm_validation[option.domain_name].fqdn
   ]
 }
