@@ -3,11 +3,7 @@ import type { IntentSummary } from "@/entities/intent";
 import type { WorkflowDefinitionDetail, WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
 import {
   buildDomainPackRevisionSummary,
-  type IntentRevisionChange,
   type IntentRevisionSummary,
-  type WorkflowRevisionChange,
-  type RevisionChangedField,
-  type WorkflowRevisionChangedField,
 } from "@/shared/lib/domainPackRevisionSummary";
 import { intentRevisionDraftApi } from "../api/intentRevisionDraftApi";
 
@@ -17,7 +13,7 @@ export type {
   RevisionChangedField,
   WorkflowRevisionChange,
   WorkflowRevisionChangedField,
-};
+} from "@/shared/lib/domainPackRevisionSummary";
 
 export type IntentRevisionSummaryState =
   | { status: "idle" }

@@ -124,6 +124,30 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("변경된 구성 요소가 없습니다.")).toBeInTheDocument();
   });
 
+  it("revision summary 계산 중이면 구성 변경 로딩 문구를 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        isRevisionSummaryLoading
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("변경 요약 계산 중")).toBeInTheDocument();
+  });
+
+  it("revision summary 조회 실패 문구를 구성 변경 영역에 렌더링한다", () => {
+    render(
+      <SummaryJsonCard
+        summaryJson='{"draftSource":{"type":"INTENT_REVISION","baseVersionNo":2}}'
+        revisionSummaryError="도메인팩 변경 요약을 불러오지 못했습니다."
+      />,
+    );
+
+    expect(screen.getByText("구성 변경")).toBeInTheDocument();
+    expect(screen.getByText("도메인팩 변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
+  });
+
   it("빈 JSON 객체는 '내용 없음'을 표시한다", () => {
     render(<SummaryJsonCard summaryJson="{}" />);
     expect(screen.getByText("내용 없음")).toBeInTheDocument();

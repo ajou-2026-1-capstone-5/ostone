@@ -99,7 +99,7 @@ function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (!isRecord(value)) return JSON.stringify(value);
   return `{${Object.keys(value)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
     .join(",")}}`;
 }

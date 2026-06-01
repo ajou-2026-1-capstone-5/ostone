@@ -43,10 +43,10 @@ describe("useIntentRevisionSummary hook", () => {
     mockedListIntents
       .mockResolvedValueOnce([
         { id: 10, intentCode: "refund", name: "환불", description: "" },
-      ] as never)
+      ])
       .mockResolvedValueOnce([
         { id: 20, intentCode: "refund", name: "환불 문의", description: "새 설명" },
-      ] as never);
+      ]);
 
     const { result } = renderHook(() =>
       useIntentRevisionSummary({
@@ -83,8 +83,8 @@ describe("useIntentRevisionSummary hook", () => {
   it("base와 draft workflow를 조회해 workflow 변경 요약을 만든다", async () => {
     mockedListIntents.mockResolvedValue([]);
     mockedListWorkflows
-      .mockResolvedValueOnce([{ id: 10, workflowCode: "refund-flow" }] as never)
-      .mockResolvedValueOnce([{ id: 20, workflowCode: "refund-flow" }] as never);
+      .mockResolvedValueOnce([{ id: 10, workflowCode: "refund-flow" }])
+      .mockResolvedValueOnce([{ id: 20, workflowCode: "refund-flow" }]);
     mockedGetWorkflow
       .mockResolvedValueOnce({
         id: 10,
@@ -95,7 +95,7 @@ describe("useIntentRevisionSummary hook", () => {
           nodes: [{ id: "start", type: "START", label: "접수" }],
           edges: [],
         }),
-      } as never)
+      })
       .mockResolvedValueOnce({
         id: 20,
         workflowCode: "refund-flow",
@@ -105,7 +105,7 @@ describe("useIntentRevisionSummary hook", () => {
           nodes: [{ id: "start", type: "START", label: "상담 접수" }],
           edges: [],
         }),
-      } as never);
+      });
 
     const { result } = renderHook(() =>
       useIntentRevisionSummary({

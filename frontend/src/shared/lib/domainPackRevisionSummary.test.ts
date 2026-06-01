@@ -97,4 +97,51 @@ describe("buildDomainPackRevisionSummary", () => {
       edgeCount: 2,
     });
   });
+
+  it("그래프 JSON key 순서만 다른 workflow는 변경으로 계산하지 않는다", () => {
+    const summary = buildDomainPackRevisionSummary({
+      baseIntents: [],
+      draftIntents: [],
+      baseWorkflows: [
+        {
+          id: 1,
+          workflowCode: "refund-flow",
+          graphJson: JSON.stringify({
+            nodes: [{ id: "start", type: "START", label: "접수" }],
+            edges: [],
+          }),
+        },
+      ],
+      draftWorkflows: [
+        {
+          id: 2,
+          workflowCode: "refund-flow",
+          graphJson: JSON.stringify({
+            edges: [],
+            nodes: [{ label: "접수", type: "START", id: "start" }],
+          }),
+        },
+      ],
+    });
+
+    expect(summary.changedWorkflows).toHaveLength(0);
+    expect(summary.totalChangedComponents).toBe(0);
+  });
+
+  it("파싱할 수 없는 workflow graph도 원문 차이를 변경으로 계산한다", () => {
+    const summary = buildDomainPackRevisionSummary({
+      baseIntents: [],
+      draftIntents: [],
+      baseWorkflows: [{ id: 1, workflowCode: "refund-flow", graphJson: "old graph" }],
+      draftWorkflows: [{ id: 2, workflowCode: "refund-flow", graphJson: "new graph" }],
+    });
+
+    expect(summary.changedWorkflows[0]).toMatchObject({
+      workflowId: 2,
+      workflowCode: "refund-flow",
+      fields: ["graphText", "graphStructure"],
+      before: { nodeCount: null, edgeCount: null },
+      after: { nodeCount: null, edgeCount: null },
+    });
+  });
 });
