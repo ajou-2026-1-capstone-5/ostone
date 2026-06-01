@@ -1,4 +1,4 @@
-const DEFAULT_POST_LOGIN_PATH = "/workspaces";
+export const DEFAULT_POST_LOGIN_PATH = "/workspaces";
 const ALLOWED_RETURN_PREFIXES = [
   "/workspaces",
   "/demo/chat",
@@ -59,21 +59,25 @@ function extractSearch(location: ReturnLocation): string {
   return location.search.startsWith("?") ? location.search : "";
 }
 
-export function resolvePostLoginDestination(state: unknown): string {
+export function resolveReturnToPostLoginDestination(state: unknown): string | null {
   const location = extractReturnLocation(state);
   const pathname = location?.pathname;
 
   if (typeof pathname !== "string" || !pathname || isExternalUrl(pathname)) {
-    return DEFAULT_POST_LOGIN_PATH;
+    return null;
   }
 
   if (hasDotSegment(pathname)) {
-    return DEFAULT_POST_LOGIN_PATH;
+    return null;
   }
 
   if (!isAllowedPath(pathname)) {
-    return DEFAULT_POST_LOGIN_PATH;
+    return null;
   }
 
   return `${pathname}${extractSearch(location)}`;
+}
+
+export function resolvePostLoginDestination(state: unknown): string {
+  return resolveReturnToPostLoginDestination(state) ?? DEFAULT_POST_LOGIN_PATH;
 }

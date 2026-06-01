@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { resolvePostLoginDestination } from "./resolvePostLoginDestination";
+import {
+  DEFAULT_POST_LOGIN_PATH,
+  resolvePostLoginDestination,
+  resolveReturnToPostLoginDestination,
+} from "./resolvePostLoginDestination";
 
 describe("resolvePostLoginDestination", () => {
   it("allows /workspaces paths", () => {
@@ -30,30 +34,29 @@ describe("resolvePostLoginDestination", () => {
 
   it("falls back for auth routes", () => {
     expect(resolvePostLoginDestination({ from: { pathname: "/login" } })).toBe(
-      "/workspaces",
+      DEFAULT_POST_LOGIN_PATH,
     );
     expect(resolvePostLoginDestination({ from: { pathname: "/signup" } })).toBe(
-      "/workspaces",
+      DEFAULT_POST_LOGIN_PATH,
     );
+    expect(resolveReturnToPostLoginDestination({ from: { pathname: "/login" } })).toBeNull();
   });
 
   it("falls back for paths outside the workspace route boundary", () => {
-    expect(
-      resolvePostLoginDestination({ from: { pathname: "/workspaces-public" } }),
-    ).toBe("/workspaces");
+    expect(resolvePostLoginDestination({ from: { pathname: "/workspaces-public" } })).toBe(
+      DEFAULT_POST_LOGIN_PATH,
+    );
   });
 
   it("falls back for dot-segment workspace paths", () => {
-    expect(
-      resolvePostLoginDestination({
-        from: { pathname: "/workspaces/../login" },
-      }),
-    ).toBe("/workspaces");
+    expect(resolvePostLoginDestination({ from: { pathname: "/workspaces/../login" } })).toBe(
+      DEFAULT_POST_LOGIN_PATH,
+    );
     expect(
       resolvePostLoginDestination({
         from: { pathname: "/workspaces/%2e%2e/login" },
       }),
-    ).toBe("/workspaces");
+    ).toBe(DEFAULT_POST_LOGIN_PATH);
   });
 
   it("falls back for external URLs", () => {
@@ -61,17 +64,18 @@ describe("resolvePostLoginDestination", () => {
       resolvePostLoginDestination({
         from: { pathname: "https://example.com/workspaces" },
       }),
-    ).toBe("/workspaces");
+    ).toBe(DEFAULT_POST_LOGIN_PATH);
     expect(
       resolvePostLoginDestination({
         from: { pathname: "//example.com/workspaces" },
       }),
-    ).toBe("/workspaces");
+    ).toBe(DEFAULT_POST_LOGIN_PATH);
   });
 
   it("falls back when pathname is missing", () => {
-    expect(resolvePostLoginDestination(undefined)).toBe("/workspaces");
-    expect(resolvePostLoginDestination({ from: {} })).toBe("/workspaces");
+    expect(resolvePostLoginDestination(undefined)).toBe(DEFAULT_POST_LOGIN_PATH);
+    expect(resolvePostLoginDestination({ from: {} })).toBe(DEFAULT_POST_LOGIN_PATH);
+    expect(resolveReturnToPostLoginDestination(undefined)).toBeNull();
   });
 
   it("ignores malformed search values", () => {

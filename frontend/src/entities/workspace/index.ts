@@ -13,3 +13,4 @@ export {
   validateCreateWorkspaceForm,
   validateUpdateWorkspaceForm,
 } from "@/entities/workspace/model/types";
+export { selectDefaultWorkspace } from "@/entities/workspace/model/selectDefaultWorkspace";

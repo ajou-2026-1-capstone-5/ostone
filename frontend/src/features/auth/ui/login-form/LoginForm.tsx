@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Input } from "../../../../shared/ui/input/Input";
 import { Button } from "../../../../shared/ui/button/Button";
 import { loginApi } from "../../api/authApi";
-import { resolvePostLoginDestination } from "../../model/resolvePostLoginDestination";
+import { resolveDefaultPostLoginDestination } from "../../model/resolveDefaultPostLoginDestination";
+import { resolveReturnToPostLoginDestination } from "../../model/resolvePostLoginDestination";
 import { saveAuthSession } from "../../../../shared/lib/auth";
 import { ApiRequestError } from "../../../../shared/api";
 import styles from "./login-form.module.css";
@@ -57,10 +58,17 @@ export const LoginForm: React.FC = () => {
           tokenType: result.tokenType ?? "Bearer",
           expiresIn: result.expiresIn ?? 0,
         },
-        result.user as any,
+        {
+          id: result.user?.id ?? 0,
+          email: result.user?.email ?? email,
+          name: result.user?.name ?? email,
+          role: result.user?.role ?? "OPERATOR",
+        },
       );
 
-      navigate(resolvePostLoginDestination(location.state), { replace: true });
+      const returnToDestination = resolveReturnToPostLoginDestination(location.state);
+      const destination = returnToDestination ?? (await resolveDefaultPostLoginDestination());
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.code === "INVALID_CREDENTIALS") {
