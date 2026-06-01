@@ -6,6 +6,7 @@ import {
   getRefreshToken,
   isAuthenticated,
   saveAuthSession,
+  saveAuthTokens,
 } from "./auth";
 
 function toBase64Url(value: string): string {
@@ -73,6 +74,34 @@ describe("isAuthenticated", () => {
     expect(getAccessToken()).toBeNull();
     expect(getRefreshToken()).toBeNull();
     expect(getAuthUser()).toBeNull();
+  });
+
+  it("updates tokens while preserving stored auth user", () => {
+    saveAuthSession(
+      {
+        accessToken: "old-access-token",
+        refreshToken: "old-refresh-token",
+        tokenType: "Bearer",
+        expiresIn: 3600,
+      },
+      { id: 1, email: "admin@ostone.com", name: "관리자", role: "ADMIN" },
+    );
+
+    saveAuthTokens({
+      accessToken: "new-access-token",
+      refreshToken: "new-refresh-token",
+      tokenType: "Bearer",
+      expiresIn: 3600,
+    });
+
+    expect(getAccessToken()).toBe("new-access-token");
+    expect(getRefreshToken()).toBe("new-refresh-token");
+    expect(getAuthUser()).toEqual({
+      id: 1,
+      email: "admin@ostone.com",
+      name: "관리자",
+      role: "ADMIN",
+    });
   });
 
   it("returns null when stored auth user JSON is malformed", () => {
