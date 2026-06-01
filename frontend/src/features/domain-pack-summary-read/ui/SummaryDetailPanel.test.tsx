@@ -2,8 +2,15 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider, type UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { ApiRequestError } from "@/shared/api";
 import { SummaryDetailPanel } from "./SummaryDetailPanel";
+
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
+}));
 
 vi.mock("./SummaryJsonCard", () => ({
   SummaryJsonCard: ({ summaryJson }: { summaryJson: string }) => (
@@ -322,5 +329,47 @@ describe("SummaryDetailPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "삭제하기" }));
 
     expect(onDiscardDraft).toHaveBeenCalledWith(3);
+  });
+
+  it("PUBLISHED 버전은 운영 가능 배지를 렌더링하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel query={makeQuery({ data: publishedDetail })} wsId={1} packId={2} />,
+    );
+
+    expect(screen.queryByText("운영 가능")).not.toBeInTheDocument();
+  });
+
+  it("description이 있으면 우측에 연하게 렌더링한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: { ...stubDetail, description: "복원: v3 기준" } })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.getByText("복원: v3 기준")).toBeInTheDocument();
+  });
+
+  it("description이 없으면 설명 텍스트를 렌더링하지 않는다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: { ...stubDetail, description: undefined } })}
+        wsId={1}
+        packId={2}
+      />,
+    );
+
+    expect(screen.queryByText("복원: v3 기준")).not.toBeInTheDocument();
+  });
+
+  it("구성요소 상세 보기 버튼 클릭 시 intents 섹션으로 이동한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel query={makeQuery({ data: stubDetail })} wsId={1} packId={2} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "구성요소 상세 보기" }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(domainPackSectionPath(1, 2, 3, "intents"));
   });
 });

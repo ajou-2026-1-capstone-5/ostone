@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRightIcon } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
+import { domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
 import { ApiRequestError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
@@ -44,6 +47,7 @@ export function SummaryDetailPanel({
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
   const [isDiscardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const v = query.data;
   const versionId = v?.versionId;
   const isCurrentVersion = versionId != null && versionId === currentVersionId;
@@ -115,13 +119,9 @@ export function SummaryDetailPanel({
           <div className={styles.metaHeader}>
             <div className={styles.metaTitleRow}>
               <span className={styles.versionNoLabel}>v{v.versionNo}</span>
-              <span
-                className={`${styles.badge} ${
-                  v.lifecycleStatus === "PUBLISHED" ? styles.badgePublished : ""
-                }`}
-              >
-                {formatLifecycleStatus(v.lifecycleStatus)}
-              </span>
+              {v.lifecycleStatus !== "PUBLISHED" && (
+                <span className={styles.badge}>{formatLifecycleStatus(v.lifecycleStatus)}</span>
+              )}
               {isCurrentVersion && (
                 <span className={`${styles.badge} ${styles.badgeOperating}`}>배포중</span>
               )}
@@ -132,47 +132,50 @@ export function SummaryDetailPanel({
             <span className={styles.metaValue}>{formatDate(v.createdAt ?? "")}</span>
           </div>
         </div>
-        {isDraftVersion && versionId != null && (onApplyDraft || onDiscardDraft) ? (
-          <div className={styles.deployActions}>
-            {onDiscardDraft && (
-              <button
-                type="button"
-                className={`${styles.deployButton} ${styles.discardButton}`}
-                disabled={!canDiscardDraft}
-                onClick={() => {
-                  if (canDiscardDraft) setDiscardDialogOpen(true);
-                }}
-              >
-                {isDiscarding ? "삭제 중..." : "삭제"}
-              </button>
-            )}
-            {onApplyDraft && (
+        <div className={styles.metaSide}>
+          {v.description ? <p className={styles.versionDescription}>{v.description}</p> : null}
+          {isDraftVersion && versionId != null && (onApplyDraft || onDiscardDraft) ? (
+            <div className={styles.deployActions}>
+              {onDiscardDraft && (
+                <button
+                  type="button"
+                  className={`${styles.deployButton} ${styles.discardButton}`}
+                  disabled={!canDiscardDraft}
+                  onClick={() => {
+                    if (canDiscardDraft) setDiscardDialogOpen(true);
+                  }}
+                >
+                  {isDiscarding ? "삭제 중..." : "삭제"}
+                </button>
+              )}
+              {onApplyDraft && (
+                <button
+                  type="button"
+                  className={styles.deployButton}
+                  disabled={!canApplyDraft}
+                  onClick={() => {
+                    if (canApplyDraft) setApplyDialogOpen(true);
+                  }}
+                >
+                  {isApplying ? "적용 중..." : "적용"}
+                </button>
+              )}
+            </div>
+          ) : onDeploy && versionId != null ? (
+            <div className={styles.deployActions}>
               <button
                 type="button"
                 className={styles.deployButton}
-                disabled={!canApplyDraft}
+                disabled={!canDeploy}
                 onClick={() => {
-                  if (canApplyDraft) setApplyDialogOpen(true);
+                  if (canDeploy) setDeployDialogOpen(true);
                 }}
               >
-                {isApplying ? "적용 중..." : "적용"}
+                {isCurrentVersion ? "배포중" : isDeploying ? "배포 중..." : "배포"}
               </button>
-            )}
-          </div>
-        ) : onDeploy && versionId != null ? (
-          <div className={styles.deployActions}>
-            <button
-              type="button"
-              className={styles.deployButton}
-              disabled={!canDeploy}
-              onClick={() => {
-                if (canDeploy) setDeployDialogOpen(true);
-              }}
-            >
-              {isCurrentVersion ? "배포중" : isDeploying ? "배포 중..." : "배포"}
-            </button>
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <AlertDialog
@@ -304,7 +307,19 @@ export function SummaryDetailPanel({
       <SummaryJsonCard summaryJson={v.summaryJson ?? ""} />
 
       <div>
-        <div className={styles.sectionTitle}>구성요소</div>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>구성요소</div>
+          {versionId != null && (
+            <button
+              type="button"
+              className={styles.sectionArrowButton}
+              aria-label="구성요소 상세 보기"
+              onClick={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
+            >
+              <ChevronRightIcon aria-hidden />
+            </button>
+          )}
+        </div>
         {versionId != null && (
           <ComponentCountGrid
             wsId={wsId}

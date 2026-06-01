@@ -115,6 +115,25 @@
   border-color: var(--text-primary);
 }
 
+.metaSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+
+.versionDescription {
+  margin: 0;
+  max-width: 240px;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .deployActions {
   display: flex;
   align-items: center;
@@ -179,6 +198,45 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sectionHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+.sectionArrowButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.sectionArrowButton:hover {
+  color: var(--text-primary);
+}
+
+.sectionArrowButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sectionArrowButton svg {
+  width: 22px;
+  height: 22px;
 }
 
 .approvalCard {
