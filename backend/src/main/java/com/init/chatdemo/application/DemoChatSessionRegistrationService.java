@@ -7,13 +7,13 @@ import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.DuplicateException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
-import com.init.workflowruntime.application.exception.AiResponseInProgressException;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -43,6 +43,8 @@ public class DemoChatSessionRegistrationService {
   private static final Logger log =
       LoggerFactory.getLogger(DemoChatSessionRegistrationService.class);
   private static final String DEFAULT_CHANNEL = "WEB";
+  private static final String SESSION_NOT_FOUND_CODE = "SESSION_NOT_FOUND";
+  private static final String SESSION_NOT_FOUND_MESSAGE_PREFIX = "Session not found: ";
   private static final String AI_FALLBACK_MESSAGE =
       "죄송합니다. 현재 자동 응답 생성이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -113,7 +115,9 @@ public class DemoChatSessionRegistrationService {
     Optional<AiResponseGenerationGuard.Lease> lease = aiResponseGenerationGuard.tryEnter(sessionId);
     if (lease.isEmpty()) {
       ensureSessionBelongsToWorkspace(workspaceId, sessionId);
-      throw new AiResponseInProgressException();
+      throw new DuplicateException(
+          AiResponseGenerationGuard.IN_PROGRESS_CODE,
+          AiResponseGenerationGuard.IN_PROGRESS_MESSAGE);
     }
 
     try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
@@ -126,11 +130,9 @@ public class DemoChatSessionRegistrationService {
     ChatSession session =
         chatSessionRepository
             .findByIdForUpdate(sessionId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+            .orElseThrow(() -> sessionNotFound(sessionId));
     if (!workspaceId.equals(session.getWorkspaceId())) {
-      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId);
+      throw sessionNotFound(sessionId);
     }
 
     int nextSeqNo =
@@ -157,13 +159,9 @@ public class DemoChatSessionRegistrationService {
 
   private void ensureSessionBelongsToWorkspace(Long workspaceId, Long sessionId) {
     ChatSession session =
-        chatSessionRepository
-            .findById(sessionId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+        chatSessionRepository.findById(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
     if (!workspaceId.equals(session.getWorkspaceId())) {
-      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId);
+      throw sessionNotFound(sessionId);
     }
   }
 
@@ -171,13 +169,9 @@ public class DemoChatSessionRegistrationService {
     ChatSession session =
         chatSessionRepository
             .findById(command.getSessionId())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId()));
+            .orElseThrow(() -> sessionNotFound(command.getSessionId()));
     if (!command.getWorkspaceId().equals(session.getWorkspaceId())) {
-      throw new NotFoundException(
-          "SESSION_NOT_FOUND", "Session not found: " + command.getSessionId());
+      throw sessionNotFound(command.getSessionId());
     }
     return new ListDemoChatMessagesResult(
         chatMessageRepository.findByChatSessionIdOrderBySeqNoAsc(command.getSessionId()).stream()
@@ -190,6 +184,11 @@ public class DemoChatSessionRegistrationService {
       throw new BadRequestException("VALIDATION_ERROR", "customerName must not be blank");
     }
     return customerName.trim();
+  }
+
+  private NotFoundException sessionNotFound(Long sessionId) {
+    return new NotFoundException(
+        SESSION_NOT_FOUND_CODE, SESSION_NOT_FOUND_MESSAGE_PREFIX + sessionId);
   }
 
   private String normalizeMessageContent(String content) {

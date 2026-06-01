@@ -16,13 +16,13 @@ import com.init.chatdemo.application.dto.ListDemoChatMessagesResult;
 import com.init.domainpack.domain.model.DomainPackVersion;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.DuplicateException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
-import com.init.workflowruntime.application.exception.AiResponseInProgressException;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -197,10 +197,10 @@ class DemoChatSessionRegistrationServiceTest {
 
     try (AiResponseGenerationGuard.Lease ignored = lease.get()) {
       assertThatThrownBy(() -> service.appendMessage(WORKSPACE_ID, SESSION_ID, "추가 질문"))
-          .isInstanceOf(AiResponseInProgressException.class)
+          .isInstanceOf(DuplicateException.class)
           .satisfies(
               throwable ->
-                  assertThat(((AiResponseInProgressException) throwable).getCode())
+                  assertThat(((DuplicateException) throwable).getCode())
                       .isEqualTo(AiResponseGenerationGuard.IN_PROGRESS_CODE));
     }
 

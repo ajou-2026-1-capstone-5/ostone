@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class LlmResponseHandler {
 
   private static final Logger log = LoggerFactory.getLogger(LlmResponseHandler.class);
+  private static final String CHAT_TOPIC_PREFIX = "/topic/chat.";
 
   private final LlmAssistantService llmAssistantService;
   private final ChatMessageRepository chatMessageRepository;
@@ -81,7 +82,7 @@ public class LlmResponseHandler {
       ChatMessageResponse errorResponse =
           ChatMessageResponse.error("LLM_ERROR", "죄송합니다. 일시적인 오류가 발생했습니다.");
       if (allowsAiAutoResponse(event.sessionId())) {
-        messagingTemplate.convertAndSend("/topic/chat." + event.sessionId(), errorResponse);
+        messagingTemplate.convertAndSend(CHAT_TOPIC_PREFIX + event.sessionId(), errorResponse);
       }
     }
   }
@@ -100,7 +101,7 @@ public class LlmResponseHandler {
     }
 
     ChatMessageResponse response = ChatMessageResponse.from(savedMessage.get());
-    String destination = "/topic/chat." + event.sessionId();
+    String destination = CHAT_TOPIC_PREFIX + event.sessionId();
     messagingTemplate.convertAndSend(destination, response);
   }
 
@@ -109,7 +110,7 @@ public class LlmResponseHandler {
         ChatMessageResponse.error(
             AiResponseGenerationGuard.IN_PROGRESS_CODE,
             AiResponseGenerationGuard.IN_PROGRESS_MESSAGE);
-    messagingTemplate.convertAndSend("/topic/chat." + sessionId, response);
+    messagingTemplate.convertAndSend(CHAT_TOPIC_PREFIX + sessionId, response);
   }
 
   private Optional<String> loadConversationContextIfAutoResponseEnabled(
