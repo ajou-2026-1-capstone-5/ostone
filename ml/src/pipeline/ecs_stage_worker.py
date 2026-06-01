@@ -6,6 +6,7 @@ import importlib
 import logging
 import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -44,7 +45,7 @@ class StageWorkerError(RuntimeError):
 def run_worker() -> dict[str, Any]:
     stage_name = _required_env("PIPELINE_STAGE_NAME")
     result_uri = _required_env("PIPELINE_STAGE_RESULT_URI")
-    scratch_root = Path(os.getenv("PIPELINE_STAGE_SCRATCH_ROOT", "/tmp/ostone-stage-worker"))
+    scratch_root = _scratch_root()
     artifact_root = scratch_root / "artifacts"
     artifact_root.mkdir(parents=True, exist_ok=True)
     os.environ["PIPELINE_ARTIFACT_ROOT"] = str(artifact_root)
@@ -62,7 +63,7 @@ def run_worker() -> dict[str, Any]:
     result = stage_callable(local_upstream) or {}
     local_manifest_path = _artifact_manifest_path(result)
     manifest_uri = (
-        manifest_s3_uri_from_local_manifest(local_manifest_path)
+        manifest_s3_uri_from_local_manifest(local_manifest_path, allowed_root=artifact_root)
         if runtime_config.artifact_store == "s3" or is_s3_uri(upstream_manifest)
         else str(local_manifest_path)
     )
@@ -103,6 +104,13 @@ def _required_env(name: str) -> str:
     return value
 
 
+def _scratch_root() -> Path:
+    configured = os.getenv("PIPELINE_STAGE_SCRATCH_ROOT", "").strip()
+    if configured:
+        return Path(configured)
+    return Path(tempfile.mkdtemp(prefix="ostone-stage-worker-"))
+
+
 def _optional_env(name: str) -> str | None:
     value = os.getenv(name, "").strip()
     return value or None
@@ -110,7 +118,7 @@ def _optional_env(name: str) -> str | None:
 
 def _materialize_optional_file_env(name: str, target_dir: Path) -> None:
     value = _optional_env(name)
-    if not is_s3_uri(value):
+    if value is None or not is_s3_uri(value):
         return
     target_path = target_dir / Path(value.rsplit("/", 1)[-1]).name
     download_s3_uri(value, target_path)

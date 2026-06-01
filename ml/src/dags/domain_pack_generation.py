@@ -14,7 +14,7 @@ from typing import Any
 from airflow.exceptions import AirflowSkipException
 from airflow.sdk import dag, get_current_context, task
 
-from pipeline.common.artifact_io import is_s3_uri, read_json_uri, write_json_uri
+from pipeline.common.artifact_io import is_s3_uri, read_json_file, read_json_uri, write_json_uri
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.callbacks import post_callback
 from pipeline.common.config import PipelineRuntimeConfig
@@ -222,7 +222,7 @@ def _materialize_replay_manifest(upstream_manifest_path: Path) -> dict[str, str]
         pipeline_job_id=_context_value(context, "pipeline_job_id"),
     )
     runtime_config = PipelineRuntimeConfig.from_env()
-    upstream_manifest = _load_manifest(upstream_manifest_path)
+    upstream_manifest = _load_manifest(upstream_manifest_path, runtime_config)
     source_representation_dir = upstream_manifest_path.parent
     source_preprocessing_dir = source_representation_dir.parent / "preprocessing"
     target_representation_dir = stage_context.artifact_dir(runtime_config)
@@ -306,15 +306,15 @@ def _post_checkpoint_callback(
     return {"artifact_manifest_path": upstream_manifest_path}
 
 
-def _load_manifest(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise PipelineConfigurationError(f"JSON payload must be an object: {path}")
-    return payload
+def _load_manifest(path: Path, runtime_config: PipelineRuntimeConfig | None = None) -> dict[str, Any]:
+    artifact_root = (runtime_config or PipelineRuntimeConfig.from_env()).artifact_root
+    return read_json_file(path, allowed_root=artifact_root)
 
 
 def _load_manifest_uri(uri: str) -> dict[str, Any]:
-    return read_json_uri(uri) if is_s3_uri(uri) else _load_manifest(Path(uri))
+    if is_s3_uri(uri):
+        return read_json_uri(uri)
+    return _load_manifest(Path(uri))
 
 
 def _resolve_artifact_uri(manifest_uri: str, artifact_name: str) -> str:

@@ -203,7 +203,12 @@ def _container_environment(
         "PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH": _env("PIPELINE_CONFIRMED_DOMAIN_PROFILE_PATH"),
         "PIPELINE_FEEDBACK_CONSTRAINTS_PATH": _env("PIPELINE_FEEDBACK_CONSTRAINTS_PATH"),
     }
-    return [{"name": key, "value": value} for key, value in values.items() if value not in (None, "")]
+    environment: list[dict[str, str]] = []
+    for key, value in values.items():
+        if value is None or value == "":
+            continue
+        environment.append({"name": key, "value": value})
+    return environment
 
 
 def _placement_for_stage(ecs_config: EcsStageTaskConfig, stage_name: str) -> dict[str, Any]:

@@ -51,8 +51,8 @@ def stage_manifest_s3_uri(stage_context: StageContext, runtime_config: PipelineR
     return f"s3://{runtime_config.artifact_bucket}/{stage_s3_prefix(stage_context, runtime_config)}/manifest.json"
 
 
-def manifest_s3_uri_from_local_manifest(manifest_path: Path) -> str:
-    manifest = read_json_file(manifest_path)
+def manifest_s3_uri_from_local_manifest(manifest_path: Path, *, allowed_root: Path | None = None) -> str:
+    manifest = read_json_file(manifest_path, allowed_root=allowed_root)
     bucket = _required_manifest_str(manifest, "artifact_bucket", manifest_path)
     prefix = _optional_manifest_str(manifest, "artifact_prefix") or ""
     stage_context = StageContext(
@@ -111,10 +111,11 @@ def download_s3_prefix(bucket: str, prefix: str, target_dir: Path, *, strip_pref
                 continue
             local_path = target_dir / _relative_key_path(_strip_prefix(key, strip_prefix))
             local_path.parent.mkdir(parents=True, exist_ok=True)
-            download_kwargs: dict[str, Any] = (
-                {"ExtraArgs": {"ExpectedBucketOwner": expected_owner}} if expected_owner else {}
-            )
-            s3.download_file(bucket, key, str(local_path), **download_kwargs)
+            get_kwargs: dict[str, Any] = {"Bucket": bucket, "Key": key}
+            if expected_owner:
+                get_kwargs["ExpectedBucketOwner"] = expected_owner
+            response = s3.get_object(**get_kwargs)
+            local_path.write_bytes(response["Body"].read())
         if not response.get("IsTruncated"):
             break
         token = response.get("NextContinuationToken")
@@ -143,7 +144,7 @@ def write_json_uri(uri: str, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def read_json_uri(uri: str) -> dict[str, Any]:
+def read_json_uri(uri: str, *, allowed_root: Path | None = None) -> dict[str, Any]:
     if is_s3_uri(uri):
         s3_uri = S3Uri.parse(uri)
         kwargs: dict[str, Any] = {"Bucket": s3_uri.bucket, "Key": s3_uri.key}
@@ -153,7 +154,7 @@ def read_json_uri(uri: str) -> dict[str, Any]:
         response = boto3.client("s3").get_object(**kwargs)
         payload = json.loads(response["Body"].read().decode("utf-8"))
     else:
-        payload = read_json_file(Path(uri))
+        payload = read_json_file(Path(uri), allowed_root=allowed_root)
     if not isinstance(payload, dict):
         raise PipelineConfigurationError(f"JSON URI must contain an object: {uri}")
     return payload
@@ -162,19 +163,33 @@ def read_json_uri(uri: str) -> dict[str, Any]:
 def download_s3_uri(uri: str, target_path: Path) -> Path:
     s3_uri = S3Uri.parse(uri)
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    kwargs: dict[str, Any] = {}
+    kwargs: dict[str, Any] = {"Bucket": s3_uri.bucket, "Key": s3_uri.key}
     expected_owner = _expected_bucket_owner()
     if expected_owner:
-        kwargs["ExtraArgs"] = {"ExpectedBucketOwner": expected_owner}
-    boto3.client("s3").download_file(s3_uri.bucket, s3_uri.key, str(target_path), **kwargs)
+        kwargs["ExpectedBucketOwner"] = expected_owner
+    response = boto3.client("s3").get_object(**kwargs)
+    target_path.write_bytes(response["Body"].read())
     return target_path
 
 
-def read_json_file(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+def read_json_file(path: Path, *, allowed_root: Path | None = None) -> dict[str, Any]:
+    safe_path = _safe_local_file_path(path, allowed_root=allowed_root)
+    payload = json.loads(safe_path.read_text(encoding="utf-8"))  # NOSONAR: validated artifact path.
     if not isinstance(payload, dict):
-        raise PipelineConfigurationError(f"JSON file must contain an object: {path}")
+        raise PipelineConfigurationError(f"JSON file must contain an object: {safe_path}")
     return payload
+
+
+def _safe_local_file_path(path: Path, *, allowed_root: Path | None = None) -> Path:
+    resolved = path.expanduser().resolve()
+    root = (allowed_root or resolved.parent).expanduser().resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise PipelineConfigurationError(f"JSON file must be under the allowed artifact root: {root}") from exc
+    if resolved.name in {"", ".", ".."}:
+        raise PipelineConfigurationError(f"Unsafe JSON file path: {path}")
+    return resolved
 
 
 def _run_prefix_from_manifest_key(key: str, runtime_config: PipelineRuntimeConfig) -> str:
