@@ -222,7 +222,7 @@ describe("LogUploadForm", () => {
     expect(mockTriggerMutate).toHaveBeenCalledWith({ workspaceId: 1, datasetId: 42 });
   });
 
-  it("shows domain pack link after generation request succeeds", () => {
+  it("shows review CTA after generation request succeeds with pipeline job id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["data"], "data.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
@@ -238,6 +238,26 @@ describe("LogUploadForm", () => {
 
     expect(screen.getByText("생성 요청 완료")).toBeInTheDocument();
     expect(screen.getByText(/job 11 · REQUESTED/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("검토 화면으로 이동"));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/pipeline-jobs/11/review");
+
+    fireEvent.click(screen.getByText("도메인팩 보기"));
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
+  });
+
+  it("keeps domain pack fallback when generation response has no pipeline job id", () => {
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.json", { type: "application/json" });
+    const input = screen.getByTestId("file-input");
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByText("처리 시작"));
+    fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
+    act(() => {
+      callTriggerOnSuccess?.({ status: "REQUESTED" }, { workspaceId: 1, datasetId: 42 });
+    });
+
+    expect(screen.getByText("생성 요청 완료")).toBeInTheDocument();
+    expect(screen.queryByText("검토 화면으로 이동")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("도메인팩 보기"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
   });
