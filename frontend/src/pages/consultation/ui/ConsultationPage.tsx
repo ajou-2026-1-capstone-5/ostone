@@ -23,7 +23,12 @@ import type {
   ConsultationQueueEvent,
   ResolutionOutcome,
 } from "../../../features/consultation/api/consultationApi";
-import { CustomerPanel } from "./sections/CustomerPanel";
+import {
+  CustomerPanel,
+  type CustomerExtractedInfo,
+  type CustomerInfo,
+  type CustomerOrderInfo,
+} from "./sections/CustomerPanel";
 import { MatchedWorkflowBar, MatchedWorkflowBarSkeleton } from "./sections/MatchedWorkflowBar";
 import { MessageDetailPanel } from "../../../features/consultation/ui/MessageDetailPanel";
 import {
@@ -65,6 +70,16 @@ type PendingMessage = {
 
 type SessionMeta = {
   customerName?: string;
+  membershipTier?: string;
+  contact?: string;
+  email?: string;
+  customerInfo?: {
+    membershipTier?: string | null;
+    contact?: string | null;
+    email?: string | null;
+  };
+  orderInfo?: CustomerOrderInfo | null;
+  extractedInfo?: CustomerExtractedInfo | null;
   handoffRequired?: boolean;
   handoffReason?: string;
   handoffAt?: string;
@@ -74,6 +89,14 @@ type SessionMeta = {
   lastMessageRole?: string;
   lastMessageAt?: string;
 };
+
+type QueueCustomerPanelData = {
+  customerInfo: Pick<CustomerInfo, "membershipTier" | "contact" | "email">;
+  orderInfo: CustomerOrderInfo | null;
+  extractedInfo: CustomerExtractedInfo | null;
+};
+
+type QueueCustomerWithPanelData = QueueCustomer & QueueCustomerPanelData;
 
 const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
 
@@ -270,6 +293,21 @@ const parseSessionMeta = (metaJson?: string | null): SessionMeta => {
   }
 };
 
+const normalizePanelText = (value?: string | null) => {
+  const normalized = value?.trim();
+  return normalized || undefined;
+};
+
+const buildCustomerPanelData = (meta: SessionMeta): QueueCustomerPanelData => ({
+  customerInfo: {
+    membershipTier: normalizePanelText(meta.customerInfo?.membershipTier ?? meta.membershipTier),
+    contact: normalizePanelText(meta.customerInfo?.contact ?? meta.contact),
+    email: normalizePanelText(meta.customerInfo?.email ?? meta.email),
+  },
+  orderInfo: meta.orderInfo ?? null,
+  extractedInfo: meta.extractedInfo ?? null,
+});
+
 const getSessionStatusLabel = (
   status?: string | null,
   assignedCounselorId?: number | null,
@@ -347,10 +385,12 @@ const getQueueSortTime = (customer: QueueCustomer) => {
 const toQueueCustomer = (
   session: ChatSession,
   currentCounselorId: number | null,
-  previous?: QueueCustomer,
+  previous?: QueueCustomerWithPanelData,
   options?: { hasUnread?: boolean },
-): QueueCustomer => {
+): QueueCustomerWithPanelData => {
   const meta = parseSessionMeta(session.metaJson);
+  const panelData = buildCustomerPanelData(meta);
+  const hasSessionMetaJson = session.metaJson !== undefined && session.metaJson !== null;
   const assignedCounselorId =
     session.assignedCounselorId !== undefined
       ? session.assignedCounselorId
@@ -395,10 +435,19 @@ const toQueueCustomer = (
     assignedCounselorId,
     responseMode,
     startedAt,
+    customerInfo: {
+      membershipTier: hasSessionMetaJson
+        ? panelData.customerInfo.membershipTier
+        : previous?.customerInfo.membershipTier,
+      contact: hasSessionMetaJson ? panelData.customerInfo.contact : previous?.customerInfo.contact,
+      email: hasSessionMetaJson ? panelData.customerInfo.email : previous?.customerInfo.email,
+    },
+    orderInfo: hasSessionMetaJson ? panelData.orderInfo : (previous?.orderInfo ?? null),
+    extractedInfo: hasSessionMetaJson ? panelData.extractedInfo : (previous?.extractedInfo ?? null),
   };
 };
 
-const sortQueueCustomers = (customers: QueueCustomer[]) =>
+const sortQueueCustomers = (customers: QueueCustomerWithPanelData[]) =>
   [...customers].sort((a, b) => {
     const aIsHandoff = a.handoffRequired === true;
     const bIsHandoff = b.handoffRequired === true;
@@ -412,7 +461,7 @@ const sortQueueCustomers = (customers: QueueCustomer[]) =>
   });
 
 const replaceAssignedQueueCustomer = (
-  customers: QueueCustomer[],
+  customers: QueueCustomerWithPanelData[],
   sessionId: string,
   assignedSession: ChatSession,
   currentCounselorId: number,
@@ -506,7 +555,7 @@ export const ConsultationPage: React.FC = () => {
     (Number.isInteger(routeSessionIdNumber) && Number(routeSessionIdNumber) > 0);
   const normalizedRouteSessionId =
     routeSessionIdParam && isRouteSessionIdValid ? String(routeSessionIdNumber) : null;
-  const [queue, setQueue] = useState<QueueCustomer[]>([]);
+  const [queue, setQueue] = useState<QueueCustomerWithPanelData[]>([]);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [messagesCustomerId, setMessagesCustomerId] = useState<string | null>(null);
@@ -1476,9 +1525,14 @@ export const ConsultationPage: React.FC = () => {
                       handoffRequired: activeCustomer.handoffRequired,
                       handoffReason: activeCustomer.handoffReason,
                       handoffAt: activeCustomer.handoffAt,
+                      membershipTier: activeCustomer.customerInfo.membershipTier,
+                      contact: activeCustomer.customerInfo.contact,
+                      email: activeCustomer.customerInfo.email,
                     }
                   : null
               }
+              orderInfo={activeCustomer?.orderInfo ?? null}
+              extractedInfo={activeCustomer?.extractedInfo ?? null}
               memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
               onMemoChange={(val) => {
                 if (activeCustomerId) {
