@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -17,6 +17,7 @@ vi.mock("../api/pipelineReviewApi", () => ({
 const mockedUseCheckpoint = vi.mocked(usePipelineReviewCheckpoint);
 const mockedUseConfirmDomain = vi.mocked(useConfirmPipelineDomain);
 const mockedUseSubmitFeedback = vi.mocked(useSubmitPipelineFeedback);
+const feedbackDraftKey = "ostone:pipeline-review:feedback-draft:1:7";
 
 function renderCard(props: { workspaceId?: number; pipelineJobId?: number } = { workspaceId: 1, pipelineJobId: 7 }) {
   return render(
@@ -27,6 +28,7 @@ function renderCard(props: { workspaceId?: number; pipelineJobId?: number } = { 
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   mockedUseCheckpoint.mockReset();
   mockedUseConfirmDomain.mockReset();
   mockedUseSubmitFeedback.mockReset();
@@ -187,7 +189,89 @@ describe("PipelineReviewCheckpointCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "분리하기" }));
     fireEvent.click(screen.getByRole("button", { name: "피드백 반영 후 replay" }));
 
-    expect(mutate).toHaveBeenCalledWith([{ reviewTaskId: 201, decisionType: "cannot_link" }]);
+    expect(mutate.mock.calls[0]?.[0]).toEqual([{ reviewTaskId: 201, decisionType: "cannot_link" }]);
+  });
+
+  it("restores saved feedback choices for the current pipeline job", async () => {
+    window.localStorage.setItem(feedbackDraftKey, JSON.stringify({ 201: "cannot_link" }));
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: createHumanFeedbackCheckpoint([201]),
+    } as never);
+
+    renderCard();
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "분리하기" })).toHaveAttribute("aria-pressed", "true"));
+    expect(screen.getByRole("button", { name: "피드백 반영 후 replay" })).not.toBeDisabled();
+  });
+
+  it("keeps submit disabled until every open feedback task is answered", async () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: createHumanFeedbackCheckpoint([201, 202]),
+    } as never);
+
+    renderCard();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "분리하기" })[0]);
+
+    await waitFor(() => expect(screen.getByText("1/2 answered")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "피드백 반영 후 replay" })).toBeDisabled();
+  });
+
+  it("stores feedback choices and warns before leaving with unsent feedback", async () => {
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: createHumanFeedbackCheckpoint([201]),
+    } as never);
+
+    renderCard();
+
+    fireEvent.click(screen.getByRole("button", { name: "판단 보류" }));
+
+    await waitFor(() => expect(window.localStorage.getItem(feedbackDraftKey)).toBe(JSON.stringify({ 201: "unsure" })));
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("clears saved feedback choices after successful submission", async () => {
+    const mutate = vi.fn();
+    mockedUseSubmitFeedback.mockReturnValue({ isPending: false, mutate } as never);
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: createHumanFeedbackCheckpoint([201]),
+    } as never);
+
+    renderCard();
+
+    fireEvent.click(screen.getByRole("button", { name: "같은 intent로 묶기" }));
+    fireEvent.click(screen.getByRole("button", { name: "피드백 반영 후 replay" }));
+
+    await waitFor(() => expect(window.localStorage.getItem(feedbackDraftKey)).toBe(JSON.stringify({ 201: "must_link" })));
+
+    mutate.mock.calls[0]?.[1]?.onSuccess?.(undefined, [], undefined);
+
+    expect(window.localStorage.getItem(feedbackDraftKey)).toBeNull();
+  });
+
+  it("clears stale feedback draft outside human feedback checkpoints", async () => {
+    window.localStorage.setItem(feedbackDraftKey, JSON.stringify({ 201: "cannot_link" }));
+    mockedUseCheckpoint.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { pipelineJobId: 7, pipelineStatus: "SUCCEEDED", reviewKind: null, tasks: [] },
+    } as never);
+
+    renderCard();
+
+    await waitFor(() => expect(window.localStorage.getItem(feedbackDraftKey)).toBeNull());
   });
 
   it("renders feedback reason labels and empty evidence fallback", () => {
@@ -299,3 +383,30 @@ describe("PipelineReviewCheckpointCard", () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 });
+
+function createHumanFeedbackCheckpoint(taskIds: number[]) {
+  return {
+    pipelineJobId: 7,
+    pipelineStatus: "WAITING_HUMAN_FEEDBACK",
+    reviewKind: "HUMAN_FEEDBACK",
+    tasks: taskIds.map((id) => ({
+      id,
+      targetType: "FEEDBACK_PAIR",
+      status: "OPEN",
+      priority: "NORMAL",
+      title: "이 두 상담은 같은 업무인가?",
+      payload: {
+        questionText: "이 두 상담은 같은 업무인가?",
+        reason: "low_confidence_cluster_boundary",
+        sourceReviewContext: {
+          conversationId: `A-${id}`,
+          summary: "카드 분실 후 정지 요청",
+        },
+        targetReviewContext: {
+          conversationId: `B-${id}`,
+          summary: "카드 결제 한도 상향 요청",
+        },
+      },
+    })),
+  };
+}
