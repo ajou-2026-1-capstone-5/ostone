@@ -307,12 +307,37 @@ describe("ChatHistoryPage", () => {
     expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("7");
   });
 
-  it("URL의 sessionId가 현재 워크스페이스 목록에 없으면 메시지를 조회하지 않고 안내한다", () => {
+  it("URL의 sessionId가 현재 목록 페이지에 없어도 메시지 조회를 시도한다", async () => {
+    mockMessagePageForSession(
+      "999",
+      makeMessagePageResult({ data: [makeMessage({ content: "직접 진입 상세입니다" })] }),
+    );
+
     renderPage("/workspaces/1/consultation/history/999");
 
-    expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("");
-    expect(
-      screen.getByText("현재 워크스페이스에서 해당 상담 세션을 찾을 수 없습니다"),
-    ).toBeTruthy();
+    expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("999");
+    expect(await screen.findByText("직접 진입 상세입니다")).toBeTruthy();
+  });
+
+  it("현재 목록 로딩 중에도 URL sessionId로 메시지 조회를 시도한다", () => {
+    mockedUseChatSessions.mockReturnValue(makeSessionsResult({ isLoading: true }));
+
+    renderPage("/workspaces/1/consultation/history/999");
+
+    expect(mockedUseChatMessagePage).toHaveBeenLastCalledWith("999");
+  });
+
+  it("URL sessionId의 메시지 조회가 실패하면 오류 상태를 표시한다", () => {
+    const refetch = vi.fn();
+    mockMessagePageForSession(
+      "999",
+      makeMessagePageResult({ isError: true, error: new Error("세션을 찾을 수 없습니다"), refetch }),
+    );
+
+    renderPage("/workspaces/1/consultation/history/999");
+
+    expect(screen.getByText("세션을 찾을 수 없습니다")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(refetch).toHaveBeenCalled();
   });
 });

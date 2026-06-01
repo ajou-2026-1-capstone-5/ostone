@@ -62,19 +62,6 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
     size: PAGE_SIZE,
   });
   const sessions = useMemo(() => sessionPage?.content ?? [], [sessionPage?.content]);
-  const selectableSessionIds = useMemo(
-    () =>
-      new Set(sessions.filter((session) => session.id != null).map((session) => String(session.id))),
-    [sessions],
-  );
-  const hasSelectedSession =
-    selectedSessionId !== null && selectableSessionIds.has(selectedSessionId);
-  const isSelectionPending = selectedSessionId !== null && isLoading;
-  const missingSessionId =
-    selectedSessionId !== null && !isLoading && !isError && !hasSelectedSession
-      ? selectedSessionId
-      : null;
-
   const handleSelectSession = (sessionId: string) => {
     if (workspaceId === null) return;
     const query = searchParams.toString();
@@ -168,11 +155,7 @@ export function ChatHistoryPage({ workspaceId: workspaceIdProp }: ChatHistoryPag
         onRetry={refetch}
       />
       <div className={styles.contentPane}>
-        <MessageHistory
-          sessionId={hasSelectedSession ? selectedSessionId : null}
-          isSelectionPending={isSelectionPending}
-          missingSessionId={missingSessionId}
-        />
+        <MessageHistory sessionId={selectedSessionId} />
       </div>
     </main>
   );
