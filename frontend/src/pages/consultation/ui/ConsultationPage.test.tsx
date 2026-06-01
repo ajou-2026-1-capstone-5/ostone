@@ -129,6 +129,11 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
         createdAt: new Date().toISOString(),
       }),
     ),
+    generateDraftResponse: vi.fn(() =>
+      Promise.resolve({
+        content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      }),
+    ),
   },
 }));
 
@@ -605,6 +610,66 @@ describe("ConsultationPage", () => {
         },
         { timeout: 1500 },
       );
+    });
+
+    it("inserts a matched workflow draft into the message input without sending it", async () => {
+      vi.mocked(getCurrentWorkflow).mockResolvedValueOnce(matchedPayload);
+      vi.mocked(consultationApi.generateDraftResponse).mockResolvedValueOnce({
+        content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      });
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("답변 초안 삽입")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+      await waitFor(() => {
+        expect(consultationApi.generateDraftResponse).toHaveBeenCalledWith(1);
+      });
+      expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue(
+        "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      );
+      expect(mockSendTo).not.toHaveBeenCalledWith(
+        "/app/chat.counselor.send",
+        expect.objectContaining({ content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다." }),
+      );
+    });
+
+    it("keeps the existing input and shows a toast when draft generation fails", async () => {
+      vi.mocked(getCurrentWorkflow).mockResolvedValueOnce(matchedPayload);
+      vi.mocked(consultationApi.generateDraftResponse).mockRejectedValueOnce(
+        new Error("draft failed"),
+      );
+
+      render(<ConsultationPage />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("김민지")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText("김민지"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("답변 초안 삽입")).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText("메시지를 입력하세요...");
+      await userEvent.type(input, "기존 작성 내용");
+      fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "답변 초안을 생성하지 못했습니다. 기존 입력 내용은 유지됩니다.",
+        );
+      });
+      expect(input).toHaveValue("기존 작성 내용");
     });
   });
 

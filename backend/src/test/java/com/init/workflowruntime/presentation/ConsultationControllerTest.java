@@ -17,10 +17,13 @@ import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.ConsultationService;
+import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GenerateDraftResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
@@ -51,6 +54,8 @@ import org.springframework.test.web.servlet.MockMvc;
     addFilters = false) // Disable spring security filters for simple controller test
 class ConsultationControllerTest {
 
+  private static final String DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 가능 여부를 안내드리겠습니다.";
+
   @Autowired private MockMvc mockMvc;
 
   @Autowired private ObjectMapper objectMapper;
@@ -62,6 +67,10 @@ class ConsultationControllerTest {
   @SuppressWarnings("removal")
   @MockBean
   private LlmToolService llmToolService;
+
+  @SuppressWarnings("removal")
+  @MockBean
+  private CounselorDraftResponseService counselorDraftResponseService;
 
   @Test
   @DisplayName("GET /api/v1/consultation/sessions/{id}/messages - 메시지 조회 성공")
@@ -310,6 +319,36 @@ class ConsultationControllerTest {
                 .principal(auth()))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/draft-response - 답변 초안 반환")
+  void should_답변초안반환_when_매칭워크플로우존재() throws Exception {
+    // given
+    given(counselorDraftResponseService.generateDraft(new GenerateDraftResponseCommand(1L)))
+        .willReturn(new GenerateWorkflowAwareResponseResult(DRAFT_RESPONSE));
+
+    // when & then
+    mockMvc
+        .perform(post("/api/v1/consultation/sessions/1/draft-response"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").value(DRAFT_RESPONSE));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/consultation/sessions/{id}/draft-response - 매칭 워크플로우 없음 → 400")
+  void should_400반환_when_답변초안_매칭워크플로우없음() throws Exception {
+    // given
+    given(counselorDraftResponseService.generateDraft(new GenerateDraftResponseCommand(1L)))
+        .willThrow(
+            new BadRequestException(
+                "MATCHED_WORKFLOW_NOT_FOUND", "Matched workflow not found for session: 1"));
+
+    // when & then
+    mockMvc
+        .perform(post("/api/v1/consultation/sessions/1/draft-response"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("MATCHED_WORKFLOW_NOT_FOUND"));
   }
 
   @Test

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 
 const baseMessages: ChatMessage[] = [
@@ -98,6 +98,63 @@ describe("ChatPanel", () => {
 
     expect(onSendMessage).toHaveBeenCalledWith("처리 도와드리겠습니다.", false);
     expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue("");
+  });
+
+  it("답변 초안을 입력창에 삽입하되 자동 전송하지 않는다", async () => {
+    const onSendMessage = vi.fn();
+    const onInsert = vi.fn(() => Promise.resolve("주문번호를 확인해주시면 환불 상태를 안내드리겠습니다."));
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={onSendMessage}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        draftResponseAction={{ isLoading: false, onInsert }}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toHaveValue(
+        "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
+      );
+    });
+    expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it("답변 초안 생성 실패 시 기존 입력값을 유지한다", async () => {
+    const onInsert = vi.fn(() => Promise.reject(new Error("draft failed")));
+
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+        draftResponseAction={{ isLoading: false, onInsert }}
+      />,
+    );
+
+    const input = screen.getByPlaceholderText("메시지를 입력하세요...");
+    fireEvent.change(input, { target: { value: "기존 작성 내용" } });
+    fireEvent.click(screen.getByLabelText("답변 초안 삽입"));
+
+    await waitFor(() => {
+      expect(onInsert).toHaveBeenCalled();
+    });
+    expect(input).toHaveValue("기존 작성 내용");
+  });
+
+  it("답변 초안 액션이 없으면 초안 삽입 버튼을 숨긴다", () => {
+    renderChatPanel();
+
+    expect(screen.queryByLabelText("답변 초안 삽입")).not.toBeInTheDocument();
   });
 
   it("세션 상태 라벨을 헤더에 표시한다", () => {

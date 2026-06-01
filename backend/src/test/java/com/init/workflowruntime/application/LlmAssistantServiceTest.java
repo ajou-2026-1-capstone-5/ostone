@@ -25,6 +25,8 @@ import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
 @SuppressWarnings({"unchecked", "rawtypes"})
 class LlmAssistantServiceTest {
 
+  private static final String COUNSELOR_DRAFT_RESPONSE = "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.";
+
   @Mock private ChatClient chatClient;
   @Mock private ChatClientRequestSpec promptSpec;
   @Mock private CallResponseSpec callSpec;
@@ -100,5 +102,24 @@ class LlmAssistantServiceTest {
         .containsEntry("sessionId", 7L)
         .containsEntry("conversationContext", "")
         .containsEntry("latestUserMessage", "");
+  }
+
+  @Test
+  @DisplayName("generateCounselorDraftResponse: 도구 호출 없이 상담사 검토용 초안을 생성한다")
+  void should_generateCounselorDraftWithoutTools() {
+    given(chatClient.prompt()).willReturn(promptSpec);
+    given(promptSpec.user(any(Consumer.class))).willReturn(promptSpec);
+    given(promptSpec.call()).willReturn(callSpec);
+    given(callSpec.content()).willReturn(COUNSELOR_DRAFT_RESPONSE);
+
+    String result =
+        service
+            .generateCounselorDraftResponse(
+                "환불 워크플로우 (REFUND_FLOW)", "COLLECT_INFO", "CUSTOMER: 환불 문의드립니다.", "환불 문의드립니다.")
+            .content();
+
+    assertThat(result).isEqualTo(COUNSELOR_DRAFT_RESPONSE);
+    verify(promptSpec, org.mockito.Mockito.never()).tools(workflowAssistantTools);
+    verify(promptSpec, org.mockito.Mockito.never()).toolContext(anyMap());
   }
 }

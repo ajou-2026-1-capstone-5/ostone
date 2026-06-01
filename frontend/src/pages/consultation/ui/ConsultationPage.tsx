@@ -484,6 +484,7 @@ export const ConsultationPage: React.FC = () => {
   const [queueLoadError, setQueueLoadError] = useState<string | null>(null);
   const [matchedWorkflow, setMatchedWorkflow] = useState<MatchedWorkflow | null>(null);
   const [isMatchedWorkflowLoading, setIsMatchedWorkflowLoading] = useState(false);
+  const [isDraftResponseLoading, setIsDraftResponseLoading] = useState(false);
   const [endSessionModal, setEndSessionModal] = useState<EndSessionModalState>({ open: false });
   const isEndSessionModalOpen = endSessionModal.open;
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
@@ -589,6 +590,7 @@ export const ConsultationPage: React.FC = () => {
     setMessagesCustomerId(null);
     setMatchedWorkflow(null);
     setIsMatchedWorkflowLoading(false);
+    setIsDraftResponseLoading(false);
     setEndSessionModal({ open: false });
     clearPendingMessages();
   }, [clearPendingMessages]);
@@ -860,6 +862,7 @@ export const ConsultationPage: React.FC = () => {
     if (!activeCustomerId) {
       setMatchedWorkflow(null);
       setIsMatchedWorkflowLoading(false);
+      setIsDraftResponseLoading(false);
       return;
     }
 
@@ -1105,6 +1108,26 @@ export const ConsultationPage: React.FC = () => {
     ],
   );
 
+  const handleInsertDraftResponse = useCallback(async () => {
+    if (!activeCustomerId || !matchedWorkflow || !isAssignedToCurrentCounselor) return "";
+    setIsDraftResponseLoading(true);
+    try {
+      const draft = await consultationApi.generateDraftResponse(Number(activeCustomerId));
+      if (!draft.content.trim()) {
+        toast.error("답변 초안을 생성하지 못했습니다. 기존 입력 내용은 유지됩니다.");
+        return "";
+      }
+      toast.success("답변 초안을 입력창에 삽입했습니다.");
+      return draft.content;
+    } catch (error) {
+      console.error("Failed to generate draft response:", error);
+      toast.error("답변 초안을 생성하지 못했습니다. 기존 입력 내용은 유지됩니다.");
+      throw error;
+    } finally {
+      setIsDraftResponseLoading(false);
+    }
+  }, [activeCustomerId, isAssignedToCurrentCounselor, matchedWorkflow]);
+
   const handleOpenEndSession = () => {
     if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
     setEndSessionModal({
@@ -1315,6 +1338,14 @@ export const ConsultationPage: React.FC = () => {
               sessionStatusDescription={activeAssignment?.description}
               disabledReason={messageInputDisabledReason}
               disabled={!isAssignedToCurrentCounselor}
+              draftResponseAction={
+                matchedWorkflow && isAssignedToCurrentCounselor
+                  ? {
+                      isLoading: isDraftResponseLoading,
+                      onInsert: handleInsertDraftResponse,
+                    }
+                  : undefined
+              }
             />
           )}
         </div>

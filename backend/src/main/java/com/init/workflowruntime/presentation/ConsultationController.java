@@ -2,10 +2,13 @@ package com.init.workflowruntime.presentation;
 
 import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.ConsultationService;
+import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
+import com.init.workflowruntime.application.command.GenerateDraftResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
@@ -28,17 +31,22 @@ public class ConsultationController {
 
   private final ConsultationService consultationService;
   private final LlmToolService llmToolService;
+  private final CounselorDraftResponseService counselorDraftResponseService;
 
   /**
    * ConsultationController 생성자입니다.
    *
    * @param consultationService 상담 비즈니스 로직 서비스
    * @param llmToolService 매칭된 워크플로우 조회를 위한 LLM tool 서비스
+   * @param counselorDraftResponseService 상담사 검토용 답변 초안 생성 서비스
    */
   public ConsultationController(
-      ConsultationService consultationService, LlmToolService llmToolService) {
+      ConsultationService consultationService,
+      LlmToolService llmToolService,
+      CounselorDraftResponseService counselorDraftResponseService) {
     this.consultationService = consultationService;
     this.llmToolService = llmToolService;
+    this.counselorDraftResponseService = counselorDraftResponseService;
   }
 
   /**
@@ -101,5 +109,13 @@ public class ConsultationController {
     return ResponseEntity.ok(
         llmToolService.getCurrentWorkflowForOperator(
             new GetCurrentWorkflowCommand(sessionId), userId));
+  }
+
+  /** 매칭 워크플로우 기반 상담사 검토용 답변 초안을 생성합니다. */
+  @PostMapping("/sessions/{sessionId}/draft-response")
+  public ResponseEntity<GenerateWorkflowAwareResponseResult> generateDraftResponse(
+      @PathVariable Long sessionId) {
+    return ResponseEntity.ok(
+        counselorDraftResponseService.generateDraft(new GenerateDraftResponseCommand(sessionId)));
   }
 }
