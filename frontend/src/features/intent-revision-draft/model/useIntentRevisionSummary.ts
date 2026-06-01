@@ -1,29 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type { IntentSummary } from "@/entities/intent";
+import type { WorkflowDefinitionDetail, WorkflowDefinitionSummary } from "@/shared/api/generated/zod";
+import {
+  buildDomainPackRevisionSummary,
+  type IntentRevisionChange,
+  type IntentRevisionSummary,
+  type WorkflowRevisionChange,
+  type RevisionChangedField,
+  type WorkflowRevisionChangedField,
+} from "@/shared/lib/domainPackRevisionSummary";
 import { intentRevisionDraftApi } from "../api/intentRevisionDraftApi";
 
-export type RevisionChangedField = "name" | "description";
-
-export interface IntentRevisionChange {
-  intentId: number;
-  intentCode: string;
-  name: string;
-  fields: RevisionChangedField[];
-  before: {
-    name: string;
-    description: string;
-  };
-  after: {
-    name: string;
-    description: string;
-  };
-}
-
-export interface IntentRevisionSummary {
-  changedIntents: IntentRevisionChange[];
-  changedFieldCounts: Record<RevisionChangedField, number>;
-  changedByDraftIntentId: Record<number, IntentRevisionChange>;
-}
+export type {
+  IntentRevisionChange,
+  IntentRevisionSummary,
+  RevisionChangedField,
+  WorkflowRevisionChange,
+  WorkflowRevisionChangedField,
+};
 
 export type IntentRevisionSummaryState =
   | { status: "idle" }
@@ -31,62 +25,38 @@ export type IntentRevisionSummaryState =
   | { status: "ready"; data: IntentRevisionSummary }
   | { status: "error"; message: string };
 
-function normalizeText(value: string | null | undefined): string {
-  return value ?? "";
-}
-
 export function buildIntentRevisionSummary(
   baseIntents: IntentSummary[],
   draftIntents: IntentSummary[],
+  baseWorkflows: WorkflowDefinitionDetail[] = [],
+  draftWorkflows: WorkflowDefinitionDetail[] = [],
 ): IntentRevisionSummary {
-  const baseByCode = new Map(
-    baseIntents
-      .filter((intent) => intent.intentCode)
-      .map((intent) => [intent.intentCode as string, intent]),
-  );
-
-  const changedIntents = draftIntents.flatMap<IntentRevisionChange>((draft) => {
-    if (draft.id == null || !draft.intentCode) return [];
-
-    const base = baseByCode.get(draft.intentCode);
-    if (!base) return [];
-
-    const fields: RevisionChangedField[] = [];
-    const before = {
-      name: normalizeText(base.name),
-      description: normalizeText(base.description),
-    };
-    const after = {
-      name: normalizeText(draft.name),
-      description: normalizeText(draft.description),
-    };
-
-    if (before.name !== after.name) fields.push("name");
-    if (before.description !== after.description) fields.push("description");
-    if (fields.length === 0) return [];
-
-    return [
-      {
-        intentId: draft.id,
-        intentCode: draft.intentCode,
-        name: after.name,
-        fields,
-        before,
-        after,
-      },
-    ];
+  return buildDomainPackRevisionSummary({
+    baseIntents,
+    draftIntents,
+    baseWorkflows,
+    draftWorkflows,
   });
+}
 
-  return {
-    changedIntents,
-    changedFieldCounts: {
-      name: changedIntents.filter((change) => change.fields.includes("name")).length,
-      description: changedIntents.filter((change) => change.fields.includes("description")).length,
-    },
-    changedByDraftIntentId: Object.fromEntries(
-      changedIntents.map((change) => [change.intentId, change]),
-    ),
-  };
+async function fetchWorkflowDetails(
+  workspaceId: number,
+  packId: number,
+  versionId: number,
+  options: { signal: AbortSignal },
+): Promise<WorkflowDefinitionDetail[]> {
+  const summaries = await intentRevisionDraftApi.listWorkflows(
+    workspaceId,
+    packId,
+    versionId,
+    options,
+  );
+  return Promise.all(
+    summaries.flatMap((workflow: WorkflowDefinitionSummary) => {
+      if (typeof workflow.id !== "number") return [];
+      return intentRevisionDraftApi.getWorkflow(workspaceId, packId, versionId, workflow.id, options);
+    }),
+  );
 }
 
 export function useIntentRevisionSummary({
@@ -127,14 +97,25 @@ export function useIntentRevisionSummary({
       intentRevisionDraftApi.listIntents(workspaceId, packId, draftVersionId, {
         signal: controller.signal,
       }),
+      fetchWorkflowDetails(workspaceId, packId, baseVersionId, {
+        signal: controller.signal,
+      }),
+      fetchWorkflowDetails(workspaceId, packId, draftVersionId, {
+        signal: controller.signal,
+      }),
     ])
-      .then(([baseIntents, draftIntents]) => {
+      .then(([baseIntents, draftIntents, baseWorkflows, draftWorkflows]) => {
         if (controller.signal.aborted) return;
         setState({
           requestKey,
           value: {
             status: "ready",
-            data: buildIntentRevisionSummary(baseIntents, draftIntents),
+            data: buildIntentRevisionSummary(
+              baseIntents,
+              draftIntents,
+              baseWorkflows,
+              draftWorkflows,
+            ),
           },
         });
       })

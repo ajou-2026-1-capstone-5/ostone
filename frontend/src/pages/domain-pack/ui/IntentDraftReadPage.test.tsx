@@ -34,8 +34,12 @@ const mocks = vi.hoisted(() => ({
           after: { name: "환불 문의", description: "" },
         },
       ],
+      changedWorkflows: [],
       changedFieldCounts: { name: 1, description: 0 },
+      changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
       changedByDraftIntentId: {},
+      changedByDraftWorkflowId: {},
+      totalChangedComponents: 1,
     },
   },
   packData: {
@@ -337,8 +341,12 @@ describe("IntentDraftReadPage", () => {
             after: { name: "환불 문의", description: "" },
           },
         ],
+        changedWorkflows: [],
         changedFieldCounts: { name: 1, description: 0 },
+        changedWorkflowFieldCounts: { name: 0, description: 0, graphText: 0, graphStructure: 0 },
         changedByDraftIntentId: {},
+        changedByDraftWorkflowId: {},
+        totalChangedComponents: 1,
       },
     };
     mocks.packRefetch.mockResolvedValue({ data: mocks.packData });

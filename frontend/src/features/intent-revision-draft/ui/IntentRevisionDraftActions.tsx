@@ -18,10 +18,16 @@ export function IntentRevisionDraftActions({
   isPending,
   onRetrySummary,
 }: IntentRevisionDraftActionsProps) {
-  const changedCount = summary?.changedIntents.length ?? 0;
+  const intentChangedCount = summary?.changedIntents.length ?? 0;
+  const workflowChangedCount = summary?.changedWorkflows.length ?? 0;
+  const changedCount = summary?.totalChangedComponents ?? intentChangedCount + workflowChangedCount;
   const hasSummaryError = summaryError != null;
   const rawErrorMessage = summaryError instanceof Error ? summaryError.message : summaryError;
   const errorMessage = rawErrorMessage ?? "변경 요약을 불러오지 못했습니다.";
+  const changedLabel =
+    changedCount > 0
+      ? `변경된 구성 요소 ${changedCount}개 (상담 유형 ${intentChangedCount}개 · 응대 흐름 ${workflowChangedCount}개)`
+      : "변경된 구성 요소가 없습니다.";
 
   return (
     <div className={styles.actions}>
@@ -30,9 +36,7 @@ export function IntentRevisionDraftActions({
           ? "변경 요약을 불러오는 중입니다."
           : hasSummaryError
             ? errorMessage
-            : changedCount > 0
-              ? `변경된 상담 유형 ${changedCount}개`
-              : "변경된 상담 유형이 없습니다."}
+            : changedLabel}
       </div>
       <div className={styles.summaryText}>
         수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다.
