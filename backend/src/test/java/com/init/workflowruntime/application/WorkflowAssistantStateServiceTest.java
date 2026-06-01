@@ -257,49 +257,56 @@ class WorkflowAssistantStateServiceTest {
   }
 
   @Test
-  @DisplayName("updateSlot: 현재 요청된 slot과 다른 slot은 저장하지 않는다")
-  void should_rejectDifferentRequestedSlot() {
+  @DisplayName("updateSlot: 알 수 없는 slotCode는 현재 요청 slot으로 보정해 저장한다")
+  void should_fallBackToRequestedSlot_when_unknownSlotCode() {
     LlmToolContextResponse context = context(10L);
     givenRuntimeMetadata();
-    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
-        .willReturn(context, context);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
     given(workflowRuntimeService.advance(1L))
         .willReturn(
             advanceResponse(
                 "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
 
-    assertThatThrownBy(() -> updateSlot("customer_name", "김초기"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("Slot is not currently requested");
+    updateSlot("customer_name", "김초기");
 
+    verify(llmToolService)
+        .upsertSlotValue(
+            argThat(
+                command ->
+                    command.sessionId().equals(1L)
+                        && command.slotCode().equals("order_id")
+                        && command.value().asText().equals("김초기")));
+  }
+
+  @Test
+  @DisplayName("updateSlot: 빈 value는 저장하지 않는다")
+  void should_skipBlankValue() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
+
+    AssistantConversationState result = updateSlot("order_id", " ");
+
+    assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
     verify(llmToolService, never()).upsertSlotValue(any());
   }
 
   @Test
-  @DisplayName("updateSlot: 빈 slotCode나 value는 거부한다")
-  void should_rejectBlankSlotInput() {
-    assertThatThrownBy(() -> updateSlot(" ", "A-100"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("slotCode is required");
-    assertThatThrownBy(() -> updateSlot("order_id", " "))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("slot value is required");
-  }
-
-  @Test
-  @DisplayName("updateSlot: 현재 요청되지 않은 slot은 거부한다")
-  void should_rejectOutOfTurnSlot() {
+  @DisplayName("updateSlot: ASK_SLOT 상태가 아니면 저장하지 않고 현재 상태를 반환한다")
+  void should_skipWhenNotAskSlot() {
     LlmToolContextResponse context = context(10L);
     givenRuntimeMetadata();
-    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
-        .willReturn(context, context);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
     given(workflowRuntimeService.advance(1L))
         .willReturn(advanceResponse("collect_order", "answer", "ANSWER", "edge-answer", List.of()));
 
-    assertThatThrownBy(() -> updateSlot("order_id", "A-100"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("No slot is currently requested");
+    AssistantConversationState result = updateSlot("order_id", "A-100");
 
+    assertThat(result.nextAction().type()).isEqualTo("ANSWER");
     verify(llmToolService, never()).upsertSlotValue(any());
   }
 
