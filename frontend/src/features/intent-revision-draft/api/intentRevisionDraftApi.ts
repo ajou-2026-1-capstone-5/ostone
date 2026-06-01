@@ -8,9 +8,17 @@ import {
   listIntents,
 } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 import { update } from "@/shared/api/generated/endpoints/update-draft-intent-controller/update-draft-intent-controller";
+import {
+  getWorkflow,
+  listWorkflows,
+} from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
 import type { IntentDetail, IntentSummary } from "@/entities/intent";
-import type { UpdateDraftIntentRequest } from "@/shared/api/generated/zod";
+import type {
+  UpdateDraftIntentRequest,
+  WorkflowDefinitionDetail,
+  WorkflowDefinitionSummary,
+} from "@/shared/api/generated/zod";
 
 export interface UpdateDraftIntentBody {
   name: UpdateDraftIntentRequest["name"];
@@ -131,6 +139,31 @@ export const intentRevisionDraftApi = {
     return requireApiData<DomainPackVersionDetail>(
       response,
       "Domain pack version 상세 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  async listWorkflows(
+    workspaceId: number,
+    packId: number,
+    versionId: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<WorkflowDefinitionSummary[]> {
+    const response = await listWorkflows(workspaceId, packId, versionId, undefined, options);
+    if (Array.isArray(response)) return response as WorkflowDefinitionSummary[];
+    return selectApiData<WorkflowDefinitionSummary[]>(response) ?? [];
+  },
+
+  async getWorkflow(
+    workspaceId: number,
+    packId: number,
+    versionId: number,
+    workflowId: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<WorkflowDefinitionDetail> {
+    const response = await getWorkflow(workspaceId, packId, versionId, workflowId, options);
+    return requireApiData<WorkflowDefinitionDetail>(
+      response,
+      "Workflow 상세 응답을 확인할 수 없습니다.",
     );
   },
 };

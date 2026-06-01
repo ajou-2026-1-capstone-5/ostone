@@ -9,6 +9,10 @@ import {
   listIntents,
 } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 import { update } from "@/shared/api/generated/endpoints/update-draft-intent-controller/update-draft-intent-controller";
+import {
+  getWorkflow,
+  listWorkflows,
+} from "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller";
 import { intentRevisionDraftApi } from "./intentRevisionDraftApi";
 
 vi.mock(
@@ -47,12 +51,22 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  "@/shared/api/generated/endpoints/workflow-definition-controller/workflow-definition-controller",
+  () => ({
+    getWorkflow: vi.fn(),
+    listWorkflows: vi.fn(),
+  }),
+);
+
 const mockedCreate = vi.mocked(create);
 const mockedActivate = vi.mocked(activate);
 const mockedDiscard = vi.mocked(discard);
 const mockedListIntents = vi.mocked(listIntents);
 const mockedGetIntent = vi.mocked(getIntent);
 const mockedUpdate = vi.mocked(update);
+const mockedListWorkflows = vi.mocked(listWorkflows);
+const mockedGetWorkflow = vi.mocked(getWorkflow);
 
 vi.mock("@/shared/api/generated/endpoints/domain-pack-controller/domain-pack-controller", () => ({
   getDomainPackVersion: vi.fn(),
@@ -68,6 +82,8 @@ describe("intentRevisionDraftApi", () => {
     mockedListIntents.mockReset();
     mockedGetIntent.mockReset();
     mockedUpdate.mockReset();
+    mockedListWorkflows.mockReset();
+    mockedGetWorkflow.mockReset();
     mockedWarn.mockClear();
   });
 
@@ -130,6 +146,35 @@ describe("intentRevisionDraftApi", () => {
     mockedListIntents.mockResolvedValue(intents as never);
 
     await expect(intentRevisionDraftApi.listIntents(1, 2, 3)).resolves.toEqual(intents);
+  });
+
+  it("workflow list/detail 응답을 unwrap하고 generated endpoint 옵션을 전달한다", async () => {
+    const signal = new AbortController().signal;
+    mockedListWorkflows.mockResolvedValue({
+      data: [{ id: 10, workflowCode: "refund-flow" }],
+    });
+    mockedGetWorkflow.mockResolvedValue({
+      data: { id: 10, workflowCode: "refund-flow", name: "환불 흐름" },
+    });
+
+    await expect(
+      intentRevisionDraftApi.listWorkflows(1, 2, 3, { signal }),
+    ).resolves.toEqual([{ id: 10, workflowCode: "refund-flow" }]);
+    await expect(intentRevisionDraftApi.getWorkflow(1, 2, 3, 10, { signal })).resolves.toMatchObject(
+      {
+        id: 10,
+        workflowCode: "refund-flow",
+      },
+    );
+    expect(mockedListWorkflows).toHaveBeenCalledWith(1, 2, 3, undefined, { signal });
+    expect(mockedGetWorkflow).toHaveBeenCalledWith(1, 2, 3, 10, { signal });
+  });
+
+  it("workflow list 응답이 직접 배열이면 그대로 반환한다", async () => {
+    const workflows = [{ id: 10, workflowCode: "refund-flow" }];
+    mockedListWorkflows.mockResolvedValue(workflows);
+
+    await expect(intentRevisionDraftApi.listWorkflows(1, 2, 3)).resolves.toEqual(workflows);
   });
 
   it("draft intent update와 discard는 generated endpoint를 호출한다", async () => {

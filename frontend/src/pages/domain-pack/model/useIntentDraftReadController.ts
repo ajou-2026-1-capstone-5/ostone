@@ -494,7 +494,7 @@ function useApplyRevisionDraftHandler({
   return useCallback(
     async (intentCode?: string | null) => {
       const summary = summaryState.status === "ready" ? summaryState.data : null;
-      if (!summary || summary.changedIntents.length === 0) return;
+      if (!summary || summary.totalChangedComponents === 0) return;
 
       setVersionActionPending(true);
       try {
