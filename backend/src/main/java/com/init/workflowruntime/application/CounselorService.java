@@ -67,6 +67,7 @@ public class CounselorService {
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     validateWorkspaceMembership(session.getWorkspaceId(), counselorId);
+    validateAssignableForAssignment(session);
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
 
@@ -256,6 +257,15 @@ public class CounselorService {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
         .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+  }
+
+  private void validateAssignableForAssignment(ChatSession session) {
+    if (session.getAssignedCounselorId() != null) {
+      throw new BadRequestException("SESSION_ALREADY_ASSIGNED", "이미 다른 상담사에게 배정된 상담입니다.");
+    }
+    if (session.getStatus() != ChatSessionStatus.OPEN) {
+      throw new BadRequestException("SESSION_NOT_ASSIGNABLE", "현재 배정할 수 없는 상담 상태입니다.");
+    }
   }
 
   private ChatSessionResponseMode parseResponseMode(String responseMode) {

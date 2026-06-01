@@ -22,7 +22,6 @@ import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionResponseMode;
 import com.init.workflowruntime.domain.ChatSessionStatus;
-import com.init.workflowruntime.domain.InvalidSessionStateException;
 import com.init.workflowruntime.domain.event.ConsultationQueueChangedEvent;
 import com.init.workflowruntime.domain.event.ConsultationQueueEventType;
 import com.init.workflowruntime.domain.event.SessionAssignedEvent;
@@ -116,7 +115,7 @@ class CounselorServiceTest {
   }
 
   @Test
-  @DisplayName("assignSession: 이미 배정된 세션 → InvalidSessionStateException")
+  @DisplayName("assignSession: 이미 배정된 세션 → SESSION_ALREADY_ASSIGNED")
   void should_throwInvalidState_when_alreadyAssigned() {
     ChatSession session = createSession(1L, ChatSessionStatus.OPEN);
     ReflectionTestUtils.setField(session, "assignedCounselorId", 10L);
@@ -124,20 +123,28 @@ class CounselorServiceTest {
     givenWorkspaceMember(1L, 42L);
 
     assertThatThrownBy(() -> service.assignSession(1L, 42L))
-        .isInstanceOf(InvalidSessionStateException.class)
-        .hasMessageContaining("already assigned");
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("이미 다른 상담사에게 배정된 상담입니다.")
+        .satisfies(
+            ex ->
+                assertThat(((BadRequestException) ex).getCode())
+                    .isEqualTo("SESSION_ALREADY_ASSIGNED"));
   }
 
   @Test
-  @DisplayName("assignSession: OPEN이 아닌 세션 → InvalidSessionStateException")
+  @DisplayName("assignSession: OPEN이 아닌 세션 → SESSION_NOT_ASSIGNABLE")
   void should_throwInvalidState_when_notOpen() {
     ChatSession session = createSession(1L, ChatSessionStatus.COMPLETED);
     given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
     givenWorkspaceMember(1L, 42L);
 
     assertThatThrownBy(() -> service.assignSession(1L, 42L))
-        .isInstanceOf(com.init.workflowruntime.domain.InvalidSessionStateException.class)
-        .hasMessageContaining("requires status OPEN");
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("현재 배정할 수 없는 상담 상태입니다.")
+        .satisfies(
+            ex ->
+                assertThat(((BadRequestException) ex).getCode())
+                    .isEqualTo("SESSION_NOT_ASSIGNABLE"));
   }
 
   // ── releaseSession ────────────────────────────────────────────────────────
