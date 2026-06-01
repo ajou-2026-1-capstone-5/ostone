@@ -19,6 +19,11 @@ export interface ChatMessage {
   errorMessage?: string;
 }
 
+export interface ChatComposerDraft {
+  input: string;
+  isNoteMode: boolean;
+}
+
 interface ChatPanelProps {
   sessionId?: string | null;
   customerName: string | null;
@@ -36,6 +41,8 @@ interface ChatPanelProps {
     isLoading: boolean;
     onInsert: () => Promise<string>;
   };
+  composerDraft?: ChatComposerDraft;
+  onComposerDraftChange?: (draft: ChatComposerDraft) => void;
 }
 
 const BOTTOM_SCROLL_THRESHOLD_PX = 96;
@@ -73,12 +80,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   disabled = false,
   disabledReason,
   draftResponseAction,
+  composerDraft,
+  onComposerDraftChange,
 }) => {
-  const [input, setInput] = useState("");
-  const [isNoteMode, setIsNoteMode] = useState(false);
+  const [uncontrolledDraft, setUncontrolledDraft] = useState<ChatComposerDraft>({
+    input: "",
+    isNoteMode: false,
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const customerInitial = customerName?.trim().charAt(0) || "?";
   const sessionKey = sessionId ?? customerName;
+  const activeDraft = composerDraft ?? uncontrolledDraft;
+  const setActiveDraft = (nextDraft: ChatComposerDraft) => {
+    if (!composerDraft) {
+      setUncontrolledDraft(nextDraft);
+    }
+    onComposerDraftChange?.(nextDraft);
+  };
   const [scrollState, setScrollState] = useState<MessageScrollState>(() => ({
     sessionKey,
     messageCount: messages.length,
@@ -174,8 +192,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     try {
       const draft = await draftResponseAction.onInsert();
       if (draft.trim()) {
-        setInput(draft);
-        setIsNoteMode(false);
+        setActiveDraft({ input: draft, isNoteMode: false });
       }
     } catch {
       // The page-level handler owns user-facing error feedback and the existing input is preserved.
@@ -187,9 +204,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
    * 공백 검사 및 한글 IME 입력 충돌 방지 로직을 포함합니다.
    */
   const handleSend = () => {
-    if (disabled || !input.trim()) return;
-    onSendMessage(input.trim(), isNoteMode);
-    setInput("");
+    if (disabled || !activeDraft.input.trim()) return;
+    onSendMessage(activeDraft.input.trim(), activeDraft.isNoteMode);
+    setActiveDraft({ ...activeDraft, input: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -352,18 +369,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {disabled && disabledReason && (
-        <output className={styles.disabledNotice}>
-          {disabledReason}
-        </output>
+        <output className={styles.disabledNotice}>{disabledReason}</output>
       )}
 
       {/* Input */}
       <div className={styles.inputArea}>
         <button
-          className={`${styles.noteToggle} ${isNoteMode ? styles.noteToggleActive : ""}`}
-          onClick={() => setIsNoteMode(!isNoteMode)}
+          className={`${styles.noteToggle} ${activeDraft.isNoteMode ? styles.noteToggleActive : ""}`}
+          onClick={() => setActiveDraft({ ...activeDraft, isNoteMode: !activeDraft.isNoteMode })}
           disabled={disabled}
-          title={isNoteMode ? "일반 메시지로 전환" : "내부 메모로 남기기"}
+          title={activeDraft.isNoteMode ? "일반 메시지로 전환" : "내부 메모로 남기기"}
         >
           <StickyNote size={18} />
         </button>
@@ -384,21 +399,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           className={styles.messageInput}
           rows={1}
           placeholder={
-            isNoteMode
+            activeDraft.isNoteMode
               ? "내부 메모로 타임라인에 남길 내용을 입력하세요..."
               : "메시지를 입력하세요..."
           }
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          value={activeDraft.input}
+          onChange={(e) => setActiveDraft({ ...activeDraft, input: e.target.value })}
           onKeyDown={handleKeyDown}
           disabled={disabled}
         />
         <button
           className={styles.sendBtn}
           onClick={handleSend}
-          disabled={disabled || !input.trim()}
-          aria-label={isNoteMode ? "내부 메모 남기기" : "메시지 전송"}
-          title={isNoteMode ? "내부 메모로 남기기" : "메시지 전송"}
+          disabled={disabled || !activeDraft.input.trim()}
+          aria-label={activeDraft.isNoteMode ? "내부 메모 남기기" : "메시지 전송"}
+          title={activeDraft.isNoteMode ? "내부 메모로 남기기" : "메시지 전송"}
         >
           <Send size={18} />
         </button>
