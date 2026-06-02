@@ -177,6 +177,89 @@ class RawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_ignore_macos_metadata_directory_entries_in_zip")
+  void upload_zipWithMacOsMetadataDirectory_ignoresMetadataEntries() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "macos-dir-zip"))
+        .willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+    given(rawDatasetUploadService.upload(any()))
+        .willReturn(
+            new DatasetUploadResult(
+                50L, "macos-dir-zip", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1));
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                50L, "some-key", "macos.zip", "application/zip", 100L, "f".repeat(64)));
+
+    // macOS Archive Utility가 끼워 넣는 __MACOSX/._*.json AppleDouble 항목(NUL 바이트 포함).
+    // 무시되지 않으면 .json 확장자 때문에 파싱 대상이 되어 RawFileParseException이 발생한다.
+    byte[] zipBytes = zip("__MACOSX/._logs.json", "  mac-metadata", "logs.json", VALID_JSON_TEXT);
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "macos-dir-zip",
+            "맥 메타데이터 ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "macos.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    RawFileUploadResult result = service.upload(command);
+
+    assertThat(result.datasetId()).isEqualTo(50L);
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+    List<RawConversationInput> conversations = commandCaptor.getValue().conversations();
+    assertThat(conversations).hasSize(1);
+    assertThat(conversations.get(0).sourceId()).isEqualTo("001");
+  }
+
+  @Test
+  @DisplayName("should_ignore_top_level_apple_double_entries_in_zip")
+  void upload_zipWithAppleDoubleEntry_ignoresMetadataEntries() throws IOException {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "apple-double-zip"))
+        .willReturn(false);
+    given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
+    given(rawDatasetUploadService.upload(any()))
+        .willReturn(
+            new DatasetUploadResult(
+                51L, "apple-double-zip", 1L, DatasetStatus.READY, PiiRedactionStatus.PENDING, 1));
+    given(rawFileRepository.save(any()))
+        .willReturn(
+            DatasetRawFile.create(
+                51L, "some-key", "apple.zip", "application/zip", 100L, "1".repeat(64)));
+
+    // __MACOSX 디렉터리 없이 최상위에 놓인 ._*.json AppleDouble 항목도 무시되어야 한다.
+    byte[] zipBytes = zip("._logs.json", " mac-resource-fork", "logs.json", VALID_JSON_TEXT);
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "apple-double-zip",
+            "AppleDouble ZIP",
+            "PARSED_FLAT_ZIP",
+            1L,
+            zipBytes,
+            "apple.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    RawFileUploadResult result = service.upload(command);
+
+    assertThat(result.datasetId()).isEqualTo(51L);
+    ArgumentCaptor<RawDatasetUploadCommand> commandCaptor =
+        ArgumentCaptor.forClass(RawDatasetUploadCommand.class);
+    verify(rawDatasetUploadService).upload(commandCaptor.capture());
+    assertThat(commandCaptor.getValue().conversations()).hasSize(1);
+  }
+
+  @Test
   @DisplayName("should_parse_json_object_with_data_array_inside_zip")
   void upload_zipEntryWithJsonObjectDataArray_parsesConversations() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
