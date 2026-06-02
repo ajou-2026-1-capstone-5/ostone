@@ -144,14 +144,24 @@ data "aws_iam_policy_document" "ecs_backend_task" {
   }
 
   statement {
+    # Spring AI BedrockProxyChatModel은 Converse / ConverseStream API를 호출하는데, 이 API는
+    # IAM action bedrock:InvokeModel / bedrock:InvokeModelWithResponseStream 으로 인가된다
+    # (bedrock:Converse 라는 IAM action은 존재하지 않아 항상 AccessDenied → "응답을 생성하지
+    # 못했습니다").
+    # 또한 global cross-Region inference profile(global.anthropic.claude-sonnet-4-6)은
+    # inference-profile + in-region foundation-model + region 미지정(global) foundation-model
+    # 세 리소스 권한이 필요하다(AWS 문서: global cross-Region inference IAM policy).
+    # 런타임 chat region이 AI_CHAT_BEDROCK_REGION 부재 시 embedding region으로 폴백되는
+    # 드리프트가 있어, 호출 출처 region에 관계없이 인가되도록 region을 와일드카드로 둔다.
     sid = "InvokeBedrockChatModel"
     actions = [
-      "bedrock:Converse",
-      "bedrock:ConverseStream"
+      "bedrock:InvokeModel",
+      "bedrock:InvokeModelWithResponseStream"
     ]
     resources = [
-      "arn:aws:bedrock:${var.ai_chat_bedrock_region}::foundation-model/${var.ai_chat_bedrock_model}",
-      "arn:aws:bedrock:${var.ai_chat_bedrock_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_chat_bedrock_runtime_model}"
+      "arn:aws:bedrock:*::foundation-model/${var.ai_chat_bedrock_model}",
+      "arn:aws:bedrock:::foundation-model/${var.ai_chat_bedrock_model}",
+      "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_chat_bedrock_runtime_model}"
     ]
   }
 }
