@@ -37,6 +37,16 @@ describe("createStompClient", () => {
     expect(client.connectHeaders).toEqual({ Authorization: "Bearer access-token" });
   });
 
+  it("includeAuth=false 이면 저장된 access token을 CONNECT header에 붙이지 않는다", () => {
+    localStorage.setItem("accessToken", "access-token");
+
+    const client = createStompClient({ includeAuth: false });
+
+    expect(typeof client.beforeConnect).toBe("function");
+    (client.beforeConnect as () => void)();
+    expect(client.connectHeaders).toEqual({});
+  });
+
   it("VITE_WS_URL 환경 변수가 https 프로토콜일 때 wss로 자동 변환하고 trailing slash를 제거한다", () => {
     vi.stubEnv("VITE_WS_URL", "https://example.com/api/");
 

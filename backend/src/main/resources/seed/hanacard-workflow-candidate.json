@@ -1,0 +1,2031 @@
+{
+  "schemaVersion": "1.0",
+  "domainPackDraft": {
+    "packKey": "hanacard-card-service",
+    "packName": "하나카드 카드 상담 도메인팩",
+    "summaryJson": "{\"domain\": \"하나카드\", \"sourceSplit\": \"Training\", \"consultationCount\": 100, \"turnCount\": 4084, \"sentenceUnitCount\": 5742, \"customerSentenceUnitCount\": 2616, \"agentSentenceUnitCount\": 3126, \"rawConsultingCategoryCount\": 27, \"intentCount\": 14, \"slotCount\": 42, \"policyCount\": 18, \"riskCount\": 8, \"workflowCount\": 14, \"intentAssignmentMode\": \"non_exclusive_multi_intent_from_customer_and_agent_dialogue\", \"notes\": [\"Regenerated after direct review: 10 exclusive workflow clusters were too coarse for sentence/dialogue-level intent.\", \"Final intents use customer requests plus agent verification/question/policy/action turns as evidence.\", \"Raw consulting_category has 27 labels in the selected 100 consultations; final 14 workflow-entry intents merge only low-support operational variants.\"]}"
+  },
+  "intentDraft": {
+    "intents": [
+      {
+        "intentCode": "lost_card_report_and_status",
+        "name": "카드 분실 신고 및 정지/해제 상태 확인",
+        "description": "카드 분실, 습득, 정지, 분실 신고 해제, 재발급 후 사용 가능 여부와 마지막 이용 내역을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC01\",\"support\":19,\"memberSourceIds\":[\"200001\",\"200002\",\"200005\",\"200006\",\"200007\",\"200008\",\"200009\",\"200010\",\"200011\",\"200012\",\"200013\",\"200014\",\"200015\",\"200016\",\"200017\",\"200019\",\"200039\",\"200053\",\"200098\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"분실\",\"정지\",\"습득\",\"찾았\",\"해제\"],\"optionalTerms\":[\"재발급\",\"마지막 사용\",\"외국\",\"가족카드\",\"타사 카드\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200002\"},{\"type\":\"source_id\",\"value\":\"200008\"},{\"type\":\"source_id\",\"value\":\"200039\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200001",
+            "canonicalText": "네, 안녕하세요? 제가 오늘 오전에 전화해가지고 네 ▲▲카드 뭐 단기 요청을 드렸었는데",
+            "customerProblemText": "도난/분실 신청/해제",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200002",
+            "canonicalText": "예, 제 카드 분실했는데, 정지를 좀 하고 싶거든요.",
+            "customerProblemText": "도난/분실 신청/해제",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200005",
+            "canonicalText": "네 저 제가 ▲▲기업 카드 있는데 그 지금 저기 외국에서 잊어버렸거든요.",
+            "customerProblemText": "도난/분실 신청/해제",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "name": "승인/출금/이용 내역 확인",
+        "description": "결제 승인, 문자 미수신, 명세서 금액, 해외/교통/인터넷 쇼핑 이용 내역, 출금 사유를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC02\",\"support\":22,\"memberSourceIds\":[\"200003\",\"200004\",\"200008\",\"200009\",\"200014\",\"200016\",\"200018\",\"200019\",\"200027\",\"200030\",\"200031\",\"200033\",\"200035\",\"200048\",\"200057\",\"200062\",\"200074\",\"200093\",\"200100\",\"200102\",\"200104\",\"200105\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"결제\",\"승인\",\"출금\",\"이용 내역\",\"문자\"],\"optionalTerms\":[\"교통\",\"해외\",\"가맹점\",\"명세서\",\"누적 금액\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200003\"},{\"type\":\"source_id\",\"value\":\"200057\"},{\"type\":\"source_id\",\"value\":\"200100\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200003",
+            "canonicalText": "아 수고하십니다.",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200004",
+            "canonicalText": "네, 안녕하세요?",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200008",
+            "canonicalText": "예 저 카드 분실 신고 했었는데 찾았거든요, 네.",
+            "customerProblemText": "도난/분실 신청/해제",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "name": "결제 취소/반품/환불 처리 확인",
+        "description": "가맹점 취소, 반품, 매출 취소 문자, 환불 입금처와 청구 차감 여부를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC03\",\"support\":9,\"memberSourceIds\":[\"200027\",\"200041\",\"200044\",\"200058\",\"200059\",\"200064\",\"200073\",\"200092\",\"200105\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"취소\",\"반품\",\"환불\",\"매출 취소\"],\"optionalTerms\":[\"문자\",\"청구\",\"입금\",\"가맹점\",\"카카오\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200041\"},{\"type\":\"source_id\",\"value\":\"200059\"},{\"type\":\"source_id\",\"value\":\"200073\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200027",
+            "canonicalText": "예, 수고하십니다.",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200041",
+            "canonicalText": "예, 안녕하세요? 제가 ▲▲이요 ▲▲월 ▲▲날 13시 43분에",
+            "customerProblemText": "승인취소/매출취소 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200044",
+            "canonicalText": "아 예 예, 다름이 아니고",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "name": "선결제/즉시출금/가상계좌 납부",
+        "description": "이번 달 결제금액, 일부 또는 전액 선결제, 즉시출금, 가상계좌 발급, 중복 입금과 납부 반영 여부를 처리하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC04\",\"support\":27,\"memberSourceIds\":[\"200018\",\"200020\",\"200024\",\"200026\",\"200034\",\"200038\",\"200040\",\"200043\",\"200045\",\"200047\",\"200053\",\"200055\",\"200056\",\"200060\",\"200068\",\"200071\",\"200075\",\"200076\",\"200078\",\"200080\",\"200084\",\"200089\",\"200094\",\"200095\",\"200097\",\"200098\",\"200102\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"선결제\",\"즉시출금\",\"가상계좌\",\"입금\",\"결제금액\"],\"optionalTerms\":[\"전액\",\"일부\",\"잔액\",\"중복\",\"예약\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200024\"},{\"type\":\"source_id\",\"value\":\"200094\"},{\"type\":\"source_id\",\"value\":\"200097\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200018",
+            "canonicalText": "네, 수고합니다.",
+            "customerProblemText": "결제대금 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200020",
+            "canonicalText": "그 오토 서비스는 선입금 좀 가상계좌 받을려고 하는데요.",
+            "customerProblemText": "오토할부/오토캐쉬백 안내/신청/취소",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200024",
+            "canonicalText": "네, 안녕하세요?",
+            "customerProblemText": "선결제/즉시출금",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "name": "카드론/현금서비스 한도 및 상환",
+        "description": "장기카드대출, 단기카드대출, 현금서비스 가능 여부, 한도, 이자, 원금, 즉시 상환 또는 완납을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC05\",\"support\":13,\"memberSourceIds\":[\"200020\",\"200021\",\"200026\",\"200029\",\"200045\",\"200046\",\"200060\",\"200061\",\"200065\",\"200077\",\"200080\",\"200083\",\"200091\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"카드론\",\"장기 대출\",\"단기카드대출\",\"현금서비스\"],\"optionalTerms\":[\"한도\",\"이자\",\"원금\",\"상환\",\"완납\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200021\"},{\"type\":\"source_id\",\"value\":\"200065\"},{\"type\":\"source_id\",\"value\":\"200083\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200020",
+            "canonicalText": "그 오토 서비스는 선입금 좀 가상계좌 받을려고 하는데요.",
+            "customerProblemText": "오토할부/오토캐쉬백 안내/신청/취소",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200021",
+            "canonicalText": "네, 카드론 되는지 확인 좀 해볼려고 하는데요.",
+            "customerProblemText": "장기카드대출 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200026",
+            "canonicalText": "결제 금액이 이달에 얼마 인가요? 선결제 할려고 그러는데",
+            "customerProblemText": "결제대금 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "name": "리볼빙 서비스 조회/해지/납부 안내",
+        "description": "리볼빙 약정 여부, 이월 금액, 이자, 결제일 인출 방식, 리볼빙 해지 또는 납부 방법을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC06\",\"support\":4,\"memberSourceIds\":[\"200034\",\"200070\",\"200087\",\"200095\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"리볼빙\"],\"optionalTerms\":[\"이월\",\"이자\",\"해지\",\"소액결제\",\"재인출\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200034\"},{\"type\":\"source_id\",\"value\":\"200087\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200034",
+            "canonicalText": "네 제 리볼빙된 금액 좀 알고 싶어서요.",
+            "customerProblemText": "가상계좌 예약/취소",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200070",
+            "canonicalText": "아 네, 안녕하세요?",
+            "customerProblemText": "입금내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200087",
+            "canonicalText": "예, 안녕하십니까?",
+            "customerProblemText": "일부결제대금이월약정 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "name": "할부 전환/분할 납부",
+        "description": "일시불 결제를 할부로 변경하거나 분할 납부 가능 여부, 할부 개월 수, 수수료와 확정 시점을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC07\",\"support\":5,\"memberSourceIds\":[\"200063\",\"200069\",\"200072\",\"200082\",\"200100\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"할부\",\"분할 납부\",\"분할 결제\"],\"optionalTerms\":[\"개월\",\"수수료\",\"확정\",\"변경\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200069\"},{\"type\":\"source_id\",\"value\":\"200082\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200063",
+            "canonicalText": "예, 수고하십니다.",
+            "customerProblemText": "매출구분 변경",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200069",
+            "canonicalText": "네, 수고하십니다.",
+            "customerProblemText": "매출구분 변경",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200072",
+            "canonicalText": "예, 제가 그 그 보험료를 카드로 결제를 했었는데요.",
+            "customerProblemText": "이벤트 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "card_limit_management",
+        "name": "카드 이용한도 조회/상향",
+        "description": "신용카드 통합 한도, 일시불/할부 가능 한도, 현금서비스 한도, 한도 상향 가능 여부와 요청 금액을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC08\",\"support\":8,\"memberSourceIds\":[\"200018\",\"200034\",\"200043\",\"200047\",\"200054\",\"200067\",\"200091\",\"200102\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"한도\",\"상향\"],\"optionalTerms\":[\"통합 한도\",\"사용 가능\",\"현금서비스\",\"일시불\",\"할부\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200054\"},{\"type\":\"source_id\",\"value\":\"200067\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200018",
+            "canonicalText": "네, 수고합니다.",
+            "customerProblemText": "결제대금 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200034",
+            "canonicalText": "네 제 리볼빙된 금액 좀 알고 싶어서요.",
+            "customerProblemText": "가상계좌 예약/취소",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200043",
+            "canonicalText": "아 네, 여보세요?",
+            "customerProblemText": "선결제/즉시출금",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "name": "혜택/할인/포인트/바우처 처리",
+        "description": "카드 혜택 적용 여부, 캐시백/할인, 포인트 또는 마일 전환, 바우처와 상품권 신청, 프로모션 조건을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC09\",\"support\":12,\"memberSourceIds\":[\"200021\",\"200022\",\"200025\",\"200028\",\"200032\",\"200033\",\"200036\",\"200042\",\"200079\",\"200085\",\"200086\",\"200103\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"혜택\",\"할인\",\"포인트\",\"마일\",\"바우처\",\"상품권\",\"프로모션\"],\"optionalTerms\":[\"캐시백\",\"실적\",\"면세점\",\"적립\",\"전환\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200022\"},{\"type\":\"source_id\",\"value\":\"200032\"},{\"type\":\"source_id\",\"value\":\"200086\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200021",
+            "canonicalText": "네, 카드론 되는지 확인 좀 해볼려고 하는데요.",
+            "customerProblemText": "장기카드대출 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200022",
+            "canonicalText": "아 네, 그 ▲▲카드 사용 중이고요. 가족 카드 같이 보유 중인데요.",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200025",
+            "canonicalText": "예, 안녕하세요? 저 뭐 좀 여쭤볼게요.",
+            "customerProblemText": "정부지원 바우처 (등유, 임신 등)",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "name": "자동납부/자동결제 등록 및 상태 확인",
+        "description": "학교, 통신, 정수기, 보험료 등 자동납부 신청, 실패, 카드 재발급 이후 재등록 필요 여부와 결제 상태를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC10\",\"support\":8,\"memberSourceIds\":[\"200016\",\"200017\",\"200037\",\"200042\",\"200066\",\"200072\",\"200084\",\"200090\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"자동납부\",\"자동결제\",\"자동 이체\"],\"optionalTerms\":[\"학교\",\"통신\",\"정수기\",\"보험료\",\"재발급\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200017\"},{\"type\":\"source_id\",\"value\":\"200037\"},{\"type\":\"source_id\",\"value\":\"200066\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200016",
+            "canonicalText": "아 예, 수고하십니다 조금 전에",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200017",
+            "canonicalText": "예 예 그거 저 ▲▲카드 거기에서 우리 그 정수기 요금이 그 빠져나가거든요?",
+            "customerProblemText": "도난/분실 신청/해제",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200037",
+            "canonicalText": "아 네, 수고하세요. 저 뭐 좀 여쭤 볼게요. 저 학생 신용카드 그 자동납부 신청을 좀 하려 그러는데요.",
+            "customerProblemText": "교육비",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "name": "카드 발급/배송/수령/사용등록",
+        "description": "신규 또는 갱신 카드 신청, 긴급 배송, 영업점/자택 수령, 가족카드 사용등록, 유효기간 만료 후 사용 가능 여부를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC11\",\"support\":10,\"memberSourceIds\":[\"200016\",\"200025\",\"200068\",\"200081\",\"200084\",\"200096\",\"200099\",\"200103\",\"200104\",\"200105\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"발급\",\"배송\",\"수령\",\"사용 등록\",\"유효기간\"],\"optionalTerms\":[\"긴급\",\"영업점\",\"가족카드\",\"앱 결제\",\"챗봇\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200081\"},{\"type\":\"source_id\",\"value\":\"200099\"},{\"type\":\"source_id\",\"value\":\"200103\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200016",
+            "canonicalText": "아 예, 수고하십니다 조금 전에",
+            "customerProblemText": "이용내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200025",
+            "canonicalText": "예, 안녕하세요? 저 뭐 좀 여쭤볼게요.",
+            "customerProblemText": "정부지원 바우처 (등유, 임신 등)",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200068",
+            "canonicalText": "네, 수고하십니다. 가족 카드가 왔는데  사용 등록을 해야 되죠?",
+            "customerProblemText": "선결제/즉시출금",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "name": "카드 해지 및 연회비/잔여금 환급",
+        "description": "신용카드 해지, 해지 후 연회비 환급 또는 차감, 자동결제 잔존 여부, 결제계좌 환급 상태를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC12\",\"support\":3,\"memberSourceIds\":[\"200088\",\"200090\",\"200105\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"해지\",\"연회비\",\"환급\"],\"optionalTerms\":[\"차감\",\"자동결제\",\"결제계좌\",\"갱신\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200088\"},{\"type\":\"source_id\",\"value\":\"200090\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200088",
+            "canonicalText": "네, 안녕하세요? 저 그 이 ▲월 초에 신용 카드 해지를 했거든요.",
+            "customerProblemText": "입금내역 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200090",
+            "canonicalText": "네, 카드 해지할려구요.",
+            "customerProblemText": "일부결제대금이월약정 해지",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200105",
+            "canonicalText": "아 네, 저 ▲▲카드는 ▲▲카드죠?",
+            "customerProblemText": "결제대금 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "name": "결제일/청구 주기 변경",
+        "description": "카드 결제일 변경, 이용기간 산정, 변경 후 청구월과 이중 청구 가능성을 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC13\",\"support\":2,\"memberSourceIds\":[\"200052\",\"200062\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"결제일\",\"변경\"],\"optionalTerms\":[\"청구\",\"이용기간\",\"며칠부터\",\"며칠까지\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200052\"},{\"type\":\"source_id\",\"value\":\"200062\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200052",
+            "canonicalText": "아 예, 제가 카드 대금 날짜가 ▲▲일인데",
+            "customerProblemText": "결제일 안내/변경/취소",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200062",
+            "canonicalText": "20,000원이 그 출금된 이제 ▲▲카드로요. 그게 결제일이 언제인지 알 수 있을까요?",
+            "customerProblemText": "입금내역 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "name": "일반결제/앱 결제 서비스 등록 및 오류",
+        "description": "일반결제서비스 가입 알림, 앱 결제 불가, 온라인 결제 서비스 사용 조건과 보안 동의 여부를 확인하는 상담",
+        "taxonomyLevel": 1,
+        "parentIntentCode": null,
+        "sourceClusterRef": "{\"clusterId\":\"HC14\",\"support\":2,\"memberSourceIds\":[\"200103\",\"200104\"]}",
+        "entryConditionJson": "{\"requiredTerms\":[\"일반결제서비스\",\"앱 결제\",\"온라인 결제\"],\"optionalTerms\":[\"가입 완료\",\"등록\",\"보안\",\"동의\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200103\"},{\"type\":\"source_id\",\"value\":\"200104\"}]",
+        "metaJson": "{\"domain\": \"hanacard_100\", \"source\": \"manager_merge_plan\", \"assignmentMode\": \"non_exclusive_multi_intent\", \"evidenceRoles\": [\"CUSTOMER\", \"AGENT\"]}",
+        "representativeCases": [
+          {
+            "conversationId": "200103",
+            "canonicalText": "네, ▲▲카드 새로 발급 받아서 등록 신청까지 다 했는데",
+            "customerProblemText": "이용방법 안내",
+            "endedStatus": "resolved"
+          },
+          {
+            "conversationId": "200104",
+            "canonicalText": "네, 수고하십니다. 여쭤볼려고요.",
+            "customerProblemText": "안심클릭/▲▲페이/기타페이 안내",
+            "endedStatus": "resolved"
+          }
+        ]
+      }
+    ]
+  },
+  "workflowDraft": {
+    "slots": [
+      {
+        "slotCode": "customer_identity",
+        "name": "고객 본인 확인 정보",
+        "description": "명의자 성명, 생년월일, 휴대폰, 결제은행 등 본인 확인에 필요한 정보",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"성함\",\"생년월일\",\"휴대폰\",\"명의자\",\"본인\",\"은행\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "card_identifier",
+        "name": "대상 카드 식별 정보",
+        "description": "카드명, 카드 종류, 카드 번호 끝자리, 가족/기업/체크/신용 여부",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"카드\",\"끝 네 자리\",\"체크\",\"신용\",\"가족\",\"기업\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "card_possession_status",
+        "name": "카드 소지/분실 상태",
+        "description": "분실, 습득, 찾음, 소지 중, 신고 접수 여부 등 현재 카드 상태",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"분실\",\"잃어버\",\"찾았\",\"습득\",\"소지\",\"정지\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "incident_datetime",
+        "name": "분실/문제 발생 시각",
+        "description": "카드 분실, 도난, 의심 승인, 서비스 문제 발생 일시",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"언제\",\"어제\",\"오늘\",\"새벽\",\"오전\",\"오후\",\"시\",\"분\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "incident_location",
+        "name": "분실/이용 발생 장소",
+        "description": "분실 추정 장소, 습득 장소, 가맹점 또는 이용 지역",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"장소\",\"터미널\",\"마트\",\"지하철\",\"공항\",\"가맹점\",\"지역\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "contact_channel",
+        "name": "연락/인증 채널",
+        "description": "문자, 카카오, 전화, 등록 휴대폰, 해외 연락처 등 고객에게 안내하거나 인증할 채널",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"문자\",\"카톡\",\"카카오\",\"전화\",\"휴대폰\",\"연락처\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "transaction_datetime",
+        "name": "거래 일시",
+        "description": "승인, 출금, 취소, 교통 이용, 해외 결제의 발생 일시",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"결제일\",\"승인일\",\"몇 월\",\"며칠\",\"시\",\"분\",\"오늘\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "transaction_amount",
+        "name": "거래 금액",
+        "description": "승인 금액, 취소 금액, 청구 금액, 출금 금액 또는 선결제 금액",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"원\",\"금액\",\"얼마\",\"총액\",\"잔액\",\"누적\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "merchant_or_channel",
+        "name": "가맹점/결제 채널",
+        "description": "가맹점명, 온라인 쇼핑몰, 네이버페이, 교통, 해외, 앱 등 결제 채널",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"가맹점\",\"쇼핑\",\"네이버페이\",\"쿠팡\",\"교통\",\"해외\",\"앱\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "transaction_status_type",
+        "name": "거래 상태 유형",
+        "description": "승인, 매출, 취소, 반품, 환불, 출금, 청구 반영 등 확인하려는 상태",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"승인\",\"매출\",\"취소\",\"반품\",\"환불\",\"출금\",\"청구\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "cancellation_request_date",
+        "name": "취소/반품 요청일",
+        "description": "가맹점이 취소 또는 반품 처리했다고 안내한 날짜",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"취소한 날\",\"반품\",\"처리일\",\"문자 받은 날\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "refund_destination",
+        "name": "환불/입금 대상",
+        "description": "결제계좌, 이전 카드, 새 카드, 청구 차감 등 환불이 반영될 대상",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"환불\",\"입금\",\"결제계좌\",\"차감\",\"돌려\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "payment_due_date",
+        "name": "결제일",
+        "description": "정기 결제일, 이번 달 납부일, 변경 전후 결제일",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"결제일\",\"납부일\",\"이번 달\",\"10일\",\"25일\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "payment_amount",
+        "name": "납부/선결제 금액",
+        "description": "전액, 일부, 현금서비스분, 카드론분 등 결제 요청 금액",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"선결제\",\"즉시출금\",\"납부\",\"입금\",\"전부\",\"일부\",\"원\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "payment_method_account",
+        "name": "결제/출금 계좌 또는 가상계좌",
+        "description": "자동 출금 계좌, 다른 명의 계좌, 가상계좌 발급 은행과 계좌 정보",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"계좌\",\"가상계좌\",\"은행\",\"출금\",\"입금\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "loan_type",
+        "name": "대출/현금서비스 유형",
+        "description": "장기카드대출, 단기카드대출, 현금서비스, 오토 서비스 등 금융 서비스 유형",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"카드론\",\"장기\",\"단기\",\"현금서비스\",\"오토\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "loan_action",
+        "name": "대출 처리 요청",
+        "description": "가능 여부 조회, 실행, 일부 상환, 완납, 즉시출금 등 요청 유형",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"가능\",\"받을\",\"상환\",\"완납\",\"출금\",\"한도\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "loan_amount",
+        "name": "대출/상환 금액",
+        "description": "신청 가능 금액, 실행 금액, 일부 상환 또는 완납 금액",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"금액\",\"원\",\"얼마\",\"원금\",\"이자\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "repayment_term",
+        "name": "상환 기간/개월 수",
+        "description": "카드론 또는 할부의 상환 개월 수, 납부 예정월",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"개월\",\"몇 개월\",\"다음 달\",\"월 상환\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "revolving_action",
+        "name": "리볼빙 요청 유형",
+        "description": "리볼빙 약정 조회, 이월금 확인, 납부, 해지 또는 설명 요청",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"리볼빙\",\"이월\",\"해지\",\"약정\",\"소액결제\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "installment_months",
+        "name": "할부/분할 개월 수",
+        "description": "할부 전환 또는 분할 납부로 원하는 개월 수",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"개월\",\"할부\",\"분할\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "limit_type",
+        "name": "한도 유형",
+        "description": "통합 한도, 일시불/할부 한도, 현금서비스 한도 등 조회 또는 상향 대상 한도",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"통합 한도\",\"현금서비스\",\"일시불\",\"할부\",\"사용 가능\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "desired_limit_amount",
+        "name": "희망 한도 금액",
+        "description": "고객이 요청하는 상향 한도 또는 확인하려는 사용 가능 한도",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"올려\",\"상향\",\"한도\",\"원\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "limit_change_reason",
+        "name": "한도 변경 사유",
+        "description": "가구 구매, 복지포인트 카드 사용, 출국 전 사용 등 한도 상향 배경",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"구매\",\"필요\",\"복지\",\"출국\",\"사용\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "benefit_program",
+        "name": "혜택/상품 프로그램",
+        "description": "카드 혜택명, 캐시백, 마일리지, 바우처, 상품권, 프로모션명",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"혜택\",\"할인\",\"캐시백\",\"마일\",\"바우처\",\"상품권\",\"프로모션\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "benefit_action",
+        "name": "혜택 처리 요청",
+        "description": "적용 여부 확인, 포인트 전환, 상품권 선택, 바우처 신청 등 요청 유형",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"적용\",\"전환\",\"신청\",\"선택\",\"확인\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "usage_period",
+        "name": "이용/실적 기간",
+        "description": "혜택 또는 청구 확인에 필요한 이용일, 전월 실적 기간, 프로모션 기간",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"전월\",\"실적\",\"어제\",\"그제\",\"기간\",\"월\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "usage_merchant_or_category",
+        "name": "이용 가맹점/업종",
+        "description": "스타벅스, 정수기, 통신, 면세점, 백화점 등 혜택 또는 자동납부 대상",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"스타벅스\",\"정수기\",\"통신\",\"면세점\",\"백화점\",\"학교\",\"보험\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "autopay_biller",
+        "name": "자동납부 기관",
+        "description": "학교, 통신사, 정수기, 보험사 등 자동납부 청구 기관",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"학교\",\"통신\",\"정수기\",\"보험료\",\"자동납부\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "autopay_contract_identifier",
+        "name": "자동납부 식별 정보",
+        "description": "학생 정보, 계약번호, 고객번호, 주소, 납부자 정보 등 자동납부 등록에 필요한 식별값",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"번호\",\"주소\",\"학생\",\"계약\",\"고객번호\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "autopay_action",
+        "name": "자동납부 요청 유형",
+        "description": "신청, 변경, 실패 확인, 재등록 필요 여부 확인 등 자동납부 요청 유형",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"신청\",\"변경\",\"안 됐\",\"재등록\",\"확인\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "issue_request_type",
+        "name": "발급/등록 요청 유형",
+        "description": "신규 신청, 재발급, 갱신, 긴급배송, 수령지 확인, 사용등록, 앱 결제 오류",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"신청\",\"재발급\",\"갱신\",\"긴급배송\",\"수령\",\"사용등록\",\"앱 결제\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "delivery_address_or_branch",
+        "name": "배송지/수령 지점",
+        "description": "자택, 영업점, 본사, 긴급배송 목적지 등 카드 수령 위치",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"자택\",\"영업점\",\"주소\",\"수령지\",\"배송\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "desired_delivery_date",
+        "name": "희망 수령일",
+        "description": "출국 전 수령, 가장 빠른 배송일, 긴급 배송 희망일",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"언제까지\",\"출국\",\"화요일\",\"빠르게\",\"오늘\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "cancellation_reason",
+        "name": "해지/환급 문의 사유",
+        "description": "카드 해지, 연회비 출금, 갱신 후 환급 미반영, 자동결제 여부 등 문의 사유",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"해지\",\"연회비\",\"환급\",\"갱신\",\"차감\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "annual_fee_or_refund_amount",
+        "name": "연회비/환급 금액",
+        "description": "출금된 연회비, 차감 금액, 환급 예상 금액",
+        "dataType": "NUMBER",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"연회비\",\"환급\",\"차감\",\"원\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "current_due_date",
+        "name": "현재 결제일",
+        "description": "변경 전 카드 결제일",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"원래 결제일\",\"현재 결제일\",\"25일\",\"10일\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "desired_due_date",
+        "name": "희망 결제일",
+        "description": "고객이 변경하려는 새 결제일",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"변경\",\"바꾸\",\"10일\",\"25일\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "billing_period",
+        "name": "청구 산정 기간",
+        "description": "결제일 변경 후 이용기간 시작일과 종료일, 두 달분 청구 가능성",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"며칠부터\",\"며칠까지\",\"이용기간\",\"두 달분\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "digital_service_name",
+        "name": "디지털 결제 서비스명",
+        "description": "일반결제서비스, 앱 결제, 온라인 결제 등 등록 또는 오류가 발생한 서비스",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"일반결제서비스\",\"앱 결제\",\"온라인 결제\",\"서비스\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "service_request_type",
+        "name": "서비스 요청 유형",
+        "description": "가입 확인, 등록, 오류 해결, 설명 요청, 해지 등 서비스 처리 유형",
+        "dataType": "STRING",
+        "isSensitive": false,
+        "validationRuleJson": "{\"keywords\":[\"가입\",\"등록\",\"오류\",\"해지\",\"설명\",\"확인\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "slotCode": "authentication_channel",
+        "name": "인증 수단",
+        "description": "카드 인증, 비밀번호 입력, 문자 인증, 계좌 인증 등 인증 수단",
+        "dataType": "STRING",
+        "isSensitive": true,
+        "validationRuleJson": "{\"keywords\":[\"인증\",\"비밀번호\",\"문자\",\"계좌\",\"카드\"]}",
+        "defaultValueJson": null,
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      }
+    ],
+    "policies": [
+      {
+        "policyCode": "customer_authentication_required",
+        "name": "본인 인증 선행",
+        "description": "카드, 결제, 대출, 한도, 해지 등 계정성 업무는 명의자 또는 적법한 대리권을 확인한 뒤 처리한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"account_specific_request\",\"observedSignals\":[\"카드\",\"결제\",\"대출\",\"해지\",\"한도\"]}",
+        "actionJson": "{\"require\":[\"customer_identity\"],\"allowProxyOnlyWithVerification\":true}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200008\"},{\"type\":\"source_id\",\"value\":\"200015\"},{\"type\":\"source_id\",\"value\":\"200090\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "target_card_and_account_verification",
+        "name": "대상 카드/계좌 식별 확인",
+        "description": "복수 카드, 가족카드, 체크/신용카드, 이전/새 카드가 혼재할 때 처리 대상 카드를 명확히 식별한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"multiple_card_or_account_possible\",\"observedSignals\":[\"가족카드\",\"체크\",\"신용\",\"끝자리\",\"새 카드\"]}",
+        "actionJson": "{\"require\":[\"card_identifier\"],\"confirmBeforeAction\":true}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200010\"},{\"type\":\"source_id\",\"value\":\"200068\"},{\"type\":\"source_id\",\"value\":\"200100\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "sensitive_auth_data_handling",
+        "name": "민감 인증정보 최소 수집",
+        "description": "카드번호, 계좌번호, 주민번호, 비밀번호 등 민감 정보는 필요한 최소 범위와 안전한 입력 채널로만 수집한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"sensitive_data_requested\",\"observedSignals\":[\"비밀번호\",\"계좌번호\",\"주민번호\",\"카드번호\"]}",
+        "actionJson": "{\"minimizeCollection\":true,\"preferSecureInput\":true,\"maskInLogs\":true}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200008\"},{\"type\":\"source_id\",\"value\":\"200086\"},{\"type\":\"source_id\",\"value\":\"200097\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "lost_card_block_release_notice",
+        "name": "분실 정지/해제 및 재발급 영향 고지",
+        "description": "분실 정지, 해제, 재발급 요청 시 기존 카드 사용 가능 여부, 재발급 후 자동납부 영향, 해제 가능 조건을 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"lost_card_or_block_status_discussed\",\"observedSignals\":[\"분실\",\"정지\",\"해제\",\"재발급\",\"찾았\"]}",
+        "actionJson": "{\"disclose\":[\"cardUsability\",\"reissueImpact\",\"releaseCondition\",\"nextContactPath\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200007\"},{\"type\":\"source_id\",\"value\":\"200016\"},{\"type\":\"source_id\",\"value\":\"200098\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "suspicious_use_and_dispute_escalation",
+        "name": "부정사용 의심 거래 에스컬레이션",
+        "description": "분실 이후 승인, 고객이 인지하지 못한 결제, 해외/온라인 이상 거래는 승인 상태와 이의제기 또는 사고 접수 경로를 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"suspicious_or_unknown_charge\",\"observedSignals\":[\"모르는 결제\",\"분실 후 사용\",\"이상한 금액\",\"해외\",\"인터넷 쇼핑\"]}",
+        "actionJson": "{\"verify\":[\"transaction_status_type\",\"merchant_or_channel\"],\"offerEscalation\":\"dispute_or_fraud_team\"}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200012\"},{\"type\":\"source_id\",\"value\":\"200057\"},{\"type\":\"source_id\",\"value\":\"200093\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "transaction_posting_delay_notice",
+        "name": "승인/매출/문자 반영 지연 안내",
+        "description": "승인 문자, 앱 내역, 매출 확정, 교통/해외 이용 내역은 채널별 반영 시점이 다를 수 있음을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"transaction_visibility_or_alert_discussed\",\"observedSignals\":[\"문자 안 옴\",\"앱에 안 보임\",\"승인\",\"교통\",\"해외\"]}",
+        "actionJson": "{\"disclose\":[\"postingDelay\",\"alertChannelDifference\",\"merchantSettlementTiming\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200003\"},{\"type\":\"source_id\",\"value\":\"200041\"},{\"type\":\"source_id\",\"value\":\"200048\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "cancellation_refund_timing_notice",
+        "name": "취소/환불 반영 시점 고지",
+        "description": "가맹점 취소 접수, 카드사 매입 취소, 청구 차감, 결제계좌 입금은 처리 단계와 날짜가 다를 수 있음을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"refund_or_cancellation_status_discussed\",\"observedSignals\":[\"취소\",\"반품\",\"환불\",\"매출 취소\",\"입금\"]}",
+        "actionJson": "{\"explain\":[\"merchantCancellation\",\"cardPosting\",\"statementOffset\",\"refundDestination\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200059\"},{\"type\":\"source_id\",\"value\":\"200073\"},{\"type\":\"source_id\",\"value\":\"200092\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "payment_execution_consent_and_account_check",
+        "name": "납부 실행 동의 및 계좌 확인",
+        "description": "즉시출금, 가상계좌 발급, 다른 계좌 출금은 금액, 계좌, 실행 시점에 대한 고객 동의를 확인한 뒤 처리한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"payment_execution_requested\",\"observedSignals\":[\"즉시출금\",\"가상계좌\",\"입금\",\"계좌번호\",\"결제해 주세요\"]}",
+        "actionJson": "{\"require\":[\"payment_amount\",\"payment_method_account\"],\"confirmBeforeExecution\":true}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200055\"},{\"type\":\"source_id\",\"value\":\"200094\"},{\"type\":\"source_id\",\"value\":\"200097\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "prepayment_allocation_and_duplicate_payment_notice",
+        "name": "선결제 충당/중복 납부 안내",
+        "description": "선결제는 결제 예정금액, 카드론, 현금서비스, 취소 반영분에 따라 충당 순서와 잔여 청구가 달라질 수 있고 중복 입금은 별도 반영될 수 있음을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"prepayment_or_duplicate_payment_discussed\",\"observedSignals\":[\"선결제\",\"중복\",\"잔액\",\"다 갚\",\"두 번\"]}",
+        "actionJson": "{\"disclose\":[\"allocationOrder\",\"remainingBalance\",\"nextStatementImpact\",\"duplicatePaymentHandling\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200024\"},{\"type\":\"source_id\",\"value\":\"200095\"},{\"type\":\"source_id\",\"value\":\"200102\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "credit_loan_assessment_and_fee_notice",
+        "name": "카드대출 심사/금리/상환 조건 고지",
+        "description": "카드론, 현금서비스 가능 여부와 한도는 심사 및 시점에 따라 달라지며 금리, 이자, 원금, 상환 개월 수를 함께 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"loan_or_cash_advance_discussed\",\"observedSignals\":[\"카드론\",\"장기\",\"단기\",\"현금서비스\",\"이자\"]}",
+        "actionJson": "{\"disclose\":[\"eligibilityCanChange\",\"interest\",\"repaymentTerm\",\"principal\",\"fees\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200021\"},{\"type\":\"source_id\",\"value\":\"200029\"},{\"type\":\"source_id\",\"value\":\"200065\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "revolving_installment_fee_and_statement_notice",
+        "name": "리볼빙/할부 수수료 및 청구 영향 고지",
+        "description": "리볼빙, 할부 전환, 분할 납부는 수수료, 이자, 다음 청구월, 확정 가능 시점이 달라질 수 있음을 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"revolving_or_installment_discussed\",\"observedSignals\":[\"리볼빙\",\"할부\",\"분할납부\",\"수수료\",\"이자\"]}",
+        "actionJson": "{\"disclose\":[\"fees\",\"interest\",\"billingMonth\",\"conversionAvailability\",\"cancellationPath\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200063\"},{\"type\":\"source_id\",\"value\":\"200070\"},{\"type\":\"source_id\",\"value\":\"200087\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "limit_change_assessment_notice",
+        "name": "한도 변경 심사 및 적용 범위 고지",
+        "description": "한도 조회 또는 상향은 카드 유형, 통합 한도, 현금서비스 한도, 심사 결과와 즉시 사용 가능 범위를 구분해 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"limit_inquiry_or_increase_requested\",\"observedSignals\":[\"한도\",\"상향\",\"사용 가능\",\"현금서비스\"]}",
+        "actionJson": "{\"disclose\":[\"currentLimit\",\"availableLimit\",\"assessmentRequired\",\"scopeByLimitType\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200043\"},{\"type\":\"source_id\",\"value\":\"200054\"},{\"type\":\"source_id\",\"value\":\"200091\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "benefit_eligibility_and_exclusion_notice",
+        "name": "혜택 적용 조건 및 제외 기준 고지",
+        "description": "할인, 캐시백, 포인트, 바우처, 프로모션은 전월 실적, 가맹점, 결제 방식, 적용 시점과 제외 조건을 확인해 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"benefit_or_points_discussed\",\"observedSignals\":[\"혜택\",\"할인\",\"포인트\",\"마일\",\"바우처\",\"캐시백\"]}",
+        "actionJson": "{\"verify\":[\"benefit_program\",\"usage_period\",\"usage_merchant_or_category\"],\"disclose\":[\"eligibility\",\"excludedTransactions\",\"postingTiming\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200022\"},{\"type\":\"source_id\",\"value\":\"200036\"},{\"type\":\"source_id\",\"value\":\"200079\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "recurring_payment_merchant_coordination_notice",
+        "name": "자동납부 기관 연계 안내",
+        "description": "자동납부 신청, 실패, 재발급 후 재등록은 카드사와 청구기관 처리 상태가 다를 수 있어 기관 확인 또는 재신청 필요성을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"recurring_payment_discussed\",\"observedSignals\":[\"자동납부\",\"자동결제\",\"학교\",\"통신\",\"정수기\",\"보험료\"]}",
+        "actionJson": "{\"disclose\":[\"merchantRegistrationStatus\",\"reissueImpact\",\"externalProviderCheck\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200017\"},{\"type\":\"source_id\",\"value\":\"200066\"},{\"type\":\"source_id\",\"value\":\"200090\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "card_delivery_activation_and_expiry_notice",
+        "name": "카드 배송/사용등록/유효기간 안내",
+        "description": "신청 카드의 배송 일정, 긴급배송 가능성, 수령지, 사용등록 여부, 유효기간 만료 후 기능 제한을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"card_issue_delivery_or_activation_discussed\",\"observedSignals\":[\"발급\",\"배송\",\"수령\",\"사용등록\",\"유효기간\"]}",
+        "actionJson": "{\"disclose\":[\"deliveryEta\",\"pickupOptions\",\"activationRequired\",\"expiryImpact\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200081\"},{\"type\":\"source_id\",\"value\":\"200099\"},{\"type\":\"source_id\",\"value\":\"200103\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "card_close_annual_fee_refund_notice",
+        "name": "해지 후 연회비/잔액 환급 고지",
+        "description": "카드 해지 시 연회비 환급, 미청구 잔액, 자동결제 잔존 여부, 환급 계좌 반영 시점을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"card_close_or_annual_fee_refund_discussed\",\"observedSignals\":[\"해지\",\"연회비\",\"환급\",\"차감\"]}",
+        "actionJson": "{\"disclose\":[\"annualFeeProration\",\"refundTiming\",\"remainingBalance\",\"recurringPaymentCheck\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200088\"},{\"type\":\"source_id\",\"value\":\"200090\"},{\"type\":\"source_id\",\"value\":\"200105\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "due_date_change_cycle_notice",
+        "name": "결제일 변경 후 청구 기간 고지",
+        "description": "결제일 변경은 이용기간 산정, 첫 변경월 청구 기간, 두 달분 청구 가능성, 다음 출금일에 영향을 줄 수 있음을 안내한다.",
+        "severity": "MEDIUM",
+        "conditionJson": "{\"when\":\"billing_due_date_change_requested\",\"observedSignals\":[\"결제일 변경\",\"며칠부터\",\"두 달분\"]}",
+        "actionJson": "{\"disclose\":[\"newBillingCycle\",\"firstStatementImpact\",\"nextWithdrawalDate\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200052\"},{\"type\":\"source_id\",\"value\":\"200062\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      },
+      {
+        "policyCode": "digital_payment_service_security_notice",
+        "name": "디지털 결제 서비스 보안/동의 안내",
+        "description": "일반결제서비스와 앱 결제 등록은 가입 알림, 본인 동의, 카드 사용 가능 상태, 보안 인증 절차를 확인해 안내한다.",
+        "severity": "HIGH",
+        "conditionJson": "{\"when\":\"digital_payment_service_discussed\",\"observedSignals\":[\"일반결제서비스\",\"앱 결제\",\"가입 완료\",\"등록\"]}",
+        "actionJson": "{\"verify\":[\"service_request_type\",\"authentication_channel\"],\"disclose\":[\"securityConsent\",\"eligibleCardStatus\",\"registrationEffect\"]}",
+        "evidenceJson": "[{\"type\":\"source_id\",\"value\":\"200103\"},{\"type\":\"source_id\",\"value\":\"200104\"}]",
+        "metaJson": "{\"source\":\"manager_merge_plan\"}"
+      }
+    ],
+    "risks": [
+      {
+        "riskCode": "identity_verification_failed",
+        "name": "본인 확인 실패",
+        "description": "본인 인증 또는 대체 인증이 실패해 개인 금융 정보 처리로 진행할 수 없는 상태",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\": [\"본인\", \"인증\", \"생년월일\"]}",
+        "handlingActionJson": "{\"action\": \"handoff\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200001:10:0\"}, {\"type\": \"unit_id\", \"value\": \"200001:15:1\"}, {\"type\": \"unit_id\", \"value\": \"200001:20:0\"}, {\"type\": \"unit_id\", \"value\": \"200001:27:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:3:1\"}, {\"type\": \"unit_id\", \"value\": \"200002:32:1\"}, {\"type\": \"unit_id\", \"value\": \"200003:15:0\"}, {\"type\": \"unit_id\", \"value\": \"200004:8:2\"}, {\"type\": \"unit_id\", \"value\": \"200005:2:1\"}, {\"type\": \"unit_id\", \"value\": \"200007:5:1\"}, {\"type\": \"unit_id\", \"value\": \"200008:13:1\"}, {\"type\": \"unit_id\", \"value\": \"200008:15:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "lost_or_stolen_card_fraud",
+        "name": "분실/도난 카드 부정사용 위험",
+        "description": "분실 카드, 습득 카드, 미인지 거래가 포함되어 부정사용 확인이 필요한 상태",
+        "riskLevel": "CRITICAL",
+        "triggerConditionJson": "{\"signals\": [\"분실\", \"정지\", \"습득\", \"모르는\"]}",
+        "handlingActionJson": "{\"action\": \"block_or_dispute\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200001:17:0\"}, {\"type\": \"unit_id\", \"value\": \"200001:35:1\"}, {\"type\": \"unit_id\", \"value\": \"200002:1:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:6:1\"}, {\"type\": \"unit_id\", \"value\": \"200002:10:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:10:1\"}, {\"type\": \"unit_id\", \"value\": \"200002:13:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:14:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:15:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:24:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:27:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:30:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "suspicious_or_unrecognized_transaction",
+        "name": "미인지 거래 분쟁 가능성",
+        "description": "고객이 승인/출금/취소 내역을 인지하지 못해 분쟁으로 이어질 수 있는 상태",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\": [\"승인\", \"문자\", \"취소\", \"이상\"]}",
+        "handlingActionJson": "{\"action\": \"verify_transaction\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200001:20:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:24:0\"}, {\"type\": \"unit_id\", \"value\": \"200003:6:0\"}, {\"type\": \"unit_id\", \"value\": \"200003:12:0\"}, {\"type\": \"unit_id\", \"value\": \"200004:5:0\"}, {\"type\": \"unit_id\", \"value\": \"200006:33:1\"}, {\"type\": \"unit_id\", \"value\": \"200007:13:1\"}, {\"type\": \"unit_id\", \"value\": \"200008:6:0\"}, {\"type\": \"unit_id\", \"value\": \"200008:29:2\"}, {\"type\": \"unit_id\", \"value\": \"200012:3:0\"}, {\"type\": \"unit_id\", \"value\": \"200012:24:0\"}, {\"type\": \"unit_id\", \"value\": \"200012:26:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "payment_execution_error",
+        "name": "납부 실행/중복출금 위험",
+        "description": "선결제, 즉시출금, 가상계좌 입금 과정에서 중복 납부나 반영 지연이 발생할 수 있는 상태",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\": [\"선결제\", \"즉시출금\", \"가상계좌\", \"중복\"]}",
+        "handlingActionJson": "{\"action\": \"confirm_before_execution\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200020:2:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:5:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:24:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:46:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:46:1\"}, {\"type\": \"unit_id\", \"value\": \"200020:56:4\"}, {\"type\": \"unit_id\", \"value\": \"200024:3:0\"}, {\"type\": \"unit_id\", \"value\": \"200026:2:1\"}, {\"type\": \"unit_id\", \"value\": \"200029:36:0\"}, {\"type\": \"unit_id\", \"value\": \"200030:83:0\"}, {\"type\": \"unit_id\", \"value\": \"200034:22:0\"}, {\"type\": \"unit_id\", \"value\": \"200034:24:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "financial_product_disclosure",
+        "name": "금융상품 설명 부족 위험",
+        "description": "카드론, 현금서비스, 리볼빙, 할부, 한도상향 등 비용/심사 조건 고지가 필요한 상태",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\": [\"카드론\", \"대출\", \"리볼빙\", \"할부\", \"한도\"]}",
+        "handlingActionJson": "{\"action\": \"disclose_fee_and_terms\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200018:36:1\"}, {\"type\": \"unit_id\", \"value\": \"200020:48:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:48:1\"}, {\"type\": \"unit_id\", \"value\": \"200020:51:2\"}, {\"type\": \"unit_id\", \"value\": \"200021:1:0\"}, {\"type\": \"unit_id\", \"value\": \"200021:11:1\"}, {\"type\": \"unit_id\", \"value\": \"200021:12:0\"}, {\"type\": \"unit_id\", \"value\": \"200021:15:0\"}, {\"type\": \"unit_id\", \"value\": \"200021:15:1\"}, {\"type\": \"unit_id\", \"value\": \"200021:18:1\"}, {\"type\": \"unit_id\", \"value\": \"200021:20:1\"}, {\"type\": \"unit_id\", \"value\": \"200021:22:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "benefit_condition_misunderstanding",
+        "name": "혜택 조건 오인 위험",
+        "description": "바우처, 캐시백, 포인트, 마일리지 조건을 고객이 오인할 수 있는 상태",
+        "riskLevel": "MEDIUM",
+        "triggerConditionJson": "{\"signals\": [\"바우처\", \"캐시백\", \"포인트\", \"마일리지\"]}",
+        "handlingActionJson": "{\"action\": \"explain_conditions\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200020:46:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:51:1\"}, {\"type\": \"unit_id\", \"value\": \"200020:53:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:56:0\"}, {\"type\": \"unit_id\", \"value\": \"200020:56:1\"}, {\"type\": \"unit_id\", \"value\": \"200021:35:0\"}, {\"type\": \"unit_id\", \"value\": \"200025:23:1\"}, {\"type\": \"unit_id\", \"value\": \"200032:3:1\"}, {\"type\": \"unit_id\", \"value\": \"200032:4:0\"}, {\"type\": \"unit_id\", \"value\": \"200032:8:1\"}, {\"type\": \"unit_id\", \"value\": \"200032:9:3\"}, {\"type\": \"unit_id\", \"value\": \"200032:15:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "card_closure_residual_charge",
+        "name": "카드 해지 후 잔여청구 위험",
+        "description": "카드 해지, 연회비 환급, 자동납부 잔여 청구 설명이 필요한 상태",
+        "riskLevel": "MEDIUM",
+        "triggerConditionJson": "{\"signals\": [\"해지\", \"연회비\", \"자동납부\"]}",
+        "handlingActionJson": "{\"action\": \"explain_residual_charge\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200001:35:1\"}, {\"type\": \"unit_id\", \"value\": \"200002:34:0\"}, {\"type\": \"unit_id\", \"value\": \"200008:19:1\"}, {\"type\": \"unit_id\", \"value\": \"200010:25:0\"}, {\"type\": \"unit_id\", \"value\": \"200010:31:0\"}, {\"type\": \"unit_id\", \"value\": \"200011:16:0\"}, {\"type\": \"unit_id\", \"value\": \"200011:17:0\"}, {\"type\": \"unit_id\", \"value\": \"200014:13:0\"}, {\"type\": \"unit_id\", \"value\": \"200021:32:1\"}, {\"type\": \"unit_id\", \"value\": \"200037:1:2\"}, {\"type\": \"unit_id\", \"value\": \"200053:12:0\"}, {\"type\": \"unit_id\", \"value\": \"200071:12:2\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      },
+      {
+        "riskCode": "digital_payment_security",
+        "name": "디지털 결제 보안 위험",
+        "description": "일반결제, 앱 결제, 인증 서비스 등록/오류 처리 시 보안 확인이 필요한 상태",
+        "riskLevel": "HIGH",
+        "triggerConditionJson": "{\"signals\": [\"일반결제\", \"앱\", \"인증\", \"페이\"]}",
+        "handlingActionJson": "{\"action\": \"security_verify\"}",
+        "evidenceJson": "[{\"type\": \"unit_id\", \"value\": \"200001:10:0\"}, {\"type\": \"unit_id\", \"value\": \"200001:20:0\"}, {\"type\": \"unit_id\", \"value\": \"200001:27:0\"}, {\"type\": \"unit_id\", \"value\": \"200002:32:1\"}, {\"type\": \"unit_id\", \"value\": \"200008:29:1\"}, {\"type\": \"unit_id\", \"value\": \"200011:14:2\"}, {\"type\": \"unit_id\", \"value\": \"200022:57:0\"}, {\"type\": \"unit_id\", \"value\": \"200022:59:0\"}, {\"type\": \"unit_id\", \"value\": \"200022:60:0\"}, {\"type\": \"unit_id\", \"value\": \"200033:22:1\"}, {\"type\": \"unit_id\", \"value\": \"200034:21:1\"}, {\"type\": \"unit_id\", \"value\": \"200034:23:0\"}]",
+        "metaJson": "{\"source\": \"direct_customer_agent_review\"}"
+      }
+    ],
+    "workflows": [
+      {
+        "workflowCode": "lost_card_report_and_status_flow",
+        "name": "카드 분실 신고 및 정지/해제 상태 확인 워크플로우",
+        "description": "카드 분실, 습득, 정지, 분실 신고 해제, 재발급 후 사용 가능 여부와 마지막 이용 내역을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"suspicious_use_and_dispute_escalation\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200001\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200002\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200005\"}, {\"type\": \"member_conv_id\", \"value\": \"200006\"}, {\"type\": \"member_conv_id\", \"value\": \"200007\"}, {\"type\": \"member_conv_id\", \"value\": \"200008\"}, {\"type\": \"member_conv_id\", \"value\": \"200009\"}, {\"type\": \"member_conv_id\", \"value\": \"200010\"}, {\"type\": \"member_conv_id\", \"value\": \"200011\"}, {\"type\": \"member_conv_id\", \"value\": \"200012\"}, {\"type\": \"member_conv_id\", \"value\": \"200013\"}, {\"type\": \"member_conv_id\", \"value\": \"200014\"}, {\"type\": \"member_conv_id\", \"value\": \"200015\"}, {\"type\": \"member_conv_id\", \"value\": \"200016\"}, {\"type\": \"member_conv_id\", \"value\": \"200017\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"lost_card_block_release_notice\", \"suspicious_use_and_dispute_escalation\"]}",
+        "intentCode": "lost_card_report_and_status",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"분실\",\"정지\",\"습득\",\"찾았\",\"해제\"],\"optionalTerms\":[\"재발급\",\"마지막 사용\",\"외국\",\"가족카드\",\"타사 카드\"]}"
+      },
+      {
+        "workflowCode": "payment_history_and_charge_inquiry_flow",
+        "name": "승인/출금/이용 내역 확인 워크플로우",
+        "description": "결제 승인, 문자 미수신, 명세서 금액, 해외/교통/인터넷 쇼핑 이용 내역, 출금 사유를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"suspicious_use_and_dispute_escalation\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200003\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200004\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200008\"}, {\"type\": \"member_conv_id\", \"value\": \"200009\"}, {\"type\": \"member_conv_id\", \"value\": \"200014\"}, {\"type\": \"member_conv_id\", \"value\": \"200016\"}, {\"type\": \"member_conv_id\", \"value\": \"200018\"}, {\"type\": \"member_conv_id\", \"value\": \"200019\"}, {\"type\": \"member_conv_id\", \"value\": \"200027\"}, {\"type\": \"member_conv_id\", \"value\": \"200030\"}, {\"type\": \"member_conv_id\", \"value\": \"200031\"}, {\"type\": \"member_conv_id\", \"value\": \"200033\"}, {\"type\": \"member_conv_id\", \"value\": \"200035\"}, {\"type\": \"member_conv_id\", \"value\": \"200048\"}, {\"type\": \"member_conv_id\", \"value\": \"200057\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"transaction_posting_delay_notice\", \"suspicious_use_and_dispute_escalation\"]}",
+        "intentCode": "payment_history_and_charge_inquiry",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"결제\",\"승인\",\"출금\",\"이용 내역\",\"문자\"],\"optionalTerms\":[\"교통\",\"해외\",\"가맹점\",\"명세서\",\"누적 금액\"]}"
+      },
+      {
+        "workflowCode": "cancellation_refund_status_flow",
+        "name": "결제 취소/반품/환불 처리 확인 워크플로우",
+        "description": "가맹점 취소, 반품, 매출 취소 문자, 환불 입금처와 청구 차감 여부를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"cancellation_refund_timing_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200027\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200041\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200044\"}, {\"type\": \"member_conv_id\", \"value\": \"200058\"}, {\"type\": \"member_conv_id\", \"value\": \"200059\"}, {\"type\": \"member_conv_id\", \"value\": \"200064\"}, {\"type\": \"member_conv_id\", \"value\": \"200073\"}, {\"type\": \"member_conv_id\", \"value\": \"200092\"}, {\"type\": \"member_conv_id\", \"value\": \"200105\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"transaction_posting_delay_notice\", \"cancellation_refund_timing_notice\"]}",
+        "intentCode": "cancellation_refund_status",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"취소\",\"반품\",\"환불\",\"매출 취소\"],\"optionalTerms\":[\"문자\",\"청구\",\"입금\",\"가맹점\",\"카카오\"]}"
+      },
+      {
+        "workflowCode": "prepayment_and_immediate_payment_flow",
+        "name": "선결제/즉시출금/가상계좌 납부 워크플로우",
+        "description": "이번 달 결제금액, 일부 또는 전액 선결제, 즉시출금, 가상계좌 발급, 중복 입금과 납부 반영 여부를 처리하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"prepayment_allocation_and_duplicate_payment_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200018\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200020\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200024\"}, {\"type\": \"member_conv_id\", \"value\": \"200026\"}, {\"type\": \"member_conv_id\", \"value\": \"200034\"}, {\"type\": \"member_conv_id\", \"value\": \"200038\"}, {\"type\": \"member_conv_id\", \"value\": \"200040\"}, {\"type\": \"member_conv_id\", \"value\": \"200043\"}, {\"type\": \"member_conv_id\", \"value\": \"200045\"}, {\"type\": \"member_conv_id\", \"value\": \"200047\"}, {\"type\": \"member_conv_id\", \"value\": \"200053\"}, {\"type\": \"member_conv_id\", \"value\": \"200055\"}, {\"type\": \"member_conv_id\", \"value\": \"200056\"}, {\"type\": \"member_conv_id\", \"value\": \"200060\"}, {\"type\": \"member_conv_id\", \"value\": \"200068\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"payment_execution_consent_and_account_check\", \"prepayment_allocation_and_duplicate_payment_notice\"]}",
+        "intentCode": "prepayment_and_immediate_payment",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"선결제\",\"즉시출금\",\"가상계좌\",\"입금\",\"결제금액\"],\"optionalTerms\":[\"전액\",\"일부\",\"잔액\",\"중복\",\"예약\"]}"
+      },
+      {
+        "workflowCode": "card_loan_and_cash_advance_management_flow",
+        "name": "카드론/현금서비스 한도 및 상환 워크플로우",
+        "description": "장기카드대출, 단기카드대출, 현금서비스 가능 여부, 한도, 이자, 원금, 즉시 상환 또는 완납을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"sensitive_auth_data_handling\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"credit_loan_assessment_and_fee_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200020\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200021\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200026\"}, {\"type\": \"member_conv_id\", \"value\": \"200029\"}, {\"type\": \"member_conv_id\", \"value\": \"200045\"}, {\"type\": \"member_conv_id\", \"value\": \"200046\"}, {\"type\": \"member_conv_id\", \"value\": \"200060\"}, {\"type\": \"member_conv_id\", \"value\": \"200061\"}, {\"type\": \"member_conv_id\", \"value\": \"200065\"}, {\"type\": \"member_conv_id\", \"value\": \"200077\"}, {\"type\": \"member_conv_id\", \"value\": \"200080\"}, {\"type\": \"member_conv_id\", \"value\": \"200083\"}, {\"type\": \"member_conv_id\", \"value\": \"200091\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"sensitive_auth_data_handling\", \"payment_execution_consent_and_account_check\", \"credit_loan_assessment_and_fee_notice\"]}",
+        "intentCode": "card_loan_and_cash_advance_management",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"카드론\",\"장기 대출\",\"단기카드대출\",\"현금서비스\"],\"optionalTerms\":[\"한도\",\"이자\",\"원금\",\"상환\",\"완납\"]}"
+      },
+      {
+        "workflowCode": "revolving_service_management_flow",
+        "name": "리볼빙 서비스 조회/해지/납부 안내 워크플로우",
+        "description": "리볼빙 약정 여부, 이월 금액, 이자, 결제일 인출 방식, 리볼빙 해지 또는 납부 방법을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"revolving_installment_fee_and_statement_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200034\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200070\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200087\"}, {\"type\": \"member_conv_id\", \"value\": \"200095\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"payment_execution_consent_and_account_check\", \"revolving_installment_fee_and_statement_notice\"]}",
+        "intentCode": "revolving_service_management",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"리볼빙\"],\"optionalTerms\":[\"이월\",\"이자\",\"해지\",\"소액결제\",\"재인출\"]}"
+      },
+      {
+        "workflowCode": "installment_conversion_or_split_payment_flow",
+        "name": "할부 전환/분할 납부 워크플로우",
+        "description": "일시불 결제를 할부로 변경하거나 분할 납부 가능 여부, 할부 개월 수, 수수료와 확정 시점을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"revolving_installment_fee_and_statement_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200063\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200069\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200072\"}, {\"type\": \"member_conv_id\", \"value\": \"200082\"}, {\"type\": \"member_conv_id\", \"value\": \"200100\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"transaction_posting_delay_notice\", \"revolving_installment_fee_and_statement_notice\"]}",
+        "intentCode": "installment_conversion_or_split_payment",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"할부\",\"분할 납부\",\"분할 결제\"],\"optionalTerms\":[\"개월\",\"수수료\",\"확정\",\"변경\"]}"
+      },
+      {
+        "workflowCode": "card_limit_management_flow",
+        "name": "카드 이용한도 조회/상향 워크플로우",
+        "description": "신용카드 통합 한도, 일시불/할부 가능 한도, 현금서비스 한도, 한도 상향 가능 여부와 요청 금액을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"sensitive_auth_data_handling\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"limit_change_assessment_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200018\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200034\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200043\"}, {\"type\": \"member_conv_id\", \"value\": \"200047\"}, {\"type\": \"member_conv_id\", \"value\": \"200054\"}, {\"type\": \"member_conv_id\", \"value\": \"200067\"}, {\"type\": \"member_conv_id\", \"value\": \"200091\"}, {\"type\": \"member_conv_id\", \"value\": \"200102\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"sensitive_auth_data_handling\", \"limit_change_assessment_notice\"]}",
+        "intentCode": "card_limit_management",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"한도\",\"상향\"],\"optionalTerms\":[\"통합 한도\",\"사용 가능\",\"현금서비스\",\"일시불\",\"할부\"]}"
+      },
+      {
+        "workflowCode": "benefit_points_voucher_management_flow",
+        "name": "혜택/할인/포인트/바우처 처리 워크플로우",
+        "description": "카드 혜택 적용 여부, 캐시백/할인, 포인트 또는 마일 전환, 바우처와 상품권 신청, 프로모션 조건을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"benefit_eligibility_and_exclusion_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200021\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200022\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200025\"}, {\"type\": \"member_conv_id\", \"value\": \"200028\"}, {\"type\": \"member_conv_id\", \"value\": \"200032\"}, {\"type\": \"member_conv_id\", \"value\": \"200033\"}, {\"type\": \"member_conv_id\", \"value\": \"200036\"}, {\"type\": \"member_conv_id\", \"value\": \"200042\"}, {\"type\": \"member_conv_id\", \"value\": \"200079\"}, {\"type\": \"member_conv_id\", \"value\": \"200085\"}, {\"type\": \"member_conv_id\", \"value\": \"200086\"}, {\"type\": \"member_conv_id\", \"value\": \"200103\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"transaction_posting_delay_notice\", \"benefit_eligibility_and_exclusion_notice\"]}",
+        "intentCode": "benefit_points_voucher_management",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"혜택\",\"할인\",\"포인트\",\"마일\",\"바우처\",\"상품권\",\"프로모션\"],\"optionalTerms\":[\"캐시백\",\"실적\",\"면세점\",\"적립\",\"전환\"]}"
+      },
+      {
+        "workflowCode": "recurring_payment_management_flow",
+        "name": "자동납부/자동결제 등록 및 상태 확인 워크플로우",
+        "description": "학교, 통신, 정수기, 보험료 등 자동납부 신청, 실패, 카드 재발급 이후 재등록 필요 여부와 결제 상태를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"card_delivery_activation_and_expiry_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200016\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200017\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200037\"}, {\"type\": \"member_conv_id\", \"value\": \"200042\"}, {\"type\": \"member_conv_id\", \"value\": \"200066\"}, {\"type\": \"member_conv_id\", \"value\": \"200072\"}, {\"type\": \"member_conv_id\", \"value\": \"200084\"}, {\"type\": \"member_conv_id\", \"value\": \"200090\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"recurring_payment_merchant_coordination_notice\", \"card_delivery_activation_and_expiry_notice\"]}",
+        "intentCode": "recurring_payment_management",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"자동납부\",\"자동결제\",\"자동 이체\"],\"optionalTerms\":[\"학교\",\"통신\",\"정수기\",\"보험료\",\"재발급\"]}"
+      },
+      {
+        "workflowCode": "card_issue_delivery_activation_flow",
+        "name": "카드 발급/배송/수령/사용등록 워크플로우",
+        "description": "신규 또는 갱신 카드 신청, 긴급 배송, 영업점/자택 수령, 가족카드 사용등록, 유효기간 만료 후 사용 가능 여부를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"card_delivery_activation_and_expiry_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200016\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200025\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200068\"}, {\"type\": \"member_conv_id\", \"value\": \"200081\"}, {\"type\": \"member_conv_id\", \"value\": \"200084\"}, {\"type\": \"member_conv_id\", \"value\": \"200096\"}, {\"type\": \"member_conv_id\", \"value\": \"200099\"}, {\"type\": \"member_conv_id\", \"value\": \"200103\"}, {\"type\": \"member_conv_id\", \"value\": \"200104\"}, {\"type\": \"member_conv_id\", \"value\": \"200105\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"card_delivery_activation_and_expiry_notice\"]}",
+        "intentCode": "card_issue_delivery_activation",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"발급\",\"배송\",\"수령\",\"사용 등록\",\"유효기간\"],\"optionalTerms\":[\"긴급\",\"영업점\",\"가족카드\",\"앱 결제\",\"챗봇\"]}"
+      },
+      {
+        "workflowCode": "card_close_and_annual_fee_refund_flow",
+        "name": "카드 해지 및 연회비/잔여금 환급 워크플로우",
+        "description": "신용카드 해지, 해지 후 연회비 환급 또는 차감, 자동결제 잔존 여부, 결제계좌 환급 상태를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"card_close_annual_fee_refund_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200088\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200090\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200105\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"recurring_payment_merchant_coordination_notice\", \"card_close_annual_fee_refund_notice\"]}",
+        "intentCode": "card_close_and_annual_fee_refund",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"해지\",\"연회비\",\"환급\"],\"optionalTerms\":[\"차감\",\"자동결제\",\"결제계좌\",\"갱신\"]}"
+      },
+      {
+        "workflowCode": "billing_cycle_due_date_change_flow",
+        "name": "결제일/청구 주기 변경 워크플로우",
+        "description": "카드 결제일 변경, 이용기간 산정, 변경 후 청구월과 이중 청구 가능성을 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"due_date_change_cycle_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200052\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200062\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"prepayment_allocation_and_duplicate_payment_notice\", \"due_date_change_cycle_notice\"]}",
+        "intentCode": "billing_cycle_due_date_change",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"결제일\",\"변경\"],\"optionalTerms\":[\"청구\",\"이용기간\",\"며칠부터\",\"며칠까지\"]}"
+      },
+      {
+        "workflowCode": "digital_payment_service_registration_flow",
+        "name": "일반결제/앱 결제 서비스 등록 및 오류 워크플로우",
+        "description": "일반결제서비스 가입 알림, 앱 결제 불가, 온라인 결제 서비스 사용 조건과 보안 동의 여부를 확인하는 상담",
+        "graphJson": "{\"direction\": \"LR\", \"nodes\": [{\"id\": \"start\", \"type\": \"START\", \"label\": \"시작\"}, {\"id\": \"capture_request\", \"type\": \"ACTION\", \"label\": \"요청 내용 확인\", \"policyRef\": \"customer_authentication_required\"}, {\"id\": \"collect_required_info\", \"type\": \"ACTION\", \"label\": \"필수 정보 수집\", \"policyRef\": \"target_card_and_account_verification\"}, {\"id\": \"verify_policy\", \"type\": \"ACTION\", \"label\": \"정책 확인 및 안내\", \"policyRef\": \"digital_payment_service_security_notice\"}, {\"id\": \"decision\", \"type\": \"DECISION\", \"label\": \"처리 가능 여부 판단\"}, {\"id\": \"terminal\", \"type\": \"TERMINAL\", \"label\": \"안내 완료\"}, {\"id\": \"handoff\", \"type\": \"HANDOFF\", \"label\": \"상담원 추가 확인\"}, {\"id\": \"terminal_handoff\", \"type\": \"TERMINAL\", \"label\": \"추가 확인 종료\"}], \"edges\": [{\"id\": \"e_1\", \"from\": \"start\", \"to\": \"capture_request\"}, {\"id\": \"e_2\", \"from\": \"capture_request\", \"to\": \"collect_required_info\"}, {\"id\": \"e_3\", \"from\": \"collect_required_info\", \"to\": \"verify_policy\"}, {\"id\": \"e_4\", \"from\": \"verify_policy\", \"to\": \"decision\"}, {\"id\": \"e_5\", \"from\": \"decision\", \"to\": \"terminal\", \"label\": \"resolved\"}, {\"id\": \"e_6\", \"from\": \"decision\", \"to\": \"handoff\", \"label\": \"needs_manual_check\"}, {\"id\": \"e_7\", \"from\": \"handoff\", \"to\": \"terminal_handoff\"}]}",
+        "evidenceJson": "[{\"type\": \"exemplar_conv_id\", \"value\": \"200103\"}, {\"type\": \"exemplar_conv_id\", \"value\": \"200104\"}]",
+        "metaJson": "{\"source\": \"manager_workflow_constructor_direct_review\", \"policyRefs\": [\"customer_authentication_required\", \"target_card_and_account_verification\", \"sensitive_auth_data_handling\", \"digital_payment_service_security_notice\"]}",
+        "intentCode": "digital_payment_service_registration",
+        "isPrimary": true,
+        "routeConditionJson": "{\"requiredTerms\":[\"일반결제서비스\",\"앱 결제\",\"온라인 결제\"],\"optionalTerms\":[\"가입 완료\",\"등록\",\"보안\",\"동의\"]}"
+      }
+    ],
+    "intentSlotBindings": [
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "명의자 본인 또는 대리 상담 가능 여부를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "정지/해제/재발급 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "card_possession_status",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "카드를 분실했는지, 찾았는지, 습득했는지 현재 상태를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "incident_datetime",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "분실 또는 습득이 발생한 시점을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "incident_location",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "분실 추정 장소 또는 습득 장소를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "lost_card_report_and_status",
+        "slotCode": "contact_channel",
+        "isRequired": true,
+        "collectionOrder": 6,
+        "promptHint": "인증 또는 후속 안내를 받을 연락 채널을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "거래 내역 조회를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "조회할 카드 또는 계정을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "transaction_datetime",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "확인하려는 승인/출금/청구 일시를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "transaction_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "확인하려는 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "merchant_or_channel",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "가맹점, 결제 채널, 교통/해외 여부를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "payment_history_and_charge_inquiry",
+        "slotCode": "transaction_status_type",
+        "isRequired": true,
+        "collectionOrder": 6,
+        "promptHint": "승인, 출금, 청구, 문자 미수신 등 확인하려는 상태를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "취소/환불 내역 조회를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "취소 또는 환불이 걸린 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "transaction_datetime",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "원 결제일 또는 승인일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "transaction_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "원 결제 금액 또는 취소 대상 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "merchant_or_channel",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "취소 처리한 가맹점 또는 결제 채널을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "cancellation_request_date",
+        "isRequired": true,
+        "collectionOrder": 6,
+        "promptHint": "가맹점 취소/반품 요청일 또는 문자 수신일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "cancellation_refund_status",
+        "slotCode": "refund_destination",
+        "isRequired": true,
+        "collectionOrder": 7,
+        "promptHint": "환불이 계좌 입금인지 청구 차감인지 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "납부 처리를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "선결제 또는 즉시출금 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "slotCode": "payment_due_date",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "이번 달 결제일 또는 납부 대상 회차를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "slotCode": "payment_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "납부할 금액이 전액인지 일부인지 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "prepayment_and_immediate_payment",
+        "slotCode": "payment_method_account",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "출금 계좌 또는 발급할 가상계좌 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "금융 서비스 조회/처리를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "slotCode": "loan_type",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "장기카드대출, 단기카드대출, 현금서비스 중 어떤 서비스인지 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "slotCode": "loan_action",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "가능 여부 조회, 실행, 상환, 완납 중 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "slotCode": "loan_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "신청 또는 상환하려는 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_loan_and_cash_advance_management",
+        "slotCode": "repayment_term",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "상환 개월 수 또는 납부 예정 회차를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "리볼빙 약정 조회를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "리볼빙이 적용된 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "slotCode": "revolving_action",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "리볼빙 조회, 설명, 납부, 해지 중 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "slotCode": "payment_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "이월 또는 납부할 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "revolving_service_management",
+        "slotCode": "payment_due_date",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "결제일 또는 다음 청구월을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "할부 전환 또는 분할 납부를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "전환 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "slotCode": "transaction_datetime",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "할부 전환할 원 결제일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "slotCode": "transaction_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "할부 전환 또는 분할 납부 대상 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "installment_conversion_or_split_payment",
+        "slotCode": "installment_months",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "원하는 할부 또는 분할 개월 수를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_limit_management",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "한도 조회 또는 상향을 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_limit_management",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "한도 조회 또는 상향 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_limit_management",
+        "slotCode": "limit_type",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "통합 한도, 일시불/할부 한도, 현금서비스 한도 중 대상을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_limit_management",
+        "slotCode": "desired_limit_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "조회하거나 상향하려는 한도 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_limit_management",
+        "slotCode": "limit_change_reason",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "한도 상향이 필요한 사유를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "혜택 적용 여부 또는 바우처 처리를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "혜택이 연결된 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "benefit_program",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "확인할 혜택, 포인트, 마일리지, 바우처 또는 프로모션명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "benefit_action",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "적용 확인, 전환, 신청, 선택 중 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "usage_period",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "혜택 산정에 필요한 이용일 또는 실적 기간을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "benefit_points_voucher_management",
+        "slotCode": "usage_merchant_or_category",
+        "isRequired": true,
+        "collectionOrder": 6,
+        "promptHint": "혜택이 적용될 가맹점 또는 업종을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "자동납부 등록 또는 조회를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "자동납부에 연결할 카드 또는 재발급된 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "slotCode": "autopay_biller",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "자동납부 기관 또는 청구 대상을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "slotCode": "autopay_contract_identifier",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "자동납부 등록에 필요한 고객번호, 학생 정보, 주소 등 식별 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "recurring_payment_management",
+        "slotCode": "autopay_action",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "신청, 변경, 실패 확인, 재등록 여부 중 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "발급/배송/등록 처리를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "발급, 배송, 사용등록 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "slotCode": "issue_request_type",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "신규 신청, 재발급, 긴급배송, 사용등록 등 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "slotCode": "delivery_address_or_branch",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "자택, 영업점, 본사 등 수령지 또는 배송지를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_issue_delivery_activation",
+        "slotCode": "desired_delivery_date",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "희망 수령일 또는 출국 전 수령 필요 여부를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "카드 해지 또는 환급 확인을 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "해지 또는 환급 대상 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "slotCode": "cancellation_reason",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "해지, 연회비 환급, 갱신 수수료 등 문의 사유를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "slotCode": "annual_fee_or_refund_amount",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "출금된 연회비 또는 환급 확인 금액을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "card_close_and_annual_fee_refund",
+        "slotCode": "refund_destination",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "환급 받을 계좌 또는 청구 차감 여부를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "결제일 변경을 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "결제일을 변경할 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "slotCode": "current_due_date",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "현재 결제일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "slotCode": "desired_due_date",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "변경하려는 결제일을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "billing_cycle_due_date_change",
+        "slotCode": "billing_period",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "변경 후 이용기간과 청구월을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "slotCode": "customer_identity",
+        "isRequired": true,
+        "collectionOrder": 1,
+        "promptHint": "디지털 결제 서비스 조회를 위해 본인 확인 정보를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "slotCode": "card_identifier",
+        "isRequired": true,
+        "collectionOrder": 2,
+        "promptHint": "서비스가 연결된 카드를 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "slotCode": "digital_service_name",
+        "isRequired": true,
+        "collectionOrder": 3,
+        "promptHint": "일반결제서비스, 앱 결제 등 서비스명을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "slotCode": "service_request_type",
+        "isRequired": true,
+        "collectionOrder": 4,
+        "promptHint": "가입 확인, 등록, 오류 해결, 서비스 설명 중 요청 유형을 확인해 주세요.",
+        "conditionJson": "{}"
+      },
+      {
+        "intentCode": "digital_payment_service_registration",
+        "slotCode": "authentication_channel",
+        "isRequired": true,
+        "collectionOrder": 5,
+        "promptHint": "서비스 확인에 필요한 인증 수단 또는 가입 알림 채널을 확인해 주세요.",
+        "conditionJson": "{}"
+      }
+    ]
+  },
+  "evaluationSummary": {
+    "sampleSize": 100,
+    "sourceIds": [
+      "200001",
+      "200002",
+      "200003",
+      "200004",
+      "200005",
+      "200006",
+      "200007",
+      "200008",
+      "200009",
+      "200010",
+      "200011",
+      "200012",
+      "200013",
+      "200014",
+      "200015",
+      "200016",
+      "200017",
+      "200018",
+      "200019",
+      "200020",
+      "200021",
+      "200022",
+      "200024",
+      "200025",
+      "200026",
+      "200027",
+      "200028",
+      "200029",
+      "200030",
+      "200031",
+      "200032",
+      "200033",
+      "200034",
+      "200035",
+      "200036",
+      "200037",
+      "200038",
+      "200039",
+      "200040",
+      "200041",
+      "200042",
+      "200043",
+      "200044",
+      "200045",
+      "200046",
+      "200047",
+      "200048",
+      "200052",
+      "200053",
+      "200054",
+      "200055",
+      "200056",
+      "200057",
+      "200058",
+      "200059",
+      "200060",
+      "200061",
+      "200062",
+      "200063",
+      "200064",
+      "200065",
+      "200066",
+      "200067",
+      "200068",
+      "200069",
+      "200070",
+      "200071",
+      "200072",
+      "200073",
+      "200074",
+      "200075",
+      "200076",
+      "200077",
+      "200078",
+      "200079",
+      "200080",
+      "200081",
+      "200082",
+      "200083",
+      "200084",
+      "200085",
+      "200086",
+      "200087",
+      "200088",
+      "200089",
+      "200090",
+      "200091",
+      "200092",
+      "200093",
+      "200094",
+      "200095",
+      "200096",
+      "200097",
+      "200098",
+      "200099",
+      "200100",
+      "200102",
+      "200103",
+      "200104",
+      "200105"
+    ],
+    "rawConsultingCategoryDistribution": {
+      "선결제/즉시출금": 17,
+      "도난/분실 신청/해제": 16,
+      "이용내역 안내": 16,
+      "결제대금 안내": 6,
+      "장기카드대출 안내": 4,
+      "매출구분 변경": 4,
+      "입금내역 안내": 4,
+      "승인취소/매출취소 안내": 4,
+      "프리미엄 바우처 안내/발급": 3,
+      "가상계좌 예약/취소": 3,
+      "이벤트 안내": 3,
+      "교육비": 2,
+      "한도상향 접수/처리": 2,
+      "긴급 배송 신청": 2,
+      "일부결제대금이월약정 해지": 2,
+      "오토할부/오토캐쉬백 안내/신청/취소": 1,
+      "정부지원 바우처 (등유, 임신 등)": 1,
+      "포인트/마일리지 전환등록": 1,
+      "결제일 안내/변경/취소": 1,
+      "한도 안내": 1,
+      "단기카드대출 안내/실행": 1,
+      "일부결제대금이월약정 안내": 1,
+      "연체대금 안내": 1,
+      "심사 진행사항 안내": 1,
+      "가상계좌 안내": 1,
+      "이용방법 안내": 1,
+      "안심클릭/▲▲페이/기타페이 안내": 1
+    },
+    "managerIntentSupport": {
+      "lost_card_report_and_status": 19,
+      "payment_history_and_charge_inquiry": 22,
+      "cancellation_refund_status": 9,
+      "prepayment_and_immediate_payment": 27,
+      "card_loan_and_cash_advance_management": 13,
+      "revolving_service_management": 4,
+      "installment_conversion_or_split_payment": 5,
+      "card_limit_management": 8,
+      "benefit_points_voucher_management": 12,
+      "recurring_payment_management": 8,
+      "card_issue_delivery_activation": 10,
+      "card_close_and_annual_fee_refund": 3,
+      "billing_cycle_due_date_change": 2,
+      "digital_payment_service_registration": 2
+    },
+    "constructionMethod": "direct_customer_agent_review_plus_manager_merge_plan"
+  }
+}

@@ -25,6 +25,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private static final String CHAT_TOPIC_PREFIX = "/topic/chat.";
   private static final String WORKSPACE_QUEUE_TOPIC_PREFIX = "/topic/workspaces.";
   private static final String WORKSPACE_QUEUE_TOPIC_SUFFIX = ".consultation.queue";
+  private static final String SESSION_ATTR_ANONYMOUS = "anonymous";
 
   private final JwtService jwtService;
   private final ChatSessionRepository chatSessionRepository;
@@ -47,7 +48,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     if (StompCommand.CONNECT.equals(accessor.getCommand())) {
       String authHeader = accessor.getFirstNativeHeader("Authorization");
       if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        throw new MissingAuthHeaderException("Missing or invalid Authorization header");
+        markAnonymousSession(accessor);
+        return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
       }
       String token = authHeader.substring(7);
       Claims claims;
@@ -76,6 +78,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         || StompCommand.SEND.equals(accessor.getCommand())) {
       headersChanged = restorePrincipalFromSession(accessor);
       if (accessor.getUser() == null) {
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+          validateAnonymousSubscribeDestination(accessor.getDestination());
+          return headersChanged
+              ? MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders())
+              : message;
+        }
         throw new MissingAuthHeaderException(
             "Authentication required for " + accessor.getCommand());
       }
@@ -90,6 +98,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     }
     return message;
+  }
+
+  private void markAnonymousSession(StompHeaderAccessor accessor) {
+    Map<String, Object> sessionAttrs = accessor.getSessionAttributes();
+    if (sessionAttrs == null) {
+      sessionAttrs = new HashMap<>();
+      accessor.setSessionAttributes(sessionAttrs);
+    }
+    sessionAttrs.put(SESSION_ATTR_ANONYMOUS, true);
   }
 
   private boolean restorePrincipalFromSession(StompHeaderAccessor accessor) {
@@ -123,6 +140,31 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     }
     throw new BadRequestException(
         "INVALID_DESTINATION", "Unauthorized subscription destination: " + destination);
+  }
+
+  private void validateAnonymousSubscribeDestination(String destination) {
+    if (destination == null || destination.isBlank()) {
+      throw new BadRequestException("INVALID_DESTINATION", "Subscription destination is required");
+    }
+    if (destination.startsWith("/user/queue/") || destination.startsWith("/queue/")) {
+      return;
+    }
+    if (!destination.startsWith(CHAT_TOPIC_PREFIX)) {
+      throw new MissingAuthHeaderException(
+          "Authentication required for subscription destination: " + destination);
+    }
+    Long sessionId = parseChatSessionId(destination);
+    ChatSession session =
+        chatSessionRepository
+            .findById(sessionId)
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        "SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    if (session.getStartedBy() != null) {
+      throw new MissingAuthHeaderException(
+          "Authentication required for chat session: " + sessionId);
+    }
   }
 
   private void validateChatTopicSubscription(String destination, StompHeaderAccessor accessor) {

@@ -8,16 +8,23 @@ describe("demoCompanies", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("marks workspace 1 as the enabled complaint scenario", () => {
+  it("marks workspace 1 as the enabled ActiveVenture scenario", () => {
     const company = findDemoCompany(1);
     expect(company).toBeDefined();
     expect(company?.enabled).toBe(true);
-    expect(company?.name).toBe("컴플레인 테스트 워크스페이스");
+    expect(company?.name).toBe("액티벤처 여행 상담");
     expect(company?.focusChips.length).toBeGreaterThan(0);
   });
 
-  it("keeps preview-only companies disabled", () => {
-    expect(findDemoCompany(2)?.enabled).toBe(false);
+  it("marks workspace 2 as the enabled Hana Card scenario", () => {
+    const company = findDemoCompany(2);
+    expect(company).toBeDefined();
+    expect(company?.enabled).toBe(true);
+    expect(company?.name).toBe("하나카드 카드 상담");
+    expect(company?.focusChips).toContain("분실 신고");
+  });
+
+  it("keeps fixture-only companies disabled", () => {
     expect(findDemoCompany(3)?.enabled).toBe(false);
   });
 

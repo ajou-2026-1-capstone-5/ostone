@@ -10,7 +10,7 @@ import {
   type ChatMessageResponse,
 } from "../lib/chatMessageSync";
 
-// OpenAPI 미생성 endpoint: current chat session, demo session create/send는 수동 호출로 유지한다.
+// OpenAPI 미생성 endpoint: user chat session current/create, demo session create/send는 수동 호출로 유지한다.
 
 interface DemoChatWorkflowResponse {
   chatSession?: {
@@ -96,6 +96,16 @@ export function createChatSession(workspaceId: number, customerName: string): Pr
   );
 }
 
+export function createFreshChatSession(
+  workspaceId: number,
+  customerName: string,
+): Promise<ChatSession> {
+  return customFetch<ChatSession>(`/api/v1/workspaces/${workspaceId}/chat/sessions`, {
+    method: "POST",
+    body: JSON.stringify({ customerName }),
+  });
+}
+
 export async function listChatMessages(sessionId: number): Promise<ChatMessage[]> {
   const messages = selectConsultationMessages(
     (await getMessages(sessionId)) as ConsultationMessagesResponse,
@@ -133,13 +143,22 @@ export async function registerDemoChatSession(
   );
   const sessionId = requireBackendSessionId(response.id);
   const startedAt = response.startedAt ?? new Date().toISOString();
+  const messages = await listDemoChatMessages(workspaceId, String(sessionId));
 
   return {
     id: String(sessionId),
     status: response.status ?? "OPEN",
     startedAt,
-    messages: [],
+    messages: withDemoCustomerNames(messages, customerName),
   };
+}
+
+function withDemoCustomerNames(messages: ChatMessage[], customerName: string): ChatMessage[] {
+  return messages.map((message) =>
+    message.senderType === "USER" && !message.senderName
+      ? { ...message, senderName: customerName }
+      : message,
+  );
 }
 
 export async function sendDemoChatMessage(

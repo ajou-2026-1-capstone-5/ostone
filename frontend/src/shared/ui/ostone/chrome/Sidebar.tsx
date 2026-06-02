@@ -1,7 +1,6 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { Icon } from "../atoms/Icon";
 import type { IconName } from "../atoms/Icon";
 import { AccountMenu } from "./AccountMenu";
@@ -32,13 +31,8 @@ interface TopNavItem {
   external?: boolean;
 }
 
-function getDemoChatPath(base: string): string {
-  const match = /^\/workspaces\/([^/]+)(?:\/.*)?$/.exec(base);
-  if (!match) {
-    return "/workspaces";
-  }
-
-  return buildDemoChatPath(match[1]);
+function getDemoPreviewPath(): string {
+  return "/demo";
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
@@ -52,7 +46,7 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
     key: "chat",
     icon: "msg",
     label: "사용자 화면 미리보기",
-    getPath: getDemoChatPath,
+    getPath: getDemoPreviewPath,
     external: true,
   },
   {

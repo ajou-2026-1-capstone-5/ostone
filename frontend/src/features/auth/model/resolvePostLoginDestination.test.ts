@@ -32,6 +32,14 @@ describe("resolvePostLoginDestination", () => {
     ).toBe("/demo/workspaces/1/chat?preview=true");
   });
 
+  it("falls back for authenticated user chat paths so login lands on workspace first", () => {
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: "/chat/2", search: "?name=%EB%B0%95%ED%95%98%EB%82%98" },
+      }),
+    ).toBe(DEFAULT_POST_LOGIN_PATH);
+  });
+
   it("falls back for auth routes", () => {
     expect(resolvePostLoginDestination({ from: { pathname: "/login" } })).toBe(
       DEFAULT_POST_LOGIN_PATH,

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createChatSession,
   createDemoChatSession,
+  createFreshChatSession,
   listChatMessages,
   listDemoChatMessages,
   registerDemoChatSession,
@@ -48,6 +49,23 @@ describe("chatApi", () => {
       "/api/v1/workspaces/3/chat/sessions/current?customerName=%EA%B9%80%EB%AF%BC%EC%A7%80",
       { method: "GET" },
     );
+  });
+
+  it("workspaceId로 새 사용자 채팅 세션을 생성한다", async () => {
+    const session = {
+      id: 13,
+      status: "OPEN" as const,
+      channel: "WEB",
+      startedAt: "2026-05-22T00:10:00Z",
+    };
+    customFetchMock.mockResolvedValue(session);
+
+    await expect(createFreshChatSession(3, "김민지")).resolves.toEqual(session);
+
+    expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/3/chat/sessions", {
+      method: "POST",
+      body: JSON.stringify({ customerName: "김민지" }),
+    });
   });
 
   it("세션 메시지를 채팅 UI 모델로 변환한다", async () => {
@@ -148,23 +166,46 @@ describe("chatApi", () => {
   });
 
   it("백엔드에 데모 채팅 세션을 등록한다", async () => {
-    customFetchMock.mockResolvedValue({
-      id: 77,
-      status: "OPEN",
-      startedAt: "2026-05-22T00:00:00Z",
-    });
+    customFetchMock
+      .mockResolvedValueOnce({
+        id: 77,
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+      })
+      .mockResolvedValueOnce([
+        {
+          id: 80,
+          seqNo: 1,
+          senderRole: "ASSISTANT",
+          messageType: "TEXT",
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ]);
 
     await expect(registerDemoChatSession(2, "김민지")).resolves.toEqual({
       id: "77",
       status: "OPEN",
       startedAt: "2026-05-22T00:00:00Z",
-      messages: [],
+      messages: [
+        {
+          id: "80",
+          sessionId: 77,
+          senderType: "BOT",
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ],
     });
 
     expect(customFetchMock).toHaveBeenCalledWith("/api/v1/workspaces/2/demo/chat-sessions", {
       method: "POST",
       body: JSON.stringify({ customerName: "김민지" }),
     });
+    expect(customFetchMock).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/demo/chat-sessions/77/messages",
+      { method: "GET" },
+    );
   });
 
   it("백엔드 데모 채팅 세션 응답에 숫자 id가 없으면 실패한다", async () => {

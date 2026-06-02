@@ -18,6 +18,7 @@ export interface UseStompResult {
 
 export interface UseStompOptions {
   onServerError?: (error: unknown) => void;
+  includeAuth?: boolean;
 }
 
 const parseMessageBody = (body: string): unknown | null => {
@@ -29,6 +30,7 @@ const parseMessageBody = (body: string): unknown | null => {
 };
 
 export function useStomp(options: UseStompOptions = {}): UseStompResult {
+  const includeAuth = options.includeAuth;
   const clientRef = useRef<Client | null>(null);
   const errorSubscriptionRef = useRef<StompSubscription | null>(null);
   const desiredSubscriptionsRef = useRef<Map<string, (msg: unknown) => void>>(new Map());
@@ -84,7 +86,7 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     }
     if (clientRef.current?.connected) return;
 
-    const client = createStompClient();
+    const client = createStompClient({ includeAuth });
     clientRef.current = client;
     connectionStatusRef.current = "CONNECTING";
     setConnectionStatus("CONNECTING");
@@ -135,7 +137,7 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     };
 
     client.activate();
-  }, [subscribeActiveTopic, unsubscribeActiveSubscriptions]);
+  }, [includeAuth, subscribeActiveTopic, unsubscribeActiveSubscriptions]);
 
   const sendMessage = useCallback((message: unknown) => {
     const client = clientRef.current;

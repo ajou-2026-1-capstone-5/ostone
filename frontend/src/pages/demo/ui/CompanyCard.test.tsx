@@ -5,17 +5,17 @@ import type { DemoCompany } from "../model/demoCompanies";
 
 const enabledCompany: DemoCompany = {
   workspaceId: 1,
-  name: "컴플레인 테스트 워크스페이스",
-  industry: "리테일 · CS 운영",
-  blurb: "환불 · 배송 상담",
-  focusChips: ["환불 요청"],
+  name: "액티벤처 여행 상담",
+  industry: "여행 · 예약",
+  blurb: "항공권 · 취소 상담",
+  focusChips: ["항공권 문의"],
   enabled: true,
 };
 
 const disabledCompany: DemoCompany = {
   ...enabledCompany,
-  workspaceId: 2,
-  name: "카드 이용내역 조회 상담",
+  workspaceId: 3,
+  name: "인디고발리 숙소 예약",
   enabled: false,
 };
 
@@ -28,8 +28,8 @@ describe("CompanyCard", () => {
 
   it("renders a disabled company as a preview", () => {
     render(<CompanyCard company={disabledCompany} active={false} onActivate={vi.fn()} />);
-    expect(screen.getByTestId("demo-company-card-2")).not.toHaveAttribute("aria-disabled");
-    expect(screen.getByTestId("demo-company-status-2")).toHaveTextContent("데모 준비 중");
+    expect(screen.getByTestId("demo-company-card-3")).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByTestId("demo-company-status-3")).toHaveTextContent("데모 준비 중");
   });
 
   it("activates on click and on hover with the company reference", () => {

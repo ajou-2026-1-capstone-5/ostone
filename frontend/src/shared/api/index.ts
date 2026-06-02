@@ -71,7 +71,10 @@ class ApiClient {
       ? normalizedPath.slice("/api/v1".length)
       : normalizedPath;
 
-    return pathWithoutApiPrefix !== "/auth" && !pathWithoutApiPrefix.startsWith("/auth/");
+    const isAuthPath =
+      pathWithoutApiPrefix === "/auth" || pathWithoutApiPrefix.startsWith("/auth/");
+    const isDemoPath = /^\/workspaces\/[^/]+\/demo(?:\/|$)/.test(pathWithoutApiPrefix);
+    return !isAuthPath && !isDemoPath;
   }
 
   private getHeaders(path: string): RequestHeaders {
