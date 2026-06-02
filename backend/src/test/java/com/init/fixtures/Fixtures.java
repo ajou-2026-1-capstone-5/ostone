@@ -14,10 +14,6 @@ public final class Fixtures {
     return "상담사: 안녕하세요, 무엇을 도와드릴까요?\n고객: 주문 관련 문의가 있습니다.";
   }
 
-  public static String invalidPrefixConsultingContent() {
-    return "AGENT: Hello, how can I help?";
-  }
-
   // ── RawConversationInput factory ────────────────────────────────────────
 
   public static RawConversationInput rawConversationInput() {
