@@ -42,6 +42,13 @@ describe("SummaryJsonCard", () => {
     expect(screen.queryByText("내용 없음")).not.toBeInTheDocument();
   });
 
+  it("공백 변경사항 정리는 빈 상태 문구로 렌더링한다", () => {
+    render(<SummaryJsonCard summaryJson="{}" finalMessage="   " />);
+
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
+  });
+
   it("summaryJson finalMessage는 변경사항 정리로 렌더링하지 않는다", () => {
     render(<SummaryJsonCard summaryJson='{"finalMessage":"확인 항목을 보강했습니다."}' />);
 
