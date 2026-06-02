@@ -96,6 +96,40 @@ describe("useStomp", () => {
     expect(client.subscribe).toHaveBeenCalledWith("/user/queue/errors", expect.any(Function));
   });
 
+  it("includeAuth가 false인 익명(데모) 모드에서는 에러 큐를 구독하지 않는다", async () => {
+    const { result } = await renderUseStompHelper({ includeAuth: false });
+
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    expect(result.current.connectionStatus).toBe("CONNECTED");
+    expect(client.subscribe).not.toHaveBeenCalledWith(
+      "/user/queue/errors",
+      expect.any(Function),
+    );
+  });
+
+  it("includeAuth가 false여도 사용자가 등록한 토픽은 구독한다", async () => {
+    const { result } = await renderUseStompHelper({ includeAuth: false });
+    const topicCallback = vi.fn();
+
+    act(() => {
+      result.current.subscribe("/topic/chat.7", topicCallback);
+    });
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    expect(client.subscribe).toHaveBeenCalledWith("/topic/chat.7", expect.any(Function));
+    expect(client.subscribe).not.toHaveBeenCalledWith(
+      "/user/queue/errors",
+      expect.any(Function),
+    );
+  });
+
   it("연결된 상태에서 채팅 메시지를 publish 한다", async () => {
     const { result } = await renderUseStompHelper();
 

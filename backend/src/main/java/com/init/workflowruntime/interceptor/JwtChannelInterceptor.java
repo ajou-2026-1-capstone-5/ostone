@@ -26,6 +26,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private static final String WORKSPACE_QUEUE_TOPIC_PREFIX = "/topic/workspaces.";
   private static final String WORKSPACE_QUEUE_TOPIC_SUFFIX = ".consultation.queue";
   private static final String SESSION_ATTR_ANONYMOUS = "anonymous";
+  private static final String USER_ERROR_QUEUE = "/user/queue/errors";
 
   private final JwtService jwtService;
   private final ChatSessionRepository chatSessionRepository;
@@ -146,6 +147,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       String destination, StompHeaderAccessor accessor) {
     if (destination == null || destination.isBlank()) {
       throw new BadRequestException("INVALID_DESTINATION", "Subscription destination is required");
+    }
+    // 익명(데모) 세션이 자기 세션의 서버 에러 큐를 구독하는 것은 허용한다.
+    // 프론트엔드 STOMP 클라이언트가 연결 직후 항상 이 큐를 구독하기 때문이다.
+    if (USER_ERROR_QUEUE.equals(destination)) {
+      return;
     }
     if (!destination.startsWith(CHAT_TOPIC_PREFIX)) {
       throw new MissingAuthHeaderException(
