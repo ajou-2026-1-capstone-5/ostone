@@ -181,7 +181,8 @@ class RawFileUploadServiceTest {
   void upload_zipWithMacOsMetadataDirectory_ignoresMetadataEntries() throws IOException {
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
-    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "macos-dir-zip")).willReturn(false);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "macos-dir-zip"))
+        .willReturn(false);
     given(storagePort.put(anyString(), any(), anyString())).willReturn("some-key");
     given(rawDatasetUploadService.upload(any()))
         .willReturn(
@@ -194,8 +195,7 @@ class RawFileUploadServiceTest {
 
     // macOS Archive Utility가 끼워 넣는 __MACOSX/._*.json AppleDouble 항목(NUL 바이트 포함).
     // 무시되지 않으면 .json 확장자 때문에 파싱 대상이 되어 RawFileParseException이 발생한다.
-    byte[] zipBytes =
-        zip("__MACOSX/._logs.json", "  mac-metadata", "logs.json", VALID_JSON_TEXT);
+    byte[] zipBytes = zip("__MACOSX/._logs.json", "  mac-metadata", "logs.json", VALID_JSON_TEXT);
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
@@ -237,8 +237,7 @@ class RawFileUploadServiceTest {
                 51L, "some-key", "apple.zip", "application/zip", 100L, "1".repeat(64)));
 
     // __MACOSX 디렉터리 없이 최상위에 놓인 ._*.json AppleDouble 항목도 무시되어야 한다.
-    byte[] zipBytes =
-        zip("._logs.json", " mac-resource-fork", "logs.json", VALID_JSON_TEXT);
+    byte[] zipBytes = zip("._logs.json", " mac-resource-fork", "logs.json", VALID_JSON_TEXT);
     RawFileUploadCommand command =
         new RawFileUploadCommand(
             1L,
