@@ -266,7 +266,7 @@ aws rds restore-db-instance-from-db-snapshot \
 | --- | --- |
 | AWS Region | `ap-northeast-2` |
 | ECS Cluster | `ostone-prod-cluster` |
-| ECS Service | `ostone-backend`, Fargate, 0.5 vCPU, 1GB |
+| ECS Service | `ostone-backend`, Fargate, 1 vCPU, 2GB |
 | Backend Task Definition | `ostone-prod-backend-task` |
 | ALB DNS | `api.ostone.io`, Backend Target Group 8080 |
 | RDS | `ostone-prod-postgres`, `db.t4g.medium`, 20GB gp3, PostgreSQL 16, Multi-AZ |
