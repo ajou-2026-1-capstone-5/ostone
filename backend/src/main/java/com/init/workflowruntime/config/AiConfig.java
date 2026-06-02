@@ -34,7 +34,7 @@ public class AiConfig {
   @Bean
   public ChatClient chatClient(
       Map<String, ChatModel> chatModels,
-      @Value("${spring.ai.model.chat:openai}") String chatProvider) {
+      @Value("${spring.ai.model.chat:bedrock-converse}") String chatProvider) {
     return ChatClient.builder(chatModel(chatModels, chatProvider))
         .defaultSystem(systemPrompt)
         .build();
@@ -80,14 +80,21 @@ public class AiConfig {
   }
 
   private ChatModel chatModel(Map<String, ChatModel> chatModels, String chatProvider) {
-    String beanName =
-        "bedrock-converse".equalsIgnoreCase(chatProvider)
-            ? "bedrockProxyChatModel"
-            : "openAiChatModel";
+    String beanName = chatModelBeanName(chatProvider);
     ChatModel chatModel = chatModels.get(beanName);
     if (chatModel == null) {
       throw new IllegalStateException("ChatModel bean not found: " + beanName);
     }
     return chatModel;
+  }
+
+  private String chatModelBeanName(String chatProvider) {
+    if ("openai".equalsIgnoreCase(chatProvider)) {
+      return "openAiChatModel";
+    }
+    if ("bedrock-converse".equalsIgnoreCase(chatProvider)) {
+      return "bedrockProxyChatModel";
+    }
+    throw new IllegalArgumentException("Unsupported chat provider: " + chatProvider);
   }
 }

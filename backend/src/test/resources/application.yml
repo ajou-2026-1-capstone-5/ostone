@@ -20,11 +20,20 @@ spring:
   liquibase:
     enabled: false
   ai:
-    openai:
-      api-key: test-api-key
-      chat:
+    model:
+      chat: bedrock-converse
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    bedrock:
+      aws:
+        region: ap-northeast-2
+      converse:
         options:
-          model: ${AI_CHAT_MODEL:${GEMINI_CHAT_MODEL:gemini-2.5-flash-lite}}
+          model: global.anthropic.claude-sonnet-4-6
           temperature: ${AI_CHAT_TEMPERATURE:0.7}
 
 jwt:
