@@ -219,7 +219,13 @@ resource "aws_ecs_service" "backend" {
   launch_type      = "FARGATE"
   platform_version = "LATEST"
 
-  health_check_grace_period_seconds = 60
+  # 백엔드는 0.5 vCPU(cpu=512)에서 JPA 32개 + Spring AI 부트스트랩으로 기동에 약 93~106초가
+  # 걸린다(CloudWatch 측정치). grace 60초는 앱이 준비되기 전에 ELB health check 실패가
+  # 누적되어(unhealthy_threshold 3 × interval 30s ≈ 90s) ECS가 정상 기동 중인 태스크를
+  # SIGTERM(exit 143)으로 죽이는 경계 race를 유발했다 → 배포가 steady state에 도달하지 못함.
+  # 최대 기동 시간(~106s) + ELB healthy 판정(healthy_threshold 2 × 30s ≈ 60s)을 충분히
+  # 포괄하도록 240초로 상향한다.
+  health_check_grace_period_seconds = 240
 
   network_configuration {
     subnets          = values(aws_subnet.private)[*].id

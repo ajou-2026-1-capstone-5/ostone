@@ -20,9 +20,12 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
 
   health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
+    enabled           = true
+    healthy_threshold = 2
+    # 0.5 vCPU 백엔드는 GC 일시정지/순간 부하 시 /actuator/health 응답이 일시적으로 느려질 수
+    # 있다. unhealthy_threshold 3(=90s)은 정상 태스크를 성급히 내릴 여지가 있어 5(=150s)로
+    # 완화해 런타임 flap-kill 여지를 줄인다(복구는 healthy_threshold 2로 빠르게 유지).
+    unhealthy_threshold = 5
     interval            = 30
     timeout             = 5
     path                = "/actuator/health"
