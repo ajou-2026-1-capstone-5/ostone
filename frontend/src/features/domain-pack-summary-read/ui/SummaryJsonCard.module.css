@@ -113,6 +113,18 @@
   color: var(--text-primary);
 }
 
+.finalMessage {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .metricGrid {
   display: grid;
   gap: 6px;

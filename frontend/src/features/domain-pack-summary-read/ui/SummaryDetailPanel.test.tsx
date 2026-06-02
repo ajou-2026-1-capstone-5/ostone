@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider, type UseQueryResult } from "@tanstack/react-query";
 import type { DomainPackVersionDetail } from "@/entities/domain-pack";
@@ -295,6 +295,42 @@ describe("SummaryDetailPanel", () => {
     expect(onDeploy).toHaveBeenCalledWith(3);
   });
 
+  it("배포 확인 다이얼로그는 취소 버튼으로 닫는다", async () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: publishedDetail })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("v2 버전을 배포할까요?")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("배포 확인 다이얼로그는 외부 닫기 이벤트를 반영한다", async () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({ data: publishedDetail })}
+        wsId={1}
+        packId={2}
+        onDeploy={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "배포" }));
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape", code: "Escape" });
+
+    await waitFor(() =>
+      expect(screen.queryByText("v2 버전을 배포할까요?")).not.toBeInTheDocument(),
+    );
+  });
+
   it("현재 운영 버전이면 상세 메타 카드의 배포 버튼을 배포중 상태로 비활성화한다", () => {
     renderSummaryDetailPanel(
       <SummaryDetailPanel
@@ -398,12 +434,41 @@ describe("SummaryDetailPanel", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "적용" }));
+    fireEvent.change(screen.getByLabelText("변경사항 정리"), {
+      target: { value: " 상담 유형명을 정리했습니다. " },
+    });
     fireEvent.click(screen.getByRole("button", { name: "적용하기" }));
 
-    expect(onApplyDraft).toHaveBeenCalledWith(3);
+    expect(onApplyDraft).toHaveBeenCalledWith(3, "상담 유형명을 정리했습니다.");
   });
 
-  it("Draft 적용 확인 다이얼로그에 대상 draft 버전과 운영 전환 정보를 표시한다", () => {
+  it("Draft 적용 확인 시 빈 변경사항 정리도 전달한다", () => {
+    const onApplyDraft = vi.fn();
+
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            description: "기존 수정 메모",
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onApplyDraft={onApplyDraft}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+    fireEvent.change(screen.getByLabelText("변경사항 정리"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "적용하기" }));
+
+    expect(onApplyDraft).toHaveBeenCalledWith(3, "");
+  });
+
+  it("Draft 적용 확인 다이얼로그에 대상 draft 버전과 수정 반영 정보를 표시한다", () => {
     renderSummaryDetailPanel(
       <SummaryDetailPanel
         query={makeQuery({
@@ -426,8 +491,81 @@ describe("SummaryDetailPanel", () => {
 
     const context = screen.getByLabelText("대상 버전 정보");
     expect(context).toHaveTextContent("대상 버전v3검토 중");
-    expect(context).toHaveTextContent("운영 전환현재 v2 → v3");
+    expect(context).toHaveTextContent("수정 반영현재 v2 → v3");
     expect(context).toHaveTextContent("변경 요약상담 유형 이름을 정리했습니다.");
+    expect(screen.getByLabelText("변경사항 정리")).toHaveValue("");
+  });
+
+  it("Draft 변경사항 정리는 기존 description을 기본값으로 표시한다", () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            description: "기존 수정 메모",
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onApplyDraft={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+
+    expect(screen.getByLabelText("변경사항 정리")).toHaveValue("기존 수정 메모");
+  });
+
+  it("Draft 적용 다이얼로그는 외부 닫기 후 다시 열 때 기존 description으로 초기화한다", async () => {
+    renderSummaryDetailPanel(
+      <SummaryDetailPanel
+        query={makeQuery({
+          data: {
+            ...stubDetail,
+            description: "기존 수정 메모",
+          },
+        })}
+        wsId={1}
+        packId={2}
+        onApplyDraft={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+    fireEvent.change(screen.getByLabelText("변경사항 정리"), {
+      target: { value: "임시 수정 메모" },
+    });
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape", code: "Escape" });
+
+    await waitFor(() =>
+      expect(screen.queryByText("검토 중인 v1 수정버전을 적용할까요?")).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+
+    expect(screen.getByLabelText("변경사항 정리")).toHaveValue("기존 수정 메모");
+  });
+
+  it("Draft 적용 중에는 외부 닫기 이벤트를 무시한다", () => {
+    const queryClient = new QueryClient();
+    const renderPanel = (applyingVersionId?: number) => (
+      <QueryClientProvider client={queryClient}>
+        <SummaryDetailPanel
+          query={makeQuery({ data: stubDetail })}
+          wsId={1}
+          packId={2}
+          applyingVersionId={applyingVersionId}
+          onApplyDraft={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(renderPanel());
+
+    fireEvent.click(screen.getByRole("button", { name: "적용" }));
+    rerender(renderPanel(3));
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape", code: "Escape" });
+
+    expect(screen.getByText("검토 중인 v1 수정버전을 적용할까요?")).toBeInTheDocument();
   });
 
   it("Draft 삭제 확인 시 현재 versionId를 전달한다", () => {

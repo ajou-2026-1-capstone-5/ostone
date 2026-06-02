@@ -8,6 +8,7 @@ public record ActivateDomainPackVersionResult(
     Long domainPackId,
     Integer versionNo,
     String lifecycleStatus,
+    String description,
     OffsetDateTime publishedAt,
     OffsetDateTime updatedAt) {
 
@@ -17,6 +18,7 @@ public record ActivateDomainPackVersionResult(
         version.getDomainPackId(),
         version.getVersionNo(),
         version.getLifecycleStatus(),
+        version.getDescription(),
         version.getPublishedAt(),
         version.getUpdatedAt());
   }

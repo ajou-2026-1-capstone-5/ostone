@@ -1,7 +1,9 @@
 package com.init.domainpack.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -57,6 +60,7 @@ class ActivateDomainPackVersionControllerTest {
             7L,
             3,
             "PUBLISHED",
+            null,
             OffsetDateTime.parse("2026-04-09T12:00:00Z"),
             OffsetDateTime.parse("2026-04-09T12:00:00Z"));
     given(useCase.execute(any())).willReturn(result);
@@ -68,6 +72,84 @@ class ActivateDomainPackVersionControllerTest {
         .andExpect(jsonPath("$.publishedAt").isNotEmpty())
         .andExpect(jsonPath("$.id").value(42))
         .andExpect(jsonPath("$.domainPackId").value(7));
+  }
+
+  @Test
+  @DisplayName("변경사항 정리가 있으면 command description으로 전달한다")
+  @WithLongPrincipal(10L)
+  void should_commandDescription전달_when_변경사항정리있음() throws Exception {
+    ActivateDomainPackVersionResult result =
+        new ActivateDomainPackVersionResult(
+            42L,
+            7L,
+            3,
+            "PUBLISHED",
+            "상담 유형명을 정리했습니다.",
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"),
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"));
+    given(useCase.execute(any())).willReturn(result);
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"상담 유형명을 정리했습니다.\"}")
+                .with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.description").value("상담 유형명을 정리했습니다."));
+
+    verify(useCase)
+        .execute(
+            argThat(
+                command ->
+                    command.workspaceId().equals(1L)
+                        && command.packId().equals(7L)
+                        && command.versionId().equals(42L)
+                        && command.userId().equals(10L)
+                        && "상담 유형명을 정리했습니다.".equals(command.description())));
+  }
+
+  @Test
+  @DisplayName("요청 body가 없으면 command description은 null이다")
+  @WithLongPrincipal(10L)
+  void should_commandDescriptionNull_when_요청Body없음() throws Exception {
+    ActivateDomainPackVersionResult result =
+        new ActivateDomainPackVersionResult(
+            42L,
+            7L,
+            3,
+            "PUBLISHED",
+            null,
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"),
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"));
+    given(useCase.execute(any())).willReturn(result);
+
+    mockMvc.perform(post(BASE_URL).with(csrf())).andExpect(status().isOk());
+
+    verify(useCase)
+        .execute(
+            argThat(
+                command ->
+                    command.workspaceId().equals(1L)
+                        && command.packId().equals(7L)
+                        && command.versionId().equals(42L)
+                        && command.userId().equals(10L)
+                        && command.description() == null));
+  }
+
+  @Test
+  @DisplayName("변경사항 정리가 50자를 초과하면 400")
+  @WithLongPrincipal(10L)
+  void should_400반환_when_변경사항정리50자초과() throws Exception {
+    String longDescription = "가".repeat(51);
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"" + longDescription + "\"}")
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

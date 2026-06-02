@@ -27,7 +27,7 @@ interface SummaryDetailPanelProps {
   applyingVersionId?: number | null;
   discardingVersionId?: number | null;
   onDeploy?: (versionId: number) => void;
-  onApplyDraft?: (versionId: number) => void;
+  onApplyDraft?: (versionId: number, description?: string) => void;
   onDiscardDraft?: (versionId: number) => void;
 }
 
@@ -47,6 +47,7 @@ export function SummaryDetailPanel({
   const [isDeployDialogOpen, setDeployDialogOpen] = useState(false);
   const [isApplyDialogOpen, setApplyDialogOpen] = useState(false);
   const [isDiscardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [applyDescription, setApplyDescription] = useState("");
   const v = query.data;
   const versionId = v?.versionId;
   const isCurrentVersion = versionId != null && versionId === currentVersionId;
@@ -76,7 +77,7 @@ export function SummaryDetailPanel({
   };
   const handleConfirmApply = () => {
     if (!canApplyDraft) return;
-    onApplyDraft(versionId);
+    onApplyDraft(versionId, normalizeDescription(applyDescription));
     setApplyDialogOpen(false);
   };
   const handleConfirmDiscard = () => {
@@ -161,7 +162,10 @@ export function SummaryDetailPanel({
                   className={styles.deployButton}
                   disabled={!canApplyDraft}
                   onClick={() => {
-                    if (canApplyDraft) setApplyDialogOpen(true);
+                    if (canApplyDraft) {
+                      setApplyDescription(v.description ?? "");
+                      setApplyDialogOpen(true);
+                    }
                   }}
                 >
                   {isApplying ? "적용 중..." : "적용"}
@@ -234,20 +238,39 @@ export function SummaryDetailPanel({
       <AlertDialog
         open={isApplyDialogOpen}
         onOpenChange={(next) => {
-          if (!isApplying) setApplyDialogOpen(next);
+          if (isApplying) return;
+          if (next) setApplyDescription(v.description ?? "");
+          setApplyDialogOpen(next);
         }}
       >
         <AlertDialogContent size="sm" className={styles.approvalDialogContent}>
           <AlertDialogTitle className={styles.approvalDialogTitle}>
-            검토 중인 {targetVersionLabel} 버전을 적용할까요?
+            검토 중인 {targetVersionLabel} 수정버전을 적용할까요?
           </AlertDialogTitle>
           <AlertDialogDescription className={styles.approvalDialogDescription}>
-            적용하면 검토 중인 {targetVersionLabel}이 상담 응대에 사용할 운영 버전으로 전환됩니다.
+            적용하면 검토 중인 {targetVersionLabel}의 수정 내용이 도메인 팩에 반영됩니다.
           </AlertDialogDescription>
           <VersionActionContext
             version={v}
             transitionLabel={`${currentVersionLabel} → ${targetVersionLabel}`}
+            scopeLabel="수정 반영"
           />
+          <div className={styles.applyMessageField}>
+            <label htmlFor={`apply-message-${versionId}`} className={styles.applyMessageLabel}>
+              변경사항 정리
+            </label>
+            <textarea
+              id={`apply-message-${versionId}`}
+              className={styles.applyMessageInput}
+              value={applyDescription}
+              maxLength={50}
+              rows={3}
+              disabled={isApplying}
+              placeholder="예: 상담 유형명을 정리하고 확인 항목을 보강했습니다."
+              onChange={(event) => setApplyDescription(event.target.value)}
+            />
+            <span className={styles.applyMessageCount}>{applyDescription.length}/50</span>
+          </div>
           <AlertDialogFooter className={styles.approvalDialogFooter}>
             <Button
               type="button"
@@ -328,6 +351,7 @@ export function SummaryDetailPanel({
 
       <SummaryJsonCard
         summaryJson={v.summaryJson ?? ""}
+        finalMessage={v.description}
         revisionSummary={
           revisionSummaryState.status === "ready" ? revisionSummaryState.data : undefined
         }
@@ -461,6 +485,10 @@ function readTrimmedString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function normalizeDescription(value: string): string {
+  return value.trim();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
