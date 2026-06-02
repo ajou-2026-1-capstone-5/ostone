@@ -372,7 +372,13 @@
 }
 
 .internalNote {
-  /* Internal Note */
+  /* Internal Note — shares .msgBubble layout, keeps dashed frame + tint + header */
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  letter-spacing: -0.1px;
+  line-height: 1.5;
+  word-break: break-word;
   background: rgba(0, 0, 0, 0.04);
   border: 1px dashed #000000;
   color: rgba(0, 0, 0, 0.7);

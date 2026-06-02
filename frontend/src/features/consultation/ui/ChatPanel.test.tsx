@@ -346,6 +346,33 @@ describe("ChatPanel", () => {
     expect(onSelectMessage).not.toHaveBeenCalled();
   });
 
+  it("내부 메모를 헤더와 본문이 함께 담긴 점선 카드로 렌더링한다", () => {
+    render(
+      <ChatPanel
+        customerName="김민지"
+        channel="카카오톡"
+        messages={[
+          {
+            id: "note-card-1",
+            senderRole: "NOTE",
+            content: "결제 수단 변경 요청 메모",
+            timestamp: "10:05",
+          },
+        ]}
+        onSendMessage={vi.fn()}
+        selectedMessageId={null}
+        onSelectMessage={vi.fn()}
+      />,
+    );
+
+    // 본문은 internalNote 말풍선 컨테이너의 텍스트 노드로 렌더된다.
+    const noteBubble = screen.getByText("결제 수단 변경 요청 메모");
+    // 카드(padding/border-radius/점선 테두리) 스타일을 담는 internalNote 클래스를 유지한다.
+    expect(noteBubble.className).toContain("internalNote");
+    // "내부 메모" 헤더가 같은 말풍선 안에 함께 유지된다.
+    expect(noteBubble).toContainElement(screen.getByText("내부 메모"));
+  });
+
   it("공백만 있는 메시지를 전송하려고 할 때 onSendMessage가 호출되지 않는다", () => {
     const onSendMessage = vi.fn();
 
