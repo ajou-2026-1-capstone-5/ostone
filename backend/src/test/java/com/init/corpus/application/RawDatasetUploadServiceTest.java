@@ -14,7 +14,6 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.corpus.application.RawDatasetUploadCommand.RawConversationInput;
-import com.init.corpus.application.exception.ConsultingContentParseException;
 import com.init.corpus.application.exception.DatasetKeyConflictException;
 import com.init.corpus.application.exception.DuplicateTurnIndexException;
 import com.init.corpus.application.exception.UnauthorizedWorkspaceAccessException;
@@ -117,12 +116,22 @@ class RawDatasetUploadServiceTest {
   }
 
   @Test
-  @DisplayName("파싱 실패 시 DB write 없음 → ConsultingContentParseException")
-  void should_ConsultingContentParseException발생_when_파싱실패() {
-    // given
+  @DisplayName("화자 prefix 없는 멀티라인 turn 을 포함한 content 도 거부 없이 업로드된다 (#505)")
+  void should_업로드성공_when_멀티라인turn포함() {
+    // given: 한 화자가 번호 목록으로 여러 줄에 걸쳐 말하는 실제 상담 로그 형태 (과거에는 400으로 거부됨)
     given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
     given(datasetRepository.existsByWorkspaceIdAndDatasetKey(any(), any())).willReturn(false);
+
+    Dataset savedDataset = mock(Dataset.class);
+    given(savedDataset.getId()).willReturn(1L);
+    given(savedDataset.getDatasetKey()).willReturn("test-key");
+    given(savedDataset.getStatus()).willReturn(DatasetStatus.READY);
+    given(savedDataset.getPiiRedactionStatus()).willReturn(PiiRedactionStatus.PENDING);
+    given(datasetRepository.save(any())).willReturn(savedDataset);
+    Conversation savedConversation = mock(Conversation.class);
+    given(savedConversation.getId()).willReturn(100L);
+    given(conversationRepository.save(any())).willReturn(savedConversation);
 
     RawDatasetUploadCommand command =
         new RawDatasetUploadCommand(
@@ -133,13 +142,20 @@ class RawDatasetUploadServiceTest {
             1L,
             List.of(
                 new RawConversationInput(
-                    "id-1", null, null, null, null, Fixtures.invalidPrefixConsultingContent())));
+                    "id-1",
+                    null,
+                    null,
+                    null,
+                    null,
+                    "고객: 아래 두 가지로 부탁드려요.\n1. 우붓 파드마 2박\n2. 식스센스 3박\n상담사: 확인 후 안내드리겠습니다.")));
 
-    // when & then
-    assertThatThrownBy(() -> service.upload(command))
-        .isInstanceOf(ConsultingContentParseException.class);
+    // when
+    DatasetUploadResult result = service.upload(command);
 
-    verify(datasetRepository, never()).save(any());
+    // then: 예외 없이 저장되고 turn 이 영속화된다
+    assertThat(result.conversationCount()).isEqualTo(1);
+    verify(conversationRepository).save(any());
+    verify(conversationTurnRepository).saveAll(anyList());
   }
 
   @Test

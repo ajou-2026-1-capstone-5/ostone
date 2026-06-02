@@ -28,8 +28,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.retry.NonTransientAiException;
-import org.springframework.ai.retry.TransientAiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -242,8 +240,11 @@ public class DemoChatSessionRegistrationService {
               new GenerateWorkflowAwareResponseCommand(
                   sessionId, createConversationContext(sessionId), normalizedContent))
           .content();
-    } catch (NonTransientAiException | TransientAiException e) {
-      log.warn("Demo chat AI response generation failed. sessionId={}", sessionId, e);
+    } catch (RuntimeException e) {
+      // 데모 채팅은 어떤 다운스트림 AI 실패(Bedrock 권한/모델 미가용/throttle, 임베딩 RestClient 오류, 툴 실행 실패 등)에도
+      // 500을 던지지 않고 graceful fallback 메시지로 답한다. 그렇지 않으면 트랜잭션이 롤백되어 사용자 메시지까지 소실되고
+      // 프런트에 "응답을 생성하지 못했습니다"가 표시된다. 근본 원인 진단을 위해 전체 스택을 error 레벨로 남긴다.
+      log.error("Demo chat AI response generation failed. sessionId={}", sessionId, e);
       return AI_FALLBACK_MESSAGE;
     }
   }
