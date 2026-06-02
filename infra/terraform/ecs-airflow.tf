@@ -62,6 +62,10 @@ locals {
       value = "False"
     },
     {
+      name  = "AIRFLOW__CORE__PARALLELISM"
+      value = "4"
+    },
+    {
       name  = "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS"
       value = "admin:admin,viewer:viewer"
     },
@@ -78,8 +82,40 @@ locals {
       value = "/opt/airflow/logs"
     },
     {
+      name  = "AIRFLOW__LOGGING__REMOTE_LOGGING"
+      value = "True"
+    },
+    {
+      name  = "AIRFLOW__LOGGING__DELETE_LOCAL_LOGS"
+      value = "True"
+    },
+    {
+      name  = "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER"
+      value = "s3://${aws_s3_bucket.buckets["airflow_logs"].bucket}/task-logs"
+    },
+    {
+      name  = "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID"
+      value = "aws_default"
+    },
+    {
+      name  = "AIRFLOW__LOGGING__ENCRYPT_S3_LOGS"
+      value = "False"
+    },
+    {
+      name  = "AIRFLOW_CONN_AWS_DEFAULT"
+      value = "aws://@/?region_name=${var.aws_region}"
+    },
+    {
       name  = "PIPELINE_STAGE_EXECUTION_MODE"
       value = "ecs"
+    },
+    {
+      name  = "PIPELINE_DAG_MAX_ACTIVE_RUNS"
+      value = "4"
+    },
+    {
+      name  = "PIPELINE_DAG_MAX_ACTIVE_TASKS"
+      value = "1"
     },
     {
       name  = "PIPELINE_BACKEND_BASE_URL"
@@ -455,6 +491,10 @@ resource "aws_ecs_service" "airflow_apiserver" {
 
   depends_on = [
     aws_lb_listener_rule.airflow,
+    aws_security_group_rule.ecs_airflow_egress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_egress_self_worker_logs,
+    aws_security_group_rule.ecs_airflow_ingress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_ingress_self_worker_logs,
     terraform_data.airflow_init
   ]
 
@@ -477,7 +517,13 @@ resource "aws_ecs_service" "airflow_scheduler" {
     assign_public_ip = false
   }
 
-  depends_on = [terraform_data.airflow_init]
+  depends_on = [
+    aws_security_group_rule.ecs_airflow_egress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_egress_self_worker_logs,
+    aws_security_group_rule.ecs_airflow_ingress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_ingress_self_worker_logs,
+    terraform_data.airflow_init
+  ]
 
   lifecycle {
     ignore_changes = [task_definition]
@@ -498,7 +544,13 @@ resource "aws_ecs_service" "airflow_dag_processor" {
     assign_public_ip = false
   }
 
-  depends_on = [terraform_data.airflow_init]
+  depends_on = [
+    aws_security_group_rule.ecs_airflow_egress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_egress_self_worker_logs,
+    aws_security_group_rule.ecs_airflow_ingress_self_execution_api,
+    aws_security_group_rule.ecs_airflow_ingress_self_worker_logs,
+    terraform_data.airflow_init
+  ]
 
   lifecycle {
     ignore_changes = [task_definition]

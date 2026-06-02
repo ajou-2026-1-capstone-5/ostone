@@ -128,6 +128,26 @@ resource "aws_security_group_rule" "ecs_airflow_ingress_backend" {
   protocol                 = "tcp"
 }
 
+resource "aws_security_group_rule" "ecs_airflow_ingress_self_execution_api" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.ecs_airflow.id
+  source_security_group_id = aws_security_group.ecs_airflow.id
+  description              = "Airflow task execution API traffic between Airflow ECS services."
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "ecs_airflow_ingress_self_worker_logs" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.ecs_airflow.id
+  source_security_group_id = aws_security_group.ecs_airflow.id
+  description              = "Airflow served task log traffic between Airflow ECS services."
+  from_port                = 8793
+  to_port                  = 8793
+  protocol                 = "tcp"
+}
+
 resource "aws_security_group_rule" "ecs_airflow_egress_rds" {
   type                     = "egress"
   security_group_id        = aws_security_group.ecs_airflow.id
@@ -136,6 +156,26 @@ resource "aws_security_group_rule" "ecs_airflow_egress_rds" {
   to_port                  = 5432
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.rds.id
+}
+
+resource "aws_security_group_rule" "ecs_airflow_egress_self_execution_api" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.ecs_airflow.id
+  source_security_group_id = aws_security_group.ecs_airflow.id
+  description              = "Allow Airflow ECS services to call the execution API."
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "ecs_airflow_egress_self_worker_logs" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.ecs_airflow.id
+  source_security_group_id = aws_security_group.ecs_airflow.id
+  description              = "Allow Airflow ECS services to fetch served task logs."
+  from_port                = 8793
+  to_port                  = 8793
+  protocol                 = "tcp"
 }
 
 resource "aws_security_group_rule" "ecs_airflow_egress_https" {
