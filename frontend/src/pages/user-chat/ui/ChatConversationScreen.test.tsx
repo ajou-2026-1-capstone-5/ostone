@@ -142,6 +142,24 @@ describe("ChatConversationScreen", () => {
     },
   );
 
+  it("requiresRealtimeConnection=false 이면 연결이 끊겨도 입력을 허용한다", () => {
+    const onSend = vi.fn();
+    setup({
+      connectionStatus: "DISCONNECTED",
+      requiresRealtimeConnection: false,
+      onSend,
+    });
+
+    expect(screen.getByTestId("chat-meta-strip")).toHaveTextContent("채팅 가능");
+    expect(screen.queryByTestId("chat-connection-notice")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("메시지 입력")).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("메시지 입력"), { target: { value: "Hello" } });
+    fireEvent.click(screen.getByLabelText("메시지 보내기"));
+
+    expect(onSend).toHaveBeenCalledWith("Hello");
+  });
+
   it("연결이 복구되면 안내가 사라지고 입력 가능 상태로 돌아온다", () => {
     const { props, rerender } = setup({ connectionStatus: "DISCONNECTED" });
 

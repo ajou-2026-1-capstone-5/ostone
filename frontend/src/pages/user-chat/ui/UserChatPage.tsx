@@ -489,7 +489,7 @@ export function UserChatPage({ mode = "demo" }: UserChatPageProps) {
     if (!activeSession || !customerName || isSending) return;
     const numericSessionId = tryParseDemoSessionId(activeSession.id);
     if (numericSessionId == null) return;
-    if (connectionStatus !== "CONNECTED") {
+    if (!isDemoMode && connectionStatus !== "CONNECTED") {
       setMessageError("연결이 불안정합니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
@@ -690,6 +690,7 @@ export function UserChatPage({ mode = "demo" }: UserChatPageProps) {
       isSending={isSending}
       botTyping={isBotTyping}
       connectionStatus={connectionStatus}
+      requiresRealtimeConnection={!isDemoMode}
       messageError={messageError}
       onSend={(content) => {
         void handleSendMessage(content);

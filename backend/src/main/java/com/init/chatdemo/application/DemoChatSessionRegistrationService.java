@@ -236,14 +236,18 @@ public class DemoChatSessionRegistrationService {
   }
 
   private String generateAssistantContent(Long sessionId, String normalizedContent) {
+    String conversationContext = createConversationContext(sessionId);
     try {
       return llmAssistantService
           .generateWorkflowAwareResponse(
               new GenerateWorkflowAwareResponseCommand(
-                  sessionId, createConversationContext(sessionId), normalizedContent))
+                  sessionId, conversationContext, normalizedContent))
           .content();
     } catch (NonTransientAiException | TransientAiException e) {
       log.warn("Demo chat AI response generation failed. sessionId={}", sessionId, e);
+      return AI_FALLBACK_MESSAGE;
+    } catch (RuntimeException e) {
+      log.warn("Demo chat AI response generation failed unexpectedly. sessionId={}", sessionId, e);
       return AI_FALLBACK_MESSAGE;
     }
   }

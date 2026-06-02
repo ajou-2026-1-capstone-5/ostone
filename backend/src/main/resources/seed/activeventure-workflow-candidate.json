@@ -465,7 +465,7 @@
       },
       {
         "slotCode": "reservation_number",
-        "name": "예약 식별 정보",
+        "name": "예약번호",
         "description": "기존 예약 번호 또는 예약 건을 식별할 정보를 확인한다.",
         "dataType": "STRING",
         "isSensitive": false,
@@ -1282,7 +1282,7 @@
         "slotCode": "reservation_number",
         "isRequired": true,
         "collectionOrder": 1,
-        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "promptHint": "예약번호를 확인해 주세요.",
         "conditionJson": "{}"
       },
       {
@@ -1314,7 +1314,7 @@
         "slotCode": "reservation_number",
         "isRequired": true,
         "collectionOrder": 1,
-        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "promptHint": "예약번호를 확인해 주세요.",
         "conditionJson": "{}"
       },
       {
@@ -1338,7 +1338,7 @@
         "slotCode": "reservation_number",
         "isRequired": true,
         "collectionOrder": 1,
-        "promptHint": "예약 식별 정보을 확인해 주세요.",
+        "promptHint": "예약번호를 확인해 주세요.",
         "conditionJson": "{}"
       },
       {
