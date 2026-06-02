@@ -114,9 +114,10 @@ class ActivateDomainPackVersionUseCaseTest {
     ActivateDomainPackVersionCommand command =
         new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L, "  상담 유형명을 정리했습니다.  ");
 
-    useCase.execute(command);
+    ActivateDomainPackVersionResult result = useCase.execute(command);
 
     assertThat(version.getDescription()).isEqualTo("상담 유형명을 정리했습니다.");
+    assertThat(result.description()).isEqualTo("상담 유형명을 정리했습니다.");
   }
 
   @Test

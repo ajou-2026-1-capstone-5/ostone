@@ -110,6 +110,49 @@ class ActivateDomainPackVersionControllerTest {
   }
 
   @Test
+  @DisplayName("요청 body가 없으면 command description은 null이다")
+  @WithLongPrincipal(10L)
+  void should_commandDescriptionNull_when_요청Body없음() throws Exception {
+    ActivateDomainPackVersionResult result =
+        new ActivateDomainPackVersionResult(
+            42L,
+            7L,
+            3,
+            "PUBLISHED",
+            null,
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"),
+            OffsetDateTime.parse("2026-04-09T12:00:00Z"));
+    given(useCase.execute(any())).willReturn(result);
+
+    mockMvc.perform(post(BASE_URL).with(csrf())).andExpect(status().isOk());
+
+    verify(useCase)
+        .execute(
+            argThat(
+                command ->
+                    command.workspaceId().equals(1L)
+                        && command.packId().equals(7L)
+                        && command.versionId().equals(42L)
+                        && command.userId().equals(10L)
+                        && command.description() == null));
+  }
+
+  @Test
+  @DisplayName("변경사항 정리가 50자를 초과하면 400")
+  @WithLongPrincipal(10L)
+  void should_400반환_when_변경사항정리50자초과() throws Exception {
+    String longDescription = "가".repeat(51);
+
+    mockMvc
+        .perform(
+            post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"" + longDescription + "\"}")
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   @DisplayName("존재하지 않는 versionId → 404 DOMAIN_PACK_VERSION_NOT_FOUND")
   @WithLongPrincipal(10L)
   void should_404반환_when_존재하지않는버전() throws Exception {
