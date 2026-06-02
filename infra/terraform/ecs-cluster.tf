@@ -151,6 +151,18 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "AI_EMBEDDING_LEXICAL_EVIDENCE_FLOOR"
           value = tostring(var.ai_embedding_lexical_evidence_floor)
+        },
+        {
+          name  = "AI_CHAT_PROVIDER"
+          value = "bedrock-converse"
+        },
+        {
+          name  = "AI_CHAT_BEDROCK_REGION"
+          value = var.ai_chat_bedrock_region
+        },
+        {
+          name  = "AI_CHAT_BEDROCK_MODEL"
+          value = local.ai_chat_bedrock_runtime_model
         }
       ]
 

@@ -420,13 +420,25 @@ variable "ai_embedding_provider" {
 variable "ai_embedding_model" {
   description = "Bedrock embedding model id used by backend workflow matching."
   type        = string
-  default     = "cohere.embed-multilingual-v3"
+  default     = "cohere.embed-v4:0"
 }
 
 variable "ai_embedding_bedrock_region" {
   description = "AWS region used for Bedrock embedding calls. This can differ from aws_region when the selected model is unavailable in the primary region."
   type        = string
-  default     = "ap-northeast-1"
+  default     = "ap-northeast-2"
+}
+
+variable "ai_chat_bedrock_region" {
+  description = "AWS region used for backend Bedrock chat calls."
+  type        = string
+  default     = "ap-northeast-2"
+}
+
+variable "ai_chat_bedrock_model" {
+  description = "Bedrock Converse model id used by backend chat responses."
+  type        = string
+  default     = "anthropic.claude-sonnet-4-6"
 }
 
 variable "ai_embedding_enabled" {
