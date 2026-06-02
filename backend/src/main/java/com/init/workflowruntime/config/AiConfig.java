@@ -2,8 +2,10 @@ package com.init.workflowruntime.config;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,8 +32,12 @@ public class AiConfig {
   }
 
   @Bean
-  public ChatClient chatClient(ChatClient.Builder builder) {
-    return builder.defaultSystem(systemPrompt).build();
+  public ChatClient chatClient(
+      Map<String, ChatModel> chatModels,
+      @Value("${spring.ai.model.chat:bedrock-converse}") String chatProvider) {
+    return ChatClient.builder(chatModel(chatModels, chatProvider))
+        .defaultSystem(systemPrompt)
+        .build();
   }
 
   @Bean(name = LLM_AUTO_RESPONSE_TASK_EXECUTOR)
@@ -71,5 +77,24 @@ public class AiConfig {
             executor,
             value -> value.getQueue().remainingCapacity())
         .register(meterRegistry);
+  }
+
+  private ChatModel chatModel(Map<String, ChatModel> chatModels, String chatProvider) {
+    String beanName = chatModelBeanName(chatProvider);
+    ChatModel chatModel = chatModels.get(beanName);
+    if (chatModel == null) {
+      throw new IllegalStateException("ChatModel bean not found: " + beanName);
+    }
+    return chatModel;
+  }
+
+  private String chatModelBeanName(String chatProvider) {
+    if ("openai".equalsIgnoreCase(chatProvider)) {
+      return "openAiChatModel";
+    }
+    if ("bedrock-converse".equalsIgnoreCase(chatProvider)) {
+      return "bedrockProxyChatModel";
+    }
+    throw new IllegalArgumentException("Unsupported chat provider: " + chatProvider);
   }
 }

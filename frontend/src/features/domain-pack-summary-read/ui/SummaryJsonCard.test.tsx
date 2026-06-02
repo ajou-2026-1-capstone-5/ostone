@@ -33,10 +33,45 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("도메인팩 정보")).toBeInTheDocument();
   });
 
+  it("변경사항 정리를 도메인팩 정보 요약에 렌더링한다", () => {
+    render(<SummaryJsonCard summaryJson="{}" finalMessage="상담 유형명을 정리했습니다." />);
+
+    expect(screen.getByText("도메인팩 정보")).toBeInTheDocument();
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("상담 유형명을 정리했습니다.")).toBeInTheDocument();
+    expect(screen.queryByText("내용 없음")).not.toBeInTheDocument();
+  });
+
+  it("공백 변경사항 정리는 빈 상태 문구로 렌더링한다", () => {
+    render(<SummaryJsonCard summaryJson="{}" finalMessage="   " />);
+
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
+  });
+
+  it("summaryJson finalMessage는 변경사항 정리로 렌더링하지 않는다", () => {
+    render(<SummaryJsonCard summaryJson='{"finalMessage":"확인 항목을 보강했습니다."}' />);
+
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
+    expect(screen.queryByText("확인 항목을 보강했습니다.")).not.toBeInTheDocument();
+  });
+
+  it("summaryJson draftSource.reason은 변경사항 정리로 렌더링하지 않는다", () => {
+    render(
+      <SummaryJsonCard summaryJson='{"draftSource":{"baseVersionNo":19,"reason":"확인 항목을 보강했습니다."}}' />,
+    );
+
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
+    expect(screen.queryByText("확인 항목을 보강했습니다.")).not.toBeInTheDocument();
+  });
+
   it("알려지지 않은 JSON 객체는 요약 화면에 노출하지 않고 전체 JSON에서 확인한다", () => {
     const json = '{"intent":"greeting","count":3}';
     render(<SummaryJsonCard summaryJson={json} />);
-    expect(screen.getByText("내용 없음")).toBeInTheDocument();
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
     expect(screen.queryByText("기타 메타데이터")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
     expect(screen.getByText("intent")).toBeInTheDocument();
@@ -148,15 +183,28 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("도메인팩 변경 요약을 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
-  it("빈 JSON 객체는 '내용 없음'을 표시한다", () => {
+  it("빈 JSON 객체는 변경사항 정리 빈 상태를 표시한다", () => {
     render(<SummaryJsonCard summaryJson="{}" />);
-    expect(screen.getByText("내용 없음")).toBeInTheDocument();
+    expect(screen.getByText("변경사항 정리")).toBeInTheDocument();
+    expect(screen.getByText("작성된 변경사항이 없습니다")).toBeInTheDocument();
   });
 
   it("유효하지 않은 JSON은 파싱 실패 경고와 원문을 표시한다", () => {
     render(<SummaryJsonCard summaryJson="{bad}" />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("{bad}")).toBeInTheDocument();
+  });
+
+  it("유효하지 않은 JSON의 전체 JSON 화면에서도 원문을 표시한다", () => {
+    render(<SummaryJsonCard summaryJson="{bad}" />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("{bad}")).toBeInTheDocument();
+  });
+
+  it("빈 JSON 객체의 전체 JSON 화면은 내용 없음 문구를 표시한다", () => {
+    render(<SummaryJsonCard summaryJson="{}" />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("내용 없음")).toBeInTheDocument();
   });
 
   it("전체 JSON 버튼 클릭 시 전체 JSON 필드를 카드로 표시한다", () => {

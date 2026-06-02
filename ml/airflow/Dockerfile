@@ -13,9 +13,10 @@ RUN mkdir -p /opt/airflow/dags /opt/airflow/src /opt/airflow/logs /opt/airflow/a
 
 COPY airflow/requirements.txt /requirements.txt
 COPY airflow/scripts/init-airflow.sh /opt/airflow/scripts/init-airflow.sh
+COPY airflow/scripts/write-simple-auth-passwords.sh /opt/airflow/scripts/write-simple-auth-passwords.sh
 COPY src/ /opt/airflow/src/
 
-RUN chmod +x /opt/airflow/scripts/init-airflow.sh
+RUN chmod +x /opt/airflow/scripts/init-airflow.sh /opt/airflow/scripts/write-simple-auth-passwords.sh
 
 USER airflow
 

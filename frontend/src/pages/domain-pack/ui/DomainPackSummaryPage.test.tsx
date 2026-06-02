@@ -2,9 +2,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiRequestError } from "@/shared/api";
 import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
-import { useActivate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import {
+  activate,
+  type ActivateMutationResult,
+} from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
 import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import { DomainPackSummaryPage } from "./DomainPackSummaryPage";
@@ -74,7 +78,7 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
     currentVersionId?: number | null;
     currentVersionNo?: number | null;
     onDeploy: (versionId: number) => void;
-    onApplyDraft: (versionId: number) => void;
+    onApplyDraft: (versionId: number, description?: string) => void;
     onDiscardDraft: (versionId: number) => void;
   }) => (
     <div data-testid="summary-detail-panel">
@@ -83,8 +87,14 @@ vi.mock("@/features/domain-pack-summary-read", () => ({
       <button type="button" onClick={() => onDeploy(4)}>
         deploy version
       </button>
-      <button type="button" onClick={() => onApplyDraft(5)}>
+      <button type="button" onClick={() => onApplyDraft(5, "변경사항 정리 메모")}>
         apply draft
+      </button>
+      <button type="button" onClick={() => onApplyDraft(5, "")}>
+        apply empty draft
+      </button>
+      <button type="button" onClick={() => onApplyDraft(5)}>
+        apply draft without description
       </button>
       <button type="button" onClick={() => onDiscardDraft(5)}>
         delete draft
@@ -102,7 +112,7 @@ vi.mock(
 vi.mock(
   "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller",
   () => ({
-    useActivate: vi.fn(),
+    activate: vi.fn(),
   }),
 );
 vi.mock(
@@ -125,26 +135,41 @@ function makePackQuery(overrides: Record<string, unknown> = {}): any {
   };
 }
 
+type ActivateMockData = ActivateMutationResult["data"] & { description?: string };
+
+function makeActivateResponse(data: ActivateMockData): ActivateMutationResult {
+  return {
+    data,
+    status: 200,
+    headers: new Headers(),
+  };
+}
+
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
 }
 
 function renderPage(path = "/workspaces/1/domain-packs/2") {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path="/workspaces/:workspaceId/domain-packs/:packId"
-          element={
-            <>
-              <DomainPackSummaryPage />
-              <LocationProbe />
-            </>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/workspaces/:workspaceId/domain-packs/:packId"
+            element={
+              <>
+                <DomainPackSummaryPage />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -157,11 +182,8 @@ describe("DomainPackSummaryPage", () => {
       isPending: false,
       variables: undefined,
     } as unknown as ReturnType<typeof useDeploy>);
-    vi.mocked(useActivate).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      variables: undefined,
-    } as unknown as ReturnType<typeof useActivate>);
+    vi.mocked(activate).mockReset();
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 5 }));
     vi.mocked(useDiscard).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
@@ -468,13 +490,67 @@ describe("DomainPackSummaryPage", () => {
     });
   });
 
-  it("Draft 적용 버튼 클릭 시 activate mutation을 호출한다", () => {
-    const mutate = vi.fn();
-    vi.mocked(useActivate).mockReturnValue({
-      mutate,
+  it("버전 배포 실패 시 기본 실패 toast를 띄운다", () => {
+    // useDeploy is mocked here, so mutate triggers the onError callback supplied by the page.
+    vi.mocked(useDeploy).mockImplementation((options) => ({
+      mutate: vi.fn(() =>
+        options?.mutation?.onError?.(
+          new Error("deploy failed"),
+          { workspaceId: 1, packId: 2, versionId: 4 },
+          undefined,
+        ),
+      ),
       isPending: false,
       variables: undefined,
-    } as unknown as ReturnType<typeof useActivate>);
+    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
+
+    expect(toast.error).toHaveBeenCalledWith("도메인팩 버전을 배포하지 못했습니다.");
+  });
+
+  it("버전 배포 실패 시 API 에러 메시지를 toast에 사용한다", () => {
+    // Keep this tied to useDeploy's option shape: the mock mutate simulates a failed mutation.
+    vi.mocked(useDeploy).mockImplementation((options) => ({
+      mutate: vi.fn(() =>
+        options?.mutation?.onError?.(
+          new ApiRequestError(409, "CONFLICT", "이미 배포된 버전입니다."),
+          { workspaceId: 1, packId: 2, versionId: 4 },
+          undefined,
+        ),
+      ),
+      isPending: false,
+      variables: undefined,
+    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
+
+    expect(toast.error).toHaveBeenCalledWith("이미 배포된 버전입니다.");
+  });
+
+  it("Draft 적용 버튼 클릭 시 변경사항 정리와 함께 activate API를 호출한다", async () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -489,34 +565,68 @@ describe("DomainPackSummaryPage", () => {
     renderPage("/workspaces/1/domain-packs/2?versionId=5");
     fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
 
-    expect(mutate).toHaveBeenCalledWith({
-      workspaceId: 1,
-      packId: 2,
-      versionId: 5,
-    });
+    await waitFor(() => expect(activate).toHaveBeenCalled());
+    expect(activate).toHaveBeenCalledWith(
+      1,
+      2,
+      5,
+      expect.objectContaining({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "변경사항 정리 메모" }),
+      }),
+    );
+  });
+
+  it("Draft 적용 버튼 클릭 시 빈 변경사항 정리도 activate API에 전달한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply empty draft" }));
+
+    await waitFor(() => expect(activate).toHaveBeenCalled());
+    expect(activate).toHaveBeenCalledWith(
+      1,
+      2,
+      5,
+      expect.objectContaining({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "" }),
+      }),
+    );
+  });
+
+  it("Draft 적용 버튼 클릭 시 변경사항 정리가 없으면 요청 body 없이 activate API를 호출한다", async () => {
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply draft without description" }));
+
+    await waitFor(() => expect(activate).toHaveBeenCalled());
+    expect(activate).toHaveBeenCalledWith(1, 2, 5, undefined);
   });
 
   it("Draft 적용 성공 후 기존 draft 상세 refetch 실패로 실패 toast를 띄우지 않는다", async () => {
     const packRefetch = vi.fn().mockRejectedValue(new Error("refetch failed"));
     const versionRefetch = vi.fn().mockRejectedValue(new Error("old draft missing"));
-    const mutate = vi.fn((variables) => {
-      void activateOnSuccess?.({ id: 6 }, variables, undefined);
-    });
-    let activateOnSuccess:
-      | ((
-          result: unknown,
-          variables: { workspaceId: number; packId: number; versionId: number },
-          context: unknown,
-        ) => unknown)
-      | undefined;
-    vi.mocked(useActivate).mockImplementation((options) => {
-      activateOnSuccess = options?.mutation?.onSuccess;
-      return {
-        mutate,
-        isPending: false,
-        variables: undefined,
-      } as unknown as ReturnType<typeof useActivate>;
-    });
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 6 }));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -545,31 +655,45 @@ describe("DomainPackSummaryPage", () => {
     );
     expect(packRefetch).toHaveBeenCalled();
     expect(versionRefetch).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith(
-      "검토 중인 버전이 운영 버전으로 적용되었습니다.",
-    );
-    expect(toast.error).not.toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
+    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
+    expect(toast.error).not.toHaveBeenCalledWith("초안 수정버전을 적용하지 못했습니다.");
   });
 
-  it("Draft 적용 성공 응답이 data.id 형태여도 적용된 버전으로 이동한다", async () => {
-    let activateOnSuccess:
-      | ((
-          result: unknown,
-          variables: { workspaceId: number; packId: number; versionId: number },
-          context: unknown,
-        ) => unknown)
-      | undefined;
-    const mutate = vi.fn((variables) => {
-      void activateOnSuccess?.({ data: { id: 7 } }, variables, undefined);
-    });
-    vi.mocked(useActivate).mockImplementation((options) => {
-      activateOnSuccess = options?.mutation?.onSuccess;
-      return {
-        mutate,
-        isPending: false,
-        variables: undefined,
-      } as unknown as ReturnType<typeof useActivate>;
-    });
+  it("Draft 적용 성공 응답의 description이 있으면 성공 처리한다", async () => {
+    vi.mocked(activate).mockResolvedValue(
+      makeActivateResponse({ id: 6, description: "  응답 변경사항  " }),
+    );
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+        refetch: vi.fn(),
+      }),
+    );
+    vi.mocked(useVersionDetail).mockReturnValue(
+      makePackQuery({
+        data: { versionId: 5, lifecycleStatus: "DRAFT" },
+        refetch: vi.fn(),
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=6",
+      ),
+    );
+    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
+  });
+
+  it("Draft 적용 성공 응답의 data.id로 적용된 버전으로 이동한다", async () => {
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 7 }));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -598,17 +722,41 @@ describe("DomainPackSummaryPage", () => {
     );
   });
 
-  it("Draft 적용 실패 시 상담사 용어의 실패 toast를 띄운다", () => {
-    let activateOnError: ((error: unknown) => unknown) | undefined;
-    const mutate = vi.fn(() => activateOnError?.(new Error("activate failed")));
-    vi.mocked(useActivate).mockImplementation((options) => {
-      activateOnError = options?.mutation?.onError;
-      return {
-        mutate,
-        isPending: false,
-        variables: undefined,
-      } as unknown as ReturnType<typeof useActivate>;
-    });
+  it("Draft 적용 성공 응답의 description이 data에 있으면 성공 처리한다", async () => {
+    vi.mocked(activate).mockResolvedValue(
+      makeActivateResponse({ id: 8, description: "  data 변경사항  " }),
+    );
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 5, versionNo: 3, lifecycleStatus: "DRAFT" }],
+        },
+        refetch: vi.fn(),
+      }),
+    );
+    vi.mocked(useVersionDetail).mockReturnValue(
+      makePackQuery({
+        data: { versionId: 5, lifecycleStatus: "DRAFT" },
+        refetch: vi.fn(),
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=5");
+    fireEvent.click(screen.getByRole("button", { name: "apply empty draft" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/workspaces/1/domain-packs/2?versionId=8",
+      ),
+    );
+    expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
+  });
+
+  it("Draft 적용 실패 시 상담사 용어의 실패 toast를 띄운다", async () => {
+    vi.mocked(activate).mockRejectedValue(new Error("activate failed"));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -623,7 +771,9 @@ describe("DomainPackSummaryPage", () => {
     renderPage("/workspaces/1/domain-packs/2?versionId=5");
     fireEvent.click(screen.getByRole("button", { name: "apply draft" }));
 
-    expect(toast.error).toHaveBeenCalledWith("검토 중인 버전을 적용하지 못했습니다.");
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("초안 수정버전을 적용하지 못했습니다."),
+    );
   });
 
   it("Draft 삭제 버튼 클릭 시 discard mutation을 호출한다", () => {

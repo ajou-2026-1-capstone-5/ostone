@@ -5,6 +5,18 @@ springdoc:
     enabled: false
 
 spring:
+  ai:
+    model:
+      chat: ${AI_CHAT_PROVIDER:bedrock-converse}
+    bedrock:
+      aws:
+        region: ${AI_CHAT_BEDROCK_REGION:${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-2}}
+      converse:
+        chat:
+          options:
+            model: ${AI_CHAT_BEDROCK_MODEL:global.anthropic.claude-sonnet-4-6}
+            temperature: ${AI_CHAT_TEMPERATURE:0.7}
+
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?sslmode=require
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -63,8 +75,8 @@ app:
     embedding:
       provider: ${AI_EMBEDDING_PROVIDER:bedrock}
       enabled: ${AI_EMBEDDING_ENABLED:true}
-      model: ${AI_EMBEDDING_MODEL:cohere.embed-multilingual-v3}
-      bedrock-region: ${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-1}
+      model: ${AI_EMBEDDING_MODEL:cohere.embed-v4:0}
+      bedrock-region: ${AI_EMBEDDING_BEDROCK_REGION:ap-northeast-2}
       timeout: ${AI_EMBEDDING_TIMEOUT_SECONDS:5}s
       profile-build-interval: ${AI_EMBEDDING_PROFILE_BUILD_INTERVAL:30s}
       profile-build-running-timeout: ${AI_EMBEDDING_PROFILE_BUILD_RUNNING_TIMEOUT:15m}

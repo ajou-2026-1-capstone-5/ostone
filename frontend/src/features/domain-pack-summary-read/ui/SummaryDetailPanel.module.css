@@ -429,6 +429,49 @@
   color: var(--text-secondary);
 }
 
+.applyMessageField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.applyMessageLabel {
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
+  color: var(--text-secondary);
+}
+
+.applyMessageInput {
+  min-height: 82px;
+  resize: vertical;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.applyMessageInput:focus {
+  outline: none;
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 8%);
+}
+
+.applyMessageInput:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.applyMessageCount {
+  align-self: flex-end;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .approvalDialogFooter {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -14,6 +14,9 @@ locals {
   ]
 
   secrets_resource_arns = distinct(concat([aws_secretsmanager_secret.app.arn], var.secret_arns))
+
+  ai_embedding_bedrock_runtime_model = var.ai_embedding_model == "cohere.embed-v4:0" ? "global.cohere.embed-v4:0" : var.ai_embedding_model
+  ai_chat_bedrock_runtime_model      = var.ai_chat_bedrock_model == "anthropic.claude-sonnet-4-6" ? "global.anthropic.claude-sonnet-4-6" : var.ai_chat_bedrock_model
 }
 
 data "aws_iam_policy_document" "ecs_tasks_assume_role" {
@@ -132,9 +135,24 @@ data "aws_iam_policy_document" "ecs_backend_task" {
   }
 
   statement {
-    sid       = "InvokeBedrockEmbeddingModel"
-    actions   = ["bedrock:InvokeModel"]
-    resources = ["arn:aws:bedrock:${var.ai_embedding_bedrock_region}::foundation-model/${var.ai_embedding_model}"]
+    sid     = "InvokeBedrockEmbeddingModel"
+    actions = ["bedrock:InvokeModel"]
+    resources = [
+      "arn:aws:bedrock:${var.ai_embedding_bedrock_region}::foundation-model/${var.ai_embedding_model}",
+      "arn:aws:bedrock:${var.ai_embedding_bedrock_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_embedding_bedrock_runtime_model}"
+    ]
+  }
+
+  statement {
+    sid = "InvokeBedrockChatModel"
+    actions = [
+      "bedrock:Converse",
+      "bedrock:ConverseStream"
+    ]
+    resources = [
+      "arn:aws:bedrock:${var.ai_chat_bedrock_region}::foundation-model/${var.ai_chat_bedrock_model}",
+      "arn:aws:bedrock:${var.ai_chat_bedrock_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_chat_bedrock_runtime_model}"
+    ]
   }
 }
 

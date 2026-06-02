@@ -226,11 +226,25 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  @DisplayName("SUBSCRIBE without authentication, user queue → MissingAuthHeaderException")
-  void should_throwMissingAuthHeader_when_anonymousSubscribesUserQueue() {
+  @DisplayName("SUBSCRIBE without authentication, anonymous error queue → passes through")
+  void should_passThrough_when_anonymousSubscribesUserErrorQueue() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
     accessor.setSessionAttributes(new HashMap<>(Map.of("anonymous", true)));
     accessor.setDestination("/user/queue/errors");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+  }
+
+  @Test
+  @DisplayName("SUBSCRIBE without authentication, other user queue → MissingAuthHeaderException")
+  void should_throwMissingAuthHeader_when_anonymousSubscribesNonErrorUserQueue() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("anonymous", true)));
+    accessor.setDestination("/user/queue/messages");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 

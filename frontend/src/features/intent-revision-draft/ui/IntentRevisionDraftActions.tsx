@@ -26,7 +26,7 @@ export function IntentRevisionDraftActions({
   const errorMessage = rawErrorMessage ?? "변경 요약을 불러오지 못했습니다.";
   const changedLabel =
     changedCount > 0
-      ? `변경된 구성 요소 ${changedCount}개 (상담 유형 ${intentChangedCount}개 · 응대 흐름 ${workflowChangedCount}개)`
+      ? `변경된 구성 요소 ${changedCount}개 (상담 유형 ${intentChangedCount}개 · 워크플로우 ${workflowChangedCount}개)`
       : "변경된 구성 요소가 없습니다.";
 
   return (
