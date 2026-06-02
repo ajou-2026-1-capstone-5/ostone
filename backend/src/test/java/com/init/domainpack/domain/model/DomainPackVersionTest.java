@@ -13,8 +13,7 @@ class DomainPackVersionTest {
   @Test
   @DisplayName("activate(now)는 기존 description을 유지한다")
   void should_description유지_when_description없는activate호출() {
-    DomainPackVersion version =
-        DomainPackVersion.createDraft(7L, 1, 10L, null, "{}", "기존 변경사항 정리");
+    DomainPackVersion version = DomainPackVersion.createDraft(7L, 1, 10L, null, "{}", "기존 변경사항 정리");
     OffsetDateTime now = OffsetDateTime.parse("2026-04-09T12:00:00Z");
 
     version.activate(now);
@@ -38,8 +37,7 @@ class DomainPackVersionTest {
   @Test
   @DisplayName("activate(now, description)는 빈 description을 null로 정규화한다")
   void should_descriptionNull_when_description공백() {
-    DomainPackVersion version =
-        DomainPackVersion.createDraft(7L, 1, 10L, null, "{}", "기존 변경사항 정리");
+    DomainPackVersion version = DomainPackVersion.createDraft(7L, 1, 10L, null, "{}", "기존 변경사항 정리");
 
     version.activate(OffsetDateTime.parse("2026-04-09T12:00:00Z"), "   ");
 
