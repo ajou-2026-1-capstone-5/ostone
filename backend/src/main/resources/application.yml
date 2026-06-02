@@ -3,23 +3,13 @@ spring:
     name: init-backend
   ai:
     model:
-      chat: ${AI_CHAT_PROVIDER:openai}
-    # ── AI Provider (OpenAI 호환 프로토콜) ──────────────────────────────
-    # Gemini(기본)와 OpenAI 모두 OpenAI 호환 endpoint 로 동작하므로
-    # 동일한 spring.ai.openai 바인딩을 공유한다. 제공자 전환은 아래
-    # AI_* 환경변수 3개만 교체하면 된다.
-    #   - Gemini : AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-    #              AI_CHAT_MODEL=gemini-2.5-flash-lite
-    #   - OpenAI : AI_BASE_URL=https://api.openai.com
-    #              AI_CHAT_MODEL=gpt-4o-mini
-    # GEMINI_* 변수는 기존 호환을 위한 fallback 으로 유지한다.
-    openai:
-      api-key: ${AI_API_KEY:${GEMINI_API_KEY:}}
-      base-url: ${AI_BASE_URL:${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}}
-      chat:
-        options:
-          model: ${AI_CHAT_MODEL:${GEMINI_CHAT_MODEL:gemini-2.5-flash-lite}}
-          temperature: ${AI_CHAT_TEMPERATURE:0.7}
+      chat: ${AI_CHAT_PROVIDER:bedrock-converse}
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
   datasource:
     url: jdbc:postgresql://localhost:5432/init
     username: ${DB_USERNAME:${DB_USER:init}}

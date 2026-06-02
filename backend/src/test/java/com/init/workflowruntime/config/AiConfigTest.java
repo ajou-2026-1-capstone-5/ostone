@@ -72,6 +72,16 @@ class AiConfigTest {
   }
 
   @Test
+  @DisplayName("지원하지 않는 chat provider는 startup 실패 원인을 명확히 알린다")
+  void should_failFast_when_chatProviderIsUnsupported() {
+    AiConfig config = new AiConfig("system prompt");
+
+    assertThatThrownBy(() -> config.chatClient(Map.of(), "gemini"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Unsupported chat provider: gemini");
+  }
+
+  @Test
   @DisplayName("system prompt는 비어 있을 수 없다")
   void should_rejectBlankSystemPrompt() {
     assertThatThrownBy(() -> new AiConfig(" "))

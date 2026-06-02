@@ -1,4 +1,14 @@
 spring:
+  ai:
+    model:
+      chat: ${AI_CHAT_PROVIDER:openai}
+    openai:
+      api-key: ${AI_API_KEY:${OPENAI_API_KEY:}}
+      base-url: ${AI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${AI_CHAT_MODEL:gpt-4o-mini}
+          temperature: ${AI_CHAT_TEMPERATURE:0.7}
   datasource:
     url: jdbc:postgresql://localhost:5432/init
     username: ${DB_USERNAME:init}

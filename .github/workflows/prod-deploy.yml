@@ -160,6 +160,10 @@ jobs:
         id: tf_outputs
         working-directory: infra/terraform
         run: |
+          private_subnet_ids="$(terraform output -json private_subnet_ids | jq -r 'map(select(length > 0)) | join(",")')"
+          ecs_airflow_security_group_id="$(terraform output -raw ecs_airflow_security_group_id)"
+          test -n "$private_subnet_ids" || { echo "Terraform output private_subnet_ids is empty"; exit 1; }
+          test -n "$ecs_airflow_security_group_id" || { echo "Terraform output ecs_airflow_security_group_id is empty"; exit 1; }
           {
             echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)"
             echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
@@ -169,8 +173,8 @@ jobs:
             echo "airflow_apiserver_service_name=$(terraform output -raw airflow_apiserver_service_name)"
             echo "airflow_scheduler_service_name=$(terraform output -raw airflow_scheduler_service_name)"
             echo "airflow_dag_processor_service_name=$(terraform output -raw airflow_dag_processor_service_name)"
-            echo "ecs_airflow_security_group_id=$(terraform output -raw ecs_airflow_security_group_id)"
-            echo "private_subnet_ids=$(terraform output -json private_subnet_ids | jq -r 'join(\",\")')"
+            echo "ecs_airflow_security_group_id=$ecs_airflow_security_group_id"
+            echo "private_subnet_ids=$private_subnet_ids"
           } >> "$GITHUB_OUTPUT"
 
   backend:
@@ -509,8 +513,10 @@ jobs:
           PRIVATE_SUBNET_IDS: ${{ needs.terraform.outputs.private_subnet_ids }}
           AIRFLOW_SECURITY_GROUP_ID: ${{ needs.terraform.outputs.ecs_airflow_security_group_id }}
         run: |
-          IFS=',' read -ra SUBNETS <<< "$PRIVATE_SUBNET_IDS"
-          SUBNET_JSON="$(printf '%s\n' "${SUBNETS[@]}" | jq -R . | jq -cs .)"
+          test -n "$PRIVATE_SUBNET_IDS" || { echo "PRIVATE_SUBNET_IDS is empty"; exit 1; }
+          test -n "$AIRFLOW_SECURITY_GROUP_ID" || { echo "AIRFLOW_SECURITY_GROUP_ID is empty"; exit 1; }
+          SUBNET_JSON="$(printf '%s\n' "$PRIVATE_SUBNET_IDS" \
+            | jq -Re 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0)) | select(length > 0)')"
           NETWORK_CONFIG="$(jq -cn \
             --argjson subnets "$SUBNET_JSON" \
             --arg sg "$AIRFLOW_SECURITY_GROUP_ID" \
