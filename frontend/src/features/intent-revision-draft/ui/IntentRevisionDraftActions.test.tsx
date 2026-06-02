@@ -42,7 +42,7 @@ describe("IntentRevisionDraftActions", () => {
     renderActions();
 
     expect(
-      screen.getByText("변경된 구성 요소 1개 (상담 유형 1개 · 응대 흐름 0개)"),
+      screen.getByText("변경된 구성 요소 1개 (상담 유형 1개 · 워크플로우 0개)"),
     ).toBeInTheDocument();
     expect(
       screen.getByText("수정 내용의 적용 및 삭제는 도메인팩 화면에서 진행할 수 있습니다."),

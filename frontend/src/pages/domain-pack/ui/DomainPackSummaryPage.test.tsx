@@ -5,7 +5,10 @@ import { toast } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiRequestError } from "@/shared/api";
 import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
-import { activate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import {
+  activate,
+  type ActivateMutationResult,
+} from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
 import { usePackDetail, useVersionDetail } from "@/features/domain-pack-summary-read";
 import { DomainPackSummaryPage } from "./DomainPackSummaryPage";
@@ -132,6 +135,16 @@ function makePackQuery(overrides: Record<string, unknown> = {}): any {
   };
 }
 
+type ActivateMockData = ActivateMutationResult["data"] & { description?: string };
+
+function makeActivateResponse(data: ActivateMockData): ActivateMutationResult {
+  return {
+    data,
+    status: 200,
+    headers: new Headers(),
+  };
+}
+
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
@@ -170,7 +183,7 @@ describe("DomainPackSummaryPage", () => {
       variables: undefined,
     } as unknown as ReturnType<typeof useDeploy>);
     vi.mocked(activate).mockReset();
-    vi.mocked(activate).mockResolvedValue({ data: { id: 5 } } as never);
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 5 }));
     vi.mocked(useDiscard).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
@@ -478,9 +491,14 @@ describe("DomainPackSummaryPage", () => {
   });
 
   it("버전 배포 실패 시 기본 실패 toast를 띄운다", () => {
+    // useDeploy is mocked here, so mutate triggers the onError callback supplied by the page.
     vi.mocked(useDeploy).mockImplementation((options) => ({
       mutate: vi.fn(() =>
-        options?.mutation?.onError?.(new Error("deploy failed"), {} as never, undefined),
+        options?.mutation?.onError?.(
+          new Error("deploy failed"),
+          { workspaceId: 1, packId: 2, versionId: 4 },
+          undefined,
+        ),
       ),
       isPending: false,
       variables: undefined,
@@ -503,11 +521,12 @@ describe("DomainPackSummaryPage", () => {
   });
 
   it("버전 배포 실패 시 API 에러 메시지를 toast에 사용한다", () => {
+    // Keep this tied to useDeploy's option shape: the mock mutate simulates a failed mutation.
     vi.mocked(useDeploy).mockImplementation((options) => ({
       mutate: vi.fn(() =>
         options?.mutation?.onError?.(
           new ApiRequestError(409, "CONFLICT", "이미 배포된 버전입니다."),
-          {} as never,
+          { workspaceId: 1, packId: 2, versionId: 4 },
           undefined,
         ),
       ),
@@ -607,7 +626,7 @@ describe("DomainPackSummaryPage", () => {
   it("Draft 적용 성공 후 기존 draft 상세 refetch 실패로 실패 toast를 띄우지 않는다", async () => {
     const packRefetch = vi.fn().mockRejectedValue(new Error("refetch failed"));
     const versionRefetch = vi.fn().mockRejectedValue(new Error("old draft missing"));
-    vi.mocked(activate).mockResolvedValue({ id: 6 } as never);
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 6 }));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -640,8 +659,10 @@ describe("DomainPackSummaryPage", () => {
     expect(toast.error).not.toHaveBeenCalledWith("초안 수정버전을 적용하지 못했습니다.");
   });
 
-  it("Draft 적용 성공 응답의 description이 루트에 있으면 성공 처리한다", async () => {
-    vi.mocked(activate).mockResolvedValue({ id: 6, description: "  응답 변경사항  " } as never);
+  it("Draft 적용 성공 응답의 description이 있으면 성공 처리한다", async () => {
+    vi.mocked(activate).mockResolvedValue(
+      makeActivateResponse({ id: 6, description: "  응답 변경사항  " }),
+    );
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -671,8 +692,8 @@ describe("DomainPackSummaryPage", () => {
     expect(toast.success).toHaveBeenCalledWith("초안 수정버전이 적용되었습니다.");
   });
 
-  it("Draft 적용 성공 응답이 data.id 형태여도 적용된 버전으로 이동한다", async () => {
-    vi.mocked(activate).mockResolvedValue({ data: { id: 7 } } as never);
+  it("Draft 적용 성공 응답의 data.id로 적용된 버전으로 이동한다", async () => {
+    vi.mocked(activate).mockResolvedValue(makeActivateResponse({ id: 7 }));
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
@@ -702,9 +723,9 @@ describe("DomainPackSummaryPage", () => {
   });
 
   it("Draft 적용 성공 응답의 description이 data에 있으면 성공 처리한다", async () => {
-    vi.mocked(activate).mockResolvedValue({
-      data: { id: 8, description: "  data 변경사항  " },
-    } as never);
+    vi.mocked(activate).mockResolvedValue(
+      makeActivateResponse({ id: 8, description: "  data 변경사항  " }),
+    );
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({
         data: {
