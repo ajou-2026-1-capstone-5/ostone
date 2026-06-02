@@ -190,7 +190,11 @@ function IntentResourceSection({ detail }: { detail: IntentDetail }) {
 
       {mode === "summary" ? (
         <div className={styles.resourceSummary}>
-          <ClusterScope sourceClusterRef={detail.sourceClusterRef ?? ""} />
+          <ClusterScope
+            sourceClusterRef={detail.sourceClusterRef ?? ""}
+            entryConditionJson={detail.entryConditionJson ?? ""}
+            metaJson={detail.metaJson ?? ""}
+          />
           <EvidenceReference evidenceJson={detail.evidenceJson ?? ""} />
         </div>
       ) : (
@@ -205,8 +209,19 @@ function IntentResourceSection({ detail }: { detail: IntentDetail }) {
   );
 }
 
-function ClusterScope({ sourceClusterRef }: { sourceClusterRef: string }) {
-  const scope = useMemo(() => buildClusterScope(sourceClusterRef), [sourceClusterRef]);
+function ClusterScope({
+  sourceClusterRef,
+  entryConditionJson,
+  metaJson,
+}: {
+  sourceClusterRef: string;
+  entryConditionJson: string;
+  metaJson: string;
+}) {
+  const scope = useMemo(
+    () => buildClusterScope(sourceClusterRef, entryConditionJson, metaJson),
+    [sourceClusterRef, entryConditionJson, metaJson],
+  );
   const hasContent = scope.items.length > 0 || scope.keywords.length > 0;
 
   return (
@@ -328,17 +343,31 @@ const AGENT_TURN_LABELS = new Set([
   "상담사",
 ]);
 
-function buildClusterScope(raw: string): ClusterScopeView {
-  const parsed = parseJson(raw);
-  if (!isRecord(parsed)) return { items: [], keywords: [] };
+function buildClusterScope(
+  sourceClusterRef: string,
+  entryConditionJson = "",
+  metaJson = "",
+): ClusterScopeView {
+  const parsedSource = parseJson(sourceClusterRef);
+  const parsed: JsonRecord = isRecord(parsedSource) ? parsedSource : {};
+  const parsedEntryCondition = parseJson(entryConditionJson);
+  const entryCondition: JsonRecord = isRecord(parsedEntryCondition) ? parsedEntryCondition : {};
+  const parsedMeta = parseJson(metaJson);
+  const meta: JsonRecord = isRecord(parsedMeta) ? parsedMeta : {};
 
   const items: ClusterScopeItem[] = [];
   const clusterId = readPrimitive(parsed.clusterId);
-  const clusterSize = readPrimitive(parsed.clusterSize);
+  const clusterSize = readPrimitive(parsed.clusterSize) ?? readPrimitive(parsed.support);
   const canonicalIntent = readString(parsed.canonicalIntent);
-  const keywords = readStringArray(parsed.keywords).slice(0, 8);
-  const segmentIds = Array.isArray(parsed.segmentIds) ? parsed.segmentIds : [];
-  const source = readString(parsed.source);
+  const confidence = readPrimitive(parsed.confidence);
+  const keywords = uniqueStrings([
+    ...readStringArray(parsed.keywords),
+    ...readTermArray(entryCondition.requiredTerms),
+    ...readTermArray(entryCondition.requiredAnyTerms),
+    ...readTermArray(entryCondition.optionalTerms),
+  ]).slice(0, 8);
+  const segmentIds = readUnknownArray(parsed.segmentIds) ?? readUnknownArray(parsed.memberSourceIds) ?? [];
+  const source = readString(parsed.source) ?? readString(meta.source);
 
   if (clusterId) {
     items.push({
@@ -359,6 +388,13 @@ function buildClusterScope(raw: string): ClusterScopeView {
       label: "상담 유형",
       value: canonicalIntent,
       icon: <LayersIcon size={16} />,
+    });
+  }
+  if (confidence) {
+    items.push({
+      label: "신뢰도",
+      value: confidence,
+      icon: <BracesIcon size={16} />,
     });
   }
   if (segmentIds.length > 0) {
@@ -396,6 +432,12 @@ function resolveEvidenceSourceItems(parsed: unknown): unknown[] {
 
     const intentPhrases = Array.isArray(parsed.sampleIntentPhrases) ? parsed.sampleIntentPhrases : [];
     if (intentPhrases.length > 0) return intentPhrases;
+
+    const representativeCases = Array.isArray(parsed.representativeCases) ? parsed.representativeCases : [];
+    if (representativeCases.length > 0) return representativeCases;
+
+    const sourceRefs = Array.isArray(parsed.sourceRefs) ? parsed.sourceRefs : [];
+    if (sourceRefs.length > 0) return sourceRefs;
   }
 
   return Array.isArray(parsed) ? parsed : [];
@@ -415,11 +457,15 @@ function evidenceItemToLine(item: unknown, index: number): EvidenceLine | null {
     readString(item.text) ??
     readString(item.message) ??
     readString(item.canonicalText) ??
-    readString(item.customerProblemText);
+    readString(item.customerProblemText) ??
+    readString(item.value);
   if (!text) return null;
 
   const turn = readString(item.turn) ?? readString(item.role) ?? readString(item.speaker);
-  return { turn: normalizeTurnLabel(turn) ?? `참고 ${index + 1}`, text };
+  return {
+    turn: normalizeTurnLabel(turn) ?? normalizeEvidenceType(item.type) ?? `참고 ${index + 1}`,
+    text,
+  };
 }
 
 function splitTurnPrefix(value: string): EvidenceLine | null {
@@ -479,6 +525,42 @@ function readStringArray(value: unknown): string[] {
   return value
     .map((item) => readString(item))
     .filter((item): item is string => item !== null);
+}
+
+function readTermArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    const text = readString(item);
+    if (text) return [text];
+    if (Array.isArray(item)) return readTermArray(item);
+    if (isRecord(item)) return readTermArray(item.terms);
+    return [];
+  });
+}
+
+function readUnknownArray(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const key = value.trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeEvidenceType(value: unknown): string | null {
+  const type = readString(value);
+  if (!type) return null;
+  if (type === "unit_id") return "근거 ID";
+  if (type === "source_id") return "상담 ID";
+  if (type === "exemplar_conv_id") return "대표 상담";
+  if (type === "member_conv_id") return "참조 상담";
+  return null;
 }
 
 function formatJsonForDisplay(raw: string): string {

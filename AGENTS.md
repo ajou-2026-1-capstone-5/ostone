@@ -309,6 +309,7 @@ cd frontend && pnpm build && docker build -t init-frontend .
 - **YAGNI**: 실제로 필요한 기능만 구현
 - **DRY**: 중복 허용 안 함, 3번 반복 시 추출
 - **Rule of Three**: 복잡한 추상화는 3번 반복 후 도입
+- **불필요한 주석 금지**: 코드·설정 자체로 드러나는 내용이나 일시적 맥락을 장황하게 남기지 않음. 비자명한 제약, 장애 재발 방지 근거, 운영상 주의점처럼 유지보수에 필요한 경우에만 간결하게 작성
 
 ### Backend (Java/Spring)
 

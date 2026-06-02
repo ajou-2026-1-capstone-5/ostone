@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -142,8 +143,22 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     JsonNode seed = loadSeed(seedConfig);
     String packKey = requiredText(seed.path("domainPackDraft"), "packKey");
     DomainPack pack = findOrCreatePack(seed.path("domainPackDraft"), packKey, seedConfig);
-    if (domainPackVersionRepository.findCurrentPublishedByDomainPackId(pack.getId()).isPresent()) {
-      log.info("Seed domain pack '{}' already has a published version, skipping", packKey);
+    Optional<DomainPackVersion> currentPublishedVersion =
+        domainPackVersionRepository.findCurrentPublishedByDomainPackId(pack.getId());
+    if (currentPublishedVersion.isPresent()) {
+      Long versionId = currentPublishedVersion.get().getId();
+      JsonNode workflowDraft = seed.path("workflowDraft");
+      int updatedCount =
+          backfillIntentInternalResources(versionId, seed.path("intentDraft").path("intents"));
+      int slotUpdatedCount = backfillSlotNames(versionId, workflowDraft.path("slots"));
+      int bindingUpdatedCount =
+          backfillIntentSlotBindingPrompts(versionId, workflowDraft.path("intentSlotBindings"));
+      log.info(
+          "Seed domain pack '{}' already has a published version, internal resource backfill count={}, slot name backfill count={}, binding prompt backfill count={}",
+          packKey,
+          updatedCount,
+          slotUpdatedCount,
+          bindingUpdatedCount);
       return;
     }
 
@@ -333,9 +348,9 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               requiredText(draft, "name"),
               textOrNull(draft, DESCRIPTION_FIELD),
               intOrDefault(draft, "taxonomyLevel", 1),
-              jsonValue(draft, "sourceClusterRef", "{}"),
+              buildIntentSourceClusterRef(draft),
               toRequiredAnyTerms(jsonValue(draft, "entryConditionJson", "{}")),
-              jsonValue(draft, "evidenceJson", "[]"),
+              buildIntentEvidenceJson(draft),
               jsonValue(draft, "metaJson", "{}"));
       intents.add(intent);
       parentIntentByCode.put(intentCode, textOrNull(draft, "parentIntentCode"));
@@ -357,6 +372,116 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         .collect(Collectors.toMap(IntentDefinition::getIntentCode, Function.identity()));
   }
 
+  private int backfillIntentInternalResources(Long versionId, JsonNode intentDrafts) {
+    int updatedCount = 0;
+    for (JsonNode draft : iterable(intentDrafts)) {
+      int updatedRows =
+          entityManager
+              .createNativeQuery(
+                  """
+                  UPDATE pack.intent_definition
+                     SET source_cluster_ref = cast(:sourceClusterRef as jsonb),
+                         entry_condition_json = cast(:entryConditionJson as jsonb),
+                         evidence_json = cast(:evidenceJson as jsonb),
+                         meta_json = cast(:metaJson as jsonb),
+                         updated_at = now()
+                   WHERE domain_pack_version_id = :versionId
+                     AND intent_code = :intentCode
+                     AND (
+                       source_cluster_ref IS DISTINCT FROM cast(:sourceClusterRef as jsonb)
+                       OR entry_condition_json IS DISTINCT FROM cast(:entryConditionJson as jsonb)
+                       OR evidence_json IS DISTINCT FROM cast(:evidenceJson as jsonb)
+                       OR meta_json IS DISTINCT FROM cast(:metaJson as jsonb)
+                     )
+                  """)
+              .setParameter("sourceClusterRef", buildIntentSourceClusterRef(draft))
+              .setParameter(
+                  "entryConditionJson",
+                  toRequiredAnyTerms(jsonValue(draft, "entryConditionJson", "{}")))
+              .setParameter("evidenceJson", buildIntentEvidenceJson(draft))
+              .setParameter("metaJson", jsonValue(draft, "metaJson", "{}"))
+              .setParameter("versionId", versionId)
+              .setParameter("intentCode", requiredText(draft, "intentCode"))
+              .executeUpdate();
+      updatedCount += updatedRows;
+    }
+    return updatedCount;
+  }
+
+  private String buildIntentSourceClusterRef(JsonNode draft) {
+    ObjectNode source = objectNodeFromJson(jsonValue(draft, "sourceClusterRef", "{}"));
+    JsonNode entryCondition = readJson(jsonValue(draft, "entryConditionJson", "{}"));
+    JsonNode meta = readJson(jsonValue(draft, "metaJson", "{}"));
+
+    if (source.path("canonicalIntent").asText("").isBlank()) {
+      source.put("canonicalIntent", requiredText(draft, "name"));
+    }
+    if (!source.has("clusterSize") && source.has("support")) {
+      source.set("clusterSize", source.get("support"));
+    }
+    if (!source.has("segmentIds") && source.path("memberSourceIds").isArray()) {
+      source.set("segmentIds", source.path("memberSourceIds").deepCopy());
+    }
+    if (source.path("source").asText("").isBlank()) {
+      String metaSource = meta.path("source").asText("");
+      source.put("source", metaSource.isBlank() ? "seed_candidate" : metaSource);
+    }
+
+    ArrayNode keywords = objectMapper.createArrayNode();
+    addUniqueStrings(keywords, source.path("keywords"));
+    addUniqueStrings(keywords, entryCondition.path("requiredTerms"));
+    addUniqueStrings(keywords, entryCondition.path("requiredAnyTerms"));
+    addUniqueStrings(keywords, entryCondition.path("optionalTerms"));
+    if (!keywords.isEmpty()) {
+      source.set("keywords", keywords);
+    }
+
+    return writeJson(source);
+  }
+
+  private String buildIntentEvidenceJson(JsonNode draft) {
+    JsonNode representativeCases = draft.path("representativeCases");
+    if (!representativeCases.isArray() || representativeCases.isEmpty()) {
+      return jsonValue(draft, "evidenceJson", "[]");
+    }
+
+    ObjectNode evidence = objectMapper.createObjectNode();
+    ArrayNode sampleSegmentTexts = evidence.putArray("sampleSegmentTexts");
+    ArrayNode sampleIntentPhrases = evidence.putArray("sampleIntentPhrases");
+    ArrayNode exemplarConversationIds = evidence.putArray("exemplarConversationIds");
+    ArrayNode cases = evidence.putArray("representativeCases");
+
+    for (JsonNode representativeCase : representativeCases) {
+      String conversationId = textOrNull(representativeCase, "conversationId");
+      String canonicalText = textOrNull(representativeCase, "canonicalText");
+      String customerProblemText = textOrNull(representativeCase, "customerProblemText");
+
+      if (canonicalText != null) {
+        sampleSegmentTexts.add("고객: " + canonicalText);
+      }
+      if (customerProblemText != null) {
+        addUniqueString(sampleIntentPhrases, customerProblemText);
+      }
+      if (conversationId != null) {
+        addUniqueString(exemplarConversationIds, conversationId);
+      }
+
+      ObjectNode caseNode = objectMapper.createObjectNode();
+      putIfPresent(caseNode, "conversationId", conversationId);
+      putIfPresent(caseNode, "canonicalText", canonicalText);
+      putIfPresent(caseNode, "customerProblemText", customerProblemText);
+      putIfPresent(caseNode, "endedStatus", textOrNull(representativeCase, "endedStatus"));
+      cases.add(caseNode);
+    }
+
+    JsonNode sourceRefs = readJson(jsonValue(draft, "evidenceJson", "[]"));
+    if (!sourceRefs.isMissingNode()) {
+      evidence.set("sourceRefs", sourceRefs);
+    }
+
+    return writeJson(evidence);
+  }
+
   private Map<String, SlotDefinition> persistSlots(Long versionId, JsonNode slotDrafts) {
     List<SlotDefinition> slots = new ArrayList<>();
     for (JsonNode draft : iterable(slotDrafts)) {
@@ -374,6 +499,58 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     }
     return slotDefinitionRepository.saveAllAndFlush(slots).stream()
         .collect(Collectors.toMap(SlotDefinition::getSlotCode, Function.identity()));
+  }
+
+  private int backfillSlotNames(Long versionId, JsonNode slotDrafts) {
+    int updatedCount = 0;
+    for (JsonNode draft : iterable(slotDrafts)) {
+      int updatedRows =
+          entityManager
+              .createNativeQuery(
+                  """
+                  UPDATE pack.slot_definition
+                     SET name = :name,
+                         updated_at = now()
+                   WHERE domain_pack_version_id = :versionId
+                     AND slot_code = :slotCode
+                     AND name IS DISTINCT FROM :name
+                  """)
+              .setParameter("name", requiredText(draft, "name"))
+              .setParameter("versionId", versionId)
+              .setParameter("slotCode", requiredText(draft, "slotCode"))
+              .executeUpdate();
+      updatedCount += updatedRows;
+    }
+    return updatedCount;
+  }
+
+  private int backfillIntentSlotBindingPrompts(Long versionId, JsonNode bindingDrafts) {
+    int updatedCount = 0;
+    for (JsonNode draft : iterable(bindingDrafts)) {
+      int updatedRows =
+          entityManager
+              .createNativeQuery(
+                  """
+                  UPDATE pack.intent_slot_binding binding
+                     SET prompt_hint = :promptHint
+                    FROM pack.intent_definition intent,
+                         pack.slot_definition slot
+                   WHERE binding.intent_definition_id = intent.id
+                     AND binding.slot_definition_id = slot.id
+                     AND intent.domain_pack_version_id = :versionId
+                     AND slot.domain_pack_version_id = :versionId
+                     AND intent.intent_code = :intentCode
+                     AND slot.slot_code = :slotCode
+                     AND binding.prompt_hint IS DISTINCT FROM :promptHint
+                  """)
+              .setParameter("promptHint", textOrNull(draft, "promptHint"))
+              .setParameter("versionId", versionId)
+              .setParameter("intentCode", requiredText(draft, "intentCode"))
+              .setParameter("slotCode", requiredText(draft, "slotCode"))
+              .executeUpdate();
+      updatedCount += updatedRows;
+    }
+    return updatedCount;
   }
 
   private void persistPolicies(Long versionId, JsonNode policyDrafts) {
@@ -676,6 +853,55 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     } catch (JsonProcessingException e) {
       log.error("Seed workflow graph parse failed", e);
       throw new IllegalStateException("Seed workflow graph cannot be parsed", e);
+    }
+  }
+
+  private JsonNode readJson(String json) {
+    try {
+      return objectMapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      log.warn("Seed JSON fragment parse failed; using empty object. value={}", json, e);
+      return objectMapper.createObjectNode();
+    }
+  }
+
+  private ObjectNode objectNodeFromJson(String json) {
+    JsonNode node = readJson(json);
+    return node.isObject() ? (ObjectNode) node : objectMapper.createObjectNode();
+  }
+
+  private void addUniqueStrings(ArrayNode target, JsonNode source) {
+    if (!source.isArray()) {
+      return;
+    }
+    for (JsonNode item : source) {
+      String value = item.asText(null);
+      if (value != null) {
+        addUniqueString(target, value);
+      }
+    }
+  }
+
+  private void addUniqueString(ArrayNode target, String value) {
+    String trimmed = value == null ? "" : value.trim();
+    if (trimmed.isBlank() || containsString(target, trimmed)) {
+      return;
+    }
+    target.add(trimmed);
+  }
+
+  private boolean containsString(ArrayNode target, String value) {
+    for (JsonNode item : target) {
+      if (value.equals(item.asText())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void putIfPresent(ObjectNode target, String fieldName, String value) {
+    if (value != null) {
+      target.put(fieldName, value);
     }
   }
 

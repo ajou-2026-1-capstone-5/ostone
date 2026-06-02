@@ -261,8 +261,8 @@ class DemoChatSessionRegistrationServiceTest {
   }
 
   @Test
-  @DisplayName("Spring AI 타입이 아닌 다운스트림 예외(예: Bedrock SDK)도 fallback으로 처리하고 500을 던지지 않는다")
-  void should_appendFallbackAssistantMessage_when_llmThrowsNonAiRuntimeException() {
+  @DisplayName("데모 LLM 호출이 일반 런타임 예외로 실패해도 안내 응답을 저장한다")
+  void should_appendFallbackAssistantMessage_when_llmCallFailsWithRuntimeException() {
     ChatSession session =
         ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
     ReflectionTestUtils.setField(session, "id", SESSION_ID);
@@ -271,17 +271,15 @@ class DemoChatSessionRegistrationServiceTest {
         .willReturn(Optional.empty());
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(List.of());
-    // Bedrock Converse가 던지는 software.amazon.awssdk...ResourceNotFoundException 처럼 Spring AI
-    // 재시도 예외 계층(NonTransient/TransientAiException)에 속하지 않는 RuntimeException 을 시뮬레이션한다.
     given(
             llmAssistantService.generateWorkflowAwareResponse(
                 any(GenerateWorkflowAwareResponseCommand.class)))
-        .willThrow(new IllegalStateException("Bedrock ResourceNotFoundException (404)"));
+        .willThrow(new RuntimeException("missing provider api key"));
     given(chatMessageRepository.save(any(ChatMessage.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     List<ChatMessageResponse> responses =
-        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 발리 리조트 요금 알려주세요 ");
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 배송 상태 확인하고 싶어요 ");
 
     assertThat(responses).hasSize(2);
     assertThat(responses.get(0).senderRole()).isEqualTo("USER");

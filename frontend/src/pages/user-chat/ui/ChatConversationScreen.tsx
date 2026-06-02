@@ -10,6 +10,7 @@ interface ChatConversationScreenProps {
   isSending: boolean;
   botTyping?: boolean;
   connectionStatus: ConnectionStatus;
+  requiresRealtimeConnection?: boolean;
   messageError: string | null;
   onSend: (content: string) => void;
   onStartNewSession: () => void;
@@ -25,7 +26,22 @@ interface RealtimeConnectionDisplay {
   canSend: boolean;
 }
 
-function resolveRealtimeConnectionDisplay(status: ConnectionStatus): RealtimeConnectionDisplay {
+function resolveRealtimeConnectionDisplay(
+  status: ConnectionStatus,
+  requiresRealtimeConnection: boolean,
+): RealtimeConnectionDisplay {
+  if (!requiresRealtimeConnection) {
+    return {
+      label: status === "CONNECTED" ? "연결됨" : "채팅 가능",
+      notice: null,
+      dotColor: status === "CONNECTED" ? "var(--signal)" : "var(--ink-4)",
+      noticeBorder: "var(--line-2)",
+      noticeBackground: "var(--paper)",
+      noticeColor: "var(--ink-3)",
+      canSend: true,
+    };
+  }
+
   if (status === "CONNECTED") {
     return {
       label: "연결됨",
@@ -80,11 +96,15 @@ export function ChatConversationScreen({
   isSending,
   botTyping = false,
   connectionStatus,
+  requiresRealtimeConnection = true,
   messageError,
   onSend,
   onStartNewSession,
 }: ChatConversationScreenProps) {
-  const connectionDisplay = resolveRealtimeConnectionDisplay(connectionStatus);
+  const connectionDisplay = resolveRealtimeConnectionDisplay(
+    connectionStatus,
+    requiresRealtimeConnection,
+  );
   const isInputDisabled = isSending || !connectionDisplay.canSend;
 
   return (
