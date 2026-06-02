@@ -124,10 +124,7 @@ public class DomainPackVersion {
     activate(now, null);
   }
 
-  /**
-   * DRAFT 상태의 버전을 PUBLISHED로 전이하고,
-   * 변경사항 정리가 있으면 버전 설명에 반영한다.
-   */
+  /** DRAFT 상태의 버전을 PUBLISHED로 전이하고, 변경사항 정리가 있으면 버전 설명에 반영한다. */
   public void activate(OffsetDateTime now, String description) {
     Objects.requireNonNull(now, "publishedAt (now) must not be null");
     if (!STATUS_DRAFT.equals(this.lifecycleStatus)) {

@@ -106,8 +106,7 @@ class ActivateDomainPackVersionControllerTest {
                         && command.packId().equals(7L)
                         && command.versionId().equals(42L)
                         && command.userId().equals(10L)
-                        && "상담 유형명을 정리했습니다."
-                            .equals(command.description())));
+                        && "상담 유형명을 정리했습니다.".equals(command.description())));
   }
 
   @Test

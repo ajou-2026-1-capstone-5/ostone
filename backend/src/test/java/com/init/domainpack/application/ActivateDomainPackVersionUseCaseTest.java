@@ -112,8 +112,7 @@ class ActivateDomainPackVersionUseCaseTest {
         .willAnswer(invocation -> invocation.getArgument(0));
 
     ActivateDomainPackVersionCommand command =
-        new ActivateDomainPackVersionCommand(
-            1L, 7L, 42L, 10L, "  상담 유형명을 정리했습니다.  ");
+        new ActivateDomainPackVersionCommand(1L, 7L, 42L, 10L, "  상담 유형명을 정리했습니다.  ");
 
     useCase.execute(command);
 
