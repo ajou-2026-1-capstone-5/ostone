@@ -198,6 +198,66 @@ describe("UserChatPage", () => {
     expect(screen.queryByTestId("chat-entry-screen")).toBeNull();
   });
 
+  it("workspaceId나 name 쿼리가 바뀌면 이전 세션을 버리고 새 세션을 자동 생성한다", async () => {
+    searchState.search = "name=김민지";
+    registerDemoChatSessionMock.mockReset();
+    registerDemoChatSessionMock
+      .mockResolvedValueOnce({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [],
+      })
+      .mockResolvedValueOnce({
+        id: "88",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:10:00Z",
+        messages: [],
+      });
+    listDemoChatMessagesMock.mockReset();
+    listDemoChatMessagesMock.mockImplementation((_workspaceId: number, sessionId: string) =>
+      Promise.resolve(
+        sessionId === "88"
+          ? [
+              {
+                id: "90",
+                sessionId: 88,
+                content: "이하나 세션 안내입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:10:00Z",
+              },
+            ]
+          : [
+              {
+                id: "80",
+                sessionId: 77,
+                content: "김민지 세션 안내입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:00:00Z",
+              },
+            ],
+      ),
+    );
+
+    const view = render(<UserChatPage />);
+
+    expect(await screen.findByText("김민지 세션 안내입니다.")).toBeInTheDocument();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
+
+    routeState.workspaceId = "43";
+    searchState.search = "name=이하나";
+    view.rerender(<UserChatPage />);
+
+    await waitFor(() => {
+      expect(registerDemoChatSessionMock).toHaveBeenCalledWith(43, "이하나");
+    });
+    expect(await screen.findByText("이하나 세션 안내입니다.")).toBeInTheDocument();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #88");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("이하나");
+    expect(screen.queryByText("김민지 세션 안내입니다.")).toBeNull();
+  });
+
   it("name 쿼리 파라미터가 공백이면 이름 입력 화면으로 폴백한다", () => {
     searchState.search = "name=%20%20";
 

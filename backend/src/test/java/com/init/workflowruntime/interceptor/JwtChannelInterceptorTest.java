@@ -185,6 +185,7 @@ class JwtChannelInterceptorTest {
   @DisplayName("SUBSCRIBE without authentication, anonymous demo chat topic → passes through")
   void should_passThrough_when_anonymousSubscribesDemoChatTopic() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("anonymous", true)));
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
@@ -196,10 +197,24 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
+  @DisplayName("SUBSCRIBE without authentication and anonymous marker → MissingAuthHeaderException")
+  void should_throwMissingAuthHeader_when_subscribeWithoutAnonymousMarker() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/chat.1");
+    Message<byte[]> message =
+        MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(MissingAuthHeaderException.class)
+        .hasMessageContaining("Authentication required for subscription destination");
+  }
+
+  @Test
   @DisplayName(
       "SUBSCRIBE without authentication, user-owned chat topic → MissingAuthHeaderException")
   void should_throwMissingAuthHeader_when_anonymousSubscribesUserOwnedChatTopic() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("anonymous", true)));
     accessor.setDestination("/topic/chat.1");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
@@ -211,16 +226,17 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  @DisplayName("SUBSCRIBE without authentication, user queue → passes through")
-  void should_passThrough_when_anonymousSubscribesUserQueue() {
+  @DisplayName("SUBSCRIBE without authentication, user queue → MissingAuthHeaderException")
+  void should_throwMissingAuthHeader_when_anonymousSubscribesUserQueue() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setSessionAttributes(new HashMap<>(Map.of("anonymous", true)));
     accessor.setDestination("/user/queue/errors");
     Message<byte[]> message =
         MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
-    Message<?> result = interceptor.preSend(message, channel);
-
-    assertThat(result).isSameAs(message);
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(MissingAuthHeaderException.class)
+        .hasMessageContaining("Authentication required for subscription destination");
   }
 
   @Test

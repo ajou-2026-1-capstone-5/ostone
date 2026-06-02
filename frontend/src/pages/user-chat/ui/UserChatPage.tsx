@@ -326,6 +326,21 @@ export function UserChatPage({ mode = "demo" }: UserChatPageProps) {
     setBotTyping(false);
   }, [clearBotTypingTimeout, setBotTyping]);
 
+  useEffect(() => {
+    const initialName = resolveInitialCustomerName(mode, nameParam);
+    nameRequestIdRef.current += 1;
+    sendRequestIdRef.current += 1;
+    autoStartedRef.current = false;
+    activeConversationRef.current = { sessionId: null, customerName: initialName };
+    setDraftName(initialName ?? "");
+    setCustomerName(initialName);
+    setNameError(null);
+    setMessageError(null);
+    setIsSending(false);
+    stopBotTyping();
+    setChatState({ workspaceId: null, customerName: null, session: null, error: null });
+  }, [mode, raw, nameParam, stopBotTyping]);
+
   const appendRealtimeMessages = useCallback(
     (nextMessages: ChatMessage[]) => {
       if (!activeSessionId || !customerName || nextMessages.length === 0) return;

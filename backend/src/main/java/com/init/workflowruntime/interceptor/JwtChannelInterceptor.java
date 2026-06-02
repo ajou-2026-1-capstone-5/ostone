@@ -79,7 +79,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       headersChanged = restorePrincipalFromSession(accessor);
       if (accessor.getUser() == null) {
         if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-          validateAnonymousSubscribeDestination(accessor.getDestination());
+          validateAnonymousSubscribeDestination(accessor.getDestination(), accessor);
           return headersChanged
               ? MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders())
               : message;
@@ -142,14 +142,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         "INVALID_DESTINATION", "Unauthorized subscription destination: " + destination);
   }
 
-  private void validateAnonymousSubscribeDestination(String destination) {
+  private void validateAnonymousSubscribeDestination(
+      String destination, StompHeaderAccessor accessor) {
     if (destination == null || destination.isBlank()) {
       throw new BadRequestException("INVALID_DESTINATION", "Subscription destination is required");
     }
-    if (destination.startsWith("/user/queue/") || destination.startsWith("/queue/")) {
-      return;
-    }
     if (!destination.startsWith(CHAT_TOPIC_PREFIX)) {
+      throw new MissingAuthHeaderException(
+          "Authentication required for subscription destination: " + destination);
+    }
+    if (!isAnonymousSession(accessor)) {
       throw new MissingAuthHeaderException(
           "Authentication required for subscription destination: " + destination);
     }
@@ -165,6 +167,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       throw new MissingAuthHeaderException(
           "Authentication required for chat session: " + sessionId);
     }
+  }
+
+  private boolean isAnonymousSession(StompHeaderAccessor accessor) {
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    return sessionAttributes != null
+        && Boolean.TRUE.equals(sessionAttributes.get(SESSION_ATTR_ANONYMOUS));
   }
 
   private void validateChatTopicSubscription(String destination, StompHeaderAccessor accessor) {
