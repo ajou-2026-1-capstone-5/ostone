@@ -197,7 +197,9 @@ public class RawFileUploadService {
         if (!isSafeZipEntryName(entryName)) {
           throw new RawFileParseException("ZIP 파일에 안전하지 않은 경로가 포함되어 있습니다: " + entryName);
         }
-        if (entry.isDirectory() || !isSupportedZipEntry(entryName)) {
+        if (entry.isDirectory()
+            || isMacOsMetadataEntry(entryName)
+            || !isSupportedZipEntry(entryName)) {
           zip.closeEntry();
           continue;
         }
@@ -251,6 +253,22 @@ public class RawFileUploadService {
   private boolean isSupportedZipEntry(String entryName) {
     String lowered = entryName.toLowerCase();
     return lowered.endsWith(".json") || lowered.endsWith(".jsonl");
+  }
+
+  /**
+   * macOS가 ZIP을 만들 때 끼워 넣는 메타데이터 항목 여부. {@code __MACOSX/} 디렉터리, AppleDouble
+   * 리소스 포크({@code ._*}), {@code .DS_Store}는 데이터가 아니므로 OS와 무관하게 건너뛴다.
+   * 이를 처리하지 않으면 {@code __MACOSX/._x.json} 같은 항목이 .json 확장자 때문에 파싱 대상이
+   * 되어 NUL 바이트로 인한 JSON 파싱 실패가 발생한다.
+   */
+  private boolean isMacOsMetadataEntry(String entryName) {
+    String normalized = entryName.replace('\\', '/');
+    for (String part : normalized.split("/")) {
+      if (part.equals("__MACOSX") || part.equals(".DS_Store") || part.startsWith("._")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private List<RawConversationInput> parseJsonConversations(byte[] fileBytes, String sourceName) {
