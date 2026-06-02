@@ -39,4 +39,13 @@ class WorkspaceMemberTest {
     assertThatThrownBy(() -> WorkspaceMember.create(1L, 2L, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  @DisplayName("canManageMembers: OWNER/ADMIN만 true")
+  void should_trueOnlyForOwnerAndAdmin_when_canManageMembers() {
+    assertThat(WorkspaceMemberRole.OWNER.canManageMembers()).isTrue();
+    assertThat(WorkspaceMemberRole.ADMIN.canManageMembers()).isTrue();
+    assertThat(WorkspaceMemberRole.REVIEWER.canManageMembers()).isFalse();
+    assertThat(WorkspaceMemberRole.OPERATOR.canManageMembers()).isFalse();
+  }
 }

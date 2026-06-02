@@ -26,6 +26,7 @@ const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
   upload: "상담 로그 수집",
   consult: "상담 응대",
   domain: "도메인팩 관리",
+  settings: "워크스페이스 설정",
   chat: "사용자 화면 미리보기",
   intent: "상담 유형",
   slot: "확인 항목",

@@ -10,6 +10,16 @@ export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
 export const WORKSPACE_MEMBER_ROLES = ["OWNER", "ADMIN", "REVIEWER", "OPERATOR"] as const;
 export type WorkspaceMemberRole = (typeof WORKSPACE_MEMBER_ROLES)[number];
 
+export interface WorkspaceMemberResponse {
+  memberId: number;
+  userId: number;
+  name: string;
+  email: string;
+  workspaceRole: WorkspaceMemberRole;
+  joinedAt: string;
+  accountStatus: string;
+}
+
 export interface WorkspaceFieldErrors {
   name?: string;
   description?: string;

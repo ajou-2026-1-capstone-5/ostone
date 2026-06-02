@@ -20,7 +20,13 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { CreateWorkspaceRequest, UpdateWorkspaceRequest, WorkspaceResponse } from "../../zod";
+import type {
+  CreateWorkspaceRequest,
+  ListWorkspaceMembersParams,
+  UpdateWorkspaceRequest,
+  WorkspaceMemberResponse,
+  WorkspaceResponse,
+} from "../../zod";
 
 import { customFetch } from "../../../mutator";
 
@@ -510,3 +516,165 @@ export const useUpdateWorkspace = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(getUpdateWorkspaceMutationOptions(options), queryClient);
 };
+
+export type listWorkspaceMembersResponse200 = {
+  data: WorkspaceMemberResponse[];
+  status: 200;
+};
+
+export type listWorkspaceMembersResponseSuccess = listWorkspaceMembersResponse200 & {
+  headers: Headers;
+};
+
+export type listWorkspaceMembersResponse = listWorkspaceMembersResponseSuccess;
+
+export const getListWorkspaceMembersUrl = (
+  id: number,
+  params?: ListWorkspaceMembersParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/workspaces/${id}/members?${stringifiedParams}`
+    : `/api/v1/workspaces/${id}/members`;
+};
+
+export const listWorkspaceMembers = async (
+  id: number,
+  params?: ListWorkspaceMembersParams,
+  options?: RequestInit,
+): Promise<listWorkspaceMembersResponse> => {
+  return customFetch<listWorkspaceMembersResponse>(getListWorkspaceMembersUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkspaceMembersQueryKey = (
+  id: number,
+  params?: ListWorkspaceMembersParams,
+) => {
+  return [`/api/v1/workspaces/${id}/members`, ...(params ? [params] : [])] as const;
+};
+
+export const getListWorkspaceMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkspaceMembers>>,
+  TError = unknown,
+>(
+  id: number,
+  params?: ListWorkspaceMembersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceMembers>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWorkspaceMembersQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkspaceMembers>>> = ({ signal }) =>
+    listWorkspaceMembers(id, params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, enabled: !!id, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaceMembers>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListWorkspaceMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkspaceMembers>>
+>;
+export type ListWorkspaceMembersQueryError = unknown;
+
+export function useListWorkspaceMembers<
+  TData = Awaited<ReturnType<typeof listWorkspaceMembers>>,
+  TError = unknown,
+>(
+  id: number,
+  params: undefined | ListWorkspaceMembersParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceMembers>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkspaceMembers>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkspaceMembers>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListWorkspaceMembers<
+  TData = Awaited<ReturnType<typeof listWorkspaceMembers>>,
+  TError = unknown,
+>(
+  id: number,
+  params?: ListWorkspaceMembersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceMembers>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkspaceMembers>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkspaceMembers>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListWorkspaceMembers<
+  TData = Awaited<ReturnType<typeof listWorkspaceMembers>>,
+  TError = unknown,
+>(
+  id: number,
+  params?: ListWorkspaceMembersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceMembers>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useListWorkspaceMembers<
+  TData = Awaited<ReturnType<typeof listWorkspaceMembers>>,
+  TError = unknown,
+>(
+  id: number,
+  params?: ListWorkspaceMembersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listWorkspaceMembers>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListWorkspaceMembersQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

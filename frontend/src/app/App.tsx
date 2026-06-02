@@ -25,6 +25,7 @@ import { PackWorkflowListPage } from "../pages/domain-pack/ui/PackWorkflowListPa
 import { DomainPackSummaryPage } from "../pages/domain-pack/ui/DomainPackSummaryPage";
 import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOutlet";
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
+import { WorkspaceMembersPage } from "../pages/workspace/ui/WorkspaceMembersPage";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
 import { PipelineReviewPage } from "../pages/pipeline-review/ui/PipelineReviewPage";
@@ -107,6 +108,7 @@ export function App() {
             element={<PipelineReviewPage />}
           />
           <Route path="domain-packs" element={<DomainPackListPage />} />
+          <Route path="settings/members" element={<WorkspaceMembersPage />} />
         </Route>
         <Route
           path="/demo"

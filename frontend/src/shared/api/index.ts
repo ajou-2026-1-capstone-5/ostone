@@ -321,6 +321,7 @@ export {
   policyQueryKeys,
   riskQueryKeys,
   slotQueryKeys,
+  workspaceMemberQueryKeys,
   workflowQueryKeys,
 } from "./queryKeys";
 export { unwrapApiResponse } from "./unwrapApiResponse";

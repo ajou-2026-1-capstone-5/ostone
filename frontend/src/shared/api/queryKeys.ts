@@ -7,6 +7,12 @@ export const domainPackQueryKeys = {
     [...domainPackQueryKeys.all, "version", workspaceId, packId, versionId] as const,
 };
 
+export const workspaceMemberQueryKeys = {
+  all: ["workspace-members"] as const,
+  list: (workspaceId: number, search: string, role: string) =>
+    [...workspaceMemberQueryKeys.all, "list", workspaceId, search, role] as const,
+};
+
 export const intentQueryKeys = {
   all: ["intents"] as const,
   list: (workspaceId: number, packId: number, versionId: number) =>
