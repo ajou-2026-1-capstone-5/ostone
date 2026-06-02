@@ -1,0 +1,120 @@
+.pageWrapper {
+  padding: var(--s-6) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.pageTitle {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 540;
+  color: var(--ink);
+  letter-spacing: -0.26px;
+}
+
+.pageSubtitle {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: -0.14px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) minmax(160px, 220px);
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 36px;
+}
+
+.roleField {
+  min-width: 0;
+}
+
+.tableSurface {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+}
+
+.memberName {
+  font-weight: 540;
+  color: var(--ink);
+}
+
+.badge {
+  border-color: var(--line);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.statePanel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-8);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  text-align: center;
+  background: var(--paper-2);
+}
+
+.stateText {
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 760px) {
+  .pageWrapper {
+    padding: var(--s-5) var(--s-4);
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+}

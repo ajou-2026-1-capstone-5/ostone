@@ -11,6 +11,7 @@ export type SidebarActive =
   | "chat"
   | "upload"
   | "domain"
+  | "settings"
   | "intent"
   | "slot"
   | "policy"
@@ -54,6 +55,12 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
     icon: "upload",
     label: "상담 로그 수집",
     getPath: (base) => `${base}/upload`,
+  },
+  {
+    key: "settings",
+    icon: "settings",
+    label: "워크스페이스 설정",
+    getPath: (base) => `${base}/settings/members`,
   },
 ];
 

@@ -4,12 +4,15 @@ import com.init.workspace.application.ArchiveWorkspaceUseCase;
 import com.init.workspace.application.CreateWorkspaceCommand;
 import com.init.workspace.application.CreateWorkspaceUseCase;
 import com.init.workspace.application.GetWorkspaceListUseCase;
+import com.init.workspace.application.GetWorkspaceMemberListQuery;
+import com.init.workspace.application.GetWorkspaceMemberListUseCase;
 import com.init.workspace.application.GetWorkspaceUseCase;
 import com.init.workspace.application.UpdateWorkspaceCommand;
 import com.init.workspace.application.UpdateWorkspaceUseCase;
 import com.init.workspace.application.WorkspaceResult;
 import com.init.workspace.presentation.dto.CreateWorkspaceRequest;
 import com.init.workspace.presentation.dto.UpdateWorkspaceRequest;
+import com.init.workspace.presentation.dto.WorkspaceMemberResponse;
 import com.init.workspace.presentation.dto.WorkspaceResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -33,6 +37,7 @@ public class WorkspaceController {
   private final CreateWorkspaceUseCase createWorkspaceUseCase;
   private final GetWorkspaceListUseCase getWorkspaceListUseCase;
   private final GetWorkspaceUseCase getWorkspaceUseCase;
+  private final GetWorkspaceMemberListUseCase getWorkspaceMemberListUseCase;
   private final UpdateWorkspaceUseCase updateWorkspaceUseCase;
   private final ArchiveWorkspaceUseCase archiveWorkspaceUseCase;
 
@@ -40,11 +45,13 @@ public class WorkspaceController {
       CreateWorkspaceUseCase createWorkspaceUseCase,
       GetWorkspaceListUseCase getWorkspaceListUseCase,
       GetWorkspaceUseCase getWorkspaceUseCase,
+      GetWorkspaceMemberListUseCase getWorkspaceMemberListUseCase,
       UpdateWorkspaceUseCase updateWorkspaceUseCase,
       ArchiveWorkspaceUseCase archiveWorkspaceUseCase) {
     this.createWorkspaceUseCase = createWorkspaceUseCase;
     this.getWorkspaceListUseCase = getWorkspaceListUseCase;
     this.getWorkspaceUseCase = getWorkspaceUseCase;
+    this.getWorkspaceMemberListUseCase = getWorkspaceMemberListUseCase;
     this.updateWorkspaceUseCase = updateWorkspaceUseCase;
     this.archiveWorkspaceUseCase = archiveWorkspaceUseCase;
   }
@@ -73,6 +80,22 @@ public class WorkspaceController {
       @PathVariable Long id, Authentication authentication) {
     Long userId = extractUserId(authentication);
     return ResponseEntity.ok(WorkspaceResponse.from(getWorkspaceUseCase.execute(id, userId)));
+  }
+
+  @GetMapping("/{id}/members")
+  public ResponseEntity<List<WorkspaceMemberResponse>> listWorkspaceMembers(
+      @PathVariable Long id,
+      @RequestParam(name = "q", required = false) String search,
+      @RequestParam(name = "role", required = false) String role,
+      Authentication authentication) {
+    Long userId = extractUserId(authentication);
+    List<WorkspaceMemberResponse> response =
+        getWorkspaceMemberListUseCase
+            .execute(new GetWorkspaceMemberListQuery(id, userId, search, role))
+            .stream()
+            .map(WorkspaceMemberResponse::from)
+            .toList();
+    return ResponseEntity.ok(response);
   }
 
   @PatchMapping("/{id}")

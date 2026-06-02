@@ -4,5 +4,9 @@ public enum WorkspaceMemberRole {
   OWNER,
   ADMIN,
   REVIEWER,
-  OPERATOR
+  OPERATOR;
+
+  public boolean canManageMembers() {
+    return this == OWNER || this == ADMIN;
+  }
 }

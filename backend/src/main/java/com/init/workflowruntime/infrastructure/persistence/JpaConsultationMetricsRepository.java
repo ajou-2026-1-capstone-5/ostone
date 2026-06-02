@@ -1,5 +1,8 @@
 package com.init.workflowruntime.infrastructure.persistence;
 
+import static com.init.shared.infrastructure.persistence.NativeQueryColumnConverter.toLong;
+import static com.init.shared.infrastructure.persistence.NativeQueryColumnConverter.toOffsetDateTime;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,11 +11,7 @@ import com.init.workflowruntime.domain.ConsultationMetricsSessionFact;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
@@ -182,10 +181,6 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
     return String.valueOf(value);
   }
 
-  private Long toLong(Object value) {
-    return value instanceof Number number ? number.longValue() : null;
-  }
-
   private boolean toBoolean(Object value) {
     if (value instanceof Boolean bool) {
       return bool;
@@ -194,25 +189,5 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
       return number.intValue() != 0;
     }
     return Boolean.parseBoolean(String.valueOf(value));
-  }
-
-  private OffsetDateTime toOffsetDateTime(Object value) {
-    if (value == null) {
-      return null;
-    }
-    if (value instanceof OffsetDateTime offsetDateTime) {
-      return offsetDateTime;
-    }
-    if (value instanceof Instant instant) {
-      return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
-    }
-    if (value instanceof Timestamp timestamp) {
-      return OffsetDateTime.ofInstant(timestamp.toInstant(), ZoneOffset.UTC);
-    }
-    if (value instanceof LocalDateTime localDateTime) {
-      return localDateTime.atOffset(ZoneOffset.UTC);
-    }
-    throw new IllegalArgumentException(
-        "Unsupported timestamp value: " + value.getClass().getName());
   }
 }

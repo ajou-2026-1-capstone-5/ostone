@@ -11,12 +11,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workspace.application.ArchiveWorkspaceUseCase;
 import com.init.workspace.application.CreateWorkspaceUseCase;
 import com.init.workspace.application.GetWorkspaceListUseCase;
+import com.init.workspace.application.GetWorkspaceMemberListQuery;
+import com.init.workspace.application.GetWorkspaceMemberListUseCase;
 import com.init.workspace.application.GetWorkspaceUseCase;
 import com.init.workspace.application.UpdateWorkspaceUseCase;
+import com.init.workspace.application.WorkspaceMemberListEntry;
 import com.init.workspace.application.WorkspaceResult;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.application.exception.WorkspaceInvalidKeyException;
@@ -54,6 +58,7 @@ class WorkspaceControllerTest {
   @MockitoBean private CreateWorkspaceUseCase createWorkspaceUseCase;
   @MockitoBean private GetWorkspaceListUseCase getWorkspaceListUseCase;
   @MockitoBean private GetWorkspaceUseCase getWorkspaceUseCase;
+  @MockitoBean private GetWorkspaceMemberListUseCase getWorkspaceMemberListUseCase;
   @MockitoBean private UpdateWorkspaceUseCase updateWorkspaceUseCase;
   @MockitoBean private ArchiveWorkspaceUseCase archiveWorkspaceUseCase;
 
@@ -145,6 +150,70 @@ class WorkspaceControllerTest {
         .perform(get("/api/v1/workspaces/1").principal(auth()))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+  }
+
+  @Test
+  @DisplayName("GET 멤버 목록 OWNER → 200 OK")
+  void should_200반환_when_owner가멤버목록조회() throws Exception {
+    given(
+            getWorkspaceMemberListUseCase.execute(
+                new GetWorkspaceMemberListQuery(1L, 7L, null, null)))
+        .willReturn(List.of(memberEntry("OWNER")));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/members").principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].memberId").value(10))
+        .andExpect(jsonPath("$[0].userId").value(7))
+        .andExpect(jsonPath("$[0].name").value("Admin"))
+        .andExpect(jsonPath("$[0].email").value("admin@ostone.com"))
+        .andExpect(jsonPath("$[0].workspaceRole").value("OWNER"))
+        .andExpect(jsonPath("$[0].joinedAt").value("2026-04-14T00:00:00Z"))
+        .andExpect(jsonPath("$[0].accountStatus").value("ACTIVE"));
+  }
+
+  @Test
+  @DisplayName("GET 멤버 목록 검색/role query → useCase 전달")
+  void should_query전달_when_검색과Role필터() throws Exception {
+    given(
+            getWorkspaceMemberListUseCase.execute(
+                new GetWorkspaceMemberListQuery(1L, 7L, "admin", "ADMIN")))
+        .willReturn(List.of(memberEntry("ADMIN")));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/members?q=admin&role=ADMIN").principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].workspaceRole").value("ADMIN"));
+  }
+
+  @Test
+  @DisplayName("GET 멤버 목록 비권한자 → 403 WORKSPACE_ACCESS_DENIED")
+  void should_403반환_when_멤버목록비권한자() throws Exception {
+    given(
+            getWorkspaceMemberListUseCase.execute(
+                new GetWorkspaceMemberListQuery(1L, 7L, null, null)))
+        .willThrow(new WorkspaceAccessDeniedException("워크스페이스 멤버 관리 권한이 없습니다."));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/members").principal(auth()))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("WORKSPACE_ACCESS_DENIED"));
+  }
+
+  @Test
+  @DisplayName("GET 멤버 목록 잘못된 role → 400 WORKSPACE_INVALID_MEMBER_ROLE")
+  void should_400반환_when_잘못된MemberRole() throws Exception {
+    given(
+            getWorkspaceMemberListUseCase.execute(
+                new GetWorkspaceMemberListQuery(1L, 7L, null, "BAD")))
+        .willThrow(
+            new BadRequestException(
+                "WORKSPACE_INVALID_MEMBER_ROLE", "워크스페이스 멤버 역할이 올바르지 않습니다: BAD"));
+
+    mockMvc
+        .perform(get("/api/v1/workspaces/1/members?role=BAD").principal(auth()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("WORKSPACE_INVALID_MEMBER_ROLE"));
   }
 
   @Test
@@ -256,6 +325,17 @@ class WorkspaceControllerTest {
         role,
         OffsetDateTime.parse("2026-04-14T00:00:00Z"),
         OffsetDateTime.parse("2026-04-14T00:00:00Z"));
+  }
+
+  private WorkspaceMemberListEntry memberEntry(String role) {
+    return new WorkspaceMemberListEntry(
+        10L,
+        7L,
+        "Admin",
+        "admin@ostone.com",
+        role,
+        OffsetDateTime.parse("2026-04-14T00:00:00Z"),
+        "ACTIVE");
   }
 
   private UsernamePasswordAuthenticationToken auth() {
