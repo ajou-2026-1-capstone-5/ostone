@@ -12,6 +12,7 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -236,8 +237,11 @@ public class DemoChatSessionRegistrationService {
 
   private String generateAssistantContent(Long sessionId, String normalizedContent) {
     try {
-      return llmAssistantService.generateResponse(
-          createConversationContext(sessionId), normalizedContent);
+      return llmAssistantService
+          .generateWorkflowAwareResponse(
+              new GenerateWorkflowAwareResponseCommand(
+                  sessionId, createConversationContext(sessionId), normalizedContent))
+          .content();
     } catch (NonTransientAiException | TransientAiException e) {
       log.warn("Demo chat AI response generation failed. sessionId={}", sessionId, e);
       return AI_FALLBACK_MESSAGE;

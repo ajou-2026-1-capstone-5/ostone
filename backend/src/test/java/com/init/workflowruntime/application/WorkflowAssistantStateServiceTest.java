@@ -257,50 +257,135 @@ class WorkflowAssistantStateServiceTest {
   }
 
   @Test
-  @DisplayName("updateSlot: 현재 요청된 slot과 다른 slot은 저장하지 않는다")
-  void should_rejectDifferentRequestedSlot() {
+  @DisplayName("updateSlot: 알 수 없는 slotCode는 현재 요청 slot으로 보정해 저장한다")
+  void should_fallBackToRequestedSlot_when_unknownSlotCode() {
     LlmToolContextResponse context = context(10L);
     givenRuntimeMetadata();
-    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
-        .willReturn(context, context);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
     given(workflowRuntimeService.advance(1L))
         .willReturn(
             advanceResponse(
                 "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
 
-    assertThatThrownBy(() -> updateSlot("customer_name", "김초기"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("Slot is not currently requested");
+    updateSlot("customer_name", "김초기");
 
+    verify(llmToolService)
+        .upsertSlotValue(
+            argThat(
+                command ->
+                    command.sessionId().equals(1L)
+                        && command.slotCode().equals("order_id")
+                        && command.value().asText().equals("김초기")));
+  }
+
+  @Test
+  @DisplayName("updateSlot: 빈 value는 저장하지 않는다")
+  void should_skipBlankValue() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
+
+    AssistantConversationState result = updateSlot("order_id", " ");
+
+    assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
     verify(llmToolService, never()).upsertSlotValue(any());
   }
 
   @Test
-  @DisplayName("updateSlot: 빈 slotCode나 value는 거부한다")
-  void should_rejectBlankSlotInput() {
-    assertThatThrownBy(() -> updateSlot(" ", "A-100"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("slotCode is required");
-    assertThatThrownBy(() -> updateSlot("order_id", " "))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("slot value is required");
-  }
-
-  @Test
-  @DisplayName("updateSlot: 현재 요청되지 않은 slot은 거부한다")
-  void should_rejectOutOfTurnSlot() {
+  @DisplayName("updateSlot: ASK_SLOT 상태가 아니면 저장하지 않고 현재 상태를 반환한다")
+  void should_skipWhenNotAskSlot() {
     LlmToolContextResponse context = context(10L);
     givenRuntimeMetadata();
-    given(llmToolService.getContext(any(GetLlmToolContextCommand.class)))
-        .willReturn(context, context);
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
     given(workflowRuntimeService.advance(1L))
         .willReturn(advanceResponse("collect_order", "answer", "ANSWER", "edge-answer", List.of()));
 
-    assertThatThrownBy(() -> updateSlot("order_id", "A-100"))
-        .isInstanceOf(BadRequestException.class)
-        .hasMessageContaining("No slot is currently requested");
+    AssistantConversationState result = updateSlot("order_id", "A-100");
+
+    assertThat(result.nextAction().type()).isEqualTo("ANSWER");
+    verify(llmToolService, never()).upsertSlotValue(any());
+  }
+
+  @Test
+  @DisplayName("updateSlot: 질문 문구를 그대로 넣은 값은 저장하지 않는다")
+  void should_skipPlaceholderEqualToQuestion() {
+    LlmToolContextResponse context = context(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order", "collect_order", "ASK_SLOT", null, List.of("order_id")));
+
+    updateSlot("order_id", "주문번호를 입력하세요");
 
     verify(llmToolService, never()).upsertSlotValue(any());
+  }
+
+  @Test
+  @DisplayName("updateSlot: 슬롯 이름만 나열된 값(필드 목록)은 저장하지 않는다")
+  void should_skipPlaceholderFieldList() {
+    LlmToolContextResponse context = context2(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order",
+                "collect_order",
+                "ASK_SLOT",
+                null,
+                List.of("order_id", "customer_name")));
+
+    updateSlot("order_id", "고객명 주문번호");
+
+    verify(llmToolService, never()).upsertSlotValue(any());
+  }
+
+  @Test
+  @DisplayName("updateSlot: 실제 값과 슬롯 이름이 함께 있으면 저장한다")
+  void should_saveMultiInfoAnswer_evenWithSlotNames() {
+    LlmToolContextResponse context = context2(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order",
+                "collect_order",
+                "ASK_SLOT",
+                null,
+                List.of("order_id", "customer_name")));
+
+    updateSlot("order_id", "주문번호는 A-100, 고객명은 김초기");
+
+    verify(llmToolService).upsertSlotValue(any());
+  }
+
+  @Test
+  @DisplayName("ASK_SLOT: 누락 슬롯이 여러 개면 한 번에 나열해 안내한다")
+  void should_listAllMissingSlots_when_multipleMissing() {
+    LlmToolContextResponse context = context2(10L);
+    givenRuntimeMetadata();
+    given(llmToolService.getContext(any(GetLlmToolContextCommand.class))).willReturn(context);
+    given(workflowRuntimeService.advance(1L))
+        .willReturn(
+            advanceResponse(
+                "collect_order",
+                "collect_order",
+                "ASK_SLOT",
+                null,
+                List.of("order_id", "customer_name")));
+
+    AssistantConversationState result = inspect();
+
+    assertThat(result.nextAction().type()).isEqualTo("ASK_SLOT");
+    assertThat(result.nextAction().question()).contains("주문번호");
+    assertThat(result.nextAction().question()).contains("고객명");
   }
 
   private AssistantConversationState inspectWithoutRuntimeMetadata(
@@ -376,6 +461,40 @@ class WorkflowAssistantStateServiceTest {
         null,
         List.of("order_id"),
         executionId == null ? List.of() : List.of(slot()));
+  }
+
+  private LlmToolContextResponse context2(Long executionId) {
+    return new LlmToolContextResponse(
+        1L,
+        2L,
+        3L,
+        executionId,
+        "RUNNING",
+        "collect_order",
+        objectMapper.createObjectNode(),
+        objectMapper.createObjectNode(),
+        null,
+        List.of("order_id", "customer_name"),
+        List.of(slot(), customerNameSlot()));
+  }
+
+  private LlmToolSlotResponse customerNameSlot() {
+    return new LlmToolSlotResponse(
+        12L,
+        "customer_name",
+        "고객명",
+        "고객명",
+        "STRING",
+        false,
+        objectMapper.createObjectNode(),
+        null,
+        objectMapper.createObjectNode(),
+        "ACTIVE",
+        true,
+        2,
+        "고객명을 입력하세요",
+        false,
+        NullNode.getInstance());
   }
 
   private LlmToolSlotResponse slot() {

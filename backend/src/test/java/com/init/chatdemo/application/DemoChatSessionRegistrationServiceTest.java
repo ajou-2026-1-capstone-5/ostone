@@ -21,8 +21,10 @@ import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.AiResponseGenerationGuard;
 import com.init.workflowruntime.application.ChatSessionMetadataService;
 import com.init.workflowruntime.application.LlmAssistantService;
+import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
+import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.domain.ChatMessage;
 import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
@@ -133,7 +135,10 @@ class DemoChatSessionRegistrationServiceTest {
         .willReturn(Optional.empty());
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(List.of(ChatMessage.create(SESSION_ID, 1, "USER", "TEXT", "Hello")));
-    given(llmAssistantService.generateResponse("USER: Hello", "Hello")).willReturn("LLM 응답입니다.");
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
+        .willReturn(new GenerateWorkflowAwareResponseResult("LLM 응답입니다."));
     given(chatMessageRepository.save(any(ChatMessage.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -153,7 +158,8 @@ class DemoChatSessionRegistrationServiceTest {
     verify(chatSessionMetadataService)
         .updateAfterMessage(session, messageCaptor.getAllValues().get(0));
     verifyQueueUpsertEventPublished();
-    verify(llmAssistantService).generateResponse("USER: Hello", "Hello");
+    verify(llmAssistantService)
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
   }
@@ -184,6 +190,8 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
     verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
     verifyQueueUpsertEventPublished();
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
@@ -216,6 +224,8 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(messageCaptor.getValue().getSenderRole()).isEqualTo("USER");
     verify(chatMessageRepository, never()).findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID);
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(chatSessionMetadataService).updateAfterMessage(session, messageCaptor.getValue());
     verifyQueueUpsertEventPublished();
     verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
@@ -232,7 +242,9 @@ class DemoChatSessionRegistrationServiceTest {
         .willReturn(Optional.empty());
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(List.of());
-    given(llmAssistantService.generateResponse("", "배송 상태 확인하고 싶어요"))
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
         .willThrow(new NonTransientAiException("quota exceeded"));
     given(chatMessageRepository.save(any(ChatMessage.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
@@ -271,6 +283,8 @@ class DemoChatSessionRegistrationServiceTest {
     verify(chatSessionRepository, never()).findByIdForUpdate(SESSION_ID);
     verify(chatMessageRepository, never()).save(any(ChatMessage.class));
     verify(llmAssistantService, never()).generateResponse(any(), any());
+    verify(llmAssistantService, never())
+        .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
     verify(messagingTemplate, never()).convertAndSend(any(), any(ChatMessageResponse.class));
   }
 
@@ -323,8 +337,11 @@ class DemoChatSessionRegistrationServiceTest {
             List.of(
                 ChatMessage.create(SESSION_ID, 3, "ASSISTANT", "TEXT", "최근 답변"),
                 ChatMessage.create(SESSION_ID, 2, "USER", "TEXT", "이전 질문")));
-    given(llmAssistantService.generateResponse("USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문"))
-        .willReturn("다음 답변");
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                new GenerateWorkflowAwareResponseCommand(
+                    SESSION_ID, "USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문")))
+        .willReturn(new GenerateWorkflowAwareResponseResult("다음 답변"));
     given(chatMessageRepository.save(any(ChatMessage.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -334,7 +351,10 @@ class DemoChatSessionRegistrationServiceTest {
     assertThat(responses).hasSize(2);
     assertThat(responses.get(0).seqNo()).isEqualTo(4);
     assertThat(responses.get(1).seqNo()).isEqualTo(5);
-    verify(llmAssistantService).generateResponse("USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문");
+    verify(llmAssistantService)
+        .generateWorkflowAwareResponse(
+            new GenerateWorkflowAwareResponseCommand(
+                SESSION_ID, "USER: 이전 질문\nASSISTANT: 최근 답변", "다음 질문"));
   }
 
   @Test
@@ -368,7 +388,10 @@ class DemoChatSessionRegistrationServiceTest {
         .willReturn(Optional.empty());
     given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
         .willReturn(List.of());
-    given(llmAssistantService.generateResponse("", "Hello")).willReturn("LLM 응답입니다.");
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                new GenerateWorkflowAwareResponseCommand(SESSION_ID, "", "Hello")))
+        .willReturn(new GenerateWorkflowAwareResponseResult("LLM 응답입니다."));
     given(chatMessageRepository.save(any(ChatMessage.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
     doThrow(new RuntimeException("broker unavailable"))

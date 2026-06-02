@@ -24,7 +24,6 @@ public class WorkflowMatchingProfileBuildWorker {
 
   private static final Logger log =
       LoggerFactory.getLogger(WorkflowMatchingProfileBuildWorker.class);
-  private static final String PROVIDER_BEDROCK = "bedrock";
 
   private final EmbeddingProperties properties;
   private final EmbeddingClient embeddingClient;
@@ -92,7 +91,7 @@ public class WorkflowMatchingProfileBuildWorker {
                 VectorUtils.sha256(profileText),
                 profileText,
                 VectorUtils.toVectorLiteral(embedding),
-                PROVIDER_BEDROCK,
+                properties.providerOrDefault(),
                 properties.modelOrDefault(),
                 properties.bedrockRegionOrDefault(),
                 EmbeddingInputType.SEARCH_DOCUMENT.wireValue(),
