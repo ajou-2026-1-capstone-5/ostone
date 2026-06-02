@@ -477,6 +477,60 @@ describe("DomainPackSummaryPage", () => {
     });
   });
 
+  it("버전 배포 실패 시 기본 실패 toast를 띄운다", () => {
+    vi.mocked(useDeploy).mockImplementation((options) => ({
+      mutate: vi.fn(() =>
+        options?.mutation?.onError?.(new Error("deploy failed"), {} as never, undefined),
+      ),
+      isPending: false,
+      variables: undefined,
+    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
+
+    expect(toast.error).toHaveBeenCalledWith("도메인팩 버전을 배포하지 못했습니다.");
+  });
+
+  it("버전 배포 실패 시 API 에러 메시지를 toast에 사용한다", () => {
+    vi.mocked(useDeploy).mockImplementation((options) => ({
+      mutate: vi.fn(() =>
+        options?.mutation?.onError?.(
+          new ApiRequestError(409, "CONFLICT", "이미 배포된 버전입니다."),
+          {} as never,
+          undefined,
+        ),
+      ),
+      isPending: false,
+      variables: undefined,
+    } as unknown as ReturnType<typeof useDeploy>));
+    vi.mocked(usePackDetail).mockReturnValue(
+      makePackQuery({
+        data: {
+          packId: 2,
+          name: "CS Pack",
+          code: "CS",
+          versions: [{ versionId: 4, versionNo: 2 }],
+        },
+      }),
+    );
+
+    renderPage("/workspaces/1/domain-packs/2?versionId=3");
+    fireEvent.click(screen.getByRole("button", { name: "deploy version" }));
+
+    expect(toast.error).toHaveBeenCalledWith("이미 배포된 버전입니다.");
+  });
+
   it("Draft 적용 버튼 클릭 시 변경사항 정리와 함께 activate API를 호출한다", async () => {
     vi.mocked(usePackDetail).mockReturnValue(
       makePackQuery({

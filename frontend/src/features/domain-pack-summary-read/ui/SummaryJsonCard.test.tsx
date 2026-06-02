@@ -195,6 +195,18 @@ describe("SummaryJsonCard", () => {
     expect(screen.getByText("{bad}")).toBeInTheDocument();
   });
 
+  it("유효하지 않은 JSON의 전체 JSON 화면에서도 원문을 표시한다", () => {
+    render(<SummaryJsonCard summaryJson="{bad}" />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("{bad}")).toBeInTheDocument();
+  });
+
+  it("빈 JSON 객체의 전체 JSON 화면은 내용 없음 문구를 표시한다", () => {
+    render(<SummaryJsonCard summaryJson="{}" />);
+    fireEvent.click(screen.getByRole("button", { name: "전체 JSON" }));
+    expect(screen.getByText("내용 없음")).toBeInTheDocument();
+  });
+
   it("전체 JSON 버튼 클릭 시 전체 JSON 필드를 카드로 표시한다", () => {
     const json = '{"key":"val"}';
     render(<SummaryJsonCard summaryJson={json} />);
