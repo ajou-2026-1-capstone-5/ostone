@@ -593,6 +593,25 @@ describe("UserChatPage", () => {
     expect(screen.queryByTestId("bot-typing-indicator")).not.toBeInTheDocument();
   });
 
+  it("데모 모드는 WebSocket 연결 전에도 REST로 메시지를 전송한다", async () => {
+    stompState.connectionStatus = "DISCONNECTED";
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    const input = await screen.findByLabelText("메시지 입력");
+    expect(input).toBeEnabled();
+
+    fireEvent.change(input, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    await waitFor(() => {
+      expect(sendDemoChatMessageMock).toHaveBeenCalledWith(42, "77", "Hello");
+    });
+    expect(screen.queryByText("연결이 불안정합니다. 잠시 후 다시 시도해 주세요.")).toBeNull();
+  });
+
   it("USER-only 성공 응답은 사용자 메시지를 유지하고 봇 타이핑을 종료한다", async () => {
     const response = createDeferred<DeferredChatMessage[]>();
     stompState.connectionStatus = "CONNECTED";

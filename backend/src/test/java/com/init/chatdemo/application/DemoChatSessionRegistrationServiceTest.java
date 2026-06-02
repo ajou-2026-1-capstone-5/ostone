@@ -261,6 +261,35 @@ class DemoChatSessionRegistrationServiceTest {
   }
 
   @Test
+  @DisplayName("데모 LLM 호출이 일반 런타임 예외로 실패해도 안내 응답을 저장한다")
+  void should_appendFallbackAssistantMessage_when_llmCallFailsWithRuntimeException() {
+    ChatSession session =
+        ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", SESSION_ID);
+    given(chatSessionRepository.findByIdForUpdate(SESSION_ID)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(Optional.empty());
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(SESSION_ID))
+        .willReturn(List.of());
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
+        .willThrow(new RuntimeException("missing provider api key"));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    List<ChatMessageResponse> responses =
+        service.appendMessage(WORKSPACE_ID, SESSION_ID, " 배송 상태 확인하고 싶어요 ");
+
+    assertThat(responses).hasSize(2);
+    assertThat(responses.get(0).senderRole()).isEqualTo("USER");
+    assertThat(responses.get(1).senderRole()).isEqualTo("ASSISTANT");
+    assertThat(responses.get(1).content()).contains("자동 응답 생성이 원활하지 않습니다");
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(0));
+    verify(messagingTemplate).convertAndSend("/topic/chat.77", responses.get(1));
+  }
+
+  @Test
   @DisplayName("데모 세션 응답 생성 중이면 추가 메시지를 저장하지 않고 충돌로 거절한다")
   void should_throwConflictWithoutSaving_when_generationAlreadyRunningForSession() {
     Optional<AiResponseGenerationGuard.Lease> lease =

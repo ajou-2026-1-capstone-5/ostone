@@ -224,6 +224,39 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("주문번호를 알려주세요")).toBeInTheDocument();
   });
 
+  it("내부 리소스 요약 화면에서 seed 후보의 support/memberSourceIds와 route terms를 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        sourceClusterRef: JSON.stringify({
+          clusterId: "C10",
+          support: 34,
+          confidence: 0.84,
+          memberSourceIds: ["90811", "90812"],
+        }),
+        entryConditionJson: JSON.stringify({
+          requiredAnyTerms: ["취소", "환불", "변경"],
+          optionalTerms: ["취소 수수료", "계약금"],
+        }),
+        evidenceJson: JSON.stringify([{ type: "unit_id", value: "90811:0:1" }]),
+        metaJson: JSON.stringify({ source: "identifier_intent_clustering" }),
+      }),
+    );
+
+    renderPanel();
+
+    expect(screen.getByText("#C10")).toBeInTheDocument();
+    expect(screen.getByText("34건")).toBeInTheDocument();
+    expect(screen.getByText("0.84")).toBeInTheDocument();
+    expect(screen.getByText("2개")).toBeInTheDocument();
+    expect(screen.getByText("identifier_intent_clustering")).toBeInTheDocument();
+    expect(screen.getByText("취소")).toBeInTheDocument();
+    expect(screen.getByText("환불")).toBeInTheDocument();
+    expect(screen.getByText("취소 수수료")).toBeInTheDocument();
+    expect(screen.getByText("근거 ID")).toBeInTheDocument();
+    expect(screen.getByText("90811:0:1")).toBeInTheDocument();
+  });
+
   it("JSON 탭에서는 기존 JSON 필드를 그대로 확인할 수 있다", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({
@@ -288,6 +321,57 @@ describe("IntentDetailPanel", () => {
 
     expect(screen.getByText("상담사")).toBeInTheDocument();
     expect(screen.getByText("운송장 번호를 확인해 주세요")).toBeInTheDocument();
+  });
+
+  it("representativeCases와 sourceRefs fallback을 대표 문장으로 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          representativeCases: [
+            {
+              conversationId: "200002",
+              canonicalText: "예, 제 카드 분실했는데, 정지를 좀 하고 싶거든요.",
+            },
+          ],
+        }),
+      }),
+    );
+
+    const { rerender } = render(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={emptyIntentListState}
+      />,
+    );
+
+    expect(screen.getByText("참고 1")).toBeInTheDocument();
+    expect(screen.getByText("예, 제 카드 분실했는데, 정지를 좀 하고 싶거든요.")).toBeInTheDocument();
+
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          sourceRefs: [{ type: "source_id", value: "200002" }],
+        }),
+      }),
+    );
+
+    rerender(
+      <IntentDetailPanel
+        wsId={1}
+        packId={2}
+        versionId={3}
+        intentId={10}
+        intentListState={emptyIntentListState}
+      />,
+    );
+
+    expect(screen.getByText("상담 ID")).toBeInTheDocument();
+    expect(screen.getByText("200002")).toBeInTheDocument();
   });
 
   it("지원하지 않는 prefix가 있는 문장은 speaker로 분리하지 않는다", () => {
