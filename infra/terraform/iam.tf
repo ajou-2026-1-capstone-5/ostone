@@ -135,11 +135,17 @@ data "aws_iam_policy_document" "ecs_backend_task" {
   }
 
   statement {
+    # embedding(cohere.embed-v4:0)도 global cross-Region inference profile
+    # (global.cohere.embed-v4:0)을 사용하므로 in-region + global(region 미지정)
+    # foundation-model + inference-profile 권한이 모두 필요하다. 런타임 embedding
+    # region(AI_EMBEDDING_BEDROCK_REGION)이 정책 region과 어긋나는 드리프트에 대응해 region을
+    # 와일드카드로 둔다(InvokeBedrockChatModel과 동일 패턴).
     sid     = "InvokeBedrockEmbeddingModel"
     actions = ["bedrock:InvokeModel"]
     resources = [
-      "arn:aws:bedrock:${var.ai_embedding_bedrock_region}::foundation-model/${var.ai_embedding_model}",
-      "arn:aws:bedrock:${var.ai_embedding_bedrock_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_embedding_bedrock_runtime_model}"
+      "arn:aws:bedrock:*::foundation-model/${var.ai_embedding_model}",
+      "arn:aws:bedrock:::foundation-model/${var.ai_embedding_model}",
+      "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/${local.ai_embedding_bedrock_runtime_model}"
     ]
   }
 
