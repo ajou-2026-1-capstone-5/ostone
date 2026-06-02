@@ -193,6 +193,40 @@ class UserChatSessionServiceTest {
   }
 
   @Test
+  @DisplayName("create session: 재사용 세션 조회 없이 새 OPEN 세션을 생성한다")
+  void should_createFreshOpenSession_without_reusingCurrentSession() {
+    given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
+        .willReturn(
+            Optional.of(
+                WorkspaceMember.create(WORKSPACE_ID, USER_ID, WorkspaceMemberRole.OPERATOR)));
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(
+            Optional.of(
+                DomainPackVersion.ofForTest(VERSION_ID, 1L, DomainPackVersion.STATUS_PUBLISHED)));
+    given(chatSessionRepository.save(any(ChatSession.class)))
+        .willAnswer(
+            invocation -> {
+              ChatSession saved = invocation.getArgument(0);
+              ReflectionTestUtils.setField(saved, "id", 100L);
+              return saved;
+            });
+
+    ChatSessionResponse result = service.createSession(command());
+
+    assertThat(result.getId()).isEqualTo(100L);
+    assertThat(result.getStatus()).isEqualTo("OPEN");
+    verify(concurrencyGuard, never()).lockCurrentSession(any(), any());
+    verify(chatSessionRepository, never())
+        .findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
+            any(), any(), any());
+
+    ArgumentCaptor<ChatSession> sessionCaptor = ArgumentCaptor.forClass(ChatSession.class);
+    verify(chatSessionRepository).save(sessionCaptor.capture());
+    assertThat(sessionCaptor.getValue().getStartedBy()).isEqualTo(USER_ID);
+    assertThat(sessionCaptor.getValue().getMetaJson()).contains("\"customerName\":\"김민지\"");
+  }
+
+  @Test
   @DisplayName("current session: 워크스페이스 멤버가 아니면 거부한다")
   void should_throwWorkspaceAccessDenied_when_notWorkspaceMember() {
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))

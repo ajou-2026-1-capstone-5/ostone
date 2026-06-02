@@ -182,6 +182,23 @@ describe("apiClient", () => {
       expect(headers.get("Authorization")).toBeNull();
     });
 
+    it("demo endpoint 요청에는 저장된 access token을 Authorization header로 붙이지 않는다", async () => {
+      const mockResponse = { id: 1 };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      await apiClient.request<{ id: number }>("/workspaces/2/demo/chat-sessions", {
+        method: "POST",
+        body: { customerName: "박하나" } as unknown as BodyInit,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1].headers as Headers;
+      expect(headers.get("Authorization")).toBeNull();
+    });
+
     it("body가 object인 경우 JSON.stringify한다", async () => {
       const mockResponse = { id: 1 };
       mockFetch.mockResolvedValueOnce({

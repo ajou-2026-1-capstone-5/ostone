@@ -2,6 +2,7 @@ package com.init.workflowruntime.presentation;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -60,6 +62,36 @@ class UserChatSessionControllerTest {
                 .principal(authentication))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(33))
+        .andExpect(jsonPath("$.status").value("OPEN"))
+        .andExpect(jsonPath("$.channel").value("WEB"));
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/workspaces/{workspaceId}/chat/sessions - 새 세션 생성")
+  void should_createSession() throws Exception {
+    ChatSessionResponse response = new ChatSessionResponse();
+    response.setId(44L);
+    response.setStatus("OPEN");
+    response.setChannel("WEB");
+    response.setStartedAt(OffsetDateTime.parse("2026-05-26T10:05:00+09:00"));
+
+    given(
+            userChatSessionService.createSession(
+                new GetOrCreateCurrentSessionCommand(10L, 7L, "박하나")))
+        .willReturn(response);
+
+    UsernamePasswordAuthenticationToken authentication =
+        new UsernamePasswordAuthenticationToken(
+            7L, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/10/chat/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"customerName\":\"박하나\"}")
+                .principal(authentication))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(44))
         .andExpect(jsonPath("$.status").value("OPEN"))
         .andExpect(jsonPath("$.channel").value("WEB"));
   }

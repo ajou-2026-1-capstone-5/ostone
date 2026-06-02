@@ -218,6 +218,38 @@ describe("useStomp", () => {
     expect(client.subscribe).toHaveBeenCalledWith("/topic/test", expect.any(Function));
   });
 
+  it("includeAuth 변경으로 재연결되어도 custom subscribe를 다시 등록한다", async () => {
+    const { result, rerender } = renderHook(
+      ({ includeAuth }: { includeAuth: boolean }) => useStomp({ includeAuth }),
+      { initialProps: { includeAuth: false } },
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+    act(() => {
+      result.current.subscribe("/topic/test", vi.fn());
+    });
+    client.subscribe.mockClear();
+
+    await act(async () => {
+      client.connected = false;
+      rerender({ includeAuth: true });
+      await Promise.resolve();
+    });
+    act(() => {
+      client.connected = true;
+      client.onConnect?.(dummyFrame);
+    });
+
+    expect(client.subscribe).toHaveBeenCalledWith("/user/queue/errors", expect.any(Function));
+    expect(client.subscribe).toHaveBeenCalledWith("/topic/test", expect.any(Function));
+  });
+
   it("이미 동일 토픽을 subscribe 중일 때 재호출하면 이전 구독을 해제하고 덮어쓴다", async () => {
     const { result } = await renderUseStompHelper();
 

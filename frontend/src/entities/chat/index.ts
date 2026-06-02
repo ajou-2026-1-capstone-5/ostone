@@ -1,6 +1,7 @@
 export {
   createChatSession,
   createDemoChatSession,
+  createFreshChatSession,
   listChatMessages,
   listDemoChatMessages,
   registerDemoChatSession,

@@ -4,32 +4,47 @@ import { ApiRequestError } from "@/shared/api";
 import { UserChatPage } from "./UserChatPage";
 
 const {
+  createChatSessionMock,
+  createFreshChatSessionMock,
+  listChatMessagesMock,
   listDemoChatMessagesMock,
   registerDemoChatSessionMock,
   sendDemoChatMessageMock,
+  useStompOptions,
   routeState,
   searchState,
   stompState,
 } = vi.hoisted(() => ({
+  createChatSessionMock: vi.fn(),
+  createFreshChatSessionMock: vi.fn(),
+  listChatMessagesMock: vi.fn(),
   listDemoChatMessagesMock: vi.fn(),
   registerDemoChatSessionMock: vi.fn(),
   sendDemoChatMessageMock: vi.fn(),
+  useStompOptions: [] as unknown[],
   routeState: { workspaceId: "42" as string | undefined },
   searchState: { search: "" },
   stompState: {
     connectionStatus: "DISCONNECTED",
+    sendMessage: vi.fn(),
     subscribe: vi.fn(),
   },
 }));
 
 vi.mock("@/entities/chat", () => ({
+  createChatSession: createChatSessionMock,
+  createFreshChatSession: createFreshChatSessionMock,
+  listChatMessages: listChatMessagesMock,
   listDemoChatMessages: listDemoChatMessagesMock,
   registerDemoChatSession: registerDemoChatSessionMock,
   sendDemoChatMessage: sendDemoChatMessageMock,
 }));
 
 vi.mock("@/shared/lib/websocket", () => ({
-  useStomp: () => stompState,
+  useStomp: (options: unknown) => {
+    useStompOptions.push(options);
+    return stompState;
+  },
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -59,14 +74,44 @@ type DeferredChatMessage = {
   createdAt: string;
 };
 
+function seedAuthUser(name = "하나카드 데모 사용자") {
+  window.localStorage.setItem(
+    "user",
+    JSON.stringify({
+      id: 2,
+      email: "hanacard.demo@ostone.local",
+      name,
+      role: "OPERATOR",
+    }),
+  );
+}
+
 describe("UserChatPage", () => {
   beforeEach(() => {
     routeState.workspaceId = "42";
     searchState.search = "";
     window.localStorage.clear();
+    useStompOptions.length = 0;
     stompState.connectionStatus = "DISCONNECTED";
+    stompState.sendMessage.mockReset();
     stompState.subscribe.mockReset();
     stompState.subscribe.mockReturnValue(() => {});
+    createChatSessionMock.mockReset();
+    createChatSessionMock.mockResolvedValue({
+      id: 177,
+      status: "OPEN",
+      channel: "WEB",
+      startedAt: "2026-05-22T00:00:00Z",
+    });
+    createFreshChatSessionMock.mockReset();
+    createFreshChatSessionMock.mockResolvedValue({
+      id: 188,
+      status: "OPEN",
+      channel: "WEB",
+      startedAt: "2026-05-22T00:10:00Z",
+    });
+    listChatMessagesMock.mockReset();
+    listChatMessagesMock.mockResolvedValue([]);
     listDemoChatMessagesMock.mockReset();
     listDemoChatMessagesMock.mockResolvedValue([
       {
@@ -83,7 +128,15 @@ describe("UserChatPage", () => {
       id: "77",
       status: "OPEN",
       startedAt: "2026-05-22T00:00:00Z",
-      messages: [],
+      messages: [
+        {
+          id: "80",
+          sessionId: 77,
+          content: "안녕하세요, 김민지님. 무엇을 도와드릴까요?",
+          senderType: "BOT",
+          createdAt: "2026-05-22T00:00:00Z",
+        },
+      ],
     });
     sendDemoChatMessageMock.mockResolvedValue([
       {
@@ -145,12 +198,147 @@ describe("UserChatPage", () => {
     expect(screen.queryByTestId("chat-entry-screen")).toBeNull();
   });
 
+  it("workspaceId나 name 쿼리가 바뀌면 이전 세션을 버리고 새 세션을 자동 생성한다", async () => {
+    searchState.search = "name=김민지";
+    registerDemoChatSessionMock.mockReset();
+    registerDemoChatSessionMock
+      .mockResolvedValueOnce({
+        id: "77",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [],
+      })
+      .mockResolvedValueOnce({
+        id: "88",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:10:00Z",
+        messages: [],
+      });
+    listDemoChatMessagesMock.mockReset();
+    listDemoChatMessagesMock.mockImplementation((_workspaceId: number, sessionId: string) =>
+      Promise.resolve(
+        sessionId === "88"
+          ? [
+              {
+                id: "90",
+                sessionId: 88,
+                content: "이하나 세션 안내입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:10:00Z",
+              },
+            ]
+          : [
+              {
+                id: "80",
+                sessionId: 77,
+                content: "김민지 세션 안내입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:00:00Z",
+              },
+            ],
+      ),
+    );
+
+    const view = render(<UserChatPage />);
+
+    expect(await screen.findByText("김민지 세션 안내입니다.")).toBeInTheDocument();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("김민지");
+
+    routeState.workspaceId = "43";
+    searchState.search = "name=이하나";
+    view.rerender(<UserChatPage />);
+
+    await waitFor(() => {
+      expect(registerDemoChatSessionMock).toHaveBeenCalledWith(43, "이하나");
+    });
+    expect(await screen.findByText("이하나 세션 안내입니다.")).toBeInTheDocument();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #88");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("이하나");
+    expect(screen.queryByText("김민지 세션 안내입니다.")).toBeNull();
+  });
+
   it("name 쿼리 파라미터가 공백이면 이름 입력 화면으로 폴백한다", () => {
     searchState.search = "name=%20%20";
 
     render(<UserChatPage />);
 
     expect(screen.getByTestId("chat-entry-screen")).not.toBeNull();
+    expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("인증 모드는 로그인 사용자 이름으로 실제 사용자 채팅 세션을 자동 시작한다", async () => {
+    seedAuthUser();
+    listChatMessagesMock.mockResolvedValueOnce([
+      {
+        id: "201",
+        sessionId: 177,
+        content: "하나카드 상담을 시작합니다.",
+        senderType: "BOT",
+        createdAt: "2026-05-22T00:00:00Z",
+      },
+    ]);
+
+    render(<UserChatPage mode="authenticated" />);
+
+    expect(await screen.findByTestId("chat-conversation-screen")).not.toBeNull();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #177");
+    expect(screen.getByTestId("chat-header-name")).toHaveTextContent("하나카드 데모 사용자");
+    expect(await screen.findByText("하나카드 상담을 시작합니다.")).not.toBeNull();
+    expect(createChatSessionMock).toHaveBeenCalledWith(42, "하나카드 데모 사용자");
+    expect(listChatMessagesMock).toHaveBeenCalledWith(177);
+    expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
+    expect(useStompOptions[useStompOptions.length - 1]).toEqual({ includeAuth: true });
+  });
+
+  it("인증 모드는 메시지를 demo REST가 아니라 인증 WebSocket으로 전송한다", async () => {
+    seedAuthUser("하나카드 고객");
+    stompState.connectionStatus = "CONNECTED";
+
+    render(<UserChatPage mode="authenticated" />);
+
+    const input = await screen.findByLabelText("메시지 입력");
+    await waitFor(() => {
+      expect(stompState.subscribe).toHaveBeenCalledWith("/topic/chat.177", expect.any(Function));
+    });
+
+    fireEvent.change(input, { target: { value: "카드 한도 올리고 싶어요" } });
+    fireEvent.click(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(stompState.sendMessage).toHaveBeenCalledWith({
+      sessionId: 177,
+      content: "카드 한도 올리고 싶어요",
+    });
+    expect(sendDemoChatMessageMock).not.toHaveBeenCalled();
+    expect(screen.getByText("카드 한도 올리고 싶어요")).not.toBeNull();
+  });
+
+  it("인증 모드의 새 테스트 세션 시작은 실제 새 사용자 세션을 생성한다", async () => {
+    seedAuthUser("액티벤처 고객");
+    listChatMessagesMock.mockImplementation((sessionId: number) =>
+      Promise.resolve(
+        sessionId === 188
+          ? [
+              {
+                id: "301",
+                sessionId: 188,
+                content: "새 인증 테스트 세션입니다.",
+                senderType: "BOT",
+                createdAt: "2026-05-22T00:10:00Z",
+              },
+            ]
+          : [],
+      ),
+    );
+
+    render(<UserChatPage mode="authenticated" />);
+
+    expect(await screen.findByTestId("chat-conversation-screen")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "새 테스트 세션 시작" }));
+
+    expect(await screen.findByText("새 인증 테스트 세션입니다.")).not.toBeNull();
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #188");
+    expect(createFreshChatSessionMock).toHaveBeenCalledWith(42, "액티벤처 고객");
     expect(registerDemoChatSessionMock).not.toHaveBeenCalled();
   });
 
@@ -301,7 +489,7 @@ describe("UserChatPage", () => {
     const storedSession = window.localStorage.getItem(window.localStorage.key(0) ?? "");
     expect(storedSession).toContain("첫 테스트 세션입니다.");
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Failed to restart demo chat session",
+      "Failed to restart user chat session",
       expect.any(ApiRequestError),
     );
 
@@ -356,6 +544,27 @@ describe("UserChatPage", () => {
     await waitFor(() => {
       expect(window.localStorage.getItem(storageKey)).not.toContain("backend-greeting-77");
     });
+  });
+
+  it("빈 데모 저장 세션은 재사용하지 않고 greeting이 있는 새 세션을 만든다", async () => {
+    const storageKey = `ostone:demo-chat-session:42:${encodeURIComponent("김민지")}`;
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        id: "66",
+        status: "OPEN",
+        startedAt: "2026-05-22T00:00:00Z",
+        messages: [],
+      }),
+    );
+
+    render(<UserChatPage />);
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김민지" } });
+    fireEvent.click(screen.getByRole("button", { name: "미리보기 시작" }));
+
+    expect(await screen.findByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?")).not.toBeNull();
+    expect(registerDemoChatSessionMock).toHaveBeenCalledWith(42, "김민지");
+    expect(screen.getByTestId("chat-header-eyebrow")).toHaveTextContent("Session #77");
   });
 
   it("REST 응답에 봇 메시지가 있으면 최소 입력 표시 시간 이후 렌더링한다", async () => {
@@ -803,7 +1012,7 @@ describe("UserChatPage", () => {
       ).not.toBeNull();
       expect(screen.getByRole("alert")).not.toBeNull();
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to start demo chat session",
+        "Failed to start user chat session",
         expect.any(ApiRequestError),
       );
     });

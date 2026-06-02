@@ -35,6 +35,7 @@ import { Toaster } from "../shared/ui/sonner";
 import { WorkflowGraphViewerPage } from "../pages/domain-pack/ui/WorkflowGraphViewerPage";
 import { LegacyDomainPackVersionRedirect } from "../pages/domain-pack/ui/LegacyDomainPackVersionRedirect";
 import { buildDemoChatPath } from "../shared/lib/demoRoutes";
+import { buildUserChatPath } from "../shared/lib/userChatRoutes";
 
 function LegacyDemoChatRedirect() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -45,6 +46,17 @@ function LegacyDemoChatRedirect() {
   }
 
   return <Navigate to={`${buildDemoChatPath(workspaceId)}${search}`} replace />;
+}
+
+function LegacyUserChatRedirect() {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { search } = useLocation();
+
+  if (!workspaceId) {
+    return <Navigate to="/workspaces" replace />;
+  }
+
+  return <Navigate to={`${buildUserChatPath(workspaceId)}${search}`} replace />;
 }
 
 export function App() {
@@ -107,6 +119,22 @@ export function App() {
           }
         />
         <Route path="/demo/chat/:workspaceId" element={<UserChatPage />} />
+        <Route
+          path="/chat/:workspaceId"
+          element={
+            <PrivateRoute>
+              <UserChatPage mode="authenticated" />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/workspaces/:workspaceId/chat"
+          element={
+            <PrivateRoute>
+              <LegacyUserChatRedirect />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/demo/workspaces/:workspaceId/chat"
           element={<LegacyDemoChatRedirect />}

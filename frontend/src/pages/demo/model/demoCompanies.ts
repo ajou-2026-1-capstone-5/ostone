@@ -14,32 +14,32 @@ export interface DemoCompany {
 
 /**
  * Static demo roster. There is no JWT-free endpoint to list workspaces, so the
- * company↔workspace mapping is curated here. Workspace 1 is the real
- * "컴플레인 테스트 워크스페이스" with a published pack; 2/3 are themed previews.
+ * company↔workspace mapping is curated here. Workspace 1 and 2 are backed by
+ * local/dev seed runners; workspace 3 remains a fixture-only preview.
  */
 export const DEMO_COMPANIES: DemoCompany[] = [
   {
     workspaceId: 1,
-    name: "컴플레인 테스트 워크스페이스",
-    industry: "리테일 · CS 운영",
+    name: "액티벤처 여행 상담",
+    industry: "여행 · 예약",
     blurb:
-      "환불 · 배송 상담 도메인 팩이 운영 중인 워크스페이스입니다. 컴플레인을 거는 고객 시나리오를 바로 체험할 수 있습니다.",
-    focusChips: ["환불 요청", "배송 조회", "고액 환불 리스크"],
+      "항공권, 예약 취소·환불, 픽업 차량 상담 도메인팩이 운영 중인 워크스페이스입니다. 액티벤처 고객 시나리오를 바로 체험할 수 있습니다.",
+    focusChips: ["항공권 문의", "예약 취소·환불", "픽업 차량"],
     enabled: true,
   },
   {
     workspaceId: 2,
-    name: "카드 이용내역 조회 상담",
+    name: "하나카드 카드 상담",
     industry: "카드 · 금융",
     blurb:
-      "카드 이용내역 및 승인 내역 확인 상담 도메인 팩 데모입니다. 라이브 상담은 곧 준비됩니다.",
-    focusChips: ["이용내역 조회", "본인 확인"],
-    enabled: false,
+      "하나카드 상담 로그 100건에서 추출한 카드 상담 도메인팩입니다. 분실 신고, 이용내역, 선결제, 카드론 상담을 체험할 수 있습니다.",
+    focusChips: ["분실 신고", "이용내역 확인", "선결제·카드론"],
+    enabled: true,
   },
   {
     workspaceId: 3,
-    name: "여행 숙소 예약 상담",
-    industry: "여행 · 예약",
+    name: "인디고발리 숙소 예약",
+    industry: "숙소 · 예약",
     blurb:
       "리조트 객실 예약 가능 여부 및 예약 진행 상담 도메인 팩 데모입니다. 라이브 상담은 곧 준비됩니다.",
     focusChips: ["객실 예약", "프로모션 확인"],

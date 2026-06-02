@@ -4,6 +4,10 @@ import { getAccessToken } from "@/shared/lib/auth";
 const DEFAULT_WS_URL = "ws://localhost:8080";
 const API_BASE_SUFFIX = "/api/v1";
 
+export interface CreateStompClientOptions {
+  includeAuth?: boolean;
+}
+
 function normalizeWsUrl(url: string): string {
   return url
     .replace(/^https:\/\//, "wss://")
@@ -27,7 +31,8 @@ function resolveWsUrlFromApiBase(): string | undefined {
     : apiBaseUrl;
 }
 
-export function createStompClient(): Client {
+export function createStompClient(options: CreateStompClientOptions = {}): Client {
+  const includeAuth = options.includeAuth ?? true;
   const client = new Client({
     brokerURL: `${getWebSocketBaseUrl()}/ws/chat`,
     reconnectDelay: 5000,
@@ -35,6 +40,10 @@ export function createStompClient(): Client {
     heartbeatOutgoing: 10000,
   });
   client.beforeConnect = () => {
+    if (!includeAuth) {
+      client.connectHeaders = {};
+      return;
+    }
     const token = getAccessToken();
     client.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
   };

@@ -18,6 +18,7 @@ export interface UseStompResult {
 
 export interface UseStompOptions {
   onServerError?: (error: unknown) => void;
+  includeAuth?: boolean;
 }
 
 const parseMessageBody = (body: string): unknown | null => {
@@ -29,6 +30,7 @@ const parseMessageBody = (body: string): unknown | null => {
 };
 
 export function useStomp(options: UseStompOptions = {}): UseStompResult {
+  const includeAuth = options.includeAuth;
   const clientRef = useRef<Client | null>(null);
   const errorSubscriptionRef = useRef<StompSubscription | null>(null);
   const desiredSubscriptionsRef = useRef<Map<string, (msg: unknown) => void>>(new Map());
@@ -64,16 +66,22 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     [],
   );
 
-  const disconnect = useCallback(() => {
+  const disconnectInternal = useCallback((clearDesiredSubscriptions: boolean) => {
     errorSubscriptionRef.current?.unsubscribe();
     errorSubscriptionRef.current = null;
     unsubscribeActiveSubscriptions();
-    desiredSubscriptionsRef.current.clear();
+    if (clearDesiredSubscriptions) {
+      desiredSubscriptionsRef.current.clear();
+    }
     clientRef.current?.deactivate();
     clientRef.current = null;
     connectionStatusRef.current = "DISCONNECTED";
     setConnectionStatus("DISCONNECTED");
   }, [unsubscribeActiveSubscriptions]);
+
+  const disconnect = useCallback(() => {
+    disconnectInternal(true);
+  }, [disconnectInternal]);
 
   const connect = useCallback(() => {
     if (
@@ -84,7 +92,7 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     }
     if (clientRef.current?.connected) return;
 
-    const client = createStompClient();
+    const client = createStompClient({ includeAuth });
     clientRef.current = client;
     connectionStatusRef.current = "CONNECTING";
     setConnectionStatus("CONNECTING");
@@ -135,7 +143,7 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     };
 
     client.activate();
-  }, [subscribeActiveTopic, unsubscribeActiveSubscriptions]);
+  }, [includeAuth, subscribeActiveTopic, unsubscribeActiveSubscriptions]);
 
   const sendMessage = useCallback((message: unknown) => {
     const client = clientRef.current;
@@ -184,9 +192,9 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
     void scheduleConnect();
     return () => {
       isMounted = false;
-      disconnect();
+      disconnectInternal(false);
     };
-  }, [connect, disconnect]);
+  }, [connect, disconnectInternal]);
 
   return { connectionStatus, sendMessage, connect, disconnect, subscribe, sendTo };
 }

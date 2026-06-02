@@ -82,6 +82,22 @@ describe("App", () => {
     });
   });
 
+  it("redirects legacy authenticated workspace chat URLs to the user chat URL", async () => {
+    seedAuthenticatedSession();
+    window.history.pushState({}, "", "/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
+
+    render(
+      <AppProviders>
+        <App />
+      </AppProviders>,
+    );
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/chat/42");
+      expect(window.location.search).toBe("?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
+    });
+  });
+
   it("redirects workspace home alias to workflows and renders the empty workflow state when there are no domain packs", async () => {
     seedAuthenticatedSession();
 

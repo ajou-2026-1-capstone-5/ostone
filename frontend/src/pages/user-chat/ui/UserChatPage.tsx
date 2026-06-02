@@ -1,11 +1,14 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
+  createChatSession,
+  createFreshChatSession,
+  listChatMessages,
   listDemoChatMessages,
   registerDemoChatSession,
   sendDemoChatMessage,
 } from "@/entities/chat";
-import type { ChatMessage, DemoChatSession } from "@/entities/chat";
+import type { ChatMessage, ChatSession, DemoChatSession } from "@/entities/chat";
 import {
   isRealtimeChatMessage,
   mergeMessages,
@@ -14,6 +17,7 @@ import {
   withCustomerNames,
 } from "@/entities/chat/lib/chatMessageSync";
 import { ApiRequestError } from "@/shared/api";
+import { getAuthUser } from "@/shared/lib/auth";
 import { useStomp } from "@/shared/lib/websocket";
 import { ChatConversationScreen } from "./ChatConversationScreen";
 import { ChatEntryScreen } from "./ChatEntryScreen";
@@ -38,12 +42,24 @@ function resolveMessageSendErrorMessage(error: unknown): string {
 }
 
 const DEMO_SESSION_STORAGE_PREFIX = "ostone:demo-chat-session";
+const AUTH_SESSION_STORAGE_PREFIX = "ostone:user-chat-session";
 const LOCAL_USER_MESSAGE_PREFIX = "local-user-";
 const BOT_TYPING_MIN_MS = 1000;
 
-function createStorageKey(workspaceId: number, customerName: string): string {
+export type UserChatPageMode = "demo" | "authenticated";
+
+interface UserChatPageProps {
+  mode?: UserChatPageMode;
+}
+
+function createStorageKey(
+  mode: UserChatPageMode,
+  workspaceId: number,
+  customerName: string,
+): string {
   const normalizedName = customerName.trim().toLowerCase();
-  return `${DEMO_SESSION_STORAGE_PREFIX}:${workspaceId}:${encodeURIComponent(normalizedName)}`;
+  const prefix = mode === "demo" ? DEMO_SESSION_STORAGE_PREFIX : AUTH_SESSION_STORAGE_PREFIX;
+  return `${prefix}:${workspaceId}:${encodeURIComponent(normalizedName)}`;
 }
 
 function isDemoChatSession(value: unknown): value is DemoChatSession {
@@ -144,61 +160,119 @@ function mergeRealtimeMessage(
     : mergeMessages(currentMessages, [realtimeMessage]);
 }
 
-function readStoredSession(workspaceId: number, customerName: string): DemoChatSession | null {
+function toDemoChatSession(session: ChatSession): DemoChatSession {
+  return {
+    id: String(session.id),
+    status: session.status,
+    startedAt: session.startedAt,
+    messages: [],
+  };
+}
+
+function resolveInitialCustomerName(
+  mode: UserChatPageMode,
+  nameParam: string | null,
+): string | null {
+  const queryName = nameParam?.trim();
+  if (queryName) return queryName;
+  if (mode !== "authenticated") return null;
+  const userName = getAuthUser()?.name?.trim();
+  return userName ? userName : null;
+}
+
+function readStoredSession(
+  mode: UserChatPageMode,
+  workspaceId: number,
+  customerName: string,
+): DemoChatSession | null {
   if (typeof window === "undefined") return null;
 
-  const raw = window.localStorage.getItem(createStorageKey(workspaceId, customerName));
+  const raw = window.localStorage.getItem(createStorageKey(mode, workspaceId, customerName));
   if (!raw) return null;
 
   try {
     const parsed = JSON.parse(raw) as unknown;
-    return isDemoChatSession(parsed) && isBackendRegisteredSession(parsed) ? parsed : null;
+    if (!isDemoChatSession(parsed) || !isBackendRegisteredSession(parsed)) {
+      return null;
+    }
+    if (mode === "demo" && parsed.messages.length === 0) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
 }
 
 function writeStoredSession(
+  mode: UserChatPageMode,
   workspaceId: number,
   customerName: string,
   session: DemoChatSession,
 ): void {
   if (typeof window === "undefined") return;
 
-  window.localStorage.setItem(createStorageKey(workspaceId, customerName), JSON.stringify(session));
+  window.localStorage.setItem(
+    createStorageKey(mode, workspaceId, customerName),
+    JSON.stringify(session),
+  );
 }
 
 async function getOrCreateStoredSession(
+  mode: UserChatPageMode,
   workspaceId: number,
   customerName: string,
 ): Promise<DemoChatSession> {
-  const storedSession = readStoredSession(workspaceId, customerName);
+  if (mode === "authenticated") {
+    const nextSession = toDemoChatSession(await createChatSession(workspaceId, customerName));
+    writeStoredSession(mode, workspaceId, customerName, nextSession);
+    return nextSession;
+  }
+
+  const storedSession = readStoredSession(mode, workspaceId, customerName);
   if (storedSession) return storedSession;
 
   const nextSession = await registerDemoChatSession(workspaceId, customerName);
-  writeStoredSession(workspaceId, customerName, nextSession);
+  writeStoredSession(mode, workspaceId, customerName, nextSession);
   return nextSession;
 }
 
 async function createFreshStoredSession(
+  mode: UserChatPageMode,
   workspaceId: number,
   customerName: string,
 ): Promise<DemoChatSession> {
-  const nextSession = await registerDemoChatSession(workspaceId, customerName);
-  writeStoredSession(workspaceId, customerName, nextSession);
+  const nextSession =
+    mode === "authenticated"
+      ? toDemoChatSession(await createFreshChatSession(workspaceId, customerName))
+      : await registerDemoChatSession(workspaceId, customerName);
+  writeStoredSession(mode, workspaceId, customerName, nextSession);
   return nextSession;
 }
 
-export function UserChatPage() {
+async function listMessagesForMode(
+  mode: UserChatPageMode,
+  workspaceId: number,
+  sessionId: string,
+): Promise<ChatMessage[]> {
+  if (mode === "authenticated") {
+    const numericSessionId = tryParseDemoSessionId(sessionId);
+    if (numericSessionId == null) return [];
+    return listChatMessages(numericSessionId);
+  }
+  return listDemoChatMessages(workspaceId, sessionId);
+}
+
+export function UserChatPage({ mode = "demo" }: UserChatPageProps) {
   const { workspaceId: raw } = useParams<{ workspaceId: string }>();
   const workspaceId = Number(raw);
   const [searchParams] = useSearchParams();
   const nameParam = searchParams.get("name");
-  const { connectionStatus, subscribe } = useStomp();
-  const [draftName, setDraftName] = useState("");
+  const isDemoMode = mode === "demo";
+  const { connectionStatus, sendMessage, subscribe } = useStomp({ includeAuth: !isDemoMode });
+  const [draftName, setDraftName] = useState(() => resolveInitialCustomerName(mode, nameParam) ?? "");
   const [customerName, setCustomerName] = useState<string | null>(() => {
-    const initialName = nameParam?.trim();
-    return initialName ? initialName : null;
+    return resolveInitialCustomerName(mode, nameParam);
   });
   const [nameError, setNameError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -252,6 +326,21 @@ export function UserChatPage() {
     setBotTyping(false);
   }, [clearBotTypingTimeout, setBotTyping]);
 
+  useEffect(() => {
+    const initialName = resolveInitialCustomerName(mode, nameParam);
+    nameRequestIdRef.current += 1;
+    sendRequestIdRef.current += 1;
+    autoStartedRef.current = false;
+    activeConversationRef.current = { sessionId: null, customerName: initialName };
+    setDraftName(initialName ?? "");
+    setCustomerName(initialName);
+    setNameError(null);
+    setMessageError(null);
+    setIsSending(false);
+    stopBotTyping();
+    setChatState({ workspaceId: null, customerName: null, session: null, error: null });
+  }, [mode, raw, nameParam, stopBotTyping]);
+
   const appendRealtimeMessages = useCallback(
     (nextMessages: ChatMessage[]) => {
       if (!activeSessionId || !customerName || nextMessages.length === 0) return;
@@ -268,7 +357,7 @@ export function UserChatPage() {
             current.session.messages,
           ),
         };
-        writeStoredSession(workspaceId, customerName, {
+        writeStoredSession(mode, workspaceId, customerName, {
           ...nextSession,
           messages: withoutLocalUserMessages(nextSession.messages),
         });
@@ -278,7 +367,7 @@ export function UserChatPage() {
         };
       });
     },
-    [activeSessionId, customerName, workspaceId],
+    [activeSessionId, customerName, mode, workspaceId],
   );
 
   const flushPendingBotMessages = useCallback(() => {
@@ -333,11 +422,11 @@ export function UserChatPage() {
       setCustomerName(nextName);
       setChatState({ workspaceId, customerName: nextName, session: null, error: null });
       try {
-        const nextSession = await getOrCreateStoredSession(workspaceId, nextName);
+        const nextSession = await getOrCreateStoredSession(mode, workspaceId, nextName);
         if (requestId !== nameRequestIdRef.current) return;
         setChatState({ workspaceId, customerName: nextName, session: nextSession, error: null });
       } catch (error) {
-        console.error("Failed to start demo chat session", error);
+        console.error("Failed to start user chat session", error);
         if (requestId !== nameRequestIdRef.current) return;
         setChatState({
           workspaceId,
@@ -347,7 +436,7 @@ export function UserChatPage() {
         });
       }
     },
-    [workspaceId],
+    [mode, workspaceId],
   );
 
   const handleNameSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -357,11 +446,11 @@ export function UserChatPage() {
 
   useEffect(() => {
     if (autoStartedRef.current || isInvalidWorkspace) return;
-    const trimmedName = nameParam?.trim();
+    const trimmedName = resolveInitialCustomerName(mode, nameParam);
     if (!trimmedName) return;
     autoStartedRef.current = true;
     void startSession(trimmedName);
-  }, [nameParam, isInvalidWorkspace, startSession]);
+  }, [mode, nameParam, isInvalidWorkspace, startSession]);
 
   const handleStartNewSession = async () => {
     if (!customerName) return;
@@ -372,11 +461,11 @@ export function UserChatPage() {
     setChatState({ workspaceId, customerName, session: null, error: null });
 
     try {
-      const nextSession = await createFreshStoredSession(workspaceId, customerName);
+      const nextSession = await createFreshStoredSession(mode, workspaceId, customerName);
       if (requestId !== nameRequestIdRef.current) return;
       setChatState({ workspaceId, customerName, session: nextSession, error: null });
     } catch (error) {
-      console.error("Failed to restart demo chat session", error);
+      console.error("Failed to restart user chat session", error);
       if (requestId !== nameRequestIdRef.current) return;
       setChatState({
         workspaceId,
@@ -426,19 +515,23 @@ export function UserChatPage() {
     });
 
     try {
-      const responseMessages = withCustomerNames(
-        await sendDemoChatMessage(workspaceId, requestSessionId, content),
-        requestCustomerName,
-      );
-      if (!isCurrentConversation(requestSessionId, requestCustomerName)) return;
+      if (isDemoMode) {
+        const responseMessages = withCustomerNames(
+          await sendDemoChatMessage(workspaceId, requestSessionId, content),
+          requestCustomerName,
+        );
+        if (!isCurrentConversation(requestSessionId, requestCustomerName)) return;
 
-      const botMessages = responseMessages.filter(isBotMessage);
-      appendRealtimeMessages(responseMessages.filter((message) => !isBotMessage(message)));
+        const botMessages = responseMessages.filter(isBotMessage);
+        appendRealtimeMessages(responseMessages.filter((message) => !isBotMessage(message)));
 
-      if (botMessages.length > 0) {
-        botMessages.forEach(queueBotMessage);
+        if (botMessages.length > 0) {
+          botMessages.forEach(queueBotMessage);
+        } else {
+          stopBotTyping();
+        }
       } else {
-        stopBotTyping();
+        sendMessage({ sessionId: numericSessionId, content });
       }
     } catch (error) {
       setChatState((current) => {
@@ -476,7 +569,7 @@ export function UserChatPage() {
 
     const syncMessages = async () => {
       try {
-        const persistedMessages = await listDemoChatMessages(workspaceId, activeSessionId);
+        const persistedMessages = await listMessagesForMode(mode, workspaceId, activeSessionId);
         if (cancelled) return;
         const namedMessages = withCustomerNames(persistedMessages, customerName);
         setChatState((current) => {
@@ -491,7 +584,7 @@ export function UserChatPage() {
             ...current.session,
             messages: nextMessages,
           };
-          writeStoredSession(workspaceId, customerName, {
+          writeStoredSession(mode, workspaceId, customerName, {
             ...nextSession,
             messages: namedMessages,
           });
@@ -510,7 +603,7 @@ export function UserChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeSessionId, customerName, workspaceId]);
+  }, [activeSessionId, customerName, mode, workspaceId]);
 
   useEffect(() => {
     if (!activeSessionId || !customerName || connectionStatus !== "CONNECTED") return;

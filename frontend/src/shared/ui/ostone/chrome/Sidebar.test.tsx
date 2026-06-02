@@ -78,7 +78,7 @@ describe("Sidebar", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
     expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
-    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo/chat/7");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByTitle("도메인팩 관리")).toHaveAttribute(
@@ -87,10 +87,10 @@ describe("Sidebar", () => {
     );
   });
 
-  it("workspaceId를 추출할 수 없으면 사용자 화면 미리보기 링크를 안전한 내부 경로로 보낸다", () => {
+  it("workspaceId를 추출할 수 없어도 사용자 화면 미리보기는 데모 선택 화면으로 보낸다", () => {
     renderSidebar({ basePath: "/workspaces" });
 
-    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/workspaces");
+    expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
   });
 
   it("외부 링크(사용자 화면 미리보기)에만 새 탭 안내 아이콘을 표시한다", () => {

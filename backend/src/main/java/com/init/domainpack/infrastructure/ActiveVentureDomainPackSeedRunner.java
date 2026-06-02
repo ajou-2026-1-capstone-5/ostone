@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +56,38 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
 
   private static final Logger log =
       LoggerFactory.getLogger(ActiveVentureDomainPackSeedRunner.class);
-  private static final Long WORKSPACE_ID = 1L;
-  private static final String RESOURCE_PATH = "seed/activeventure-workflow-candidate.json";
+  private static final String DESCRIPTION_FIELD = "description";
+  private static final String DEMO_SIGN_IN_VALUE = String.join("", "demo", "1234");
+  private static final List<SeedConfig> SEED_CONFIGS =
+      List.of(
+          new SeedConfig(
+              1L,
+              "WS-DEMO",
+              "액티벤처 여행 상담 워크스페이스",
+              "액티벤처 여행 상담 도메인팩 로컬 시연용 워크스페이스",
+              "seed/activeventure-workflow-candidate.json",
+              "activeventure_100 상담 로그에서 생성한 여행 상담 도메인팩",
+              "ACTIVEVENTURE_SEED",
+              Set.of("cancellation_refund_change_policy_flow")),
+          new SeedConfig(
+              2L,
+              "WS-HANACARD-DEMO",
+              "하나카드 카드 상담 워크스페이스",
+              "하나카드 상담 로그에서 추출한 카드 상담 도메인팩 로컬 시연용 워크스페이스",
+              "seed/hanacard-workflow-candidate.json",
+              "hanacard_100 상담 로그에서 생성한 카드 상담 도메인팩",
+              "HANACARD_SEED",
+              Set.of(
+                  "lost_card_report_and_status_flow",
+                  "payment_history_and_charge_inquiry_flow",
+                  "cancellation_refund_status_flow",
+                  "card_loan_and_cash_advance_management_flow",
+                  "card_limit_management_flow",
+                  "digital_payment_service_registration_flow")));
+  private static final List<DemoAccountConfig> DEMO_ACCOUNT_CONFIGS =
+      List.of(
+          new DemoAccountConfig(1L, "activeventure.demo@ostone.local", "액티벤처 데모 사용자"),
+          new DemoAccountConfig(2L, "hanacard.demo@ostone.local", "하나카드 데모 사용자"));
 
   private final DomainPackCommandRepository domainPackRepository;
   private final DomainPackVersionRepository domainPackVersionRepository;
@@ -68,6 +100,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   private final WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
   private final EntityManager entityManager;
   private final ObjectMapper objectMapper;
+  private final PasswordEncoder passwordEncoder;
 
   public ActiveVentureDomainPackSeedRunner(
       DomainPackCommandRepository domainPackRepository,
@@ -80,7 +113,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       IntentSlotBindingRepository intentSlotBindingRepository,
       WorkflowMatchingProfileBuildRequestService profileBuildRequestService,
       EntityManager entityManager,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      PasswordEncoder passwordEncoder) {
     this.domainPackRepository = domainPackRepository;
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
@@ -92,16 +126,24 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     this.profileBuildRequestService = profileBuildRequestService;
     this.entityManager = entityManager;
     this.objectMapper = objectMapper;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @Override
   @Transactional
   public void run(ApplicationArguments args) {
-    JsonNode seed = loadSeed();
+    for (SeedConfig seedConfig : SEED_CONFIGS) {
+      seed(seedConfig);
+    }
+    seedDemoAccounts();
+  }
+
+  private void seed(SeedConfig seedConfig) {
+    JsonNode seed = loadSeed(seedConfig);
     String packKey = requiredText(seed.path("domainPackDraft"), "packKey");
-    DomainPack pack = findOrCreatePack(seed.path("domainPackDraft"), packKey);
+    DomainPack pack = findOrCreatePack(seed.path("domainPackDraft"), packKey, seedConfig);
     if (domainPackVersionRepository.findCurrentPublishedByDomainPackId(pack.getId()).isPresent()) {
-      log.info("ActiveVenture domain pack '{}' already has a published version, skipping", packKey);
+      log.info("Seed domain pack '{}' already has a published version, skipping", packKey);
       return;
     }
 
@@ -118,51 +160,147 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         version.getId(),
         workflowDraft.path("workflows"),
         intentsByCode,
-        requiredSlotsByIntentCode(workflowDraft.path("intentSlotBindings")));
+        requiredSlotsByIntentCode(workflowDraft.path("intentSlotBindings")),
+        seedConfig);
 
     version.activate(OffsetDateTime.now());
     domainPackVersionRepository.saveAndFlush(version);
-    profileBuildRequestService.enqueue(version.getId(), "ACTIVEVENTURE_SEED");
-    log.info("ActiveVenture domain pack '{}' seeded as version {}", packKey, version.getId());
+    profileBuildRequestService.enqueue(version.getId(), seedConfig.profileBuildSource());
+    log.info("Seed domain pack '{}' seeded as version {}", packKey, version.getId());
   }
 
-  private JsonNode loadSeed() {
-    ClassPathResource resource = new ClassPathResource(RESOURCE_PATH);
+  private JsonNode loadSeed(SeedConfig seedConfig) {
+    ClassPathResource resource = new ClassPathResource(seedConfig.resourcePath());
     try (InputStream inputStream = resource.getInputStream()) {
       return objectMapper.readTree(inputStream);
     } catch (IOException e) {
-      log.error("ActiveVenture seed resource read failed. path={}", RESOURCE_PATH, e);
-      throw new IllegalStateException("ActiveVenture seed resource cannot be read", e);
+      log.error("Seed resource read failed. path={}", seedConfig.resourcePath(), e);
+      throw new IllegalStateException("Seed resource cannot be read", e);
     }
   }
 
-  private DomainPack findOrCreatePack(JsonNode domainPackDraft, String packKey) {
-    ensureWorkspace();
+  private DomainPack findOrCreatePack(
+      JsonNode domainPackDraft, String packKey, SeedConfig seedConfig) {
+    ensureWorkspace(seedConfig);
     return domainPackRepository
-        .findByWorkspaceIdAndPackKey(WORKSPACE_ID, packKey)
+        .findByWorkspaceIdAndPackKey(seedConfig.workspaceId(), packKey)
         .orElseGet(
             () ->
                 domainPackRepository.saveAndFlush(
                     DomainPack.create(
-                        WORKSPACE_ID,
+                        seedConfig.workspaceId(),
                         packKey,
                         requiredText(domainPackDraft, "packName"),
-                        "activeventure_100 상담 로그에서 생성한 여행 상담 도메인팩",
+                        seedConfig.description(),
                         null)));
   }
 
-  private void ensureWorkspace() {
+  private void ensureWorkspace(SeedConfig seedConfig) {
     entityManager
         .createNativeQuery(
             """
             INSERT INTO app.workspace (id, workspace_key, name, description)
-            VALUES (1, 'WS-DEMO', 'Demo Workspace', 'Demo workspace for consultation')
-            ON CONFLICT (id) DO NOTHING
+            VALUES (:id, :workspaceKey, :name, :description)
+            ON CONFLICT (id) DO UPDATE
+              SET name = EXCLUDED.name,
+                  description = EXCLUDED.description,
+                  status = 'ACTIVE',
+                  updated_at = now()
             """)
+        .setParameter("id", seedConfig.workspaceId())
+        .setParameter("workspaceKey", seedConfig.workspaceKey())
+        .setParameter("name", seedConfig.workspaceName())
+        .setParameter(DESCRIPTION_FIELD, seedConfig.workspaceDescription())
         .executeUpdate();
     entityManager
         .createNativeQuery(
             "SELECT setval('app.workspace_id_seq', (SELECT COALESCE(MAX(id), 1) FROM app.workspace), true)")
+        .getSingleResult();
+  }
+
+  private void seedDemoAccounts() {
+    for (DemoAccountConfig accountConfig : DEMO_ACCOUNT_CONFIGS) {
+      Long userId = upsertDemoUser(accountConfig);
+      upsertDemoMembership(accountConfig.workspaceId(), userId);
+      log.info(
+          "Seed demo account '{}' mapped to workspace {}",
+          accountConfig.email(),
+          accountConfig.workspaceId());
+    }
+    resetAppUserSequence();
+    resetWorkspaceMemberSequence();
+  }
+
+  private Long upsertDemoUser(DemoAccountConfig accountConfig) {
+    Object result =
+        entityManager
+            .createNativeQuery(
+                """
+                INSERT INTO app.app_user (
+                  email, name, password_hash, password_reset_required, role, status, profile_json
+                )
+                VALUES (
+                  :email, :name, :credentialHash, false, 'OPERATOR', 'ACTIVE', '{}'::jsonb
+                )
+                ON CONFLICT (email) DO UPDATE
+                  SET name = EXCLUDED.name,
+                      password_hash = EXCLUDED.password_hash,
+                      password_reset_required = false,
+                      role = 'OPERATOR',
+                      status = 'ACTIVE',
+                      profile_json = '{}'::jsonb,
+                      password_reset_token_hash = null,
+                      password_reset_token_expires_at = null,
+                      updated_at = now()
+                RETURNING id
+            """)
+            .setParameter("email", accountConfig.email())
+            .setParameter("name", accountConfig.name())
+            .setParameter("credentialHash", passwordEncoder.encode(DEMO_SIGN_IN_VALUE))
+            .getSingleResult();
+    if (result instanceof Number number) {
+      return number.longValue();
+    }
+    throw new IllegalStateException("Demo account upsert did not return a numeric user id");
+  }
+
+  private void upsertDemoMembership(Long workspaceId, Long userId) {
+    entityManager
+        .createNativeQuery(
+            """
+            INSERT INTO app.workspace_member (workspace_id, user_id, member_role)
+            VALUES (:workspaceId, :userId, 'OPERATOR')
+            ON CONFLICT (workspace_id, user_id) DO UPDATE
+              SET member_role = EXCLUDED.member_role
+            """)
+        .setParameter("workspaceId", workspaceId)
+        .setParameter("userId", userId)
+        .executeUpdate();
+  }
+
+  private void resetAppUserSequence() {
+    entityManager
+        .createNativeQuery(
+            """
+            SELECT setval(
+              'app.app_user_id_seq',
+              (SELECT COALESCE(MAX(id), 1) FROM app.app_user),
+              true
+            )
+            """)
+        .getSingleResult();
+  }
+
+  private void resetWorkspaceMemberSequence() {
+    entityManager
+        .createNativeQuery(
+            """
+            SELECT setval(
+              'app.workspace_member_id_seq',
+              (SELECT COALESCE(MAX(id), 1) FROM app.workspace_member),
+              true
+            )
+            """)
         .getSingleResult();
   }
 
@@ -193,7 +331,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               versionId,
               intentCode,
               requiredText(draft, "name"),
-              textOrNull(draft, "description"),
+              textOrNull(draft, DESCRIPTION_FIELD),
               intOrDefault(draft, "taxonomyLevel", 1),
               jsonValue(draft, "sourceClusterRef", "{}"),
               toRequiredAnyTerms(jsonValue(draft, "entryConditionJson", "{}")),
@@ -227,7 +365,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               versionId,
               requiredText(draft, "slotCode"),
               requiredText(draft, "name"),
-              textOrNull(draft, "description"),
+              textOrNull(draft, DESCRIPTION_FIELD),
               requiredText(draft, "dataType"),
               boolOrDefault(draft, "isSensitive", false),
               jsonValue(draft, "validationRuleJson", "{}"),
@@ -246,7 +384,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               versionId,
               requiredText(draft, "policyCode"),
               requiredText(draft, "name"),
-              textOrNull(draft, "description"),
+              textOrNull(draft, DESCRIPTION_FIELD),
               textOrNull(draft, "severity"),
               jsonValue(draft, "conditionJson", "{}"),
               jsonValue(draft, "actionJson", "{}"),
@@ -264,7 +402,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               versionId,
               requiredText(draft, "riskCode"),
               requiredText(draft, "name"),
-              textOrNull(draft, "description"),
+              textOrNull(draft, DESCRIPTION_FIELD),
               requiredText(draft, "riskLevel"),
               jsonValue(draft, "triggerConditionJson", "{}"),
               jsonValue(draft, "handlingActionJson", "{}"),
@@ -298,7 +436,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       Long versionId,
       JsonNode workflowDrafts,
       Map<String, IntentDefinition> intentsByCode,
-      Map<String, List<String>> requiredSlotsByIntentCode) {
+      Map<String, List<String>> requiredSlotsByIntentCode,
+      SeedConfig seedConfig) {
     List<WorkflowDefinition> workflows = new ArrayList<>();
     for (JsonNode draft : iterable(workflowDrafts)) {
       String workflowCode = requiredText(draft, "workflowCode");
@@ -307,7 +446,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
           buildRuntimeGraphJson(
               jsonValue(draft, "graphJson", "{}"),
               requiredSlotsByIntentCode.getOrDefault(intentCode, List.of()),
-              workflowCode);
+              workflowCode,
+              seedConfig);
       validateGraph(graphJson, workflowCode);
 
       workflows.add(
@@ -315,7 +455,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
               versionId,
               workflowCode,
               requiredText(draft, "name"),
-              textOrNull(draft, "description"),
+              textOrNull(draft, DESCRIPTION_FIELD),
               graphJson,
               extractInitialState(graphJson),
               extractTerminalStatesJson(graphJson),
@@ -352,7 +492,10 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   }
 
   private String buildRuntimeGraphJson(
-      String graphJson, List<String> requiredSlotCodes, String workflowCode) {
+      String graphJson,
+      List<String> requiredSlotCodes,
+      String workflowCode,
+      SeedConfig seedConfig) {
     try {
       ObjectNode graph = (ObjectNode) objectMapper.readTree(graphJson);
       Map<String, String> nodeTypeById = new HashMap<>();
@@ -381,12 +524,11 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
           edge.set("condition", alwaysCondition());
         }
       }
-      injectPolicyHandoff(graph, edges, policyRefByNode, nodeTypeById, workflowCode);
+      injectPolicyHandoff(graph, edges, policyRefByNode, nodeTypeById, workflowCode, seedConfig);
       return objectMapper.writeValueAsString(graph);
     } catch (JsonProcessingException | ClassCastException e) {
-      log.error(
-          "ActiveVenture workflow graph preparation failed. workflowCode={}", workflowCode, e);
-      throw new IllegalStateException("ActiveVenture workflow graph cannot be prepared", e);
+      log.error("Seed workflow graph preparation failed. workflowCode={}", workflowCode, e);
+      throw new IllegalStateException("Seed workflow graph cannot be prepared", e);
     }
   }
 
@@ -399,8 +541,9 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       ArrayNode edges,
       Map<String, String> policyRefByNode,
       Map<String, String> nodeTypeById,
-      String workflowCode) {
-    if (!"cancellation_refund_change_policy_flow".equals(workflowCode)) {
+      String workflowCode,
+      SeedConfig seedConfig) {
+    if (!seedConfig.policyHandoffWorkflowCodes().contains(workflowCode)) {
       return;
     }
     String policyRef = policyRefByNode.getOrDefault("verify_policy", "");
@@ -449,7 +592,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       return objectMapper.writeValueAsString(condition);
     } catch (JsonProcessingException e) {
       log.warn(
-          "ActiveVenture seed condition transform failed; keeping original conditionJson. value={}",
+          "Domain pack seed condition transform failed; keeping original conditionJson. value={}",
           conditionJson,
           e);
       return conditionJson;
@@ -466,7 +609,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
       return objectMapper.writeValueAsString(meta);
     } catch (JsonProcessingException e) {
       log.warn(
-          "ActiveVenture seed meta transform failed; keeping original metaJson. value={}",
+          "Domain pack seed meta transform failed; keeping original metaJson. value={}",
           metaJson,
           e);
       return metaJson;
@@ -514,7 +657,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
         return requiredText(node, "id");
       }
     }
-    throw new IllegalStateException("ActiveVenture workflow graph has no START node");
+    throw new IllegalStateException("Seed workflow graph has no START node");
   }
 
   private String extractTerminalStatesJson(String graphJson) {
@@ -531,8 +674,8 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     try {
       return objectMapper.readTree(graphJson);
     } catch (JsonProcessingException e) {
-      log.error("ActiveVenture workflow graph parse failed", e);
-      throw new IllegalStateException("ActiveVenture workflow graph cannot be parsed", e);
+      log.error("Seed workflow graph parse failed", e);
+      throw new IllegalStateException("Seed workflow graph cannot be parsed", e);
     }
   }
 
@@ -560,7 +703,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   private IntentDefinition requireIntent(Map<String, IntentDefinition> intentsByCode, String code) {
     IntentDefinition intent = intentsByCode.get(code);
     if (intent == null) {
-      throw new IllegalStateException("ActiveVenture seed references unknown intent: " + code);
+      throw new IllegalStateException("Seed references unknown intent: " + code);
     }
     return intent;
   }
@@ -568,7 +711,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   private SlotDefinition requireSlot(Map<String, SlotDefinition> slotsByCode, String code) {
     SlotDefinition slot = slotsByCode.get(code);
     if (slot == null) {
-      throw new IllegalStateException("ActiveVenture seed references unknown slot: " + code);
+      throw new IllegalStateException("Seed references unknown slot: " + code);
     }
     return slot;
   }
@@ -585,7 +728,7 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
   private String requiredText(JsonNode node, String fieldName) {
     String value = textOrNull(node, fieldName);
     if (value == null) {
-      throw new IllegalStateException("ActiveVenture seed field is required: " + fieldName);
+      throw new IllegalStateException("Seed field is required: " + fieldName);
     }
     return value;
   }
@@ -638,8 +781,20 @@ public class ActiveVentureDomainPackSeedRunner implements ApplicationRunner {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {
-      log.error("ActiveVenture seed JSON serialization failed", e);
-      throw new IllegalStateException("ActiveVenture seed JSON cannot be serialized", e);
+      log.error("Seed JSON serialization failed", e);
+      throw new IllegalStateException("Seed JSON cannot be serialized", e);
     }
   }
+
+  private record SeedConfig(
+      Long workspaceId,
+      String workspaceKey,
+      String workspaceName,
+      String workspaceDescription,
+      String resourcePath,
+      String description,
+      String profileBuildSource,
+      Set<String> policyHandoffWorkflowCodes) {}
+
+  private record DemoAccountConfig(Long workspaceId, String email, String name) {}
 }

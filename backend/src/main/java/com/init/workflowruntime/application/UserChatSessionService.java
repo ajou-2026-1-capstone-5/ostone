@@ -69,6 +69,13 @@ public class UserChatSessionService {
                         command.workspaceId(), command.userId(), command.customerName())));
   }
 
+  @Transactional
+  public ChatSessionResponse createSession(GetOrCreateCurrentSessionCommand command) {
+    validateWorkspaceMembership(command.workspaceId(), command.userId());
+    return ChatSessionResponse.from(
+        createSession(command.workspaceId(), command.userId(), command.customerName()));
+  }
+
   private void validateWorkspaceMembership(Long workspaceId, Long userId) {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
