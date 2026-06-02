@@ -102,13 +102,18 @@ export function useStomp(options: UseStompOptions = {}): UseStompResult {
       connectionStatusRef.current = "CONNECTED";
       setConnectionStatus("CONNECTED");
       errorSubscriptionRef.current?.unsubscribe();
-      errorSubscriptionRef.current = client.subscribe(ERROR_QUEUE, (message) => {
-        const error = parseMessageBody(message.body);
-        if (error !== null) {
-          console.error("WebSocket server error:", error);
-          onServerErrorRef.current?.(error);
-        }
-      });
+      errorSubscriptionRef.current = null;
+      // 익명(데모) 세션은 서버에서 /user/queue/errors 구독이 허용되지 않으므로 건너뛴다.
+      // 구독을 시도하면 서버가 STOMP ERROR 프레임으로 연결을 끊어 연결 자체가 실패한다.
+      if (includeAuth !== false) {
+        errorSubscriptionRef.current = client.subscribe(ERROR_QUEUE, (message) => {
+          const error = parseMessageBody(message.body);
+          if (error !== null) {
+            console.error("WebSocket server error:", error);
+            onServerErrorRef.current?.(error);
+          }
+        });
+      }
       unsubscribeActiveSubscriptions();
       desiredSubscriptionsRef.current.forEach((cb, topic) => {
         subscribeActiveTopic(client, topic, cb);
