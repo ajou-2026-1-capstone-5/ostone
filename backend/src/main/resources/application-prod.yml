@@ -102,7 +102,11 @@ airflow:
     domain-pack-generation:
       dag-id: ${AIRFLOW_DOMAIN_PACK_GENERATION_DAG_ID:domain_pack_generation}
     ingestion:
-      dag-id: ${AIRFLOW_INGESTION_DAG_ID:ingestion}
+      # 상담 로그 업로드는 별도 ingestion DAG가 아니라 domain_pack_generation DAG(8개 stage 중
+      # ingestion이 1번째)를 트리거한다. ingestion이라는 이름의 DAG는 존재하지 않으며, 잘못된 기본값은
+      # Airflow trigger 404(AIRFLOW_TRIGGER_FAILED → "Upstream service error")를 유발한다.
+      # local(application.yml) 기본값과 동일하게 맞춘다.
+      dag-id: ${AIRFLOW_INGESTION_DAG_ID:domain_pack_generation}
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET}
 
