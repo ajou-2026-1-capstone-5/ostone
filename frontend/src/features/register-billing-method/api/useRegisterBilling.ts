@@ -81,6 +81,7 @@ export function useRegisterBilling() {
           return;
         }
       }
+      console.error("[useRegisterBilling] 미처리 에러:", error);
       toast.error(BILLING_REGISTER_ERROR_MESSAGES.REGISTER_FAILED);
     },
   });

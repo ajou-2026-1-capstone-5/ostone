@@ -113,13 +113,22 @@ export function App() {
           <Route path="pipeline-jobs/:pipelineJobId/review" element={<PipelineReviewPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
           <Route path="settings/members" element={<WorkspaceMembersPage />} />
-          <Route path="billing" element={<BillingPage />} />
+          <Route
+            path="billing"
+            element={
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingPage />
+              </ErrorBoundary>
+            }
+          />
         </Route>
         <Route
           path="/billing/success"
           element={
             <PrivateRoute>
-              <BillingSuccessPage />
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingSuccessPage />
+              </ErrorBoundary>
             </PrivateRoute>
           }
         />
@@ -127,7 +136,9 @@ export function App() {
           path="/billing/fail"
           element={
             <PrivateRoute>
-              <BillingFailPage />
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingFailPage />
+              </ErrorBoundary>
             </PrivateRoute>
           }
         />

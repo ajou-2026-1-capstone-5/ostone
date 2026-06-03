@@ -20,7 +20,10 @@ export function loadToss(): Promise<TossPaymentsSDK> {
     return Promise.reject(new TossClientKeyMissingError());
   }
   if (!sdkPromise) {
-    sdkPromise = loadTossPayments(CLIENT_KEY);
+    sdkPromise = loadTossPayments(CLIENT_KEY).catch((err) => {
+      sdkPromise = null;
+      throw err;
+    });
   }
   return sdkPromise;
 }
