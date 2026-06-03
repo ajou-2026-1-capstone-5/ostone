@@ -2,6 +2,8 @@ package com.init.corpus.domain.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,8 +34,15 @@ public class DatasetRawFile {
   @Column(name = "size_bytes", nullable = false)
   private Long sizeBytes;
 
-  @Column(name = "checksum_sha256", nullable = false, length = 64)
+  @Column(name = "checksum_sha256", length = 64)
   private String checksumSha256;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "checksum_status", nullable = false, length = 20)
+  private ChecksumStatus checksumStatus;
+
+  @Column(name = "etag", length = 255)
+  private String etag;
 
   @Column(name = "uploaded_at", nullable = false)
   private Instant uploadedAt;
@@ -79,6 +88,57 @@ public class DatasetRawFile {
     file.contentType = contentType;
     file.sizeBytes = sizeBytes;
     file.checksumSha256 = checksumSha256;
+    file.checksumStatus = ChecksumStatus.VERIFIED;
+    file.uploadedAt = Instant.now();
+    return file;
+  }
+
+  /**
+   * presigned 직접 업로드 흐름용 팩토리. 백엔드가 파일 바이트를 받지 않아 업로드 시점에 체크섬을 계산할 수 없으므로 checksum은 비워 두고 {@code
+   * checksumStatus=PENDING}으로 둔다. 현재 presigned 경로에서 {@code PENDING}은 정상 종착 상태다: SHA-256 무결성 검증은 아직
+   * 구현되지 않은 후속 과제이며, 그 전까지 {@code PENDING}→{@code VERIFIED} 전이는 일어나지 않는다. 그동안에는 S3 HEAD 응답에서 얻은
+   * etag로 객체 무결성을 추적한다.
+   */
+  public static DatasetRawFile createPending(
+      Long datasetId,
+      String objectKey,
+      String originalFilename,
+      String contentType,
+      Long sizeBytes,
+      String etag) {
+    Objects.requireNonNull(datasetId, "datasetId must not be null");
+    Objects.requireNonNull(objectKey, "objectKey must not be null");
+    Objects.requireNonNull(originalFilename, "originalFilename must not be null");
+    Objects.requireNonNull(contentType, "contentType must not be null");
+    Objects.requireNonNull(sizeBytes, "sizeBytes must not be null");
+    Objects.requireNonNull(etag, "etag must not be null");
+    if (datasetId < 0) {
+      throw new IllegalArgumentException("datasetId must be >= 0");
+    }
+    if (objectKey.isBlank()) {
+      throw new IllegalArgumentException("objectKey must not be blank");
+    }
+    if (originalFilename.isBlank()) {
+      throw new IllegalArgumentException("originalFilename must not be blank");
+    }
+    if (contentType.isBlank()) {
+      throw new IllegalArgumentException("contentType must not be blank");
+    }
+    if (sizeBytes < 0) {
+      throw new IllegalArgumentException("sizeBytes must be >= 0");
+    }
+    if (etag.isBlank()) {
+      throw new IllegalArgumentException("etag must not be blank");
+    }
+    DatasetRawFile file = new DatasetRawFile();
+    file.datasetId = datasetId;
+    file.objectKey = objectKey;
+    file.originalFilename = originalFilename;
+    file.contentType = contentType;
+    file.sizeBytes = sizeBytes;
+    file.checksumSha256 = null;
+    file.checksumStatus = ChecksumStatus.PENDING;
+    file.etag = etag;
     file.uploadedAt = Instant.now();
     return file;
   }
@@ -109,6 +169,14 @@ public class DatasetRawFile {
 
   public String getChecksumSha256() {
     return checksumSha256;
+  }
+
+  public ChecksumStatus getChecksumStatus() {
+    return checksumStatus;
+  }
+
+  public String getEtag() {
+    return etag;
   }
 
   public Instant getUploadedAt() {

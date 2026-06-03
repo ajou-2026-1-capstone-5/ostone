@@ -10,12 +10,12 @@ import {
 } from "./rawLogUploadPolicy";
 
 describe("rawLogUploadPolicy", () => {
-  it("exposes the ZIP 50MB upload policy labels", () => {
+  it("exposes the ZIP 4GB upload policy labels", () => {
     expect(RAW_LOG_UPLOAD_ACCEPT).toBe(".zip,application/zip,application/x-zip-compressed");
     expect(RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL).toBe("ZIP");
     expect(RAW_LOG_UPLOAD_FILE_TYPE_LABELS).toEqual(["ZIP"]);
-    expect(RAW_LOG_UPLOAD_MAX_SIZE_LABEL).toBe("50MB");
-    expect(RAW_LOG_UPLOAD_MAX_SIZE_BYTES).toBe(50 * 1024 * 1024);
+    expect(RAW_LOG_UPLOAD_MAX_SIZE_LABEL).toBe("4GB");
+    expect(RAW_LOG_UPLOAD_MAX_SIZE_BYTES).toBe(4 * 1024 * 1024 * 1024);
   });
 
   it("accepts ZIP files within the size limit", () => {

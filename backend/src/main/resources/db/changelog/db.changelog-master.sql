@@ -1100,3 +1100,23 @@ alter table app.workspace
 
 create index idx_workspace_free_onboarding_pipeline_job
     on app.workspace(free_onboarding_pipeline_job_id);
+
+--changeset init:20260603-support-presigned-raw-file-upload
+--comment: presigned 직접 업로드(최대 4GB) 흐름 지원 — checksum은 업로드 시점에 계산하지 않으므로 nullable 전환, checksum 검증 상태와 S3 etag 추적 컬럼 추가
+ALTER TABLE corpus.dataset_raw_file
+    ALTER COLUMN checksum_sha256 DROP NOT NULL;
+
+ALTER TABLE corpus.dataset_raw_file
+    ADD COLUMN checksum_status VARCHAR(20) NOT NULL DEFAULT 'VERIFIED',
+    ADD COLUMN etag VARCHAR(255);
+
+ALTER TABLE corpus.dataset_raw_file
+    ADD CONSTRAINT chk_dataset_raw_file_checksum_status
+    CHECK (checksum_status IN ('PENDING', 'VERIFIED', 'FAILED'));
+
+ALTER TABLE corpus.dataset_raw_file
+    ADD CONSTRAINT chk_dataset_raw_file_checksum_payload
+    CHECK (
+        (checksum_status = 'PENDING' AND checksum_sha256 IS NULL)
+        OR (checksum_status IN ('VERIFIED', 'FAILED') AND checksum_sha256 IS NOT NULL)
+    );

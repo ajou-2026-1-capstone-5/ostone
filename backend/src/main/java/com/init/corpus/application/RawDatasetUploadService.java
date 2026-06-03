@@ -36,7 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 // 독립된 트랜잭션 경계로 interleave해야 하므로 클래스 레벨 @Transactional(readOnly = true)
 // 컨벤션의 의도적 예외.
 //
-// 또한 호출 측(RawFileUploadService.upload)이 자체 @Transactional 로 corpus TX 를 시작하면
+// 또한 호출 측이 자체 @Transactional 로 corpus TX 를 시작하면
 // 이 서비스의 TransactionTemplate(default REQUIRED)도 그 TX 에 참여하게 되어 dataset INSERT 가
 // commit 되지 않은 채 후속 단계(TriggerIngestionUseCase 의 REQUIRES_NEW)에서 dataset_id 를
 // 참조할 때 pipeline_job_dataset_id_fkey FK 위반이 발생한다. 따라서 dataset/conversation 저장은

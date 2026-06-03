@@ -168,6 +168,10 @@
   color: #000000;
 }
 
+.cancelAction {
+  margin-top: 20px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
