@@ -1,5 +1,5 @@
-export const RAW_LOG_UPLOAD_MAX_SIZE_BYTES = 50 * 1024 * 1024;
-export const RAW_LOG_UPLOAD_MAX_SIZE_LABEL = "50MB";
+export const RAW_LOG_UPLOAD_MAX_SIZE_BYTES = 4 * 1024 * 1024 * 1024;
+export const RAW_LOG_UPLOAD_MAX_SIZE_LABEL = "4GB";
 export const RAW_LOG_UPLOAD_ACCEPT = ".zip,application/zip,application/x-zip-compressed";
 export const RAW_LOG_UPLOAD_ACCEPTED_TYPE_LABEL = "ZIP";
 export const RAW_LOG_UPLOAD_FILE_TYPE_LABELS = ["ZIP"];

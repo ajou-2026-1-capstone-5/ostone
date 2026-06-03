@@ -55,4 +55,12 @@ cors_allowed_origins = [
   "https://app.example.com"
 ]
 
+# Browser origins allowed to presigned-PUT raw-file ZIPs to the ml_input bucket.
+raw_input_cors_allowed_origins = [
+  "https://app.example.com"
+]
+
+# Orphaned pending/ uploads in ml_input expire after this many days.
+raw_input_pending_expiration_days = 1
+
 secret_arns = []

@@ -3,10 +3,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
 
-const mockUploadMutate = vi.fn();
+import type { CompleteRawFileUploadResponse } from "../api/rawFileUpload";
+
+const mockUploadStart = vi.fn();
+const mockUploadCancel = vi.fn();
+const mockUploadReset = vi.fn();
 const mockTriggerMutate = vi.fn();
 const mockNavigate = vi.fn();
-const mockUploadReset = vi.fn();
 const mockTriggerReset = vi.fn();
 
 vi.mock("sonner", () => ({
@@ -21,38 +24,46 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-type UploadVariables = { data?: { file?: File } };
+type StartParams = {
+  workspaceId: number;
+  file: File;
+  onSuccess: (result: CompleteRawFileUploadResponse) => void;
+  onError: (message: string) => void;
+};
 type TriggerVariables = { workspaceId: number; datasetId: number };
 
-let callUploadOnSuccess: ((response: unknown, variables: UploadVariables) => void) | null = null;
-let callUploadOnError: ((error: unknown) => void) | null = null;
+let startBehavior: "success" | "error" | "pending" = "success";
+let startError = "업로드 실패";
+let lastStartParams: StartParams | null = null;
 let callTriggerOnSuccess: ((response: unknown, variables: TriggerVariables) => void) | null = null;
 let callTriggerOnError: ((error: unknown) => void) | null = null;
-let mockUploadError: Error | null = null;
 
-vi.mock("../../../shared/api/generated/endpoints/dataset-controller/dataset-controller", () => ({
-  useUploadRawFile: (config: {
-    mutation?: {
-      onSuccess?: (response: unknown, variables: UploadVariables) => void;
-      onError?: (error: unknown) => void;
-    };
-  }) => {
-    callUploadOnSuccess = config?.mutation?.onSuccess ?? null;
-    callUploadOnError = config?.mutation?.onError ?? null;
-    return {
-      mutate: (...args: unknown[]) => {
-        mockUploadMutate(...args);
-        if (mockUploadError) {
-          callUploadOnError?.(mockUploadError);
-          return;
-        }
-        const variables = args[0] as UploadVariables;
-        callUploadOnSuccess?.({ datasetId: 42, conversationCount: 7 }, variables);
-      },
-      isPending: false,
-      reset: mockUploadReset,
-    };
-  },
+vi.mock("../model/useRawFileUpload", () => ({
+  useRawFileUpload: () => ({
+    isUploading: false,
+    progress: 0,
+    start: (params: StartParams) => {
+      lastStartParams = params;
+      mockUploadStart(params);
+      if (startBehavior === "error") {
+        params.onError(startError);
+        return;
+      }
+      if (startBehavior === "pending") {
+        return;
+      }
+      params.onSuccess({
+        datasetId: 42,
+        datasetKey: "key",
+        workspaceId: params.workspaceId,
+        objectKey: "obj",
+        sizeBytes: 100,
+        status: "READY",
+      });
+    },
+    cancel: mockUploadCancel,
+    reset: mockUploadReset,
+  }),
 }));
 
 vi.mock(
@@ -115,11 +126,11 @@ import { LogUploadForm } from "./LogUploadForm";
 describe("LogUploadForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    callUploadOnSuccess = null;
-    callUploadOnError = null;
+    startBehavior = "success";
+    startError = "업로드 실패";
+    lastStartParams = null;
     callTriggerOnSuccess = null;
     callTriggerOnError = null;
-    mockUploadError = null;
   });
 
   it("renders upload header and file uploader", () => {
@@ -132,7 +143,7 @@ describe("LogUploadForm", () => {
     expect(screen.getByTestId("accepted-types")).toHaveTextContent(
       ".zip,application/zip,application/x-zip-compressed",
     );
-    expect(screen.getByTestId("policy-copy")).toHaveTextContent("ZIP 50MB ZIP");
+    expect(screen.getByTestId("policy-copy")).toHaveTextContent("ZIP 4GB ZIP");
   });
 
   it("shows file preview and Start Processing button after selecting a file", () => {
@@ -152,32 +163,34 @@ describe("LogUploadForm", () => {
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith("ZIP 파일만 업로드할 수 있습니다.");
   });
 
-  it("rejects files larger than 50MB with toast error", () => {
+  it("rejects files larger than 4GB with toast error", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["test"], "big.zip", { type: "application/zip" });
-    Object.defineProperty(file, "size", { value: 51 * 1024 * 1024 });
+    Object.defineProperty(file, "size", { value: 4 * 1024 * 1024 * 1024 + 1 });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("파일 크기는 50MB 이하여야 합니다.");
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("파일 크기는 4GB 이하여야 합니다.");
   });
 
-  it("calls mutate on Start Processing click", () => {
+  it("starts the presigned upload on Start Processing click", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
-    expect(mockUploadMutate).toHaveBeenCalled();
+    expect(mockUploadStart).toHaveBeenCalled();
+    expect(lastStartParams?.workspaceId).toBe(1);
+    expect(lastStartParams?.file).toBe(file);
   });
 
-  it("does not call mutate when workspaceId is undefined", () => {
+  it("does not start upload when workspaceId is undefined", () => {
     render(<LogUploadForm />, { wrapper: MemoryRouter });
     const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
     const btn = screen.queryByText("처리 시작");
     if (btn) fireEvent.click(btn);
-    expect(mockUploadMutate).not.toHaveBeenCalled();
+    expect(mockUploadStart).not.toHaveBeenCalled();
   });
 
   it("shows generation CTA after successful upload", () => {
@@ -193,7 +206,7 @@ describe("LogUploadForm", () => {
   });
 
   it("shows upload failure toast with retry action", () => {
-    mockUploadError = new Error("업로드 실패");
+    startBehavior = "error";
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["data"], "data.zip", { type: "application/zip" });
     const input = screen.getByTestId("file-input");
@@ -207,11 +220,11 @@ describe("LogUploadForm", () => {
       }),
     );
 
-    mockUploadError = null;
+    startBehavior = "success";
     const retryAction = vi.mocked(toast.error).mock.calls[0]?.[1]?.action;
     retryAction?.onClick();
 
-    expect(mockUploadMutate).toHaveBeenCalledTimes(2);
+    expect(mockUploadStart).toHaveBeenCalledTimes(2);
   });
 
   it("triggers domain pack generation with uploaded dataset id", () => {

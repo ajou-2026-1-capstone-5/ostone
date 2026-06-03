@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import { FileUploader } from "../../../shared/ui/file-upload/FileUploader";
 import { Button } from "../../../shared/ui/button/Button";
-import { useUploadRawFile } from "../../../shared/api/generated/endpoints/dataset-controller/dataset-controller";
 import { useTriggerDomainPackGeneration } from "../../../shared/api/generated/endpoints/domain-pack-generation-trigger-controller/domain-pack-generation-trigger-controller";
 import {
   RAW_LOG_UPLOAD_ACCEPT,
@@ -13,6 +12,7 @@ import {
   RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
   validateRawLogUploadFile,
 } from "../../../shared/lib/rawLogUploadPolicy";
+import { useRawFileUpload } from "../model/useRawFileUpload";
 
 import styles from "./log-upload-form.module.css";
 
@@ -27,16 +27,6 @@ type GenerationStatus =
 interface UploadedDataset {
   datasetId: number | null;
   fileName: string;
-  conversationCount: number | null;
-}
-
-interface RawUploadResponseLike {
-  data?: {
-    datasetId?: number;
-    conversationCount?: number;
-  };
-  datasetId?: number;
-  conversationCount?: number;
 }
 
 interface GenerationResponseLike {
@@ -54,18 +44,6 @@ interface LogUploadFormProps {
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
-
-const readUploadResponse = (
-  response: unknown,
-): Pick<UploadedDataset, "datasetId" | "conversationCount"> => {
-  const r =
-    typeof response === "object" && response !== null ? (response as RawUploadResponseLike) : null;
-
-  return {
-    datasetId: r?.data?.datasetId ?? r?.datasetId ?? null,
-    conversationCount: r?.data?.conversationCount ?? r?.conversationCount ?? null,
-  };
-};
 
 const readGenerationResponse = (
   response: unknown,
@@ -86,34 +64,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   const [uploadedDataset, setUploadedDataset] = useState<UploadedDataset | null>(null);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({ kind: "idle" });
 
-  const uploadMutation = useUploadRawFile({
-    mutation: {
-      onSuccess: (response, variables) => {
-        const { datasetId, conversationCount } = readUploadResponse(response);
-        setUploadedDataset({
-          datasetId,
-          conversationCount,
-          fileName: variables.data?.file?.name ?? file?.name ?? "업로드한 파일",
-        });
-        setGenerationStatus({ kind: "idle" });
-        setStatus("success");
-        toast.success("업로드 완료");
-      },
-      onError: (error) => {
-        setStatus("idle");
-        setUploadedDataset(null);
-        setGenerationStatus({ kind: "idle" });
-        toast.error(getErrorMessage(error, "업로드에 실패했습니다."), {
-          action: {
-            label: "재시도",
-            onClick: () => {
-              if (file) handleUpload(file);
-            },
-          },
-        });
-      },
-    },
-  });
+  const rawFileUpload = useRawFileUpload();
 
   const generationMutation = useTriggerDomainPackGeneration({
     mutation: {
@@ -144,22 +95,42 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     setStatus("idle");
     setUploadedDataset(null);
     setGenerationStatus({ kind: "idle" });
-    uploadMutation.reset();
+    rawFileUpload.reset();
     generationMutation.reset();
   };
 
   const handleUpload = (fileToUpload: File) => {
     if (!workspaceId) return;
     setStatus("uploading");
-    uploadMutation.mutate({
+    void rawFileUpload.start({
       workspaceId,
-      params: {
-        datasetKey: crypto.randomUUID(),
-        name: fileToUpload.name,
-        sourceType: "RAW",
+      file: fileToUpload,
+      onSuccess: (result) => {
+        setUploadedDataset({
+          datasetId: result.datasetId ?? null,
+          fileName: fileToUpload.name,
+        });
+        setGenerationStatus({ kind: "idle" });
+        setStatus("success");
+        toast.success("업로드 완료");
       },
-      data: { file: fileToUpload },
+      onError: (message) => {
+        setStatus("idle");
+        setUploadedDataset(null);
+        setGenerationStatus({ kind: "idle" });
+        toast.error(message, {
+          action: {
+            label: "재시도",
+            onClick: () => handleUpload(fileToUpload),
+          },
+        });
+      },
     });
+  };
+
+  const handleCancelUpload = () => {
+    rawFileUpload.cancel();
+    setStatus("idle");
   };
 
   function handleStartGeneration() {
@@ -176,7 +147,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
   }
 
   const handleReset = () => {
-    uploadMutation.reset();
+    rawFileUpload.reset();
     generationMutation.reset();
     setFile(null);
     setUploadedDataset(null);
@@ -210,8 +181,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
           maxSizeLabel={RAW_LOG_UPLOAD_MAX_SIZE_LABEL}
           fileTypeLabels={RAW_LOG_UPLOAD_FILE_TYPE_LABELS}
           status={status}
-          progress={0}
-          isUploading={uploadMutation.isPending}
+          progress={rawFileUpload.progress}
+          isUploading={rawFileUpload.isUploading}
+          onCancel={handleCancelUpload}
         />
       </div>
 
@@ -234,9 +206,6 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
               {uploadedDataset?.datasetId
                 ? `dataset ${uploadedDataset.datasetId}`
                 : "데이터셋 ID 확인 필요"}
-              {uploadedDataset?.conversationCount != null
-                ? ` · 상담 ${uploadedDataset.conversationCount}건`
-                : ""}
             </span>
           </div>
 
