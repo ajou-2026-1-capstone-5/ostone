@@ -4,18 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const createRestoreDraftRequestReasonMin = 0;
 export const createRestoreDraftRequestReasonMax = 1000;
 
+
 export const CreateRestoreDraftRequest = zod.object({
-  reason: zod
-    .string()
-    .min(createRestoreDraftRequestReasonMin)
-    .max(createRestoreDraftRequestReasonMax)
-    .optional(),
-});
+  "reason": zod.string().min(createRestoreDraftRequestReasonMin).max(createRestoreDraftRequestReasonMax).optional()
+})
 
 export type CreateRestoreDraftRequest = zod.input<typeof CreateRestoreDraftRequest>;
 export type CreateRestoreDraftRequestOutput = zod.output<typeof CreateRestoreDraftRequest>;

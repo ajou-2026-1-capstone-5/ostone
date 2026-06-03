@@ -4,100 +4,106 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  UseMutationResult
+} from '@tanstack/react-query';
 
-import type { DomainPackVersionActivateResponse } from "../../zod";
+import type {
+  ActivateDomainPackVersionRequest,
+  DomainPackVersionActivateResponse
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type activateResponse200 = {
-  data: DomainPackVersionActivateResponse;
-  status: 200;
-};
 
-export type activateResponseSuccess = activateResponse200 & {
+
+export type activateResponse200 = {
+  data: DomainPackVersionActivateResponse
+  status: 200
+}
+
+export type activateResponseSuccess = (activateResponse200) & {
   headers: Headers;
 };
+;
 
-export type activateResponse = activateResponseSuccess;
+export type activateResponse = (activateResponseSuccess)
 
-export const getActivateUrl = (workspaceId: number, packId: number, versionId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/activate`;
-};
+export const getActivateUrl = (workspaceId: number,
+    packId: number,
+    versionId: number,) => {
 
-export const activate = async (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: RequestInit,
-): Promise<activateResponse> => {
-  return customFetch<activateResponse>(getActivateUrl(workspaceId, packId, versionId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/activate`
+}
+
+export const activate = async (workspaceId: number,
+    packId: number,
+    versionId: number,
+    activateDomainPackVersionRequest?: ActivateDomainPackVersionRequest, options?: RequestInit): Promise<activateResponse> => {
+
+  return customFetch<activateResponse>(getActivateUrl(workspaceId,packId,versionId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      activateDomainPackVersionRequest,)
+  }
+);}
 
-export const getActivateMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof activate>>,
-    TError,
-    { workspaceId: number; packId: number; versionId: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof activate>>,
-  TError,
-  { workspaceId: number; packId: number; versionId: number },
-  TContext
-> => {
-  const mutationKey = ["activate"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof activate>>,
-    { workspaceId: number; packId: number; versionId: number }
-  > = (props) => {
-    const { workspaceId, packId, versionId } = props ?? {};
 
-    return activate(workspaceId, packId, versionId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getActivateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,{workspaceId: number;packId: number;versionId: number;data?: ActivateDomainPackVersionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,{workspaceId: number;packId: number;versionId: number;data?: ActivateDomainPackVersionRequest}, TContext> => {
 
-export type ActivateMutationResult = NonNullable<Awaited<ReturnType<typeof activate>>>;
+const mutationKey = ['activate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type ActivateMutationError = unknown;
 
-export const useActivate = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof activate>>,
-      TError,
-      { workspaceId: number; packId: number; versionId: number },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof activate>>,
-  TError,
-  { workspaceId: number; packId: number; versionId: number },
-  TContext
-> => {
-  return useMutation(getActivateMutationOptions(options), queryClient);
-};
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activate>>, {workspaceId: number;packId: number;versionId: number;data?: ActivateDomainPackVersionRequest}> = (props) => {
+          const {workspaceId,packId,versionId,data} = props ?? {};
+
+          return  activate(workspaceId,packId,versionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActivateMutationResult = NonNullable<Awaited<ReturnType<typeof activate>>>
+    export type ActivateMutationBody = ActivateDomainPackVersionRequest | undefined
+    export type ActivateMutationError = unknown
+
+    export const useActivate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,{workspaceId: number;packId: number;versionId: number;data?: ActivateDomainPackVersionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof activate>>,
+        TError,
+        {workspaceId: number;packId: number;versionId: number;data?: ActivateDomainPackVersionRequest},
+        TContext
+      > => {
+      return useMutation(getActivateMutationOptions(options), queryClient);
+    }

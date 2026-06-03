@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const receiveDomainPackDraftCallbackBodyExternalEventIdMin = 0;
 export const receiveDomainPackDraftCallbackBodyExternalEventIdMax = 255;
@@ -18,32 +18,13 @@ export const receiveDomainPackDraftCallbackBodyPackNameMax = 255;
 export const receiveDomainPackDraftCallbackBodySummaryJsonMin = 0;
 export const receiveDomainPackDraftCallbackBodySummaryJsonMax = 10000;
 
-export const ReceiveDomainPackDraftCallbackBody = zod.object({
-  externalEventId: zod
-    .string()
-    .min(receiveDomainPackDraftCallbackBodyExternalEventIdMin)
-    .max(receiveDomainPackDraftCallbackBodyExternalEventIdMax)
-    .optional(),
-  packKey: zod
-    .string()
-    .min(receiveDomainPackDraftCallbackBodyPackKeyMin)
-    .max(receiveDomainPackDraftCallbackBodyPackKeyMax)
-    .optional(),
-  packName: zod
-    .string()
-    .min(receiveDomainPackDraftCallbackBodyPackNameMin)
-    .max(receiveDomainPackDraftCallbackBodyPackNameMax)
-    .optional(),
-  summaryJson: zod
-    .string()
-    .min(receiveDomainPackDraftCallbackBodySummaryJsonMin)
-    .max(receiveDomainPackDraftCallbackBodySummaryJsonMax)
-    .optional(),
-});
 
-export type ReceiveDomainPackDraftCallbackBody = zod.input<
-  typeof ReceiveDomainPackDraftCallbackBody
->;
-export type ReceiveDomainPackDraftCallbackBodyOutput = zod.output<
-  typeof ReceiveDomainPackDraftCallbackBody
->;
+export const ReceiveDomainPackDraftCallbackBody = zod.object({
+  "externalEventId": zod.string().min(receiveDomainPackDraftCallbackBodyExternalEventIdMin).max(receiveDomainPackDraftCallbackBodyExternalEventIdMax).optional(),
+  "packKey": zod.string().min(receiveDomainPackDraftCallbackBodyPackKeyMin).max(receiveDomainPackDraftCallbackBodyPackKeyMax).optional(),
+  "packName": zod.string().min(receiveDomainPackDraftCallbackBodyPackNameMin).max(receiveDomainPackDraftCallbackBodyPackNameMax).optional(),
+  "summaryJson": zod.string().min(receiveDomainPackDraftCallbackBodySummaryJsonMin).max(receiveDomainPackDraftCallbackBodySummaryJsonMax).optional()
+})
+
+export type ReceiveDomainPackDraftCallbackBody = zod.input<typeof ReceiveDomainPackDraftCallbackBody>;
+export type ReceiveDomainPackDraftCallbackBodyOutput = zod.output<typeof ReceiveDomainPackDraftCallbackBody>;

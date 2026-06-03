@@ -4,33 +4,29 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DomainPackDetailResult = zod.object({
-  packId: zod.number().optional(),
-  workspaceId: zod.number().optional(),
-  code: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  currentVersionId: zod.number().nullable().optional(),
-  currentVersionNo: zod.number().nullable().optional(),
-  currentVersionPublishedAt: zod.iso.datetime({ offset: true }).nullable().optional(),
-  versions: zod
-    .array(
-      zod.object({
-        versionId: zod.number().optional(),
-        versionNo: zod.number().optional(),
-        lifecycleStatus: zod.string().optional(),
-        description: zod.string().optional(),
-        sourcePipelineJobId: zod.number().optional(),
-        createdAt: zod.iso.datetime({ offset: true }).optional(),
-        updatedAt: zod.iso.datetime({ offset: true }).optional(),
-      }),
-    )
-    .optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "packId": zod.number().optional(),
+  "workspaceId": zod.number().optional(),
+  "code": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "currentVersionId": zod.number().optional(),
+  "currentVersionNo": zod.number().optional(),
+  "currentVersionPublishedAt": zod.iso.datetime({"offset":true}).optional(),
+  "versions": zod.array(zod.object({
+  "versionId": zod.number().optional(),
+  "versionNo": zod.number().optional(),
+  "lifecycleStatus": zod.string().optional(),
+  "description": zod.string().optional(),
+  "sourcePipelineJobId": zod.number().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})).optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type DomainPackDetailResult = zod.input<typeof DomainPackDetailResult>;
 export type DomainPackDetailResultOutput = zod.output<typeof DomainPackDetailResult>;

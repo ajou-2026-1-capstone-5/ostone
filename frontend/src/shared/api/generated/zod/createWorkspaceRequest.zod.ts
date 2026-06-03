@@ -4,7 +4,8 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
+
 
 export const createWorkspaceRequestNameMin = 0;
 export const createWorkspaceRequestNameMax = 255;
@@ -12,19 +13,12 @@ export const createWorkspaceRequestNameMax = 255;
 export const createWorkspaceRequestDescriptionMin = 0;
 export const createWorkspaceRequestDescriptionMax = 2000;
 
+
 export const CreateWorkspaceRequest = zod.object({
-  workspaceKey: zod.string().min(1).optional(),
-  name: zod
-    .string()
-    .min(createWorkspaceRequestNameMin)
-    .max(createWorkspaceRequestNameMax)
-    .optional(),
-  description: zod
-    .string()
-    .min(createWorkspaceRequestDescriptionMin)
-    .max(createWorkspaceRequestDescriptionMax)
-    .optional(),
-});
+  "workspaceKey": zod.string().min(1).optional(),
+  "name": zod.string().min(createWorkspaceRequestNameMin).max(createWorkspaceRequestNameMax).optional(),
+  "description": zod.string().min(createWorkspaceRequestDescriptionMin).max(createWorkspaceRequestDescriptionMax).optional()
+})
 
 export type CreateWorkspaceRequest = zod.input<typeof CreateWorkspaceRequest>;
 export type CreateWorkspaceRequestOutput = zod.output<typeof CreateWorkspaceRequest>;

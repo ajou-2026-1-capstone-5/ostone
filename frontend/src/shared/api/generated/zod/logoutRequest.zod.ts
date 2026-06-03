@@ -4,18 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const logoutRequestRefreshTokenMin = 0;
 export const logoutRequestRefreshTokenMax = 4096;
 
+
 export const LogoutRequest = zod.object({
-  refreshToken: zod
-    .string()
-    .min(logoutRequestRefreshTokenMin)
-    .max(logoutRequestRefreshTokenMax)
-    .optional(),
-});
+  "refreshToken": zod.string().min(logoutRequestRefreshTokenMin).max(logoutRequestRefreshTokenMax).optional()
+})
 
 export type LogoutRequest = zod.input<typeof LogoutRequest>;
 export type LogoutRequestOutput = zod.output<typeof LogoutRequest>;

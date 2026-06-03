@@ -4,11 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const PasswordResetInitResponse = zod.object({
-  message: zod.string().optional(),
-});
+  "message": zod.string().optional()
+})
 
 export type PasswordResetInitResponse = zod.input<typeof PasswordResetInitResponse>;
 export type PasswordResetInitResponseOutput = zod.output<typeof PasswordResetInitResponse>;

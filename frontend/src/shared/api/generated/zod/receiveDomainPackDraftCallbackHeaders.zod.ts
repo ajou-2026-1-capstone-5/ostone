@@ -4,15 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const ReceiveDomainPackDraftCallbackHeaders = zod.object({
-  "X-Airflow-Webhook-Secret": zod.string().optional(),
-});
+  "X-Airflow-Webhook-Secret": zod.string().optional()
+})
 
-export type ReceiveDomainPackDraftCallbackHeaders = zod.input<
-  typeof ReceiveDomainPackDraftCallbackHeaders
->;
-export type ReceiveDomainPackDraftCallbackHeadersOutput = zod.output<
-  typeof ReceiveDomainPackDraftCallbackHeaders
->;
+export type ReceiveDomainPackDraftCallbackHeaders = zod.input<typeof ReceiveDomainPackDraftCallbackHeaders>;
+export type ReceiveDomainPackDraftCallbackHeadersOutput = zod.output<typeof ReceiveDomainPackDraftCallbackHeaders>;

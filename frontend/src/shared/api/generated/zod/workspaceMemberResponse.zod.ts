@@ -4,17 +4,17 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const WorkspaceMemberResponse = zod.object({
-  memberId: zod.number().optional(),
-  userId: zod.number().optional(),
-  name: zod.string().optional(),
-  email: zod.string().optional(),
-  workspaceRole: zod.string().optional(),
-  joinedAt: zod.iso.datetime({ offset: true }).optional(),
-  accountStatus: zod.string().optional(),
-});
+  "memberId": zod.number().optional(),
+  "userId": zod.number().optional(),
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "workspaceRole": zod.string().optional(),
+  "joinedAt": zod.iso.datetime({"offset":true}).optional(),
+  "accountStatus": zod.string().optional()
+})
 
 export type WorkspaceMemberResponse = zod.input<typeof WorkspaceMemberResponse>;
 export type WorkspaceMemberResponseOutput = zod.output<typeof WorkspaceMemberResponse>;

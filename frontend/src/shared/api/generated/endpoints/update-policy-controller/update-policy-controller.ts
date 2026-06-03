@@ -4,142 +4,108 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  UseMutationResult
+} from '@tanstack/react-query';
 
-import type { PolicyDefinitionResponse, UpdatePolicyRequest } from "../../zod";
+import type {
+  PolicyDefinitionResponse,
+  UpdatePolicyRequest
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type updatePolicyResponse200 = {
-  data: PolicyDefinitionResponse;
-  status: 200;
-};
 
-export type updatePolicyResponseSuccess = updatePolicyResponse200 & {
+
+export type updatePolicyResponse200 = {
+  data: PolicyDefinitionResponse
+  status: 200
+}
+
+export type updatePolicyResponseSuccess = (updatePolicyResponse200) & {
   headers: Headers;
 };
+;
 
-export type updatePolicyResponse = updatePolicyResponseSuccess;
+export type updatePolicyResponse = (updatePolicyResponseSuccess)
 
-export const getUpdatePolicyUrl = (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  policyId: number,
-) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`;
-};
+export const getUpdatePolicyUrl = (workspaceId: number,
+    packId: number,
+    versionId: number,
+    policyId: number,) => {
 
-export const updatePolicy = async (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  policyId: number,
-  updatePolicyRequest: UpdatePolicyRequest,
-  options?: RequestInit,
-): Promise<updatePolicyResponse> => {
-  return customFetch<updatePolicyResponse>(
-    getUpdatePolicyUrl(workspaceId, packId, versionId, policyId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updatePolicyRequest),
-    },
-  );
-};
 
-export const getUpdatePolicyMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updatePolicy>>,
-    TError,
-    {
-      workspaceId: number;
-      packId: number;
-      versionId: number;
-      policyId: number;
-      data: UpdatePolicyRequest;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updatePolicy>>,
-  TError,
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/policies/${policyId}`
+}
+
+export const updatePolicy = async (workspaceId: number,
+    packId: number,
+    versionId: number,
+    policyId: number,
+    updatePolicyRequest: UpdatePolicyRequest, options?: RequestInit): Promise<updatePolicyResponse> => {
+
+  return customFetch<updatePolicyResponse>(getUpdatePolicyUrl(workspaceId,packId,versionId,policyId),
   {
-    workspaceId: number;
-    packId: number;
-    versionId: number;
-    policyId: number;
-    data: UpdatePolicyRequest;
-  },
-  TContext
-> => {
-  const mutationKey = ["updatePolicy"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePolicyRequest,)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updatePolicy>>,
-    {
-      workspaceId: number;
-      packId: number;
-      versionId: number;
-      policyId: number;
-      data: UpdatePolicyRequest;
+
+
+
+export const getUpdatePolicyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePolicy>>, TError,{workspaceId: number;packId: number;versionId: number;policyId: number;data: UpdatePolicyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePolicy>>, TError,{workspaceId: number;packId: number;versionId: number;policyId: number;data: UpdatePolicyRequest}, TContext> => {
+
+const mutationKey = ['updatePolicy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePolicy>>, {workspaceId: number;packId: number;versionId: number;policyId: number;data: UpdatePolicyRequest}> = (props) => {
+          const {workspaceId,packId,versionId,policyId,data} = props ?? {};
+
+          return  updatePolicy(workspaceId,packId,versionId,policyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof updatePolicy>>>
+    export type UpdatePolicyMutationBody = UpdatePolicyRequest
+    export type UpdatePolicyMutationError = unknown
+
+    export const useUpdatePolicy = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePolicy>>, TError,{workspaceId: number;packId: number;versionId: number;policyId: number;data: UpdatePolicyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updatePolicy>>,
+        TError,
+        {workspaceId: number;packId: number;versionId: number;policyId: number;data: UpdatePolicyRequest},
+        TContext
+      > => {
+      return useMutation(getUpdatePolicyMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { workspaceId, packId, versionId, policyId, data } = props ?? {};
-
-    return updatePolicy(workspaceId, packId, versionId, policyId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdatePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof updatePolicy>>>;
-export type UpdatePolicyMutationBody = UpdatePolicyRequest;
-export type UpdatePolicyMutationError = unknown;
-
-export const useUpdatePolicy = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updatePolicy>>,
-      TError,
-      {
-        workspaceId: number;
-        packId: number;
-        versionId: number;
-        policyId: number;
-        data: UpdatePolicyRequest;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updatePolicy>>,
-  TError,
-  {
-    workspaceId: number;
-    packId: number;
-    versionId: number;
-    policyId: number;
-    data: UpdatePolicyRequest;
-  },
-  TContext
-> => {
-  return useMutation(getUpdatePolicyMutationOptions(options), queryClient);
-};

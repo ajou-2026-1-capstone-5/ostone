@@ -4,11 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const ListWorkflowsParams = zod.object({
-  intentDefinitionId: zod.number().optional(),
-});
+  "intentDefinitionId": zod.number().optional()
+})
 
 export type ListWorkflowsParams = zod.input<typeof ListWorkflowsParams>;
 export type ListWorkflowsParamsOutput = zod.output<typeof ListWorkflowsParams>;

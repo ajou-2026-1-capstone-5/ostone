@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const receiveIntentDraftCallbackBodyExternalEventIdMin = 0;
 export const receiveIntentDraftCallbackBodyExternalEventIdMax = 255;
@@ -32,60 +32,22 @@ export const receiveIntentDraftCallbackBodyIntentsItemMetaJsonMax = 5000;
 
 export const receiveIntentDraftCallbackBodyIntentsMax = 200;
 
+
 export const ReceiveIntentDraftCallbackBody = zod.object({
-  externalEventId: zod
-    .string()
-    .min(receiveIntentDraftCallbackBodyExternalEventIdMin)
-    .max(receiveIntentDraftCallbackBodyExternalEventIdMax)
-    .optional(),
-  domainPackVersionId: zod.number(),
-  intents: zod
-    .array(
-      zod.object({
-        intentCode: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemIntentCodeMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemIntentCodeMax)
-          .optional(),
-        name: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemNameMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemNameMax)
-          .optional(),
-        description: zod.string().optional(),
-        taxonomyLevel: zod.number().optional(),
-        parentIntentCode: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemParentIntentCodeMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemParentIntentCodeMax)
-          .optional(),
-        sourceClusterRef: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemSourceClusterRefMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemSourceClusterRefMax)
-          .optional(),
-        entryConditionJson: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemEntryConditionJsonMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemEntryConditionJsonMax)
-          .optional(),
-        evidenceJson: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemEvidenceJsonMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemEvidenceJsonMax)
-          .optional(),
-        metaJson: zod
-          .string()
-          .min(receiveIntentDraftCallbackBodyIntentsItemMetaJsonMin)
-          .max(receiveIntentDraftCallbackBodyIntentsItemMetaJsonMax)
-          .optional(),
-      }),
-    )
-    .min(1)
-    .max(receiveIntentDraftCallbackBodyIntentsMax),
-});
+  "externalEventId": zod.string().min(receiveIntentDraftCallbackBodyExternalEventIdMin).max(receiveIntentDraftCallbackBodyExternalEventIdMax).optional(),
+  "domainPackVersionId": zod.number(),
+  "intents": zod.array(zod.object({
+  "intentCode": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemIntentCodeMin).max(receiveIntentDraftCallbackBodyIntentsItemIntentCodeMax).optional(),
+  "name": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemNameMin).max(receiveIntentDraftCallbackBodyIntentsItemNameMax).optional(),
+  "description": zod.string().optional(),
+  "taxonomyLevel": zod.number().optional(),
+  "parentIntentCode": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemParentIntentCodeMin).max(receiveIntentDraftCallbackBodyIntentsItemParentIntentCodeMax).optional(),
+  "sourceClusterRef": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemSourceClusterRefMin).max(receiveIntentDraftCallbackBodyIntentsItemSourceClusterRefMax).optional(),
+  "entryConditionJson": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemEntryConditionJsonMin).max(receiveIntentDraftCallbackBodyIntentsItemEntryConditionJsonMax).optional(),
+  "evidenceJson": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemEvidenceJsonMin).max(receiveIntentDraftCallbackBodyIntentsItemEvidenceJsonMax).optional(),
+  "metaJson": zod.string().min(receiveIntentDraftCallbackBodyIntentsItemMetaJsonMin).max(receiveIntentDraftCallbackBodyIntentsItemMetaJsonMax).optional()
+})).min(1).max(receiveIntentDraftCallbackBodyIntentsMax)
+})
 
 export type ReceiveIntentDraftCallbackBody = zod.input<typeof ReceiveIntentDraftCallbackBody>;
-export type ReceiveIntentDraftCallbackBodyOutput = zod.output<
-  typeof ReceiveIntentDraftCallbackBody
->;
+export type ReceiveIntentDraftCallbackBodyOutput = zod.output<typeof ReceiveIntentDraftCallbackBody>;

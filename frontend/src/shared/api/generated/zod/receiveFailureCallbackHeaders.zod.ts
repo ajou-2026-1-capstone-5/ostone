@@ -4,11 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const ReceiveFailureCallbackHeaders = zod.object({
-  "X-Airflow-Webhook-Secret": zod.string().optional(),
-});
+  "X-Airflow-Webhook-Secret": zod.string().optional()
+})
 
 export type ReceiveFailureCallbackHeaders = zod.input<typeof ReceiveFailureCallbackHeaders>;
 export type ReceiveFailureCallbackHeadersOutput = zod.output<typeof ReceiveFailureCallbackHeaders>;

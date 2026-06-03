@@ -4,107 +4,101 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  UseMutationResult
+} from '@tanstack/react-query';
 
-import type { DomainPackGenerationTriggerResponse } from "../../zod";
+import type {
+  DomainPackGenerationTriggerResponse
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type triggerDomainPackGenerationResponse200 = {
-  data: DomainPackGenerationTriggerResponse;
-  status: 200;
-};
 
-export type triggerDomainPackGenerationResponseSuccess = triggerDomainPackGenerationResponse200 & {
+
+export type triggerDomainPackGenerationResponse200 = {
+  data: DomainPackGenerationTriggerResponse
+  status: 200
+}
+
+export type triggerDomainPackGenerationResponseSuccess = (triggerDomainPackGenerationResponse200) & {
   headers: Headers;
 };
+;
 
-export type triggerDomainPackGenerationResponse = triggerDomainPackGenerationResponseSuccess;
+export type triggerDomainPackGenerationResponse = (triggerDomainPackGenerationResponseSuccess)
 
-export const getTriggerDomainPackGenerationUrl = (workspaceId: number, datasetId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/datasets/${datasetId}/pipeline-jobs/domain-pack-generation`;
-};
+export const getTriggerDomainPackGenerationUrl = (workspaceId: number,
+    datasetId: number,) => {
 
-export const triggerDomainPackGeneration = async (
-  workspaceId: number,
-  datasetId: number,
-  options?: RequestInit,
-): Promise<triggerDomainPackGenerationResponse> => {
-  return customFetch<triggerDomainPackGenerationResponse>(
-    getTriggerDomainPackGenerationUrl(workspaceId, datasetId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getTriggerDomainPackGenerationMutationOptions = <
-  TError = unknown,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
-    TError,
-    { workspaceId: number; datasetId: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
-  TError,
-  { workspaceId: number; datasetId: number },
-  TContext
-> => {
-  const mutationKey = ["triggerDomainPackGeneration"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
-    { workspaceId: number; datasetId: number }
-  > = (props) => {
-    const { workspaceId, datasetId } = props ?? {};
 
-    return triggerDomainPackGeneration(workspaceId, datasetId, requestOptions);
-  };
+  return `/api/v1/workspaces/${workspaceId}/datasets/${datasetId}/pipeline-jobs/domain-pack-generation`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const triggerDomainPackGeneration = async (workspaceId: number,
+    datasetId: number, options?: RequestInit): Promise<triggerDomainPackGenerationResponse> => {
 
-export type TriggerDomainPackGenerationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof triggerDomainPackGeneration>>
->;
+  return customFetch<triggerDomainPackGenerationResponse>(getTriggerDomainPackGenerationUrl(workspaceId,datasetId),
+  {
+    ...options,
+    method: 'POST'
 
-export type TriggerDomainPackGenerationMutationError = unknown;
 
-export const useTriggerDomainPackGeneration = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
-      TError,
-      { workspaceId: number; datasetId: number },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
-  TError,
-  { workspaceId: number; datasetId: number },
-  TContext
-> => {
-  return useMutation(getTriggerDomainPackGenerationMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+export const getTriggerDomainPackGenerationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerDomainPackGeneration>>, TError,{workspaceId: number;datasetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof triggerDomainPackGeneration>>, TError,{workspaceId: number;datasetId: number}, TContext> => {
+
+const mutationKey = ['triggerDomainPackGeneration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerDomainPackGeneration>>, {workspaceId: number;datasetId: number}> = (props) => {
+          const {workspaceId,datasetId} = props ?? {};
+
+          return  triggerDomainPackGeneration(workspaceId,datasetId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TriggerDomainPackGenerationMutationResult = NonNullable<Awaited<ReturnType<typeof triggerDomainPackGeneration>>>
+
+    export type TriggerDomainPackGenerationMutationError = unknown
+
+    export const useTriggerDomainPackGeneration = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerDomainPackGeneration>>, TError,{workspaceId: number;datasetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof triggerDomainPackGeneration>>,
+        TError,
+        {workspaceId: number;datasetId: number},
+        TContext
+      > => {
+      return useMutation(getTriggerDomainPackGenerationMutationOptions(options), queryClient);
+    }

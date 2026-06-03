@@ -4,21 +4,21 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const CreateDomainPackDraftResponse = zod.object({
-  versionId: zod.number().optional(),
-  domainPackId: zod.number().optional(),
-  versionNo: zod.number().optional(),
-  lifecycleStatus: zod.string().optional(),
-  sourcePipelineJobId: zod.number().optional(),
-  intentCount: zod.number().optional(),
-  slotCount: zod.number().optional(),
-  policyCount: zod.number().optional(),
-  riskCount: zod.number().optional(),
-  workflowCount: zod.number().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "versionId": zod.number().optional(),
+  "domainPackId": zod.number().optional(),
+  "versionNo": zod.number().optional(),
+  "lifecycleStatus": zod.string().optional(),
+  "sourcePipelineJobId": zod.number().optional(),
+  "intentCount": zod.number().optional(),
+  "slotCount": zod.number().optional(),
+  "policyCount": zod.number().optional(),
+  "riskCount": zod.number().optional(),
+  "workflowCount": zod.number().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type CreateDomainPackDraftResponse = zod.input<typeof CreateDomainPackDraftResponse>;
 export type CreateDomainPackDraftResponseOutput = zod.output<typeof CreateDomainPackDraftResponse>;

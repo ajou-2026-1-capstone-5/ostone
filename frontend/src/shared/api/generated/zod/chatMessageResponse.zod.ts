@@ -4,16 +4,16 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const ChatMessageResponse = zod.object({
-  id: zod.number().optional(),
-  seqNo: zod.number().optional(),
-  senderRole: zod.string().optional(),
-  messageType: zod.string().optional(),
-  content: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "seqNo": zod.number().optional(),
+  "senderRole": zod.string().optional(),
+  "messageType": zod.string().optional(),
+  "content": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type ChatMessageResponse = zod.input<typeof ChatMessageResponse>;
 export type ChatMessageResponseOutput = zod.output<typeof ChatMessageResponse>;

@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const intentDraftRequestIntentCodeMin = 0;
 export const intentDraftRequestIntentCodeMax = 100;
@@ -27,41 +27,18 @@ export const intentDraftRequestEvidenceJsonMax = 5000;
 export const intentDraftRequestMetaJsonMin = 0;
 export const intentDraftRequestMetaJsonMax = 5000;
 
+
 export const IntentDraftRequest = zod.object({
-  intentCode: zod
-    .string()
-    .min(intentDraftRequestIntentCodeMin)
-    .max(intentDraftRequestIntentCodeMax)
-    .optional(),
-  name: zod.string().min(intentDraftRequestNameMin).max(intentDraftRequestNameMax).optional(),
-  description: zod.string().optional(),
-  taxonomyLevel: zod.number().optional(),
-  parentIntentCode: zod
-    .string()
-    .min(intentDraftRequestParentIntentCodeMin)
-    .max(intentDraftRequestParentIntentCodeMax)
-    .optional(),
-  sourceClusterRef: zod
-    .string()
-    .min(intentDraftRequestSourceClusterRefMin)
-    .max(intentDraftRequestSourceClusterRefMax)
-    .optional(),
-  entryConditionJson: zod
-    .string()
-    .min(intentDraftRequestEntryConditionJsonMin)
-    .max(intentDraftRequestEntryConditionJsonMax)
-    .optional(),
-  evidenceJson: zod
-    .string()
-    .min(intentDraftRequestEvidenceJsonMin)
-    .max(intentDraftRequestEvidenceJsonMax)
-    .optional(),
-  metaJson: zod
-    .string()
-    .min(intentDraftRequestMetaJsonMin)
-    .max(intentDraftRequestMetaJsonMax)
-    .optional(),
-});
+  "intentCode": zod.string().min(intentDraftRequestIntentCodeMin).max(intentDraftRequestIntentCodeMax).optional(),
+  "name": zod.string().min(intentDraftRequestNameMin).max(intentDraftRequestNameMax).optional(),
+  "description": zod.string().optional(),
+  "taxonomyLevel": zod.number().optional(),
+  "parentIntentCode": zod.string().min(intentDraftRequestParentIntentCodeMin).max(intentDraftRequestParentIntentCodeMax).optional(),
+  "sourceClusterRef": zod.string().min(intentDraftRequestSourceClusterRefMin).max(intentDraftRequestSourceClusterRefMax).optional(),
+  "entryConditionJson": zod.string().min(intentDraftRequestEntryConditionJsonMin).max(intentDraftRequestEntryConditionJsonMax).optional(),
+  "evidenceJson": zod.string().min(intentDraftRequestEvidenceJsonMin).max(intentDraftRequestEvidenceJsonMax).optional(),
+  "metaJson": zod.string().min(intentDraftRequestMetaJsonMin).max(intentDraftRequestMetaJsonMax).optional()
+})
 
 export type IntentDraftRequest = zod.input<typeof IntentDraftRequest>;
 export type IntentDraftRequestOutput = zod.output<typeof IntentDraftRequest>;

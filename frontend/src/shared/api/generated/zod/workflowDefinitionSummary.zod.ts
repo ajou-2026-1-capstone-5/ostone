@@ -4,20 +4,20 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const WorkflowDefinitionSummary = zod.object({
-  id: zod.number().optional(),
-  domainPackVersionId: zod.number().optional(),
-  intentDefinitionId: zod.number().optional(),
-  workflowCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  initialState: zod.string().optional(),
-  terminalStatesJson: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "domainPackVersionId": zod.number().optional(),
+  "intentDefinitionId": zod.number().optional(),
+  "workflowCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "initialState": zod.string().optional(),
+  "terminalStatesJson": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type WorkflowDefinitionSummary = zod.input<typeof WorkflowDefinitionSummary>;
 export type WorkflowDefinitionSummaryOutput = zod.output<typeof WorkflowDefinitionSummary>;

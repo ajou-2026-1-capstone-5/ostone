@@ -4,23 +4,23 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const SlotDefinitionResponse = zod.object({
-  id: zod.number().optional(),
-  domainPackVersionId: zod.number().optional(),
-  slotCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  dataType: zod.string().optional(),
-  isSensitive: zod.boolean().optional(),
-  validationRuleJson: zod.string().optional(),
-  defaultValueJson: zod.string().optional(),
-  metaJson: zod.string().optional(),
-  status: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "domainPackVersionId": zod.number().optional(),
+  "slotCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "dataType": zod.string().optional(),
+  "isSensitive": zod.boolean().optional(),
+  "validationRuleJson": zod.string().optional(),
+  "defaultValueJson": zod.string().optional(),
+  "metaJson": zod.string().optional(),
+  "status": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type SlotDefinitionResponse = zod.input<typeof SlotDefinitionResponse>;
 export type SlotDefinitionResponseOutput = zod.output<typeof SlotDefinitionResponse>;

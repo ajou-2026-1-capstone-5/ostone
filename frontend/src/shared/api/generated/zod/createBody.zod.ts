@@ -4,14 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const createBodyReasonMin = 0;
 export const createBodyReasonMax = 1000;
 
+
 export const CreateBody = zod.object({
-  reason: zod.string().min(createBodyReasonMin).max(createBodyReasonMax).optional(),
-});
+  "reason": zod.string().min(createBodyReasonMin).max(createBodyReasonMax).optional()
+})
 
 export type CreateBody = zod.input<typeof CreateBody>;
 export type CreateBodyOutput = zod.output<typeof CreateBody>;

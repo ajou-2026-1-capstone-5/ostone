@@ -4,66 +4,44 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DemoDomainPackEndpointResponse = zod.object({
-  domainPack: zod
-    .object({
-      id: zod.string().optional(),
-      name: zod.string().optional(),
-      version: zod.string().optional(),
-      status: zod.string().optional(),
-      intents: zod
-        .array(
-          zod.object({
-            id: zod.string().optional(),
-            name: zod.string().optional(),
-            description: zod.string().optional(),
-          }),
-        )
-        .optional(),
-      policies: zod
-        .array(
-          zod.object({
-            id: zod.string().optional(),
-            name: zod.string().optional(),
-            description: zod.string().optional(),
-            severity: zod.string().optional(),
-          }),
-        )
-        .optional(),
-      risks: zod
-        .array(
-          zod.object({
-            id: zod.string().optional(),
-            name: zod.string().optional(),
-            description: zod.string().optional(),
-            level: zod.string().optional(),
-          }),
-        )
-        .optional(),
-    })
-    .optional(),
-  workflow: zod
-    .object({
-      id: zod.string().optional(),
-      name: zod.string().optional(),
-      description: zod.string().optional(),
-      states: zod.array(zod.string()).optional(),
-      transitions: zod
-        .array(
-          zod.object({
-            from: zod.string().optional(),
-            to: zod.string().optional(),
-            on: zod.string().optional(),
-          }),
-        )
-        .optional(),
-    })
-    .optional(),
-});
+  "domainPack": zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "version": zod.string().optional(),
+  "status": zod.string().optional(),
+  "intents": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional()
+})).optional(),
+  "policies": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "severity": zod.string().optional()
+})).optional(),
+  "risks": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "level": zod.string().optional()
+})).optional()
+}).optional(),
+  "workflow": zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "states": zod.array(zod.string()).optional(),
+  "transitions": zod.array(zod.object({
+  "from": zod.string().optional(),
+  "to": zod.string().optional(),
+  "on": zod.string().optional()
+})).optional()
+}).optional()
+})
 
 export type DemoDomainPackEndpointResponse = zod.input<typeof DemoDomainPackEndpointResponse>;
-export type DemoDomainPackEndpointResponseOutput = zod.output<
-  typeof DemoDomainPackEndpointResponse
->;
+export type DemoDomainPackEndpointResponseOutput = zod.output<typeof DemoDomainPackEndpointResponse>;

@@ -4,16 +4,14 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const PipelineFailureCallbackResponse = zod.object({
-  status: zod.string().optional(),
-  externalEventId: zod.string().optional(),
-  pipelineJobId: zod.number().optional(),
-  jobStatus: zod.string().optional(),
-});
+  "status": zod.string().optional(),
+  "externalEventId": zod.string().optional(),
+  "pipelineJobId": zod.number().optional(),
+  "jobStatus": zod.string().optional()
+})
 
 export type PipelineFailureCallbackResponse = zod.input<typeof PipelineFailureCallbackResponse>;
-export type PipelineFailureCallbackResponseOutput = zod.output<
-  typeof PipelineFailureCallbackResponse
->;
+export type PipelineFailureCallbackResponseOutput = zod.output<typeof PipelineFailureCallbackResponse>;

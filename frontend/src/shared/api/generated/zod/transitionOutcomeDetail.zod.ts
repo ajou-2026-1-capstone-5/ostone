@@ -4,13 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const TransitionOutcomeDetail = zod.object({
-  editable: zod.boolean().optional(),
-  state: zod.string().optional(),
-  label: zod.string().optional(),
-});
+  "editable": zod.boolean().optional(),
+  "state": zod.string().optional(),
+  "label": zod.string().optional()
+})
 
 export type TransitionOutcomeDetail = zod.input<typeof TransitionOutcomeDetail>;
 export type TransitionOutcomeDetailOutput = zod.output<typeof TransitionOutcomeDetail>;

@@ -4,21 +4,19 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const IntentDefinitionStatusResponse = zod.object({
-  id: zod.number().optional(),
-  domainPackVersionId: zod.number().optional(),
-  intentCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  taxonomyLevel: zod.number().optional(),
-  status: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "domainPackVersionId": zod.number().optional(),
+  "intentCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "taxonomyLevel": zod.number().optional(),
+  "status": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type IntentDefinitionStatusResponse = zod.input<typeof IntentDefinitionStatusResponse>;
-export type IntentDefinitionStatusResponseOutput = zod.output<
-  typeof IntentDefinitionStatusResponse
->;
+export type IntentDefinitionStatusResponseOutput = zod.output<typeof IntentDefinitionStatusResponse>;
