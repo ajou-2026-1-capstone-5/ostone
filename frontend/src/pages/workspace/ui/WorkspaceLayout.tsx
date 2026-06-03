@@ -10,6 +10,7 @@ import { OstoneShell } from "@/widgets/ostone-shell";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 
 const getActiveFromPath = (pathname: string): SidebarActive => {
+  if (pathname.includes("/dashboard")) return "dashboard";
   if (pathname.includes("/domain-packs")) return "domain";
   if (pathname.includes("/consultation")) return "consult";
   if (pathname.includes("/upload")) return "upload";
@@ -17,7 +18,7 @@ const getActiveFromPath = (pathname: string): SidebarActive => {
   if (pathname.includes("/settings")) return "settings";
   if (pathname.includes("/workflows")) return "workflows";
 
-  return "workflows";
+  return "dashboard";
 };
 
 export function WorkspaceLayout() {

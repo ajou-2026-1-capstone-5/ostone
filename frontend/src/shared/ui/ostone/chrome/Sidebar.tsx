@@ -6,6 +6,7 @@ import type { IconName } from "../atoms/Icon";
 import { AccountMenu } from "./AccountMenu";
 
 export type SidebarActive =
+  | "dashboard"
   | "workflows"
   | "consult"
   | "chat"
@@ -37,6 +38,12 @@ function getDemoPreviewPath(): string {
 }
 
 const TOP_NAV_ITEMS: TopNavItem[] = [
+  {
+    key: "dashboard",
+    icon: "grid",
+    label: "대시보드",
+    getPath: (base) => `${base}/dashboard`,
+  },
   {
     key: "consult",
     icon: "book",

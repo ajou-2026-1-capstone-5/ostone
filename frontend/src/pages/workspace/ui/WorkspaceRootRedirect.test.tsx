@@ -126,7 +126,7 @@ describe("WorkspaceRootRedirect", () => {
       isError: false,
     });
     renderPage();
-    expect(screen.getByTestId("navigate-to")).toHaveTextContent("/workspaces/1/workflows");
+    expect(screen.getByTestId("navigate-to")).toHaveTextContent("/workspaces/1/dashboard");
   });
 
   it("ACTIVE 워크스페이스가 없으면 첫 워크스페이스로 리다이렉트한다", () => {
@@ -136,7 +136,7 @@ describe("WorkspaceRootRedirect", () => {
       isError: false,
     });
     renderPage();
-    expect(screen.getByTestId("navigate-to")).toHaveTextContent("/workspaces/3/workflows");
+    expect(screen.getByTestId("navigate-to")).toHaveTextContent("/workspaces/3/dashboard");
   });
 
   it("기본 워크스페이스 id를 확인할 수 없으면 CreateWorkspaceDialog를 표시한다", () => {

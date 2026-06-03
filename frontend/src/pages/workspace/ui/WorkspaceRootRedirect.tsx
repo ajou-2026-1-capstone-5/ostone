@@ -42,7 +42,7 @@ export function WorkspaceRootRedirect() {
   const workspaces = selectApiData<WorkspaceResponse[]>(workspacesData) ?? [];
   const workspace = selectDefaultWorkspace(workspaces);
   if (typeof workspace?.id === "number") {
-    return <Navigate to={`/workspaces/${workspace.id}/workflows`} replace />;
+    return <Navigate to={`/workspaces/${workspace.id}/dashboard`} replace />;
   }
 
   return (
