@@ -11,7 +11,7 @@ import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/gene
 // OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
 // assign/release, draft-response는 수동 호출로 유지한다.
 
-export type ChatSession = ChatSessionResponse & {
+export type ChatSession = Omit<ChatSessionResponse, 'responseMode'> & {
   assignedCounselorId?: number | null;
   responseMode?: ConsultationResponseMode | null;
 };
@@ -259,7 +259,7 @@ export const consultationApi = {
     const payload =
       typeof statusOrPayload === "string" ? { status: statusOrPayload } : statusOrPayload;
     return requireApiData<ChatSession>(
-      await updateStatus(sessionId, payload),
+      (await updateStatus(sessionId, payload)) as unknown as { data: ChatSession },
       "상담 상태 변경 응답을 확인할 수 없습니다.",
     );
   },
