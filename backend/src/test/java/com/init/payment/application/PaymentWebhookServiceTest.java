@@ -15,7 +15,6 @@ import com.init.payment.domain.model.PaymentStatus;
 import com.init.payment.domain.model.WebhookEvent;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.WebhookEventRepository;
-import com.init.payment.infrastructure.config.TossApiProperties;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -47,14 +46,12 @@ class PaymentWebhookServiceTest {
 
   @BeforeEach
   void setUp() {
-    TossApiProperties properties =
-        new TossApiProperties(null, new TossApiProperties.Webhook(SECRET), "enc");
     service =
         new PaymentWebhookService(
             webhookEventRepository,
             paymentRepository,
             tossPaymentPort,
-            properties,
+            SECRET,
             clock,
             transactionManager);
   }
@@ -109,5 +106,89 @@ class PaymentWebhookServiceTest {
 
     assertThat(payment.getStatus()).isEqualTo(PaymentStatus.DONE);
     verify(paymentRepository).save(payment);
+  }
+
+  @Test
+  @DisplayName("paymentKey가 null이면 Toss 재조회를 건너뛴다")
+  void nullPaymentKey_skips_toss_call() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_2")).willReturn(Optional.empty());
+
+    service.handle(new HandleTossWebhookCommand(SECRET, "txn_2", "PAYMENT_STATUS", null, "{}"));
+
+    verify(tossPaymentPort, never()).getPayment(any());
+  }
+
+  @Test
+  @DisplayName("paymentKey가 공백이면 Toss 재조회를 건너뛴다")
+  void blankPaymentKey_skips_toss_call() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_3")).willReturn(Optional.empty());
+
+    service.handle(new HandleTossWebhookCommand(SECRET, "txn_3", "PAYMENT_STATUS", "  ", "{}"));
+
+    verify(tossPaymentPort, never()).getPayment(any());
+  }
+
+  @Test
+  @DisplayName("Toss 재조회 결과가 CANCELED이면 결제를 취소로 반영한다")
+  void canceledStatus_marks_payment_canceled() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_4")).willReturn(Optional.empty());
+    Payment payment =
+        Payment.createRecurring(
+            1L, 5L, "ord_1", 29000, "KRW", "Pro", "2026-06-01T00:00:00Z", "idem");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), "url", "{}");
+    given(paymentRepository.findByPaymentKey("pay_1")).willReturn(Optional.of(payment));
+    given(tossPaymentPort.getPayment("pay_1"))
+        .willReturn(
+            new TossPaymentResult(
+                "pay_1", "ord_1", 29000, "CANCELED", null, null, null, "txn_c", "{}"));
+
+    service.handle(new HandleTossWebhookCommand(SECRET, "txn_4", "PAYMENT_STATUS", "pay_1", "{}"));
+
+    assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+    verify(paymentRepository).save(payment);
+  }
+
+  @Test
+  @DisplayName("Toss 재조회 결과가 PARTIAL_CANCELED이면 결제를 부분취소로 반영한다")
+  void partialCanceledStatus_marks_payment_partial_canceled() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_5")).willReturn(Optional.empty());
+    Payment payment =
+        Payment.createRecurring(
+            1L, 5L, "ord_1", 29000, "KRW", "Pro", "2026-06-01T00:00:00Z", "idem");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), "url", "{}");
+    given(paymentRepository.findByPaymentKey("pay_1")).willReturn(Optional.of(payment));
+    given(tossPaymentPort.getPayment("pay_1"))
+        .willReturn(
+            new TossPaymentResult(
+                "pay_1", "ord_1", 15000, "PARTIAL_CANCELED", null, null, null, "txn_pc", "{}"));
+
+    service.handle(new HandleTossWebhookCommand(SECRET, "txn_5", "PAYMENT_STATUS", "pay_1", "{}"));
+
+    assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PARTIAL_CANCELED);
+    verify(paymentRepository).save(payment);
+  }
+
+  @Test
+  @DisplayName("빈 문자열 시크릿으로 구성된 서비스는 모든 웹훅을 거절한다")
+  void emptyConfiguredSecret_throws_unauthorized() {
+    PaymentWebhookService serviceWithEmptySecret =
+        new PaymentWebhookService(
+            webhookEventRepository,
+            paymentRepository,
+            tossPaymentPort,
+            "",
+            clock,
+            transactionManager);
+
+    assertThatThrownBy(
+            () ->
+                serviceWithEmptySecret.handle(
+                    new HandleTossWebhookCommand(
+                        "any-secret", "txn_6", "PAYMENT_STATUS", "pay_1", "{}")))
+        .isInstanceOf(PaymentWebhookUnauthorizedException.class);
   }
 }

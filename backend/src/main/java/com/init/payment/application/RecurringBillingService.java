@@ -132,40 +132,11 @@ public class RecurringBillingService {
     OffsetDateTime periodEnd = plan.getBillingInterval().advance(periodStart);
     String periodKey = PaymentIdentifiers.periodKey(periodStart);
 
-    Payment existing =
-        paymentRepository
-            .findBySubscriptionIdAndBillingPeriodKey(subscriptionId, periodKey)
-            .orElse(null);
-    if (existing != null && existing.isDone()) {
-      subscription.renew(periodStart, periodEnd);
-      subscriptionRepository.save(subscription);
-      return null;
-    }
-
-    Payment payment = existing;
+    Payment payment =
+        findOrCreatePeriodPayment(
+            subscriptionId, periodKey, plan, subscription, periodStart, periodEnd);
     if (payment == null) {
-      try {
-        payment =
-            paymentRepository.save(
-                Payment.createRecurring(
-                    subscription.getWorkspaceId(),
-                    subscriptionId,
-                    PaymentIdentifiers.orderId(),
-                    plan.getAmount(),
-                    plan.getCurrency(),
-                    plan.getName(),
-                    periodKey,
-                    PaymentIdentifiers.idempotencyKey()));
-      } catch (DataIntegrityViolationException ex) {
-        Payment concurrent =
-            paymentRepository
-                .findBySubscriptionIdAndBillingPeriodKey(subscriptionId, periodKey)
-                .orElse(null);
-        if (concurrent == null || concurrent.isDone()) {
-          return null;
-        }
-        payment = concurrent;
-      }
+      return null;
     }
 
     return new ChargePrep(
@@ -177,6 +148,57 @@ public class RecurringBillingService {
         plan.getName(),
         periodStart,
         periodEnd);
+  }
+
+  private Payment findOrCreatePeriodPayment(
+      Long subscriptionId,
+      String periodKey,
+      Plan plan,
+      Subscription subscription,
+      OffsetDateTime periodStart,
+      OffsetDateTime periodEnd) {
+    Payment existing =
+        paymentRepository
+            .findBySubscriptionIdAndBillingPeriodKey(subscriptionId, periodKey)
+            .orElse(null);
+    if (existing != null && existing.isDone()) {
+      subscription.renew(periodStart, periodEnd);
+      subscriptionRepository.save(subscription);
+      return null;
+    }
+    if (existing != null) {
+      return existing;
+    }
+    return createPeriodPayment(subscriptionId, periodKey, plan, subscription);
+  }
+
+  private Payment createPeriodPayment(
+      Long subscriptionId, String periodKey, Plan plan, Subscription subscription) {
+    try {
+      return paymentRepository.save(
+          Payment.createRecurring(
+              subscription.getWorkspaceId(),
+              subscriptionId,
+              PaymentIdentifiers.orderId(),
+              plan.getAmount(),
+              plan.getCurrency(),
+              plan.getName(),
+              periodKey,
+              PaymentIdentifiers.idempotencyKey()));
+    } catch (DataIntegrityViolationException ex) {
+      return handleConcurrentInsert(subscriptionId, periodKey);
+    }
+  }
+
+  private Payment handleConcurrentInsert(Long subscriptionId, String periodKey) {
+    Payment concurrent =
+        paymentRepository
+            .findBySubscriptionIdAndBillingPeriodKey(subscriptionId, periodKey)
+            .orElse(null);
+    if (concurrent == null || concurrent.isDone()) {
+      return null;
+    }
+    return concurrent;
   }
 
   private void finalizeCharge(

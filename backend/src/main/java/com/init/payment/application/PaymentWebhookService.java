@@ -7,13 +7,13 @@ import com.init.payment.domain.model.Payment;
 import com.init.payment.domain.model.WebhookEvent;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.WebhookEventRepository;
-import com.init.payment.infrastructure.config.TossApiProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -31,7 +31,7 @@ public class PaymentWebhookService {
   private final WebhookEventRepository webhookEventRepository;
   private final PaymentRepository paymentRepository;
   private final TossPaymentPort tossPaymentPort;
-  private final TossApiProperties properties;
+  private final String webhookSecret;
   private final Clock clock;
   private final TransactionTemplate transactionTemplate;
 
@@ -39,13 +39,13 @@ public class PaymentWebhookService {
       WebhookEventRepository webhookEventRepository,
       PaymentRepository paymentRepository,
       TossPaymentPort tossPaymentPort,
-      TossApiProperties properties,
+      @Value("${toss.webhook.secret:}") String webhookSecret,
       Clock clock,
       PlatformTransactionManager transactionManager) {
     this.webhookEventRepository = webhookEventRepository;
     this.paymentRepository = paymentRepository;
     this.tossPaymentPort = tossPaymentPort;
-    this.properties = properties;
+    this.webhookSecret = webhookSecret;
     this.clock = clock;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
   }
@@ -69,9 +69,10 @@ public class PaymentWebhookService {
   }
 
   private void validateSecret(String providedSecret) {
-    String configured = properties.webhook() == null ? null : properties.webhook().secret();
     byte[] expected =
-        configured == null ? new byte[0] : configured.getBytes(StandardCharsets.UTF_8);
+        (webhookSecret == null || webhookSecret.isBlank())
+            ? new byte[0]
+            : webhookSecret.getBytes(StandardCharsets.UTF_8);
     byte[] actual =
         providedSecret == null ? new byte[0] : providedSecret.getBytes(StandardCharsets.UTF_8);
     if (expected.length == 0 || !MessageDigest.isEqual(actual, expected)) {
