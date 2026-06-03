@@ -23,6 +23,7 @@ import { PackWorkflowListPage } from "../pages/domain-pack/ui/PackWorkflowListPa
 import { DomainPackSummaryPage } from "../pages/domain-pack/ui/DomainPackSummaryPage";
 import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOutlet";
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
+import { WorkspaceDashboardPage } from "../pages/workspace/ui/WorkspaceDashboardPage";
 import { WorkspaceMembersPage } from "../pages/workspace/ui/WorkspaceMembersPage";
 import { BillingPage, BillingSuccessPage, BillingFailPage } from "../pages/billing";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
@@ -102,7 +103,8 @@ export function App() {
             </PrivateRoute>
           }
         >
-          <Route index element={<Navigate to="workflows" replace />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<WorkspaceDashboardPage />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="pipeline" element={<Navigate to="upload" replace />} />
           <Route path="consultation/history" element={<ChatHistoryPage />} />

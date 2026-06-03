@@ -23,6 +23,7 @@ describe("Sidebar", () => {
     const nav = screen.getByLabelText("주요 내비게이션");
     expect(nav).toHaveAttribute("data-collapsed", "false");
     expect(nav).toHaveStyle({ width: "200px" });
+    expect(screen.getByTitle("대시보드")).toBeInTheDocument();
     expect(screen.getByTitle("상담 응대")).toBeInTheDocument();
     expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByTitle("상담 로그 수집")).toBeInTheDocument();
@@ -77,6 +78,7 @@ describe("Sidebar", () => {
   it("basePath prop을 지정하면 링크에 반영된다", () => {
     renderSidebar({ basePath: "/workspaces/7" });
 
+    expect(screen.getByTitle("대시보드")).toHaveAttribute("href", "/workspaces/7/dashboard");
     expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
@@ -147,6 +149,7 @@ describe("Sidebar", () => {
   it("redesign: TOP_NAV 항목마다 sidebar-link-{key} data-testid를 노출한다", () => {
     renderSidebar({ active: "consult" });
 
+    expect(screen.getByTestId("sidebar-link-dashboard")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-consult")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-chat")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-upload")).toBeInTheDocument();

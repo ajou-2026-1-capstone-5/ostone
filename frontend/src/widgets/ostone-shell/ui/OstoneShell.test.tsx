@@ -12,7 +12,7 @@ beforeEach(() => {
 });
 
 describe("OstoneShell", () => {
-  it("renders Sidebar with the new top nav items (workflows lives under Domain Packs, not top-level)", () => {
+  it("renders Sidebar with dashboard as the first workspace nav item", () => {
     render(
       <OstoneShell active="consult" crumbs={[]}>
         <div>content</div>
@@ -21,6 +21,7 @@ describe("OstoneShell", () => {
     );
     expect(screen.queryByTitle("Operator")).not.toBeInTheDocument();
     expect(screen.queryByTitle("Pipeline")).not.toBeInTheDocument();
+    expect(screen.getByTitle("대시보드")).toBeInTheDocument();
     expect(screen.getByTitle("상담 응대")).toBeInTheDocument();
     expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByTitle("상담 로그 수집")).toBeInTheDocument();

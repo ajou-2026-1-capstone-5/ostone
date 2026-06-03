@@ -98,7 +98,7 @@ describe("App", () => {
     });
   });
 
-  it("redirects workspace home alias to workflows and renders the empty workflow state when there are no domain packs", async () => {
+  it("redirects workspace home alias to dashboard and renders the dashboard empty state", async () => {
     seedAuthenticatedSession();
 
     const workspaceBody = {
@@ -120,13 +120,6 @@ describe("App", () => {
           json: async () => [workspaceBody],
         });
       }
-      if (url === "/api/v1/workspaces/1/domain-packs") {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => [],
-        });
-      }
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -144,14 +137,12 @@ describe("App", () => {
     );
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/workspaces/1/workflows");
+      expect(window.location.pathname).toBe("/workspaces/1/dashboard");
     });
 
-    expect(await screen.findByText("워크플로우")).toBeInTheDocument();
+    expect(await screen.findByText("Workspace Dashboard")).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        "아직 등록된 워크플로우가 없습니다. 워크플로우는 도메인팩에서 생성하고 관리합니다.",
-      ),
+      await screen.findByText("아직 대시보드에 표시할 운영 데이터가 없습니다."),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
