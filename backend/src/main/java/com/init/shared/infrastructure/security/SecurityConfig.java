@@ -72,6 +72,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/failures")
                     .permitAll()
+                    .requestMatchers("/api/v1/admin/**")
+                    .hasRole("SUPER_ADMIN")
                     .requestMatchers("/api/v1/consultation/**")
                     .hasRole("OPERATOR")
                     .requestMatchers("/api/v1/workflow-runtime/**")

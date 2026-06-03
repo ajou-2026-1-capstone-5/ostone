@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
+export const SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
 const memoryStorage = new Map<string, string>();
 
@@ -87,6 +88,14 @@ export function getAuthUser(): AuthUser | null {
   }
 }
 
+export function isSuperAdminRole(role: string | null | undefined): boolean {
+  return role === SUPER_ADMIN_ROLE;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function normalizeBase64Url(value: string): string {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const paddingLength = (4 - (base64.length % 4)) % 4;
@@ -94,16 +103,33 @@ function normalizeBase64Url(value: string): string {
   return `${base64}${"=".repeat(paddingLength)}`;
 }
 
-export function isAuthenticated(): boolean {
+function getAccessTokenPayload(): Record<string, unknown> | null {
   const token = getAccessToken();
-  if (!token) return false;
+  if (!token) return null;
 
   try {
     const payload = JSON.parse(atob(normalizeBase64Url(token.split(".")[1] ?? "")));
-    const exp = payload.exp;
-
-    return typeof exp === "number" && exp > Date.now() / 1000;
+    return isRecord(payload) ? payload : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function getAuthenticatedRole(): string | null {
+  const role = getAccessTokenPayload()?.role;
+  return typeof role === "string" ? role : null;
+}
+
+export function isSuperAdmin(): boolean {
+  return isSuperAdminRole(getAuthenticatedRole());
+}
+
+export function getAuthenticatedHomePath(): string {
+  return isSuperAdmin() ? "/admin" : "/workspaces";
+}
+
+export function isAuthenticated(): boolean {
+  const exp = getAccessTokenPayload()?.exp;
+
+  return typeof exp === "number" && exp > Date.now() / 1000;
 }

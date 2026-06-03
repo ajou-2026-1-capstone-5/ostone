@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   clearAuthSession,
+  getAuthenticatedHomePath,
+  getAuthenticatedRole,
   getAccessToken,
   getAuthUser,
   getRefreshToken,
+  isSuperAdmin,
   isAuthenticated,
   saveAuthSession,
   saveAuthTokens,
@@ -57,7 +60,7 @@ describe("isAuthenticated", () => {
         tokenType: "Bearer",
         expiresIn: 3600,
       },
-      { id: 1, email: "admin@ostone.com", name: "관리자", role: "ADMIN" },
+      { id: 1, email: "admin@ostone.com", name: "관리자", role: "SUPER_ADMIN" },
     );
 
     expect(getAccessToken()).toBe("access-token");
@@ -66,7 +69,7 @@ describe("isAuthenticated", () => {
       id: 1,
       email: "admin@ostone.com",
       name: "관리자",
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
     });
 
     clearAuthSession();
@@ -84,7 +87,7 @@ describe("isAuthenticated", () => {
         tokenType: "Bearer",
         expiresIn: 3600,
       },
-      { id: 1, email: "admin@ostone.com", name: "관리자", role: "ADMIN" },
+      { id: 1, email: "admin@ostone.com", name: "관리자", role: "SUPER_ADMIN" },
     );
 
     saveAuthTokens({
@@ -100,8 +103,32 @@ describe("isAuthenticated", () => {
       id: 1,
       email: "admin@ostone.com",
       name: "관리자",
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
     });
+  });
+
+  it("identifies SUPER_ADMIN from the access token role claim", () => {
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ id: 1, email: "operator@ostone.com", name: "상담사", role: "OPERATOR" }),
+    );
+    localStorage.setItem("accessToken", createToken({ role: "SUPER_ADMIN" }));
+
+    expect(getAuthenticatedRole()).toBe("SUPER_ADMIN");
+    expect(isSuperAdmin()).toBe(true);
+    expect(getAuthenticatedHomePath()).toBe("/admin");
+  });
+
+  it("does not trust a SUPER_ADMIN role stored only in localStorage user JSON", () => {
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ id: 1, email: "admin@ostone.com", name: "관리자", role: "SUPER_ADMIN" }),
+    );
+    localStorage.setItem("accessToken", createToken({ role: "OPERATOR" }));
+
+    expect(getAuthenticatedRole()).toBe("OPERATOR");
+    expect(isSuperAdmin()).toBe(false);
+    expect(getAuthenticatedHomePath()).toBe("/workspaces");
   });
 
   it("returns null when stored auth user JSON is malformed", () => {
@@ -123,16 +150,16 @@ describe("isAuthenticated", () => {
         tokenType: "Bearer",
         expiresIn: 3600,
       },
-      { id: 2, email: "agent@ostone.com", name: "상담사", role: "AGENT" },
+      { id: 2, email: "operator@ostone.com", name: "상담사", role: "OPERATOR" },
     );
 
     expect(getAccessToken()).toBe("memory-access-token");
     expect(getRefreshToken()).toBe("memory-refresh-token");
     expect(getAuthUser()).toEqual({
       id: 2,
-      email: "agent@ostone.com",
+      email: "operator@ostone.com",
       name: "상담사",
-      role: "AGENT",
+      role: "OPERATOR",
     });
 
     clearAuthSession();

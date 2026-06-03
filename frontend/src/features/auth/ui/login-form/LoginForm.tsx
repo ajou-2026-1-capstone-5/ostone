@@ -7,7 +7,7 @@ import { Button } from "../../../../shared/ui/button/Button";
 import { loginApi } from "../../api/authApi";
 import { resolveDefaultPostLoginDestination } from "../../model/resolveDefaultPostLoginDestination";
 import { resolveReturnToPostLoginDestination } from "../../model/resolvePostLoginDestination";
-import { saveAuthSession } from "../../../../shared/lib/auth";
+import { isSuperAdminRole, saveAuthSession } from "../../../../shared/lib/auth";
 import { ApiRequestError } from "../../../../shared/api";
 import styles from "./login-form.module.css";
 
@@ -50,6 +50,7 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     try {
       const result = await loginApi({ email, password });
+      const role = result.user?.role ?? "OPERATOR";
 
       saveAuthSession(
         {
@@ -62,12 +63,17 @@ export const LoginForm: React.FC = () => {
           id: result.user?.id ?? 0,
           email: result.user?.email ?? email,
           name: result.user?.name ?? email,
-          role: result.user?.role ?? "OPERATOR",
+          role,
         },
       );
 
       const returnToDestination = resolveReturnToPostLoginDestination(location.state);
-      const destination = returnToDestination ?? (await resolveDefaultPostLoginDestination());
+      const requiresDefaultDestination =
+        returnToDestination === null ||
+        (!isSuperAdminRole(role) && returnToDestination.startsWith("/admin"));
+      const destination = requiresDefaultDestination
+        ? await resolveDefaultPostLoginDestination(role)
+        : returnToDestination;
       navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ApiRequestError) {

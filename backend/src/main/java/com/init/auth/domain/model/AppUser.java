@@ -61,6 +61,15 @@ public class AppUser {
   protected AppUser() {}
 
   public static AppUser create(String name, String email, String passwordHash) {
+    return createWithRole(name, email, passwordHash, UserRole.OPERATOR);
+  }
+
+  public static AppUser createSuperAdmin(String name, String email, String passwordHash) {
+    return createWithRole(name, email, passwordHash, UserRole.SUPER_ADMIN);
+  }
+
+  private static AppUser createWithRole(
+      String name, String email, String passwordHash, UserRole role) {
     if (name == null || name.isBlank()) {
       throw new IllegalArgumentException("name must not be null or blank");
     }
@@ -74,7 +83,7 @@ public class AppUser {
     user.name = name;
     user.email = email;
     user.passwordHash = passwordHash;
-    user.role = UserRole.OPERATOR;
+    user.role = role;
     user.status = UserStatus.ACTIVE;
     user.profileJson = "{}";
     return user;

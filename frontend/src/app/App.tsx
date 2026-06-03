@@ -15,6 +15,9 @@ import { ChatHistoryPage } from "../pages/consultation/ui/chat-history/ChatHisto
 import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
 import { UserChatPage } from "../pages/user-chat";
 import { DemoPage } from "../pages/demo";
+import { AdminLayout } from "../pages/admin/ui/AdminLayout";
+import { AdminPlaceholderPage } from "../pages/admin/ui/AdminPlaceholderPage";
+import { AdminSuperAdminsPage } from "../pages/admin/ui/AdminSuperAdminsPage";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
 import { IntentDraftReadPage } from "../pages/domain-pack/ui/IntentDraftReadPage";
 import { PolicyDraftReadPage } from "../pages/domain-pack/ui/PolicyDraftReadPage";
@@ -30,7 +33,7 @@ import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflows
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
 import { PipelineReviewPage } from "../pages/pipeline-review/ui/PipelineReviewPage";
 import { DomainPackListPage } from "../pages/domain-pack/ui/DomainPackListPage";
-import { PrivateRoute } from "../shared/ui/PrivateRoute";
+import { AdminRoute, PrivateRoute } from "../shared/ui/PrivateRoute";
 import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
 import { Toaster } from "../shared/ui/sonner";
 import { WorkflowGraphViewerPage } from "../pages/domain-pack/ui/WorkflowGraphViewerPage";
@@ -73,6 +76,29 @@ export function App() {
           path="/password-reset/complete"
           element={<PasswordResetCompletePage />}
         />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<Navigate to="super-admins" replace />} />
+          <Route
+            path="customers"
+            element={<AdminPlaceholderPage eyebrow="Customers" title="고객사 현황" />}
+          />
+          <Route
+            path="billing"
+            element={<AdminPlaceholderPage eyebrow="Billing" title="결제 관리" />}
+          />
+          <Route
+            path="airflow"
+            element={<AdminPlaceholderPage eyebrow="Operations" title="Airflow 운영" />}
+          />
+          <Route path="super-admins" element={<AdminSuperAdminsPage />} />
+        </Route>
         <Route
           path="/workspaces"
           element={

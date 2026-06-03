@@ -15,6 +15,8 @@ export * from "./createDomainPackDraftResponse.zod";
 export * from "./createDraftBody.zod";
 export * from "./createIntentRevisionDraftRequest.zod";
 export * from "./createRestoreDraftRequest.zod";
+export * from "./createSuperAdminRequest.zod";
+export * from "./createSuperAdminResponse.zod";
 export * from "./createWorkspaceBody.zod";
 export * from "./createWorkspaceRequest.zod";
 export * from "./datasetUploadRequest.zod";

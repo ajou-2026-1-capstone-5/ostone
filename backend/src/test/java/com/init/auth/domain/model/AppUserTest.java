@@ -33,6 +33,26 @@ class AppUserTest {
   }
 
   @Test
+  @DisplayName("createSuperAdmin: 올바른 파라미터 → ACTIVE 상태의 SUPER_ADMIN 역할 사용자 생성")
+  void should_ACTIVE_SUPER_ADMIN사용자생성_when_올바른파라미터() {
+    // given
+    String name = "운영 관리자";
+    String email = "super@example.com";
+    String hash = "$2a$10$dummyhash";
+
+    // when
+    AppUser user = AppUser.createSuperAdmin(name, email, hash);
+
+    // then
+    assertThat(user.getName()).isEqualTo(name);
+    assertThat(user.getEmail()).isEqualTo(email);
+    assertThat(user.getPasswordHash()).isEqualTo(hash);
+    assertThat(user.getRole()).isEqualTo(UserRole.SUPER_ADMIN);
+    assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(user.isPasswordResetRequired()).isFalse();
+  }
+
+  @Test
   @DisplayName("create: 이름이 null → IllegalArgumentException 발생")
   void should_예외발생_when_이름이null() {
     assertThatThrownBy(() -> AppUser.create(null, "hong@example.com", "hash"))
