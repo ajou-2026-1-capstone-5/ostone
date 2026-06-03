@@ -15,6 +15,7 @@ const getActiveFromPath = (pathname: string): SidebarActive => {
   if (pathname.includes("/upload")) return "upload";
   if (pathname.includes("/pipeline-jobs/")) return "upload";
   if (pathname.includes("/settings")) return "settings";
+  if (pathname.includes("/billing")) return "settings";
   if (pathname.includes("/workflows")) return "workflows";
 
   return "workflows";

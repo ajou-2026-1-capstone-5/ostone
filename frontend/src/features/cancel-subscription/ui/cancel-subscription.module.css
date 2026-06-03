@@ -1,0 +1,25 @@
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-2) 0 var(--s-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.fieldLabel {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 480;
+  color: var(--ink-2);
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}

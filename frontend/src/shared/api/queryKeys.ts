@@ -13,6 +13,13 @@ export const workspaceMemberQueryKeys = {
     [...workspaceMemberQueryKeys.all, "list", workspaceId, search, role] as const,
 };
 
+export const billingQueryKeys = {
+  all: ["billing"] as const,
+  subscription: (workspaceId: number) =>
+    [...billingQueryKeys.all, "subscription", workspaceId] as const,
+  payments: (workspaceId: number) => [...billingQueryKeys.all, "payments", workspaceId] as const,
+};
+
 export const intentQueryKeys = {
   all: ["intents"] as const,
   list: (workspaceId: number, packId: number, versionId: number) =>

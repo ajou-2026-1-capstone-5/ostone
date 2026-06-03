@@ -1,0 +1,42 @@
+.nav {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 480;
+  letter-spacing: -0.14px;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.tab:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+.tabActive {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 540;
+}
+
+.tabActive:hover {
+  color: var(--paper);
+  border-color: var(--ink);
+}
