@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const workflowDraftRequestWorkflowCodeMin = 0;
 export const workflowDraftRequestWorkflowCodeMax = 100;
@@ -21,32 +21,26 @@ export const workflowDraftRequestEvidenceJsonMax = 5000;
 export const workflowDraftRequestMetaJsonMin = 0;
 export const workflowDraftRequestMetaJsonMax = 5000;
 
+export const workflowDraftRequestIntentCodeMin = 0;
+export const workflowDraftRequestIntentCodeMax = 100;
+
+export const workflowDraftRequestRouteConditionJsonMin = 0;
+export const workflowDraftRequestRouteConditionJsonMax = 5000;
+
+
 export const WorkflowDraftRequest = zod.object({
-  workflowCode: zod
-    .string()
-    .min(workflowDraftRequestWorkflowCodeMin)
-    .max(workflowDraftRequestWorkflowCodeMax)
-    .optional(),
-  name: zod.string().min(workflowDraftRequestNameMin).max(workflowDraftRequestNameMax).optional(),
-  description: zod.string().optional(),
-  graphJson: zod
-    .string()
-    .min(workflowDraftRequestGraphJsonMin)
-    .max(workflowDraftRequestGraphJsonMax)
-    .optional(),
-  initialState: zod.string().optional(),
-  terminalStatesJson: zod.string().optional(),
-  evidenceJson: zod
-    .string()
-    .min(workflowDraftRequestEvidenceJsonMin)
-    .max(workflowDraftRequestEvidenceJsonMax)
-    .optional(),
-  metaJson: zod
-    .string()
-    .min(workflowDraftRequestMetaJsonMin)
-    .max(workflowDraftRequestMetaJsonMax)
-    .optional(),
-});
+  "workflowCode": zod.string().min(workflowDraftRequestWorkflowCodeMin).max(workflowDraftRequestWorkflowCodeMax).optional(),
+  "name": zod.string().min(workflowDraftRequestNameMin).max(workflowDraftRequestNameMax).optional(),
+  "description": zod.string().optional(),
+  "graphJson": zod.string().min(workflowDraftRequestGraphJsonMin).max(workflowDraftRequestGraphJsonMax).optional(),
+  "initialState": zod.string().optional(),
+  "terminalStatesJson": zod.string().optional(),
+  "evidenceJson": zod.string().min(workflowDraftRequestEvidenceJsonMin).max(workflowDraftRequestEvidenceJsonMax).optional(),
+  "metaJson": zod.string().min(workflowDraftRequestMetaJsonMin).max(workflowDraftRequestMetaJsonMax).optional(),
+  "intentCode": zod.string().min(workflowDraftRequestIntentCodeMin).max(workflowDraftRequestIntentCodeMax).optional(),
+  "isPrimary": zod.boolean().optional(),
+  "routeConditionJson": zod.string().min(workflowDraftRequestRouteConditionJsonMin).max(workflowDraftRequestRouteConditionJsonMax).optional()
+})
 
 export type WorkflowDraftRequest = zod.input<typeof WorkflowDraftRequest>;
 export type WorkflowDraftRequestOutput = zod.output<typeof WorkflowDraftRequest>;

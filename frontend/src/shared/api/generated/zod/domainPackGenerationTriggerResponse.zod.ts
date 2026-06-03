@@ -4,23 +4,19 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DomainPackGenerationTriggerResponse = zod.object({
-  pipelineJobId: zod.number().optional(),
-  workspaceId: zod.number().optional(),
-  datasetId: zod.number().optional(),
-  jobType: zod.string().optional(),
-  status: zod.string().optional(),
-  airflowDagId: zod.string().optional(),
-  airflowRunId: zod.string().optional(),
-  requestedAt: zod.iso.datetime({ offset: true }).optional(),
-  startedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "pipelineJobId": zod.number().optional(),
+  "workspaceId": zod.number().optional(),
+  "datasetId": zod.number().optional(),
+  "jobType": zod.string().optional(),
+  "status": zod.string().optional(),
+  "airflowDagId": zod.string().optional(),
+  "airflowRunId": zod.string().optional(),
+  "requestedAt": zod.iso.datetime({"offset":true}).optional(),
+  "startedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
-export type DomainPackGenerationTriggerResponse = zod.input<
-  typeof DomainPackGenerationTriggerResponse
->;
-export type DomainPackGenerationTriggerResponseOutput = zod.output<
-  typeof DomainPackGenerationTriggerResponse
->;
+export type DomainPackGenerationTriggerResponse = zod.input<typeof DomainPackGenerationTriggerResponse>;
+export type DomainPackGenerationTriggerResponseOutput = zod.output<typeof DomainPackGenerationTriggerResponse>;

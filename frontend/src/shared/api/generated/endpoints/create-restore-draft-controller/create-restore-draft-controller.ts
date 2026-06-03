@@ -4,103 +4,106 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  UseMutationResult
+} from '@tanstack/react-query';
 
-import type { CreateRestoreDraftRequest, RestoreDraftResponse } from "../../zod";
+import type {
+  CreateRestoreDraftRequest,
+  RestoreDraftResponse
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type create1Response200 = {
-  data: RestoreDraftResponse;
-  status: 200;
-};
 
-export type create1ResponseSuccess = create1Response200 & {
+
+export type create1Response200 = {
+  data: RestoreDraftResponse
+  status: 200
+}
+
+export type create1ResponseSuccess = (create1Response200) & {
   headers: Headers;
 };
+;
 
-export type create1Response = create1ResponseSuccess;
+export type create1Response = (create1ResponseSuccess)
 
-export const getCreate1Url = (workspaceId: number, packId: number, versionId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/restore-drafts`;
-};
+export const getCreate1Url = (workspaceId: number,
+    packId: number,
+    versionId: number,) => {
 
-export const create1 = async (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  createRestoreDraftRequest?: CreateRestoreDraftRequest,
-  options?: RequestInit,
-): Promise<create1Response> => {
-  return customFetch<create1Response>(getCreate1Url(workspaceId, packId, versionId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}/restore-drafts`
+}
+
+export const create1 = async (workspaceId: number,
+    packId: number,
+    versionId: number,
+    createRestoreDraftRequest?: CreateRestoreDraftRequest, options?: RequestInit): Promise<create1Response> => {
+
+  return customFetch<create1Response>(getCreate1Url(workspaceId,packId,versionId),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createRestoreDraftRequest),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createRestoreDraftRequest,)
+  }
+);}
 
-export const getCreate1MutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof create1>>,
-    TError,
-    { workspaceId: number; packId: number; versionId: number; data?: CreateRestoreDraftRequest },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof create1>>,
-  TError,
-  { workspaceId: number; packId: number; versionId: number; data?: CreateRestoreDraftRequest },
-  TContext
-> => {
-  const mutationKey = ["create1"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof create1>>,
-    { workspaceId: number; packId: number; versionId: number; data?: CreateRestoreDraftRequest }
-  > = (props) => {
-    const { workspaceId, packId, versionId, data } = props ?? {};
 
-    return create1(workspaceId, packId, versionId, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getCreate1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateRestoreDraftRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateRestoreDraftRequest}, TContext> => {
 
-export type Create1MutationResult = NonNullable<Awaited<ReturnType<typeof create1>>>;
-export type Create1MutationBody = CreateRestoreDraftRequest | undefined;
-export type Create1MutationError = unknown;
+const mutationKey = ['create1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export const useCreate1 = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof create1>>,
-      TError,
-      { workspaceId: number; packId: number; versionId: number; data?: CreateRestoreDraftRequest },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof create1>>,
-  TError,
-  { workspaceId: number; packId: number; versionId: number; data?: CreateRestoreDraftRequest },
-  TContext
-> => {
-  return useMutation(getCreate1MutationOptions(options), queryClient);
-};
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create1>>, {workspaceId: number;packId: number;versionId: number;data?: CreateRestoreDraftRequest}> = (props) => {
+          const {workspaceId,packId,versionId,data} = props ?? {};
+
+          return  create1(workspaceId,packId,versionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Create1MutationResult = NonNullable<Awaited<ReturnType<typeof create1>>>
+    export type Create1MutationBody = CreateRestoreDraftRequest | undefined
+    export type Create1MutationError = unknown
+
+    export const useCreate1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,{workspaceId: number;packId: number;versionId: number;data?: CreateRestoreDraftRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof create1>>,
+        TError,
+        {workspaceId: number;packId: number;versionId: number;data?: CreateRestoreDraftRequest},
+        TContext
+      > => {
+      return useMutation(getCreate1MutationOptions(options), queryClient);
+    }

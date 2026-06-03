@@ -4,12 +4,12 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const ListWorkspaceMembersParams = zod.object({
-  q: zod.string().optional(),
-  role: zod.string().optional(),
-});
+  "q": zod.string().optional(),
+  "role": zod.string().optional()
+})
 
 export type ListWorkspaceMembersParams = zod.input<typeof ListWorkspaceMembersParams>;
 export type ListWorkspaceMembersParamsOutput = zod.output<typeof ListWorkspaceMembersParams>;

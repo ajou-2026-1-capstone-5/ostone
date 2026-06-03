@@ -4,7 +4,9 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -14,443 +16,361 @@ import type {
   QueryKey,
   UndefinedInitialDataOptions,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   DomainPackDetailResult,
   DomainPackSummaryResult,
-  DomainPackVersionDetailResult,
-} from "../../zod";
+  DomainPackVersionDetailResult
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type listDomainPacksResponse200 = {
-  data: DomainPackSummaryResult[];
-  status: 200;
-};
 
-export type listDomainPacksResponseSuccess = listDomainPacksResponse200 & {
+
+export type listDomainPacksResponse200 = {
+  data: DomainPackSummaryResult[]
+  status: 200
+}
+
+export type listDomainPacksResponseSuccess = (listDomainPacksResponse200) & {
   headers: Headers;
 };
+;
 
-export type listDomainPacksResponse = listDomainPacksResponseSuccess;
+export type listDomainPacksResponse = (listDomainPacksResponseSuccess)
 
-export const getListDomainPacksUrl = (workspaceId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs`;
-};
+export const getListDomainPacksUrl = (workspaceId: number,) => {
 
-export const listDomainPacks = async (
-  workspaceId: number,
-  options?: RequestInit,
-): Promise<listDomainPacksResponse> => {
-  return customFetch<listDomainPacksResponse>(getListDomainPacksUrl(workspaceId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs`
+}
+
+export const listDomainPacks = async (workspaceId: number, options?: RequestInit): Promise<listDomainPacksResponse> => {
+
+  return customFetch<listDomainPacksResponse>(getListDomainPacksUrl(workspaceId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListDomainPacksQueryKey = (workspaceId: number) => {
-  return [`/api/v1/workspaces/${workspaceId}/domain-packs`] as const;
-};
 
-export const getListDomainPacksQueryOptions = <
-  TData = Awaited<ReturnType<typeof listDomainPacks>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListDomainPacksQueryKey = (workspaceId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs`
+    ] as const;
+    }
+
+
+export const getListDomainPacksQueryOptions = <TData = Awaited<ReturnType<typeof listDomainPacks>>, TError = unknown>(workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListDomainPacksQueryKey(workspaceId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDomainPacks>>> = ({ signal }) =>
-    listDomainPacks(workspaceId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListDomainPacksQueryKey(workspaceId);
 
-  return { queryKey, queryFn, enabled: !!workspaceId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listDomainPacks>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type ListDomainPacksQueryResult = NonNullable<Awaited<ReturnType<typeof listDomainPacks>>>;
-export type ListDomainPacksQueryError = unknown;
 
-export function useListDomainPacks<
-  TData = Awaited<ReturnType<typeof listDomainPacks>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDomainPacks>>> = ({ signal }) => listDomainPacks(workspaceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDomainPacksQueryResult = NonNullable<Awaited<ReturnType<typeof listDomainPacks>>>
+export type ListDomainPacksQueryError = unknown
+
+
+export function useListDomainPacks<TData = Awaited<ReturnType<typeof listDomainPacks>>, TError = unknown>(
+ workspaceId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listDomainPacks>>,
           TError,
           Awaited<ReturnType<typeof listDomainPacks>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListDomainPacks<
-  TData = Awaited<ReturnType<typeof listDomainPacks>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDomainPacks<TData = Awaited<ReturnType<typeof listDomainPacks>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listDomainPacks>>,
           TError,
           Awaited<ReturnType<typeof listDomainPacks>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListDomainPacks<
-  TData = Awaited<ReturnType<typeof listDomainPacks>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDomainPacks<TData = Awaited<ReturnType<typeof listDomainPacks>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListDomainPacks<
-  TData = Awaited<ReturnType<typeof listDomainPacks>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListDomainPacksQueryOptions(workspaceId, options);
+export function useListDomainPacks<TData = Awaited<ReturnType<typeof listDomainPacks>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDomainPacks>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListDomainPacksQueryOptions(workspaceId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 export type getDomainPackResponse200 = {
-  data: DomainPackDetailResult;
-  status: 200;
-};
+  data: DomainPackDetailResult
+  status: 200
+}
 
-export type getDomainPackResponseSuccess = getDomainPackResponse200 & {
+export type getDomainPackResponseSuccess = (getDomainPackResponse200) & {
   headers: Headers;
 };
+;
 
-export type getDomainPackResponse = getDomainPackResponseSuccess;
+export type getDomainPackResponse = (getDomainPackResponseSuccess)
 
-export const getGetDomainPackUrl = (workspaceId: number, packId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}`;
-};
+export const getGetDomainPackUrl = (workspaceId: number,
+    packId: number,) => {
 
-export const getDomainPack = async (
-  workspaceId: number,
-  packId: number,
-  options?: RequestInit,
-): Promise<getDomainPackResponse> => {
-  return customFetch<getDomainPackResponse>(getGetDomainPackUrl(workspaceId, packId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}`
+}
+
+export const getDomainPack = async (workspaceId: number,
+    packId: number, options?: RequestInit): Promise<getDomainPackResponse> => {
+
+  return customFetch<getDomainPackResponse>(getGetDomainPackUrl(workspaceId,packId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetDomainPackQueryKey = (workspaceId: number, packId: number) => {
-  return [`/api/v1/workspaces/${workspaceId}/domain-packs/${packId}`] as const;
-};
 
-export const getGetDomainPackQueryOptions = <
-  TData = Awaited<ReturnType<typeof getDomainPack>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetDomainPackQueryKey = (workspaceId: number,
+    packId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}`
+    ] as const;
+    }
+
+
+export const getGetDomainPackQueryOptions = <TData = Awaited<ReturnType<typeof getDomainPack>>, TError = unknown>(workspaceId: number,
+    packId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDomainPackQueryKey(workspaceId, packId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPack>>> = ({ signal }) =>
-    getDomainPack(workspaceId, packId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetDomainPackQueryKey(workspaceId,packId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(workspaceId && packId),
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetDomainPackQueryResult = NonNullable<Awaited<ReturnType<typeof getDomainPack>>>;
-export type GetDomainPackQueryError = unknown;
 
-export function useGetDomainPack<
-  TData = Awaited<ReturnType<typeof getDomainPack>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPack>>> = ({ signal }) => getDomainPack(workspaceId,packId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && packId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDomainPackQueryResult = NonNullable<Awaited<ReturnType<typeof getDomainPack>>>
+export type GetDomainPackQueryError = unknown
+
+
+export function useGetDomainPack<TData = Awaited<ReturnType<typeof getDomainPack>>, TError = unknown>(
+ workspaceId: number,
+    packId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPack>>,
           TError,
           Awaited<ReturnType<typeof getDomainPack>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPack<
-  TData = Awaited<ReturnType<typeof getDomainPack>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPack<TData = Awaited<ReturnType<typeof getDomainPack>>, TError = unknown>(
+ workspaceId: number,
+    packId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPack>>,
           TError,
           Awaited<ReturnType<typeof getDomainPack>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPack<
-  TData = Awaited<ReturnType<typeof getDomainPack>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPack<TData = Awaited<ReturnType<typeof getDomainPack>>, TError = unknown>(
+ workspaceId: number,
+    packId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDomainPack<
-  TData = Awaited<ReturnType<typeof getDomainPack>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDomainPackQueryOptions(workspaceId, packId, options);
+export function useGetDomainPack<TData = Awaited<ReturnType<typeof getDomainPack>>, TError = unknown>(
+ workspaceId: number,
+    packId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetDomainPackQueryOptions(workspaceId,packId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 export type getDomainPackVersionResponse200 = {
-  data: DomainPackVersionDetailResult;
-  status: 200;
-};
+  data: DomainPackVersionDetailResult
+  status: 200
+}
 
-export type getDomainPackVersionResponseSuccess = getDomainPackVersionResponse200 & {
+export type getDomainPackVersionResponseSuccess = (getDomainPackVersionResponse200) & {
   headers: Headers;
 };
+;
 
-export type getDomainPackVersionResponse = getDomainPackVersionResponseSuccess;
+export type getDomainPackVersionResponse = (getDomainPackVersionResponseSuccess)
 
-export const getGetDomainPackVersionUrl = (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
+export const getGetDomainPackVersionUrl = (workspaceId: number,
+    packId: number,
+    versionId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`
+}
+
+export const getDomainPackVersion = async (workspaceId: number,
+    packId: number,
+    versionId: number, options?: RequestInit): Promise<getDomainPackVersionResponse> => {
+
+  return customFetch<getDomainPackVersionResponse>(getGetDomainPackVersionUrl(workspaceId,packId,versionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDomainPackVersionQueryKey = (workspaceId: number,
+    packId: number,
+    versionId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`
+    ] as const;
+    }
+
+
+export const getGetDomainPackVersionQueryOptions = <TData = Awaited<ReturnType<typeof getDomainPackVersion>>, TError = unknown>(workspaceId: number,
+    packId: number,
+    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  return `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`;
-};
 
-export const getDomainPackVersion = async (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: RequestInit,
-): Promise<getDomainPackVersionResponse> => {
-  return customFetch<getDomainPackVersionResponse>(
-    getGetDomainPackVersionUrl(workspaceId, packId, versionId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const getGetDomainPackVersionQueryKey = (
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-) => {
-  return [
-    `/api/v1/workspaces/${workspaceId}/domain-packs/${packId}/versions/${versionId}`,
-  ] as const;
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetDomainPackVersionQueryKey(workspaceId,packId,versionId);
 
-export const getGetDomainPackVersionQueryOptions = <
-  TData = Awaited<ReturnType<typeof getDomainPackVersion>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetDomainPackVersionQueryKey(workspaceId, packId, versionId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPackVersion>>> = ({ signal }) =>
-    getDomainPackVersion(workspaceId, packId, versionId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPackVersion>>> = ({ signal }) => getDomainPackVersion(workspaceId,packId,versionId, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(workspaceId && packId && versionId),
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetDomainPackVersionQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getDomainPackVersion>>
->;
-export type GetDomainPackVersionQueryError = unknown;
 
-export function useGetDomainPackVersion<
-  TData = Awaited<ReturnType<typeof getDomainPackVersion>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>
-    > &
-      Pick<
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && packId && versionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDomainPackVersionQueryResult = NonNullable<Awaited<ReturnType<typeof getDomainPackVersion>>>
+export type GetDomainPackVersionQueryError = unknown
+
+
+export function useGetDomainPackVersion<TData = Awaited<ReturnType<typeof getDomainPackVersion>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPackVersion>>,
           TError,
           Awaited<ReturnType<typeof getDomainPackVersion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPackVersion<
-  TData = Awaited<ReturnType<typeof getDomainPackVersion>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPackVersion<TData = Awaited<ReturnType<typeof getDomainPackVersion>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPackVersion>>,
           TError,
           Awaited<ReturnType<typeof getDomainPackVersion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPackVersion<
-  TData = Awaited<ReturnType<typeof getDomainPackVersion>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPackVersion<TData = Awaited<ReturnType<typeof getDomainPackVersion>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDomainPackVersion<
-  TData = Awaited<ReturnType<typeof getDomainPackVersion>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  packId: number,
-  versionId: number,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDomainPackVersionQueryOptions(workspaceId, packId, versionId, options);
+export function useGetDomainPackVersion<TData = Awaited<ReturnType<typeof getDomainPackVersion>>, TError = unknown>(
+ workspaceId: number,
+    packId: number,
+    versionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPackVersion>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetDomainPackVersionQueryOptions(workspaceId,packId,versionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
+

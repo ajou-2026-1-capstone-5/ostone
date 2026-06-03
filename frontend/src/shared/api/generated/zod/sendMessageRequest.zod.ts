@@ -4,13 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
+
+
 
 export const SendMessageRequest = zod.object({
-  content: zod.string().min(1).optional(),
-  note: zod.boolean().optional(),
-  isNote: zod.boolean().optional(),
-});
+  "content": zod.string().min(1).optional(),
+  "note": zod.boolean().optional(),
+  "isNote": zod.boolean().optional()
+})
 
 export type SendMessageRequest = zod.input<typeof SendMessageRequest>;
 export type SendMessageRequestOutput = zod.output<typeof SendMessageRequest>;

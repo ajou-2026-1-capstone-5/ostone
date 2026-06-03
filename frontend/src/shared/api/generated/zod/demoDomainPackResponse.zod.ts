@@ -4,43 +4,31 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DemoDomainPackResponse = zod.object({
-  id: zod.string().optional(),
-  name: zod.string().optional(),
-  version: zod.string().optional(),
-  status: zod.string().optional(),
-  intents: zod
-    .array(
-      zod.object({
-        id: zod.string().optional(),
-        name: zod.string().optional(),
-        description: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  policies: zod
-    .array(
-      zod.object({
-        id: zod.string().optional(),
-        name: zod.string().optional(),
-        description: zod.string().optional(),
-        severity: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  risks: zod
-    .array(
-      zod.object({
-        id: zod.string().optional(),
-        name: zod.string().optional(),
-        description: zod.string().optional(),
-        level: zod.string().optional(),
-      }),
-    )
-    .optional(),
-});
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "version": zod.string().optional(),
+  "status": zod.string().optional(),
+  "intents": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional()
+})).optional(),
+  "policies": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "severity": zod.string().optional()
+})).optional(),
+  "risks": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "level": zod.string().optional()
+})).optional()
+})
 
 export type DemoDomainPackResponse = zod.input<typeof DemoDomainPackResponse>;
 export type DemoDomainPackResponseOutput = zod.output<typeof DemoDomainPackResponse>;

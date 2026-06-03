@@ -4,23 +4,23 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const IntentDefinitionDetail = zod.object({
-  id: zod.number().optional(),
-  intentCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  taxonomyLevel: zod.number().optional(),
-  parentIntentId: zod.number().optional(),
-  status: zod.string().optional(),
-  sourceClusterRef: zod.string().optional(),
-  entryConditionJson: zod.string().optional(),
-  evidenceJson: zod.string().optional(),
-  metaJson: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "intentCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "taxonomyLevel": zod.number().optional(),
+  "parentIntentId": zod.number().optional(),
+  "status": zod.string().optional(),
+  "sourceClusterRef": zod.string().optional(),
+  "entryConditionJson": zod.string().optional(),
+  "evidenceJson": zod.string().optional(),
+  "metaJson": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type IntentDefinitionDetail = zod.input<typeof IntentDefinitionDetail>;
 export type IntentDefinitionDetailOutput = zod.output<typeof IntentDefinitionDetail>;

@@ -4,13 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const SignupResponse = zod.object({
-  id: zod.number().optional(),
-  email: zod.string().optional(),
-  name: zod.string().optional(),
-});
+  "id": zod.number().optional(),
+  "email": zod.string().optional(),
+  "name": zod.string().optional()
+})
 
 export type SignupResponse = zod.input<typeof SignupResponse>;
 export type SignupResponseOutput = zod.output<typeof SignupResponse>;

@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const updateBodyNameMin = 0;
 export const updateBodyNameMax = 255;
@@ -12,23 +12,21 @@ export const updateBodyNameMax = 255;
 export const updateBodyDescriptionMin = 0;
 export const updateBodyDescriptionMax = 1000;
 
+
 export const updateBodyEntryConditionJsonMin = 0;
 export const updateBodyEntryConditionJsonMax = 5000;
 
 export const updateBodyMetaJsonMin = 0;
 export const updateBodyMetaJsonMax = 5000;
 
+
 export const UpdateBody = zod.object({
-  name: zod.string().min(updateBodyNameMin).max(updateBodyNameMax).optional(),
-  description: zod.string().min(updateBodyDescriptionMin).max(updateBodyDescriptionMax).optional(),
-  taxonomyLevel: zod.number().min(1).optional(),
-  entryConditionJson: zod
-    .string()
-    .min(updateBodyEntryConditionJsonMin)
-    .max(updateBodyEntryConditionJsonMax)
-    .optional(),
-  metaJson: zod.string().min(updateBodyMetaJsonMin).max(updateBodyMetaJsonMax).optional(),
-});
+  "name": zod.string().min(updateBodyNameMin).max(updateBodyNameMax).optional(),
+  "description": zod.string().min(updateBodyDescriptionMin).max(updateBodyDescriptionMax).optional(),
+  "taxonomyLevel": zod.number().min(1).optional(),
+  "entryConditionJson": zod.string().min(updateBodyEntryConditionJsonMin).max(updateBodyEntryConditionJsonMax).optional(),
+  "metaJson": zod.string().min(updateBodyMetaJsonMin).max(updateBodyMetaJsonMax).optional()
+})
 
 export type UpdateBody = zod.input<typeof UpdateBody>;
 export type UpdateBodyOutput = zod.output<typeof UpdateBody>;

@@ -4,23 +4,23 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const PolicyDefinitionResponse = zod.object({
-  id: zod.number().optional(),
-  domainPackVersionId: zod.number().optional(),
-  policyCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  severity: zod.string().optional(),
-  conditionJson: zod.string().optional(),
-  actionJson: zod.string().optional(),
-  evidenceJson: zod.string().optional(),
-  metaJson: zod.string().optional(),
-  status: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "domainPackVersionId": zod.number().optional(),
+  "policyCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "severity": zod.string().optional(),
+  "conditionJson": zod.string().optional(),
+  "actionJson": zod.string().optional(),
+  "evidenceJson": zod.string().optional(),
+  "metaJson": zod.string().optional(),
+  "status": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type PolicyDefinitionResponse = zod.input<typeof PolicyDefinitionResponse>;
 export type PolicyDefinitionResponseOutput = zod.output<typeof PolicyDefinitionResponse>;

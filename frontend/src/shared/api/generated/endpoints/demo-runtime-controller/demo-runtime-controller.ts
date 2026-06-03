@@ -4,713 +4,873 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
+  ChatMessageResponse,
+  ChatSessionResponse,
+  CreateDemoChatSessionRequest,
   DemoChatSessionEndpointResponse,
   DemoChatWorkflowResponse,
   DemoDecisionLogEndpointResponse,
   DemoDomainPackEndpointResponse,
   DemoExecutionResponse,
   GetDecisionLogsParams,
-} from "../../zod";
+  SendDemoChatMessageRequest
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type getWorkflowExecutionResponse200 = {
-  data: DemoExecutionResponse;
-  status: 200;
-};
 
-export type getWorkflowExecutionResponseSuccess = getWorkflowExecutionResponse200 & {
+
+export type createChatSessionResponse200 = {
+  data: ChatSessionResponse
+  status: 200
+}
+
+export type createChatSessionResponseSuccess = (createChatSessionResponse200) & {
   headers: Headers;
 };
+;
 
-export type getWorkflowExecutionResponse = getWorkflowExecutionResponseSuccess;
+export type createChatSessionResponse = (createChatSessionResponseSuccess)
 
-export const getGetWorkflowExecutionUrl = (workspaceId: number, executionId: string) => {
-  return `/api/v1/workspaces/${workspaceId}/demo/workflow-executions/${executionId}`;
+export const getCreateChatSessionUrl = (workspaceId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/chat-sessions`
+}
+
+export const createChatSession = async (workspaceId: number,
+    createDemoChatSessionRequest: CreateDemoChatSessionRequest, options?: RequestInit): Promise<createChatSessionResponse> => {
+
+  return customFetch<createChatSessionResponse>(getCreateChatSessionUrl(workspaceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createDemoChatSessionRequest,)
+  }
+);}
+
+
+
+
+export const getCreateChatSessionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChatSession>>, TError,{workspaceId: number;data: CreateDemoChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChatSession>>, TError,{workspaceId: number;data: CreateDemoChatSessionRequest}, TContext> => {
+
+const mutationKey = ['createChatSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChatSession>>, {workspaceId: number;data: CreateDemoChatSessionRequest}> = (props) => {
+          const {workspaceId,data} = props ?? {};
+
+          return  createChatSession(workspaceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChatSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createChatSession>>>
+    export type CreateChatSessionMutationBody = CreateDemoChatSessionRequest
+    export type CreateChatSessionMutationError = unknown
+
+    export const useCreateChatSession = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChatSession>>, TError,{workspaceId: number;data: CreateDemoChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createChatSession>>,
+        TError,
+        {workspaceId: number;data: CreateDemoChatSessionRequest},
+        TContext
+      > => {
+      return useMutation(getCreateChatSessionMutationOptions(options), queryClient);
+    }
+    export type listChatMessagesResponse200 = {
+  data: ChatMessageResponse[]
+  status: 200
+}
+
+export type listChatMessagesResponseSuccess = (listChatMessagesResponse200) & {
+  headers: Headers;
 };
+;
 
-export const getWorkflowExecution = async (
-  workspaceId: number,
-  executionId: string,
-  options?: RequestInit,
-): Promise<getWorkflowExecutionResponse> => {
-  return customFetch<getWorkflowExecutionResponse>(
-    getGetWorkflowExecutionUrl(workspaceId, executionId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+export type listChatMessagesResponse = (listChatMessagesResponseSuccess)
 
-export const getGetWorkflowExecutionQueryKey = (workspaceId: number, executionId: string) => {
-  return [`/api/v1/workspaces/${workspaceId}/demo/workflow-executions/${executionId}`] as const;
-};
+export const getListChatMessagesUrl = (workspaceId: number,
+    sessionId: number,) => {
 
-export const getGetWorkflowExecutionQueryOptions = <
-  TData = Awaited<ReturnType<typeof getWorkflowExecution>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  executionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}/messages`
+}
+
+export const listChatMessages = async (workspaceId: number,
+    sessionId: number, options?: RequestInit): Promise<listChatMessagesResponse> => {
+
+  return customFetch<listChatMessagesResponse>(getListChatMessagesUrl(workspaceId,sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListChatMessagesQueryKey = (workspaceId: number,
+    sessionId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}/messages`
+    ] as const;
+    }
+
+
+export const getListChatMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listChatMessages>>, TError = unknown>(workspaceId: number,
+    sessionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetWorkflowExecutionQueryKey(workspaceId, executionId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkflowExecution>>> = ({ signal }) =>
-    getWorkflowExecution(workspaceId, executionId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListChatMessagesQueryKey(workspaceId,sessionId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(workspaceId && executionId),
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listChatMessages>>> = ({ signal }) => listChatMessages(workspaceId,sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && sessionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListChatMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listChatMessages>>>
+export type ListChatMessagesQueryError = unknown
+
+
+export function useListChatMessages<TData = Awaited<ReturnType<typeof listChatMessages>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listChatMessages>>,
+          TError,
+          Awaited<ReturnType<typeof listChatMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListChatMessages<TData = Awaited<ReturnType<typeof listChatMessages>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listChatMessages>>,
+          TError,
+          Awaited<ReturnType<typeof listChatMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListChatMessages<TData = Awaited<ReturnType<typeof listChatMessages>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListChatMessages<TData = Awaited<ReturnType<typeof listChatMessages>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListChatMessagesQueryOptions(workspaceId,sessionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type appendChatMessageResponse200 = {
+  data: ChatMessageResponse[]
+  status: 200
+}
+
+export type appendChatMessageResponseSuccess = (appendChatMessageResponse200) & {
+  headers: Headers;
 };
+;
 
-export type GetWorkflowExecutionQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getWorkflowExecution>>
->;
-export type GetWorkflowExecutionQueryError = unknown;
+export type appendChatMessageResponse = (appendChatMessageResponseSuccess)
 
-export function useGetWorkflowExecution<
-  TData = Awaited<ReturnType<typeof getWorkflowExecution>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  executionId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>
-    > &
-      Pick<
+export const getAppendChatMessageUrl = (workspaceId: number,
+    sessionId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}/messages`
+}
+
+export const appendChatMessage = async (workspaceId: number,
+    sessionId: number,
+    sendDemoChatMessageRequest: SendDemoChatMessageRequest, options?: RequestInit): Promise<appendChatMessageResponse> => {
+
+  return customFetch<appendChatMessageResponse>(getAppendChatMessageUrl(workspaceId,sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendDemoChatMessageRequest,)
+  }
+);}
+
+
+
+
+export const getAppendChatMessageMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendChatMessage>>, TError,{workspaceId: number;sessionId: number;data: SendDemoChatMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appendChatMessage>>, TError,{workspaceId: number;sessionId: number;data: SendDemoChatMessageRequest}, TContext> => {
+
+const mutationKey = ['appendChatMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appendChatMessage>>, {workspaceId: number;sessionId: number;data: SendDemoChatMessageRequest}> = (props) => {
+          const {workspaceId,sessionId,data} = props ?? {};
+
+          return  appendChatMessage(workspaceId,sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppendChatMessageMutationResult = NonNullable<Awaited<ReturnType<typeof appendChatMessage>>>
+    export type AppendChatMessageMutationBody = SendDemoChatMessageRequest
+    export type AppendChatMessageMutationError = unknown
+
+    export const useAppendChatMessage = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendChatMessage>>, TError,{workspaceId: number;sessionId: number;data: SendDemoChatMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof appendChatMessage>>,
+        TError,
+        {workspaceId: number;sessionId: number;data: SendDemoChatMessageRequest},
+        TContext
+      > => {
+      return useMutation(getAppendChatMessageMutationOptions(options), queryClient);
+    }
+    export type getWorkflowExecutionResponse200 = {
+  data: DemoExecutionResponse
+  status: 200
+}
+
+export type getWorkflowExecutionResponseSuccess = (getWorkflowExecutionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getWorkflowExecutionResponse = (getWorkflowExecutionResponseSuccess)
+
+export const getGetWorkflowExecutionUrl = (workspaceId: number,
+    executionId: string,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/workflow-executions/${executionId}`
+}
+
+export const getWorkflowExecution = async (workspaceId: number,
+    executionId: string, options?: RequestInit): Promise<getWorkflowExecutionResponse> => {
+
+  return customFetch<getWorkflowExecutionResponse>(getGetWorkflowExecutionUrl(workspaceId,executionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkflowExecutionQueryKey = (workspaceId: number,
+    executionId: string,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/workflow-executions/${executionId}`
+    ] as const;
+    }
+
+
+export const getGetWorkflowExecutionQueryOptions = <TData = Awaited<ReturnType<typeof getWorkflowExecution>>, TError = unknown>(workspaceId: number,
+    executionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkflowExecutionQueryKey(workspaceId,executionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkflowExecution>>> = ({ signal }) => getWorkflowExecution(workspaceId,executionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && executionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWorkflowExecutionQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkflowExecution>>>
+export type GetWorkflowExecutionQueryError = unknown
+
+
+export function useGetWorkflowExecution<TData = Awaited<ReturnType<typeof getWorkflowExecution>>, TError = unknown>(
+ workspaceId: number,
+    executionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getWorkflowExecution>>,
           TError,
           Awaited<ReturnType<typeof getWorkflowExecution>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetWorkflowExecution<
-  TData = Awaited<ReturnType<typeof getWorkflowExecution>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  executionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWorkflowExecution<TData = Awaited<ReturnType<typeof getWorkflowExecution>>, TError = unknown>(
+ workspaceId: number,
+    executionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getWorkflowExecution>>,
           TError,
           Awaited<ReturnType<typeof getWorkflowExecution>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetWorkflowExecution<
-  TData = Awaited<ReturnType<typeof getWorkflowExecution>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  executionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWorkflowExecution<TData = Awaited<ReturnType<typeof getWorkflowExecution>>, TError = unknown>(
+ workspaceId: number,
+    executionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetWorkflowExecution<
-  TData = Awaited<ReturnType<typeof getWorkflowExecution>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  executionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetWorkflowExecutionQueryOptions(workspaceId, executionId, options);
+export function useGetWorkflowExecution<TData = Awaited<ReturnType<typeof getWorkflowExecution>>, TError = unknown>(
+ workspaceId: number,
+    executionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkflowExecution>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetWorkflowExecutionQueryOptions(workspaceId,executionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 export type getDomainPack1Response200 = {
-  data: DemoDomainPackEndpointResponse;
-  status: 200;
-};
+  data: DemoDomainPackEndpointResponse
+  status: 200
+}
 
-export type getDomainPack1ResponseSuccess = getDomainPack1Response200 & {
+export type getDomainPack1ResponseSuccess = (getDomainPack1Response200) & {
   headers: Headers;
 };
+;
 
-export type getDomainPack1Response = getDomainPack1ResponseSuccess;
+export type getDomainPack1Response = (getDomainPack1ResponseSuccess)
 
-export const getGetDomainPack1Url = (workspaceId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/demo/domain-pack`;
-};
+export const getGetDomainPack1Url = (workspaceId: number,) => {
 
-export const getDomainPack1 = async (
-  workspaceId: number,
-  options?: RequestInit,
-): Promise<getDomainPack1Response> => {
-  return customFetch<getDomainPack1Response>(getGetDomainPack1Url(workspaceId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/domain-pack`
+}
+
+export const getDomainPack1 = async (workspaceId: number, options?: RequestInit): Promise<getDomainPack1Response> => {
+
+  return customFetch<getDomainPack1Response>(getGetDomainPack1Url(workspaceId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetDomainPack1QueryKey = (workspaceId: number) => {
-  return [`/api/v1/workspaces/${workspaceId}/demo/domain-pack`] as const;
-};
 
-export const getGetDomainPack1QueryOptions = <
-  TData = Awaited<ReturnType<typeof getDomainPack1>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetDomainPack1QueryKey = (workspaceId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/domain-pack`
+    ] as const;
+    }
+
+
+export const getGetDomainPack1QueryOptions = <TData = Awaited<ReturnType<typeof getDomainPack1>>, TError = unknown>(workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDomainPack1QueryKey(workspaceId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPack1>>> = ({ signal }) =>
-    getDomainPack1(workspaceId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetDomainPack1QueryKey(workspaceId);
 
-  return { queryKey, queryFn, enabled: !!workspaceId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getDomainPack1>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetDomainPack1QueryResult = NonNullable<Awaited<ReturnType<typeof getDomainPack1>>>;
-export type GetDomainPack1QueryError = unknown;
 
-export function useGetDomainPack1<
-  TData = Awaited<ReturnType<typeof getDomainPack1>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDomainPack1>>> = ({ signal }) => getDomainPack1(workspaceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDomainPack1QueryResult = NonNullable<Awaited<ReturnType<typeof getDomainPack1>>>
+export type GetDomainPack1QueryError = unknown
+
+
+export function useGetDomainPack1<TData = Awaited<ReturnType<typeof getDomainPack1>>, TError = unknown>(
+ workspaceId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPack1>>,
           TError,
           Awaited<ReturnType<typeof getDomainPack1>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPack1<
-  TData = Awaited<ReturnType<typeof getDomainPack1>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPack1<TData = Awaited<ReturnType<typeof getDomainPack1>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDomainPack1>>,
           TError,
           Awaited<ReturnType<typeof getDomainPack1>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDomainPack1<
-  TData = Awaited<ReturnType<typeof getDomainPack1>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDomainPack1<TData = Awaited<ReturnType<typeof getDomainPack1>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDomainPack1<
-  TData = Awaited<ReturnType<typeof getDomainPack1>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDomainPack1QueryOptions(workspaceId, options);
+export function useGetDomainPack1<TData = Awaited<ReturnType<typeof getDomainPack1>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDomainPack1>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetDomainPack1QueryOptions(workspaceId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export type getDecisionLogsResponse200 = {
-  data: DemoDecisionLogEndpointResponse;
-  status: 200;
-};
 
-export type getDecisionLogsResponseSuccess = getDecisionLogsResponse200 & {
+
+
+
+
+export type getDecisionLogsResponse200 = {
+  data: DemoDecisionLogEndpointResponse
+  status: 200
+}
+
+export type getDecisionLogsResponseSuccess = (getDecisionLogsResponse200) & {
   headers: Headers;
 };
+;
 
-export type getDecisionLogsResponse = getDecisionLogsResponseSuccess;
+export type getDecisionLogsResponse = (getDecisionLogsResponseSuccess)
 
-export const getGetDecisionLogsUrl = (workspaceId: number, params: GetDecisionLogsParams) => {
+export const getGetDecisionLogsUrl = (workspaceId: number,
+    params: GetDecisionLogsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/v1/workspaces/${workspaceId}/demo/decision-logs?${stringifiedParams}`
-    : `/api/v1/workspaces/${workspaceId}/demo/decision-logs`;
-};
+  return stringifiedParams.length > 0 ? `/api/v1/workspaces/${workspaceId}/demo/decision-logs?${stringifiedParams}` : `/api/v1/workspaces/${workspaceId}/demo/decision-logs`
+}
 
-export const getDecisionLogs = async (
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options?: RequestInit,
-): Promise<getDecisionLogsResponse> => {
-  return customFetch<getDecisionLogsResponse>(getGetDecisionLogsUrl(workspaceId, params), {
+export const getDecisionLogs = async (workspaceId: number,
+    params: GetDecisionLogsParams, options?: RequestInit): Promise<getDecisionLogsResponse> => {
+
+  return customFetch<getDecisionLogsResponse>(getGetDecisionLogsUrl(workspaceId,params),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetDecisionLogsQueryKey = (workspaceId: number, params?: GetDecisionLogsParams) => {
-  return [
-    `/api/v1/workspaces/${workspaceId}/demo/decision-logs`,
-    ...(params ? [params] : []),
-  ] as const;
-};
 
-export const getGetDecisionLogsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getDecisionLogs>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetDecisionLogsQueryKey = (workspaceId: number,
+    params?: GetDecisionLogsParams,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/decision-logs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDecisionLogsQueryOptions = <TData = Awaited<ReturnType<typeof getDecisionLogs>>, TError = unknown>(workspaceId: number,
+    params: GetDecisionLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDecisionLogsQueryKey(workspaceId, params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDecisionLogs>>> = ({ signal }) =>
-    getDecisionLogs(workspaceId, params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetDecisionLogsQueryKey(workspaceId,params);
 
-  return { queryKey, queryFn, enabled: !!workspaceId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getDecisionLogs>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetDecisionLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getDecisionLogs>>>;
-export type GetDecisionLogsQueryError = unknown;
 
-export function useGetDecisionLogs<
-  TData = Awaited<ReturnType<typeof getDecisionLogs>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDecisionLogs>>> = ({ signal }) => getDecisionLogs(workspaceId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDecisionLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getDecisionLogs>>>
+export type GetDecisionLogsQueryError = unknown
+
+
+export function useGetDecisionLogs<TData = Awaited<ReturnType<typeof getDecisionLogs>>, TError = unknown>(
+ workspaceId: number,
+    params: GetDecisionLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDecisionLogs>>,
           TError,
           Awaited<ReturnType<typeof getDecisionLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDecisionLogs<
-  TData = Awaited<ReturnType<typeof getDecisionLogs>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDecisionLogs<TData = Awaited<ReturnType<typeof getDecisionLogs>>, TError = unknown>(
+ workspaceId: number,
+    params: GetDecisionLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDecisionLogs>>,
           TError,
           Awaited<ReturnType<typeof getDecisionLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetDecisionLogs<
-  TData = Awaited<ReturnType<typeof getDecisionLogs>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDecisionLogs<TData = Awaited<ReturnType<typeof getDecisionLogs>>, TError = unknown>(
+ workspaceId: number,
+    params: GetDecisionLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDecisionLogs<
-  TData = Awaited<ReturnType<typeof getDecisionLogs>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  params: GetDecisionLogsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetDecisionLogsQueryOptions(workspaceId, params, options);
+export function useGetDecisionLogs<TData = Awaited<ReturnType<typeof getDecisionLogs>>, TError = unknown>(
+ workspaceId: number,
+    params: GetDecisionLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDecisionLogs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetDecisionLogsQueryOptions(workspaceId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 export type getChatWorkflowResponse200 = {
-  data: DemoChatWorkflowResponse;
-  status: 200;
-};
+  data: DemoChatWorkflowResponse
+  status: 200
+}
 
-export type getChatWorkflowResponseSuccess = getChatWorkflowResponse200 & {
+export type getChatWorkflowResponseSuccess = (getChatWorkflowResponse200) & {
   headers: Headers;
 };
+;
 
-export type getChatWorkflowResponse = getChatWorkflowResponseSuccess;
+export type getChatWorkflowResponse = (getChatWorkflowResponseSuccess)
 
-export const getGetChatWorkflowUrl = (workspaceId: number) => {
-  return `/api/v1/workspaces/${workspaceId}/demo/chat-workflow`;
-};
+export const getGetChatWorkflowUrl = (workspaceId: number,) => {
 
-export const getChatWorkflow = async (
-  workspaceId: number,
-  options?: RequestInit,
-): Promise<getChatWorkflowResponse> => {
-  return customFetch<getChatWorkflowResponse>(getGetChatWorkflowUrl(workspaceId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/chat-workflow`
+}
+
+export const getChatWorkflow = async (workspaceId: number, options?: RequestInit): Promise<getChatWorkflowResponse> => {
+
+  return customFetch<getChatWorkflowResponse>(getGetChatWorkflowUrl(workspaceId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetChatWorkflowQueryKey = (workspaceId: number) => {
-  return [`/api/v1/workspaces/${workspaceId}/demo/chat-workflow`] as const;
-};
 
-export const getGetChatWorkflowQueryOptions = <
-  TData = Awaited<ReturnType<typeof getChatWorkflow>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetChatWorkflowQueryKey = (workspaceId: number,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/chat-workflow`
+    ] as const;
+    }
+
+
+export const getGetChatWorkflowQueryOptions = <TData = Awaited<ReturnType<typeof getChatWorkflow>>, TError = unknown>(workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetChatWorkflowQueryKey(workspaceId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatWorkflow>>> = ({ signal }) =>
-    getChatWorkflow(workspaceId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetChatWorkflowQueryKey(workspaceId);
 
-  return { queryKey, queryFn, enabled: !!workspaceId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getChatWorkflow>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetChatWorkflowQueryResult = NonNullable<Awaited<ReturnType<typeof getChatWorkflow>>>;
-export type GetChatWorkflowQueryError = unknown;
 
-export function useGetChatWorkflow<
-  TData = Awaited<ReturnType<typeof getChatWorkflow>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatWorkflow>>> = ({ signal }) => getChatWorkflow(workspaceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetChatWorkflowQueryResult = NonNullable<Awaited<ReturnType<typeof getChatWorkflow>>>
+export type GetChatWorkflowQueryError = unknown
+
+
+export function useGetChatWorkflow<TData = Awaited<ReturnType<typeof getChatWorkflow>>, TError = unknown>(
+ workspaceId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getChatWorkflow>>,
           TError,
           Awaited<ReturnType<typeof getChatWorkflow>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetChatWorkflow<
-  TData = Awaited<ReturnType<typeof getChatWorkflow>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatWorkflow<TData = Awaited<ReturnType<typeof getChatWorkflow>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getChatWorkflow>>,
           TError,
           Awaited<ReturnType<typeof getChatWorkflow>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetChatWorkflow<
-  TData = Awaited<ReturnType<typeof getChatWorkflow>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatWorkflow<TData = Awaited<ReturnType<typeof getChatWorkflow>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetChatWorkflow<
-  TData = Awaited<ReturnType<typeof getChatWorkflow>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetChatWorkflowQueryOptions(workspaceId, options);
+export function useGetChatWorkflow<TData = Awaited<ReturnType<typeof getChatWorkflow>>, TError = unknown>(
+ workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatWorkflow>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetChatWorkflowQueryOptions(workspaceId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 export type getChatSessionResponse200 = {
-  data: DemoChatSessionEndpointResponse;
-  status: 200;
-};
+  data: DemoChatSessionEndpointResponse
+  status: 200
+}
 
-export type getChatSessionResponseSuccess = getChatSessionResponse200 & {
+export type getChatSessionResponseSuccess = (getChatSessionResponse200) & {
   headers: Headers;
 };
+;
 
-export type getChatSessionResponse = getChatSessionResponseSuccess;
+export type getChatSessionResponse = (getChatSessionResponseSuccess)
 
-export const getGetChatSessionUrl = (workspaceId: number, sessionId: string) => {
-  return `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}`;
-};
+export const getGetChatSessionUrl = (workspaceId: number,
+    sessionId: string,) => {
 
-export const getChatSession = async (
-  workspaceId: number,
-  sessionId: string,
-  options?: RequestInit,
-): Promise<getChatSessionResponse> => {
-  return customFetch<getChatSessionResponse>(getGetChatSessionUrl(workspaceId, sessionId), {
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}`
+}
+
+export const getChatSession = async (workspaceId: number,
+    sessionId: string, options?: RequestInit): Promise<getChatSessionResponse> => {
+
+  return customFetch<getChatSessionResponse>(getGetChatSessionUrl(workspaceId,sessionId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetChatSessionQueryKey = (workspaceId: number, sessionId: string) => {
-  return [`/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}`] as const;
-};
 
-export const getGetChatSessionQueryOptions = <
-  TData = Awaited<ReturnType<typeof getChatSession>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  sessionId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetChatSessionQueryKey = (workspaceId: number,
+    sessionId: string,) => {
+    return [
+    `/api/v1/workspaces/${workspaceId}/demo/chat-sessions/${sessionId}`
+    ] as const;
+    }
+
+
+export const getGetChatSessionQueryOptions = <TData = Awaited<ReturnType<typeof getChatSession>>, TError = unknown>(workspaceId: number,
+    sessionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetChatSessionQueryKey(workspaceId, sessionId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatSession>>> = ({ signal }) =>
-    getChatSession(workspaceId, sessionId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetChatSessionQueryKey(workspaceId,sessionId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(workspaceId && sessionId),
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetChatSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getChatSession>>>;
-export type GetChatSessionQueryError = unknown;
 
-export function useGetChatSession<
-  TData = Awaited<ReturnType<typeof getChatSession>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  sessionId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatSession>>> = ({ signal }) => getChatSession(workspaceId,sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(workspaceId && sessionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetChatSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getChatSession>>>
+export type GetChatSessionQueryError = unknown
+
+
+export function useGetChatSession<TData = Awaited<ReturnType<typeof getChatSession>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getChatSession>>,
           TError,
           Awaited<ReturnType<typeof getChatSession>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetChatSession<
-  TData = Awaited<ReturnType<typeof getChatSession>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  sessionId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatSession<TData = Awaited<ReturnType<typeof getChatSession>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getChatSession>>,
           TError,
           Awaited<ReturnType<typeof getChatSession>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetChatSession<
-  TData = Awaited<ReturnType<typeof getChatSession>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  sessionId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatSession<TData = Awaited<ReturnType<typeof getChatSession>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetChatSession<
-  TData = Awaited<ReturnType<typeof getChatSession>>,
-  TError = unknown,
->(
-  workspaceId: number,
-  sessionId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetChatSessionQueryOptions(workspaceId, sessionId, options);
+export function useGetChatSession<TData = Awaited<ReturnType<typeof getChatSession>>, TError = unknown>(
+ workspaceId: number,
+    sessionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetChatSessionQueryOptions(workspaceId,sessionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
+

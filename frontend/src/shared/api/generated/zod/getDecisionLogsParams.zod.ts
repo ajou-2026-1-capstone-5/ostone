@@ -4,11 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const GetDecisionLogsParams = zod.object({
-  executionId: zod.string(),
-});
+  "executionId": zod.string()
+})
 
 export type GetDecisionLogsParams = zod.input<typeof GetDecisionLogsParams>;
 export type GetDecisionLogsParamsOutput = zod.output<typeof GetDecisionLogsParams>;

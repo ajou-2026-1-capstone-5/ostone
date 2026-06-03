@@ -4,13 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const UploadRawFileParams = zod.object({
-  datasetKey: zod.string(),
-  name: zod.string(),
-  sourceType: zod.string(),
-});
+  "datasetKey": zod.string(),
+  "name": zod.string(),
+  "sourceType": zod.string()
+})
 
 export type UploadRawFileParams = zod.input<typeof UploadRawFileParams>;
 export type UploadRawFileParamsOutput = zod.output<typeof UploadRawFileParams>;

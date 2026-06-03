@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const riskDraftRequestRiskCodeMin = 0;
 export const riskDraftRequestRiskCodeMax = 100;
@@ -27,40 +27,17 @@ export const riskDraftRequestEvidenceJsonMax = 5000;
 export const riskDraftRequestMetaJsonMin = 0;
 export const riskDraftRequestMetaJsonMax = 5000;
 
+
 export const RiskDraftRequest = zod.object({
-  riskCode: zod
-    .string()
-    .min(riskDraftRequestRiskCodeMin)
-    .max(riskDraftRequestRiskCodeMax)
-    .optional(),
-  name: zod.string().min(riskDraftRequestNameMin).max(riskDraftRequestNameMax).optional(),
-  description: zod.string().optional(),
-  riskLevel: zod
-    .string()
-    .min(riskDraftRequestRiskLevelMin)
-    .max(riskDraftRequestRiskLevelMax)
-    .optional(),
-  triggerConditionJson: zod
-    .string()
-    .min(riskDraftRequestTriggerConditionJsonMin)
-    .max(riskDraftRequestTriggerConditionJsonMax)
-    .optional(),
-  handlingActionJson: zod
-    .string()
-    .min(riskDraftRequestHandlingActionJsonMin)
-    .max(riskDraftRequestHandlingActionJsonMax)
-    .optional(),
-  evidenceJson: zod
-    .string()
-    .min(riskDraftRequestEvidenceJsonMin)
-    .max(riskDraftRequestEvidenceJsonMax)
-    .optional(),
-  metaJson: zod
-    .string()
-    .min(riskDraftRequestMetaJsonMin)
-    .max(riskDraftRequestMetaJsonMax)
-    .optional(),
-});
+  "riskCode": zod.string().min(riskDraftRequestRiskCodeMin).max(riskDraftRequestRiskCodeMax).optional(),
+  "name": zod.string().min(riskDraftRequestNameMin).max(riskDraftRequestNameMax).optional(),
+  "description": zod.string().optional(),
+  "riskLevel": zod.string().min(riskDraftRequestRiskLevelMin).max(riskDraftRequestRiskLevelMax).optional(),
+  "triggerConditionJson": zod.string().min(riskDraftRequestTriggerConditionJsonMin).max(riskDraftRequestTriggerConditionJsonMax).optional(),
+  "handlingActionJson": zod.string().min(riskDraftRequestHandlingActionJsonMin).max(riskDraftRequestHandlingActionJsonMax).optional(),
+  "evidenceJson": zod.string().min(riskDraftRequestEvidenceJsonMin).max(riskDraftRequestEvidenceJsonMax).optional(),
+  "metaJson": zod.string().min(riskDraftRequestMetaJsonMin).max(riskDraftRequestMetaJsonMax).optional()
+})
 
 export type RiskDraftRequest = zod.input<typeof RiskDraftRequest>;
 export type RiskDraftRequestOutput = zod.output<typeof RiskDraftRequest>;

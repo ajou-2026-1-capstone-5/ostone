@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const loginRequestEmailMin = 0;
 export const loginRequestEmailMax = 254;
@@ -12,10 +12,11 @@ export const loginRequestEmailMax = 254;
 export const loginRequestPasswordMin = 0;
 export const loginRequestPasswordMax = 72;
 
+
 export const LoginRequest = zod.object({
-  email: zod.string().min(loginRequestEmailMin).max(loginRequestEmailMax).optional(),
-  password: zod.string().min(loginRequestPasswordMin).max(loginRequestPasswordMax).optional(),
-});
+  "email": zod.string().min(loginRequestEmailMin).max(loginRequestEmailMax).optional(),
+  "password": zod.string().min(loginRequestPasswordMin).max(loginRequestPasswordMax).optional()
+})
 
 export type LoginRequest = zod.input<typeof LoginRequest>;
 export type LoginRequestOutput = zod.output<typeof LoginRequest>;

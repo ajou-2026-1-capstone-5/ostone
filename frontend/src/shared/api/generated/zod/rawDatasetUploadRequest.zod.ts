@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const rawDatasetUploadRequestDatasetKeyMin = 0;
 export const rawDatasetUploadRequestDatasetKeyMax = 100;
@@ -35,60 +35,20 @@ export const rawDatasetUploadRequestConversationsItemConsultingContentMax = 5000
 
 export const rawDatasetUploadRequestConversationsMax = 1000;
 
+
 export const RawDatasetUploadRequest = zod.object({
-  datasetKey: zod
-    .string()
-    .min(rawDatasetUploadRequestDatasetKeyMin)
-    .max(rawDatasetUploadRequestDatasetKeyMax)
-    .optional(),
-  name: zod
-    .string()
-    .min(rawDatasetUploadRequestNameMin)
-    .max(rawDatasetUploadRequestNameMax)
-    .optional(),
-  sourceType: zod
-    .string()
-    .min(rawDatasetUploadRequestSourceTypeMin)
-    .max(rawDatasetUploadRequestSourceTypeMax)
-    .optional(),
-  conversations: zod
-    .array(
-      zod.object({
-        source_id: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemSourceIdMin)
-          .max(rawDatasetUploadRequestConversationsItemSourceIdMax)
-          .optional(),
-        source: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemSourceMin)
-          .max(rawDatasetUploadRequestConversationsItemSourceMax)
-          .optional(),
-        consulting_category: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemConsultingCategoryMin)
-          .max(rawDatasetUploadRequestConversationsItemConsultingCategoryMax)
-          .optional(),
-        client_gender: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemClientGenderMin)
-          .max(rawDatasetUploadRequestConversationsItemClientGenderMax)
-          .optional(),
-        client_age: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemClientAgeMin)
-          .max(rawDatasetUploadRequestConversationsItemClientAgeMax)
-          .optional(),
-        consulting_content: zod
-          .string()
-          .min(rawDatasetUploadRequestConversationsItemConsultingContentMin)
-          .max(rawDatasetUploadRequestConversationsItemConsultingContentMax)
-          .optional(),
-      }),
-    )
-    .min(1)
-    .max(rawDatasetUploadRequestConversationsMax),
-});
+  "datasetKey": zod.string().min(rawDatasetUploadRequestDatasetKeyMin).max(rawDatasetUploadRequestDatasetKeyMax).optional(),
+  "name": zod.string().min(rawDatasetUploadRequestNameMin).max(rawDatasetUploadRequestNameMax).optional(),
+  "sourceType": zod.string().min(rawDatasetUploadRequestSourceTypeMin).max(rawDatasetUploadRequestSourceTypeMax).optional(),
+  "conversations": zod.array(zod.object({
+  "source_id": zod.string().min(rawDatasetUploadRequestConversationsItemSourceIdMin).max(rawDatasetUploadRequestConversationsItemSourceIdMax).optional(),
+  "source": zod.string().min(rawDatasetUploadRequestConversationsItemSourceMin).max(rawDatasetUploadRequestConversationsItemSourceMax).optional(),
+  "consulting_category": zod.string().min(rawDatasetUploadRequestConversationsItemConsultingCategoryMin).max(rawDatasetUploadRequestConversationsItemConsultingCategoryMax).optional(),
+  "client_gender": zod.string().min(rawDatasetUploadRequestConversationsItemClientGenderMin).max(rawDatasetUploadRequestConversationsItemClientGenderMax).optional(),
+  "client_age": zod.string().min(rawDatasetUploadRequestConversationsItemClientAgeMin).max(rawDatasetUploadRequestConversationsItemClientAgeMax).optional(),
+  "consulting_content": zod.string().min(rawDatasetUploadRequestConversationsItemConsultingContentMin).max(rawDatasetUploadRequestConversationsItemConsultingContentMax).optional()
+})).min(1).max(rawDatasetUploadRequestConversationsMax)
+})
 
 export type RawDatasetUploadRequest = zod.input<typeof RawDatasetUploadRequest>;
 export type RawDatasetUploadRequestOutput = zod.output<typeof RawDatasetUploadRequest>;

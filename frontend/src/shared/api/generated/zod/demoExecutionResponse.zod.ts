@@ -4,37 +4,31 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DemoExecutionResponse = zod.object({
-  id: zod.string().optional(),
-  status: zod.string().optional(),
-  currentState: zod.string().optional(),
-  currentNodeId: zod.string().optional(),
-  intent: zod.string().optional(),
-  slotValues: zod.record(zod.string(), zod.looseObject({})).optional(),
-  missingSlots: zod.array(zod.string()).optional(),
-  policyHits: zod
-    .array(
-      zod.object({
-        policyId: zod.string().optional(),
-        policyName: zod.string().optional(),
-        result: zod.string().optional(),
-        detail: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  riskHits: zod
-    .array(
-      zod.object({
-        riskId: zod.string().optional(),
-        riskName: zod.string().optional(),
-        result: zod.string().optional(),
-        detail: zod.string().optional(),
-      }),
-    )
-    .optional(),
-});
+  "id": zod.string().optional(),
+  "status": zod.string().optional(),
+  "currentState": zod.string().optional(),
+  "currentNodeId": zod.string().optional(),
+  "intent": zod.string().optional(),
+  "slotValues": zod.record(zod.string(), zod.looseObject({
+
+})).optional(),
+  "missingSlots": zod.array(zod.string()).optional(),
+  "policyHits": zod.array(zod.object({
+  "policyId": zod.string().optional(),
+  "policyName": zod.string().optional(),
+  "result": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "riskHits": zod.array(zod.object({
+  "riskId": zod.string().optional(),
+  "riskName": zod.string().optional(),
+  "result": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional()
+})
 
 export type DemoExecutionResponse = zod.input<typeof DemoExecutionResponse>;
 export type DemoExecutionResponseOutput = zod.output<typeof DemoExecutionResponse>;

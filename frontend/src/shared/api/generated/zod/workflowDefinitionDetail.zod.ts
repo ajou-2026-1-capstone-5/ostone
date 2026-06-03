@@ -4,21 +4,21 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const WorkflowDefinitionDetail = zod.object({
-  id: zod.number().optional(),
-  workflowCode: zod.string().optional(),
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  graphJson: zod.string().optional(),
-  initialState: zod.string().optional(),
-  terminalStatesJson: zod.string().optional(),
-  evidenceJson: zod.string().optional(),
-  metaJson: zod.string().optional(),
-  createdAt: zod.iso.datetime({ offset: true }).optional(),
-  updatedAt: zod.iso.datetime({ offset: true }).optional(),
-});
+  "id": zod.number().optional(),
+  "workflowCode": zod.string().optional(),
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "graphJson": zod.string().optional(),
+  "initialState": zod.string().optional(),
+  "terminalStatesJson": zod.string().optional(),
+  "evidenceJson": zod.string().optional(),
+  "metaJson": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional(),
+  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+})
 
 export type WorkflowDefinitionDetail = zod.input<typeof WorkflowDefinitionDetail>;
 export type WorkflowDefinitionDetailOutput = zod.output<typeof WorkflowDefinitionDetail>;

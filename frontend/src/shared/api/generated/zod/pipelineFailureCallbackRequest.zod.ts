@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const pipelineFailureCallbackRequestExternalEventIdMin = 0;
 export const pipelineFailureCallbackRequestExternalEventIdMax = 255;
@@ -24,42 +24,19 @@ export const pipelineFailureCallbackRequestReasonMax = 100;
 export const pipelineFailureCallbackRequestMessageMin = 0;
 export const pipelineFailureCallbackRequestMessageMax = 5000;
 
+
 export const PipelineFailureCallbackRequest = zod.object({
-  externalEventId: zod
-    .string()
-    .min(pipelineFailureCallbackRequestExternalEventIdMin)
-    .max(pipelineFailureCallbackRequestExternalEventIdMax)
-    .optional(),
-  dagId: zod
-    .string()
-    .min(pipelineFailureCallbackRequestDagIdMin)
-    .max(pipelineFailureCallbackRequestDagIdMax)
-    .optional(),
-  dagRunId: zod
-    .string()
-    .min(pipelineFailureCallbackRequestDagRunIdMin)
-    .max(pipelineFailureCallbackRequestDagRunIdMax)
-    .optional(),
-  failedStage: zod
-    .string()
-    .min(pipelineFailureCallbackRequestFailedStageMin)
-    .max(pipelineFailureCallbackRequestFailedStageMax)
-    .optional(),
-  reason: zod
-    .string()
-    .min(pipelineFailureCallbackRequestReasonMin)
-    .max(pipelineFailureCallbackRequestReasonMax)
-    .optional(),
-  message: zod
-    .string()
-    .min(pipelineFailureCallbackRequestMessageMin)
-    .max(pipelineFailureCallbackRequestMessageMax)
-    .optional(),
-  occurredAt: zod.iso.datetime({ offset: true }),
-  error: zod.looseObject({}).optional(),
-});
+  "externalEventId": zod.string().min(pipelineFailureCallbackRequestExternalEventIdMin).max(pipelineFailureCallbackRequestExternalEventIdMax).optional(),
+  "dagId": zod.string().min(pipelineFailureCallbackRequestDagIdMin).max(pipelineFailureCallbackRequestDagIdMax).optional(),
+  "dagRunId": zod.string().min(pipelineFailureCallbackRequestDagRunIdMin).max(pipelineFailureCallbackRequestDagRunIdMax).optional(),
+  "failedStage": zod.string().min(pipelineFailureCallbackRequestFailedStageMin).max(pipelineFailureCallbackRequestFailedStageMax).optional(),
+  "reason": zod.string().min(pipelineFailureCallbackRequestReasonMin).max(pipelineFailureCallbackRequestReasonMax).optional(),
+  "message": zod.string().min(pipelineFailureCallbackRequestMessageMin).max(pipelineFailureCallbackRequestMessageMax).optional(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "error": zod.looseObject({
+
+}).optional()
+})
 
 export type PipelineFailureCallbackRequest = zod.input<typeof PipelineFailureCallbackRequest>;
-export type PipelineFailureCallbackRequestOutput = zod.output<
-  typeof PipelineFailureCallbackRequest
->;
+export type PipelineFailureCallbackRequestOutput = zod.output<typeof PipelineFailureCallbackRequest>;

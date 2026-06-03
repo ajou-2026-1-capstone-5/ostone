@@ -4,19 +4,19 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const DemoDecisionLogResponse = zod.object({
-  id: zod.string().optional(),
-  step: zod.number().optional(),
-  messageId: zod.string().optional(),
-  eventType: zod.string().optional(),
-  stateFrom: zod.string().optional(),
-  stateTo: zod.string().optional(),
-  decision: zod.string().optional(),
-  confidence: zod.number().optional(),
-  reason: zod.string().optional(),
-});
+  "id": zod.string().optional(),
+  "step": zod.number().optional(),
+  "messageId": zod.string().optional(),
+  "eventType": zod.string().optional(),
+  "stateFrom": zod.string().optional(),
+  "stateTo": zod.string().optional(),
+  "decision": zod.string().optional(),
+  "confidence": zod.number().optional(),
+  "reason": zod.string().optional()
+})
 
 export type DemoDecisionLogResponse = zod.input<typeof DemoDecisionLogResponse>;
 export type DemoDecisionLogResponseOutput = zod.output<typeof DemoDecisionLogResponse>;

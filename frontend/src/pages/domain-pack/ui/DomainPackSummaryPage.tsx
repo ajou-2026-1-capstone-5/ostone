@@ -10,6 +10,7 @@ import {
 import { ApiRequestError, domainPackQueryKeys } from "@/shared/api";
 import { useDeploy } from "@/shared/api/generated/endpoints/deploy-domain-pack-version-controller/deploy-domain-pack-version-controller";
 import { activate } from "@/shared/api/generated/endpoints/activate-domain-pack-version-controller/activate-domain-pack-version-controller";
+import type { ActivateDomainPackVersionRequest } from "@/shared/api/generated/zod";
 import { useDiscard } from "@/shared/api/generated/endpoints/discard-draft-version-controller/discard-draft-version-controller";
 import { OstoneShell } from "@/widgets/ostone-shell";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
@@ -313,14 +314,10 @@ function resolveVersionActionErrorMessage(error: unknown, fallback: string): str
   return fallback;
 }
 
-function buildActivateRequest(description?: string): RequestInit | undefined {
+function buildActivateRequest(description?: string): ActivateDomainPackVersionRequest | undefined {
   const normalizedDescription = normalizeDescription(description);
   if (normalizedDescription === undefined) return undefined;
-
-  return {
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ description: normalizedDescription }),
-  };
+  return { description: normalizedDescription };
 }
 
 function normalizeDescription(value?: string): string | undefined {

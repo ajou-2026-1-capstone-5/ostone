@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const slotDraftRequestSlotCodeMin = 0;
 export const slotDraftRequestSlotCodeMax = 100;
@@ -24,36 +24,17 @@ export const slotDraftRequestDefaultValueJsonMax = 5000;
 export const slotDraftRequestMetaJsonMin = 0;
 export const slotDraftRequestMetaJsonMax = 5000;
 
+
 export const SlotDraftRequest = zod.object({
-  slotCode: zod
-    .string()
-    .min(slotDraftRequestSlotCodeMin)
-    .max(slotDraftRequestSlotCodeMax)
-    .optional(),
-  name: zod.string().min(slotDraftRequestNameMin).max(slotDraftRequestNameMax).optional(),
-  description: zod.string().optional(),
-  dataType: zod
-    .string()
-    .min(slotDraftRequestDataTypeMin)
-    .max(slotDraftRequestDataTypeMax)
-    .optional(),
-  isSensitive: zod.boolean().optional(),
-  validationRuleJson: zod
-    .string()
-    .min(slotDraftRequestValidationRuleJsonMin)
-    .max(slotDraftRequestValidationRuleJsonMax)
-    .optional(),
-  defaultValueJson: zod
-    .string()
-    .min(slotDraftRequestDefaultValueJsonMin)
-    .max(slotDraftRequestDefaultValueJsonMax)
-    .optional(),
-  metaJson: zod
-    .string()
-    .min(slotDraftRequestMetaJsonMin)
-    .max(slotDraftRequestMetaJsonMax)
-    .optional(),
-});
+  "slotCode": zod.string().min(slotDraftRequestSlotCodeMin).max(slotDraftRequestSlotCodeMax).optional(),
+  "name": zod.string().min(slotDraftRequestNameMin).max(slotDraftRequestNameMax).optional(),
+  "description": zod.string().optional(),
+  "dataType": zod.string().min(slotDraftRequestDataTypeMin).max(slotDraftRequestDataTypeMax).optional(),
+  "isSensitive": zod.boolean().optional(),
+  "validationRuleJson": zod.string().min(slotDraftRequestValidationRuleJsonMin).max(slotDraftRequestValidationRuleJsonMax).optional(),
+  "defaultValueJson": zod.string().min(slotDraftRequestDefaultValueJsonMin).max(slotDraftRequestDefaultValueJsonMax).optional(),
+  "metaJson": zod.string().min(slotDraftRequestMetaJsonMin).max(slotDraftRequestMetaJsonMax).optional()
+})
 
 export type SlotDraftRequest = zod.input<typeof SlotDraftRequest>;
 export type SlotDraftRequestOutput = zod.output<typeof SlotDraftRequest>;

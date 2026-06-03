@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const datasetUploadRequestDatasetKeyMin = 0;
 export const datasetUploadRequestDatasetKeyMax = 100;
@@ -29,65 +29,30 @@ export const datasetUploadRequestConversationsItemTurnsItemTurnIndexMin = 0;
 export const datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMin = 0;
 export const datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMax = 50;
 
+
 export const datasetUploadRequestConversationsItemTurnsMax = 2147483647;
 
 export const datasetUploadRequestConversationsMax = 2147483647;
 
+
 export const DatasetUploadRequest = zod.object({
-  datasetKey: zod
-    .string()
-    .min(datasetUploadRequestDatasetKeyMin)
-    .max(datasetUploadRequestDatasetKeyMax)
-    .optional(),
-  name: zod.string().min(datasetUploadRequestNameMin).max(datasetUploadRequestNameMax).optional(),
-  sourceType: zod
-    .string()
-    .min(datasetUploadRequestSourceTypeMin)
-    .max(datasetUploadRequestSourceTypeMax)
-    .optional(),
-  conversations: zod
-    .array(
-      zod.object({
-        externalCaseId: zod
-          .string()
-          .min(datasetUploadRequestConversationsItemExternalCaseIdMin)
-          .max(datasetUploadRequestConversationsItemExternalCaseIdMax)
-          .optional(),
-        channel: zod
-          .string()
-          .min(datasetUploadRequestConversationsItemChannelMin)
-          .max(datasetUploadRequestConversationsItemChannelMax)
-          .optional(),
-        languageCode: zod
-          .string()
-          .min(datasetUploadRequestConversationsItemLanguageCodeMin)
-          .max(datasetUploadRequestConversationsItemLanguageCodeMax)
-          .optional(),
-        startedAt: zod.iso.datetime({ offset: true }).optional(),
-        endedAt: zod.iso.datetime({ offset: true }).optional(),
-        turns: zod
-          .array(
-            zod.object({
-              turnIndex: zod
-                .number()
-                .min(datasetUploadRequestConversationsItemTurnsItemTurnIndexMin)
-                .optional(),
-              speakerRole: zod
-                .string()
-                .min(datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMin)
-                .max(datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMax)
-                .optional(),
-              messageText: zod.string().min(1).optional(),
-              eventTime: zod.iso.datetime({ offset: true }).optional(),
-            }),
-          )
-          .min(1)
-          .max(datasetUploadRequestConversationsItemTurnsMax),
-      }),
-    )
-    .min(1)
-    .max(datasetUploadRequestConversationsMax),
-});
+  "datasetKey": zod.string().min(datasetUploadRequestDatasetKeyMin).max(datasetUploadRequestDatasetKeyMax).optional(),
+  "name": zod.string().min(datasetUploadRequestNameMin).max(datasetUploadRequestNameMax).optional(),
+  "sourceType": zod.string().min(datasetUploadRequestSourceTypeMin).max(datasetUploadRequestSourceTypeMax).optional(),
+  "conversations": zod.array(zod.object({
+  "externalCaseId": zod.string().min(datasetUploadRequestConversationsItemExternalCaseIdMin).max(datasetUploadRequestConversationsItemExternalCaseIdMax).optional(),
+  "channel": zod.string().min(datasetUploadRequestConversationsItemChannelMin).max(datasetUploadRequestConversationsItemChannelMax).optional(),
+  "languageCode": zod.string().min(datasetUploadRequestConversationsItemLanguageCodeMin).max(datasetUploadRequestConversationsItemLanguageCodeMax).optional(),
+  "startedAt": zod.iso.datetime({"offset":true}).optional(),
+  "endedAt": zod.iso.datetime({"offset":true}).optional(),
+  "turns": zod.array(zod.object({
+  "turnIndex": zod.number().min(datasetUploadRequestConversationsItemTurnsItemTurnIndexMin).optional(),
+  "speakerRole": zod.string().min(datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMin).max(datasetUploadRequestConversationsItemTurnsItemSpeakerRoleMax).optional(),
+  "messageText": zod.string().min(1).optional(),
+  "eventTime": zod.iso.datetime({"offset":true}).optional()
+})).min(1).max(datasetUploadRequestConversationsItemTurnsMax)
+})).min(1).max(datasetUploadRequestConversationsMax)
+})
 
 export type DatasetUploadRequest = zod.input<typeof DatasetUploadRequest>;
 export type DatasetUploadRequestOutput = zod.output<typeof DatasetUploadRequest>;
