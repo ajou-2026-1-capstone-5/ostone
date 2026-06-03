@@ -1,0 +1,243 @@
+package com.init.payment.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+
+import com.init.payment.application.exception.ActiveSubscriptionExistsException;
+import com.init.payment.application.exception.SubscriptionNotFoundException;
+import com.init.payment.application.port.BillingKeyCipher;
+import com.init.payment.application.port.TossBillingKeyResult;
+import com.init.payment.application.port.TossPaymentPort;
+import com.init.payment.application.port.TossPaymentResult;
+import com.init.payment.domain.model.BillingInterval;
+import com.init.payment.domain.model.BillingKey;
+import com.init.payment.domain.model.Plan;
+import com.init.payment.domain.model.Subscription;
+import com.init.payment.domain.repository.BillingKeyRepository;
+import com.init.payment.domain.repository.PaymentRepository;
+import com.init.payment.domain.repository.PlanRepository;
+import com.init.payment.domain.repository.SubscriptionRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("SubscriptionService")
+class SubscriptionServiceTest {
+
+  @Mock private SubscriptionRepository subscriptionRepository;
+  @Mock private PlanRepository planRepository;
+  @Mock private BillingKeyRepository billingKeyRepository;
+  @Mock private PaymentRepository paymentRepository;
+  @Mock private TossPaymentPort tossPaymentPort;
+  @Mock private BillingKeyCipher billingKeyCipher;
+  @Mock private PaymentAccessGuard accessGuard;
+  @Mock private PlatformTransactionManager transactionManager;
+
+  private SubscriptionService subscriptionService;
+
+  private final Clock clock = Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC);
+
+  @BeforeEach
+  void setUp() {
+    subscriptionService =
+        new SubscriptionService(
+            subscriptionRepository,
+            planRepository,
+            billingKeyRepository,
+            paymentRepository,
+            tossPaymentPort,
+            billingKeyCipher,
+            accessGuard,
+            clock,
+            transactionManager);
+  }
+
+  @Test
+  @DisplayName("구독 생성 시 INCOMPLETE 상태와 workspace 스코프 customerKey를 부여한다")
+  void createSubscription_success() {
+    given(planRepository.findByPlanKey("pro_monthly")).willReturn(Optional.of(plan(10L)));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+    SubscriptionResult result =
+        subscriptionService.createSubscription(
+            new CreateSubscriptionCommand(1L, 99L, "pro_monthly"));
+
+    assertThat(result.status()).isEqualTo("INCOMPLETE");
+    assertThat(result.planKey()).isEqualTo("pro_monthly");
+    assertThat(result.customerKey()).startsWith("wsk_1_");
+  }
+
+  @Test
+  @DisplayName("이미 진행 중인 구독이 있으면 ActiveSubscriptionExistsException을 던진다")
+  void createSubscription_duplicate() {
+    given(planRepository.findByPlanKey("pro_monthly")).willReturn(Optional.of(plan(10L)));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription(5L)));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.createSubscription(
+                    new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
+        .isInstanceOf(ActiveSubscriptionExistsException.class);
+  }
+
+  @Test
+  @DisplayName("구독 조회 성공 시 SubscriptionResult를 반환한다")
+  void getSubscription_success() {
+    Subscription subscription = subscription(5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.getSubscription(1L, 99L);
+
+    assertThat(result.planKey()).isEqualTo("pro_monthly");
+    verify(accessGuard).requireMember(1L, 99L);
+  }
+
+  @Test
+  @DisplayName("구독이 없으면 조회 시 SubscriptionNotFoundException을 던진다")
+  void getSubscription_notFound() {
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> subscriptionService.getSubscription(1L, 99L))
+        .isInstanceOf(SubscriptionNotFoundException.class);
+    verify(accessGuard).requireMember(1L, 99L);
+  }
+
+  @Test
+  @DisplayName("INCOMPLETE 구독 취소 시 즉시 CANCELED로 전이한다")
+  void cancelSubscription_incomplete_immediateCancel() {
+    Subscription subscription = subscription(5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.cancelSubscription(1L, 99L);
+
+    assertThat(result.status()).isEqualTo("CANCELED");
+    verify(accessGuard).requireMember(1L, 99L);
+  }
+
+  @Test
+  @DisplayName("ACTIVE 구독 취소 시 기간말 해지 예약으로 ACTIVE 유지한다 (U-005)")
+  void cancelSubscription_active_scheduleAtPeriodEnd() {
+    Subscription subscription = subscription(5L);
+    subscription.activate(
+        java.time.OffsetDateTime.parse("2026-06-01T00:00:00Z"),
+        java.time.OffsetDateTime.parse("2026-07-01T00:00:00Z"),
+        "wsk_1_abc");
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.cancelSubscription(1L, 99L);
+
+    assertThat(result.status()).isEqualTo("ACTIVE");
+    assertThat(subscription.isCancelAtPeriodEnd()).isTrue();
+    verify(accessGuard).requireMember(1L, 99L);
+  }
+
+  @Test
+  @DisplayName(
+      "INCOMPLETE가 아닌 구독에 billingKey 발급 시 ActiveSubscriptionExistsException을 던진다 (V-NEW-003)")
+  void issueBillingKey_nonIncomplete_throws() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    Subscription activeSubscription = Subscription.create(1L, 10L);
+    activeSubscription.assignCustomerKey("wsk_1_abc");
+    activeSubscription.activate(
+        java.time.OffsetDateTime.parse("2026-05-01T00:00:00Z"),
+        java.time.OffsetDateTime.parse("2026-06-01T00:00:00Z"),
+        "wsk_1_abc");
+    org.springframework.test.util.ReflectionTestUtils.setField(activeSubscription, "id", 5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(activeSubscription));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.issueBillingKey(
+                    new IssueBillingKeyCommand(1L, 99L, "auth_xxx", "wsk_1_abc")))
+        .isInstanceOf(ActiveSubscriptionExistsException.class);
+    verify(accessGuard).requireMember(1L, 99L);
+  }
+
+  @Test
+  @DisplayName("billingKey 발급 시 평문은 암호화되어 저장되고 응답에는 마스킹 카드정보만 포함된다 (U-002, U-012)")
+  void issueBillingKey_encryptsAndDoesNotExposePlaintext() {
+    Subscription subscription = subscription(5L);
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+    given(tossPaymentPort.issueBillingKey("auth_xxx", "wsk_1_abc"))
+        .willReturn(
+            new TossBillingKeyResult(
+                "bk_PLAINTEXT_SECRET",
+                "wsk_1_abc",
+                "신한",
+                "1234-****-****-5678",
+                "{\"billingKey\":\"***\"}"));
+    given(billingKeyCipher.encrypt("bk_PLAINTEXT_SECRET")).willReturn(new byte[] {1, 2, 3});
+    given(billingKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(tossPaymentPort.executeBilling(any()))
+        .willReturn(
+            new TossPaymentResult(
+                "pay_1",
+                "ord_1",
+                29000,
+                "DONE",
+                "카드",
+                OffsetDateTime.now(clock),
+                "https://receipt",
+                null,
+                "{\"status\":\"DONE\"}"));
+
+    BillingAuthorizationResult result =
+        subscriptionService.issueBillingKey(
+            new IssueBillingKeyCommand(1L, 99L, "auth_xxx", "wsk_1_abc"));
+
+    verify(billingKeyCipher).encrypt("bk_PLAINTEXT_SECRET");
+    ArgumentCaptor<BillingKey> captor = ArgumentCaptor.forClass(BillingKey.class);
+    verify(billingKeyRepository).save(captor.capture());
+    assertThat(captor.getValue().getBillingKeyEncrypted()).containsExactly(1, 2, 3);
+
+    assertThat(result.billingKey().cardNumberMasked()).isEqualTo("1234-****-****-5678");
+    assertThat(result.subscription().status()).isEqualTo("ACTIVE");
+    assertThat(result.toString()).doesNotContain("bk_PLAINTEXT_SECRET");
+  }
+
+  private Subscription subscription(Long id) {
+    Subscription subscription = Subscription.create(1L, 10L);
+    subscription.assignCustomerKey("wsk_1_abc");
+    ReflectionTestUtils.setField(subscription, "id", id);
+    return subscription;
+  }
+
+  private Plan plan(Long id) {
+    Plan plan = Plan.create("pro_monthly", "Pro", 29000, "KRW", BillingInterval.MONTH);
+    ReflectionTestUtils.setField(plan, "id", id);
+    return plan;
+  }
+}

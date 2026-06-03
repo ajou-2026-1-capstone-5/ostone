@@ -78,6 +78,18 @@ airflow:
   webhook:
     secret: ${AIRFLOW_WEBHOOK_SECRET}
 
+toss:
+  api:
+    base-url: ${TOSS_API_BASE_URL:https://api.tosspayments.com}
+    secret-key: ${TOSS_SECRET_KEY:}
+    connect-timeout: ${TOSS_API_CONNECT_TIMEOUT:3s}
+    read-timeout: ${TOSS_API_READ_TIMEOUT:10s}
+  webhook:
+    secret: ${TOSS_WEBHOOK_SECRET:}
+  billing-key-encryption-key: ${TOSS_BILLING_KEY_ENCRYPTION_KEY:}
+  scheduler:
+    recurring-billing-cron: ${TOSS_RECURRING_BILLING_CRON:0 */30 * * * *}
+
 springdoc:
   api-docs:
     version: openapi_3_0
