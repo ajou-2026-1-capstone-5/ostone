@@ -22,7 +22,6 @@ import { consultationApi } from "../../../features/consultation/api/consultation
 import type {
   ChatSession,
   ConsultationSessionStatus,
-  ConsultationResponseMode,
   ConsultationMetrics,
   ConsultationQueueEvent,
   ResolutionOutcome,
@@ -106,6 +105,7 @@ type QueueCustomerWithPanelData = QueueCustomer & QueueCustomerPanelData;
 
 const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
 const MESSAGE_PAGE_SIZE = 50;
+const DEFAULT_RESPONSE_MODE = "AI_ACTIVE" as const;
 
 type MessagePaginationState = {
   nextPage: number;
@@ -113,31 +113,6 @@ type MessagePaginationState = {
   isLoadingPrevious: boolean;
 };
 
-type ResponseModeView = {
-  value: ConsultationResponseMode;
-  label: string;
-  description: string;
-};
-
-const RESPONSE_MODE_OPTIONS: ResponseModeView[] = [
-  {
-    value: "AI_ACTIVE",
-    label: "AI 응대중",
-    description: "고객 메시지에 AI가 자동응답합니다.",
-  },
-  {
-    value: "HUMAN_ACTIVE",
-    label: "상담사 응대중",
-    description: "AI 자동응답을 중지합니다.",
-  },
-  {
-    value: "AI_ASSIST_ONLY",
-    label: "AI 보조만 사용",
-    description: "고객 자동 전송 없이 보조 상태로 둡니다.",
-  },
-];
-
-const DEFAULT_RESPONSE_MODE: ConsultationResponseMode = "AI_ACTIVE";
 const EMPTY_COMPOSER_DRAFT: ChatComposerDraft = {
   input: "",
   isNoteMode: false,
@@ -149,9 +124,6 @@ const getComposerDraftReleaseWarning = (draft: ChatComposerDraft) => {
     ? "메시지 입력창에 작성 중인 내부 메모가 있습니다."
     : "메시지 입력창에 작성 중인 답변이 있습니다.";
 };
-
-const getResponseModeView = (mode?: ConsultationResponseMode | null) =>
-  RESPONSE_MODE_OPTIONS.find((option) => option.value === mode) ?? RESPONSE_MODE_OPTIONS[0];
 
 type EndSessionModalState =
   | { open: false }
@@ -391,7 +363,6 @@ const getSessionStatusLabel = (
 type AssignmentView = {
   label: string;
   description: string;
-  tone: "mine" | "unassigned" | "other" | "closed";
 };
 
 const getAssignmentView = (
@@ -403,7 +374,6 @@ const getAssignmentView = (
     return {
       label: status === "RESOLVED" ? "해결됨" : "상담 종료",
       description: "종료된 세션이므로 메시지를 보낼 수 없습니다.",
-      tone: "closed",
     };
   }
 
@@ -411,7 +381,6 @@ const getAssignmentView = (
     return {
       label: "내게 배정됨",
       description: "이 세션에 응답하고 내부 메모를 남길 수 있습니다.",
-      tone: "mine",
     };
   }
 
@@ -419,15 +388,22 @@ const getAssignmentView = (
     return {
       label: "다른 상담사 배정",
       description: "다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다.",
-      tone: "other",
     };
   }
 
   return {
     label: "미배정",
     description: "배정받기 전에는 메시지와 내부 메모를 보낼 수 없습니다.",
-    tone: "unassigned",
   };
+};
+
+const getResponseStatusLabel = (
+  status?: string | null,
+  assignedCounselorId?: number | null,
+) => {
+  if (status === "COMPLETED") return "상담 종료";
+  if (status === "RESOLVED") return "해결됨";
+  return assignedCounselorId ? "상담사 응대중" : "AI 응대";
 };
 
 const isCustomerMessageRole = (role?: string | null) => {
@@ -669,7 +645,6 @@ export const ConsultationPage: React.FC = () => {
   const [releaseAssignmentModal, setReleaseAssignmentModal] = useState<ReleaseAssignmentModalState>(
     { open: false },
   );
-  const [isResponseModeUpdating, setIsResponseModeUpdating] = useState(false);
   const isEndSessionModalOpen = endSessionModal.open;
   const isEndSessionSubmitting = endSessionModal.open ? endSessionModal.isSubmitting : false;
   const isReleaseAssignmentModalOpen = releaseAssignmentModal.open;
@@ -773,9 +748,6 @@ export const ConsultationPage: React.FC = () => {
         currentCounselorId,
       )
     : null;
-  const activeAssignmentToneClass = activeAssignment
-    ? styles["assignmentBadge_" + activeAssignment.tone]
-    : "";
   const isAssignedToCurrentCounselor =
     !!activeCustomer?.assignedCounselorId &&
     activeCustomer.assignedCounselorId === currentCounselorId;
@@ -787,7 +759,9 @@ export const ConsultationPage: React.FC = () => {
   const messageInputDisabledReason = isAssignedToCurrentCounselor
     ? undefined
     : activeAssignment?.description;
-  const activeResponseModeView = getResponseModeView(activeCustomer?.responseMode);
+  const activeResponseStatusLabel = activeCustomer
+    ? getResponseStatusLabel(activeCustomer.status, activeCustomer.assignedCounselorId)
+    : null;
   const queueSyncNotice =
     workspaceId && connectionStatus !== "CONNECTED"
       ? "실시간 연결이 불안정합니다. 복구되면 대기열을 다시 동기화합니다."
@@ -1603,42 +1577,6 @@ export const ConsultationPage: React.FC = () => {
     }
   };
 
-  const handleUpdateResponseMode = async (responseMode: ConsultationResponseMode) => {
-    if (
-      !activeCustomerId ||
-      !currentCounselorId ||
-      !isAssignedToCurrentCounselor ||
-      responseMode === activeCustomer?.responseMode ||
-      isResponseModeUpdating
-    ) {
-      return;
-    }
-
-    setIsResponseModeUpdating(true);
-    try {
-      const updatedSession = await consultationApi.updateResponseMode(
-        Number(activeCustomerId),
-        currentCounselorId,
-        responseMode,
-      );
-      setQueue((prev) =>
-        sortQueueCustomers(
-          prev.map((customer) =>
-            customer.id === activeCustomerId
-              ? toQueueCustomer(updatedSession, currentCounselorId, customer)
-              : customer,
-          ),
-        ),
-      );
-      toast.success("AI 응대 모드가 변경되었습니다.");
-    } catch (error) {
-      console.error("Failed to update response mode:", error);
-      toast.error("AI 응대 모드 변경에 실패했습니다.");
-    } finally {
-      setIsResponseModeUpdating(false);
-    }
-  };
-
   const handleSaveMemo = useCallback(() => {
     if (!activeCustomerId || !isAssignedToCurrentCounselor) return;
 
@@ -1689,13 +1627,14 @@ export const ConsultationPage: React.FC = () => {
               </div>
             </div>
             <div className={styles.conversationActions}>
-              {activeAssignment && (
+              {activeResponseStatusLabel && (
                 <div
-                  className={`${styles.assignmentBadge} ${activeAssignmentToneClass}`}
-                  data-testid="conversation-assignment-status"
+                  className={styles.responseStatusBadge}
+                  role="status"
+                  aria-label="응대 상태"
+                  data-testid="conversation-response-status"
                 >
-                  <span>{activeAssignment.label}</span>
-                  <small>{activeAssignment.description}</small>
+                  {activeResponseStatusLabel}
                 </div>
               )}
               {isActiveSessionUnassigned && !isActiveSessionClosed && (
@@ -1708,32 +1647,6 @@ export const ConsultationPage: React.FC = () => {
                   {isClaimingActiveSession ? "배정 중..." : "배정받기"}
                 </button>
               )}
-              <div className={styles.responseModePanel}>
-                <div className={styles.responseModeSummary}>
-                  <Mono className={styles.responseModeEyebrow}>AI MODE</Mono>
-                  <span>{activeResponseModeView.label}</span>
-                </div>
-                <div className={styles.responseModeControl} aria-label="AI 응대 모드">
-                  {RESPONSE_MODE_OPTIONS.map((option) => {
-                    const isSelected = activeResponseModeView.value === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`${styles.responseModeButton} ${
-                          isSelected ? styles.responseModeButtonActive : ""
-                        }`}
-                        aria-pressed={isSelected}
-                        title={option.description}
-                        disabled={!isAssignedToCurrentCounselor || isResponseModeUpdating}
-                        onClick={() => handleUpdateResponseMode(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               <button
                 className={styles.linkButton}
                 onClick={handleOpenReleaseAssignment}
@@ -1770,8 +1683,7 @@ export const ConsultationPage: React.FC = () => {
               onRetryMessage={handleRetryMessage}
               selectedMessageId={selectedMessageId}
               onSelectMessage={setSelectedMessageId}
-              sessionStatusLabel={activeAssignment?.label}
-              sessionStatusDescription={activeAssignment?.description}
+              sessionStatusLabel={activeResponseStatusLabel ?? activeAssignment?.label}
               disabledReason={messageInputDisabledReason}
               disabled={!isAssignedToCurrentCounselor}
               hasPreviousMessages={hasPreviousMessages}
