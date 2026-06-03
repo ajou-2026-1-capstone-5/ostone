@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .pnpm-store/
+
+# 라이브 스모크 e2e (운영 백엔드 호출) 로컬 전용 산출물
+.env.e2e.local
+e2e/live/.auth
+e2e/live/.cleanup
+
+# Playwright 실행 산출물
+playwright-report/
+test-results/
