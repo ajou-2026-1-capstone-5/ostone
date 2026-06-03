@@ -110,6 +110,10 @@ export function BillingPage() {
                 <LoadingSpinner />
                 <p className={styles.stateText}>결제 내역을 불러오는 중입니다.</p>
               </div>
+            ) : paymentsQuery.isError ? (
+              <div className={styles.statePanel}>
+                <p className={styles.stateText}>결제 내역을 불러오지 못했습니다.</p>
+              </div>
             ) : payments.length > 0 ? (
               <PaymentHistoryList
                 payments={payments}

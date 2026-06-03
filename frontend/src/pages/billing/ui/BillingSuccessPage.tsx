@@ -42,6 +42,7 @@ export function BillingSuccessPage() {
       return;
     }
     processedRef.current = true;
+    window.history.replaceState(window.history.state, "", window.location.pathname);
 
     if (!workspaceIdRaw || Number.isNaN(workspaceId)) {
       setStatus("error");

@@ -59,8 +59,9 @@ export function PayOnceWidget({ workspaceId, customerKey }: PayOnceWidgetProps) 
           widgetsRef.current = widgets;
           setReady(true);
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
+          console.error("[PayOnceWidget] 위젯 초기화 실패:", error);
           toast.error(PAY_ONCE_ERROR_MESSAGES.WIDGET_FAILED);
           setOpen(false);
         }
