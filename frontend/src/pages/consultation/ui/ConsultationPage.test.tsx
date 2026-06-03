@@ -1322,8 +1322,7 @@ describe("ConsultationPage", () => {
     expect(screen.getByLabelText("메시지 전송")).toBeDisabled();
   });
 
-  it("updates AI response mode for the assigned session", async () => {
-    const user = userEvent.setup();
+  it("shows counselor response status for the assigned session without mode controls", async () => {
     saveTestUser(7);
 
     render(<ConsultationPage />, { wrapper: Wrapper });
@@ -1338,54 +1337,15 @@ describe("ConsultationPage", () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
+      expect(screen.getAllByText("상담사 응대중").length).toBeGreaterThan(0);
     });
-
-    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
-
-    await waitFor(() => {
-      expect(consultationApi.updateResponseMode).toHaveBeenCalledWith(1, 7, "AI_ASSIST_ONLY");
-    });
-    expect(toast.success).toHaveBeenCalledWith("AI 응대 모드가 변경되었습니다.");
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    });
+    expect(screen.getByTestId("conversation-response-status")).toHaveTextContent("상담사 응대중");
+    expect(screen.queryByText("AI MODE")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AI 보조만 사용" })).not.toBeInTheDocument();
+    expect(consultationApi.updateResponseMode).not.toHaveBeenCalled();
   });
 
-  it("shows an error toast when AI response mode update fails", async () => {
-    const user = userEvent.setup();
-    vi.mocked(consultationApi.updateResponseMode).mockRejectedValueOnce(new Error("forbidden"));
-
-    render(<ConsultationPage />, { wrapper: Wrapper });
-
-    await waitFor(() => {
-      expect(screen.getByText("김민지")).toBeInTheDocument();
-    });
-
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
-    if (customerItem) {
-      fireEvent.click(customerItem);
-    }
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeEnabled();
-    });
-
-    await user.click(screen.getByRole("button", { name: "AI 보조만 사용" }));
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("AI 응대 모드 변경에 실패했습니다.");
-    });
-    expect(screen.getByRole("button", { name: "상담사 응대중" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-  });
-
-  it("disables AI response mode controls for unassigned sessions", async () => {
+  it("shows AI response status for unassigned sessions without mode controls", async () => {
     vi.mocked(consultationApi.getQueue).mockResolvedValueOnce([
       {
         id: 1,
@@ -1410,10 +1370,13 @@ describe("ConsultationPage", () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "AI 응대중" })).toBeDisabled();
+      expect(screen.getAllByText("AI 응대").length).toBeGreaterThan(0);
     });
-    expect(screen.getByRole("button", { name: "상담사 응대중" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "AI 보조만 사용" })).toBeDisabled();
+    expect(screen.getByTestId("conversation-response-status")).toHaveTextContent("AI 응대");
+    expect(screen.queryByText("AI MODE")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AI 응대중" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "상담사 응대중" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AI 보조만 사용" })).not.toBeInTheDocument();
   });
 
   it("opens confirmation before releasing the current counselor assignment", async () => {

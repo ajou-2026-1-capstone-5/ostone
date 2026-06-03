@@ -66,136 +66,21 @@
   border-top: 1px solid var(--line-2);
 }
 
-.assignmentBadge {
+.responseStatusBadge {
   margin-right: auto;
   min-width: 0;
-  max-width: 360px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 50px;
-  background: var(--paper-2);
-  color: var(--ink-2);
-}
-
-.assignmentBadge span {
-  flex-shrink: 0;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  line-height: 1;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.assignmentBadge small {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ink-3);
-  font-size: 11px;
-  line-height: 1.25;
-  letter-spacing: -0.1px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.assignmentBadge_mine {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.assignmentBadge_mine small {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.assignmentBadge_other,
-.assignmentBadge_closed {
-  opacity: 0.74;
-}
-
-.responseModePanel {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.responseModeSummary {
-  display: flex;
-  min-width: 112px;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.responseModeEyebrow {
-  color: var(--ink-3);
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-}
-
-.responseModeSummary span {
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 540;
-  letter-spacing: -0.1px;
-  line-height: 1.2;
-}
-
-.responseModeControl {
-  display: flex;
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border: 1px solid var(--ink);
   border-radius: 50px;
   background: var(--paper);
-}
-
-.responseModeButton {
-  min-height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink-2);
-  cursor: pointer;
-  font-size: 11.5px;
-  font-weight: 450;
-  letter-spacing: -0.1px;
-  white-space: nowrap;
-}
-
-.responseModeButton:last-child {
-  border-right: 0;
-}
-
-.responseModeButton:hover:not(:disabled) {
-  background: var(--paper-2);
   color: var(--ink);
-}
-
-.responseModeButton:focus-visible {
-  outline: none;
-  box-shadow:
-    inset 0 0 0 1px var(--ink),
-    var(--focus-ring);
-}
-
-.responseModeButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
-.responseModeButtonActive {
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.responseModeButtonActive:hover:not(:disabled) {
-  background: var(--ink);
-  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .claimButton,
