@@ -10,6 +10,7 @@ import {
   type WorkspaceMemberRole,
 } from "@/entities/workspace";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
+import { WorkspaceSettingsNav } from "@/widgets/workspace-settings-nav";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import { Input } from "@/shared/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
@@ -83,6 +84,7 @@ export function WorkspaceMembersPage() {
 
   return (
     <div className={styles.pageWrapper}>
+      <WorkspaceSettingsNav workspaceId={parsedWorkspaceId} />
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>멤버</h1>

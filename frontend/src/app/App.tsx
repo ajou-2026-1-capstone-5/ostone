@@ -1,11 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-  useParams,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { LoginPage } from "../pages/login/ui/LoginPage";
 import { SignupPage } from "../pages/signup/ui/SignupPage";
 import { WorkspaceRootRedirect } from "../pages/workspace/ui/WorkspaceRootRedirect";
@@ -31,6 +24,7 @@ import { DomainPackSummaryPage } from "../pages/domain-pack/ui/DomainPackSummary
 import { DomainPackRouteOutlet } from "../pages/domain-pack/ui/DomainPackRouteOutlet";
 import { WorkspaceLayout } from "../pages/workspace/ui/WorkspaceLayout";
 import { WorkspaceMembersPage } from "../pages/workspace/ui/WorkspaceMembersPage";
+import { BillingPage, BillingSuccessPage, BillingFailPage } from "../pages/billing";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
 import { PipelineReviewPage } from "../pages/pipeline-review/ui/PipelineReviewPage";
@@ -74,10 +68,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/password-reset" element={<PasswordResetInitPage />} />
-        <Route
-          path="/password-reset/complete"
-          element={<PasswordResetCompletePage />}
-        />
+        <Route path="/password-reset/complete" element={<PasswordResetCompletePage />} />
         <Route
           path="/admin"
           element={
@@ -87,18 +78,12 @@ export function App() {
           }
         >
           <Route index element={<Navigate to="super-admins" replace />} />
-          <Route
-            path="customers"
-            element={<AdminCustomersPage />}
-          />
+          <Route path="customers" element={<AdminCustomersPage />} />
           <Route
             path="billing"
             element={<AdminPlaceholderPage eyebrow="Billing" title="결제 관리" />}
           />
-          <Route
-            path="airflow"
-            element={<AdminPipelineJobsPage />}
-          />
+          <Route path="airflow" element={<AdminPipelineJobsPage />} />
           <Route path="super-admins" element={<AdminSuperAdminsPage />} />
         </Route>
         <Route
@@ -121,29 +106,46 @@ export function App() {
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="pipeline" element={<Navigate to="upload" replace />} />
           <Route path="consultation/history" element={<ChatHistoryPage />} />
-          <Route
-            path="consultation/history/:sessionId"
-            element={<ChatHistoryPage />}
-          />
+          <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
           <Route path="consultation" element={<ConsultationPage />} />
-          <Route
-            path="consultation/:sessionId"
-            element={<ConsultationPage />}
-          />
+          <Route path="consultation/:sessionId" element={<ConsultationPage />} />
           <Route path="upload" element={<WorkspaceUploadPage />} />
-          <Route
-            path="pipeline-jobs/:pipelineJobId/review"
-            element={<PipelineReviewPage />}
-          />
+          <Route path="pipeline-jobs/:pipelineJobId/review" element={<PipelineReviewPage />} />
           <Route path="domain-packs" element={<DomainPackListPage />} />
           <Route path="settings/members" element={<WorkspaceMembersPage />} />
+          <Route
+            path="billing"
+            element={
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingPage />
+              </ErrorBoundary>
+            }
+          />
         </Route>
+        <Route
+          path="/billing/success"
+          element={
+            <PrivateRoute>
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingSuccessPage />
+              </ErrorBoundary>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/billing/fail"
+          element={
+            <PrivateRoute>
+              <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
+                <BillingFailPage />
+              </ErrorBoundary>
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/demo"
           element={
-            <ErrorBoundary
-              fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}
-            >
+            <ErrorBoundary fallback={<div>페이지를 불러오는 중 오류가 발생했습니다.</div>}>
               <DemoPage />
             </ErrorBoundary>
           }
@@ -165,10 +167,7 @@ export function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/demo/workspaces/:workspaceId/chat"
-          element={<LegacyDemoChatRedirect />}
-        />
+        <Route path="/demo/workspaces/:workspaceId/chat" element={<LegacyDemoChatRedirect />} />
         <Route
           path="/upload"
           element={
@@ -217,19 +216,10 @@ export function App() {
           <Route path="workflows">
             <Route index element={<PackWorkflowListPage />} />
             <Route path=":workflowId" element={<WorkflowDraftReadPage />} />
-            <Route
-              path=":workflowId/graph"
-              element={<WorkflowGraphViewerPage />}
-            />
+            <Route path=":workflowId/graph" element={<WorkflowGraphViewerPage />} />
           </Route>
-          <Route
-            path="versions/:versionId/*"
-            element={<LegacyDomainPackVersionRedirect />}
-          />
-          <Route
-            path="versions/:versionId"
-            element={<LegacyDomainPackVersionRedirect />}
-          />
+          <Route path="versions/:versionId/*" element={<LegacyDomainPackVersionRedirect />} />
+          <Route path="versions/:versionId" element={<LegacyDomainPackVersionRedirect />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

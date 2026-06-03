@@ -16,6 +16,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ["@tosspayments/tosspayments-sdk"],
+  },
   server: {
     host: "0.0.0.0",
     port: 5173,
