@@ -10,7 +10,12 @@ public record AdminCustomerWorkspaceResponse(
     String description,
     String status,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt) {
+    OffsetDateTime updatedAt,
+    String freeOnboardingStatus,
+    Long freeOnboardingDatasetId,
+    Long freeOnboardingPipelineJobId,
+    OffsetDateTime freeOnboardingStartedAt,
+    OffsetDateTime freeOnboardingConsumedAt) {
 
   static AdminCustomerWorkspaceResponse from(AdminCustomerWorkspaceResult result) {
     return new AdminCustomerWorkspaceResponse(
@@ -20,6 +25,11 @@ public record AdminCustomerWorkspaceResponse(
         result.description(),
         result.status(),
         result.createdAt(),
-        result.updatedAt());
+        result.updatedAt(),
+        result.freeOnboardingStatus(),
+        result.freeOnboardingDatasetId(),
+        result.freeOnboardingPipelineJobId(),
+        result.freeOnboardingStartedAt(),
+        result.freeOnboardingConsumedAt());
   }
 }

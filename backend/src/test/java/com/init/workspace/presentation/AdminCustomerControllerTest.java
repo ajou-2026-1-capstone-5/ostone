@@ -3,6 +3,7 @@ package com.init.workspace.presentation;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,6 +23,8 @@ import com.init.workspace.application.AdminCustomerUploadSummaryResult;
 import com.init.workspace.application.AdminCustomerWorkspaceResult;
 import com.init.workspace.application.GetAdminCustomerDetailUseCase;
 import com.init.workspace.application.GetAdminCustomerListUseCase;
+import com.init.workspace.application.WorkspaceFreeOnboardingResult;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.time.OffsetDateTime;
@@ -51,6 +54,7 @@ class AdminCustomerControllerTest {
 
   @MockitoBean private GetAdminCustomerListUseCase getAdminCustomerListUseCase;
   @MockitoBean private GetAdminCustomerDetailUseCase getAdminCustomerDetailUseCase;
+  @MockitoBean private WorkspaceFreeOnboardingService freeOnboardingService;
   @MockitoBean private JwtService jwtService;
 
   @Test
@@ -115,6 +119,24 @@ class AdminCustomerControllerTest {
         .andExpect(jsonPath("$.members.totalCount").value(3))
         .andExpect(jsonPath("$.billing.subscriptionStatus").doesNotExist())
         .andExpect(jsonPath("$.pipeline.totalCount").value(2));
+  }
+
+  @Test
+  @DisplayName(
+      "POST /api/v1/admin/customers/{workspaceId}/free-onboarding/restore: SUPER_ADMIN JWT → 복구")
+  void should_무료온보딩복구_when_SUPER_ADMIN요청() throws Exception {
+    givenSuperAdminBearerToken("super-admin-token");
+    given(freeOnboardingService.restore(1L))
+        .willReturn(new WorkspaceFreeOnboardingResult(1L, "AVAILABLE", null, null, null, null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/admin/customers/1/free-onboarding/restore")
+                .header("Authorization", "Bearer super-admin-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.workspaceId").value(1))
+        .andExpect(jsonPath("$.status").value("AVAILABLE"))
+        .andExpect(jsonPath("$.datasetId").doesNotExist());
   }
 
   private AdminCustomerSummaryResult summary() {

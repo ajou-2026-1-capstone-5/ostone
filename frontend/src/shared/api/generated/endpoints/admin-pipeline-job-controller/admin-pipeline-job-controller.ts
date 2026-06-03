@@ -4,7 +4,10 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -17,216 +20,201 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   AdminPipelineJobListResponse,
   ListParams,
-  RetryAdminPipelineJobResponse,
-} from "../../zod";
+  RetryAdminPipelineJobResponse
+} from '../../zod';
 
-import { customFetch } from "../../../mutator";
+import { customFetch } from '../../../mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+
+
 export type retryResponse201 = {
-  data: RetryAdminPipelineJobResponse;
-  status: 201;
-};
+  data: RetryAdminPipelineJobResponse
+  status: 201
+}
 
-export type retryResponseSuccess = retryResponse201 & {
+export type retryResponseSuccess = (retryResponse201) & {
   headers: Headers;
 };
+;
 
-export type retryResponse = retryResponseSuccess;
+export type retryResponse = (retryResponseSuccess)
 
-export const getRetryUrl = (pipelineJobId: number) => {
-  return `/api/v1/admin/pipeline-jobs/${pipelineJobId}/retry`;
-};
+export const getRetryUrl = (pipelineJobId: number,) => {
 
-export const retry = async (
-  pipelineJobId: number,
-  options?: RequestInit,
-): Promise<retryResponse> => {
-  return customFetch<retryResponse>(getRetryUrl(pipelineJobId), {
+
+
+
+  return `/api/v1/admin/pipeline-jobs/${pipelineJobId}/retry`
+}
+
+export const retry = async (pipelineJobId: number, options?: RequestInit): Promise<retryResponse> => {
+
+  return customFetch<retryResponse>(getRetryUrl(pipelineJobId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
 
-export const getRetryMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof retry>>,
-    TError,
-    { pipelineJobId: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof retry>>,
-  TError,
-  { pipelineJobId: number },
-  TContext
-> => {
-  const mutationKey = ["retry"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof retry>>,
-    { pipelineJobId: number }
-  > = (props) => {
-    const { pipelineJobId } = props ?? {};
+  }
+);}
 
-    return retry(pipelineJobId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type RetryMutationResult = NonNullable<Awaited<ReturnType<typeof retry>>>;
 
-export type RetryMutationError = unknown;
+export const getRetryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retry>>, TError,{pipelineJobId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retry>>, TError,{pipelineJobId: number}, TContext> => {
 
-export const useRetry = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof retry>>,
-      TError,
-      { pipelineJobId: number },
-      TContext
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof retry>>,
-  TError,
-  { pipelineJobId: number },
-  TContext
-> => {
-  return useMutation(getRetryMutationOptions(options), queryClient);
-};
-export type listResponse200 = {
-  data: AdminPipelineJobListResponse;
-  status: 200;
-};
+const mutationKey = ['retry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type listResponseSuccess = listResponse200 & {
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retry>>, {pipelineJobId: number}> = (props) => {
+          const {pipelineJobId} = props ?? {};
+
+          return  retry(pipelineJobId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryMutationResult = NonNullable<Awaited<ReturnType<typeof retry>>>
+
+    export type RetryMutationError = unknown
+
+    export const useRetry = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retry>>, TError,{pipelineJobId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof retry>>,
+        TError,
+        {pipelineJobId: number},
+        TContext
+      > => {
+      return useMutation(getRetryMutationOptions(options), queryClient);
+    }
+    export type listResponse200 = {
+  data: AdminPipelineJobListResponse
+  status: 200
+}
+
+export type listResponseSuccess = (listResponse200) & {
   headers: Headers;
 };
+;
 
-export type listResponse = listResponseSuccess;
+export type listResponse = (listResponseSuccess)
 
-export const getListUrl = (params?: ListParams) => {
+export const getListUrl = (params?: ListParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/v1/admin/pipeline-jobs?${stringifiedParams}`
-    : `/api/v1/admin/pipeline-jobs`;
-};
+  return stringifiedParams.length > 0 ? `/api/v1/admin/pipeline-jobs?${stringifiedParams}` : `/api/v1/admin/pipeline-jobs`
+}
 
 export const list = async (params?: ListParams, options?: RequestInit): Promise<listResponse> => {
-  return customFetch<listResponse>(getListUrl(params), {
+
+  return customFetch<listResponse>(getListUrl(params),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListQueryKey = (params?: ListParams) => {
-  return [`/api/v1/admin/pipeline-jobs`, ...(params ? [params] : [])] as const;
-};
 
-export const getListQueryOptions = <TData = Awaited<ReturnType<typeof list>>, TError = unknown>(
-  params?: ListParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListQueryKey = (params?: ListParams,) => {
+    return [
+    `/api/v1/admin/pipeline-jobs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListQueryOptions = <TData = Awaited<ReturnType<typeof list>>, TError = unknown>(params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListQueryKey(params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof list>>> = ({ signal }) =>
-    list(params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListQueryKey(params);
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof list>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type ListQueryResult = NonNullable<Awaited<ReturnType<typeof list>>>;
-export type ListQueryError = unknown;
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list>>> = ({ signal }) => list(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListQueryResult = NonNullable<Awaited<ReturnType<typeof list>>>
+export type ListQueryError = unknown
+
 
 export function useList<TData = Awaited<ReturnType<typeof list>>, TError = unknown>(
-  params: undefined | ListParams,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> &
-      Pick<
+ params: undefined |  ListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof list>>,
           TError,
           Awaited<ReturnType<typeof list>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useList<TData = Awaited<ReturnType<typeof list>>, TError = unknown>(
-  params?: ListParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> &
-      Pick<
+ params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof list>>,
           TError,
           Awaited<ReturnType<typeof list>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useList<TData = Awaited<ReturnType<typeof list>>, TError = unknown>(
-  params?: ListParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+ params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useList<TData = Awaited<ReturnType<typeof list>>, TError = unknown>(
-  params?: ListParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListQueryOptions(params, options);
+ params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }

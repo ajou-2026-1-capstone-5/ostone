@@ -48,6 +48,11 @@ public class JdbcAdminCustomerQueryAdapter implements AdminCustomerQueryPort {
               w.name,
               w.description,
               w.status,
+              w.free_onboarding_status,
+              w.free_onboarding_dataset_id,
+              w.free_onboarding_pipeline_job_id,
+              w.free_onboarding_started_at,
+              w.free_onboarding_consumed_at,
               w.created_at,
               w.updated_at,
               (SELECT COUNT(*) FROM app.workspace_member wm WHERE wm.workspace_id = w.id) AS member_count,
@@ -110,7 +115,19 @@ public class JdbcAdminCustomerQueryAdapter implements AdminCustomerQueryPort {
     List<AdminCustomerWorkspaceResult> rows =
         jdbcTemplate.query(
             """
-            SELECT id, workspace_key, name, description, status, created_at, updated_at
+            SELECT
+              id,
+              workspace_key,
+              name,
+              description,
+              status,
+              free_onboarding_status,
+              free_onboarding_dataset_id,
+              free_onboarding_pipeline_job_id,
+              free_onboarding_started_at,
+              free_onboarding_consumed_at,
+              created_at,
+              updated_at
             FROM app.workspace
             WHERE id = :workspaceId
             """,
@@ -273,7 +290,12 @@ public class JdbcAdminCustomerQueryAdapter implements AdminCustomerQueryPort {
         rs.getString("description"),
         rs.getString("status"),
         offsetDateTime(rs, "created_at"),
-        offsetDateTime(rs, "updated_at"));
+        offsetDateTime(rs, "updated_at"),
+        rs.getString("free_onboarding_status"),
+        nullableLong(rs, "free_onboarding_dataset_id"),
+        nullableLong(rs, "free_onboarding_pipeline_job_id"),
+        offsetDateTime(rs, "free_onboarding_started_at"),
+        offsetDateTime(rs, "free_onboarding_consumed_at"));
   }
 
   private AdminCustomerUploadSummaryResult mapUpload(ResultSet rs) throws SQLException {

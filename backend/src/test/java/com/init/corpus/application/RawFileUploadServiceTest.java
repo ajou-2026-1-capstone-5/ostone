@@ -27,6 +27,7 @@ import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +54,7 @@ class RawFileUploadServiceTest {
   @Mock private DatasetRawFileRepository rawFileRepository;
   @Mock private IngestionTriggerPort triggerPort;
   @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   private RawFileUploadService service;
 
@@ -75,7 +77,8 @@ class RawFileUploadServiceTest {
             rawFileRepository,
             triggerPort,
             new ObjectMapper(),
-            workspaceQuotaValidator);
+            workspaceQuotaValidator,
+            freeOnboardingService);
   }
 
   @Test
@@ -115,6 +118,8 @@ class RawFileUploadServiceTest {
     verify(storagePort).put(anyString(), any(), anyString());
     verify(rawDatasetUploadService).upload(any());
     verify(rawFileRepository).save(any());
+    verify(freeOnboardingService).assertCanUploadRawFile(1L);
+    verify(freeOnboardingService).claimUploadIfNeeded(1L, 42L);
     verify(triggerPort).trigger(anyLong(), anyLong(), anyString());
   }
 

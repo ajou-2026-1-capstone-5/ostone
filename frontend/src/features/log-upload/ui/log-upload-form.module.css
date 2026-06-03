@@ -15,7 +15,7 @@
 
 .header h2 {
   font-size: 1.5rem;
-  letter-spacing: -0.26px;
+  letter-spacing: 0;
   font-weight: 600;
   color: var(--text-color);
   margin-bottom: 10px;
@@ -24,8 +24,27 @@
 .header p {
   color: var(--text-muted);
   font-size: 0.95rem;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   line-height: 1.5;
+}
+
+.onboardingStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.onboardingStatus p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  margin: 0;
 }
 
 .uploadArea {
@@ -88,7 +107,7 @@
   color: var(--text-color);
   font-size: 1rem;
   font-weight: 540;
-  letter-spacing: -0.14px;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -98,9 +117,10 @@
   color: var(--text-muted);
   font-size: 0.9rem;
   line-height: 1.5;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
 }
 
+.onboardingStatus .statusLabel,
 .uploadSummary .statusLabel,
 .generationPanel .statusLabel {
   color: var(--text-color);

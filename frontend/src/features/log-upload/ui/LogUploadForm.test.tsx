@@ -85,6 +85,7 @@ vi.mock("../../../shared/ui/file-upload/FileUploader", () => ({
     acceptedTypeLabel,
     maxSizeLabel,
     fileTypeLabels,
+    disabled,
   }: {
     onFileSelect: (f: File) => void;
     status: string;
@@ -92,9 +93,11 @@ vi.mock("../../../shared/ui/file-upload/FileUploader", () => ({
     acceptedTypeLabel: string;
     maxSizeLabel: string;
     fileTypeLabels: string[];
+    disabled?: boolean;
   }) => (
     <div data-testid="file-uploader">
       {status}
+      <span data-testid="uploader-disabled">{String(disabled)}</span>
       <span data-testid="accepted-types">{acceptedTypes}</span>
       <span data-testid="policy-copy">
         {acceptedTypeLabel} {maxSizeLabel} {fileTypeLabels.join(",")}
@@ -102,10 +105,18 @@ vi.mock("../../../shared/ui/file-upload/FileUploader", () => ({
       <input
         data-testid="file-input"
         type="file"
+        disabled={disabled}
         onChange={(e) => {
           if (e.target.files?.[0]) onFileSelect(e.target.files[0]);
         }}
       />
+      <button
+        type="button"
+        data-testid="force-file-select"
+        onClick={() => onFileSelect(new File(["data"], "blocked.zip", { type: "application/zip" }))}
+      >
+        force select
+      </button>
     </div>
   ),
 }));
@@ -128,11 +139,87 @@ describe("LogUploadForm", () => {
     expect(
       screen.getByText("상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다."),
     ).toBeInTheDocument();
+    expect(screen.getByText("무료 온보딩 가능")).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
     expect(screen.getByTestId("accepted-types")).toHaveTextContent(
       ".zip,application/zip,application/x-zip-compressed",
     );
     expect(screen.getByTestId("policy-copy")).toHaveTextContent("ZIP 50MB ZIP");
+  });
+
+  it("shows in-progress onboarding state", () => {
+    render(<LogUploadForm workspaceId={1} freeOnboardingStatus="IN_PROGRESS" />, {
+      wrapper: MemoryRouter,
+    });
+
+    expect(screen.getByText("무료 온보딩 진행 중")).toBeInTheDocument();
+    expect(screen.getByText(/도메인팩 초안 생성과 검토 진입/)).toBeInTheDocument();
+  });
+
+  it("blocks upload when free onboarding is consumed without active subscription", () => {
+    render(
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="CONSUMED"
+        hasActiveSubscription={false}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(screen.getByText("무료 온보딩 사용 완료")).toBeInTheDocument();
+    expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("true");
+    expect(screen.getByTestId("file-input")).toBeDisabled();
+  });
+
+  it("shows a toast when a blocked workspace still receives a selected file", () => {
+    render(
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="CONSUMED"
+        hasActiveSubscription={false}
+      />,
+      { wrapper: MemoryRouter },
+    );
+
+    fireEvent.click(screen.getByTestId("force-file-select"));
+
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.",
+    );
+  });
+
+  it("disables processing when a selected file becomes ineligible before upload", () => {
+    const { rerender } = render(
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="AVAILABLE"
+        hasActiveSubscription={false}
+      />,
+      { wrapper: MemoryRouter },
+    );
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
+    fireEvent.change(screen.getByTestId("file-input"), { target: { files: [file] } });
+
+    rerender(
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="CONSUMED"
+        hasActiveSubscription={false}
+      />,
+    );
+
+    expect(screen.getByText("처리 시작").closest("button")).toBeDisabled();
+    expect(mockUploadMutate).not.toHaveBeenCalled();
+  });
+
+  it("allows upload when free onboarding is consumed but subscription is active", () => {
+    render(
+      <LogUploadForm workspaceId={1} freeOnboardingStatus="CONSUMED" hasActiveSubscription />,
+      { wrapper: MemoryRouter },
+    );
+
+    expect(screen.getByText(/활성 구독이 적용되어/)).toBeInTheDocument();
+    expect(screen.getByTestId("uploader-disabled")).toHaveTextContent("false");
   });
 
   it("shows file preview and Start Processing button after selecting a file", () => {

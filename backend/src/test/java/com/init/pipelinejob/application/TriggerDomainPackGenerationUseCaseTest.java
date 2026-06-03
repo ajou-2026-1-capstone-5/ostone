@@ -19,6 +19,7 @@ import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -49,6 +50,7 @@ class TriggerDomainPackGenerationUseCaseTest {
   @Mock private DomainPackGenerationTriggerPort triggerPort;
   @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
   @Mock private PlatformTransactionManager transactionManager;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   private TriggerDomainPackGenerationUseCase useCase;
   private final Clock fixedClock =
@@ -89,7 +91,8 @@ class TriggerDomainPackGenerationUseCaseTest {
             new ObjectMapper(),
             fixedClock,
             transactionManager,
-            workspaceQuotaValidator);
+            workspaceQuotaValidator,
+            freeOnboardingService);
   }
 
   @Test
@@ -114,6 +117,8 @@ class TriggerDomainPackGenerationUseCaseTest {
     assertThat(savedJob.get().getRequestPayloadJson())
         .contains("\"objectKey\":\"workspaces/1/datasets/travel/raw.json\"");
     verify(concurrencyGuard).lockTriggerCreation(1L, 7L);
+    verify(freeOnboardingService).assertCanTriggerDomainPackGeneration(1L, 7L);
+    verify(freeOnboardingService).claimGenerationIfNeeded(1L, 7L, 123L);
   }
 
   @Test
@@ -235,7 +240,9 @@ class TriggerDomainPackGenerationUseCaseTest {
         .given(workspaceQuotaValidator)
         .assertPipelineRunAllowed(1L);
 
-    assertThatThrownBy(() -> useCase.execute(command())).isInstanceOf(QuotaExceededException.class);
+    TriggerDomainPackGenerationCommand command = command();
+
+    assertThatThrownBy(() -> useCase.execute(command)).isInstanceOf(QuotaExceededException.class);
 
     verify(pipelineJobRepository, never()).saveAndFlush(any());
     verify(triggerPort, never()).trigger(any());
@@ -275,6 +282,7 @@ class TriggerDomainPackGenerationUseCaseTest {
 
     assertThat(savedJob.get().getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(savedJob.get().getFinishedAt().toInstant()).isEqualTo(fixedClock.instant());
+    verify(freeOnboardingService).consumeForFinalPipelineJob(1L, 123L, true);
   }
 
   private void allowAccess() {

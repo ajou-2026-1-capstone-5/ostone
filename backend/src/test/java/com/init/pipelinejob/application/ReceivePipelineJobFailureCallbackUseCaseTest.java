@@ -15,6 +15,7 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -40,6 +41,7 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
   @Mock private PipelineJobRepository pipelineJobRepository;
   @Mock private WebhookReceiptRepository webhookReceiptRepository;
   @Mock private PlatformTransactionManager transactionManager;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   private ReceivePipelineJobFailureCallbackUseCase useCase;
   private final Clock fixedClock =
@@ -66,7 +68,9 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
                 webhookReceiptRepository,
                 fixedClock,
                 transactionManager,
-                "secret-123"));
+                "secret-123",
+                freeOnboardingService),
+            freeOnboardingService);
   }
 
   @Test
@@ -85,6 +89,7 @@ class ReceivePipelineJobFailureCallbackUseCaseTest {
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(job.getLastErrorMessage()).isEqualTo("PII masking failed");
     assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+    verify(freeOnboardingService).consumeForFinalPipelineJob(1L, 123L, true);
   }
 
   @Test

@@ -20,6 +20,7 @@ import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,6 +52,7 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
   @Mock private CreateDomainPackDraftPort createDomainPackDraftPort;
 
   @Mock private PlatformTransactionManager transactionManager;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   private ReceiveDomainPackDraftCallbackUseCase useCase;
   private final Clock fixedClock =
@@ -74,7 +76,8 @@ class ReceiveDomainPackDraftCallbackUseCaseTest {
                 webhookReceiptRepository,
                 fixedClock,
                 transactionManager,
-                "secret-123"));
+                "secret-123",
+                freeOnboardingService));
   }
 
   @Test

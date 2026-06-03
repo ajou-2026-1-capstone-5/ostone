@@ -9,6 +9,7 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -33,18 +34,21 @@ public class PipelineJobCallbackSupportService {
   private final Clock clock;
   private final TransactionTemplate transactionTemplate;
   private final String airflowWebhookSecret;
+  private final WorkspaceFreeOnboardingService freeOnboardingService;
 
   public PipelineJobCallbackSupportService(
       PipelineJobRepository pipelineJobRepository,
       WebhookReceiptRepository webhookReceiptRepository,
       Clock clock,
       PlatformTransactionManager transactionManager,
-      @Value("${airflow.webhook.secret}") String airflowWebhookSecret) {
+      @Value("${airflow.webhook.secret}") String airflowWebhookSecret,
+      WorkspaceFreeOnboardingService freeOnboardingService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.webhookReceiptRepository = webhookReceiptRepository;
     this.clock = clock;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.airflowWebhookSecret = airflowWebhookSecret;
+    this.freeOnboardingService = freeOnboardingService;
   }
 
   public void validateWebhookSecret(String providedSecret) {
@@ -160,6 +164,8 @@ public class PipelineJobCallbackSupportService {
                     if (!job.isFinalized()) {
                       job.markFailed(resolveErrorMessage(exception), now);
                       pipelineJobRepository.saveAndFlush(job);
+                      freeOnboardingService.consumeForFinalPipelineJob(
+                          job.getWorkspaceId(), job.getId(), job.isFinalized());
                     }
                   });
         });

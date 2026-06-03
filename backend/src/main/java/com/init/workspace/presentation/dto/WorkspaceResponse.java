@@ -11,7 +11,12 @@ public record WorkspaceResponse(
     String status,
     String myRole,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt) {
+    OffsetDateTime updatedAt,
+    String freeOnboardingStatus,
+    Long freeOnboardingDatasetId,
+    Long freeOnboardingPipelineJobId,
+    OffsetDateTime freeOnboardingStartedAt,
+    OffsetDateTime freeOnboardingConsumedAt) {
 
   public static WorkspaceResponse from(WorkspaceResult result) {
     return new WorkspaceResponse(
@@ -22,6 +27,11 @@ public record WorkspaceResponse(
         result.status(),
         result.myRole(),
         result.createdAt(),
-        result.updatedAt());
+        result.updatedAt(),
+        result.freeOnboardingStatus(),
+        result.freeOnboardingDatasetId(),
+        result.freeOnboardingPipelineJobId(),
+        result.freeOnboardingStartedAt(),
+        result.freeOnboardingConsumedAt());
   }
 }

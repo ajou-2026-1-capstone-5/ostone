@@ -12,6 +12,7 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -38,6 +39,7 @@ public class TriggerDomainPackGenerationUseCase {
   private final Clock clock;
   private final TransactionTemplate transactionTemplate;
   private final WorkspaceQuotaValidator workspaceQuotaValidator;
+  private final WorkspaceFreeOnboardingService freeOnboardingService;
 
   public TriggerDomainPackGenerationUseCase(
       PipelineJobRepository pipelineJobRepository,
@@ -49,7 +51,8 @@ public class TriggerDomainPackGenerationUseCase {
       ObjectMapper objectMapper,
       Clock clock,
       PlatformTransactionManager transactionManager,
-      WorkspaceQuotaValidator workspaceQuotaValidator) {
+      WorkspaceQuotaValidator workspaceQuotaValidator,
+      WorkspaceFreeOnboardingService freeOnboardingService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.datasetOwnershipPort = datasetOwnershipPort;
@@ -60,6 +63,7 @@ public class TriggerDomainPackGenerationUseCase {
     this.clock = clock;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.workspaceQuotaValidator = workspaceQuotaValidator;
+    this.freeOnboardingService = freeOnboardingService;
   }
 
   public TriggerDomainPackGenerationResult execute(TriggerDomainPackGenerationCommand command) {
@@ -126,6 +130,8 @@ public class TriggerDomainPackGenerationUseCase {
           savedJob.assignAirflowRun(
               dagId, dagRunId, buildRequestPayloadJson(command, dagId, dagRunId, objectKey));
           PipelineJob queuedJob = pipelineJobRepository.saveAndFlush(savedJob);
+          freeOnboardingService.claimGenerationIfNeeded(
+              command.workspaceId(), command.datasetId(), queuedJob.getId());
           return new CreatedPipelineJob(queuedJob.getId(), queuedJob.getAirflowRunId(), objectKey);
         });
   }
@@ -144,6 +150,8 @@ public class TriggerDomainPackGenerationUseCase {
         command.datasetId(), command.workspaceId())) {
       throw new DatasetNotFoundException(command.datasetId(), command.workspaceId());
     }
+    freeOnboardingService.assertCanTriggerDomainPackGeneration(
+        command.workspaceId(), command.datasetId());
   }
 
   private String resolveRawFileObjectKey(TriggerDomainPackGenerationCommand command) {
@@ -172,6 +180,8 @@ public class TriggerDomainPackGenerationUseCase {
           if (!job.isFinalized()) {
             job.markFailed(errorMessage, OffsetDateTime.now(clock));
             pipelineJobRepository.saveAndFlush(job);
+            freeOnboardingService.consumeForFinalPipelineJob(
+                job.getWorkspaceId(), job.getId(), job.isFinalized());
           }
         });
   }

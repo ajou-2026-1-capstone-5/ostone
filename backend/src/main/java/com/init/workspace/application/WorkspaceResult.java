@@ -12,7 +12,37 @@ public record WorkspaceResult(
     String status,
     String myRole,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt) {
+    OffsetDateTime updatedAt,
+    String freeOnboardingStatus,
+    Long freeOnboardingDatasetId,
+    Long freeOnboardingPipelineJobId,
+    OffsetDateTime freeOnboardingStartedAt,
+    OffsetDateTime freeOnboardingConsumedAt) {
+
+  public WorkspaceResult(
+      Long workspaceId,
+      String workspaceKey,
+      String name,
+      String description,
+      String status,
+      String myRole,
+      OffsetDateTime createdAt,
+      OffsetDateTime updatedAt) {
+    this(
+        workspaceId,
+        workspaceKey,
+        name,
+        description,
+        status,
+        myRole,
+        createdAt,
+        updatedAt,
+        "AVAILABLE",
+        null,
+        null,
+        null,
+        null);
+  }
 
   public static WorkspaceResult from(Workspace workspace, WorkspaceMember member) {
     return new WorkspaceResult(
@@ -23,6 +53,11 @@ public record WorkspaceResult(
         workspace.getStatus().name(),
         member.getMemberRole().name(),
         workspace.getCreatedAt(),
-        workspace.getUpdatedAt());
+        workspace.getUpdatedAt(),
+        workspace.getFreeOnboardingStatus().name(),
+        workspace.getFreeOnboardingDatasetId(),
+        workspace.getFreeOnboardingPipelineJobId(),
+        workspace.getFreeOnboardingStartedAt(),
+        workspace.getFreeOnboardingConsumedAt());
   }
 }

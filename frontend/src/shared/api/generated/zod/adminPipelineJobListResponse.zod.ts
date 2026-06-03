@@ -4,38 +4,34 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const AdminPipelineJobListResponse = zod.object({
-  items: zod
-    .array(
-      zod.object({
-        pipelineJobId: zod.number().optional(),
-        workspaceId: zod.number().optional(),
-        datasetId: zod.number().optional(),
-        domainPackId: zod.number().optional(),
-        jobType: zod.string().optional(),
-        status: zod.string().optional(),
-        airflowDagId: zod.string().optional(),
-        airflowRunId: zod.string().optional(),
-        requestedAt: zod.iso.datetime({ offset: true }).optional(),
-        startedAt: zod.iso.datetime({ offset: true }).optional(),
-        finishedAt: zod.iso.datetime({ offset: true }).optional(),
-        queueLagSeconds: zod.number().optional(),
-        runningDurationSeconds: zod.number().optional(),
-        totalDurationSeconds: zod.number().optional(),
-        lagExceeded: zod.boolean().optional(),
-        lastErrorMessage: zod.string().optional(),
-        retriedFromPipelineJobId: zod.number().optional(),
-        retryPipelineJobId: zod.number().optional(),
-      }),
-    )
-    .optional(),
-  page: zod.number().optional(),
-  size: zod.number().optional(),
-  totalElements: zod.number().optional(),
-  totalPages: zod.number().optional(),
-});
+  "items": zod.array(zod.object({
+  "pipelineJobId": zod.number().optional(),
+  "workspaceId": zod.number().optional(),
+  "datasetId": zod.number().optional(),
+  "domainPackId": zod.number().optional(),
+  "jobType": zod.string().optional(),
+  "status": zod.string().optional(),
+  "airflowDagId": zod.string().optional(),
+  "airflowRunId": zod.string().optional(),
+  "requestedAt": zod.iso.datetime({"offset":true}).optional(),
+  "startedAt": zod.iso.datetime({"offset":true}).optional(),
+  "finishedAt": zod.iso.datetime({"offset":true}).optional(),
+  "queueLagSeconds": zod.number().optional(),
+  "runningDurationSeconds": zod.number().optional(),
+  "totalDurationSeconds": zod.number().optional(),
+  "lagExceeded": zod.boolean().optional(),
+  "lastErrorMessage": zod.string().optional(),
+  "retriedFromPipelineJobId": zod.number().optional(),
+  "retryPipelineJobId": zod.number().optional()
+})).optional(),
+  "page": zod.number().optional(),
+  "size": zod.number().optional(),
+  "totalElements": zod.number().optional(),
+  "totalPages": zod.number().optional()
+})
 
 export type AdminPipelineJobListResponse = zod.input<typeof AdminPipelineJobListResponse>;
 export type AdminPipelineJobListResponseOutput = zod.output<typeof AdminPipelineJobListResponse>;

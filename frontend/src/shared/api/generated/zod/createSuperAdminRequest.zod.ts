@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const createSuperAdminRequestNameMin = 0;
 export const createSuperAdminRequestNameMax = 255;
@@ -15,23 +15,12 @@ export const createSuperAdminRequestEmailMax = 254;
 export const createSuperAdminRequestPasswordMin = 8;
 export const createSuperAdminRequestPasswordMax = 72;
 
+
 export const CreateSuperAdminRequest = zod.object({
-  name: zod
-    .string()
-    .min(createSuperAdminRequestNameMin)
-    .max(createSuperAdminRequestNameMax)
-    .optional(),
-  email: zod
-    .string()
-    .min(createSuperAdminRequestEmailMin)
-    .max(createSuperAdminRequestEmailMax)
-    .optional(),
-  password: zod
-    .string()
-    .min(createSuperAdminRequestPasswordMin)
-    .max(createSuperAdminRequestPasswordMax)
-    .optional(),
-});
+  "name": zod.string().min(createSuperAdminRequestNameMin).max(createSuperAdminRequestNameMax).optional(),
+  "email": zod.string().min(createSuperAdminRequestEmailMin).max(createSuperAdminRequestEmailMax).optional(),
+  "password": zod.string().min(createSuperAdminRequestPasswordMin).max(createSuperAdminRequestPasswordMax).optional()
+})
 
 export type CreateSuperAdminRequest = zod.input<typeof CreateSuperAdminRequest>;
 export type CreateSuperAdminRequestOutput = zod.output<typeof CreateSuperAdminRequest>;

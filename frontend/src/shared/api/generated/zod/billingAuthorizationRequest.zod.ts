@@ -8,9 +8,10 @@ import { z as zod } from 'zod';
 
 
 
+
 export const BillingAuthorizationRequest = zod.object({
   "authKey": zod.string().min(1).optional(),
-  "customerKey": zod.string().optional()
+  "customerKey": zod.string().min(1).optional()
 })
 
 export type BillingAuthorizationRequest = zod.input<typeof BillingAuthorizationRequest>;

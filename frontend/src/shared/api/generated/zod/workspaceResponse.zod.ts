@@ -14,7 +14,12 @@ export const WorkspaceResponse = zod.object({
   "status": zod.string().optional(),
   "myRole": zod.string().optional(),
   "createdAt": zod.iso.datetime({"offset":true}).optional(),
-  "updatedAt": zod.iso.datetime({"offset":true}).optional()
+  "updatedAt": zod.iso.datetime({"offset":true}).optional(),
+  "freeOnboardingStatus": zod.string().optional(),
+  "freeOnboardingDatasetId": zod.number().optional(),
+  "freeOnboardingPipelineJobId": zod.number().optional(),
+  "freeOnboardingStartedAt": zod.iso.datetime({"offset":true}).optional(),
+  "freeOnboardingConsumedAt": zod.iso.datetime({"offset":true}).optional()
 })
 
 export type WorkspaceResponse = zod.input<typeof WorkspaceResponse>;

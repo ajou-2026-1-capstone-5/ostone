@@ -17,6 +17,7 @@ interface FileUploaderProps {
   isUploading?: boolean;
   progress?: number;
   status?: "idle" | "uploading" | "analyzing" | "success";
+  disabled?: boolean;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
@@ -28,6 +29,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   isUploading = false,
   progress = 0,
   status = "idle",
+  disabled = false,
 }) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +37,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled) return;
     if (e.type === "dragenter" || e.type === "dragover") {
       setIsDragActive(true);
     } else if (e.type === "dragleave") {
@@ -46,12 +49,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
+    if (disabled) return;
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       onFileSelect(e.dataTransfer.files[0]);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     if (e.target.files && e.target.files[0]) {
       onFileSelect(e.target.files[0]);
     }
@@ -86,12 +91,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
   return (
     <div
-      className={`${styles.uploaderBox} ${isDragActive ? styles.dragActive : ""}`}
+      className={`${styles.uploaderBox} ${isDragActive ? styles.dragActive : ""} ${disabled ? styles.disabledBox : ""}`}
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
       onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
+      onClick={() => {
+        if (!disabled) inputRef.current?.click();
+      }}
+      aria-disabled={disabled}
     >
       <input
         ref={inputRef}
@@ -99,6 +107,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         className={styles.hiddenInput}
         accept={acceptedTypes}
         onChange={handleChange}
+        disabled={disabled}
       />
       <div className={styles.iconWrapper}>
         <UploadCloud size={40} className={styles.uploadIcon} />

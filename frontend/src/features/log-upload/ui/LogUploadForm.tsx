@@ -48,9 +48,29 @@ interface GenerationResponseLike {
   status?: string;
 }
 
+export type FreeOnboardingStatus = "AVAILABLE" | "IN_PROGRESS" | "CONSUMED";
+
 interface LogUploadFormProps {
   workspaceId?: number;
+  freeOnboardingStatus?: FreeOnboardingStatus;
+  hasActiveSubscription?: boolean;
+  isEntitlementLoading?: boolean;
 }
+
+const FREE_ONBOARDING_STATUS_META: Record<FreeOnboardingStatus, { label: string; copy: string }> = {
+  AVAILABLE: {
+    label: "무료 온보딩 가능",
+    copy: "첫 상담 로그 업로드와 도메인팩 초안 생성까지 무료로 진행할 수 있습니다.",
+  },
+  IN_PROGRESS: {
+    label: "무료 온보딩 진행 중",
+    copy: "현재 업로드한 데이터셋으로 도메인팩 초안 생성과 검토 진입을 계속할 수 있습니다.",
+  },
+  CONSUMED: {
+    label: "무료 온보딩 사용 완료",
+    copy: "무료 온보딩 권리가 사용 완료되었습니다. 활성 구독이 없으면 새 업로드와 생성 요청이 제한됩니다.",
+  },
+};
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -79,7 +99,12 @@ const readGenerationResponse = (
   };
 };
 
-export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => {
+export const LogUploadForm: React.FC<LogUploadFormProps> = ({
+  workspaceId,
+  freeOnboardingStatus = "AVAILABLE",
+  hasActiveSubscription = false,
+  isEntitlementLoading = false,
+}) => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -134,7 +159,19 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
     },
   });
 
+  const freeOnboardingMeta = FREE_ONBOARDING_STATUS_META[freeOnboardingStatus];
+  const isConsumedWithoutSubscription =
+    freeOnboardingStatus === "CONSUMED" && !hasActiveSubscription;
+  const isUploadBlocked = isConsumedWithoutSubscription && !isEntitlementLoading;
+  const isUploaderDisabled = isUploadBlocked || (isEntitlementLoading && isConsumedWithoutSubscription);
+  const blockedMessage =
+    "무료 온보딩이 사용 완료되었습니다. 구독을 활성화한 뒤 업로드할 수 있습니다.";
+
   const handleFileSelect = (selectedFile: File) => {
+    if (isUploadBlocked) {
+      toast.error(blockedMessage);
+      return;
+    }
     const errorMessage = validateRawLogUploadFile(selectedFile);
     if (errorMessage) {
       toast.error(errorMessage);
@@ -150,6 +187,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
 
   const handleUpload = (fileToUpload: File) => {
     if (!workspaceId) return;
+    if (isUploadBlocked) {
+      toast.error(blockedMessage);
+      return;
+    }
     setStatus("uploading");
     uploadMutation.mutate({
       workspaceId,
@@ -202,6 +243,17 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
         <p>상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다.</p>
       </div>
 
+      <div className={styles.onboardingStatus} data-status={freeOnboardingStatus.toLowerCase()}>
+        <span className={styles.statusLabel}>
+          {isEntitlementLoading ? "권한 확인 중" : freeOnboardingMeta.label}
+        </span>
+        <p>
+          {hasActiveSubscription
+            ? "활성 구독이 적용되어 새 업로드와 도메인팩 생성 요청을 계속 사용할 수 있습니다."
+            : freeOnboardingMeta.copy}
+        </p>
+      </div>
+
       <div className={styles.uploadArea}>
         <FileUploader
           onFileSelect={handleFileSelect}
@@ -212,6 +264,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
           status={status}
           progress={0}
           isUploading={uploadMutation.isPending}
+          disabled={isUploaderDisabled}
         />
       </div>
 
@@ -221,7 +274,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({ workspaceId }) => 
             <span className={styles.fileName}>{file.name}</span>
             <span className={styles.fileSize}>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
           </div>
-          <Button onClick={() => handleUpload(file)}>처리 시작</Button>
+          <Button onClick={() => handleUpload(file)} disabled={isUploadBlocked}>
+            처리 시작
+          </Button>
         </div>
       )}
 
