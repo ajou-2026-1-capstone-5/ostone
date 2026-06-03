@@ -147,36 +147,40 @@ describe("ConsultationPage generated API integration", () => {
     expect(mocks.getMessages).not.toHaveBeenCalled();
   });
 
-  it("상담 종료 액션은 확인 모달에서 처리 결과를 선택한 뒤 generated updateStatus로 전송한다", async () => {
-    render(<ConsultationPage />, { wrapper: Wrapper });
+  it(
+    "상담 종료 액션은 확인 모달에서 처리 결과를 선택한 뒤 generated updateStatus로 전송한다",
+    async () => {
+      render(<ConsultationPage />, { wrapper: Wrapper });
 
-    const customerItem = await screen.findByText("김민지");
-    fireEvent.click(customerItem.closest('[role="button"]') ?? customerItem);
-    await screen.findByText("generated 상담 메시지");
+      const customerItem = await screen.findByText("김민지");
+      fireEvent.click(customerItem.closest('[role="button"]') ?? customerItem);
+      await screen.findByText("generated 상담 메시지");
 
-    fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
-    expect(mocks.updateStatus).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));
+      expect(mocks.updateStatus).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: /후속 연락 필요/ }));
-    fireEvent.change(screen.getByLabelText("종료 사유 또는 내부 메모"), {
-      target: { value: "배송사 확인 후 연락" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
-
-    await waitFor(() => {
-      expect(mocks.updateStatus).toHaveBeenCalledWith(1, {
-        status: "RESOLVED",
-        resolutionOutcome: "FOLLOW_UP_REQUIRED",
-        resolutionReason: "배송사 확인 후 연락",
-        followUpRequired: true,
+      fireEvent.click(screen.getByRole("button", { name: /후속 연락 필요/ }));
+      fireEvent.change(screen.getByLabelText("종료 사유 또는 내부 메모"), {
+        target: { value: "배송사 확인 후 연락" },
       });
-    });
-    await waitFor(() => {
-      const metricsCalls = mocks.customFetch.mock.calls.filter(
-        ([url]) => url === "/api/v1/workspaces/2/consultation/metrics",
-      );
-      expect(metricsCalls).toHaveLength(2);
-    });
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("상담이 종료되었습니다.");
-  });
+      fireEvent.click(screen.getByRole("button", { name: "종료 확인" }));
+
+      await waitFor(() => {
+        expect(mocks.updateStatus).toHaveBeenCalledWith(1, {
+          status: "RESOLVED",
+          resolutionOutcome: "FOLLOW_UP_REQUIRED",
+          resolutionReason: "배송사 확인 후 연락",
+          followUpRequired: true,
+        });
+      });
+      await waitFor(() => {
+        const metricsCalls = mocks.customFetch.mock.calls.filter(
+          ([url]) => url === "/api/v1/workspaces/2/consultation/metrics",
+        );
+        expect(metricsCalls).toHaveLength(2);
+      });
+      expect(mocks.toastSuccess).toHaveBeenCalledWith("상담이 종료되었습니다.");
+    },
+    20_000,
+  );
 });

@@ -23,6 +23,11 @@ describe("resolveDefaultPostLoginDestination", () => {
     mockedListWorkspaces.mockReset();
   });
 
+  it("SUPER_ADMIN이면 /admin을 반환하고 워크스페이스를 조회하지 않는다", async () => {
+    await expect(resolveDefaultPostLoginDestination("SUPER_ADMIN")).resolves.toBe("/admin");
+    expect(mockedListWorkspaces).not.toHaveBeenCalled();
+  });
+
   it("ACTIVE 워크스페이스의 workflows 경로를 반환한다", async () => {
     mockedListWorkspaces.mockResolvedValueOnce(
       listResponse([

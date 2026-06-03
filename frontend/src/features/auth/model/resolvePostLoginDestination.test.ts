@@ -6,6 +6,15 @@ import {
 } from "./resolvePostLoginDestination";
 
 describe("resolvePostLoginDestination", () => {
+  it("allows /admin paths", () => {
+    expect(resolvePostLoginDestination({ from: { pathname: "/admin" } })).toBe("/admin");
+    expect(
+      resolvePostLoginDestination({
+        from: { pathname: "/admin/super-admins", search: "?created=true" },
+      }),
+    ).toBe("/admin/super-admins?created=true");
+  });
+
   it("allows /workspaces paths", () => {
     expect(
       resolvePostLoginDestination({

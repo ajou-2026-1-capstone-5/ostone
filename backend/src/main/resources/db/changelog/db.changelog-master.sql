@@ -939,3 +939,15 @@ ALTER TABLE runtime.chat_session
 --comment: Add commit-log style description to pack.domain_pack_version
 ALTER TABLE pack.domain_pack_version
     ADD COLUMN description text;
+
+--changeset init:20260603-migrate-global-admin-role-to-super-admin
+--comment: Convert legacy global ADMIN users into cstone SUPER_ADMIN users.
+UPDATE app.app_user
+SET role = 'SUPER_ADMIN'
+WHERE role = 'ADMIN';
+
+--changeset init:20260603-constrain-app-user-global-role
+--comment: Keep app_user.role reserved for global product roles, not workspace member roles.
+ALTER TABLE app.app_user
+    ADD CONSTRAINT chk_app_user_role
+    CHECK (role IN ('OPERATOR', 'SUPER_ADMIN'));

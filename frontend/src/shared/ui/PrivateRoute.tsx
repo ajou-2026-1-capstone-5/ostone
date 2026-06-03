@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { refreshAuthSession } from "../api";
-import { clearAuthSession, isAuthenticated } from "../lib/auth";
+import { clearAuthSession, isAuthenticated, isSuperAdmin } from "../lib/auth";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -47,6 +47,22 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
   if (!isAuthorized) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export const AdminRoute: React.FC<PrivateRouteProps> = ({ children }) => {
+  return (
+    <PrivateRoute>
+      <RequireSuperAdmin>{children}</RequireSuperAdmin>
+    </PrivateRoute>
+  );
+};
+
+const RequireSuperAdmin: React.FC<PrivateRouteProps> = ({ children }) => {
+  if (!isSuperAdmin()) {
+    return <Navigate to="/workspaces" replace />;
   }
 
   return <>{children}</>;

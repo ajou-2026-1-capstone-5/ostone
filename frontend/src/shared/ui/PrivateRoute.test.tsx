@@ -1,11 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { PrivateRoute } from "./PrivateRoute";
+import { AdminRoute, PrivateRoute } from "./PrivateRoute";
 
-function createAccessToken(expSecondsFromNow: number): string {
+function createAccessToken(expSecondsFromNow: number, role = "OPERATOR"): string {
   const payload = {
     exp: Math.floor(Date.now() / 1000) + expSecondsFromNow,
+    role,
   };
 
   return `header.${btoa(JSON.stringify(payload))}.signature`;
@@ -90,5 +91,47 @@ describe("PrivateRoute", () => {
     expect(localStorage.getItem("accessToken")).toBeNull();
     expect(localStorage.getItem("refreshToken")).toBeNull();
     expect(localStorage.getItem("user")).toBeNull();
+  });
+});
+
+function renderAdminRoute(role: string): void {
+  localStorage.setItem("accessToken", createAccessToken(3600, role));
+  localStorage.setItem(
+    "user",
+    JSON.stringify({ id: 1, email: "admin@ostone.com", name: "관리자", role }),
+  );
+
+  render(
+    <MemoryRouter initialEntries={["/admin"]}>
+      <Routes>
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <div>관리자 콘솔</div>
+            </AdminRoute>
+          }
+        />
+        <Route path="/workspaces" element={<div>워크스페이스</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe("AdminRoute", () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("SUPER_ADMIN이면 관리자 콘솔을 렌더링한다", () => {
+    renderAdminRoute("SUPER_ADMIN");
+
+    expect(screen.getByText("관리자 콘솔")).toBeInTheDocument();
+  });
+
+  it("OPERATOR이면 워크스페이스로 이동한다", () => {
+    renderAdminRoute("OPERATOR");
+
+    expect(screen.getByText("워크스페이스")).toBeInTheDocument();
   });
 });
