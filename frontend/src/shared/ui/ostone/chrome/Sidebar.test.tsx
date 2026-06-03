@@ -25,10 +25,12 @@ describe("Sidebar", () => {
     expect(nav).toHaveStyle({ width: "200px" });
     expect(screen.getByTitle("대시보드")).toBeInTheDocument();
     expect(screen.getByTitle("상담 응대")).toBeInTheDocument();
+    expect(screen.getByTitle("시뮬레이션")).toBeInTheDocument();
     expect(screen.getByTitle("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByTitle("상담 로그 수집")).toBeInTheDocument();
     expect(screen.getByTitle("도메인팩 관리")).toBeInTheDocument();
     expect(screen.getByText("상담 응대")).toBeInTheDocument();
+    expect(screen.getByText("시뮬레이션")).toBeInTheDocument();
     expect(screen.getByText("사용자 화면 미리보기")).toBeInTheDocument();
     expect(screen.getByText("상담 로그 수집")).toBeInTheDocument();
     expect(screen.queryByTitle("Workflows")).not.toBeInTheDocument();
@@ -80,6 +82,10 @@ describe("Sidebar", () => {
 
     expect(screen.getByTitle("대시보드")).toHaveAttribute("href", "/workspaces/7/dashboard");
     expect(screen.getByTitle("상담 응대")).toHaveAttribute("href", "/workspaces/7/consultation");
+    expect(screen.getByTitle("시뮬레이션")).toHaveAttribute(
+      "href",
+      "/workspaces/7/simulation",
+    );
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("href", "/demo");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("target", "_blank");
     expect(screen.getByTitle("사용자 화면 미리보기")).toHaveAttribute("rel", "noopener noreferrer");
@@ -105,6 +111,9 @@ describe("Sidebar", () => {
 
     expect(
       screen.getByTestId("sidebar-link-consult").querySelector('[aria-label="새 탭에서 열림"]'),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("sidebar-link-simulation").querySelector('[aria-label="새 탭에서 열림"]'),
     ).toBeNull();
     expect(
       screen.getByTestId("sidebar-domain-link").querySelector('[aria-label="새 탭에서 열림"]'),
@@ -151,6 +160,7 @@ describe("Sidebar", () => {
 
     expect(screen.getByTestId("sidebar-link-dashboard")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-consult")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-link-simulation")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-chat")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-link-upload")).toBeInTheDocument();
   });

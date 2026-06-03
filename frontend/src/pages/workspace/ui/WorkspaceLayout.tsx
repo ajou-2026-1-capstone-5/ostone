@@ -11,6 +11,7 @@ import { parseRouteId } from "@/shared/lib/parseRouteId";
 
 const getActiveFromPath = (pathname: string): SidebarActive => {
   if (pathname.includes("/dashboard")) return "dashboard";
+  if (pathname.includes("/simulation")) return "simulation";
   if (pathname.includes("/domain-packs")) return "domain";
   if (pathname.includes("/consultation")) return "consult";
   if (pathname.includes("/upload")) return "upload";

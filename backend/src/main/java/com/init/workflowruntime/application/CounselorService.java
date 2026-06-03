@@ -39,6 +39,7 @@ public class CounselorService {
 
   private static final ZoneId HISTORY_FILTER_ZONE = ZoneId.of("Asia/Seoul");
   private static final String SESSION_ASSIGNED_SYSTEM_MESSAGE = "상담사가 배정되었습니다.";
+  private static final String SIMULATION_CHANNEL = "SIMULATION";
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -74,6 +75,7 @@ public class CounselorService {
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     validateWorkspaceMembership(session.getWorkspaceId(), counselorId);
+    validateOperationalSession(session);
     validateAssignableForAssignment(session);
     session.assignTo(counselorId);
     chatSessionRepository.save(session);
@@ -122,6 +124,7 @@ public class CounselorService {
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
 
     validateWorkspaceMembership(session.getWorkspaceId(), counselorId);
+    validateOperationalSession(session);
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException(
           "SESSION_NOT_ASSIGNED_TO_COUNSELOR",
@@ -144,11 +147,13 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateOperationalSession(session);
     return session.getAssignedCounselorId() != null;
   }
 
   public List<ChatSessionResponse> getAssignedSessions(Long counselorId) {
     return chatSessionRepository.findByAssignedCounselorId(counselorId).stream()
+        .filter(this::isOperationalSession)
         .map(ChatSessionResponse::from)
         .collect(Collectors.toList());
   }
@@ -164,6 +169,7 @@ public class CounselorService {
             .orElseThrow(
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
+    validateOperationalSession(session);
 
     if (!Objects.equals(counselorId, session.getAssignedCounselorId())) {
       throw new BadRequestException(
@@ -220,6 +226,7 @@ public class CounselorService {
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
+    validateOperationalSession(session);
 
     if (!Objects.equals(request.getCounselorId(), userId)) {
       throw new BadRequestException(
@@ -321,6 +328,17 @@ public class CounselorService {
     if (session.getStatus() != ChatSessionStatus.OPEN) {
       throw new BadRequestException("SESSION_NOT_ASSIGNABLE", "현재 배정할 수 없는 상담 상태입니다.");
     }
+  }
+
+  private void validateOperationalSession(ChatSession session) {
+    if (!isOperationalSession(session)) {
+      throw new NotFoundException(
+          "SESSION_NOT_FOUND", "Session not found: " + session.getId());
+    }
+  }
+
+  private boolean isOperationalSession(ChatSession session) {
+    return !SIMULATION_CHANNEL.equals(session.getChannel());
   }
 
   private ChatSessionResponseMode parseResponseMode(String responseMode) {

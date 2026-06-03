@@ -31,6 +31,9 @@ public interface ChatSessionRepository {
   DomainPage<ChatSession> findByWorkspaceIdAndStatus(
       Long workspaceId, ChatSessionStatus status, DomainPageRequest pageRequest);
 
+  DomainPage<ChatSession> findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+      Long workspaceId, String channel, DomainPageRequest pageRequest);
+
   DomainPage<ChatSession> findByStatus(ChatSessionStatus status, DomainPageRequest pageRequest);
 
   DomainPage<ChatSession> findAll(DomainPageRequest pageRequest);

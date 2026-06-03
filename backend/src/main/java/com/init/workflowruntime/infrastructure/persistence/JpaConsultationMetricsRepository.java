@@ -43,6 +43,7 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
                 cs.meta_json
               from runtime.chat_session cs
               where cs.workspace_id = :workspaceId
+                and cs.channel <> 'SIMULATION'
                 and (
                   (cs.started_at >= :periodStart and cs.started_at < :periodEnd)
                   or (cs.ended_at >= :periodStart and cs.ended_at < :periodEnd and cs.status = 'COMPLETED')

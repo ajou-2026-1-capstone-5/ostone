@@ -187,6 +187,20 @@ class CounselorServiceTest {
                     .isEqualTo("SESSION_NOT_ASSIGNABLE"));
   }
 
+  @Test
+  @DisplayName("assignSession: SIMULATION 세션은 상담사 배정 대상이 아니다")
+  void should_rejectSimulationSession_when_assignCalled() {
+    ChatSession session = createSimulationSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, 42L);
+
+    assertThatThrownBy(() -> service.assignSession(1L, 42L))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found");
+    verify(chatSessionRepository, never()).save(session);
+    verify(chatMessageRepository, never()).save(any());
+  }
+
   // ── releaseSession ────────────────────────────────────────────────────────
 
   @Test
@@ -290,6 +304,20 @@ class CounselorServiceTest {
   }
 
   @Test
+  @DisplayName("getAssignedSessions: SIMULATION 세션은 배정 목록에서 제외한다")
+  void should_filterSimulationSession_when_getAssignedSessionsCalled() {
+    ChatSession operationalSession = createSession(1L, ChatSessionStatus.ACTIVE);
+    ChatSession simulationSession = createSimulationSession(2L, ChatSessionStatus.ACTIVE);
+    given(chatSessionRepository.findByAssignedCounselorId(42L))
+        .willReturn(List.of(operationalSession, simulationSession));
+
+    List<ChatSessionResponse> result = service.getAssignedSessions(42L);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getId()).isEqualTo(1L);
+  }
+
+  @Test
   @DisplayName("getAssignedSessions: 배정 세션 없음 → 빈 목록")
   void should_returnEmptyList_when_noAssignedSessions() {
     given(chatSessionRepository.findByAssignedCounselorId(99L)).willReturn(List.of());
@@ -385,6 +413,19 @@ class CounselorServiceTest {
     assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("not ACTIVE");
+  }
+
+  @Test
+  @DisplayName("sendCounselorMessage: SIMULATION 세션에는 상담사 메시지를 저장하지 않는다")
+  void should_rejectSimulationSession_when_sendCounselorMessageCalled() {
+    ChatSession session = createSimulationSession(1L, ChatSessionStatus.ACTIVE);
+    ReflectionTestUtils.setField(session, "assignedCounselorId", 42L);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(() -> service.sendCounselorMessage(1L, "Hello", 42L, false))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found");
+    verify(chatMessageRepository, never()).save(any());
   }
 
   // ── getSessions ───────────────────────────────────────────────────────────
@@ -638,6 +679,13 @@ class CounselorServiceTest {
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", id);
+    return session;
+  }
+
+  private ChatSession createSimulationSession(Long id, ChatSessionStatus status) {
+    ChatSession session =
+        ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }
