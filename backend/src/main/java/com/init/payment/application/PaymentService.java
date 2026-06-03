@@ -1,0 +1,242 @@
+package com.init.payment.application;
+
+import com.init.payment.application.exception.PaymentAmountMismatchException;
+import com.init.payment.application.exception.PaymentCancelNotAllowedException;
+import com.init.payment.application.exception.PaymentNotFoundException;
+import com.init.payment.application.exception.PlanNotFoundException;
+import com.init.payment.application.exception.SubscriptionNotFoundException;
+import com.init.payment.application.port.TossPaymentPort;
+import com.init.payment.application.port.TossPaymentResult;
+import com.init.payment.domain.model.Payment;
+import com.init.payment.domain.model.PaymentCancel;
+import com.init.payment.domain.model.PaymentStatus;
+import com.init.payment.domain.model.Plan;
+import com.init.payment.domain.model.Subscription;
+import com.init.payment.domain.model.SubscriptionStatus;
+import com.init.payment.domain.repository.PaymentCancelRepository;
+import com.init.payment.domain.repository.PaymentRepository;
+import com.init.payment.domain.repository.PlanRepository;
+import com.init.payment.domain.repository.SubscriptionRepository;
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.function.Supplier;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/**
+ * 일회성 결제 confirm(금액검증 + 멱등), 결제 내역 조회, 취소/부분환불.
+ *
+ * <p>NOTE: Toss 호출과 DB 갱신을 interleave하므로 TransactionTemplate으로 2-phase 처리한다.
+ */
+@Service
+public class PaymentService {
+
+  private final PaymentRepository paymentRepository;
+  private final PaymentCancelRepository paymentCancelRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final PlanRepository planRepository;
+  private final TossPaymentPort tossPaymentPort;
+  private final PaymentAccessGuard accessGuard;
+  private final Clock clock;
+  private final TransactionTemplate transactionTemplate;
+
+  public PaymentService(
+      PaymentRepository paymentRepository,
+      PaymentCancelRepository paymentCancelRepository,
+      SubscriptionRepository subscriptionRepository,
+      PlanRepository planRepository,
+      TossPaymentPort tossPaymentPort,
+      PaymentAccessGuard accessGuard,
+      Clock clock,
+      PlatformTransactionManager transactionManager) {
+    this.paymentRepository = paymentRepository;
+    this.paymentCancelRepository = paymentCancelRepository;
+    this.subscriptionRepository = subscriptionRepository;
+    this.planRepository = planRepository;
+    this.tossPaymentPort = tossPaymentPort;
+    this.accessGuard = accessGuard;
+    this.clock = clock;
+    this.transactionTemplate = new TransactionTemplate(transactionManager);
+  }
+
+  public PaymentResult confirmPayment(ConfirmPaymentCommand command) {
+    accessGuard.requireMember(command.workspaceId(), command.userId());
+
+    ConfirmContext context =
+        inTx(
+            () -> {
+              Subscription subscription =
+                  subscriptionRepository
+                      .findCurrentByWorkspaceId(command.workspaceId())
+                      .orElseThrow(() -> new SubscriptionNotFoundException(command.workspaceId()));
+              Plan plan = requirePlan(subscription.getPlanId());
+              Payment existing = paymentRepository.findByOrderId(command.orderId()).orElse(null);
+              if (existing != null && existing.isDone()) {
+                return new ConfirmContext(existing, plan, subscription.getId(), true);
+              }
+              long expected = existing != null ? existing.getAmount() : plan.getAmount();
+              if (command.amount() != expected) {
+                throw new PaymentAmountMismatchException(expected, command.amount());
+              }
+              return new ConfirmContext(existing, plan, subscription.getId(), false);
+            });
+
+    if (context.idempotentHit()) {
+      return PaymentResult.from(context.existing());
+    }
+
+    TossPaymentResult result =
+        tossPaymentPort.confirmPayment(command.paymentKey(), command.orderId(), command.amount());
+
+    Payment finalized =
+        inTx(
+            () -> {
+              Payment payment =
+                  paymentRepository
+                      .findByOrderId(command.orderId())
+                      .orElseGet(
+                          () ->
+                              Payment.createOrder(
+                                  command.workspaceId(),
+                                  context.subscriptionId(),
+                                  command.orderId(),
+                                  command.amount(),
+                                  context.plan().getCurrency(),
+                                  context.plan().getName()));
+              if (payment.isDone()) {
+                return payment;
+              }
+              if (result.isDone()) {
+                payment.complete(
+                    command.paymentKey(),
+                    result.method(),
+                    approvedAt(result),
+                    result.receiptUrl(),
+                    result.maskedRawJson());
+                activateSubscription(context.subscriptionId(), context.plan());
+              } else {
+                payment.markAborted(result.maskedRawJson());
+              }
+              return savePayment(payment, command.orderId());
+            });
+
+    return PaymentResult.from(finalized);
+  }
+
+  @Transactional(readOnly = true)
+  public List<PaymentResult> getPayments(Long workspaceId, Long userId) {
+    accessGuard.requireMember(workspaceId, userId);
+    return paymentRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId).stream()
+        .map(PaymentResult::from)
+        .toList();
+  }
+
+  public PaymentResult cancelPayment(CancelPaymentCommand command) {
+    accessGuard.requireMember(command.workspaceId(), command.userId());
+
+    Payment loaded =
+        inTx(
+            () ->
+                paymentRepository
+                    .findByPaymentKeyAndWorkspaceId(command.paymentKey(), command.workspaceId())
+                    .orElseThrow(
+                        () -> new PaymentNotFoundException("paymentKey=" + command.paymentKey())));
+
+    if (!isCancelable(loaded)) {
+      throw new PaymentCancelNotAllowedException("취소할 수 없는 결제 상태입니다. status=" + loaded.getStatus());
+    }
+    if (command.cancelAmount() != null
+        && (command.cancelAmount() <= 0 || command.cancelAmount() > loaded.getAmount())) {
+      throw new PaymentCancelNotAllowedException(
+          "취소 금액이 유효하지 않습니다. cancelAmount=" + command.cancelAmount());
+    }
+
+    TossPaymentResult result =
+        tossPaymentPort.cancelPayment(
+            command.paymentKey(), command.cancelReason(), command.cancelAmount());
+
+    long resolvedCancelAmount =
+        command.cancelAmount() != null ? command.cancelAmount() : loaded.getAmount();
+
+    Payment finalized =
+        inTx(
+            () -> {
+              Payment payment =
+                  paymentRepository
+                      .findById(loaded.getId())
+                      .orElseThrow(() -> new PaymentNotFoundException("id=" + loaded.getId()));
+              paymentCancelRepository.save(
+                  PaymentCancel.create(
+                      payment.getId(),
+                      resolvedCancelAmount,
+                      command.cancelReason(),
+                      result.transactionKey()));
+              if (isPartialCancel(result, resolvedCancelAmount, payment.getAmount())) {
+                payment.markPartialCanceled(result.maskedRawJson());
+              } else {
+                payment.markCanceled(result.maskedRawJson());
+              }
+              return paymentRepository.save(payment);
+            });
+
+    return PaymentResult.from(finalized);
+  }
+
+  private void activateSubscription(Long subscriptionId, Plan plan) {
+    Subscription subscription =
+        subscriptionRepository
+            .findById(subscriptionId)
+            .orElseThrow(() -> new SubscriptionNotFoundException(subscriptionId));
+    if (subscription.getStatus() == SubscriptionStatus.CANCELED || subscription.isActive()) {
+      return;
+    }
+    OffsetDateTime periodStart = OffsetDateTime.now(clock);
+    OffsetDateTime periodEnd = plan.getBillingInterval().advance(periodStart);
+    subscription.activate(periodStart, periodEnd, subscription.getCustomerKey());
+    subscriptionRepository.save(subscription);
+  }
+
+  private Payment savePayment(Payment payment, String orderId) {
+    try {
+      return paymentRepository.save(payment);
+    } catch (DataIntegrityViolationException ex) {
+      return paymentRepository.findByOrderId(orderId).orElseThrow(() -> ex);
+    }
+  }
+
+  private boolean isCancelable(Payment payment) {
+    return payment.getStatus() == PaymentStatus.DONE
+        || payment.getStatus() == PaymentStatus.PARTIAL_CANCELED;
+  }
+
+  private boolean isPartialCancel(TossPaymentResult result, long cancelAmount, long totalAmount) {
+    if (result.isPartialCanceled()) {
+      return true;
+    }
+    if (result.isCanceled()) {
+      return false;
+    }
+    return cancelAmount < totalAmount;
+  }
+
+  private OffsetDateTime approvedAt(TossPaymentResult result) {
+    return result.approvedAt() != null ? result.approvedAt() : OffsetDateTime.now(clock);
+  }
+
+  private Plan requirePlan(Long planId) {
+    return planRepository
+        .findById(planId)
+        .orElseThrow(() -> new PlanNotFoundException("id=" + planId));
+  }
+
+  private <T> T inTx(Supplier<T> callback) {
+    return transactionTemplate.execute(status -> callback.get());
+  }
+
+  private record ConfirmContext(
+      Payment existing, Plan plan, Long subscriptionId, boolean idempotentHit) {}
+}

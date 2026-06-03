@@ -72,6 +72,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/pipeline-jobs/*/callbacks/failures")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/payments/webhooks/toss")
+                    .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("SUPER_ADMIN")
                     .requestMatchers("/api/v1/consultation/**")
@@ -91,7 +93,11 @@ public class SecurityConfig {
     config.setAllowedOrigins(allowedOrigins);
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(
-        List.of("Authorization", "Content-Type", WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET));
+        List.of(
+            "Authorization",
+            "Content-Type",
+            WebhookHeaderNames.AIRFLOW_WEBHOOK_SECRET,
+            WebhookHeaderNames.TOSS_WEBHOOK_SECRET));
     config.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

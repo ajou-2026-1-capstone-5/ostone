@@ -951,3 +951,97 @@ WHERE role = 'ADMIN';
 ALTER TABLE app.app_user
     ADD CONSTRAINT chk_app_user_role
     CHECK (role IN ('OPERATOR', 'SUPER_ADMIN'));
+
+--changeset init:20260603-enable-pgcrypto
+--comment: Enable pgcrypto extension for billing key column encryption (U-002)
+create extension if not exists pgcrypto;
+
+--changeset init:20260603-create-payment-schema
+--comment: Create payment schema for workspace subscription billing
+create schema if not exists payment;
+
+--changeset init:20260603-create-payment-tables
+--comment: Create payment domain tables (plan, subscription, billing_key, payment, payment_cancel, webhook_event)
+create table payment.plan (
+    id            bigserial primary key,
+    plan_key      varchar(100) not null unique,
+    name          varchar(255) not null,
+    amount        bigint not null,
+    currency      varchar(10) not null default 'KRW',
+    bill_interval varchar(20) not null,
+    status        varchar(50) not null default 'ACTIVE',
+    created_at    timestamptz not null default now(),
+    updated_at    timestamptz not null default now()
+);
+
+create table payment.subscription (
+    id                   bigserial primary key,
+    workspace_id         bigint not null references app.workspace(id),
+    plan_id              bigint not null references payment.plan(id),
+    status               varchar(50) not null,
+    current_period_start timestamptz,
+    current_period_end   timestamptz,
+    customer_key         varchar(255),
+    cancel_at_period_end boolean not null default false,
+    failed_attempt_count int not null default 0,
+    next_retry_at        timestamptz,
+    created_at           timestamptz not null default now(),
+    updated_at           timestamptz not null default now()
+);
+
+create table payment.billing_key (
+    id                    bigserial primary key,
+    workspace_id          bigint not null references app.workspace(id),
+    customer_key          varchar(255) not null,
+    billing_key_encrypted bytea not null,
+    card_company          varchar(100),
+    card_number_masked    varchar(50),
+    status                varchar(50) not null default 'ACTIVE',
+    created_at            timestamptz not null default now(),
+    updated_at            timestamptz not null default now()
+);
+
+create table payment.payment (
+    id                 bigserial primary key,
+    order_id           varchar(255) not null unique,
+    payment_key        varchar(255),
+    workspace_id       bigint not null references app.workspace(id),
+    subscription_id    bigint references payment.subscription(id),
+    amount             bigint not null,
+    currency           varchar(10) not null default 'KRW',
+    status             varchar(50) not null,
+    method             varchar(50),
+    order_name         varchar(255),
+    billing_period_key varchar(100),
+    approved_at        timestamptz,
+    receipt_url        text,
+    raw_response       jsonb,
+    idempotency_key    varchar(255),
+    created_at         timestamptz not null default now(),
+    updated_at         timestamptz not null default now(),
+    constraint uq_payment_subscription_period unique (subscription_id, billing_period_key)
+);
+
+create table payment.payment_cancel (
+    id              bigserial primary key,
+    payment_id      bigint not null references payment.payment(id),
+    cancel_amount   bigint not null,
+    reason          text,
+    transaction_key varchar(255),
+    canceled_at     timestamptz not null default now()
+);
+
+create table payment.webhook_event (
+    id              bigserial primary key,
+    transmission_id varchar(255) not null unique,
+    event_type      varchar(100),
+    payload         jsonb,
+    processed_at    timestamptz,
+    created_at      timestamptz not null default now()
+);
+
+--changeset init:20260603-seed-payment-default-plan
+--comment: Seed default workspace subscription plan
+insert into payment.plan (plan_key, name, amount, currency, bill_interval, status)
+values ('pro_monthly', 'Pro (Monthly)', 29000, 'KRW', 'MONTH', 'ACTIVE')
+on conflict (plan_key) do nothing;
