@@ -12,6 +12,7 @@ import com.init.pipelinejob.application.TriggerDomainPackGenerationResult;
 import com.init.pipelinejob.application.TriggerDomainPackGenerationUseCase;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
+import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +82,21 @@ class DomainPackGenerationTriggerControllerTest {
         .andExpect(jsonPath("$.code").value("AIRFLOW_TRIGGER_FAILED"))
         .andExpect(jsonPath("$.pipelineJobId").value(123))
         .andExpect(jsonPath("$.status").value("FAILED"));
+  }
+
+  @Test
+  @DisplayName("pipeline run quota 초과 시 409 QUOTA_EXCEEDED를 반환한다")
+  @WithLongPrincipal(55L)
+  void trigger_quotaExceeded_returns409() throws Exception {
+    given(useCase.execute(any())).willThrow(new QuotaExceededException("PIPELINE_RUN", 5, 5));
+
+    mockMvc
+        .perform(post(BASE_URL).with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("QUOTA_EXCEEDED"))
+        .andExpect(jsonPath("$.resource").value("PIPELINE_RUN"))
+        .andExpect(jsonPath("$.limit").value(5))
+        .andExpect(jsonPath("$.used").value(5));
   }
 
   @Test

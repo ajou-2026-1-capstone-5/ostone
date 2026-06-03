@@ -1063,3 +1063,24 @@ create unique index uq_payment_subscription_workspace_open
 --changeset init:20260603-add-idempotency-key-payment-cancel
 --comment: Per-cancel-attempt idempotency key for Toss API — prevents partial-cancel collisions (V-EC-004)
 alter table payment.payment_cancel add column idempotency_key varchar(255);
+
+--changeset init:20260604-add-payment-plan-quota-limits
+--comment: Add workspace quota limits to subscription plans for hard usage blocking
+alter table payment.plan add column member_limit integer not null default 10;
+alter table payment.plan add column dataset_upload_limit integer not null default 10;
+alter table payment.plan add column pipeline_run_limit integer not null default 10;
+alter table payment.plan
+    add constraint chk_payment_plan_member_limit check (member_limit >= 0),
+    add constraint chk_payment_plan_dataset_upload_limit check (dataset_upload_limit >= 0),
+    add constraint chk_payment_plan_pipeline_run_limit check (pipeline_run_limit >= 0);
+
+--changeset init:20260604-create-free-onboarding-entitlement-table
+--comment: Track free onboarding first creation allowance before subscription quota applies
+create table payment.free_onboarding_entitlement (
+    id                                 bigserial primary key,
+    workspace_id                       bigint not null unique references app.workspace(id) on delete cascade,
+    first_creation_allowance_remaining integer not null default 1,
+    created_at                         timestamptz not null default now(),
+    updated_at                         timestamptz not null default now(),
+    constraint chk_free_onboarding_allowance_remaining check (first_creation_allowance_remaining >= 0)
+);

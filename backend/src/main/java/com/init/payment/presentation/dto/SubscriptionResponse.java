@@ -11,7 +11,10 @@ public record SubscriptionResponse(
     OffsetDateTime currentPeriodStart,
     OffsetDateTime currentPeriodEnd,
     boolean cancelAtPeriodEnd,
-    String customerKey) {
+    String customerKey,
+    int memberLimit,
+    int datasetUploadLimit,
+    int pipelineRunLimit) {
 
   public static SubscriptionResponse from(SubscriptionResult result) {
     return new SubscriptionResponse(
@@ -22,6 +25,9 @@ public record SubscriptionResponse(
         result.currentPeriodStart(),
         result.currentPeriodEnd(),
         result.cancelAtPeriodEnd(),
-        result.customerKey());
+        result.customerKey(),
+        result.memberLimit(),
+        result.datasetUploadLimit(),
+        result.pipelineRunLimit());
   }
 }

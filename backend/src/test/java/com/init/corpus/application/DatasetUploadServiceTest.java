@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -20,6 +21,8 @@ import com.init.corpus.domain.repository.ConversationTurnRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +41,7 @@ class DatasetUploadServiceTest {
   @Mock private ConversationTurnRepository conversationTurnRepository;
   @Mock private WorkspaceExistenceRepository workspaceExistenceRepository;
   @Mock private WorkspaceMembershipRepository workspaceMembershipRepository;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
 
   private DatasetUploadService service;
 
@@ -49,7 +53,8 @@ class DatasetUploadServiceTest {
             conversationRepository,
             conversationTurnRepository,
             workspaceExistenceRepository,
-            workspaceMembershipRepository);
+            workspaceMembershipRepository,
+            workspaceQuotaValidator);
   }
 
   @Test
@@ -90,6 +95,24 @@ class DatasetUploadServiceTest {
     // when & then
     assertThatThrownBy(() -> service.upload(buildCommand(1L, 1L)))
         .isInstanceOf(DatasetKeyConflictException.class);
+
+    verify(datasetRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("quota 초과 → QuotaExceededException, DB write 없음")
+  void should_QuotaExceededException발생_when_quota초과() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-key")).willReturn(false);
+    willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3))
+        .given(workspaceQuotaValidator)
+        .assertDatasetUploadAllowed(1L);
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(buildCommand(1L, 1L)))
+        .isInstanceOf(QuotaExceededException.class);
 
     verify(datasetRepository, never()).save(any());
   }

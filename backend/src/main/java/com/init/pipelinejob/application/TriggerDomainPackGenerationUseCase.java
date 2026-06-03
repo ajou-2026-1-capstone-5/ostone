@@ -11,6 +11,7 @@ import com.init.pipelinejob.application.exception.PipelineJobWorkspaceNotFoundEx
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -36,6 +37,7 @@ public class TriggerDomainPackGenerationUseCase {
   private final ObjectMapper objectMapper;
   private final Clock clock;
   private final TransactionTemplate transactionTemplate;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
 
   public TriggerDomainPackGenerationUseCase(
       PipelineJobRepository pipelineJobRepository,
@@ -46,7 +48,8 @@ public class TriggerDomainPackGenerationUseCase {
       DomainPackGenerationTriggerPort triggerPort,
       ObjectMapper objectMapper,
       Clock clock,
-      PlatformTransactionManager transactionManager) {
+      PlatformTransactionManager transactionManager,
+      WorkspaceQuotaValidator workspaceQuotaValidator) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.workspaceMembershipPort = workspaceMembershipPort;
     this.datasetOwnershipPort = datasetOwnershipPort;
@@ -56,6 +59,7 @@ public class TriggerDomainPackGenerationUseCase {
     this.objectMapper = objectMapper;
     this.clock = clock;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
   }
 
   public TriggerDomainPackGenerationResult execute(TriggerDomainPackGenerationCommand command) {
@@ -105,6 +109,7 @@ public class TriggerDomainPackGenerationUseCase {
                   job -> {
                     throw new PipelineJobAlreadyRunningException(job.getId(), job.getStatus());
                   });
+          workspaceQuotaValidator.assertPipelineRunAllowed(command.workspaceId());
 
           String dagId = triggerPort.dagId();
           String objectKey = resolveRawFileObjectKey(command);
