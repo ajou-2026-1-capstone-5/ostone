@@ -173,6 +173,41 @@ class PaymentWebhookServiceTest {
   }
 
   @Test
+  @DisplayName("markProcessed 호출 시 미처리 이벤트를 처리 완료로 갱신한다")
+  void markProcessed_updatesUnprocessedEvent() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    WebhookEvent event = WebhookEvent.received("txn_mp", "PAYMENT_STATUS", "{}");
+    given(webhookEventRepository.findByTransmissionId("txn_mp"))
+        .willReturn(Optional.empty()) // handle() 첫 번째 조회 (중복 체크)
+        .willReturn(Optional.of(event)); // markProcessed() 내부 조회
+    given(tossPaymentPort.getPayment("pay_mp"))
+        .willReturn(
+            new TossPaymentResult("pay_mp", "ord_mp", 29000, "DONE", null, null, null, null, "{}"));
+    Payment payment =
+        Payment.createRecurring(
+            1L, 5L, "ord_mp", 29000, "KRW", "Pro", "2026-06-01T00:00:00Z", "idem");
+    given(paymentRepository.findByPaymentKey("pay_mp")).willReturn(Optional.of(payment));
+
+    service.handle(
+        new HandleTossWebhookCommand(SECRET, "txn_mp", "PAYMENT_STATUS", "pay_mp", "{}"));
+
+    verify(webhookEventRepository).save(event);
+  }
+
+  @Test
+  @DisplayName("동시 수신으로 ensureReceived에서 DataIntegrityViolationException 발생 시 무시한다")
+  void ensureReceived_concurrentDuplicate_isIgnored() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_dup")).willReturn(Optional.empty());
+    given(webhookEventRepository.save(any()))
+        .willThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate"));
+
+    service.handle(new HandleTossWebhookCommand(SECRET, "txn_dup", "PAYMENT_STATUS", null, "{}"));
+
+    verify(tossPaymentPort, never()).getPayment(any());
+  }
+
+  @Test
   @DisplayName("Payment DB 미존재 시 markProcessed를 건너뛴다 — Toss 재시도 허용 (V-EC-001)")
   void paymentNotFound_skips_markProcessed() {
     given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());

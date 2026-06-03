@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
@@ -174,6 +175,34 @@ class PaymentServiceTest {
                 paymentService.cancelPayment(
                     new CancelPaymentCommand(1L, 99L, "pay_x", "고객요청", null)))
         .isInstanceOf(PaymentNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("confirmPayment 동시삽입 충돌 시 DataIntegrityViolationException → 기존 레코드 반환")
+  void confirm_concurrentInsert_fallsBackToExisting() {
+    Subscription subscription = subscription(5L, 10L);
+    Plan plan = plan(10L, 29000);
+    Payment existing = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    existing.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan));
+    // first inTx, second inTx orElseGet, savePayment catch block
+    given(paymentRepository.findByWorkspaceIdAndOrderId(1L, "ord_1"))
+        .willReturn(Optional.empty())
+        .willReturn(Optional.empty())
+        .willReturn(Optional.of(existing));
+    given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
+    given(tossPaymentPort.confirmPayment("pay_1", "ord_1", 29000))
+        .willReturn(doneResult("pay_1", "ord_1", 29000));
+    given(paymentRepository.save(any()))
+        .willThrow(new DataIntegrityViolationException("duplicate key"));
+
+    PaymentResult result =
+        paymentService.confirmPayment(new ConfirmPaymentCommand(1L, 99L, "pay_1", "ord_1", 29000));
+
+    assertThat(result.status()).isEqualTo("DONE");
   }
 
   @Test

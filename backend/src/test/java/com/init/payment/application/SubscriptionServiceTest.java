@@ -99,12 +99,58 @@ class SubscriptionServiceTest {
   }
 
   @Test
+  @DisplayName("구독 조회 성공 시 SubscriptionResult를 반환한다")
+  void getSubscription_success() {
+    Subscription subscription = subscription(5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.getSubscription(1L, 99L);
+
+    assertThat(result.planKey()).isEqualTo("pro_monthly");
+  }
+
+  @Test
   @DisplayName("구독이 없으면 조회 시 SubscriptionNotFoundException을 던진다")
   void getSubscription_notFound() {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> subscriptionService.getSubscription(1L, 99L))
         .isInstanceOf(SubscriptionNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("INCOMPLETE 구독 취소 시 즉시 CANCELED로 전이한다")
+  void cancelSubscription_incomplete_immediateCancel() {
+    Subscription subscription = subscription(5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.cancelSubscription(1L, 99L);
+
+    assertThat(result.status()).isEqualTo("CANCELED");
+  }
+
+  @Test
+  @DisplayName("ACTIVE 구독 취소 시 기간말 해지 예약으로 ACTIVE 유지한다 (U-005)")
+  void cancelSubscription_active_scheduleAtPeriodEnd() {
+    Subscription subscription = subscription(5L);
+    subscription.activate(
+        java.time.OffsetDateTime.parse("2026-06-01T00:00:00Z"),
+        java.time.OffsetDateTime.parse("2026-07-01T00:00:00Z"),
+        "wsk_1_abc");
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
+    given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L)));
+
+    SubscriptionResult result = subscriptionService.cancelSubscription(1L, 99L);
+
+    assertThat(result.status()).isEqualTo("ACTIVE");
+    assertThat(subscription.isCancelAtPeriodEnd()).isTrue();
   }
 
   @Test
