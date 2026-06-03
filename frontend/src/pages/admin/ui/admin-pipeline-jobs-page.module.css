@@ -1,0 +1,155 @@
+.filters {
+  display: grid;
+  align-items: end;
+  gap: 16px;
+  grid-template-columns: minmax(150px, 0.8fr) repeat(4, minmax(150px, 1fr)) auto;
+  border-top: 1px solid var(--line);
+  padding-top: 32px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 13px;
+  font-weight: 540;
+  letter-spacing: 0;
+}
+
+.filterActions {
+  display: flex;
+  gap: 8px;
+  min-width: 176px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 450;
+}
+
+.tableShell {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.lagExceededRow {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.045) 0,
+    rgba(0, 0, 0, 0.045) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.monoCell,
+.runCell small,
+.relationCell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.runCell {
+  display: flex;
+  min-width: 220px;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+
+.runCell span,
+.runCell small,
+.errorCell {
+  overflow-wrap: anywhere;
+}
+
+.runCell small,
+.subtle {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.relationCell {
+  min-width: 120px;
+}
+
+.relationCell span {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.errorCell {
+  max-width: 220px;
+  color: var(--ink-2);
+  white-space: normal;
+}
+
+.state {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 14px;
+  text-align: center;
+}
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.skeletonRow {
+  height: 44px;
+  border-radius: 6px;
+}
+
+@media (max-width: 1180px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filterActions {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions,
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .state {
+    align-items: center;
+    flex-direction: column;
+    padding: 24px;
+  }
+}

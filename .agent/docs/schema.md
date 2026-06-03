@@ -630,6 +630,7 @@ create table pipeline.pipeline_job (
     request_payload_json jsonb not null default '{}'::jsonb,
     result_summary_json jsonb not null default '{}'::jsonb,
     triggered_by        bigint references app.app_user(id),
+    retried_from_job_id bigint references pipeline.pipeline_job(id),
     requested_at        timestamptz not null default now(),
     started_at          timestamptz,
     finished_at         timestamptz,
@@ -857,6 +858,9 @@ create index idx_review_task_session_status
 create index idx_pipeline_job_workspace_status
     on pipeline.pipeline_job(workspace_id, status, requested_at desc);
 
+create index idx_pipeline_job_retried_from
+    on pipeline.pipeline_job(retried_from_job_id);
+
 create index idx_pipeline_artifact_job_stage
     on pipeline.pipeline_artifact(pipeline_job_id, stage_name);
 
@@ -919,6 +923,7 @@ create index idx_taxonomy_drift_pack
 - `pipeline_job 1:N pipeline_job_event`
 - `pipeline_job 1:N pipeline_artifact`
 - `pipeline_job 1:N evaluation_run`
+- `pipeline_job 1:N pipeline_job` (FK: retried_from_job_id, 실패 재시도 관계)
 - `evaluation_run 1:N evaluation_metric`
 - `evaluation_run 1:N cluster_evaluation`
 - `evaluation_run 1:N novel_intent_candidate`

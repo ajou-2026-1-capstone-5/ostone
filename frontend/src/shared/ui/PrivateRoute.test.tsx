@@ -134,4 +134,10 @@ describe("AdminRoute", () => {
 
     expect(screen.getByText("워크스페이스")).toBeInTheDocument();
   });
+
+  it("ADMIN이면 워크스페이스로 이동한다", () => {
+    renderAdminRoute("ADMIN");
+
+    expect(screen.getByText("워크스페이스")).toBeInTheDocument();
+  });
 });

@@ -18,6 +18,7 @@ import { DemoPage } from "../pages/demo";
 import { AdminLayout } from "../pages/admin/ui/AdminLayout";
 import { AdminCustomersPage } from "../pages/admin/ui/AdminCustomersPage";
 import { AdminPlaceholderPage } from "../pages/admin/ui/AdminPlaceholderPage";
+import { AdminPipelineJobsPage } from "../pages/admin/ui/AdminPipelineJobsPage";
 import { AdminSuperAdminsPage } from "../pages/admin/ui/AdminSuperAdminsPage";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
 import { IntentDraftReadPage } from "../pages/domain-pack/ui/IntentDraftReadPage";
@@ -96,7 +97,7 @@ export function App() {
           />
           <Route
             path="airflow"
-            element={<AdminPlaceholderPage eyebrow="Operations" title="Airflow 운영" />}
+            element={<AdminPipelineJobsPage />}
           />
           <Route path="super-admins" element={<AdminSuperAdminsPage />} />
         </Route>
