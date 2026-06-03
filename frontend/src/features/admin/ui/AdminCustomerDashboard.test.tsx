@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { ApiRequestError } from "@/shared/api";
 import {
   useAdminCustomerDetail,
   useAdminCustomers,
@@ -162,10 +163,88 @@ describe("AdminCustomerDashboard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("고객사 정보를 불러오지 못했습니다.");
   });
 
+  it("ApiRequestError가 있으면 서버 메시지를 표시한다", () => {
+    mockedUseAdminCustomers.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new ApiRequestError(500, "ADMIN_CUSTOMER_ERROR", "서버에서 실패했습니다."),
+    } as ReturnType<typeof useAdminCustomers>);
+
+    render(<AdminCustomerDashboard />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("서버에서 실패했습니다.");
+  });
+
+  it("목록 loading 상태를 표시한다", () => {
+    mockedUseAdminCustomers.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useAdminCustomers>);
+
+    render(<AdminCustomerDashboard />);
+
+    expect(screen.getByText("고객사 현황을 불러오는 중입니다.")).toBeInTheDocument();
+  });
+
   it("다음 페이지가 없으면 다음 버튼을 비활성화한다", () => {
     render(<AdminCustomerDashboard />);
 
     const pagination = screen.getByLabelText("고객사 목록").querySelector("div:last-child");
     expect(within(pagination as HTMLElement).getByLabelText("다음 페이지")).toBeDisabled();
+  });
+
+  it("다음 페이지 이동과 이전 페이지 이동을 query hook params에 반영한다", async () => {
+    const user = userEvent.setup();
+    mockedUseAdminCustomers.mockReturnValue({
+      data: { ...listResponse, hasNext: true },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useAdminCustomers>);
+
+    render(<AdminCustomerDashboard />);
+
+    await user.click(screen.getByLabelText("다음 페이지"));
+    expect(mockedUseAdminCustomers).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
+
+    await user.click(screen.getByLabelText("이전 페이지"));
+    expect(mockedUseAdminCustomers).toHaveBeenCalledWith(expect.objectContaining({ page: 0 }));
+  });
+
+  it("상세 loading 상태를 표시한다", () => {
+    mockedUseAdminCustomerDetail.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as ReturnType<typeof useAdminCustomerDetail>);
+
+    render(<AdminCustomerDashboard />);
+
+    expect(screen.getByText("상세 정보를 불러오는 중입니다.")).toBeInTheDocument();
+  });
+
+  it("상세 오류와 상세 미선택 상태를 표시한다", () => {
+    mockedUseAdminCustomerDetail.mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      error: new ApiRequestError(404, "WORKSPACE_NOT_FOUND", "워크스페이스를 찾을 수 없습니다."),
+    } as ReturnType<typeof useAdminCustomerDetail>);
+
+    const { rerender } = render(<AdminCustomerDashboard />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("워크스페이스를 찾을 수 없습니다.");
+
+    mockedUseAdminCustomerDetail.mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAdminCustomerDetail>);
+
+    rerender(<AdminCustomerDashboard />);
+
+    expect(screen.getByText("선택된 고객사가 없습니다.")).toBeInTheDocument();
   });
 });
