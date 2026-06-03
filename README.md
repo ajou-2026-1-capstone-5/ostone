@@ -20,6 +20,7 @@
 ## 목차
 
 - [서비스 개요](#서비스-개요)
+- [핵심 기능](#핵심-기능)
 - [데모 / 사용 흐름](#데모--사용-흐름)
 - [시스템 아키텍처](#시스템-아키텍처)
 - [기술 구현 하이라이트](#기술-구현-하이라이트)
@@ -63,6 +64,60 @@
 - 실시간 고객 응대 챗봇 서비스 제공이 목표가 아니다.
 - 채팅 데모(`chat-demo`)는 답변 생성기가 아니라 workflow runtime 동작을 **시각화하는 시연용 접점**이다.
 - MSA가 아니라 단일 배포 단위의 **모듈형 모놀리스**를 채택한다.
+
+---
+
+## 핵심 기능
+
+각 기능의 상세 요구사항·설계는 `.agent/specs/`의 SDD 스펙 문서로 관리한다. 아래는 기능별 대표 스펙이며, 전체 목록은 [`.agent/specs/`](.agent/specs/)를 참조한다.
+
+### 1. 상담 로그 수집·구조화
+
+원본 상담 로그(ZIP)를 업로드하면 객체 스토리지에 적재하고 conversation / turn 단위로 구조화·검증한다.
+
+<!-- 스크린샷: 상담 로그 업로드 화면 (추후 첨부) — ZIP 업로드, 적재 진행 상태, 구조화 결과 요약 -->
+
+> 스펙: [원본 로그 업로드 API](.agent/specs/121.md) · [Conversation/Turn 구조화](.agent/specs/122.md) · [ZIP-only 업로드 정책](.agent/specs/421.md)
+
+### 2. Domain Pack 생성 파이프라인 (Intent Discovery)
+
+업로드된 로그를 8단계 오프라인 파이프라인으로 처리해 intent를 발견하고 workflow graph 초안까지 생성한다. 완료 시 결과를 Spring Backend로 콜백한다.
+
+<!-- 스크린샷: 파이프라인 실행 화면 (추후 첨부) — job 실행 요청, 단계별 진행 상태, 평가 리포트 -->
+
+> 스펙: [Intent Discovery / Workflow Entry Point](.agent/specs/2-1-1.md) · [Workflow Graph 생성](.agent/specs/002218.md) · [publish_candidate → Backend 콜백](.agent/specs/218.md)
+
+### 3. AI 초안 검토·승인 (Human-in-the-loop)
+
+파이프라인이 만든 intent / slot / policy / risk / workflow 초안을 운영자가 콘솔에서 조회·수정·승인·반려하고, 승인된 Domain Pack을 활성화한다.
+
+<!-- 스크린샷: AI 초안 검토 화면 (추후 첨부) — 초안 목록/상세, 수정·승인·반려 액션, 코멘트 이력 -->
+
+> 스펙: [Domain Pack DRAFT 생성](.agent/specs/213.md) · [Intent 초안 화면](.agent/specs/214.md) · [Intent 승인/반려 API](.agent/specs/313.md) · [Domain Pack 활성화](.agent/specs/332.md)
+
+### 4. 상태 기반 Workflow Runtime (LLM Tool calling)
+
+활성화된 Domain Pack을 읽어 현재 대화 상태를 해석하고 다음 action을 결정하는 정책 기반 runtime 엔진. 외부 LLM이 호출하는 conversation state / slot / decision-log tool API를 제공한다.
+
+<!-- 스크린샷: 워크플로우 그래프 뷰어 (추후 첨부) — 상태 노드/전이 edge, 현재 상태 하이라이트 -->
+
+> 스펙: [Policy-Aware Runtime Engine & Tool API](.agent/specs/524.md) · [Workflow-Aware LLM Assistant](.agent/specs/5.2.6.md) · [Conversation State Tool](.agent/specs/522.md)
+
+### 5. 채팅 데모 / 워크플로우 시각화
+
+고객 발화에 따라 workflow가 상태를 전이하는 모습을 시연하는 접점. 채팅 타임라인과 workflow graph를 양방향으로 연결해 메시지별 매핑을 보여준다.
+
+<!-- 스크린샷: 채팅 데모 화면 (추후 첨부) — 대화 타임라인, 메시지-그래프 양방향 강조, slot/policy/risk 추출 상태 -->
+
+> 스펙: [채팅 타임라인·워크플로우 매핑](.agent/specs/4.1.7.md) · [워크플로우 그래프 뷰어](.agent/specs/4.1.8.md) · [메시지-그래프 양방향 강조](.agent/specs/4.1.10.md)
+
+### 6. 실시간 상담사 콘솔
+
+WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배정/해제, AI handoff(자동응답 ↔ 상담사 개입) 전환, 세션 관리·지표를 제공한다.
+
+<!-- 스크린샷: 실시간 상담사 콘솔 (추후 첨부) — 대기열·필터, 배정/해제, 상담사 채팅, AI handoff 상태 -->
+
+> 스펙: [STOMP WebSocket 채팅 인프라](.agent/specs/5.3.2.md) · [상담사 개입 기능](.agent/specs/5.3.4.md) · [AI handoff ↔ 대기열 연결](.agent/specs/356.md) · [상담사 대기열 실시간화](.agent/specs/298.md)
 
 ---
 
@@ -222,7 +277,7 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 | **Frontend** | ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black) ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white) ![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white) |
 | **ML / Pipeline** | ![Python](https://img.shields.io/badge/Python%203.13+-3776AB?logo=python&logoColor=white) ![uv](https://img.shields.io/badge/uv-DE5FE9?logo=astral&logoColor=white) ![Airflow](https://img.shields.io/badge/Apache%20Airflow%203.2.0-017CEE?logo=apacheairflow&logoColor=white) |
 | **Database** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2016+-4169E1?logo=postgresql&logoColor=white) ![Liquibase](https://img.shields.io/badge/Liquibase-2962FF?logo=liquibase&logoColor=white) |
-| **Infra** | ![Docker](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![AWS](https://img.shields.io/badge/AWS%20ECS%20·%20S3%20·%20CloudFront-FF9900?logo=amazonwebservices&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-844FBA?logo=terraform&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white) |
+| **Infra** | ![Docker](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![AWS](https://img.shields.io/badge/AWS%20ECS%20%C2%B7%20S3%20%C2%B7%20CloudFront-FF9900?logo=amazonwebservices&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-844FBA?logo=terraform&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white) |
 
 ---
 
