@@ -63,6 +63,25 @@ describe("simulationApi", () => {
     expect(result).toEqual(detail);
   });
 
+  it("getSession이 세션 상세 endpoint 응답을 반환한다", async () => {
+    const detail = {
+      session: { id: 20, channel: "SIMULATION", status: "OPEN", metaJson: "{}" },
+      messages: [],
+      matchedWorkflow: null,
+      slotValues: {},
+      slots: [],
+    };
+    mockedCustomFetch.mockResolvedValue({ data: detail });
+
+    const result = await simulationApi.getSession(7, 20);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/sessions/20",
+      { method: "GET" },
+    );
+    expect(result).toEqual(detail);
+  });
+
   it("sendMessage가 customer content를 세션별 endpoint로 보낸다", async () => {
     const detail = {
       session: { id: 20, channel: "SIMULATION", status: "ACTIVE", metaJson: "{}" },

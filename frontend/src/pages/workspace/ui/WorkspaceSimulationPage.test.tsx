@@ -165,4 +165,20 @@ describe("WorkspaceSimulationPage", () => {
     });
     expect(await screen.findByText("주문번호를 알려주세요.")).toBeInTheDocument();
   });
+
+  it("Enter 키로 고객 메시지를 전송한다", async () => {
+    renderPage();
+
+    const input = await screen.findByPlaceholderText("고객 역할 메시지 입력");
+    fireEvent.change(input, {
+      target: { value: "A-100 주문 환불이요" },
+    });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: false });
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.sendMessage).toHaveBeenCalledWith(1, 10, {
+        content: "A-100 주문 환불이요",
+      });
+    });
+  });
 });
