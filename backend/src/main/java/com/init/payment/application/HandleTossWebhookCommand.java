@@ -14,13 +14,20 @@ public record HandleTossWebhookCommand(
       String paymentKey,
       String status,
       String eventType) {
-    if (lastTransactionKey != null) {
+    if (lastTransactionKey != null && !lastTransactionKey.isBlank()) {
       return lastTransactionKey;
     }
-    if (eventId != null) {
+    if (eventId != null && !eventId.isBlank()) {
       return eventId;
     }
-    String base = paymentKey != null ? paymentKey : eventType;
+    String base = (paymentKey != null && !paymentKey.isBlank()) ? paymentKey : eventType;
+    if (base == null || base.isBlank() || status == null || status.isBlank()) {
+      throw new IllegalArgumentException(
+          "Unable to resolve webhook transmissionId: paymentKey="
+              + paymentKey
+              + ", status="
+              + status);
+    }
     return base + ":" + status;
   }
 }

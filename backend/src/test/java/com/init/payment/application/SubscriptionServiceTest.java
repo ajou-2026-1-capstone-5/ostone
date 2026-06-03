@@ -109,6 +109,7 @@ class SubscriptionServiceTest {
     SubscriptionResult result = subscriptionService.getSubscription(1L, 99L);
 
     assertThat(result.planKey()).isEqualTo("pro_monthly");
+    verify(accessGuard).requireMember(1L, 99L);
   }
 
   @Test
@@ -118,6 +119,7 @@ class SubscriptionServiceTest {
 
     assertThatThrownBy(() -> subscriptionService.getSubscription(1L, 99L))
         .isInstanceOf(SubscriptionNotFoundException.class);
+    verify(accessGuard).requireMember(1L, 99L);
   }
 
   @Test
@@ -132,6 +134,7 @@ class SubscriptionServiceTest {
     SubscriptionResult result = subscriptionService.cancelSubscription(1L, 99L);
 
     assertThat(result.status()).isEqualTo("CANCELED");
+    verify(accessGuard).requireMember(1L, 99L);
   }
 
   @Test
@@ -151,6 +154,7 @@ class SubscriptionServiceTest {
 
     assertThat(result.status()).isEqualTo("ACTIVE");
     assertThat(subscription.isCancelAtPeriodEnd()).isTrue();
+    verify(accessGuard).requireMember(1L, 99L);
   }
 
   @Test
@@ -173,6 +177,7 @@ class SubscriptionServiceTest {
                 subscriptionService.issueBillingKey(
                     new IssueBillingKeyCommand(1L, 99L, "auth_xxx", "wsk_1_abc")))
         .isInstanceOf(ActiveSubscriptionExistsException.class);
+    verify(accessGuard).requireMember(1L, 99L);
   }
 
   @Test

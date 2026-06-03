@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.init.payment.application.exception.PaymentWebhookUnauthorizedException;
@@ -220,8 +221,7 @@ class PaymentWebhookServiceTest {
     service.handle(
         new HandleTossWebhookCommand(SECRET, "txn_nr", "PAYMENT_STATUS", "pay_nr", "{}"));
 
-    verify(webhookEventRepository, never())
-        .findByTransmissionId(org.mockito.ArgumentMatchers.eq("txn_nr__processed"));
+    verify(webhookEventRepository, times(1)).findByTransmissionId("txn_nr");
   }
 
   @Test

@@ -19,6 +19,7 @@ import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,7 +250,9 @@ public class RecurringBillingService {
   }
 
   private <T> T inTx(Supplier<T> callback) {
-    return transactionTemplate.execute(status -> callback.get());
+    return Objects.requireNonNull(
+        transactionTemplate.execute(status -> callback.get()),
+        "inTx callback must not return null");
   }
 
   private void inTxRun(Runnable callback) {

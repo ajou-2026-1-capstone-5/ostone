@@ -1,5 +1,6 @@
 package com.init.payment.application;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
@@ -54,6 +55,6 @@ class PaymentAccessGuardTest {
     given(workspaceMembershipPort.hasAnyRole(1L, 99L, Set.of("OWNER", "ADMIN", "OPERATOR")))
         .willReturn(true);
 
-    guard.requireMember(1L, 99L);
+    assertThatCode(() -> guard.requireMember(1L, 99L)).doesNotThrowAnyException();
   }
 }

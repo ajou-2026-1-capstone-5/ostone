@@ -4,6 +4,7 @@ import com.init.payment.application.exception.PaymentWebhookUnauthorizedExceptio
 import com.init.payment.application.port.TossPaymentPort;
 import com.init.payment.application.port.TossPaymentResult;
 import com.init.payment.domain.model.Payment;
+import com.init.payment.domain.model.PaymentStatus;
 import com.init.payment.domain.model.WebhookEvent;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.WebhookEventRepository;
@@ -125,10 +126,11 @@ public class PaymentWebhookService {
           authoritative.receiptUrl(),
           authoritative.maskedRawJson());
       paymentRepository.save(payment);
-    } else if (authoritative.isCanceled()) {
+    } else if (authoritative.isCanceled() && payment.getStatus() != PaymentStatus.CANCELED) {
       payment.markCanceled(authoritative.maskedRawJson());
       paymentRepository.save(payment);
-    } else if (authoritative.isPartialCanceled()) {
+    } else if (authoritative.isPartialCanceled()
+        && payment.getStatus() != PaymentStatus.PARTIAL_CANCELED) {
       payment.markPartialCanceled(authoritative.maskedRawJson());
       paymentRepository.save(payment);
     }

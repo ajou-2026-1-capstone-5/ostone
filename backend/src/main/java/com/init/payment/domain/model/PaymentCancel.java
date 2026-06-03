@@ -29,13 +29,20 @@ public class PaymentCancel {
   @Column(name = "transaction_key")
   private String transactionKey;
 
+  @Column(name = "idempotency_key")
+  private String idempotencyKey;
+
   @Column(name = "canceled_at", nullable = false, updatable = false)
   private OffsetDateTime canceledAt;
 
   protected PaymentCancel() {}
 
   public static PaymentCancel create(
-      Long paymentId, long cancelAmount, String reason, String transactionKey) {
+      Long paymentId,
+      long cancelAmount,
+      String reason,
+      String transactionKey,
+      String idempotencyKey) {
     if (paymentId == null) {
       throw new IllegalArgumentException("paymentId must not be null");
     }
@@ -48,6 +55,7 @@ public class PaymentCancel {
     cancel.cancelAmount = cancelAmount;
     cancel.reason = reason;
     cancel.transactionKey = transactionKey;
+    cancel.idempotencyKey = idempotencyKey;
     return cancel;
   }
 
@@ -74,6 +82,10 @@ public class PaymentCancel {
 
   public String getTransactionKey() {
     return transactionKey;
+  }
+
+  public String getIdempotencyKey() {
+    return idempotencyKey;
   }
 
   public OffsetDateTime getCanceledAt() {

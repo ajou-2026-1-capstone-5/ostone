@@ -15,8 +15,9 @@ public interface TossPaymentPort {
   /** billingKey 기반 정기결제 실행. */
   TossPaymentResult executeBilling(TossBillingExecuteCommand command);
 
-  /** 결제 취소/부분환불. cancelAmount가 null이면 전액 취소. */
-  TossPaymentResult cancelPayment(String paymentKey, String cancelReason, Long cancelAmount);
+  /** 결제 취소/부분환불. cancelAmount가 null이면 전액 취소. cancelIdempotencyKey는 시도별 UUID. */
+  TossPaymentResult cancelPayment(
+      String paymentKey, String cancelReason, Long cancelAmount, String cancelIdempotencyKey);
 
   /** 웹훅 권위 상태 확정을 위한 결제 재조회 (U-003). */
   TossPaymentResult getPayment(String paymentKey);

@@ -32,11 +32,12 @@ public class TossPaymentClient implements TossPaymentPort {
 
   private final TossApiProperties properties;
   private final ObjectMapper objectMapper;
-  private RestClient restClient;
+  private final RestClient restClient;
 
   public TossPaymentClient(TossApiProperties properties, ObjectMapper objectMapper) {
     this.properties = properties;
     this.objectMapper = objectMapper;
+    this.restClient = buildRestClient(properties);
   }
 
   @Override
@@ -78,13 +79,14 @@ public class TossPaymentClient implements TossPaymentPort {
 
   @Override
   public TossPaymentResult cancelPayment(
-      String paymentKey, String cancelReason, Long cancelAmount) {
+      String paymentKey, String cancelReason, Long cancelAmount, String cancelIdempotencyKey) {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("cancelReason", cancelReason);
     if (cancelAmount != null) {
       body.put("cancelAmount", cancelAmount);
     }
-    JsonNode root = post("/v1/payments/" + paymentKey + "/cancel", body, "결제 취소", paymentKey);
+    JsonNode root =
+        post("/v1/payments/" + paymentKey + "/cancel", body, "결제 취소", cancelIdempotencyKey);
     return toPaymentResult(root);
   }
 
@@ -92,7 +94,7 @@ public class TossPaymentClient implements TossPaymentPort {
   public TossPaymentResult getPayment(String paymentKey) {
     try {
       String raw =
-          restClient()
+          restClient
               .get()
               .uri(apiPath("/v1/payments/" + paymentKey))
               .headers(headers -> headers.setBasicAuth(secretKey(), ""))
@@ -108,7 +110,7 @@ public class TossPaymentClient implements TossPaymentPort {
       String path, Map<String, Object> body, String action, String idempotencyKey) {
     try {
       String raw =
-          restClient()
+          restClient
               .post()
               .uri(apiPath(path))
               .contentType(MediaType.APPLICATION_JSON)
@@ -187,20 +189,17 @@ public class TossPaymentClient implements TossPaymentPort {
     return secretKey;
   }
 
-  private synchronized RestClient restClient() {
-    if (restClient == null) {
-      SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-      TossApiProperties.Api api = properties.api();
-      requestFactory.setConnectTimeout(
-          durationOrDefault(api == null ? null : api.connectTimeout(), Duration.ofSeconds(3)));
-      requestFactory.setReadTimeout(
-          durationOrDefault(api == null ? null : api.readTimeout(), Duration.ofSeconds(10)));
-      restClient = RestClient.builder().requestFactory(requestFactory).build();
-    }
-    return restClient;
+  private static RestClient buildRestClient(TossApiProperties properties) {
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    TossApiProperties.Api api = properties.api();
+    requestFactory.setConnectTimeout(
+        durationOrDefault(api == null ? null : api.connectTimeout(), Duration.ofSeconds(3)));
+    requestFactory.setReadTimeout(
+        durationOrDefault(api == null ? null : api.readTimeout(), Duration.ofSeconds(10)));
+    return RestClient.builder().requestFactory(requestFactory).build();
   }
 
-  private Duration durationOrDefault(Duration duration, Duration defaultValue) {
+  private static Duration durationOrDefault(Duration duration, Duration defaultValue) {
     return duration == null ? defaultValue : duration;
   }
 

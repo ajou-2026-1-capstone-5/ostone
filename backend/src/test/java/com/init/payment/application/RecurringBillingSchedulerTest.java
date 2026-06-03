@@ -1,5 +1,6 @@
 package com.init.payment.application;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
@@ -36,6 +37,7 @@ class RecurringBillingSchedulerTest {
   void runRecurringBilling_catchesRuntimeException() {
     doThrow(new RuntimeException("service error")).when(recurringBillingService).run();
 
-    scheduler.runRecurringBilling();
+    assertThatCode(() -> scheduler.runRecurringBilling()).doesNotThrowAnyException();
+    verify(recurringBillingService).run();
   }
 }

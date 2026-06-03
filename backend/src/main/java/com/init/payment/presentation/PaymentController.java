@@ -10,6 +10,7 @@ import com.init.payment.presentation.dto.PaymentResponse;
 import com.init.shared.presentation.AuthenticationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,7 +64,12 @@ public class PaymentController {
     PaymentResult result =
         paymentService.cancelPayment(
             new CancelPaymentCommand(
-                workspaceId, userId, paymentKey, request.cancelReason(), request.cancelAmount()));
+                workspaceId,
+                userId,
+                paymentKey,
+                request.cancelReason(),
+                request.cancelAmount(),
+                UUID.randomUUID().toString().replace("-", "")));
     return ResponseEntity.ok(PaymentResponse.from(result));
   }
 }

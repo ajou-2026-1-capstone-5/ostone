@@ -152,6 +152,10 @@ public class PaymentService {
     if (!isCancelable(loaded)) {
       throw new PaymentCancelNotAllowedException("취소할 수 없는 결제 상태입니다. status=" + loaded.getStatus());
     }
+
+    long resolvedCancelAmount =
+        command.cancelAmount() != null ? command.cancelAmount() : loaded.getAmount();
+
     if (command.cancelAmount() != null) {
       long alreadyCanceled = paymentCancelRepository.sumCancelAmountByPaymentId(loaded.getId());
       long remainingCancelable = loaded.getAmount() - alreadyCanceled;
@@ -164,12 +168,19 @@ public class PaymentService {
       }
     }
 
+    String cancelIdempotencyKey =
+        paymentCancelRepository
+            .findFirstByPaymentIdAndCancelAmountOrderByIdDesc(loaded.getId(), resolvedCancelAmount)
+            .map(PaymentCancel::getIdempotencyKey)
+            .filter(k -> k != null && !k.isBlank())
+            .orElse(command.cancelIdempotencyKey());
+
     TossPaymentResult result =
         tossPaymentPort.cancelPayment(
-            command.paymentKey(), command.cancelReason(), command.cancelAmount());
-
-    long resolvedCancelAmount =
-        command.cancelAmount() != null ? command.cancelAmount() : loaded.getAmount();
+            command.paymentKey(),
+            command.cancelReason(),
+            command.cancelAmount(),
+            cancelIdempotencyKey);
 
     Payment finalized =
         inTx(
@@ -183,7 +194,8 @@ public class PaymentService {
                       payment.getId(),
                       resolvedCancelAmount,
                       command.cancelReason(),
-                      result.transactionKey()));
+                      result.transactionKey(),
+                      cancelIdempotencyKey));
               if (isPartialCancel(result, resolvedCancelAmount, payment.getAmount())) {
                 payment.markPartialCanceled(result.maskedRawJson());
               } else {

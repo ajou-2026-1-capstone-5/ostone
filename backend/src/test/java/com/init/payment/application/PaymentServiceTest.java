@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -137,10 +139,16 @@ class PaymentServiceTest {
         .willReturn(Optional.of(payment));
     given(paymentRepository.findById(7L)).willReturn(Optional.of(payment));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-    given(tossPaymentPort.cancelPayment("pay_1", "전액취소", null)).willReturn(canceledResult());
+    given(
+            paymentCancelRepository.findFirstByPaymentIdAndCancelAmountOrderByIdDesc(
+                eq(7L), eq(29000L)))
+        .willReturn(Optional.empty());
+    given(tossPaymentPort.cancelPayment(eq("pay_1"), eq("전액취소"), isNull(), any()))
+        .willReturn(canceledResult());
 
     PaymentResult result =
-        paymentService.cancelPayment(new CancelPaymentCommand(1L, 99L, "pay_1", "전액취소", null));
+        paymentService.cancelPayment(
+            new CancelPaymentCommand(1L, 99L, "pay_1", "전액취소", null, "idem-full-1"));
 
     assertThat(result.status()).isEqualTo("CANCELED");
     verify(paymentCancelRepository).save(any());
@@ -159,9 +167,9 @@ class PaymentServiceTest {
     assertThatThrownBy(
             () ->
                 paymentService.cancelPayment(
-                    new CancelPaymentCommand(1L, 99L, "pay_1", "고객요청", 20000L)))
+                    new CancelPaymentCommand(1L, 99L, "pay_1", "고객요청", 20000L, "idem-ex-1")))
         .isInstanceOf(PaymentCancelNotAllowedException.class);
-    verify(tossPaymentPort, never()).cancelPayment(any(), any(), any());
+    verify(tossPaymentPort, never()).cancelPayment(any(), any(), any(), any());
   }
 
   @Test
@@ -173,7 +181,7 @@ class PaymentServiceTest {
     assertThatThrownBy(
             () ->
                 paymentService.cancelPayment(
-                    new CancelPaymentCommand(1L, 99L, "pay_x", "고객요청", null)))
+                    new CancelPaymentCommand(1L, 99L, "pay_x", "고객요청", null, "idem-notfound-1")))
         .isInstanceOf(PaymentNotFoundException.class);
   }
 
@@ -229,11 +237,16 @@ class PaymentServiceTest {
         .willReturn(Optional.of(payment));
     given(paymentRepository.findById(7L)).willReturn(Optional.of(payment));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-    given(tossPaymentPort.cancelPayment("pay_1", "고객 요청", 10000L))
+    given(
+            paymentCancelRepository.findFirstByPaymentIdAndCancelAmountOrderByIdDesc(
+                eq(7L), eq(10000L)))
+        .willReturn(Optional.empty());
+    given(tossPaymentPort.cancelPayment(eq("pay_1"), eq("고객 요청"), eq(10000L), any()))
         .willReturn(partialCanceledResult());
 
     PaymentResult result =
-        paymentService.cancelPayment(new CancelPaymentCommand(1L, 99L, "pay_1", "고객 요청", 10000L));
+        paymentService.cancelPayment(
+            new CancelPaymentCommand(1L, 99L, "pay_1", "고객 요청", 10000L, "idem-partial-1"));
 
     assertThat(result.status()).isEqualTo("PARTIAL_CANCELED");
     verify(paymentCancelRepository).save(any());
