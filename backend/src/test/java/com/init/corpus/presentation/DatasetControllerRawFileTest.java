@@ -18,6 +18,7 @@ import com.init.corpus.application.exception.WorkspaceNotFoundException;
 import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.model.PiiRedactionStatus;
 import com.init.fixtures.WithLongPrincipal;
+import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -227,5 +228,30 @@ class DatasetControllerRawFileTest {
                 .with(csrf()))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("DATASET_KEY_CONFLICT"));
+  }
+
+  @Test
+  @DisplayName("POST /raw-file — quota 초과 → 409 QUOTA_EXCEEDED")
+  @WithLongPrincipal(1L)
+  void uploadRawFile_quotaExceeded_returns409() throws Exception {
+    given(rawFileUploadService.upload(any()))
+        .willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3));
+
+    MockMultipartFile mockFile =
+        new MockMultipartFile("file", "test.zip", "application/zip", VALID_ZIP);
+
+    mockMvc
+        .perform(
+            multipart("/api/v1/workspaces/1/datasets/raw-file")
+                .file(mockFile)
+                .param("datasetKey", "next-key")
+                .param("name", "테스트")
+                .param("sourceType", "CRM")
+                .with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("QUOTA_EXCEEDED"))
+        .andExpect(jsonPath("$.resource").value("DATASET_UPLOAD"))
+        .andExpect(jsonPath("$.limit").value(3))
+        .andExpect(jsonPath("$.used").value(3));
   }
 }

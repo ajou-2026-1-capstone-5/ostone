@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,6 +17,8 @@ import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeni
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -44,6 +47,7 @@ class TriggerDomainPackGenerationUseCaseTest {
   @Mock private DatasetRawFileLookupPort datasetRawFileLookupPort;
   @Mock private DomainPackGenerationConcurrencyGuard concurrencyGuard;
   @Mock private DomainPackGenerationTriggerPort triggerPort;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
   @Mock private PlatformTransactionManager transactionManager;
 
   private TriggerDomainPackGenerationUseCase useCase;
@@ -84,7 +88,8 @@ class TriggerDomainPackGenerationUseCaseTest {
             triggerPort,
             new ObjectMapper(),
             fixedClock,
-            transactionManager);
+            transactionManager,
+            workspaceQuotaValidator);
   }
 
   @Test
@@ -215,6 +220,22 @@ class TriggerDomainPackGenerationUseCaseTest {
             throwable ->
                 assertThat(((NotFoundException) throwable).getCode())
                     .isEqualTo("RAW_FILE_NOT_FOUND"));
+
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(triggerPort, never()).trigger(any());
+  }
+
+  @Test
+  @DisplayName("pipeline run quota 초과 시 job 생성과 Airflow trigger를 실행하지 않는다")
+  void execute_quotaExceeded_doesNotCreateJob() {
+    allowAccess();
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
+    willThrow(new QuotaExceededException("PIPELINE_RUN", 5, 5))
+        .given(workspaceQuotaValidator)
+        .assertPipelineRunAllowed(1L);
+
+    assertThatThrownBy(() -> useCase.execute(command())).isInstanceOf(QuotaExceededException.class);
 
     verify(pipelineJobRepository, never()).saveAndFlush(any());
     verify(triggerPort, never()).trigger(any());

@@ -17,6 +17,7 @@ import com.init.corpus.domain.repository.ConversationTurnRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +52,7 @@ public class RawDatasetUploadService {
   private final ConversationTurnRepository conversationTurnRepository;
   private final WorkspaceExistenceRepository workspaceExistenceRepository;
   private final WorkspaceMembershipRepository workspaceMembershipRepository;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
   private final ObjectMapper objectMapper;
   private final TransactionTemplate transactionTemplate;
 
@@ -60,6 +62,7 @@ public class RawDatasetUploadService {
       ConversationTurnRepository conversationTurnRepository,
       WorkspaceExistenceRepository workspaceExistenceRepository,
       WorkspaceMembershipRepository workspaceMembershipRepository,
+      WorkspaceQuotaValidator workspaceQuotaValidator,
       ObjectMapper objectMapper,
       PlatformTransactionManager transactionManager) {
     this.datasetRepository = datasetRepository;
@@ -67,6 +70,7 @@ public class RawDatasetUploadService {
     this.conversationTurnRepository = conversationTurnRepository;
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
     this.objectMapper = objectMapper;
     TransactionTemplate t = new TransactionTemplate(transactionManager);
     t.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -86,6 +90,7 @@ public class RawDatasetUploadService {
         command.workspaceId(), command.datasetKey())) {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
+    workspaceQuotaValidator.assertDatasetUploadAllowed(command.workspaceId());
 
     // 1. Parse all conversations upfront — any ConsultingContentParseException
     //    propagates here before any DB write occurs.

@@ -20,6 +20,7 @@ import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.model.PiiRedactionStatus;
 import com.init.fixtures.Fixtures;
 import com.init.fixtures.WithLongPrincipal;
+import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,35 @@ class RawDatasetUploadControllerTest {
                         Fixtures.validConsultingContent()))));
   }
 
+  private String validStructuredRequestBody() throws Exception {
+    return objectMapper.writeValueAsString(
+        Map.of(
+            "datasetKey",
+            "structured-key",
+            "name",
+            "Structured Dataset",
+            "sourceType",
+            "csv",
+            "conversations",
+            List.of(
+                Map.of(
+                    "externalCaseId",
+                    "case-001",
+                    "channel",
+                    "CRM",
+                    "languageCode",
+                    "ko",
+                    "turns",
+                    List.of(
+                        Map.of(
+                            "turnIndex",
+                            0,
+                            "speakerRole",
+                            "CUSTOMER",
+                            "messageText",
+                            "주문 관련 문의입니다."))))));
+  }
+
   @Test
   @DisplayName("유효한 요청 → 201 Created")
   @WithLongPrincipal(1L)
@@ -135,6 +165,46 @@ class RawDatasetUploadControllerTest {
                 .with(csrf()))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("DATASET_KEY_CONFLICT"));
+  }
+
+  @Test
+  @DisplayName("quota 초과 → 409 QUOTA_EXCEEDED")
+  @WithLongPrincipal(1L)
+  void uploadRawDataset_quotaExceeded_returns409() throws Exception {
+    given(rawDatasetUploadService.upload(any()))
+        .willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/1/datasets/raw")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestBody())
+                .with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("QUOTA_EXCEEDED"))
+        .andExpect(jsonPath("$.resource").value("DATASET_UPLOAD"))
+        .andExpect(jsonPath("$.limit").value(3))
+        .andExpect(jsonPath("$.used").value(3));
+  }
+
+  @Test
+  @DisplayName("구조화 dataset quota 초과 → 409 QUOTA_EXCEEDED")
+  @WithLongPrincipal(1L)
+  void uploadDataset_quotaExceeded_returns409() throws Exception {
+    given(datasetUploadService.upload(any()))
+        .willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/1/datasets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validStructuredRequestBody())
+                .with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("QUOTA_EXCEEDED"))
+        .andExpect(jsonPath("$.resource").value("DATASET_UPLOAD"))
+        .andExpect(jsonPath("$.limit").value(3))
+        .andExpect(jsonPath("$.used").value(3));
   }
 
   @Test

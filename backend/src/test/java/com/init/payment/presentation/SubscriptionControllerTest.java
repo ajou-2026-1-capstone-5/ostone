@@ -56,7 +56,10 @@ class SubscriptionControllerTest {
         .perform(get(BASE_URL + "/subscription"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("ACTIVE"))
-        .andExpect(jsonPath("$.planKey").value("pro_monthly"));
+        .andExpect(jsonPath("$.planKey").value("pro_monthly"))
+        .andExpect(jsonPath("$.memberLimit").value(10))
+        .andExpect(jsonPath("$.datasetUploadLimit").value(10))
+        .andExpect(jsonPath("$.pipelineRunLimit").value(10));
   }
 
   @Test
@@ -147,6 +150,9 @@ class SubscriptionControllerTest {
         OffsetDateTime.parse("2026-06-01T00:00:00Z"),
         OffsetDateTime.parse("2026-07-01T00:00:00Z"),
         false,
-        "wsk_1_abc");
+        "wsk_1_abc",
+        10,
+        10,
+        10);
   }
 }
