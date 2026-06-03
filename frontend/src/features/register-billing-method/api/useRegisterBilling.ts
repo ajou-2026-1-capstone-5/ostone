@@ -30,6 +30,28 @@ function isUserCancel(error: unknown): boolean {
 }
 
 /**
+ * Toss SDK 에러는 사용자 친화적인 한글 message(+code)를 담고 있다. 일반 토스트로 뭉개지 말고
+ * 그대로 노출해 원인 파악을 돕는다(예: 잘못된 키 종류, 미지원 결제수단). ApiRequestError 는
+ * 위에서 코드별로 처리하므로 제외한다.
+ */
+function getTossSdkErrorMessage(error: unknown): string | null {
+  if (error instanceof ApiRequestError) {
+    return null;
+  }
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    const message = (error as { message: string }).message.trim();
+    return message.length > 0 ? message : null;
+  }
+  return null;
+}
+
+/**
  * 자동결제 카드 등록 시작. INCOMPLETE 구독이 없으면 먼저 POST /subscription 으로 구독을 만들고(백엔드가
  * customerKey 부여), Toss `requestBillingAuth` 로 카드 등록창을 띄운다. 성공 시 /billing/success 로 리다이렉트되어
  * POST /billing/authorizations 로 구독이 활성화된다.
@@ -82,7 +104,7 @@ export function useRegisterBilling() {
         }
       }
       console.error("[useRegisterBilling] 미처리 에러:", error);
-      toast.error(BILLING_REGISTER_ERROR_MESSAGES.REGISTER_FAILED);
+      toast.error(getTossSdkErrorMessage(error) ?? BILLING_REGISTER_ERROR_MESSAGES.REGISTER_FAILED);
     },
   });
 }
