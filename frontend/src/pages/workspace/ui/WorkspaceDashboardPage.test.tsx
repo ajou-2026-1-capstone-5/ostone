@@ -41,10 +41,7 @@ function renderPage(path = "/workspaces/1/dashboard") {
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route
-          path="/workspaces/:workspaceId/dashboard"
-          element={<WorkspaceDashboardPage />}
-        />
+        <Route path="/workspaces/:workspaceId/dashboard" element={<WorkspaceDashboardPage />} />
         <Route path="/workspaces" element={<div data-testid="workspace-root" />} />
       </Routes>
     </MemoryRouter>,
@@ -71,6 +68,12 @@ vi.mock("sonner", () => ({
   },
 }));
 
+vi.mock("@/features/workspace-dashboard-health", () => ({
+  KnowledgePackHealthPanel: ({ workspaceId }: { workspaceId: number }) => (
+    <section data-testid="knowledge-health-panel">workspace {workspaceId} health</section>
+  ),
+}));
+
 describe("WorkspaceDashboardPage", () => {
   beforeEach(() => {
     mockedGetMetrics.mockReset();
@@ -83,18 +86,19 @@ describe("WorkspaceDashboardPage", () => {
     expect(mockedGetMetrics).not.toHaveBeenCalled();
   });
 
-  it("공통 필터와 상담 처리 KPI를 표시한다", async () => {
+  it("공통 필터와 상담 처리 KPI, 운영 지식팩 건강도 영역을 표시한다", async () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
     expect(screen.getByLabelText("기간 필터")).toBeInTheDocument();
-    expect(screen.getByLabelText("Domain Pack Version 필터")).toHaveValue("all");
+    expect(screen.getByLabelText("운영 지식팩 버전 필터")).toHaveValue("all");
     expect(screen.getByLabelText("채널 필터")).toHaveValue("all");
     expect(screen.getByLabelText("워크플로우 상태 필터")).toHaveValue("all");
     expect(screen.getByText("총 상담")).toBeInTheDocument();
     expect(await screen.findByText("120")).toBeInTheDocument();
     expect(screen.getByText("1분 15초")).toBeInTheDocument();
     expect(screen.getByText("전 기간 +20.0%")).toBeInTheDocument();
+    expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent("workspace 1 health");
     await waitFor(() => expect(mockedGetMetrics).toHaveBeenCalledWith(1, expect.any(Object)));
   });
 
@@ -104,7 +108,7 @@ describe("WorkspaceDashboardPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "사용자 지정" }));
     fireEvent.change(screen.getByLabelText("시작일"), { target: { value: "2026-06-01" } });
     fireEvent.change(screen.getByLabelText("종료일"), { target: { value: "2026-06-03" } });
-    fireEvent.change(screen.getByLabelText("Domain Pack Version 필터"), {
+    fireEvent.change(screen.getByLabelText("운영 지식팩 버전 필터"), {
       target: { value: "published" },
     });
     fireEvent.change(screen.getByLabelText("채널 필터"), { target: { value: "email" } });
@@ -161,10 +165,7 @@ describe("WorkspaceDashboardPage", () => {
       "href",
       "/workspaces/1/domain-packs",
     );
-    expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute(
-      "href",
-      "/demo/chat/1",
-    );
+    expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute("href", "/demo/chat/1");
   });
 
   it("loading, error, partial 상태 패널이 같은 shell 영역에서 렌더링된다", () => {

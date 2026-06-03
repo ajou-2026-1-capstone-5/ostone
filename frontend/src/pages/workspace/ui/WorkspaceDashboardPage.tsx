@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type { ConsultationMetrics } from "@/features/consultation/api/consultationApi";
+import { KnowledgePackHealthPanel } from "@/features/workspace-dashboard-health";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -133,7 +134,7 @@ function buildPeriodSummary(filters: DashboardFilters): string {
 function FilterSummary({ filters }: { filters: DashboardFilters }) {
   const summaryItems = [
     ["기간", buildPeriodSummary(filters)],
-    ["도메인팩", getOptionLabel(DOMAIN_PACK_VERSION_OPTIONS, filters.domainPackVersion)],
+    ["운영 지식팩", getOptionLabel(DOMAIN_PACK_VERSION_OPTIONS, filters.domainPackVersion)],
     ["채널", getOptionLabel(CHANNEL_OPTIONS, filters.channel)],
     ["워크플로우", getOptionLabel(WORKFLOW_STATUS_OPTIONS, filters.workflowStatus)],
   ];
@@ -341,11 +342,11 @@ function DashboardFilters({
 
       <div className={styles.selectGrid}>
         <label className={styles.field}>
-          <span>Domain Pack Version</span>
+          <span>운영 지식팩 버전</span>
           <NativeSelect
             value={filters.domainPackVersion}
             onChange={(event) => updateFilter("domainPackVersion", event.target.value)}
-            aria-label="Domain Pack Version 필터"
+            aria-label="운영 지식팩 버전 필터"
           >
             {DOMAIN_PACK_VERSION_OPTIONS.map((option) => (
               <NativeSelectOption key={option.value} value={option.value}>
@@ -446,7 +447,10 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
       <div className={styles.emptyCopy}>
         <span className={styles.panelEyebrow}>GET STARTED</span>
         <h2>아직 대시보드에 표시할 운영 데이터가 없습니다.</h2>
-        <p>상담 로그를 업로드하고 도메인팩을 준비한 뒤, 시뮬레이션으로 워크플로우 흐름을 확인하세요.</p>
+        <p>
+          상담 로그를 업로드하고 운영 지식팩을 준비한 뒤, 시뮬레이션으로 워크플로우 흐름을
+          확인하세요.
+        </p>
       </div>
       <div className={styles.ctaGrid}>
         <Button asChild variant="default">
@@ -458,7 +462,7 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
         <Button asChild variant="outline">
           <Link to={`/workspaces/${workspaceId}/domain-packs`} data-testid="dashboard-pack-cta">
             <PackagePlusIcon aria-hidden="true" />
-            도메인팩 생성
+            지식팩 생성
           </Link>
         </Button>
         <Button asChild variant="outline">
@@ -562,6 +566,7 @@ export function WorkspaceDashboardPage() {
       <DashboardFilters filters={filters} onChange={setFilters} />
       <FilterSummary filters={filters} />
       <DashboardMetricsGrid metrics={metrics} state={dataState} />
+      <KnowledgePackHealthPanel workspaceId={parsedWorkspaceId} />
       <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} />
 
       <section className={styles.slotGrid} aria-label="대시보드 카드와 차트 배치 영역">
