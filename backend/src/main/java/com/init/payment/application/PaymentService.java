@@ -74,7 +74,10 @@ public class PaymentService {
                       .findCurrentByWorkspaceId(command.workspaceId())
                       .orElseThrow(() -> new SubscriptionNotFoundException(command.workspaceId()));
               Plan plan = requirePlan(subscription.getPlanId());
-              Payment existing = paymentRepository.findByOrderId(command.orderId()).orElse(null);
+              Payment existing =
+                  paymentRepository
+                      .findByWorkspaceIdAndOrderId(command.workspaceId(), command.orderId())
+                      .orElse(null);
               if (existing != null && existing.isDone()) {
                 return new ConfirmContext(existing, plan, subscription.getId(), true);
               }
@@ -97,7 +100,7 @@ public class PaymentService {
             () -> {
               Payment payment =
                   paymentRepository
-                      .findByOrderId(command.orderId())
+                      .findByWorkspaceIdAndOrderId(command.workspaceId(), command.orderId())
                       .orElseGet(
                           () ->
                               Payment.createOrder(
@@ -121,7 +124,7 @@ public class PaymentService {
               } else {
                 payment.markAborted(result.maskedRawJson());
               }
-              return savePayment(payment, command.orderId());
+              return savePayment(payment, command.workspaceId(), command.orderId());
             });
 
     return PaymentResult.from(finalized);
@@ -149,10 +152,16 @@ public class PaymentService {
     if (!isCancelable(loaded)) {
       throw new PaymentCancelNotAllowedException("취소할 수 없는 결제 상태입니다. status=" + loaded.getStatus());
     }
-    if (command.cancelAmount() != null
-        && (command.cancelAmount() <= 0 || command.cancelAmount() > loaded.getAmount())) {
-      throw new PaymentCancelNotAllowedException(
-          "취소 금액이 유효하지 않습니다. cancelAmount=" + command.cancelAmount());
+    if (command.cancelAmount() != null) {
+      long alreadyCanceled = paymentCancelRepository.sumCancelAmountByPaymentId(loaded.getId());
+      long remainingCancelable = loaded.getAmount() - alreadyCanceled;
+      if (command.cancelAmount() <= 0 || command.cancelAmount() > remainingCancelable) {
+        throw new PaymentCancelNotAllowedException(
+            "취소 금액이 유효하지 않습니다. cancelAmount="
+                + command.cancelAmount()
+                + ", remainingCancelable="
+                + remainingCancelable);
+      }
     }
 
     TossPaymentResult result =
@@ -200,11 +209,13 @@ public class PaymentService {
     subscriptionRepository.save(subscription);
   }
 
-  private Payment savePayment(Payment payment, String orderId) {
+  private Payment savePayment(Payment payment, Long workspaceId, String orderId) {
     try {
       return paymentRepository.save(payment);
     } catch (DataIntegrityViolationException ex) {
-      return paymentRepository.findByOrderId(orderId).orElseThrow(() -> ex);
+      return paymentRepository
+          .findByWorkspaceIdAndOrderId(workspaceId, orderId)
+          .orElseThrow(() -> ex);
     }
   }
 

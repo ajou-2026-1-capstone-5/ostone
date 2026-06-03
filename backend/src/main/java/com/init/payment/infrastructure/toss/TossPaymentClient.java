@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -45,7 +44,7 @@ public class TossPaymentClient implements TossPaymentPort {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("authKey", authKey);
     body.put("customerKey", customerKey);
-    JsonNode root = post("/v1/billing/authorizations/issue", body, "billingKey 발급");
+    JsonNode root = post("/v1/billing/authorizations/issue", body, "billingKey 발급", customerKey);
 
     JsonNode card = root.path("card");
     return new TossBillingKeyResult(
@@ -62,7 +61,7 @@ public class TossPaymentClient implements TossPaymentPort {
     body.put("paymentKey", paymentKey);
     body.put("orderId", orderId);
     body.put("amount", amount);
-    JsonNode root = post("/v1/payments/confirm", body, "결제 승인");
+    JsonNode root = post("/v1/payments/confirm", body, "결제 승인", orderId);
     return toPaymentResult(root);
   }
 
@@ -73,7 +72,7 @@ public class TossPaymentClient implements TossPaymentPort {
     body.put("amount", command.amount());
     body.put("orderId", command.orderId());
     body.put("orderName", command.orderName());
-    JsonNode root = post("/v1/billing/" + command.billingKey(), body, "정기결제 실행");
+    JsonNode root = post("/v1/billing/" + command.billingKey(), body, "정기결제 실행", command.orderId());
     return toPaymentResult(root);
   }
 
@@ -85,7 +84,7 @@ public class TossPaymentClient implements TossPaymentPort {
     if (cancelAmount != null) {
       body.put("cancelAmount", cancelAmount);
     }
-    JsonNode root = post("/v1/payments/" + paymentKey + "/cancel", body, "결제 취소");
+    JsonNode root = post("/v1/payments/" + paymentKey + "/cancel", body, "결제 취소", paymentKey);
     return toPaymentResult(root);
   }
 
@@ -105,7 +104,8 @@ public class TossPaymentClient implements TossPaymentPort {
     }
   }
 
-  private JsonNode post(String path, Map<String, Object> body, String action) {
+  private JsonNode post(
+      String path, Map<String, Object> body, String action, String idempotencyKey) {
     try {
       String raw =
           restClient()
@@ -115,7 +115,7 @@ public class TossPaymentClient implements TossPaymentPort {
               .headers(
                   headers -> {
                     headers.setBasicAuth(secretKey(), "");
-                    headers.set(IDEMPOTENCY_KEY_HEADER, UUID.randomUUID().toString());
+                    headers.set(IDEMPOTENCY_KEY_HEADER, idempotencyKey);
                   })
               .body(body)
               .retrieve()

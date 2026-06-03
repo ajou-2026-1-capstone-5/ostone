@@ -97,6 +97,12 @@ public class Payment {
       String orderName,
       String billingPeriodKey,
       String idempotencyKey) {
+    if (billingPeriodKey == null || billingPeriodKey.isBlank()) {
+      throw new IllegalArgumentException("billingPeriodKey must not be blank");
+    }
+    if (idempotencyKey == null || idempotencyKey.isBlank()) {
+      throw new IllegalArgumentException("idempotencyKey must not be blank");
+    }
     Payment payment = baseOrder(workspaceId, subscriptionId, orderId, amount, currency, orderName);
     payment.status = PaymentStatus.IN_PROGRESS;
     payment.billingPeriodKey = billingPeriodKey;
@@ -136,6 +142,9 @@ public class Payment {
       OffsetDateTime approvedAt,
       String receiptUrl,
       String rawResponse) {
+    if (status != PaymentStatus.READY && status != PaymentStatus.IN_PROGRESS) {
+      throw new IllegalStateException("complete() 선행 상태가 올바르지 않습니다: " + status);
+    }
     this.status = PaymentStatus.DONE;
     this.paymentKey = paymentKey;
     this.method = method;
@@ -144,20 +153,29 @@ public class Payment {
     this.rawResponse = rawResponse;
   }
 
-  /** 결제 실패/중단. -> ABORTED. */
+  /** 결제 실패/중단. READY/IN_PROGRESS -> ABORTED. */
   public void markAborted(String rawResponse) {
+    if (status != PaymentStatus.READY && status != PaymentStatus.IN_PROGRESS) {
+      throw new IllegalStateException("markAborted() 선행 상태가 올바르지 않습니다: " + status);
+    }
     this.status = PaymentStatus.ABORTED;
     this.rawResponse = rawResponse;
   }
 
   /** 전액 취소. DONE -> CANCELED. */
   public void markCanceled(String rawResponse) {
+    if (status != PaymentStatus.DONE) {
+      throw new IllegalStateException("markCanceled() 선행 상태가 올바르지 않습니다: " + status);
+    }
     this.status = PaymentStatus.CANCELED;
     this.rawResponse = rawResponse;
   }
 
-  /** 부분 취소. DONE -> PARTIAL_CANCELED. */
+  /** 부분 취소. DONE/PARTIAL_CANCELED -> PARTIAL_CANCELED. */
   public void markPartialCanceled(String rawResponse) {
+    if (status != PaymentStatus.DONE && status != PaymentStatus.PARTIAL_CANCELED) {
+      throw new IllegalStateException("markPartialCanceled() 선행 상태가 올바르지 않습니다: " + status);
+    }
     this.status = PaymentStatus.PARTIAL_CANCELED;
     this.rawResponse = rawResponse;
   }

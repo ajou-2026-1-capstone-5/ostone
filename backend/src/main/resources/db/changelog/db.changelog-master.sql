@@ -1045,3 +1045,9 @@ create table payment.webhook_event (
 insert into payment.plan (plan_key, name, amount, currency, bill_interval, status)
 values ('pro_monthly', 'Pro (Monthly)', 29000, 'KRW', 'MONTH', 'ACTIVE')
 on conflict (plan_key) do nothing;
+
+--changeset init:20260603-add-partial-unique-index-subscription-open
+--comment: Defense-in-depth: prevent duplicate active subscriptions per workspace (V-EC-005)
+create unique index uq_payment_subscription_workspace_open
+    on payment.subscription (workspace_id)
+    where status in ('INCOMPLETE', 'ACTIVE', 'PAST_DUE');

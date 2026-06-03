@@ -173,6 +173,23 @@ class PaymentWebhookServiceTest {
   }
 
   @Test
+  @DisplayName("Payment DB 미존재 시 markProcessed를 건너뛴다 — Toss 재시도 허용 (V-EC-001)")
+  void paymentNotFound_skips_markProcessed() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    given(webhookEventRepository.findByTransmissionId("txn_nr")).willReturn(Optional.empty());
+    given(paymentRepository.findByPaymentKey("pay_nr")).willReturn(Optional.empty());
+    given(tossPaymentPort.getPayment("pay_nr"))
+        .willReturn(
+            new TossPaymentResult("pay_nr", "ord_nr", 29000, "DONE", null, null, null, null, "{}"));
+
+    service.handle(
+        new HandleTossWebhookCommand(SECRET, "txn_nr", "PAYMENT_STATUS", "pay_nr", "{}"));
+
+    verify(webhookEventRepository, never())
+        .findByTransmissionId(org.mockito.ArgumentMatchers.eq("txn_nr__processed"));
+  }
+
+  @Test
   @DisplayName("빈 문자열 시크릿으로 구성된 서비스는 모든 웹훅을 거절한다")
   void emptyConfiguredSecret_throws_unauthorized() {
     PaymentWebhookService serviceWithEmptySecret =

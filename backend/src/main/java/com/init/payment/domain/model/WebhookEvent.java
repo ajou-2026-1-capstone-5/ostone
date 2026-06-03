@@ -50,6 +50,9 @@ public class WebhookEvent {
   }
 
   public void markProcessed(OffsetDateTime processedAt) {
+    if (processedAt == null) {
+      throw new IllegalArgumentException("processedAt must not be null");
+    }
     this.processedAt = processedAt;
   }
 

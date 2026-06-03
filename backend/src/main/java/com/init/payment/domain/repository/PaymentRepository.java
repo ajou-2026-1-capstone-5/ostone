@@ -12,6 +12,8 @@ public interface PaymentRepository {
 
   Optional<Payment> findByOrderId(String orderId);
 
+  Optional<Payment> findByWorkspaceIdAndOrderId(Long workspaceId, String orderId);
+
   Optional<Payment> findByPaymentKey(String paymentKey);
 
   Optional<Payment> findByPaymentKeyAndWorkspaceId(String paymentKey, Long workspaceId);
@@ -20,5 +22,9 @@ public interface PaymentRepository {
 
   /** 동일 주기 결제를 찾는다. 존재 시 재시도는 해당 행을 재사용하여 중복청구를 방지한다 (U-011). */
   Optional<Payment> findBySubscriptionIdAndBillingPeriodKey(
+      Long subscriptionId, String billingPeriodKey);
+
+  /** 동일 주기 결제를 비관적 락으로 조회한다. 동시 스케줄러 중복 실행 방지 (V-EC-002). */
+  Optional<Payment> findBySubscriptionIdAndBillingPeriodKeyForUpdate(
       Long subscriptionId, String billingPeriodKey);
 }

@@ -82,7 +82,7 @@ class RecurringBillingServiceTest {
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
     given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan()));
-    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKey(eq(5L), anyString()))
+    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKeyForUpdate(eq(5L), anyString()))
         .willReturn(Optional.empty());
     given(paymentRepository.save(any()))
         .willAnswer(
@@ -200,7 +200,7 @@ class RecurringBillingServiceTest {
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
     given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan()));
-    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKey(eq(5L), anyString()))
+    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKeyForUpdate(eq(5L), anyString()))
         .willReturn(Optional.of(donePayment));
 
     service.run();
@@ -221,7 +221,7 @@ class RecurringBillingServiceTest {
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
     given(subscriptionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan()));
-    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKey(eq(5L), anyString()))
+    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKeyForUpdate(eq(5L), anyString()))
         .willReturn(Optional.empty());
     given(paymentRepository.save(any()))
         .willAnswer(
@@ -288,7 +288,7 @@ class RecurringBillingServiceTest {
     given(subscriptionRepository.findRetryDue(any())).willReturn(List.of(subscription));
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan()));
-    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKey(eq(5L), anyString()))
+    given(paymentRepository.findBySubscriptionIdAndBillingPeriodKeyForUpdate(eq(5L), anyString()))
         .willReturn(Optional.empty());
     given(paymentRepository.save(any()))
         .willThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate"));

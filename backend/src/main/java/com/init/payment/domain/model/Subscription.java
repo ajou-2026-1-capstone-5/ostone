@@ -80,11 +80,17 @@ public class Subscription {
     if (customerKey == null || customerKey.isBlank()) {
       throw new IllegalArgumentException("customerKey must not be blank");
     }
+    if (this.customerKey != null && !this.customerKey.equals(customerKey)) {
+      throw new IllegalStateException("customerKey를 다른 값으로 재설정할 수 없습니다.");
+    }
     this.customerKey = customerKey;
   }
 
   /** 첫 결제 성공 시 구독 활성화. INCOMPLETE/PAST_DUE -> ACTIVE. */
   public void activate(OffsetDateTime periodStart, OffsetDateTime periodEnd, String customerKey) {
+    if (periodStart == null || periodEnd == null || !periodEnd.isAfter(periodStart)) {
+      throw new IllegalArgumentException("periodEnd는 periodStart 이후여야 합니다.");
+    }
     if (status == SubscriptionStatus.CANCELED) {
       throw new IllegalStateException("취소된 구독은 활성화할 수 없습니다.");
     }
@@ -100,6 +106,9 @@ public class Subscription {
 
   /** 정기결제 성공으로 다음 주기로 갱신. ACTIVE 유지. */
   public void renew(OffsetDateTime periodStart, OffsetDateTime periodEnd) {
+    if (periodStart == null || periodEnd == null || !periodEnd.isAfter(periodStart)) {
+      throw new IllegalArgumentException("periodEnd는 periodStart 이후여야 합니다.");
+    }
     this.status = SubscriptionStatus.ACTIVE;
     this.currentPeriodStart = periodStart;
     this.currentPeriodEnd = periodEnd;
@@ -127,8 +136,8 @@ public class Subscription {
 
   /** 기간말 해지 예약 (U-005). ACTIVE 유지, 기간 종료 시 스케줄러가 해지. */
   public void scheduleCancelAtPeriodEnd() {
-    if (status == SubscriptionStatus.CANCELED) {
-      throw new IllegalStateException("이미 해지된 구독입니다.");
+    if (status != SubscriptionStatus.ACTIVE) {
+      throw new IllegalStateException("기간말 해지 예약은 ACTIVE 구독에만 가능합니다: " + status);
     }
     this.cancelAtPeriodEnd = true;
   }

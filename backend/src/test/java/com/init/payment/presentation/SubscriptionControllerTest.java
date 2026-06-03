@@ -85,7 +85,7 @@ class SubscriptionControllerTest {
             post(BASE_URL + "/subscription")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+                .content("{\"planKey\":\"\"}"))
         .andExpect(status().isBadRequest());
   }
 
@@ -128,7 +128,7 @@ class SubscriptionControllerTest {
             post(BASE_URL + "/billing/authorizations")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"authKey\":\"\"}"))
+                .content("{\"authKey\":\"\",\"customerKey\":\"wsk_1_abc\"}"))
         .andExpect(status().isBadRequest());
   }
 

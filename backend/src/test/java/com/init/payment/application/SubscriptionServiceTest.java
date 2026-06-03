@@ -108,6 +108,28 @@ class SubscriptionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "INCOMPLETE가 아닌 구독에 billingKey 발급 시 ActiveSubscriptionExistsException을 던진다 (V-NEW-003)")
+  void issueBillingKey_nonIncomplete_throws() {
+    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    Subscription activeSubscription = Subscription.create(1L, 10L);
+    activeSubscription.assignCustomerKey("wsk_1_abc");
+    activeSubscription.activate(
+        java.time.OffsetDateTime.parse("2026-05-01T00:00:00Z"),
+        java.time.OffsetDateTime.parse("2026-06-01T00:00:00Z"),
+        "wsk_1_abc");
+    org.springframework.test.util.ReflectionTestUtils.setField(activeSubscription, "id", 5L);
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(activeSubscription));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.issueBillingKey(
+                    new IssueBillingKeyCommand(1L, 99L, "auth_xxx", "wsk_1_abc")))
+        .isInstanceOf(ActiveSubscriptionExistsException.class);
+  }
+
+  @Test
   @DisplayName("billingKey 발급 시 평문은 암호화되어 저장되고 응답에는 마스킹 카드정보만 포함된다 (U-002, U-012)")
   void issueBillingKey_encryptsAndDoesNotExposePlaintext() {
     Subscription subscription = subscription(5L);

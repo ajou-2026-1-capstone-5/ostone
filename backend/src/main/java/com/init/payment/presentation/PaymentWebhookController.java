@@ -38,11 +38,14 @@ public class PaymentWebhookController {
     String eventType = text(root, "eventType");
     String paymentKey = text(data, "paymentKey");
     String status = text(data, "status");
+    String lastTransactionKey = text(data, "lastTransactionKey");
+    String eventId = text(root, "eventId");
 
     paymentWebhookService.handle(
         new HandleTossWebhookCommand(
             webhookSecret,
-            resolveTransmissionId(root, data, paymentKey, status),
+            HandleTossWebhookCommand.resolveTransmissionId(
+                lastTransactionKey, eventId, paymentKey, status, eventType),
             eventType,
             paymentKey,
             TossPayloadMasker.mask(root)));
@@ -58,21 +61,6 @@ public class PaymentWebhookController {
     } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
       throw new BadRequestException("INVALID_WEBHOOK_PAYLOAD", "웹훅 본문이 유효한 JSON이 아닙니다.");
     }
-  }
-
-  /** 멱등 키. Toss transaction key를 우선 사용하고, 없으면 paymentKey:status로 대체한다 (U-003). */
-  private String resolveTransmissionId(
-      JsonNode root, JsonNode data, String paymentKey, String status) {
-    String lastTransactionKey = text(data, "lastTransactionKey");
-    if (lastTransactionKey != null) {
-      return lastTransactionKey;
-    }
-    String eventId = text(root, "eventId");
-    if (eventId != null) {
-      return eventId;
-    }
-    String base = paymentKey != null ? paymentKey : text(root, "eventType");
-    return base + ":" + status;
   }
 
   private static String text(JsonNode node, String field) {

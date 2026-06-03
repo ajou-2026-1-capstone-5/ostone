@@ -95,6 +95,48 @@ class SubscriptionTest {
         .isInstanceOf(IllegalStateException.class);
   }
 
+  @Test
+  @DisplayName("activate/renew에서 기간이 null이거나 순서가 잘못되면 거부한다 (V-NEW-007)")
+  void activate_invalidPeriod_throws() {
+    Subscription subscription = Subscription.create(1L, 10L);
+
+    assertThatThrownBy(() -> subscription.activate(null, END, "ck"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> subscription.activate(START, null, "ck"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> subscription.activate(END, START, "ck"))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    Subscription active = activeSubscription();
+    assertThatThrownBy(() -> active.renew(null, END)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> active.renew(END, START)).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("customerKey를 다른 값으로 재설정하면 거부한다 (V-NEW-006)")
+  void assignCustomerKey_reassign_throws() {
+    Subscription subscription = Subscription.create(1L, 10L);
+    subscription.assignCustomerKey("wsk_1_abc");
+
+    assertThatThrownBy(() -> subscription.assignCustomerKey("wsk_2_different"))
+        .isInstanceOf(IllegalStateException.class);
+
+    subscription.assignCustomerKey("wsk_1_abc");
+  }
+
+  @Test
+  @DisplayName("ACTIVE가 아닌 구독에 scheduleCancelAtPeriodEnd()를 호출하면 거부한다 (V-NEW-008)")
+  void scheduleCancelAtPeriodEnd_nonActive_throws() {
+    Subscription incomplete = Subscription.create(1L, 10L);
+    assertThatThrownBy(incomplete::scheduleCancelAtPeriodEnd)
+        .isInstanceOf(IllegalStateException.class);
+
+    Subscription canceled = activeSubscription();
+    canceled.cancel();
+    assertThatThrownBy(canceled::scheduleCancelAtPeriodEnd)
+        .isInstanceOf(IllegalStateException.class);
+  }
+
   private Subscription activeSubscription() {
     Subscription subscription = Subscription.create(1L, 10L);
     subscription.activate(START, END, "wsk_1_abc");

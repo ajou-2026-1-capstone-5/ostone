@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,12 +61,15 @@ public class PaymentWebhookService {
     }
     ensureReceived(command);
 
+    boolean paymentFound = true;
     if (command.paymentKey() != null && !command.paymentKey().isBlank()) {
       TossPaymentResult authoritative = tossPaymentPort.getPayment(command.paymentKey());
-      reflectAuthoritativeStatus(authoritative);
+      paymentFound = reflectAuthoritativeStatus(authoritative);
     }
 
-    markProcessed(command.transmissionId());
+    if (paymentFound) {
+      markProcessed(command.transmissionId());
+    }
   }
 
   private void validateSecret(String providedSecret) {
@@ -92,12 +96,22 @@ public class PaymentWebhookService {
     }
   }
 
-  private void reflectAuthoritativeStatus(TossPaymentResult authoritative) {
-    transactionTemplate.executeWithoutResult(
-        status ->
-            paymentRepository
-                .findByPaymentKey(authoritative.paymentKey())
-                .ifPresent(payment -> applyStatus(payment, authoritative)));
+  /**
+   * Toss 권위 상태를 Payment에 반영한다.
+   *
+   * @return true: Payment 레코드가 존재하여 반영(또는 반영 불필요)함. false: Payment 미존재 — Toss 재시도를 허용하기 위해
+   *     markProcessed()를 건너뜀.
+   */
+  private boolean reflectAuthoritativeStatus(TossPaymentResult authoritative) {
+    Boolean found =
+        transactionTemplate.execute(
+            status -> {
+              Optional<Payment> optPayment =
+                  paymentRepository.findByPaymentKey(authoritative.paymentKey());
+              optPayment.ifPresent(payment -> applyStatus(payment, authoritative));
+              return optPayment.isPresent();
+            });
+    return Boolean.TRUE.equals(found);
   }
 
   private void applyStatus(Payment payment, TossPaymentResult authoritative) {

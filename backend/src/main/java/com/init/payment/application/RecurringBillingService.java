@@ -159,7 +159,7 @@ public class RecurringBillingService {
       OffsetDateTime periodEnd) {
     Payment existing =
         paymentRepository
-            .findBySubscriptionIdAndBillingPeriodKey(subscriptionId, periodKey)
+            .findBySubscriptionIdAndBillingPeriodKeyForUpdate(subscriptionId, periodKey)
             .orElse(null);
     if (existing != null && existing.isDone()) {
       subscription.renew(periodStart, periodEnd);

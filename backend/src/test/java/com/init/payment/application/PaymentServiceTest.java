@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.init.payment.application.exception.PaymentAmountMismatchException;
+import com.init.payment.application.exception.PaymentCancelNotAllowedException;
+import com.init.payment.application.exception.PaymentNotFoundException;
 import com.init.payment.application.port.TossPaymentPort;
 import com.init.payment.application.port.TossPaymentResult;
 import com.init.payment.domain.model.BillingInterval;
@@ -51,7 +54,9 @@ class PaymentServiceTest {
 
   @BeforeEach
   void setUp() {
-    given(transactionManager.getTransaction(any())).willReturn(new SimpleTransactionStatus());
+    lenient()
+        .when(transactionManager.getTransaction(any()))
+        .thenReturn(new SimpleTransactionStatus());
     paymentService =
         new PaymentService(
             paymentRepository,
@@ -72,7 +77,7 @@ class PaymentServiceTest {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L))
         .willReturn(Optional.of(subscription));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan));
-    given(paymentRepository.findByOrderId("ord_1")).willReturn(Optional.empty());
+    given(paymentRepository.findByWorkspaceIdAndOrderId(1L, "ord_1")).willReturn(Optional.empty());
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
     given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
     given(tossPaymentPort.confirmPayment("pay_1", "ord_1", 29000))
@@ -92,7 +97,7 @@ class PaymentServiceTest {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L))
         .willReturn(Optional.of(subscription));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L, 29000)));
-    given(paymentRepository.findByOrderId("ord_1")).willReturn(Optional.empty());
+    given(paymentRepository.findByWorkspaceIdAndOrderId(1L, "ord_1")).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
@@ -112,13 +117,77 @@ class PaymentServiceTest {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L))
         .willReturn(Optional.of(subscription));
     given(planRepository.findById(10L)).willReturn(Optional.of(plan(10L, 29000)));
-    given(paymentRepository.findByOrderId("ord_1")).willReturn(Optional.of(done));
+    given(paymentRepository.findByWorkspaceIdAndOrderId(1L, "ord_1")).willReturn(Optional.of(done));
 
     PaymentResult result =
         paymentService.confirmPayment(new ConfirmPaymentCommand(1L, 99L, "pay_1", "ord_1", 29000));
 
     assertThat(result.status()).isEqualTo("DONE");
     verify(tossPaymentPort, never()).confirmPayment(any(), any(), anyLong());
+  }
+
+  @Test
+  @DisplayName("전액 취소 시 CANCELED로 기록한다")
+  void cancel_full() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+    ReflectionTestUtils.setField(payment, "id", 7L);
+    given(paymentRepository.findByPaymentKeyAndWorkspaceId("pay_1", 1L))
+        .willReturn(Optional.of(payment));
+    given(paymentRepository.findById(7L)).willReturn(Optional.of(payment));
+    given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(tossPaymentPort.cancelPayment("pay_1", "전액취소", null)).willReturn(canceledResult());
+
+    PaymentResult result =
+        paymentService.cancelPayment(new CancelPaymentCommand(1L, 99L, "pay_1", "전액취소", null));
+
+    assertThat(result.status()).isEqualTo("CANCELED");
+    verify(paymentCancelRepository).save(any());
+  }
+
+  @Test
+  @DisplayName("잔여 취소 가능 금액 초과 시 PaymentCancelNotAllowedException을 던진다 (V-NEW-002)")
+  void cancel_exceedsRemaining_throws() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+    ReflectionTestUtils.setField(payment, "id", 7L);
+    given(paymentRepository.findByPaymentKeyAndWorkspaceId("pay_1", 1L))
+        .willReturn(Optional.of(payment));
+    given(paymentCancelRepository.sumCancelAmountByPaymentId(7L)).willReturn(15000L);
+
+    assertThatThrownBy(
+            () ->
+                paymentService.cancelPayment(
+                    new CancelPaymentCommand(1L, 99L, "pay_1", "고객요청", 20000L)))
+        .isInstanceOf(PaymentCancelNotAllowedException.class);
+    verify(tossPaymentPort, never()).cancelPayment(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("결제를 찾을 수 없으면 cancelPayment 시 PaymentNotFoundException을 던진다")
+  void cancel_paymentNotFound_throws() {
+    given(paymentRepository.findByPaymentKeyAndWorkspaceId("pay_x", 1L))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                paymentService.cancelPayment(
+                    new CancelPaymentCommand(1L, 99L, "pay_x", "고객요청", null)))
+        .isInstanceOf(PaymentNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("결제 목록 조회 시 해당 워크스페이스 결제만 반환한다")
+  void getPayments_returnsWorkspacePayments() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+    given(paymentRepository.findByWorkspaceIdOrderByCreatedAtDesc(1L))
+        .willReturn(java.util.List.of(payment));
+
+    java.util.List<PaymentResult> results = paymentService.getPayments(1L, 99L);
+
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).status()).isEqualTo("DONE");
   }
 
   @Test
@@ -178,5 +247,18 @@ class PaymentServiceTest {
         null,
         "txn_1",
         "{\"status\":\"PARTIAL_CANCELED\"}");
+  }
+
+  private TossPaymentResult canceledResult() {
+    return new TossPaymentResult(
+        "pay_1",
+        "ord_1",
+        29000,
+        "CANCELED",
+        "카드",
+        OffsetDateTime.now(clock),
+        null,
+        "txn_1",
+        "{\"status\":\"CANCELED\"}");
   }
 }

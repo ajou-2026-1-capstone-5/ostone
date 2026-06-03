@@ -125,6 +125,9 @@ public class SubscriptionService {
                 subscriptionRepository
                     .findCurrentByWorkspaceId(command.workspaceId())
                     .orElseThrow(() -> new SubscriptionNotFoundException(command.workspaceId())));
+    if (subscription.getStatus() != SubscriptionStatus.INCOMPLETE) {
+      throw new ActiveSubscriptionExistsException(command.workspaceId());
+    }
     Plan plan = requirePlan(subscription.getPlanId());
     String customerKey = subscription.getCustomerKey();
 
