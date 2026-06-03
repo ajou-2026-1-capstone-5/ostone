@@ -88,7 +88,7 @@ public class RecurringBillingService {
   }
 
   private void chargeSubscription(Long subscriptionId) {
-    ChargePrep prep = inTx(() -> prepareCharge(subscriptionId));
+    ChargePrep prep = inTxNullable(() -> prepareCharge(subscriptionId));
     if (prep == null) {
       return;
     }
@@ -253,6 +253,11 @@ public class RecurringBillingService {
     return Objects.requireNonNull(
         transactionTemplate.execute(status -> callback.get()),
         "inTx callback must not return null");
+  }
+
+  /** prepareCharge처럼 "건너뛰기" 신호로 null을 반환할 수 있는 콜백 전용. inTx와 달리 null을 그대로 통과시킨다. */
+  private <T> T inTxNullable(Supplier<T> callback) {
+    return transactionTemplate.execute(status -> callback.get());
   }
 
   private void inTxRun(Runnable callback) {

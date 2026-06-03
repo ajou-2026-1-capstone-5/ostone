@@ -173,29 +173,22 @@ public class TossPaymentClient implements TossPaymentPort {
     return new PaymentGatewayException("토스페이먼츠 " + action + " 호출에 실패했습니다.", ex);
   }
 
+  // toss.api.* 설정값은 @Validated TossApiProperties(@NotNull api, @NotBlank baseUrl/secretKey)로
+  // 빈 바인딩 시점에 강제되므로 런타임 재검증은 불필요하다.
   private String apiPath(String path) {
-    String baseUrl = properties.api() == null ? null : properties.api().baseUrl();
-    if (baseUrl == null || baseUrl.isBlank()) {
-      throw new PaymentGatewayException("toss.api.base-url이 설정되지 않았습니다.");
-    }
-    return trimTrailingSlashes(baseUrl) + path;
+    return trimTrailingSlashes(properties.api().baseUrl()) + path;
   }
 
   private String secretKey() {
-    String secretKey = properties.api() == null ? null : properties.api().secretKey();
-    if (secretKey == null || secretKey.isBlank()) {
-      throw new PaymentGatewayException("TOSS_SECRET_KEY가 설정되지 않았습니다.");
-    }
-    return secretKey;
+    return properties.api().secretKey();
   }
 
   private static RestClient buildRestClient(TossApiProperties properties) {
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
     TossApiProperties.Api api = properties.api();
     requestFactory.setConnectTimeout(
-        durationOrDefault(api == null ? null : api.connectTimeout(), Duration.ofSeconds(3)));
-    requestFactory.setReadTimeout(
-        durationOrDefault(api == null ? null : api.readTimeout(), Duration.ofSeconds(10)));
+        durationOrDefault(api.connectTimeout(), Duration.ofSeconds(3)));
+    requestFactory.setReadTimeout(durationOrDefault(api.readTimeout(), Duration.ofSeconds(10)));
     return RestClient.builder().requestFactory(requestFactory).build();
   }
 
