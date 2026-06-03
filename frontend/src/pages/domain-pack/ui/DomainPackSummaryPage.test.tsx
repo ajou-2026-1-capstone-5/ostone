@@ -571,8 +571,7 @@ describe("DomainPackSummaryPage", () => {
       2,
       5,
       expect.objectContaining({
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: "변경사항 정리 메모" }),
+        description: "변경사항 정리 메모",
       }),
     );
   });
@@ -598,8 +597,7 @@ describe("DomainPackSummaryPage", () => {
       2,
       5,
       expect.objectContaining({
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: "" }),
+        description: "",
       }),
     );
   });
