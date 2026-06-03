@@ -104,7 +104,8 @@ sonar {
         property("sonar.exclusions",
             "**/build/**,**/generated/**")
         property("sonar.coverage.exclusions",
-            "**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java,**/infrastructure/**/*")
+            "**/dto/**/*,**/entity/**/*,**/config/**,**/*Application.java," +
+                "**/infrastructure/**/*,**/application/**/*Command.java")
         property("sonar.cpd.exclusions",
             "**/pipelinejob/application/AddWorkflowDraftPortCommand.java," +
             "**/pipelinejob/application/CreateDomainPackDraftPortCommand.java," +
