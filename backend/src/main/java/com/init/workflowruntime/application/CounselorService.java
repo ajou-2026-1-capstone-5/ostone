@@ -332,8 +332,7 @@ public class CounselorService {
 
   private void validateOperationalSession(ChatSession session) {
     if (!isOperationalSession(session)) {
-      throw new NotFoundException(
-          "SESSION_NOT_FOUND", "Session not found: " + session.getId());
+      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + session.getId());
     }
   }
 

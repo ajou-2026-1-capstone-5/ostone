@@ -134,7 +134,8 @@ public class SimulationService {
   @Transactional
   public SimulationSessionDetailResponse sendMessage(SendSimulationMessageCommand command) {
     validateWorkspaceMembership(command.workspaceId(), command.userId());
-    ChatSession session = findSimulationSessionForUpdate(command.workspaceId(), command.sessionId());
+    ChatSession session =
+        findSimulationSessionForUpdate(command.workspaceId(), command.sessionId());
     String content = normalizeContent(command.content());
 
     ChatMessage customerMessage = saveMessage(session, CUSTOMER_ROLE, content);
@@ -143,7 +144,8 @@ public class SimulationService {
     String conversationContext = buildConversationContext(session.getId());
     GenerateWorkflowAwareResponseResult generated =
         llmAssistantService.generateWorkflowAwareResponse(
-            new GenerateWorkflowAwareResponseCommand(session.getId(), conversationContext, content));
+            new GenerateWorkflowAwareResponseCommand(
+                session.getId(), conversationContext, content));
     ChatMessage assistantMessage =
         saveMessage(session, ASSISTANT_ROLE, normalizeAssistantContent(generated.content()));
     chatSessionMetadataService.updateAfterMessage(session, assistantMessage);
@@ -223,8 +225,7 @@ public class SimulationService {
     if (!workspaceId.equals(session.getWorkspaceId())
         || !SIMULATION_CHANNEL.equals(session.getChannel())) {
       throw new NotFoundException(
-          "SIMULATION_SESSION_NOT_FOUND",
-          "Simulation session not found: " + session.getId());
+          "SIMULATION_SESSION_NOT_FOUND", "Simulation session not found: " + session.getId());
     }
   }
 
@@ -291,8 +292,7 @@ public class SimulationService {
 
   private DomainPageRequest normalizedPageRequest(int page, int size) {
     int normalizedPage = Math.max(DEFAULT_PAGE, page);
-    int normalizedSize =
-        size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(MAX_PAGE_SIZE, Math.max(1, size));
+    int normalizedSize = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(MAX_PAGE_SIZE, Math.max(1, size));
     return new DomainPageRequest(normalizedPage, normalizedSize);
   }
 
@@ -306,9 +306,7 @@ public class SimulationService {
 
   private String normalizeAssistantContent(String content) {
     String normalized = trimToNull(content);
-    return normalized != null
-        ? normalized
-        : "현재 응답을 생성할 수 없습니다. 입력 내용을 다시 확인해 주세요.";
+    return normalized != null ? normalized : "현재 응답을 생성할 수 없습니다. 입력 내용을 다시 확인해 주세요.";
   }
 
   private String nullToEmpty(String value) {

@@ -73,7 +73,6 @@ public class SimulationController {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(
         simulationService.sendMessage(
-            new SendSimulationMessageCommand(
-                workspaceId, sessionId, userId, request.content())));
+            new SendSimulationMessageCommand(workspaceId, sessionId, userId, request.content())));
   }
 }

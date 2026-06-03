@@ -274,8 +274,7 @@ public class ConsultationService {
 
   private void validateOperationalSession(ChatSession session) {
     if (SIMULATION_CHANNEL.equals(session.getChannel())) {
-      throw new NotFoundException(
-          "SESSION_NOT_FOUND", "Session not found: " + session.getId());
+      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + session.getId());
     }
   }
 }

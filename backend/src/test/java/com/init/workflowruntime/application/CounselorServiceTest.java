@@ -684,8 +684,7 @@ class CounselorServiceTest {
   }
 
   private ChatSession createSimulationSession(Long id, ChatSessionStatus status) {
-    ChatSession session =
-        ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
+    ChatSession session = ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

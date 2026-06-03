@@ -1,9 +1,12 @@
 package com.init.workflowruntime.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.domain.model.DomainPackVersion;
@@ -12,6 +15,8 @@ import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.NotFoundException;
 import com.init.workflowruntime.application.command.CreateSimulationSessionCommand;
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
@@ -27,6 +32,8 @@ import com.init.workflowruntime.domain.ChatMessageRepository;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
+import com.init.workflowruntime.domain.DomainPage;
+import com.init.workflowruntime.domain.DomainPageRequest;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
@@ -98,8 +105,7 @@ class SimulationServiceTest {
 
     SimulationSessionDetailResponse result =
         service.createSession(
-            new CreateSimulationSessionCommand(
-                WORKSPACE_ID, USER_ID, "테스트 고객", null, WORKFLOW_ID));
+            new CreateSimulationSessionCommand(WORKSPACE_ID, USER_ID, "테스트 고객", null, WORKFLOW_ID));
 
     ArgumentCaptor<ChatSession> sessionCaptor = ArgumentCaptor.forClass(ChatSession.class);
     verify(chatSessionRepository).save(sessionCaptor.capture());
@@ -108,6 +114,114 @@ class SimulationServiceTest {
     assertThat(result.session().getChannel()).isEqualTo("SIMULATION");
     verify(llmToolService)
         .selectIntent(new SelectLlmToolIntentCommand(55L, "refund_request", WORKFLOW_ID));
+  }
+
+  @Test
+  @DisplayName("createSession: workflow 선택이 없으면 intent만 선택하고 기본 고객명을 기록한다")
+  void should_createSimulationSession_with_intentOnly() {
+    givenMembership();
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
+    given(chatSessionRepository.save(any(ChatSession.class)))
+        .willAnswer(invocation -> withId(invocation.getArgument(0), 55L));
+    givenDetailDependencies(55L);
+
+    service.createSession(
+        new CreateSimulationSessionCommand(WORKSPACE_ID, USER_ID, "  ", "refund_request", null));
+
+    ArgumentCaptor<ChatSession> sessionCaptor = ArgumentCaptor.forClass(ChatSession.class);
+    verify(chatSessionRepository).save(sessionCaptor.capture());
+    assertThat(sessionCaptor.getValue().getMetaJson()).contains("\"customerName\":\"시뮬레이션 고객\"");
+    assertThat(sessionCaptor.getValue().getMetaJson())
+        .contains("\"selectedWorkflowDefinitionId\":null");
+    verify(llmToolService)
+        .selectIntent(new SelectLlmToolIntentCommand(55L, "refund_request", null));
+    verifyNoInteractions(workflowDefinitionRepository, intentDefinitionRepository);
+  }
+
+  @Test
+  @DisplayName("createSession: 운영 중인 Domain Pack version이 없으면 실패한다")
+  void should_throw_when_currentDomainPackVersionMissing() {
+    givenMembership();
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createSession(
+                    new CreateSimulationSessionCommand(
+                        WORKSPACE_ID, USER_ID, "테스트 고객", null, null)))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("현재 운영 중인 PUBLISHED version");
+  }
+
+  @Test
+  @DisplayName("createSession: 선택 workflow가 현재 version 소속이 아니면 실패한다")
+  void should_throw_when_selectedWorkflowMissing() {
+    givenMembership();
+    given(domainPackVersionRepository.findCurrentPublishedByWorkspaceId(WORKSPACE_ID))
+        .willReturn(Optional.of(DomainPackVersion.ofForTest(VERSION_ID, 20L, "PUBLISHED")));
+    given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(WORKFLOW_ID, VERSION_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.createSession(
+                    new CreateSimulationSessionCommand(
+                        WORKSPACE_ID, USER_ID, "테스트 고객", null, WORKFLOW_ID)))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("WorkflowDefinition not found");
+  }
+
+  @Test
+  @DisplayName("listSessions: SIMULATION 채널 세션만 페이지로 조회한다")
+  void should_listSimulationSessions() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    given(
+            chatSessionRepository.findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+                any(), any(), any()))
+        .willReturn(new DomainPage<>(List.of(session), 0, 100, 1, 1));
+
+    var result = service.listSessions(WORKSPACE_ID, USER_ID, -1, 200);
+
+    assertThat(result.content()).hasSize(1);
+    assertThat(result.page()).isZero();
+    assertThat(result.size()).isEqualTo(100);
+    ArgumentCaptor<DomainPageRequest> pageCaptor = ArgumentCaptor.forClass(DomainPageRequest.class);
+    verify(chatSessionRepository)
+        .findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+            eq(WORKSPACE_ID), eq("SIMULATION"), pageCaptor.capture());
+    assertThat(pageCaptor.getValue().page()).isZero();
+    assertThat(pageCaptor.getValue().size()).isEqualTo(100);
+  }
+
+  @Test
+  @DisplayName("getSession: simulation 세션 상세를 반환한다")
+  void should_getSimulationSessionDetail() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+    givenDetailDependencies(55L);
+
+    SimulationSessionDetailResponse result = service.getSession(WORKSPACE_ID, 55L, USER_ID);
+
+    assertThat(result.session().getId()).isEqualTo(55L);
+    assertThat(result.matchedWorkflow().workflowDefinitionId()).isEqualTo(WORKFLOW_ID);
+  }
+
+  @Test
+  @DisplayName("getSession: simulation 채널이 아니면 찾을 수 없는 세션으로 처리한다")
+  void should_throw_when_gettingNonSimulationSession() {
+    givenMembership();
+    ChatSession session =
+        withId(
+            ChatSession.create(WORKSPACE_ID, VERSION_ID, ChatSessionStatus.OPEN, "WEB", "{}"), 55L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(() -> service.getSession(WORKSPACE_ID, 55L, USER_ID))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Simulation session not found");
   }
 
   @Test
@@ -140,6 +254,69 @@ class SimulationServiceTest {
     verify(chatSessionMetadataService).updateAfterMessage(session, assistantMessage);
     verify(llmAssistantService)
         .generateWorkflowAwareResponse(any(GenerateWorkflowAwareResponseCommand.class));
+  }
+
+  @Test
+  @DisplayName("sendMessage: 빈 고객 메시지는 거절한다")
+  void should_throw_when_messageContentBlank() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    given(chatSessionRepository.findByIdForUpdate(55L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(
+            () ->
+                service.sendMessage(
+                    new SendSimulationMessageCommand(WORKSPACE_ID, 55L, USER_ID, "  ")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("content is required");
+  }
+
+  @Test
+  @DisplayName("sendMessage: 종료된 simulation 세션에는 메시지를 보낼 수 없다")
+  void should_throw_when_sessionNotOpenOrActive() {
+    givenMembership();
+    ChatSession session =
+        withId(
+            ChatSession.create(
+                WORKSPACE_ID, VERSION_ID, ChatSessionStatus.COMPLETED, "SIMULATION", "{}"),
+            55L);
+    given(chatSessionRepository.findByIdForUpdate(55L)).willReturn(Optional.of(session));
+
+    assertThatThrownBy(
+            () ->
+                service.sendMessage(
+                    new SendSimulationMessageCommand(WORKSPACE_ID, 55L, USER_ID, "환불 상태 알려주세요")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("not open or active");
+  }
+
+  @Test
+  @DisplayName("sendMessage: assistant 응답이 비어 있으면 fallback 응답을 저장한다")
+  void should_useFallbackAssistantContent_when_generatedContentBlank() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    ChatMessage previous = withMessageId(message(55L, 1, "USER", "이전 문의"), 1L);
+    ChatMessage customerMessage = withMessageId(message(55L, 2, "USER", "환불 상태 알려주세요"), 2L);
+    ChatMessage assistantMessage = withMessageId(message(55L, 3, "ASSISTANT", "fallback"), 3L);
+    given(chatSessionRepository.findByIdForUpdate(55L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findTopByChatSessionIdOrderBySeqNoDesc(55L))
+        .willReturn(Optional.of(previous), Optional.of(customerMessage));
+    given(chatMessageRepository.save(any(ChatMessage.class)))
+        .willReturn(customerMessage, assistantMessage);
+    given(chatMessageRepository.findTop5ByChatSessionIdOrderBySeqNoDesc(55L))
+        .willReturn(List.of(customerMessage, previous));
+    given(
+            llmAssistantService.generateWorkflowAwareResponse(
+                any(GenerateWorkflowAwareResponseCommand.class)))
+        .willReturn(new GenerateWorkflowAwareResponseResult(" "));
+    givenDetailDependencies(55L);
+
+    service.sendMessage(
+        new SendSimulationMessageCommand(WORKSPACE_ID, 55L, USER_ID, "환불 상태 알려주세요"));
+
+    ArgumentCaptor<ChatMessage> messageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+    verify(chatMessageRepository, org.mockito.Mockito.times(2)).save(messageCaptor.capture());
+    assertThat(messageCaptor.getAllValues().get(1).getContent()).contains("현재 응답을 생성할 수 없습니다");
   }
 
   private void givenMembership() {
