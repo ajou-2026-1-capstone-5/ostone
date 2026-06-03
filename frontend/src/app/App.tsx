@@ -16,6 +16,7 @@ import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
 import { UserChatPage } from "../pages/user-chat";
 import { DemoPage } from "../pages/demo";
 import { AdminLayout } from "../pages/admin/ui/AdminLayout";
+import { AdminCustomersPage } from "../pages/admin/ui/AdminCustomersPage";
 import { AdminPlaceholderPage } from "../pages/admin/ui/AdminPlaceholderPage";
 import { AdminSuperAdminsPage } from "../pages/admin/ui/AdminSuperAdminsPage";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
@@ -87,7 +88,7 @@ export function App() {
           <Route index element={<Navigate to="super-admins" replace />} />
           <Route
             path="customers"
-            element={<AdminPlaceholderPage eyebrow="Customers" title="고객사 현황" />}
+            element={<AdminCustomersPage />}
           />
           <Route
             path="billing"
