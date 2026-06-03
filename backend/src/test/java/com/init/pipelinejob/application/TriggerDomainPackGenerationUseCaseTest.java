@@ -112,6 +112,32 @@ class TriggerDomainPackGenerationUseCaseTest {
   }
 
   @Test
+  @DisplayName("admin retry command는 workspace role 검사 없이 원본 object key와 retry 관계를 기록한다")
+  void execute_adminRetry_usesProvidedObjectKey() {
+    given(workspaceMembershipPort.existsById(1L)).willReturn(true);
+    given(datasetOwnershipPort.existsByIdAndWorkspaceId(7L, 1L)).willReturn(true);
+    given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
+        .willReturn(Optional.empty());
+    given(triggerPort.trigger(any()))
+        .willReturn(
+            new DomainPackGenerationTriggerResult("domain_pack_generation", "pipeline_job_123"));
+
+    TriggerDomainPackGenerationResult result =
+        useCase.execute(
+            TriggerDomainPackGenerationCommand.adminRetry(
+                1L, 7L, 99L, "workspaces/1/datasets/7/raw.json", 11L));
+
+    assertThat(result.status()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    assertThat(savedJob.get().getRetriedFromJobId()).isEqualTo(11L);
+    assertThat(savedJob.get().getRequestPayloadJson()).contains("\"requestedBy\":99");
+    assertThat(savedJob.get().getRequestPayloadJson()).contains("\"runMode\":\"RETRY\"");
+    assertThat(savedJob.get().getRequestPayloadJson())
+        .contains("\"objectKey\":\"workspaces/1/datasets/7/raw.json\"");
+    verify(workspaceMembershipPort, never()).hasAnyRole(any(), any(), any());
+    verify(datasetRawFileLookupPort, never()).findLatestObjectKeyByDatasetId(any());
+  }
+
+  @Test
   @DisplayName("workspace role이 부족하면 403 예외를 던진다")
   void execute_reviewer_throwsAccessDenied() {
     given(workspaceMembershipPort.existsById(1L)).willReturn(true);

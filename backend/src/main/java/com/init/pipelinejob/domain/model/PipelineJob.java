@@ -84,6 +84,9 @@ public class PipelineJob {
   @Column(name = "last_error_message")
   private String lastErrorMessage;
 
+  @Column(name = "retried_from_job_id")
+  private Long retriedFromJobId;
+
   protected PipelineJob() {}
 
   public static PipelineJob create(
@@ -116,6 +119,17 @@ public class PipelineJob {
       Long triggeredBy,
       String requestPayloadJson,
       OffsetDateTime requestedAt) {
+    return createDomainPackGeneration(
+        workspaceId, datasetId, triggeredBy, requestPayloadJson, requestedAt, null);
+  }
+
+  public static PipelineJob createDomainPackGeneration(
+      Long workspaceId,
+      Long datasetId,
+      Long triggeredBy,
+      String requestPayloadJson,
+      OffsetDateTime requestedAt,
+      Long retriedFromJobId) {
     Objects.requireNonNull(datasetId, "datasetId must not be null");
     PipelineJob pipelineJob =
         create(
@@ -127,6 +141,7 @@ public class PipelineJob {
             requestedAt);
     pipelineJob.datasetId = datasetId;
     pipelineJob.triggeredBy = triggeredBy;
+    pipelineJob.retriedFromJobId = retriedFromJobId;
     return pipelineJob;
   }
 
@@ -307,5 +322,9 @@ public class PipelineJob {
 
   public String getLastErrorMessage() {
     return lastErrorMessage;
+  }
+
+  public Long getRetriedFromJobId() {
+    return retriedFromJobId;
   }
 }

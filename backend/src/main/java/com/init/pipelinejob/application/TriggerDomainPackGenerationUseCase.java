@@ -107,14 +107,15 @@ public class TriggerDomainPackGenerationUseCase {
                   });
 
           String dagId = triggerPort.dagId();
-          String objectKey = resolveRawFileObjectKey(command.datasetId());
+          String objectKey = resolveRawFileObjectKey(command);
           PipelineJob job =
               PipelineJob.createDomainPackGeneration(
                   command.workspaceId(),
                   command.datasetId(),
                   command.userId(),
                   "{}",
-                  OffsetDateTime.now(clock));
+                  OffsetDateTime.now(clock),
+                  command.retriedFromPipelineJobId());
           PipelineJob savedJob = pipelineJobRepository.saveAndFlush(job);
           String dagRunId = "pipeline_job_" + savedJob.getId();
           savedJob.assignAirflowRun(
@@ -129,8 +130,9 @@ public class TriggerDomainPackGenerationUseCase {
       throw new PipelineJobWorkspaceNotFoundException(
           "Workspace를 찾을 수 없습니다. id=" + command.workspaceId());
     }
-    if (!workspaceMembershipPort.hasAnyRole(
-        command.workspaceId(), command.userId(), ALLOWED_ROLES)) {
+    if (command.enforceWorkspaceRole()
+        && !workspaceMembershipPort.hasAnyRole(
+            command.workspaceId(), command.userId(), ALLOWED_ROLES)) {
       throw new PipelineJobWorkspaceAccessDeniedException("Domain Pack Generation 실행 권한이 없습니다.");
     }
     if (!datasetOwnershipPort.existsByIdAndWorkspaceId(
@@ -139,13 +141,17 @@ public class TriggerDomainPackGenerationUseCase {
     }
   }
 
-  private String resolveRawFileObjectKey(Long datasetId) {
+  private String resolveRawFileObjectKey(TriggerDomainPackGenerationCommand command) {
+    if (command.rawFileObjectKey() != null && !command.rawFileObjectKey().isBlank()) {
+      return command.rawFileObjectKey();
+    }
     return datasetRawFileLookupPort
-        .findLatestObjectKeyByDatasetId(datasetId)
+        .findLatestObjectKeyByDatasetId(command.datasetId())
         .orElseThrow(
             () ->
                 new NotFoundException(
-                    "RAW_FILE_NOT_FOUND", "Dataset raw file을 찾을 수 없습니다. datasetId=" + datasetId));
+                    "RAW_FILE_NOT_FOUND",
+                    "Dataset raw file을 찾을 수 없습니다. datasetId=" + command.datasetId()));
   }
 
   private void markFailed(Long pipelineJobId, String errorMessage) {
@@ -175,7 +181,12 @@ public class TriggerDomainPackGenerationUseCase {
     payload.put("airflowRunId", dagRunId);
     payload.put("requestedBy", command.userId());
     payload.put("objectKey", objectKey);
-    payload.put("runMode", "INITIAL");
+    if (command.retriedFromPipelineJobId() != null) {
+      payload.put("runMode", "RETRY");
+      payload.put("retriedFromPipelineJobId", command.retriedFromPipelineJobId());
+    } else {
+      payload.put("runMode", "INITIAL");
+    }
     try {
       return objectMapper.writeValueAsString(payload);
     } catch (JsonProcessingException ex) {

@@ -635,6 +635,14 @@ alter table pack.domain_pack_version add column version bigint not null default 
 --comment: Add optimistic locking version column to pipeline.pipeline_job
 alter table pipeline.pipeline_job add column version bigint not null default 0;
 
+--changeset init:20260603-add-pipeline-job-retry-relation
+--comment: Track admin-triggered retry source pipeline job
+alter table pipeline.pipeline_job
+    add column retried_from_job_id bigint references pipeline.pipeline_job(id);
+
+create index idx_pipeline_job_retried_from
+    on pipeline.pipeline_job(retried_from_job_id);
+
 --changeset devjhan:20260406-add-password-hash-to-app-user
 --comment: Add password_hash column as nullable initially (safe for non-empty tables)
 alter table app.app_user add column password_hash varchar(255);
