@@ -6,6 +6,7 @@ import com.init.pipelinejob.application.exception.PipelineJobNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -17,12 +18,15 @@ public class ReceivePipelineJobFailureCallbackUseCase {
 
   private final PipelineJobRepository pipelineJobRepository;
   private final PipelineJobCallbackSupportService callbackSupportService;
+  private final WorkspaceFreeOnboardingService freeOnboardingService;
 
   public ReceivePipelineJobFailureCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
-      PipelineJobCallbackSupportService callbackSupportService) {
+      PipelineJobCallbackSupportService callbackSupportService,
+      WorkspaceFreeOnboardingService freeOnboardingService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.callbackSupportService = callbackSupportService;
+    this.freeOnboardingService = freeOnboardingService;
   }
 
   public ReceivePipelineJobFailureCallbackResult execute(
@@ -72,11 +76,17 @@ public class ReceivePipelineJobFailureCallbackUseCase {
     String resultStatus = "PROCESSED";
     if (job.isFailed()) {
       resultStatus = "IGNORED_ALREADY_FAILED";
+      freeOnboardingService.consumeForFinalPipelineJob(
+          job.getWorkspaceId(), job.getId(), job.isFinalized());
     } else if (job.isCancelled()) {
       resultStatus = "IGNORED_CANCELLED";
+      freeOnboardingService.consumeForFinalPipelineJob(
+          job.getWorkspaceId(), job.getId(), job.isFinalized());
     } else {
       job.markFailed(command.message(), command.occurredAt());
       callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
+      freeOnboardingService.consumeForFinalPipelineJob(
+          job.getWorkspaceId(), job.getId(), job.isFinalized());
     }
 
     callbackSupportService.markReceiptProcessed(

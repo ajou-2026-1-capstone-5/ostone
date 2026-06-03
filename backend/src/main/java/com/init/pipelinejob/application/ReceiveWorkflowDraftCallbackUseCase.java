@@ -13,6 +13,7 @@ import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,6 +32,7 @@ public class ReceiveWorkflowDraftCallbackUseCase {
   private final DomainPackVersionPort domainPackVersionPort;
   private final ObjectMapper objectMapper;
   private final PipelineJobCallbackSupportService callbackSupportService;
+  private final WorkspaceFreeOnboardingService freeOnboardingService;
 
   public ReceiveWorkflowDraftCallbackUseCase(
       PipelineJobRepository pipelineJobRepository,
@@ -38,13 +40,15 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       AddWorkflowDraftPort addWorkflowDraftPort,
       DomainPackVersionPort domainPackVersionPort,
       ObjectMapper objectMapper,
-      PipelineJobCallbackSupportService callbackSupportService) {
+      PipelineJobCallbackSupportService callbackSupportService,
+      WorkspaceFreeOnboardingService freeOnboardingService) {
     this.pipelineJobRepository = pipelineJobRepository;
     this.pipelineArtifactRepository = pipelineArtifactRepository;
     this.addWorkflowDraftPort = addWorkflowDraftPort;
     this.domainPackVersionPort = domainPackVersionPort;
     this.objectMapper = objectMapper;
     this.callbackSupportService = callbackSupportService;
+    this.freeOnboardingService = freeOnboardingService;
   }
 
   public ReceiveWorkflowDraftCallbackResult execute(ReceiveWorkflowDraftCallbackCommand command) {
@@ -125,6 +129,10 @@ public class ReceiveWorkflowDraftCallbackUseCase {
       job.markRunning(summaryJson);
     }
     callbackSupportService.savePipelineJobOrThrowConflict(job, command.jobId());
+    if (job.isFinalized()) {
+      freeOnboardingService.consumeForFinalPipelineJob(
+          job.getWorkspaceId(), job.getId(), job.isFinalized());
+    }
     callbackSupportService.markReceiptProcessed(command.externalEventId(), now);
 
     return ReceiveWorkflowDraftCallbackResult.created(

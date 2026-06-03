@@ -58,9 +58,12 @@ public class JdbcWorkspaceQuotaRepository implements WorkspaceQuotaQueryPort {
         jdbcClient
             .sql(
                 """
-                SELECT COALESCE(MAX(first_creation_allowance_remaining), 0) > 0
-                  FROM payment.free_onboarding_entitlement
-                 WHERE workspace_id = :workspaceId
+                SELECT EXISTS (
+                    SELECT 1
+                      FROM app.workspace
+                     WHERE id = :workspaceId
+                       AND free_onboarding_status IN ('AVAILABLE', 'IN_PROGRESS')
+                )
                 """)
             .param("workspaceId", workspaceId)
             .query(Boolean.class)

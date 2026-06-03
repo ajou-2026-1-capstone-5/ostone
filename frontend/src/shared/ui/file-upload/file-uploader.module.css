@@ -10,7 +10,6 @@
   padding: 40px;
   background: #ffffff;
   cursor: pointer;
-  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
 }
@@ -29,6 +28,20 @@
 .uploaderBox.dragging {
   border-color: rgba(0, 0, 0, 0.2);
   background: rgba(0, 0, 0, 0.05);
+}
+
+.disabledBox,
+.disabledBox:hover {
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+  transform: none;
+}
+
+.disabledBox .iconWrapper,
+.disabledBox:hover .iconWrapper {
+  background: rgba(0, 0, 0, 0.05);
+  transform: none;
 }
 
 .hiddenInput {
@@ -76,7 +89,7 @@
 
 .title {
   font-size: 1.1rem;
-  letter-spacing: -0.14px;
+  letter-spacing: 0;
   font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-color);
@@ -90,7 +103,7 @@
 
 .mutedText {
   font-size: 0.9rem;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   color: var(--text-muted);
   margin-bottom: 24px;
 }
@@ -150,7 +163,7 @@
 
 .progressText {
   font-size: 0.9rem;
-  letter-spacing: -0.1px;
+  letter-spacing: 0;
   font-weight: 600;
   color: #000000;
 }

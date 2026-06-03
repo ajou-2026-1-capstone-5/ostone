@@ -1084,3 +1084,19 @@ create table payment.free_onboarding_entitlement (
     updated_at                         timestamptz not null default now(),
     constraint chk_free_onboarding_allowance_remaining check (first_creation_allowance_remaining >= 0)
 );
+
+--changeset init:20260604-add-workspace-free-onboarding
+--comment: Track one-time free onboarding entitlement on each workspace
+alter table app.workspace
+    add column free_onboarding_status varchar(50) not null default 'AVAILABLE',
+    add column free_onboarding_dataset_id bigint references corpus.dataset(id),
+    add column free_onboarding_pipeline_job_id bigint references pipeline.pipeline_job(id),
+    add column free_onboarding_started_at timestamptz,
+    add column free_onboarding_consumed_at timestamptz;
+
+alter table app.workspace
+    add constraint chk_workspace_free_onboarding_status
+    check (free_onboarding_status in ('AVAILABLE', 'IN_PROGRESS', 'CONSUMED'));
+
+create index idx_workspace_free_onboarding_pipeline_job
+    on app.workspace(free_onboarding_pipeline_job_id);

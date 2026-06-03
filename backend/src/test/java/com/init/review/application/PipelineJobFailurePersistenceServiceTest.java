@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,12 +19,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 class PipelineJobFailurePersistenceServiceTest {
 
   @Mock private PipelineJobRepository pipelineJobRepository;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   @Test
   @DisplayName("mark failed updates job state and flushes it")
   void markFailed_updatesJobStateAndFlushes() {
     PipelineJobFailurePersistenceService service =
-        new PipelineJobFailurePersistenceService(pipelineJobRepository);
+        new PipelineJobFailurePersistenceService(pipelineJobRepository, freeOnboardingService);
     OffsetDateTime now = OffsetDateTime.parse("2026-06-01T01:00:00Z");
     PipelineJob job = PipelineJob.createDomainPackGeneration(1L, 3L, 9L, "{}", now.minusHours(1));
     ReflectionTestUtils.setField(job, "id", 7L);
@@ -33,5 +35,6 @@ class PipelineJobFailurePersistenceServiceTest {
     assertThat(job.getStatus()).isEqualTo(PipelineJob.STATUS_FAILED);
     assertThat(job.getLastErrorMessage()).isEqualTo("airflow offline");
     verify(pipelineJobRepository).saveAndFlush(job);
+    verify(freeOnboardingService).consumeForFinalPipelineJob(1L, 7L, true);
   }
 }

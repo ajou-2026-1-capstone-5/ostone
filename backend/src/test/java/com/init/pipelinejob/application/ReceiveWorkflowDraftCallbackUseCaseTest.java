@@ -19,6 +19,7 @@ import com.init.pipelinejob.domain.model.WebhookReceipt;
 import com.init.pipelinejob.domain.repository.PipelineArtifactRepository;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
 import com.init.pipelinejob.domain.repository.WebhookReceiptRepository;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Instant;
@@ -48,6 +49,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
   @Mock private AddWorkflowDraftPort addWorkflowDraftPort;
   @Mock private DomainPackVersionPort domainPackVersionPort;
   @Mock private PlatformTransactionManager transactionManager;
+  @Mock private WorkspaceFreeOnboardingService freeOnboardingService;
 
   private ReceiveWorkflowDraftCallbackUseCase useCase;
   private final Clock fixedClock =
@@ -71,7 +73,9 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
                 webhookReceiptRepository,
                 fixedClock,
                 transactionManager,
-                "secret-123"));
+                "secret-123",
+                freeOnboardingService),
+            freeOnboardingService);
   }
 
   @Test
@@ -99,6 +103,7 @@ class ReceiveWorkflowDraftCallbackUseCaseTest {
     assertThat(job.getFinishedAt()).isEqualTo(OffsetDateTime.now(fixedClock));
     assertThat(job.getResultSummaryJson()).contains("\"addedWorkflowCount\":1");
     assertThat(receipt.getProcessingStatus()).isEqualTo(WebhookReceipt.STATUS_PROCESSED);
+    verify(freeOnboardingService).consumeForFinalPipelineJob(3L, 11L, true);
   }
 
   @Test

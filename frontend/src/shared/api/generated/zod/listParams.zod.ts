@@ -4,7 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import { z as zod } from "zod";
+import { z as zod } from 'zod';
 
 export const listParamsPageDefault = 0;
 export const listParamsPageMin = 0;
@@ -14,15 +14,16 @@ export const listParamsSizeMax = 100;
 
 export const listParamsLagThresholdSecondsDefault = 300;
 
+
 export const ListParams = zod.object({
-  status: zod.string().optional(),
-  workspaceId: zod.number().optional(),
-  dagId: zod.string().optional(),
-  runId: zod.string().optional(),
-  page: zod.number().min(listParamsPageMin).default(listParamsPageDefault),
-  size: zod.number().min(1).max(listParamsSizeMax).default(listParamsSizeDefault),
-  lagThresholdSeconds: zod.number().min(1).default(listParamsLagThresholdSecondsDefault),
-});
+  "status": zod.string().optional(),
+  "workspaceId": zod.number().optional(),
+  "dagId": zod.string().optional(),
+  "runId": zod.string().optional(),
+  "page": zod.number().min(listParamsPageMin).default(listParamsPageDefault),
+  "size": zod.number().min(1).max(listParamsSizeMax).default(listParamsSizeDefault),
+  "lagThresholdSeconds": zod.number().min(1).default(listParamsLagThresholdSecondsDefault)
+})
 
 export type ListParams = zod.input<typeof ListParams>;
 export type ListParamsOutput = zod.output<typeof ListParams>;

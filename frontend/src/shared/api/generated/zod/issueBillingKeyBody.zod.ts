@@ -8,9 +8,10 @@ import { z as zod } from 'zod';
 
 
 
+
 export const IssueBillingKeyBody = zod.object({
   "authKey": zod.string().min(1).optional(),
-  "customerKey": zod.string().optional()
+  "customerKey": zod.string().min(1).optional()
 })
 
 export type IssueBillingKeyBody = zod.input<typeof IssueBillingKeyBody>;

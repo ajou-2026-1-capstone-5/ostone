@@ -160,8 +160,9 @@ class JpaConsultationMetricsRepositoryTest {
   private Long persistWorkspaceAndVersion() {
     update(
         """
-        insert into app.workspace (id, workspace_key, name, status, created_at, updated_at)
-        values (2, 'consultation-metrics', 'Consultation Metrics', 'ACTIVE', :now, :now)
+        insert into app.workspace
+          (id, workspace_key, name, status, free_onboarding_status, created_at, updated_at)
+        values (2, 'consultation-metrics', 'Consultation Metrics', 'ACTIVE', 'AVAILABLE', :now, :now)
         """,
         Map.of("now", PERIOD_START));
     update(

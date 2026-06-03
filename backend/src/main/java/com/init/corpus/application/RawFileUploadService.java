@@ -15,6 +15,7 @@ import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import com.init.shared.application.quota.WorkspaceQuotaValidator;
+import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,6 +52,7 @@ public class RawFileUploadService {
   private final IngestionTriggerPort triggerPort;
   private final ObjectMapper objectMapper;
   private final WorkspaceQuotaValidator workspaceQuotaValidator;
+  private final WorkspaceFreeOnboardingService freeOnboardingService;
 
   public RawFileUploadService(
       WorkspaceExistenceRepository workspaceExistenceRepository,
@@ -61,7 +63,8 @@ public class RawFileUploadService {
       DatasetRawFileRepository rawFileRepository,
       IngestionTriggerPort triggerPort,
       ObjectMapper objectMapper,
-      WorkspaceQuotaValidator workspaceQuotaValidator) {
+      WorkspaceQuotaValidator workspaceQuotaValidator,
+      WorkspaceFreeOnboardingService freeOnboardingService) {
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
     this.datasetRepository = datasetRepository;
@@ -71,6 +74,7 @@ public class RawFileUploadService {
     this.triggerPort = triggerPort;
     this.objectMapper = objectMapper;
     this.workspaceQuotaValidator = workspaceQuotaValidator;
+    this.freeOnboardingService = freeOnboardingService;
   }
 
   @Transactional
@@ -88,6 +92,7 @@ public class RawFileUploadService {
         command.workspaceId(), command.datasetKey())) {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
+    freeOnboardingService.assertCanUploadRawFile(command.workspaceId());
     workspaceQuotaValidator.assertDatasetUploadAllowed(command.workspaceId());
     validateZipFile(command.fileBytes());
 
@@ -125,6 +130,7 @@ public class RawFileUploadService {
               command.sizeBytes(),
               checksum);
       rawFileRepository.save(rawFile);
+      freeOnboardingService.claimUploadIfNeeded(command.workspaceId(), uploadResult.datasetId());
 
       result =
           new RawFileUploadResult(

@@ -32,6 +32,22 @@ public class Workspace {
   @Column(nullable = false)
   private WorkspaceStatus status;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "free_onboarding_status", nullable = false)
+  private FreeOnboardingStatus freeOnboardingStatus = FreeOnboardingStatus.AVAILABLE;
+
+  @Column(name = "free_onboarding_dataset_id")
+  private Long freeOnboardingDatasetId;
+
+  @Column(name = "free_onboarding_pipeline_job_id")
+  private Long freeOnboardingPipelineJobId;
+
+  @Column(name = "free_onboarding_started_at")
+  private OffsetDateTime freeOnboardingStartedAt;
+
+  @Column(name = "free_onboarding_consumed_at")
+  private OffsetDateTime freeOnboardingConsumedAt;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
@@ -52,6 +68,7 @@ public class Workspace {
     workspace.name = name;
     workspace.description = description;
     workspace.status = WorkspaceStatus.ACTIVE;
+    workspace.freeOnboardingStatus = FreeOnboardingStatus.AVAILABLE;
     return workspace;
   }
 
@@ -67,6 +84,77 @@ public class Workspace {
       throw new IllegalStateException("이미 보관된 워크스페이스입니다.");
     }
     this.status = WorkspaceStatus.ARCHIVED;
+  }
+
+  public boolean canStartFreeOnboarding() {
+    return getFreeOnboardingStatus() == FreeOnboardingStatus.AVAILABLE;
+  }
+
+  public boolean isFreeOnboardingInProgressForDataset(Long datasetId) {
+    return getFreeOnboardingStatus() == FreeOnboardingStatus.IN_PROGRESS
+        && freeOnboardingDatasetId != null
+        && freeOnboardingDatasetId.equals(datasetId);
+  }
+
+  public void startFreeOnboarding(Long datasetId, OffsetDateTime startedAt) {
+    if (datasetId == null) {
+      throw new IllegalArgumentException("datasetId must not be null");
+    }
+    if (startedAt == null) {
+      throw new IllegalArgumentException("startedAt must not be null");
+    }
+    if (!canStartFreeOnboarding()) {
+      throw new IllegalStateException("무료 온보딩을 시작할 수 없는 상태입니다: " + getFreeOnboardingStatus());
+    }
+    this.freeOnboardingStatus = FreeOnboardingStatus.IN_PROGRESS;
+    this.freeOnboardingDatasetId = datasetId;
+    this.freeOnboardingPipelineJobId = null;
+    this.freeOnboardingStartedAt = startedAt;
+    this.freeOnboardingConsumedAt = null;
+  }
+
+  public void attachFreeOnboardingPipelineJob(Long datasetId, Long pipelineJobId) {
+    if (datasetId == null) {
+      throw new IllegalArgumentException("datasetId must not be null");
+    }
+    if (pipelineJobId == null) {
+      throw new IllegalArgumentException("pipelineJobId must not be null");
+    }
+    if (!isFreeOnboardingInProgressForDataset(datasetId)) {
+      throw new IllegalStateException("무료 온보딩 대상 dataset이 아닙니다.");
+    }
+    if (freeOnboardingPipelineJobId != null && !freeOnboardingPipelineJobId.equals(pipelineJobId)) {
+      throw new IllegalStateException("무료 온보딩 pipeline job이 이미 연결되어 있습니다.");
+    }
+    this.freeOnboardingPipelineJobId = pipelineJobId;
+  }
+
+  public boolean consumeFreeOnboarding(Long pipelineJobId, OffsetDateTime consumedAt) {
+    if (pipelineJobId == null) {
+      return false;
+    }
+    if (consumedAt == null) {
+      throw new IllegalArgumentException("consumedAt must not be null");
+    }
+    if (getFreeOnboardingStatus() == FreeOnboardingStatus.CONSUMED) {
+      return false;
+    }
+    if (getFreeOnboardingStatus() != FreeOnboardingStatus.IN_PROGRESS
+        || freeOnboardingPipelineJobId == null
+        || !freeOnboardingPipelineJobId.equals(pipelineJobId)) {
+      return false;
+    }
+    this.freeOnboardingStatus = FreeOnboardingStatus.CONSUMED;
+    this.freeOnboardingConsumedAt = consumedAt;
+    return true;
+  }
+
+  public void restoreFreeOnboarding() {
+    this.freeOnboardingStatus = FreeOnboardingStatus.AVAILABLE;
+    this.freeOnboardingDatasetId = null;
+    this.freeOnboardingPipelineJobId = null;
+    this.freeOnboardingStartedAt = null;
+    this.freeOnboardingConsumedAt = null;
   }
 
   @PrePersist
@@ -99,6 +187,26 @@ public class Workspace {
 
   public WorkspaceStatus getStatus() {
     return status;
+  }
+
+  public FreeOnboardingStatus getFreeOnboardingStatus() {
+    return freeOnboardingStatus != null ? freeOnboardingStatus : FreeOnboardingStatus.AVAILABLE;
+  }
+
+  public Long getFreeOnboardingDatasetId() {
+    return freeOnboardingDatasetId;
+  }
+
+  public Long getFreeOnboardingPipelineJobId() {
+    return freeOnboardingPipelineJobId;
+  }
+
+  public OffsetDateTime getFreeOnboardingStartedAt() {
+    return freeOnboardingStartedAt;
+  }
+
+  public OffsetDateTime getFreeOnboardingConsumedAt() {
+    return freeOnboardingConsumedAt;
   }
 
   public OffsetDateTime getCreatedAt() {
