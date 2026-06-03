@@ -38,7 +38,8 @@ class TossPayloadMaskerTest {
   @Test
   @DisplayName("billingKey 필드를 ***로 마스킹한다")
   void mask_removes_billingKey() throws Exception {
-    String result = TossPayloadMasker.mask(json("{\"billingKey\":\"bk_test_abc\",\"amount\":1000}"));
+    String result =
+        TossPayloadMasker.mask(json("{\"billingKey\":\"bk_test_abc\",\"amount\":1000}"));
     assertThat(result).contains("\"billingKey\":\"***\"");
     assertThat(result).doesNotContain("bk_test_abc");
     assertThat(result).contains("\"amount\":1000");
@@ -63,8 +64,7 @@ class TossPayloadMaskerTest {
   @Test
   @DisplayName("number 필드는 마지막 4자리만 남긴다")
   void mask_pan_preserves_last_four_digits() throws Exception {
-    String result =
-        TossPayloadMasker.mask(json("{\"card\":{\"number\":\"1234-5678-9012-3456\"}}"));
+    String result = TossPayloadMasker.mask(json("{\"card\":{\"number\":\"1234-5678-9012-3456\"}}"));
     assertThat(result).contains("3456");
     assertThat(result).doesNotContain("1234-5678-9012");
   }
@@ -89,8 +89,7 @@ class TossPayloadMaskerTest {
   @Test
   @DisplayName("민감하지 않은 필드는 그대로 보존한다")
   void mask_preserves_non_sensitive_fields() throws Exception {
-    String result =
-        TossPayloadMasker.mask(json("{\"orderId\":\"ord_123\",\"totalAmount\":29000}"));
+    String result = TossPayloadMasker.mask(json("{\"orderId\":\"ord_123\",\"totalAmount\":29000}"));
     assertThat(result).contains("\"orderId\":\"ord_123\"");
     assertThat(result).contains("\"totalAmount\":29000");
   }

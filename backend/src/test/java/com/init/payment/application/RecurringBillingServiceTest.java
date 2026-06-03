@@ -266,7 +266,8 @@ class RecurringBillingServiceTest {
     subscription.scheduleCancelAtPeriodEnd();
     ReflectionTestUtils.setField(subscription, "id", 5L);
 
-    given(subscriptionRepository.findExpiringCancellations(any())).willReturn(List.of(subscription));
+    given(subscriptionRepository.findExpiringCancellations(any()))
+        .willReturn(List.of(subscription));
     given(subscriptionRepository.findChargeable(any())).willReturn(List.of());
     given(subscriptionRepository.findRetryDue(any())).willReturn(List.of());
     given(subscriptionRepository.findById(5L)).willReturn(Optional.of(subscription));
