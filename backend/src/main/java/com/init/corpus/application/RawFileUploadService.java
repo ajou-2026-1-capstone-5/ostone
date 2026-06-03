@@ -14,6 +14,7 @@ import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,6 +50,7 @@ public class RawFileUploadService {
   private final DatasetRawFileRepository rawFileRepository;
   private final IngestionTriggerPort triggerPort;
   private final ObjectMapper objectMapper;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
 
   public RawFileUploadService(
       WorkspaceExistenceRepository workspaceExistenceRepository,
@@ -58,7 +60,8 @@ public class RawFileUploadService {
       RawDatasetUploadService rawDatasetUploadService,
       DatasetRawFileRepository rawFileRepository,
       IngestionTriggerPort triggerPort,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      WorkspaceQuotaValidator workspaceQuotaValidator) {
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
     this.datasetRepository = datasetRepository;
@@ -67,6 +70,7 @@ public class RawFileUploadService {
     this.rawFileRepository = rawFileRepository;
     this.triggerPort = triggerPort;
     this.objectMapper = objectMapper;
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
   }
 
   @Transactional
@@ -84,6 +88,7 @@ public class RawFileUploadService {
         command.workspaceId(), command.datasetKey())) {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
+    workspaceQuotaValidator.assertDatasetUploadAllowed(command.workspaceId());
     validateZipFile(command.fileBytes());
 
     // 2. Build objectKey and compute SHA-256 checksum (U-06: Assumption adopted from Recommended

@@ -25,6 +25,8 @@ import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +52,7 @@ class RawFileUploadServiceTest {
   @Mock private RawDatasetUploadService rawDatasetUploadService;
   @Mock private DatasetRawFileRepository rawFileRepository;
   @Mock private IngestionTriggerPort triggerPort;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
 
   private RawFileUploadService service;
 
@@ -71,7 +74,8 @@ class RawFileUploadServiceTest {
             rawDatasetUploadService,
             rawFileRepository,
             triggerPort,
-            new ObjectMapper());
+            new ObjectMapper(),
+            workspaceQuotaValidator);
   }
 
   @Test
@@ -112,6 +116,36 @@ class RawFileUploadServiceTest {
     verify(rawDatasetUploadService).upload(any());
     verify(rawFileRepository).save(any());
     verify(triggerPort).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("quota 초과 시 S3 업로드 전에 차단한다")
+  void upload_quotaExceeded_doesNotPutFile() {
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-key")).willReturn(false);
+    willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3))
+        .given(workspaceQuotaValidator)
+        .assertDatasetUploadAllowed(1L);
+
+    byte[] zipBytes = validZipBytes();
+    RawFileUploadCommand command =
+        new RawFileUploadCommand(
+            1L,
+            "test-key",
+            "테스트",
+            "CRM",
+            1L,
+            zipBytes,
+            "test.zip",
+            "application/zip",
+            (long) zipBytes.length);
+
+    assertThatThrownBy(() -> service.upload(command)).isInstanceOf(QuotaExceededException.class);
+
+    verify(storagePort, never()).put(anyString(), any(), anyString());
+    verify(rawDatasetUploadService, never()).upload(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
   }
 
   @Test

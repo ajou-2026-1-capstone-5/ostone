@@ -41,6 +41,15 @@ public class Plan {
   @Column(name = "status", nullable = false)
   private String status;
 
+  @Column(name = "member_limit", nullable = false)
+  private int memberLimit;
+
+  @Column(name = "dataset_upload_limit", nullable = false)
+  private int datasetUploadLimit;
+
+  @Column(name = "pipeline_run_limit", nullable = false)
+  private int pipelineRunLimit;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
@@ -69,6 +78,9 @@ public class Plan {
     plan.currency = money.currency();
     plan.billingInterval = billingInterval;
     plan.status = STATUS_ACTIVE;
+    plan.memberLimit = 10;
+    plan.datasetUploadLimit = 10;
+    plan.pipelineRunLimit = 10;
     return plan;
   }
 
@@ -114,6 +126,18 @@ public class Plan {
 
   public String getStatus() {
     return status;
+  }
+
+  public int getMemberLimit() {
+    return memberLimit;
+  }
+
+  public int getDatasetUploadLimit() {
+    return datasetUploadLimit;
+  }
+
+  public int getPipelineRunLimit() {
+    return pipelineRunLimit;
   }
 
   public OffsetDateTime getCreatedAt() {

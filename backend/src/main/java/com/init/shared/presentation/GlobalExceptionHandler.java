@@ -8,8 +8,10 @@ import com.init.shared.application.exception.InternalException;
 import com.init.shared.application.exception.InvalidCredentialsException;
 import com.init.shared.application.exception.InvalidTokenException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.shared.application.exception.QuotaExceededException;
 import com.init.shared.application.exception.UnauthorizedException;
 import com.init.shared.presentation.dto.ErrorResponse;
+import com.init.shared.presentation.dto.QuotaExceededErrorResponse;
 import com.init.shared.presentation.dto.ValidationErrorResponse;
 import java.util.List;
 import java.util.Objects;
@@ -68,6 +70,14 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
+  }
+
+  @ExceptionHandler(QuotaExceededException.class)
+  public ResponseEntity<QuotaExceededErrorResponse> handleQuotaExceeded(QuotaExceededException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(
+            new QuotaExceededErrorResponse(
+                ex.getCode(), ex.getMessage(), ex.getResource(), ex.getLimit(), ex.getUsed()));
   }
 
   @ExceptionHandler(DuplicateException.class)

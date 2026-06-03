@@ -8,6 +8,8 @@ public record ConsultationMetricsSessionFact(
     OffsetDateTime firstResponseAt,
     OffsetDateTime firstLlmResponseAt,
     OffsetDateTime firstHumanResponseAt,
-    boolean handledToday,
+    boolean startedInPeriod,
+    boolean handledInPeriod,
+    boolean unresolvedInPeriod,
     boolean hasLlmMessage,
     boolean hasHumanMessage) {}

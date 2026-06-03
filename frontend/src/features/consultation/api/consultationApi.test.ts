@@ -558,9 +558,24 @@ describe("consultationApi", () => {
       workspaceId: 2,
       periodStart: "2026-05-27T00:00:00+09:00",
       periodEnd: "2026-05-28T00:00:00+09:00",
+      totalConsultationCount: 20,
+      completedConsultationCount: 14,
       averageFirstResponseSeconds: 134,
       averageLlmFirstResponseSeconds: 3,
       averageHumanFirstResponseSeconds: 420,
+      llmHandledCount: 9,
+      humanInterventionCount: 5,
+      unresolvedSessionCount: 2,
+      comparison: {
+        totalConsultationCountChangeRate: 25,
+        completedConsultationCountChangeRate: 16.7,
+        averageFirstResponseSecondsChangeRate: -10,
+        averageLlmFirstResponseSecondsChangeRate: null,
+        averageHumanFirstResponseSecondsChangeRate: 5,
+        llmHandledCountChangeRate: 12.5,
+        humanInterventionCountChangeRate: 0,
+        unresolvedSessionCountChangeRate: null,
+      },
       handledTodayCount: 14,
       llmHandledTodayCount: 9,
       humanHandledTodayCount: 5,
@@ -576,6 +591,42 @@ describe("consultationApi", () => {
     expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/metrics", {
       method: "GET",
     });
+    expect(result).toEqual(stubMetrics);
+  });
+
+  it("getMetrics가 기간 파라미터를 쿼리스트링으로 전달한다", async () => {
+    const stubMetrics = {
+      workspaceId: 2,
+      periodStart: "2026-05-21T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      totalConsultationCount: 8,
+      completedConsultationCount: 6,
+      averageFirstResponseSeconds: 90,
+      averageLlmFirstResponseSeconds: 4,
+      averageHumanFirstResponseSeconds: 300,
+      llmHandledCount: 5,
+      humanInterventionCount: 1,
+      unresolvedSessionCount: 2,
+      comparison: null,
+      handledTodayCount: 6,
+      llmHandledTodayCount: 5,
+      humanHandledTodayCount: 1,
+    };
+    mockedCustomFetch.mockResolvedValue({
+      data: stubMetrics,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getMetrics(2, {
+      from: "2026-05-21",
+      to: "2026-05-27",
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/consultation/metrics?from=2026-05-21&to=2026-05-27",
+      { method: "GET" },
+    );
     expect(result).toEqual(stubMetrics);
   });
 });

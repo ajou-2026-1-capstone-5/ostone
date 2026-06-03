@@ -16,6 +16,7 @@ import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -56,7 +57,17 @@ class ConsultationMetricsServiceTest {
     given(consultationMetricsRepository.findSessionFacts(WORKSPACE_ID, periodStart(), periodEnd()))
         .willReturn(
             List.of(
-                fact(1L, base, base.plusSeconds(3), base.plusSeconds(3), null, true, true, false),
+                fact(
+                    1L,
+                    base,
+                    base.plusSeconds(3),
+                    base.plusSeconds(3),
+                    null,
+                    true,
+                    true,
+                    false,
+                    true,
+                    false),
                 fact(
                     2L,
                     base,
@@ -64,6 +75,8 @@ class ConsultationMetricsServiceTest {
                     null,
                     base.plusSeconds(420),
                     true,
+                    true,
+                    false,
                     false,
                     true),
                 fact(
@@ -74,6 +87,35 @@ class ConsultationMetricsServiceTest {
                     base.plusSeconds(300),
                     true,
                     true,
+                    false,
+                    true,
+                    true)));
+    given(
+            consultationMetricsRepository.findSessionFacts(
+                WORKSPACE_ID, previousStart(), periodStart()))
+        .willReturn(
+            List.of(
+                fact(
+                    4L,
+                    base.minusDays(1),
+                    base.minusDays(1).plusSeconds(4),
+                    base.minusDays(1).plusSeconds(4),
+                    null,
+                    true,
+                    true,
+                    false,
+                    true,
+                    false),
+                fact(
+                    5L,
+                    base.minusDays(1),
+                    base.minusDays(1).plusSeconds(600),
+                    null,
+                    base.minusDays(1).plusSeconds(600),
+                    true,
+                    true,
+                    false,
+                    false,
                     true)));
 
     ConsultationMetricsResponse response =
@@ -82,12 +124,72 @@ class ConsultationMetricsServiceTest {
     assertThat(response.workspaceId()).isEqualTo(WORKSPACE_ID);
     assertThat(response.periodStart()).isEqualTo(periodStart());
     assertThat(response.periodEnd()).isEqualTo(periodEnd());
+    assertThat(response.totalConsultationCount()).isEqualTo(3);
+    assertThat(response.completedConsultationCount()).isEqualTo(3);
     assertThat(response.averageFirstResponseSeconds()).isEqualTo(142L);
     assertThat(response.averageLlmFirstResponseSeconds()).isEqualTo(3L);
     assertThat(response.averageHumanFirstResponseSeconds()).isEqualTo(360L);
+    assertThat(response.llmHandledCount()).isEqualTo(1);
+    assertThat(response.humanInterventionCount()).isEqualTo(2);
+    assertThat(response.unresolvedSessionCount()).isZero();
+    assertThat(response.comparison().totalConsultationCountChangeRate()).isEqualTo(50.0);
+    assertThat(response.comparison().completedConsultationCountChangeRate()).isEqualTo(50.0);
+    assertThat(response.comparison().averageFirstResponseSecondsChangeRate()).isEqualTo(-53.0);
     assertThat(response.handledTodayCount()).isEqualTo(3);
     assertThat(response.llmHandledTodayCount()).isEqualTo(1);
     assertThat(response.humanHandledTodayCount()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("요청 기간이 있으면 해당 기간과 전 기간을 같은 일수로 집계한다")
+  void should_useRequestedPeriod_when_datesAreProvided() {
+    LocalDate from = LocalDate.parse("2026-05-21");
+    LocalDate to = LocalDate.parse("2026-05-27");
+    OffsetDateTime start = OffsetDateTime.parse("2026-05-21T00:00:00+09:00");
+    OffsetDateTime end = OffsetDateTime.parse("2026-05-28T00:00:00+09:00");
+    OffsetDateTime previousStart = OffsetDateTime.parse("2026-05-14T00:00:00+09:00");
+    OffsetDateTime base = OffsetDateTime.parse("2026-05-21T09:00:00+09:00");
+    givenMember();
+    given(consultationMetricsRepository.findSessionFacts(WORKSPACE_ID, start, end))
+        .willReturn(
+            List.of(
+                fact(
+                    1L,
+                    base,
+                    base.plusSeconds(10),
+                    base.plusSeconds(10),
+                    null,
+                    true,
+                    true,
+                    false,
+                    true,
+                    false),
+                fact(2L, base.plusHours(1), null, null, null, true, false, true, false, false)));
+    given(consultationMetricsRepository.findSessionFacts(WORKSPACE_ID, previousStart, start))
+        .willReturn(
+            List.of(
+                fact(
+                    3L,
+                    base.minusDays(7),
+                    base.minusDays(7).plusSeconds(20),
+                    base.minusDays(7).plusSeconds(20),
+                    null,
+                    true,
+                    true,
+                    false,
+                    true,
+                    false)));
+
+    ConsultationMetricsResponse response =
+        service.getWorkspaceMetrics(
+            new GetWorkspaceMetricsCommand(WORKSPACE_ID, USER_ID, from, to));
+
+    assertThat(response.periodStart()).isEqualTo(start);
+    assertThat(response.periodEnd()).isEqualTo(end);
+    assertThat(response.totalConsultationCount()).isEqualTo(2);
+    assertThat(response.completedConsultationCount()).isEqualTo(1);
+    assertThat(response.unresolvedSessionCount()).isEqualTo(1);
+    assertThat(response.comparison().unresolvedSessionCountChangeRate()).isNull();
   }
 
   @Test
@@ -98,8 +200,12 @@ class ConsultationMetricsServiceTest {
     given(consultationMetricsRepository.findSessionFacts(WORKSPACE_ID, periodStart(), periodEnd()))
         .willReturn(
             List.of(
-                fact(1L, null, null, null, null, false, true, false),
-                fact(2L, base, null, null, null, false, false, false)));
+                fact(1L, null, null, null, null, true, false, true, true, false),
+                fact(2L, base, null, null, null, true, false, true, false, false)));
+    given(
+            consultationMetricsRepository.findSessionFacts(
+                WORKSPACE_ID, previousStart(), periodStart()))
+        .willReturn(List.of());
 
     ConsultationMetricsResponse response =
         service.getWorkspaceMetrics(new GetWorkspaceMetricsCommand(WORKSPACE_ID, USER_ID));
@@ -108,6 +214,8 @@ class ConsultationMetricsServiceTest {
     assertThat(response.averageLlmFirstResponseSeconds()).isNull();
     assertThat(response.averageHumanFirstResponseSeconds()).isNull();
     assertThat(response.handledTodayCount()).isZero();
+    assertThat(response.totalConsultationCount()).isEqualTo(2);
+    assertThat(response.unresolvedSessionCount()).isEqualTo(2);
     assertThat(response.llmHandledTodayCount()).isZero();
     assertThat(response.humanHandledTodayCount()).isZero();
   }
@@ -140,13 +248,19 @@ class ConsultationMetricsServiceTest {
     return OffsetDateTime.parse("2026-05-28T00:00:00+09:00");
   }
 
+  private OffsetDateTime previousStart() {
+    return OffsetDateTime.parse("2026-05-26T00:00:00+09:00");
+  }
+
   private ConsultationMetricsSessionFact fact(
       Long sessionId,
       OffsetDateTime firstCustomerAt,
       OffsetDateTime firstResponseAt,
       OffsetDateTime firstLlmResponseAt,
       OffsetDateTime firstHumanResponseAt,
-      boolean handledToday,
+      boolean startedInPeriod,
+      boolean handledInPeriod,
+      boolean unresolvedInPeriod,
       boolean hasLlmMessage,
       boolean hasHumanMessage) {
     return new ConsultationMetricsSessionFact(
@@ -155,7 +269,9 @@ class ConsultationMetricsServiceTest {
         firstResponseAt,
         firstLlmResponseAt,
         firstHumanResponseAt,
-        handledToday,
+        startedInPeriod,
+        handledInPeriod,
+        unresolvedInPeriod,
         hasLlmMessage,
         hasHumanMessage);
   }

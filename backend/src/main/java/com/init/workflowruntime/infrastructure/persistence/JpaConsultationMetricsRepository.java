@@ -43,7 +43,8 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
                 cs.meta_json
               from runtime.chat_session cs
               where cs.workspace_id = :workspaceId
-                and cs.channel <> 'SIMULATION'
+                and upper(cs.channel) not in ('DEMO', 'DEMO_WEB', 'SIMULATION', 'SIMULATION_WEB')
+                and upper(cs.channel) not like 'SIMULATION%'
                 and (
                   (cs.started_at >= :periodStart and cs.started_at < :periodEnd)
                   or (cs.ended_at >= :periodStart and cs.ended_at < :periodEnd and cs.status = 'COMPLETED')
@@ -105,7 +106,12 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
               ) as has_human_message,
               ss.status,
               ss.started_at,
-              ss.meta_json
+              ss.meta_json,
+              (
+                ss.status in ('OPEN', 'ACTIVE')
+                and ss.started_at >= :periodStart
+                and ss.started_at < :periodEnd
+              ) as unresolved_in_period
             from scoped_sessions ss
             left join first_customer fc on fc.session_id = ss.id
             """);
@@ -126,7 +132,9 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
       Object[] row, OffsetDateTime periodStart, OffsetDateTime periodEnd) {
     boolean handledToday =
         toBoolean(row[5]) || isResolvedToday(row[8], row[10], periodStart, periodEnd);
-    if (!isInPeriod(toOffsetDateTime(row[9]), periodStart, periodEnd) && !handledToday) {
+    boolean startedInPeriod = isInPeriod(toOffsetDateTime(row[9]), periodStart, periodEnd);
+    boolean unresolvedInPeriod = toBoolean(row[11]);
+    if (!startedInPeriod && !handledToday && !unresolvedInPeriod) {
       return null;
     }
     return new ConsultationMetricsSessionFact(
@@ -135,7 +143,9 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
         toOffsetDateTime(row[2]),
         toOffsetDateTime(row[3]),
         toOffsetDateTime(row[4]),
+        startedInPeriod,
         handledToday,
+        unresolvedInPeriod,
         toBoolean(row[6]),
         toBoolean(row[7]));
   }

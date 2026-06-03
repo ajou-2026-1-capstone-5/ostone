@@ -29,6 +29,8 @@ import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
 import com.init.fixtures.Fixtures;
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +53,7 @@ class RawDatasetUploadServiceTest {
   @Mock private ConversationTurnRepository conversationTurnRepository;
   @Mock private WorkspaceExistenceRepository workspaceExistenceRepository;
   @Mock private WorkspaceMembershipRepository workspaceMembershipRepository;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
   @Mock private PlatformTransactionManager transactionManager;
 
   private RawDatasetUploadService service;
@@ -68,6 +71,7 @@ class RawDatasetUploadServiceTest {
             conversationTurnRepository,
             workspaceExistenceRepository,
             workspaceMembershipRepository,
+            workspaceQuotaValidator,
             new ObjectMapper(),
             transactionManager);
   }
@@ -111,6 +115,25 @@ class RawDatasetUploadServiceTest {
     // when & then
     assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
         .isInstanceOf(DatasetKeyConflictException.class);
+
+    verify(datasetRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("quota 초과 → QuotaExceededException, DB write 없음")
+  void should_QuotaExceededException발생_when_quota초과() {
+    // given
+    given(workspaceExistenceRepository.existsById(1L)).willReturn(true);
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    given(datasetRepository.existsByWorkspaceIdAndDatasetKey(1L, "test-dataset-key"))
+        .willReturn(false);
+    willThrow(new QuotaExceededException("DATASET_UPLOAD", 3, 3))
+        .given(workspaceQuotaValidator)
+        .assertDatasetUploadAllowed(1L);
+
+    // when & then
+    assertThatThrownBy(() -> service.upload(Fixtures.rawDatasetUploadCommand(1L, 1L)))
+        .isInstanceOf(QuotaExceededException.class);
 
     verify(datasetRepository, never()).save(any());
   }

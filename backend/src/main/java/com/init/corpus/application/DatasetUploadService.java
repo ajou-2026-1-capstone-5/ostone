@@ -14,6 +14,7 @@ import com.init.corpus.domain.repository.ConversationTurnRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,18 +32,21 @@ public class DatasetUploadService {
   private final ConversationTurnRepository conversationTurnRepository;
   private final WorkspaceExistenceRepository workspaceExistenceRepository;
   private final WorkspaceMembershipRepository workspaceMembershipRepository;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
 
   public DatasetUploadService(
       DatasetRepository datasetRepository,
       ConversationRepository conversationRepository,
       ConversationTurnRepository conversationTurnRepository,
       WorkspaceExistenceRepository workspaceExistenceRepository,
-      WorkspaceMembershipRepository workspaceMembershipRepository) {
+      WorkspaceMembershipRepository workspaceMembershipRepository,
+      WorkspaceQuotaValidator workspaceQuotaValidator) {
     this.datasetRepository = datasetRepository;
     this.conversationRepository = conversationRepository;
     this.conversationTurnRepository = conversationTurnRepository;
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
   }
 
   @Transactional
@@ -59,6 +63,7 @@ public class DatasetUploadService {
         command.workspaceId(), command.datasetKey())) {
       throw new DatasetKeyConflictException("이미 사용 중인 데이터셋 키입니다: " + command.datasetKey());
     }
+    workspaceQuotaValidator.assertDatasetUploadAllowed(command.workspaceId());
 
     Dataset dataset =
         Dataset.create(
