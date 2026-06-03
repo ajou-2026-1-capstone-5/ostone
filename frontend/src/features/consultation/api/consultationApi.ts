@@ -59,12 +59,34 @@ export interface ConsultationMetrics {
   workspaceId: number;
   periodStart: string;
   periodEnd: string;
+  totalConsultationCount: number;
+  completedConsultationCount: number;
   averageFirstResponseSeconds: number | null;
   averageLlmFirstResponseSeconds: number | null;
   averageHumanFirstResponseSeconds: number | null;
+  llmHandledCount: number;
+  humanInterventionCount: number;
+  unresolvedSessionCount: number;
+  comparison: ConsultationMetricsComparison | null;
   handledTodayCount: number;
   llmHandledTodayCount: number;
   humanHandledTodayCount: number;
+}
+
+export interface ConsultationMetricsComparison {
+  totalConsultationCountChangeRate: number | null;
+  completedConsultationCountChangeRate: number | null;
+  averageFirstResponseSecondsChangeRate: number | null;
+  averageLlmFirstResponseSecondsChangeRate: number | null;
+  averageHumanFirstResponseSecondsChangeRate: number | null;
+  llmHandledCountChangeRate: number | null;
+  humanInterventionCountChangeRate: number | null;
+  unresolvedSessionCountChangeRate: number | null;
+}
+
+export interface ConsultationMetricsParams {
+  from?: string;
+  to?: string;
 }
 
 export interface DraftResponse {
@@ -296,9 +318,17 @@ export const consultationApi = {
     return requireApiData<ChatSession>(response, "AI 응대 모드 변경 응답을 확인할 수 없습니다.");
   },
 
-  getMetrics: async (workspaceId: number): Promise<ConsultationMetrics> => {
+  getMetrics: async (
+    workspaceId: number,
+    params: ConsultationMetricsParams = {},
+  ): Promise<ConsultationMetrics> => {
+    const searchParams = new URLSearchParams();
+    if (params.from) searchParams.set("from", params.from);
+    if (params.to) searchParams.set("to", params.to);
+    const query = searchParams.toString();
+    const url = `/api/v1/workspaces/${workspaceId}/consultation/metrics${query ? `?${query}` : ""}`;
     const response = await customFetch<ConsultationMetrics | { data?: ConsultationMetrics }>(
-      `/api/v1/workspaces/${workspaceId}/consultation/metrics`,
+      url,
       { method: "GET" },
     );
     return requireApiData<ConsultationMetrics>(response, "상담 지표 응답을 확인할 수 없습니다.");

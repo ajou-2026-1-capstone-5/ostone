@@ -10,6 +10,7 @@ import com.init.workflowruntime.application.ConsultationMetricsService;
 import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -48,9 +49,15 @@ class ConsultationMetricsControllerTest {
                 2L,
                 OffsetDateTime.parse("2026-05-27T00:00:00+09:00"),
                 OffsetDateTime.parse("2026-05-28T00:00:00+09:00"),
+                20,
+                14,
                 134L,
                 3L,
                 420L,
+                9,
+                5,
+                2,
+                null,
                 14,
                 9,
                 5));
@@ -59,12 +66,54 @@ class ConsultationMetricsControllerTest {
         .perform(get("/api/v1/workspaces/2/consultation/metrics").principal(auth()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.workspaceId").value(2))
+        .andExpect(jsonPath("$.totalConsultationCount").value(20))
+        .andExpect(jsonPath("$.completedConsultationCount").value(14))
         .andExpect(jsonPath("$.averageFirstResponseSeconds").value(134))
         .andExpect(jsonPath("$.averageLlmFirstResponseSeconds").value(3))
         .andExpect(jsonPath("$.averageHumanFirstResponseSeconds").value(420))
+        .andExpect(jsonPath("$.llmHandledCount").value(9))
+        .andExpect(jsonPath("$.humanInterventionCount").value(5))
+        .andExpect(jsonPath("$.unresolvedSessionCount").value(2))
         .andExpect(jsonPath("$.handledTodayCount").value(14))
         .andExpect(jsonPath("$.llmHandledTodayCount").value(9))
         .andExpect(jsonPath("$.humanHandledTodayCount").value(5));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/workspaces/{workspaceId}/consultation/metrics - 기간 파라미터 전달")
+  void should_passPeriodToService_when_dateQueryParamsExist() throws Exception {
+    given(
+            consultationMetricsService.getWorkspaceMetrics(
+                new GetWorkspaceMetricsCommand(
+                    2L, 7L, LocalDate.parse("2026-05-21"), LocalDate.parse("2026-05-27"))))
+        .willReturn(
+            new ConsultationMetricsResponse(
+                2L,
+                OffsetDateTime.parse("2026-05-21T00:00:00+09:00"),
+                OffsetDateTime.parse("2026-05-28T00:00:00+09:00"),
+                8,
+                6,
+                90L,
+                4L,
+                300L,
+                5,
+                1,
+                2,
+                null,
+                6,
+                5,
+                1));
+
+    mockMvc
+        .perform(
+            get("/api/v1/workspaces/2/consultation/metrics")
+                .queryParam("from", "2026-05-21")
+                .queryParam("to", "2026-05-27")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.periodStart").value("2026-05-21T00:00:00+09:00"))
+        .andExpect(jsonPath("$.periodEnd").value("2026-05-28T00:00:00+09:00"))
+        .andExpect(jsonPath("$.totalConsultationCount").value(8));
   }
 
   @Test
@@ -88,8 +137,14 @@ class ConsultationMetricsControllerTest {
                 2L,
                 OffsetDateTime.parse("2026-05-27T00:00:00+09:00"),
                 OffsetDateTime.parse("2026-05-28T00:00:00+09:00"),
+                0,
+                0,
                 null,
                 null,
+                null,
+                0,
+                0,
+                0,
                 null,
                 0,
                 0,

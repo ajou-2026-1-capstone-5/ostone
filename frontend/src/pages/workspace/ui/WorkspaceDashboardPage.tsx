@@ -7,7 +7,10 @@ import {
   PackagePlusIcon,
   RefreshCwIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { consultationApi } from "@/features/consultation/api/consultationApi";
+import type { ConsultationMetrics } from "@/features/consultation/api/consultationApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -20,6 +23,7 @@ import styles from "./workspace-dashboard-page.module.css";
 
 type DashboardPeriod = "today" | "7d" | "30d" | "custom";
 type DashboardDataState = "loading" | "error" | "empty" | "partial";
+type MetricValue = number | null | undefined;
 
 interface DashboardFilters {
   period: DashboardPeriod;
@@ -38,6 +42,14 @@ interface FilterOption<T extends string = string> {
 interface DashboardStatePanelProps {
   state: DashboardDataState;
   workspaceId: number;
+}
+
+interface DashboardMetricCardProps {
+  label: string;
+  value: string;
+  delta?: number | null;
+  description: string;
+  state: DashboardDataState;
 }
 
 const PERIOD_OPTIONS: Array<FilterOption<DashboardPeriod>> = [
@@ -77,6 +89,31 @@ const INITIAL_FILTERS: DashboardFilters = {
   workflowStatus: "all",
 };
 
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildMetricDateRange(filters: DashboardFilters): { from?: string; to?: string } {
+  if (filters.period === "custom") {
+    return filters.customFrom && filters.customTo
+      ? { from: filters.customFrom, to: filters.customTo }
+      : {};
+  }
+
+  const today = new Date();
+  const from = new Date(today);
+  if (filters.period === "7d") {
+    from.setDate(today.getDate() - 6);
+  }
+  if (filters.period === "30d") {
+    from.setDate(today.getDate() - 29);
+  }
+  return { from: toDateInputValue(from), to: toDateInputValue(today) };
+}
+
 function getOptionLabel(options: FilterOption[], value: string): string {
   return options.find((option) => option.value === value)?.label ?? value;
 }
@@ -110,6 +147,133 @@ function FilterSummary({ filters }: { filters: DashboardFilters }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+function formatCount(value: MetricValue, state: DashboardDataState): string {
+  if (state === "loading") return "로딩중";
+  if (state === "error") return "--";
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+function formatDuration(seconds: MetricValue, state: DashboardDataState): string {
+  if (state === "loading") return "로딩중";
+  if (state === "error") return "--";
+  if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "--";
+  if (seconds < 60) return `${seconds}초`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder === 0 ? `${minutes}분` : `${minutes}분 ${remainder}초`;
+}
+
+function formatDelta(delta: number | null | undefined, state: DashboardDataState): string {
+  if (state === "loading") return "전 기간 계산 중";
+  if (state === "error" || typeof delta !== "number" || !Number.isFinite(delta)) {
+    return "전 기간 --";
+  }
+  const sign = delta > 0 ? "+" : "";
+  return `전 기간 ${sign}${delta.toFixed(1)}%`;
+}
+
+function hasMetricData(metrics: ConsultationMetrics | null): boolean {
+  if (!metrics) return false;
+  return (
+    metrics.totalConsultationCount > 0 ||
+    metrics.completedConsultationCount > 0 ||
+    metrics.llmHandledCount > 0 ||
+    metrics.humanInterventionCount > 0 ||
+    metrics.unresolvedSessionCount > 0
+  );
+}
+
+function DashboardMetricCard({
+  label,
+  value,
+  delta,
+  description,
+  state,
+}: DashboardMetricCardProps) {
+  return (
+    <article className={styles.metricCard}>
+      <div className={styles.metricHeader}>
+        <span className={styles.slotLabel}>{label}</span>
+        <span className={styles.metricDelta}>{formatDelta(delta, state)}</span>
+      </div>
+      <strong className={styles.metricValue}>{value}</strong>
+      <p>{description}</p>
+    </article>
+  );
+}
+
+function DashboardMetricsGrid({
+  metrics,
+  state,
+}: {
+  metrics: ConsultationMetrics | null;
+  state: DashboardDataState;
+}) {
+  const comparison = metrics?.comparison;
+
+  return (
+    <section className={styles.metricGrid} aria-label="상담 처리 요약 지표">
+      <DashboardMetricCard
+        label="총 상담"
+        value={formatCount(metrics?.totalConsultationCount, state)}
+        delta={comparison?.totalConsultationCountChangeRate}
+        description="선택 기간에 시작된 운영 상담 수"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="처리 완료"
+        value={formatCount(metrics?.completedConsultationCount, state)}
+        delta={comparison?.completedConsultationCountChangeRate}
+        description="선택 기간에 완료 또는 해결 처리된 상담 수"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="평균 첫 응답"
+        value={formatDuration(metrics?.averageFirstResponseSeconds, state)}
+        delta={comparison?.averageFirstResponseSecondsChangeRate}
+        description="고객 첫 메시지 이후 첫 응답까지 걸린 평균 시간"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="LLM 첫 응답"
+        value={formatDuration(metrics?.averageLlmFirstResponseSeconds, state)}
+        delta={comparison?.averageLlmFirstResponseSecondsChangeRate}
+        description="LLM 응답만 별도로 계산한 첫 응답 평균"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="상담사 첫 응답"
+        value={formatDuration(metrics?.averageHumanFirstResponseSeconds, state)}
+        delta={comparison?.averageHumanFirstResponseSecondsChangeRate}
+        description="상담사 또는 상담원 응답 기준 첫 응답 평균"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="LLM 처리"
+        value={formatCount(metrics?.llmHandledCount, state)}
+        delta={comparison?.llmHandledCountChangeRate}
+        description="상담사 메시지 없이 LLM이 처리한 완료 상담 수"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="상담사 개입"
+        value={formatCount(metrics?.humanInterventionCount, state)}
+        delta={comparison?.humanInterventionCountChangeRate}
+        description="상담사 또는 상담원 메시지가 포함된 완료 상담 수"
+        state={state}
+      />
+      <DashboardMetricCard
+        label="미종료 세션"
+        value={formatCount(metrics?.unresolvedSessionCount, state)}
+        delta={comparison?.unresolvedSessionCountChangeRate}
+        description="선택 기간에 시작됐고 아직 완료되지 않은 상담 수"
+        state={state}
+      />
+    </section>
   );
 }
 
@@ -268,9 +432,9 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
     return (
       <section className={styles.partialPanel} data-testid="dashboard-partial">
         <div>
-          <span className={styles.panelEyebrow}>PARTIAL DATA</span>
-          <h2>일부 데이터만 연결된 상태입니다.</h2>
-          <p>연결된 카드부터 표시하고, 비어 있는 영역은 동일한 그리드 안에서 유지합니다.</p>
+          <span className={styles.panelEyebrow}>METRICS CONNECTED</span>
+          <h2>상담 처리 요약 지표가 연결되었습니다.</h2>
+          <p>차트와 운영 주의 항목은 같은 필터 기준을 유지하며 후속 데이터 연결을 기다립니다.</p>
         </div>
         <RefreshCwIcon aria-hidden="true" className={styles.panelIcon} />
       </section>
@@ -313,12 +477,65 @@ export function WorkspaceDashboardPage() {
   const { setCrumbs } = useOutletContext<ShellContext>();
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
-  const dataState = useMemo<DashboardDataState>(() => "empty", []);
+  const [metrics, setMetrics] = useState<ConsultationMetrics | null>(null);
+  const [isMetricsLoading, setIsMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const metricDateRange = useMemo(() => buildMetricDateRange(filters), [filters]);
+  const dataState = useMemo<DashboardDataState>(() => {
+    if (isMetricsLoading) return "loading";
+    if (metricsError) return "error";
+    if (hasMetricData(metrics)) return "partial";
+    return "empty";
+  }, [isMetricsLoading, metricsError, metrics]);
 
   useEffect(() => {
     setCrumbs(["대시보드"]);
     return () => setCrumbs([]);
   }, [setCrumbs]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadMetrics() {
+      if (parsedWorkspaceId === null) {
+        setMetrics(null);
+        setMetricsError(null);
+        setIsMetricsLoading(false);
+        return;
+      }
+
+      if (!metricDateRange.from || !metricDateRange.to) {
+        setMetrics(null);
+        setMetricsError(null);
+        setIsMetricsLoading(false);
+        return;
+      }
+
+      setIsMetricsLoading(true);
+      setMetricsError(null);
+      try {
+        const data = await consultationApi.getMetrics(parsedWorkspaceId, metricDateRange);
+        if (ignore) return;
+        setMetrics(data);
+      } catch (error) {
+        if (ignore) return;
+        console.error("Failed to load dashboard metrics:", error);
+        setMetrics(null);
+        setMetricsError("대시보드 지표를 불러오지 못했습니다.");
+        toast.error("대시보드 지표를 불러오지 못했습니다.");
+      } finally {
+        if (!ignore) {
+          setIsMetricsLoading(false);
+        }
+      }
+    }
+
+    void loadMetrics();
+
+    return () => {
+      ignore = true;
+    };
+  }, [parsedWorkspaceId, metricDateRange]);
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -344,6 +561,7 @@ export function WorkspaceDashboardPage() {
 
       <DashboardFilters filters={filters} onChange={setFilters} />
       <FilterSummary filters={filters} />
+      <DashboardMetricsGrid metrics={metrics} state={dataState} />
       <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} />
 
       <section className={styles.slotGrid} aria-label="대시보드 카드와 차트 배치 영역">
