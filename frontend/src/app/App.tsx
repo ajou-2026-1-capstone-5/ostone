@@ -27,6 +27,7 @@ import { WorkspaceDashboardPage } from "../pages/workspace/ui/WorkspaceDashboard
 import { WorkspaceMembersPage } from "../pages/workspace/ui/WorkspaceMembersPage";
 import { BillingPage, BillingSuccessPage, BillingFailPage } from "../pages/billing";
 import { WorkspaceWorkflowsPage } from "../pages/workspace/ui/WorkspaceWorkflowsPage";
+import { WorkspaceSimulationPage } from "../pages/workspace/ui/WorkspaceSimulationPage";
 import { WorkspaceUploadPage } from "../pages/upload/ui/WorkspaceUploadPage";
 import { PipelineReviewPage } from "../pages/pipeline-review/ui/PipelineReviewPage";
 import { DomainPackListPage } from "../pages/domain-pack/ui/DomainPackListPage";
@@ -106,6 +107,7 @@ export function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<WorkspaceDashboardPage />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
+          <Route path="simulation" element={<WorkspaceSimulationPage />} />
           <Route path="pipeline" element={<Navigate to="upload" replace />} />
           <Route path="consultation/history" element={<ChatHistoryPage />} />
           <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />

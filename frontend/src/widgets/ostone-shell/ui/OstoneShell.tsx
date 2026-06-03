@@ -24,6 +24,7 @@ interface SidebarBaseProps {
 const TOP_LEVEL_CRUMB_BY_ACTIVE: Partial<Record<SidebarActive, string>> = {
   dashboard: "대시보드",
   workflows: "워크플로우 관리",
+  simulation: "시뮬레이션",
   upload: "상담 로그 수집",
   consult: "상담 응대",
   domain: "도메인팩 관리",

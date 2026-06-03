@@ -200,6 +200,19 @@ class ConsultationServiceTest {
   }
 
   @Test
+  @DisplayName("getMessages: SIMULATION 세션은 운영 상담 메시지 조회에서 제외한다")
+  void should_rejectSimulationSession_when_getMessagesCalled() {
+    ChatSession session = createSimulationSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
+
+    assertThatThrownBy(() -> service.getMessages(1L, USER_ID))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found");
+    verify(chatMessageRepository, never()).findByChatSessionIdOrderBySeqNoDesc(eq(1L), any());
+  }
+
+  @Test
   @DisplayName("getMessages: 잘못된 pagination 값이면 거부한다")
   void should_throwBadRequest_when_messagePagingInvalid() {
     assertThatThrownBy(() -> service.getMessages(1L, USER_ID, -1, 50))
@@ -260,6 +273,23 @@ class ConsultationServiceTest {
 
     assertThatThrownBy(() -> service.sendMessage(1L, request, USER_ID))
         .isInstanceOf(WorkspaceAccessDeniedException.class);
+    verify(chatMessageRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("sendMessage: SIMULATION 세션은 운영 상담 응답으로 변경하지 않는다")
+  void should_rejectSimulationSession_when_sendMessageCalled() {
+    ChatSession session = createSimulationSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findByIdForUpdate(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
+
+    SendMessageRequest request = new SendMessageRequest();
+    request.setContent("Hello");
+    request.setNote(false);
+
+    assertThatThrownBy(() -> service.sendMessage(1L, request, USER_ID))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found");
     verify(chatMessageRepository, never()).save(any());
   }
 
@@ -335,6 +365,21 @@ class ConsultationServiceTest {
   }
 
   @Test
+  @DisplayName("updateSessionStatus: SIMULATION 세션은 운영 상담 상태로 변경하지 않는다")
+  void should_rejectSimulationSession_when_updateStatusCalled() {
+    ChatSession session = createSimulationSession(1L, ChatSessionStatus.OPEN);
+    given(chatSessionRepository.findById(1L)).willReturn(Optional.of(session));
+    givenWorkspaceMember(1L, USER_ID);
+    UpdateStatusRequest request = new UpdateStatusRequest();
+    request.setStatus("ACTIVE");
+
+    assertThatThrownBy(() -> service.updateSessionStatus(1L, request, USER_ID))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Session not found");
+    assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.OPEN);
+  }
+
+  @Test
   @DisplayName("updateSessionStatus: 알 수 없는 상태 → BadRequestException 발생")
   void should_BadRequestException발생_when_알수없는상태() {
     // given
@@ -355,6 +400,12 @@ class ConsultationServiceTest {
 
   private ChatSession createSession(Long id, ChatSessionStatus status) {
     ChatSession session = ChatSession.create(1L, 1L, status, "WEB", "{}");
+    ReflectionTestUtils.setField(session, "id", id);
+    return session;
+  }
+
+  private ChatSession createSimulationSession(Long id, ChatSessionStatus status) {
+    ChatSession session = ChatSession.create(1L, 1L, status, "SIMULATION", "{\"simulation\":true}");
     ReflectionTestUtils.setField(session, "id", id);
     return session;
   }

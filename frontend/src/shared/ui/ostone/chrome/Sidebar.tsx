@@ -8,6 +8,7 @@ import { AccountMenu } from "./AccountMenu";
 export type SidebarActive =
   | "dashboard"
   | "workflows"
+  | "simulation"
   | "consult"
   | "chat"
   | "upload"
@@ -49,6 +50,12 @@ const TOP_NAV_ITEMS: TopNavItem[] = [
     icon: "book",
     label: "상담 응대",
     getPath: (base) => `${base}/consultation`,
+  },
+  {
+    key: "simulation",
+    icon: "play",
+    label: "시뮬레이션",
+    getPath: (base) => `${base}/simulation`,
   },
   {
     key: "chat",

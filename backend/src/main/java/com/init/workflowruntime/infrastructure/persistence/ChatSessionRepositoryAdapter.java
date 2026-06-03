@@ -17,6 +17,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
 
+  private static final String SIMULATION_CHANNEL = "SIMULATION";
+
   private final JpaChatSessionRepository jpaRepository;
 
   public ChatSessionRepositoryAdapter(JpaChatSessionRepository jpaRepository) {
@@ -64,8 +66,9 @@ public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
   public Optional<ChatSession>
       findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
           Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses) {
-    return jpaRepository.findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
-        workspaceId, startedBy, statuses);
+    return jpaRepository
+        .findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
+            workspaceId, startedBy, statuses, SIMULATION_CHANNEL);
   }
 
   @Override
@@ -82,6 +85,14 @@ public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
     return toDomainPage(
         jpaRepository.findByWorkspaceIdAndStatus(
             workspaceId, status, PageRequest.of(pageRequest.page(), pageRequest.size())));
+  }
+
+  @Override
+  public DomainPage<ChatSession> findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+      Long workspaceId, String channel, DomainPageRequest pageRequest) {
+    return toDomainPage(
+        jpaRepository.findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+            workspaceId, channel, PageRequest.of(pageRequest.page(), pageRequest.size())));
   }
 
   @Override

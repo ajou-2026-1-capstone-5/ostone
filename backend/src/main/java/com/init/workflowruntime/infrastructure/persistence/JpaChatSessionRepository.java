@@ -23,24 +23,75 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
   @Query("select cs from ChatSession cs where cs.id = :id")
   Optional<ChatSession> findByIdForUpdate(@Param("id") Long id);
 
-  List<ChatSession> findByStatusOrderByStartedAtDesc(ChatSessionStatus status);
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.status = :status
+        and cs.channel <> 'SIMULATION'
+      order by cs.startedAt desc
+      """)
+  List<ChatSession> findByStatusOrderByStartedAtDesc(@Param("status") ChatSessionStatus status);
 
-  List<ChatSession> findByStatusInOrderByStartedAtDesc(Collection<ChatSessionStatus> statuses);
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.status in :statuses
+        and cs.channel <> 'SIMULATION'
+      order by cs.startedAt desc
+      """)
+  List<ChatSession> findByStatusInOrderByStartedAtDesc(
+      @Param("statuses") Collection<ChatSessionStatus> statuses);
 
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.workspaceId = :workspaceId
+        and cs.status in :statuses
+        and cs.channel <> 'SIMULATION'
+      order by cs.startedAt desc
+      """)
   List<ChatSession> findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
-      Long workspaceId, Collection<ChatSessionStatus> statuses);
+      @Param("workspaceId") Long workspaceId,
+      @Param("statuses") Collection<ChatSessionStatus> statuses);
 
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
-  Optional<ChatSession> findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
-      Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses);
+  Optional<ChatSession>
+      findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
+          Long workspaceId,
+          Long startedBy,
+          Collection<ChatSessionStatus> statuses,
+          String excludedChannel);
 
   Page<ChatSession> findByWorkspaceId(Long workspaceId, Pageable pageable);
 
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.workspaceId = :workspaceId
+        and cs.status = :status
+        and cs.channel <> 'SIMULATION'
+      """)
   Page<ChatSession> findByWorkspaceIdAndStatus(
-      Long workspaceId, ChatSessionStatus status, Pageable pageable);
+      @Param("workspaceId") Long workspaceId,
+      @Param("status") ChatSessionStatus status,
+      Pageable pageable);
 
-  Page<ChatSession> findByStatus(ChatSessionStatus status, Pageable pageable);
+  Page<ChatSession> findByWorkspaceIdAndChannelOrderByStartedAtDesc(
+      Long workspaceId, String channel, Pageable pageable);
+
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.status = :status
+        and cs.channel <> 'SIMULATION'
+      """)
+  Page<ChatSession> findByStatus(@Param("status") ChatSessionStatus status, Pageable pageable);
 
   @Query(
       value =
@@ -48,6 +99,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
           SELECT cs.*
           FROM runtime.chat_session cs
           WHERE cs.workspace_id = :workspaceId
+            AND cs.channel <> 'SIMULATION'
             AND (:status IS NULL OR cs.status = :status)
             AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
             AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)
@@ -70,6 +122,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
           SELECT COUNT(*)
           FROM runtime.chat_session cs
           WHERE cs.workspace_id = :workspaceId
+            AND cs.channel <> 'SIMULATION'
             AND (:status IS NULL OR cs.status = :status)
             AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
             AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)

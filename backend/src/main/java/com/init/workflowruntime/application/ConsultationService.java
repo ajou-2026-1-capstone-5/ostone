@@ -39,6 +39,7 @@ public class ConsultationService {
   private static final int DEFAULT_MESSAGE_PAGE = 0;
   private static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
   private static final int MAX_MESSAGE_PAGE_SIZE = 100;
+  private static final String SIMULATION_CHANNEL = "SIMULATION";
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
@@ -85,6 +86,7 @@ public class ConsultationService {
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
+    validateOperationalSession(session);
 
     Long id = session.getId();
     if (id == null) {
@@ -118,6 +120,7 @@ public class ConsultationService {
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
+    validateOperationalSession(session);
 
     if (session.getId() == null) {
       throw new IllegalStateException("Session ID cannot be null");
@@ -161,6 +164,7 @@ public class ConsultationService {
                 () ->
                     new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + sessionId));
     validateWorkspaceMembership(session.getWorkspaceId(), userId);
+    validateOperationalSession(session);
 
     ChatSessionStatus newStatus = parseStatus(request.getStatus());
     SessionResolutionOutcome outcome = parseOutcome(request.getResolutionOutcome());
@@ -266,5 +270,11 @@ public class ConsultationService {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
         .orElseThrow(() -> new WorkspaceAccessDeniedException("워크스페이스에 접근 권한이 없습니다."));
+  }
+
+  private void validateOperationalSession(ChatSession session) {
+    if (SIMULATION_CHANNEL.equals(session.getChannel())) {
+      throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + session.getId());
+    }
   }
 }
