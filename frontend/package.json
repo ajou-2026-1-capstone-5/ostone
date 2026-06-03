@@ -7,6 +7,8 @@
     "dev": "vp dev",
     "build": "tsc -b && vp build",
     "e2e": "playwright test",
+    "e2e:live": "playwright test --config=playwright.live.config.ts --grep-invert @pollutes",
+    "e2e:live:pollutes": "playwright test --config=playwright.live.config.ts --grep @pollutes",
     "test": "vp test",
     "format": "vp fmt",
     "lint": "eslint .",
