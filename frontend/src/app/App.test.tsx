@@ -1,12 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./App";
 import { AppProviders } from "./providers";
 
@@ -64,11 +57,7 @@ describe("App", () => {
   });
 
   it("redirects legacy demo workspace chat URLs to the canonical demo chat URL", async () => {
-    window.history.pushState(
-      {},
-      "",
-      "/demo/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80",
-    );
+    window.history.pushState({}, "", "/demo/workspaces/42/chat?name=%EA%B9%80%EB%AF%BC%EC%A7%80");
 
     render(
       <AppProviders>
@@ -98,7 +87,7 @@ describe("App", () => {
     });
   });
 
-  it("redirects workspace home alias to dashboard and renders the dashboard empty state", async () => {
+  it("redirects workspace home alias to dashboard and renders the health panel", async () => {
     seedAuthenticatedSession();
 
     const workspaceBody = {
@@ -118,6 +107,18 @@ describe("App", () => {
           ok: true,
           status: 200,
           json: async () => [workspaceBody],
+        });
+      }
+      if (url === "/api/v1/workspaces/1/dashboard/knowledge-pack-health") {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            activeKnowledgePack: null,
+            lastLogUpload: null,
+            lastKnowledgePackGeneration: null,
+            pendingReviewCount: 0,
+          }),
         });
       }
       return Promise.resolve({
@@ -141,11 +142,13 @@ describe("App", () => {
     });
 
     expect(await screen.findByText("Workspace Dashboard")).toBeInTheDocument();
-    expect(
-      await screen.findByText("아직 대시보드에 표시할 운영 데이터가 없습니다."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("운영 지식팩 건강도")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/workspaces/1",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/workspaces/1/dashboard/knowledge-pack-health",
       expect.objectContaining({ method: "GET" }),
     );
   });
