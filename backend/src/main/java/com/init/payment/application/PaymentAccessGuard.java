@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class PaymentAccessGuard {
 
   private static final Set<String> ALLOWED_ROLES = Set.of("OWNER", "ADMIN", "OPERATOR");
+  private static final Set<String> BILLING_MANAGER_ROLES = Set.of("OWNER", "ADMIN");
 
   private final WorkspaceMembershipPort workspaceMembershipPort;
 
@@ -19,10 +20,18 @@ public class PaymentAccessGuard {
   }
 
   public void requireMember(Long workspaceId, Long userId) {
+    requireAnyRole(workspaceId, userId, ALLOWED_ROLES);
+  }
+
+  public void requireBillingManager(Long workspaceId, Long userId) {
+    requireAnyRole(workspaceId, userId, BILLING_MANAGER_ROLES);
+  }
+
+  private void requireAnyRole(Long workspaceId, Long userId, Set<String> roles) {
     if (!workspaceMembershipPort.existsById(workspaceId)) {
       throw new PaymentWorkspaceNotFoundException(workspaceId);
     }
-    if (!workspaceMembershipPort.hasAnyRole(workspaceId, userId, ALLOWED_ROLES)) {
+    if (!workspaceMembershipPort.hasAnyRole(workspaceId, userId, roles)) {
       throw new PaymentWorkspaceAccessDeniedException();
     }
   }

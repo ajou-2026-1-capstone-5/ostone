@@ -14,7 +14,10 @@ export const SubscriptionResponse = zod.object({
   "currentPeriodStart": zod.iso.datetime({"offset":true}).optional(),
   "currentPeriodEnd": zod.iso.datetime({"offset":true}).optional(),
   "cancelAtPeriodEnd": zod.boolean().optional(),
-  "customerKey": zod.string().optional()
+  "customerKey": zod.string().optional(),
+  "memberLimit": zod.number().optional(),
+  "datasetUploadLimit": zod.number().optional(),
+  "pipelineRunLimit": zod.number().optional()
 })
 
 export type SubscriptionResponse = zod.input<typeof SubscriptionResponse>;

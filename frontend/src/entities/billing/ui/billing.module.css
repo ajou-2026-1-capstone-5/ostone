@@ -157,3 +157,69 @@
   font-family: var(--sans);
   font-size: 13px;
 }
+
+.quotaList {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.quotaRow,
+.quotaRowWarning {
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  padding: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+  background: var(--paper);
+}
+
+.quotaRowWarning {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+.quotaMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  align-items: baseline;
+}
+
+.quotaLabel {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 540;
+  color: var(--ink);
+  letter-spacing: -0.12px;
+}
+
+.quotaValue {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.quotaTrack {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.quotaFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+}
+
+.quotaWarningText {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink);
+  letter-spacing: -0.08px;
+}

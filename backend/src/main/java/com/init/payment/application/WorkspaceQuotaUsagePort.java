@@ -4,6 +4,8 @@ import java.time.OffsetDateTime;
 
 public interface WorkspaceQuotaUsagePort {
 
+  long countMembers(Long workspaceId);
+
   long countDatasetUploads(
       Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive);
 

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useParams, useOutletContext, useLocation, Navigate } from "react-router-dom";
-import { useSubscription, usePayments } from "@/entities/billing";
+import { useBillingOverview } from "@/entities/billing";
 import { BillingPage } from "./BillingPage";
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -19,8 +19,7 @@ vi.mock("@/entities/billing", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/entities/billing")>();
   return {
     ...original,
-    useSubscription: vi.fn(),
-    usePayments: vi.fn(),
+    useBillingOverview: vi.fn(),
     deriveCustomerKey: vi.fn().mockReturnValue("ws_1"),
   };
 });
@@ -55,8 +54,7 @@ vi.mock("@/widgets/workspace-settings-nav", () => ({
 const mockUseParams = vi.mocked(useParams);
 const mockUseOutletContext = vi.mocked(useOutletContext);
 const mockUseLocation = vi.mocked(useLocation);
-const mockUseSubscription = vi.mocked(useSubscription);
-const mockUsePayments = vi.mocked(usePayments);
+const mockUseBillingOverview = vi.mocked(useBillingOverview);
 
 const baseSubscription = {
   id: 1,
@@ -67,25 +65,46 @@ const baseSubscription = {
   cancelAtPeriodEnd: false,
   currentPeriodStart: "2024-01-01T00:00:00Z",
   currentPeriodEnd: "2024-02-01T00:00:00Z",
-  createdAt: "2024-01-01T00:00:00Z",
+  memberLimit: 10,
+  datasetUploadLimit: 10,
+  pipelineRunLimit: 10,
 };
 
-function setupDefaults(subOverrides = {}, paymentsOverrides = {}) {
+const donePayment = {
+  id: 1,
+  workspaceId: 1,
+  paymentKey: "pay-001",
+  orderId: "ord-001",
+  amount: 9900,
+  currency: "KRW",
+  status: "DONE",
+  method: "card",
+  receiptUrl: "https://example.com/receipt/1",
+  approvedAt: "2024-01-15T10:00:00Z",
+  createdAt: "2024-01-15T09:00:00Z",
+};
+
+const baseOverview = {
+  subscription: baseSubscription,
+  billingKey: { id: 7, cardCompany: "신한카드", cardNumberMasked: "1234-****-****-5678", status: "ACTIVE" },
+  payments: [],
+  quotaUsages: [
+    { resource: "MEMBER", used: 8, limit: 10, warning: false },
+    { resource: "DATASET_UPLOAD", used: 10, limit: 10, warning: true },
+    { resource: "PIPELINE_RUN", used: 11, limit: 10, warning: true },
+  ],
+};
+
+function setupDefaults(queryOverrides = {}) {
   mockUseParams.mockReturnValue({ workspaceId: "1" });
   mockUseOutletContext.mockReturnValue({ setCrumbs: vi.fn() } as never);
   mockUseLocation.mockReturnValue({ state: null } as never);
-  mockUseSubscription.mockReturnValue({
-    data: baseSubscription,
+  mockUseBillingOverview.mockReturnValue({
+    data: baseOverview,
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
-    ...subOverrides,
-  } as never);
-  mockUsePayments.mockReturnValue({
-    data: [],
-    isLoading: false,
-    isError: false,
-    ...paymentsOverrides,
+    ...queryOverrides,
   } as never);
 }
 
@@ -108,7 +127,12 @@ describe("BillingPage", () => {
 
   it("구독 없을 때 렌더링 (등록 CTA)", () => {
     setupDefaults();
-    mockUseSubscription.mockReturnValue({ data: null, isLoading: false, isError: false, refetch: vi.fn() } as never);
+    mockUseBillingOverview.mockReturnValue({
+      data: { subscription: null, billingKey: null, payments: [], quotaUsages: [] },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
     const { container } = render(<BillingPage />);
     expect(container).toBeTruthy();
   });
@@ -117,45 +141,52 @@ describe("BillingPage", () => {
     setupDefaults();
     render(<BillingPage />);
     expect(screen.getByRole("heading", { level: 1, name: "구독" })).toBeTruthy();
+    expect(screen.getByText("다음 결제일")).toBeTruthy();
   });
 
-  it("결제 내역 에러 시 에러 메시지 표시", () => {
-    setupDefaults({}, { isError: true, data: undefined });
+  it("overview 에러 시 에러 메시지 표시", () => {
+    setupDefaults({ isError: true, data: undefined });
     render(<BillingPage />);
-    expect(screen.getByText("결제 내역을 불러오지 못했습니다.")).toBeTruthy();
+    expect(screen.getByText("빌링 정보를 불러오지 못했습니다.")).toBeTruthy();
   });
 
-  it("결제 내역 로딩 중 로딩 표시", () => {
-    setupDefaults({}, { isLoading: true, data: undefined });
+  it("overview 로딩 중 로딩 표시", () => {
+    setupDefaults({ isLoading: true, data: undefined });
     const { container } = render(<BillingPage />);
     expect(container).toBeTruthy();
   });
 
   it("결제 내역 있을 때 PaymentHistoryList 렌더링 (DONE 포함)", () => {
-    const donePayment = {
-      id: 1,
-      workspaceId: 1,
-      paymentKey: "pay-001",
-      orderId: "ord-001",
-      amount: 9900,
-      currency: "KRW",
-      status: "DONE",
-      method: "card",
-      receiptUrl: "https://example.com/receipt/1",
-      approvedAt: "2024-01-15T10:00:00Z",
-      createdAt: "2024-01-15T09:00:00Z",
-    };
-    setupDefaults({}, { data: [donePayment] });
+    setupDefaults({ data: { ...baseOverview, payments: [donePayment] } });
     render(<BillingPage />);
     expect(screen.getByText("결제 내역")).toBeTruthy();
+  });
+
+  it("quota 사용량과 한도 경고를 표시한다", () => {
+    setupDefaults();
+    render(<BillingPage />);
+    expect(screen.getByText("Dataset 업로드")).toBeTruthy();
+    expect(screen.getByText("10 / 10")).toBeTruthy();
+    expect(screen.getAllByText("한도에 도달했습니다.")).toHaveLength(2);
+  });
+
+  it("persistent masked card information을 표시한다", () => {
+    setupDefaults();
+    render(<BillingPage />);
+    expect(screen.getByText("신한카드")).toBeTruthy();
+    expect(screen.getByText("1234-****-****-5678")).toBeTruthy();
   });
 
   it("workspaceId가 유효하지 않으면 Navigate 렌더링", () => {
     mockUseParams.mockReturnValue({ workspaceId: "not-a-number" });
     mockUseOutletContext.mockReturnValue({ setCrumbs: vi.fn() } as never);
     mockUseLocation.mockReturnValue({ state: null } as never);
-    mockUseSubscription.mockReturnValue({ data: null, isLoading: false, isError: false, refetch: vi.fn() } as never);
-    mockUsePayments.mockReturnValue({ data: [], isLoading: false, isError: false } as never);
+    mockUseBillingOverview.mockReturnValue({
+      data: { subscription: null, billingKey: null, payments: [], quotaUsages: [] },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
     render(<BillingPage />);
     expect(vi.mocked(Navigate)).toHaveBeenCalled();
   });
