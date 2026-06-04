@@ -8,6 +8,7 @@ import { DashboardStatePanel, WorkspaceDashboardPage } from "./WorkspaceDashboar
 
 const setCrumbs = vi.fn();
 const mockedGetMetrics = vi.mocked(consultationApi.getMetrics);
+const mockedGetWorkflowRankings = vi.mocked(consultationApi.getWorkflowRankings);
 
 const metricsResponse = {
   workspaceId: 1,
@@ -64,6 +65,77 @@ const metricsResponse = {
   humanHandledTodayCount: 26,
 };
 
+const workflowRankingResponse = {
+  workspaceId: 1,
+  periodStart: "2026-05-28T00:00:00+09:00",
+  periodEnd: "2026-06-04T00:00:00+09:00",
+  totalConsultationCount: 120,
+  topRankings: [
+    {
+      rank: 1,
+      workflowDefinitionId: 100,
+      domainPackId: 11,
+      domainPackVersionId: 22,
+      workflowCode: "refund_flow",
+      workflowName: "환불 처리",
+      executionCount: 48,
+      shareRate: 40,
+      completedCount: 42,
+      failedCount: 3,
+      runningCount: 3,
+      completionRate: 87.5,
+      failureRate: 6.3,
+      averageHandlingSeconds: 180,
+      humanInterventionRate: 25,
+      changeRate: 33.3,
+      surging: true,
+      detailPath: "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+    },
+  ],
+  rankings: [
+    {
+      rank: 1,
+      workflowDefinitionId: 100,
+      domainPackId: 11,
+      domainPackVersionId: 22,
+      workflowCode: "refund_flow",
+      workflowName: "환불 처리",
+      executionCount: 48,
+      shareRate: 40,
+      completedCount: 42,
+      failedCount: 3,
+      runningCount: 3,
+      completionRate: 87.5,
+      failureRate: 6.3,
+      averageHandlingSeconds: 180,
+      humanInterventionRate: 25,
+      changeRate: 33.3,
+      surging: true,
+      detailPath: "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+    },
+    {
+      rank: 2,
+      workflowDefinitionId: null,
+      domainPackId: null,
+      domainPackVersionId: null,
+      workflowCode: null,
+      workflowName: "미확인 워크플로우",
+      executionCount: 12,
+      shareRate: 10,
+      completedCount: 8,
+      failedCount: 1,
+      runningCount: 3,
+      completionRate: 66.7,
+      failureRate: 8.3,
+      averageHandlingSeconds: null,
+      humanInterventionRate: 50,
+      changeRate: null,
+      surging: false,
+      detailPath: null,
+    },
+  ],
+};
+
 function renderPage(path = "/workspaces/1/dashboard") {
   setCrumbs.mockClear();
   render(
@@ -87,6 +159,7 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/features/consultation/api/consultationApi", () => ({
   consultationApi: {
     getMetrics: vi.fn(),
+    getWorkflowRankings: vi.fn(),
   },
 }));
 
@@ -105,16 +178,19 @@ vi.mock("@/features/workspace-dashboard-health", () => ({
 describe("WorkspaceDashboardPage", () => {
   beforeEach(() => {
     mockedGetMetrics.mockReset();
+    mockedGetWorkflowRankings.mockReset();
     mockedGetMetrics.mockResolvedValue(metricsResponse);
+    mockedGetWorkflowRankings.mockResolvedValue(workflowRankingResponse);
   });
 
   it("잘못된 workspaceId면 /workspaces로 리다이렉트한다", () => {
     renderPage("/workspaces/abc/dashboard");
     expect(screen.getByTestId("workspace-root")).toBeInTheDocument();
     expect(mockedGetMetrics).not.toHaveBeenCalled();
+    expect(mockedGetWorkflowRankings).not.toHaveBeenCalled();
   });
 
-  it("공통 필터와 상담 처리 KPI, 운영 지식팩 건강도 영역을 표시한다", async () => {
+  it("공통 필터와 상담 처리 KPI, 운영 지식팩 건강도, 핫패스 랭킹을 표시한다", async () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
@@ -133,7 +209,18 @@ describe("WorkspaceDashboardPage", () => {
     expect(screen.getByText("72.9%")).toBeInTheDocument();
     expect(screen.getByText("2026-05-29")).toBeInTheDocument();
     expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent("workspace 1 health");
+    expect(await screen.findByText("핫패스 워크플로우 랭킹")).toBeInTheDocument();
+    expect(screen.getByTestId("hotpath-top-1")).toHaveTextContent("환불 처리");
+    expect(screen.getByTestId("hotpath-row-1")).toHaveTextContent("급증");
+    expect(screen.getAllByRole("link", { name: /환불 처리/ })[0]).toHaveAttribute(
+      "href",
+      "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+    );
+    expect(screen.getByTestId("hotpath-row-2")).toHaveTextContent("상세 준비 중");
     await waitFor(() => expect(mockedGetMetrics).toHaveBeenCalledWith(1, expect.any(Object)));
+    await waitFor(() =>
+      expect(mockedGetWorkflowRankings).toHaveBeenCalledWith(1, expect.any(Object)),
+    );
   });
 
   it("기간과 공통 필터 변경을 요약 상태와 API 요청에 반영한다", async () => {
@@ -157,6 +244,12 @@ describe("WorkspaceDashboardPage", () => {
     expect(summary).toHaveTextContent("상담원 연결");
     await waitFor(() =>
       expect(mockedGetMetrics).toHaveBeenLastCalledWith(1, {
+        from: "2026-06-01",
+        to: "2026-06-03",
+      }),
+    );
+    await waitFor(() =>
+      expect(mockedGetWorkflowRankings).toHaveBeenLastCalledWith(1, {
         from: "2026-06-01",
         to: "2026-06-03",
       }),
@@ -201,6 +294,11 @@ describe("WorkspaceDashboardPage", () => {
         trend: [],
       },
     });
+    mockedGetWorkflowRankings.mockResolvedValueOnce({
+      ...workflowRankingResponse,
+      topRankings: [],
+      rankings: [],
+    });
 
     renderPage();
 
@@ -217,6 +315,16 @@ describe("WorkspaceDashboardPage", () => {
       "/workspaces/1/domain-packs",
     );
     expect(screen.getByTestId("dashboard-simulation-cta")).toHaveAttribute("href", "/demo/chat/1");
+  });
+
+  it("상담 KPI가 실패해도 워크플로우 랭킹은 같은 화면에 남긴다", async () => {
+    mockedGetMetrics.mockRejectedValueOnce(new Error("metrics failed"));
+
+    renderPage();
+
+    expect(await screen.findByText("핫패스 워크플로우 랭킹")).toBeInTheDocument();
+    expect(screen.getByTestId("hotpath-row-1")).toHaveTextContent("환불 처리");
+    expect(screen.queryByTestId("dashboard-error")).not.toBeInTheDocument();
   });
 
   it("loading, error, partial 상태 패널이 같은 shell 영역에서 렌더링된다", () => {

@@ -652,4 +652,76 @@ describe("consultationApi", () => {
     );
     expect(result).toEqual(stubMetrics);
   });
+
+  it("getWorkflowRankings가 워크스페이스 대시보드 랭킹 endpoint를 호출한다", async () => {
+    const stubRanking = {
+      workspaceId: 2,
+      periodStart: "2026-05-21T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      totalConsultationCount: 20,
+      topRankings: [],
+      rankings: [
+        {
+          rank: 1,
+          workflowDefinitionId: 10,
+          domainPackId: 3,
+          domainPackVersionId: 4,
+          workflowCode: "refund_flow",
+          workflowName: "환불 처리",
+          executionCount: 8,
+          shareRate: 40,
+          completedCount: 6,
+          failedCount: 1,
+          runningCount: 1,
+          completionRate: 75,
+          failureRate: 12.5,
+          averageHandlingSeconds: 180,
+          humanInterventionRate: 25,
+          changeRate: 33.3,
+          surging: true,
+          detailPath: "/workspaces/2/domain-packs/3/workflows/10?versionId=4",
+        },
+      ],
+    };
+    mockedCustomFetch.mockResolvedValue({
+      data: stubRanking,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getWorkflowRankings(2);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/dashboard/workflow-rankings",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubRanking);
+  });
+
+  it("getWorkflowRankings가 기간 파라미터를 쿼리스트링으로 전달한다", async () => {
+    const stubRanking = {
+      workspaceId: 2,
+      periodStart: "2026-05-21T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      totalConsultationCount: 0,
+      topRankings: [],
+      rankings: [],
+    };
+    mockedCustomFetch.mockResolvedValue({
+      data: stubRanking,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getWorkflowRankings(2, {
+      from: "2026-05-21",
+      to: "2026-05-27",
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/dashboard/workflow-rankings?from=2026-05-21&to=2026-05-27",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubRanking);
+  });
 });

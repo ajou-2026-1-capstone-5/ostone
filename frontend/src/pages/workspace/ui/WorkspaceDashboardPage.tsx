@@ -13,6 +13,8 @@ import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type {
   ConsultationCoverageMetrics,
   ConsultationMetrics,
+  WorkspaceWorkflowRanking,
+  WorkspaceWorkflowRankingResponse,
 } from "@/features/consultation/api/consultationApi";
 import { KnowledgePackHealthPanel } from "@/features/workspace-dashboard-health";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
@@ -198,6 +200,10 @@ function hasMetricData(metrics: ConsultationMetrics | null): boolean {
   );
 }
 
+function hasWorkflowRankingData(rankings: WorkspaceWorkflowRankingResponse | null): boolean {
+  return (rankings?.rankings?.length ?? 0) > 0;
+}
+
 function DashboardMetricCard({
   label,
   value,
@@ -306,6 +312,57 @@ function CoverageMetricCard({
   );
 }
 
+function TopWorkflowCard({
+  item,
+  state,
+}: {
+  item: WorkspaceWorkflowRanking;
+  state: DashboardDataState;
+}) {
+  const body = (
+    <>
+      <div className={styles.hotpathCardHeader}>
+        <span className={styles.rankBadge}>#{item.rank}</span>
+        {item.surging ? <span className={styles.surgeBadge}>급증</span> : null}
+      </div>
+      <h3>{item.workflowName}</h3>
+      <dl>
+        <div>
+          <dt>실행</dt>
+          <dd>{formatCount(item.executionCount, state)}</dd>
+        </div>
+        <div>
+          <dt>완료율</dt>
+          <dd>{formatPercent(item.completionRate, state)}</dd>
+        </div>
+        <div>
+          <dt>개입률</dt>
+          <dd>{formatPercent(item.humanInterventionRate, state)}</dd>
+        </div>
+      </dl>
+    </>
+  );
+
+  if (item.detailPath) {
+    return (
+      <Link
+        to={item.detailPath}
+        className={styles.hotpathCard}
+        data-testid={`hotpath-top-${item.rank}`}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <article className={styles.hotpathCard} data-testid={`hotpath-top-${item.rank}`}>
+      {body}
+      <span className={styles.unavailableText}>상세 준비 중</span>
+    </article>
+  );
+}
+
 function AutomationCoveragePanel({
   coverage,
   state,
@@ -317,7 +374,13 @@ function AutomationCoveragePanel({
   const measurementStatus =
     state === "loading" ? "LOADING" : coverage?.measurementStatus ?? "EMPTY";
   const measurementLabel =
-    state === "loading" ? "계산 중" : needsInstrumentation ? "계측 필요" : coverage ? "계측 확인" : "--";
+    state === "loading"
+      ? "계산 중"
+      : needsInstrumentation
+        ? "계측 필요"
+        : coverage
+          ? "계측 확인"
+          : "--";
   const trend = coverage?.trend ?? [];
   const maxTrendTotal = Math.max(1, ...trend.map((point) => point.totalConsultationCount));
 
@@ -325,7 +388,7 @@ function AutomationCoveragePanel({
     <section className={styles.coveragePanel} aria-labelledby="automation-coverage-title">
       <div className={styles.coverageHeader}>
         <div>
-        <span className={styles.panelEyebrow}>Automation Coverage</span>
+          <span className={styles.panelEyebrow}>Automation Coverage</span>
           <h2 id="automation-coverage-title" className={styles.sectionTitle}>
             자동화 커버리지
           </h2>
@@ -400,6 +463,143 @@ function AutomationCoveragePanel({
           <p className={styles.trendEmpty}>기간별 커버리지 추이가 없습니다.</p>
         )}
       </div>
+    </section>
+  );
+}
+
+function WorkflowRankingTable({
+  rankings,
+  state,
+}: {
+  rankings: WorkspaceWorkflowRanking[];
+  state: DashboardDataState;
+}) {
+  return (
+    <div className={styles.rankingTableWrap}>
+      <table className={styles.rankingTable}>
+        <thead>
+          <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Workflow</th>
+            <th scope="col">실행</th>
+            <th scope="col">비중</th>
+            <th scope="col">완료율</th>
+            <th scope="col">실패율</th>
+            <th scope="col">평균 처리</th>
+            <th scope="col">상담사 개입</th>
+            <th scope="col">증가율</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rankings.map((item) => {
+            const workflowName = (
+              <span className={styles.workflowNameCell}>
+                <strong>{item.workflowName}</strong>
+                <span>{item.workflowCode ?? "코드 없음"}</span>
+              </span>
+            );
+            return (
+              <tr
+                key={`${item.rank}-${item.workflowDefinitionId ?? item.workflowCode ?? "unknown"}`}
+                className={item.surging ? styles.surgingRow : undefined}
+                data-testid={`hotpath-row-${item.rank}`}
+              >
+                <td>#{item.rank}</td>
+                <td>
+                  {item.detailPath ? (
+                    <Link to={item.detailPath} className={styles.workflowDetailLink}>
+                      {workflowName}
+                    </Link>
+                  ) : (
+                    <span className={styles.workflowDetailDisabled}>
+                      {workflowName}
+                      <em>상세 준비 중</em>
+                    </span>
+                  )}
+                </td>
+                <td>{formatCount(item.executionCount, state)}</td>
+                <td>{formatPercent(item.shareRate, state)}</td>
+                <td>{formatPercent(item.completionRate, state)}</td>
+                <td>{formatPercent(item.failureRate, state)}</td>
+                <td>{formatDuration(item.averageHandlingSeconds, state)}</td>
+                <td>{formatPercent(item.humanInterventionRate, state)}</td>
+                <td>
+                  <span className={styles.changeCell}>
+                    {formatDelta(item.changeRate, state)}
+                    {item.surging ? <span className={styles.surgeBadge}>급증</span> : null}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function HotpathWorkflowRankingPanel({
+  rankings,
+  state,
+  error,
+}: {
+  rankings: WorkspaceWorkflowRankingResponse | null;
+  state: DashboardDataState;
+  error: string | null;
+}) {
+  const topRankings = rankings?.topRankings ?? [];
+  const allRankings = rankings?.rankings ?? [];
+
+  return (
+    <section className={styles.hotpathPanel} aria-labelledby="hotpath-ranking-title">
+      <div className={styles.panelHeader}>
+        <div>
+          <span className={styles.panelEyebrow}>HOTPATH</span>
+          <h2 id="hotpath-ranking-title" className={styles.sectionTitle}>
+            핫패스 워크플로우 랭킹
+          </h2>
+          <p className={styles.sectionDescription}>
+            선택 기간의 실행량과 전 기간 대비 증가율을 기준으로 우선 개선 대상을 확인합니다.
+          </p>
+        </div>
+        <span className={styles.totalBadge}>
+          전체 상담 {formatCount(rankings?.totalConsultationCount, state)}
+        </span>
+      </div>
+
+      {error ? (
+        <div className={styles.hotpathState} data-testid="hotpath-error">
+          <ErrorState message={error} />
+        </div>
+      ) : null}
+
+      {!error && state === "loading" ? (
+        <div className={styles.hotpathState} data-testid="hotpath-loading">
+          <LoadingSpinner />
+          <p className={styles.stateText}>워크플로우 랭킹을 불러오는 중입니다.</p>
+        </div>
+      ) : null}
+
+      {!error && state !== "loading" && allRankings.length === 0 ? (
+        <div className={styles.hotpathState} data-testid="hotpath-empty">
+          <p className={styles.stateText}>선택 기간에 집계할 워크플로우 실행이 없습니다.</p>
+        </div>
+      ) : null}
+
+      {!error && allRankings.length > 0 ? (
+        <>
+          <div className={styles.hotpathTopGrid} aria-label="워크플로우 TOP 5">
+            {topRankings.map((item) => (
+              <TopWorkflowCard
+                key={`${item.rank}-${item.workflowName}`}
+                item={item}
+                state={state}
+              />
+            ))}
+          </div>
+          <WorkflowRankingTable rankings={allRankings} state={state} />
+        </>
+      ) : null}
     </section>
   );
 }
@@ -610,13 +810,38 @@ export function WorkspaceDashboardPage() {
   const [metrics, setMetrics] = useState<ConsultationMetrics | null>(null);
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [workflowRankings, setWorkflowRankings] = useState<WorkspaceWorkflowRankingResponse | null>(
+    null,
+  );
+  const [isWorkflowRankingsLoading, setIsWorkflowRankingsLoading] = useState(false);
+  const [workflowRankingsError, setWorkflowRankingsError] = useState<string | null>(null);
   const metricDateRange = useMemo(() => buildMetricDateRange(filters), [filters]);
-  const dataState = useMemo<DashboardDataState>(() => {
+  const metricsState = useMemo<DashboardDataState>(() => {
     if (isMetricsLoading) return "loading";
     if (metricsError) return "error";
     if (hasMetricData(metrics)) return "partial";
     return "empty";
   }, [isMetricsLoading, metricsError, metrics]);
+  const workflowRankingState = useMemo<DashboardDataState>(() => {
+    if (isWorkflowRankingsLoading) return "loading";
+    if (workflowRankingsError) return "error";
+    if (hasWorkflowRankingData(workflowRankings)) return "partial";
+    return "empty";
+  }, [isWorkflowRankingsLoading, workflowRankingsError, workflowRankings]);
+  const dataState = useMemo<DashboardDataState>(() => {
+    const hasAnyData = hasMetricData(metrics) || hasWorkflowRankingData(workflowRankings);
+    if ((isMetricsLoading || isWorkflowRankingsLoading) && !hasAnyData) return "loading";
+    if (hasAnyData) return "partial";
+    if (metricsError && workflowRankingsError) return "error";
+    return "empty";
+  }, [
+    isMetricsLoading,
+    isWorkflowRankingsLoading,
+    metrics,
+    workflowRankings,
+    metricsError,
+    workflowRankingsError,
+  ]);
 
   useEffect(() => {
     setCrumbs(["대시보드"]);
@@ -667,6 +892,50 @@ export function WorkspaceDashboardPage() {
     };
   }, [parsedWorkspaceId, metricDateRange]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadWorkflowRankings() {
+      if (parsedWorkspaceId === null) {
+        setWorkflowRankings(null);
+        setWorkflowRankingsError(null);
+        setIsWorkflowRankingsLoading(false);
+        return;
+      }
+
+      if (!metricDateRange.from || !metricDateRange.to) {
+        setWorkflowRankings(null);
+        setWorkflowRankingsError(null);
+        setIsWorkflowRankingsLoading(false);
+        return;
+      }
+
+      setIsWorkflowRankingsLoading(true);
+      setWorkflowRankingsError(null);
+      try {
+        const data = await consultationApi.getWorkflowRankings(parsedWorkspaceId, metricDateRange);
+        if (ignore) return;
+        setWorkflowRankings(data);
+      } catch (error) {
+        if (ignore) return;
+        console.error("Failed to load workflow rankings:", error);
+        setWorkflowRankings(null);
+        setWorkflowRankingsError("워크플로우 랭킹을 불러오지 못했습니다.");
+        toast.error("워크플로우 랭킹을 불러오지 못했습니다.");
+      } finally {
+        if (!ignore) {
+          setIsWorkflowRankingsLoading(false);
+        }
+      }
+    }
+
+    void loadWorkflowRankings();
+
+    return () => {
+      ignore = true;
+    };
+  }, [parsedWorkspaceId, metricDateRange]);
+
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
   }
@@ -691,9 +960,14 @@ export function WorkspaceDashboardPage() {
 
       <DashboardFilters filters={filters} onChange={setFilters} />
       <FilterSummary filters={filters} />
-      <DashboardMetricsGrid metrics={metrics} state={dataState} />
-      <AutomationCoveragePanel coverage={metrics?.coverage} state={dataState} />
+      <DashboardMetricsGrid metrics={metrics} state={metricsState} />
+      <AutomationCoveragePanel coverage={metrics?.coverage} state={metricsState} />
       <KnowledgePackHealthPanel workspaceId={parsedWorkspaceId} />
+      <HotpathWorkflowRankingPanel
+        rankings={workflowRankings}
+        state={workflowRankingState}
+        error={workflowRankingsError}
+      />
       <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} />
 
       <section className={styles.slotGrid} aria-label="대시보드 카드와 차트 배치 영역">

@@ -9,9 +9,9 @@ import { requireApiData, selectApiData } from "@/shared/api";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
 
 // OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
-// assign/release, draft-response는 수동 호출로 유지한다.
+// dashboard workflow rankings, assign/release, draft-response는 수동 호출로 유지한다.
 
-export type ChatSession = Omit<ChatSessionResponse, 'responseMode'> & {
+export type ChatSession = Omit<ChatSessionResponse, "responseMode"> & {
   assignedCounselorId?: number | null;
   responseMode?: ConsultationResponseMode | null;
 };
@@ -111,6 +111,36 @@ export interface ConsultationCoverageTrendPoint {
 export interface ConsultationMetricsParams {
   from?: string;
   to?: string;
+}
+
+export interface WorkspaceWorkflowRanking {
+  rank: number;
+  workflowDefinitionId: number | null;
+  domainPackId: number | null;
+  domainPackVersionId: number | null;
+  workflowCode: string | null;
+  workflowName: string;
+  executionCount: number;
+  shareRate: number;
+  completedCount: number;
+  failedCount: number;
+  runningCount: number;
+  completionRate: number;
+  failureRate: number;
+  averageHandlingSeconds: number | null;
+  humanInterventionRate: number;
+  changeRate: number | null;
+  surging: boolean;
+  detailPath: string | null;
+}
+
+export interface WorkspaceWorkflowRankingResponse {
+  workspaceId: number;
+  periodStart: string;
+  periodEnd: string;
+  totalConsultationCount: number;
+  rankings: WorkspaceWorkflowRanking[];
+  topRankings: WorkspaceWorkflowRanking[];
 }
 
 export interface DraftResponse {
@@ -351,11 +381,28 @@ export const consultationApi = {
     if (params.to) searchParams.set("to", params.to);
     const query = searchParams.toString();
     const url = `/api/v1/workspaces/${workspaceId}/consultation/metrics${query ? `?${query}` : ""}`;
-    const response = await customFetch<ConsultationMetrics | { data?: ConsultationMetrics }>(
-      url,
-      { method: "GET" },
-    );
+    const response = await customFetch<ConsultationMetrics | { data?: ConsultationMetrics }>(url, {
+      method: "GET",
+    });
     return requireApiData<ConsultationMetrics>(response, "상담 지표 응답을 확인할 수 없습니다.");
+  },
+
+  getWorkflowRankings: async (
+    workspaceId: number,
+    params: ConsultationMetricsParams = {},
+  ): Promise<WorkspaceWorkflowRankingResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params.from) searchParams.set("from", params.from);
+    if (params.to) searchParams.set("to", params.to);
+    const query = searchParams.toString();
+    const url = `/api/v1/workspaces/${workspaceId}/dashboard/workflow-rankings${query ? `?${query}` : ""}`;
+    const response = await customFetch<
+      WorkspaceWorkflowRankingResponse | { data?: WorkspaceWorkflowRankingResponse }
+    >(url, { method: "GET" });
+    return requireApiData<WorkspaceWorkflowRankingResponse>(
+      response,
+      "워크플로우 랭킹 응답을 확인할 수 없습니다.",
+    );
   },
 
   generateDraftResponse: async (sessionId: number): Promise<DraftResponse> => {
