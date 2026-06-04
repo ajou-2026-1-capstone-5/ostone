@@ -20,6 +20,10 @@ public record PlanCatalogResult(
     boolean unlimited) {
 
   public static PlanCatalogResult from(Plan plan) {
+    boolean unlimited =
+        plan.getMemberLimit() < 0
+            || plan.getDatasetUploadLimit() < 0
+            || plan.getPipelineRunHourlyLimit() < 0;
     return new PlanCatalogResult(
         plan.getPlanKey(),
         plan.getName(),
@@ -30,6 +34,6 @@ public record PlanCatalogResult(
         plan.getDatasetUploadLimit(),
         plan.getPipelineRunHourlyLimit(),
         plan.isContactOnly(),
-        plan.getMemberLimit() < 0);
+        unlimited);
   }
 }

@@ -30,11 +30,21 @@ interface CardModel {
   contactOnly: boolean;
 }
 
+/** 결제 주기 라벨. 알 수 없는 interval 은 잘못된 라벨 대신 미표시(undefined). */
+const PERIOD_LABEL_BY_INTERVAL: Record<string, string> = {
+  MONTH: "/ 월",
+  YEAR: "/ 년",
+};
+
+function periodLabelFor(interval: string): string | undefined {
+  return PERIOD_LABEL_BY_INTERVAL[interval];
+}
+
 const FREE_CARD: CardModel = {
   planKey: FREE_PLAN_KEY,
   name: PLAN_COPY[FREE_PLAN_KEY].name,
   priceLabel: formatAmount(0, "KRW"),
-  periodLabel: "/ 월",
+  periodLabel: periodLabelFor("MONTH"),
   tagline: PLAN_COPY[FREE_PLAN_KEY].tagline,
   features: PLAN_COPY[FREE_PLAN_KEY].features,
   popular: false,
@@ -47,7 +57,7 @@ function toCardModel(entry: PlanCatalogEntry): CardModel {
     planKey: entry.planKey,
     name: copy?.name ?? entry.name,
     priceLabel: entry.contactOnly ? "문의" : formatAmount(entry.amount, entry.currency),
-    periodLabel: entry.contactOnly ? undefined : "/ 월",
+    periodLabel: entry.contactOnly ? undefined : periodLabelFor(entry.interval),
     tagline: copy?.tagline,
     features: copy?.features ?? [],
     popular: copy?.popular ?? false,

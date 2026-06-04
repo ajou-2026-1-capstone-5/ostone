@@ -472,7 +472,14 @@
     </main>
 
     <!-- Enterprise 도입 문의 다이얼로그 (카드 결제 UI 대신 연락처 제시) -->
-    <div class="overlay" id="enterprise-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div
+      class="overlay"
+      id="enterprise-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      style="display: none"
+    >
       <div class="dialog">
         <h3 id="dialog-title">Enterprise 도입 문의</h3>
         <p>
@@ -484,20 +491,39 @@
           <span class="contact-value">02-XXX-XXXX</span>
         </div>
         <div class="dialog-actions">
-          <button type="button" class="cta secondary" onclick="document.getElementById('enterprise-dialog').style.display='none'">닫기</button>
+          <button type="button" class="cta secondary" id="enterprise-close-btn">닫기</button>
         </div>
       </div>
     </div>
 
     <script>
       // 목업 상호작용: Enterprise CTA → 연락처 다이얼로그 (Toss 결제창 미연결)
-      var dialog = document.getElementById("enterprise-dialog");
-      dialog.style.display = "none";
-      document.getElementById("enterprise-cta").addEventListener("click", function () {
+      const dialog = document.getElementById("enterprise-dialog");
+      const openBtn = document.getElementById("enterprise-cta");
+      const closeBtn = document.getElementById("enterprise-close-btn");
+      let lastFocused = null;
+
+      function onKeydown(e) {
+        if (e.key === "Escape") closeDialog();
+      }
+
+      function openDialog() {
+        lastFocused = document.activeElement;
         dialog.style.display = "flex";
-      });
+        document.addEventListener("keydown", onKeydown);
+        closeBtn.focus();
+      }
+
+      function closeDialog() {
+        dialog.style.display = "none";
+        document.removeEventListener("keydown", onKeydown);
+        if (lastFocused) lastFocused.focus();
+      }
+
+      openBtn.addEventListener("click", openDialog);
+      closeBtn.addEventListener("click", closeDialog);
       dialog.addEventListener("click", function (e) {
-        if (e.target === dialog) dialog.style.display = "none";
+        if (e.target === dialog) closeDialog();
       });
     </script>
   </body>
