@@ -13,6 +13,9 @@ public interface JpaPaymentCancelRepository
     extends JpaRepository<PaymentCancel, Long>, PaymentCancelRepository {
 
   @Override
+  boolean existsByPaymentId(Long paymentId);
+
+  @Override
   @Query(
       "SELECT COALESCE(SUM(pc.cancelAmount), 0)"
           + " FROM PaymentCancel pc WHERE pc.paymentId = :paymentId")
