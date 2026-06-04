@@ -158,6 +158,24 @@ public class SimulationFeedback {
     this.status = SimulationFeedbackStatus.CANDIDATE_CREATED;
   }
 
+  public void markResolved() {
+    if (this.status != SimulationFeedbackStatus.CANDIDATE_CREATED
+        && this.status != SimulationFeedbackStatus.OPEN) {
+      throw new InvalidSimulationFeedbackException(
+          "feedback can only be resolved from OPEN or CANDIDATE_CREATED");
+    }
+    this.status = SimulationFeedbackStatus.RESOLVED;
+  }
+
+  public void markDismissed() {
+    if (this.status != SimulationFeedbackStatus.CANDIDATE_CREATED
+        && this.status != SimulationFeedbackStatus.OPEN) {
+      throw new InvalidSimulationFeedbackException(
+          "feedback can only be dismissed from OPEN or CANDIDATE_CREATED");
+    }
+    this.status = SimulationFeedbackStatus.DISMISSED;
+  }
+
   private static Long requireId(Long value, String fieldName) {
     if (value == null) {
       throw new InvalidSimulationFeedbackException(fieldName + " must not be null");

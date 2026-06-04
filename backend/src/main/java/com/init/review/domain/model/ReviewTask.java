@@ -19,6 +19,8 @@ public class ReviewTask {
   public static final String STATUS_RESOLVED = "RESOLVED";
   public static final String TARGET_DOMAIN_CANDIDATE = "DOMAIN_CANDIDATE";
   public static final String TARGET_FEEDBACK_PAIR = "FEEDBACK_PAIR";
+  public static final String TARGET_SIMULATION_IMPROVEMENT_CANDIDATE =
+      "SIMULATION_IMPROVEMENT_CANDIDATE";
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -86,6 +88,22 @@ public class ReviewTask {
     return task;
   }
 
+  public static ReviewTask create(
+      Long reviewSessionId,
+      String targetType,
+      Long targetId,
+      String targetRefJson,
+      String title,
+      String priority,
+      String proposedChangeJson,
+      OffsetDateTime now) {
+    ReviewTask task =
+        create(
+            reviewSessionId, targetType, targetRefJson, title, priority, proposedChangeJson, now);
+    task.targetId = targetId;
+    return task;
+  }
+
   public void resolve(Long resolvedBy, OffsetDateTime resolvedAt) {
     if (STATUS_RESOLVED.equals(this.status)) {
       throw new IllegalStateException("이미 resolve된 ReviewTask입니다.");
@@ -106,6 +124,10 @@ public class ReviewTask {
 
   public String getTargetType() {
     return targetType;
+  }
+
+  public Long getTargetId() {
+    return targetId;
   }
 
   public String getTargetRefJson() {

@@ -65,13 +65,6 @@ const CANDIDATE_STATUSES: Array<{
   { value: "", label: "전체" },
 ];
 
-const CANDIDATE_STATUS_OPTIONS: SimulationImprovementCandidateStatus[] = [
-  "DRAFT",
-  "READY_FOR_REVIEW",
-  "APPLIED",
-  "REJECTED",
-];
-
 type Meta = {
   customerName?: string;
 };
@@ -182,6 +175,7 @@ export function WorkspaceSimulationPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
   const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
+  const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const workflows = useListAllWorkspaceWorkflows({ workspaceId: parsedWorkspaceId });
@@ -439,6 +433,44 @@ export function WorkspaceSimulationPage() {
       }
     } catch {
       toast.error("개선 후보 상태를 변경하지 못했습니다.");
+    } finally {
+      setUpdatingCandidateId(null);
+    }
+  };
+
+  const handleApproveCandidate = async (candidate: SimulationImprovementCandidate) => {
+    setUpdatingCandidateId(candidate.id);
+    try {
+      await simulationApi.approveImprovementCandidate(parsedWorkspaceId, candidate.id, {
+        reason: "시뮬레이션 리뷰 승인",
+      });
+      toast.success("개선 후보를 draft version에 반영했습니다.");
+      await Promise.all([reloadCandidates(), reloadFeedback()]);
+    } catch {
+      toast.error("개선 후보를 승인하지 못했습니다.");
+    } finally {
+      setUpdatingCandidateId(null);
+    }
+  };
+
+  const handleRejectCandidate = async (candidate: SimulationImprovementCandidate) => {
+    const reason = (candidateRejectReasons[candidate.id] ?? "").trim();
+    if (!reason) {
+      toast.error("반려 사유를 입력하세요.");
+      return;
+    }
+    setUpdatingCandidateId(candidate.id);
+    try {
+      await simulationApi.rejectImprovementCandidate(parsedWorkspaceId, candidate.id, { reason });
+      toast.success("개선 후보를 반려했습니다.");
+      setCandidateRejectReasons((current) => {
+        const next = { ...current };
+        delete next[candidate.id];
+        return next;
+      });
+      await Promise.all([reloadCandidates(), reloadFeedback()]);
+    } catch {
+      toast.error("개선 후보를 반려하지 못했습니다.");
     } finally {
       setUpdatingCandidateId(null);
     }
@@ -828,23 +860,7 @@ export function WorkspaceSimulationPage() {
                           version #{candidate.domainPackVersionId} · {candidate.targetElementType}
                         </span>
                       </div>
-                      <NativeSelect
-                        value={candidate.status}
-                        onChange={(event) =>
-                          void handleCandidateStatusChange(
-                            candidate,
-                            event.target.value as SimulationImprovementCandidateStatus,
-                          )
-                        }
-                        disabled={updatingCandidateId === candidate.id}
-                        aria-label="개선 후보 상태 변경"
-                      >
-                        {CANDIDATE_STATUS_OPTIONS.map((status) => (
-                          <NativeSelectOption key={status} value={status}>
-                            {status}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
+                      <span className={styles.statusPill}>{candidate.status}</span>
                     </div>
                     <dl className={styles.candidateSummary}>
                       <div>
@@ -855,7 +871,71 @@ export function WorkspaceSimulationPage() {
                         <dt>After</dt>
                         <dd>{candidate.afterSummary}</dd>
                       </div>
+                      <div>
+                        <dt>Evidence</dt>
+                        <dd>
+                          {candidate.evidenceSummary}
+                          <span className={styles.evidenceMeta}>
+                            session #{candidate.sessionId}
+                            {candidate.chatMessageId ? ` · turn #${candidate.chatMessageId}` : ""}
+                            {candidate.feedbackId ? ` · feedback #${candidate.feedbackId}` : ""}
+                          </span>
+                        </dd>
+                      </div>
                     </dl>
+                    {candidate.status === "DRAFT" ? (
+                      <div className={styles.candidateActions}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={updatingCandidateId === candidate.id}
+                          onClick={() =>
+                            void handleCandidateStatusChange(candidate, "READY_FOR_REVIEW")
+                          }
+                        >
+                          <span>{updatingCandidateId === candidate.id ? "요청 중" : "리뷰 요청"}</span>
+                        </Button>
+                      </div>
+                    ) : null}
+                    {candidate.status === "READY_FOR_REVIEW" ? (
+                      <div className={styles.candidateReviewForm}>
+                        <input
+                          value={candidateRejectReasons[candidate.id] ?? ""}
+                          onChange={(event) =>
+                            setCandidateRejectReasons((current) => ({
+                              ...current,
+                              [candidate.id]: event.target.value,
+                            }))
+                          }
+                          maxLength={500}
+                          placeholder="반려 사유"
+                          aria-label="개선 후보 반려 사유"
+                        />
+                        <div className={styles.candidateActions}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={updatingCandidateId === candidate.id}
+                            onClick={() => void handleRejectCandidate(candidate)}
+                          >
+                            <span>반려</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={updatingCandidateId === candidate.id}
+                            onClick={() => void handleApproveCandidate(candidate)}
+                          >
+                            <span>승인</span>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {candidate.decisionReason ? (
+                      <p className={styles.decisionReason}>결정 사유: {candidate.decisionReason}</p>
+                    ) : null}
                   </li>
                 ))}
               </ul>

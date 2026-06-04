@@ -23,6 +23,13 @@ const candidate = {
   beforeSummary: "주문번호를 묻지 않았습니다.",
   afterSummary: "주문번호를 먼저 요청합니다.",
   evidenceSummary: "simulation feedback #1",
+  reviewSessionId: null,
+  reviewTaskId: null,
+  appliedDomainPackVersionId: null,
+  draftPatchJson: "{}",
+  decisionReason: null,
+  decidedBy: null,
+  decidedAt: null,
   status: "DRAFT",
   createdBy: 3,
   createdAt: "2026-06-04T10:05:00Z",
@@ -258,5 +265,39 @@ describe("simulationApi", () => {
       },
     );
     expect(result.status).toBe("READY_FOR_REVIEW");
+  });
+
+  it("approveImprovementCandidate가 후보 승인 endpoint를 호출한다", async () => {
+    mockedCustomFetch.mockResolvedValue({ data: { ...candidate, status: "APPLIED" } });
+
+    const result = await simulationApi.approveImprovementCandidate(7, 1000, {
+      reason: "draft 반영",
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/improvement-candidates/1000/approve",
+      {
+        method: "POST",
+        body: JSON.stringify({ reason: "draft 반영" }),
+      },
+    );
+    expect(result.status).toBe("APPLIED");
+  });
+
+  it("rejectImprovementCandidate가 후보 반려 endpoint를 호출한다", async () => {
+    mockedCustomFetch.mockResolvedValue({ data: { ...candidate, status: "REJECTED" } });
+
+    const result = await simulationApi.rejectImprovementCandidate(7, 1000, {
+      reason: "근거 부족",
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/improvement-candidates/1000/reject",
+      {
+        method: "POST",
+        body: JSON.stringify({ reason: "근거 부족" }),
+      },
+    );
+    expect(result.status).toBe("REJECTED");
   });
 });

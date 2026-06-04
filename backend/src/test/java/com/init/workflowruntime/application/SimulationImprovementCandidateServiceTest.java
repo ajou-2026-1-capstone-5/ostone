@@ -5,13 +5,32 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.DomainPackVersionCloneService;
+import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.SlotDefinition;
+import com.init.domainpack.domain.repository.DomainPackVersionRepository;
+import com.init.domainpack.domain.repository.IntentDefinitionRepository;
+import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
+import com.init.domainpack.domain.repository.RiskDefinitionRepository;
+import com.init.domainpack.domain.repository.SlotDefinitionRepository;
+import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
+import com.init.review.domain.model.ReviewSession;
+import com.init.review.domain.model.ReviewTask;
+import com.init.review.domain.repository.ReviewDecisionRepository;
+import com.init.review.domain.repository.ReviewSessionRepository;
+import com.init.review.domain.repository.ReviewTaskRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.ApproveSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.CreateSimulationImprovementCandidateCommand;
+import com.init.workflowruntime.application.command.RejectSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.UpdateSimulationImprovementCandidateStatusCommand;
+import com.init.workflowruntime.application.matching.WorkflowMatchingProfileBuildRequestService;
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
@@ -33,6 +52,8 @@ import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -59,6 +80,17 @@ class SimulationImprovementCandidateServiceTest {
   @Mock private SimulationImprovementCandidateRepository candidateRepository;
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+  @Mock private DomainPackVersionRepository domainPackVersionRepository;
+  @Mock private DomainPackVersionCloneService domainPackVersionCloneService;
+  @Mock private IntentDefinitionRepository intentDefinitionRepository;
+  @Mock private SlotDefinitionRepository slotDefinitionRepository;
+  @Mock private PolicyDefinitionRepository policyDefinitionRepository;
+  @Mock private RiskDefinitionRepository riskDefinitionRepository;
+  @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
+  @Mock private ReviewSessionRepository reviewSessionRepository;
+  @Mock private ReviewTaskRepository reviewTaskRepository;
+  @Mock private ReviewDecisionRepository reviewDecisionRepository;
+  @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private SimulationImprovementCandidateService service;
 
@@ -69,7 +101,20 @@ class SimulationImprovementCandidateServiceTest {
             feedbackRepository,
             candidateRepository,
             chatSessionRepository,
-            workspaceMemberRepository);
+            workspaceMemberRepository,
+            domainPackVersionRepository,
+            domainPackVersionCloneService,
+            intentDefinitionRepository,
+            slotDefinitionRepository,
+            policyDefinitionRepository,
+            riskDefinitionRepository,
+            workflowDefinitionRepository,
+            reviewSessionRepository,
+            reviewTaskRepository,
+            reviewDecisionRepository,
+            profileBuildRequestService,
+            new ObjectMapper(),
+            Clock.systemDefaultZone());
   }
 
   @Test
@@ -286,12 +331,24 @@ class SimulationImprovementCandidateServiceTest {
   }
 
   @Test
-  @DisplayName("updateStatus: 후보 상태를 변경한다")
+  @DisplayName("updateStatus: READY_FOR_REVIEW 전이 시 review task를 연결한다")
   void shouldUpdateStatus() {
     givenMembership();
     SimulationImprovementCandidate candidate =
         withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    ReviewSession session = reviewSession(2000L);
+    ReviewTask task = reviewTask(session.getId(), candidate.getId(), 3000L);
     given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(
+            reviewSessionRepository
+                .findFirstByWorkspaceIdAndDomainPackVersionIdAndReviewKindAndStatusOrderByOpenedAtDesc(
+                    any(), any(), any(), any()))
+        .willReturn(Optional.of(session));
+    given(
+            reviewTaskRepository.findFirstByReviewSessionIdAndTargetTypeAndTargetIdOrderByIdDesc(
+                any(), any(), any()))
+        .willReturn(Optional.empty());
+    given(reviewTaskRepository.save(any(ReviewTask.class))).willReturn(task);
     given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -301,6 +358,8 @@ class SimulationImprovementCandidateServiceTest {
                 WORKSPACE_ID, USER_ID, 1000L, "READY_FOR_REVIEW"));
 
     assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.READY_FOR_REVIEW);
+    assertThat(result.reviewSessionId()).isEqualTo(2000L);
+    assertThat(result.reviewTaskId()).isEqualTo(3000L);
   }
 
   @Test
@@ -326,6 +385,143 @@ class SimulationImprovementCandidateServiceTest {
                         WORKSPACE_ID, USER_ID, 1000L, "WAITING")))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("지원하지 않는 후보 상태입니다");
+  }
+
+  @Test
+  @DisplayName("approve: READY 후보를 draft slot description에 반영하고 feedback을 RESOLVED로 변경한다")
+  void shouldApproveReadyCandidateAndApplyDraftPatch() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(
+            SimulationImprovementCandidate.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                FEEDBACK_ID,
+                SESSION_ID,
+                2L,
+                new SimulationImprovementCandidateDraft(
+                    SimulationImprovementCandidateType.SLOT_QUESTION,
+                    SimulationImprovementCandidateTargetType.SLOT,
+                    null,
+                    "order_number",
+                    "주문번호를 묻지 않았습니다.",
+                    "주문번호를 먼저 요청합니다.",
+                    "simulation feedback #900"),
+                USER_ID),
+            1000L);
+    candidate.submitForReview(2000L, 3000L);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            VERSION_ID, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(domainPackVersionRepository.findByIdForUpdate(VERSION_ID))
+        .willReturn(Optional.of(draftVersion));
+    given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, "order_number"))
+        .willReturn(Optional.of(slot));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(
+                WORKSPACE_ID, USER_ID, 1000L, "반영합니다."));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(result.appliedDomainPackVersionId()).isEqualTo(VERSION_ID);
+    assertThat(slot.getDescription()).isEqualTo("주문번호를 먼저 요청합니다.");
+    assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.RESOLVED);
+    verify(reviewDecisionRepository).save(any());
+    verify(profileBuildRequestService).enqueue(VERSION_ID, "SIMULATION_CANDIDATE_APPLIED");
+  }
+
+  @Test
+  @DisplayName("approve: draft 대상 요소를 찾지 못하면 후보와 feedback 상태를 변경하지 않는다")
+  void shouldKeepCandidateAndFeedbackWhenApproveTargetMissing() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(
+            SimulationImprovementCandidate.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                FEEDBACK_ID,
+                SESSION_ID,
+                2L,
+                new SimulationImprovementCandidateDraft(
+                    SimulationImprovementCandidateType.SLOT_QUESTION,
+                    SimulationImprovementCandidateTargetType.SLOT,
+                    null,
+                    "missing_slot",
+                    "기존 설명",
+                    "새 설명",
+                    "simulation feedback #900"),
+                USER_ID),
+            1000L);
+    candidate.submitForReview(2000L, 3000L);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(domainPackVersionRepository.findByIdForUpdate(VERSION_ID))
+        .willReturn(Optional.of(draftVersion));
+    given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, "missing_slot"))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, "반영합니다.")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("개선 후보를 반영할 draft 대상 요소를 찾을 수 없습니다");
+
+    assertThat(candidate.getStatus())
+        .isEqualTo(SimulationImprovementCandidateStatus.READY_FOR_REVIEW);
+    assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.CANDIDATE_CREATED);
+    verify(candidateRepository, never()).save(any());
+    verify(feedbackRepository, never()).save(any());
+    verifyNoInteractions(reviewDecisionRepository, profileBuildRequestService);
+  }
+
+  @Test
+  @DisplayName("reject: READY 후보를 사유와 함께 REJECTED로 변경하고 feedback을 DISMISSED로 변경한다")
+  void shouldRejectReadyCandidateWithReason() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.reject(
+            new RejectSimulationImprovementCandidateCommand(
+                WORKSPACE_ID, USER_ID, 1000L, "근거가 부족합니다."));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.REJECTED);
+    assertThat(result.decisionReason()).isEqualTo("근거가 부족합니다.");
+    assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.DISMISSED);
+    verify(reviewDecisionRepository).save(any());
   }
 
   @Test
@@ -400,5 +596,35 @@ class SimulationImprovementCandidateServiceTest {
       SimulationImprovementCandidate candidate, Long id) {
     ReflectionTestUtils.setField(candidate, "id", id);
     return candidate;
+  }
+
+  private ReviewSession reviewSession(Long id) {
+    ReviewSession session =
+        ReviewSession.createDomainPackReview(
+            WORKSPACE_ID,
+            VERSION_ID,
+            ReviewSession.KIND_SIMULATION_IMPROVEMENT,
+            "review",
+            null,
+            USER_ID,
+            "{}",
+            OffsetDateTime.now());
+    ReflectionTestUtils.setField(session, "id", id);
+    return session;
+  }
+
+  private ReviewTask reviewTask(Long sessionId, Long candidateId, Long id) {
+    ReviewTask task =
+        ReviewTask.create(
+            sessionId,
+            ReviewTask.TARGET_SIMULATION_IMPROVEMENT_CANDIDATE,
+            candidateId,
+            "{}",
+            "task",
+            "NORMAL",
+            "{}",
+            OffsetDateTime.now());
+    ReflectionTestUtils.setField(task, "id", id);
+    return task;
   }
 }
