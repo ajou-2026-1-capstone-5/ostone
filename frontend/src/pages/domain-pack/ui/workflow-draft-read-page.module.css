@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
   background: var(--paper);
 }
 
@@ -109,7 +109,7 @@
 }
 
 .canvasFrame {
-  flex: 1;
+  flex: 0 0 min(52vh, 560px);
   position: relative;
   margin: 12px 20px 20px;
   border-radius: var(--r-2);
@@ -142,6 +142,239 @@
 
 .errorState {
   padding: 32px;
+}
+
+.analysisPanel {
+  margin: 0 20px 24px;
+  padding: 18px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.analysisHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.analysisHeader h3 {
+  margin: 2px 0 4px;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 540;
+  letter-spacing: 0;
+}
+
+.analysisHeader p,
+.analysisEmptyText {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 340;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.analysisEyebrow,
+.analysisPeriod {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.analysisPeriod {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+.analysisMetricGrid,
+.bottleneckGrid,
+.analysisLists {
+  display: grid;
+  gap: 10px;
+}
+
+.analysisMetricGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analysisMetricGrid article,
+.bottleneckCard,
+.analysisListGroup,
+.hintPanel,
+.transitionList {
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-2);
+  background: var(--paper-2);
+}
+
+.analysisMetricGrid article {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 76px;
+}
+
+.analysisMetricGrid span,
+.bottleneckCard span {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 340;
+  letter-spacing: 0;
+}
+
+.analysisMetricGrid strong,
+.bottleneckCard strong {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 540;
+  letter-spacing: 0;
+}
+
+.bottleneckGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bottleneckCard {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bottleneckCard p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.transitionList {
+  padding: 14px;
+}
+
+.transitionList h4,
+.analysisListGroup h4 {
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+  letter-spacing: 0;
+}
+
+.transitionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line-2);
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.transitionRow:first-of-type {
+  border-top: 0;
+}
+
+.transitionRow span,
+.transitionRow strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transitionRow b {
+  color: var(--ink);
+  font-weight: 540;
+}
+
+.analysisLists {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.analysisListGroup {
+  padding: 14px;
+}
+
+.analysisListGroup ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.analysisListGroup li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-2);
+}
+
+.analysisListGroup li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.analysisListGroup li span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.analysisListGroup strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+  overflow-wrap: anywhere;
+}
+
+.analysisListGroup em {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.analysisListGroup b {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.hintPanel {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hintPanel p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 340;
+  line-height: 1.45;
 }
 
 .pageWrapper {
@@ -258,6 +491,26 @@
 }
 
 @media (max-width: 767px) {
+  .detailHeader,
+  .analysisHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .canvasFrame {
+    margin: 12px;
+    min-height: 340px;
+  }
+
+  .analysisPanel {
+    margin: 0 12px 16px;
+  }
+
+  .analysisMetricGrid,
+  .bottleneckGrid,
+  .analysisLists {
+    grid-template-columns: 1fr;
+  }
   .twoPane {
     flex-direction: column;
   }
