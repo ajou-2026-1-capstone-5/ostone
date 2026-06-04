@@ -223,6 +223,128 @@
   line-height: 1.55;
 }
 
+.coveragePanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+}
+
+.coverageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.measurementBadge {
+  flex-shrink: 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-pill);
+  color: var(--paper);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 540;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.measurementBadge[data-status="NEEDS_INSTRUMENTATION"] {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.instrumentationNotice {
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  color: var(--ink-2);
+  background: var(--paper-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.coverageGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.coverageCard {
+  min-width: 0;
+  min-height: 132px;
+  padding: var(--s-4);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-3);
+  background: var(--paper-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.coverageCard strong {
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 540;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.coverageCard p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trendPanel {
+  display: grid;
+  gap: var(--s-2);
+  padding-top: var(--s-2);
+}
+
+.trendRow {
+  display: grid;
+  grid-template-columns: 96px minmax(120px, 1fr) 64px;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.trendRow strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 540;
+  text-align: right;
+}
+
+.trendTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--paper-3);
+}
+
+.trendTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+}
+
+.trendEmpty {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
 .statePanel,
 .emptyPanel,
 .partialPanel {
@@ -349,8 +471,13 @@
 
   .filterSummary,
   .metricGrid,
+  .coverageGrid,
   .slotGrid {
     grid-template-columns: 1fr;
+  }
+
+  .coverageHeader {
+    flex-direction: column;
   }
 
   .selectGrid {
@@ -378,5 +505,14 @@
 
   .segmentButton {
     padding: 0 var(--s-2);
+  }
+
+  .trendRow {
+    grid-template-columns: 1fr;
+    gap: var(--s-2);
+  }
+
+  .trendRow strong {
+    text-align: left;
   }
 }

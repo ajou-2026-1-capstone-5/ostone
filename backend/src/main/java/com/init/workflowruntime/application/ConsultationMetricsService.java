@@ -1,6 +1,8 @@
 package com.init.workflowruntime.application;
 
 import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
+import com.init.workflowruntime.application.dto.ConsultationCoverageMetricsResponse;
+import com.init.workflowruntime.application.dto.ConsultationCoverageTrendPointResponse;
 import com.init.workflowruntime.application.dto.ConsultationMetricsComparisonResponse;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workflowruntime.domain.ConsultationMetricsRepository;
@@ -13,7 +15,10 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +72,7 @@ public class ConsultationMetricsService {
         current.humanInterventionCount(),
         current.unresolvedSessionCount(),
         comparison(current, previous),
+        coverage(facts, period),
         current.completedConsultationCount(),
         current.llmHandledCount(),
         current.humanInterventionCount());
@@ -178,6 +184,104 @@ public class ConsultationMetricsService {
     }
     double rate = ((current.doubleValue() - previous.doubleValue()) / previous.doubleValue()) * 100;
     return Math.round(rate * 10.0) / 10.0;
+  }
+
+  private ConsultationCoverageMetricsResponse coverage(
+      List<ConsultationMetricsSessionFact> facts, MetricPeriod period) {
+    List<ConsultationMetricsSessionFact> startedFacts =
+        facts.stream().filter(ConsultationMetricsSessionFact::startedInPeriod).toList();
+    long totalCount = startedFacts.size();
+    long workflowMatchedCount =
+        startedFacts.stream().filter(ConsultationMetricsSessionFact::workflowMatched).count();
+    long intentClassifiedCount =
+        startedFacts.stream().filter(ConsultationMetricsSessionFact::intentClassified).count();
+    long lowConfidenceCount =
+        startedFacts.stream().filter(ConsultationMetricsSessionFact::lowConfidence).count();
+    long unmatchedSessionCount =
+        startedFacts.stream().filter(ConsultationMetricsSessionFact::unmatched).count();
+    long startedCompletedCount =
+        startedFacts.stream().filter(ConsultationMetricsSessionFact::handledInPeriod).count();
+    long startedHumanInterventionCount =
+        startedFacts.stream()
+            .filter(fact -> fact.hasHumanMessage() || fact.handoffSelected())
+            .count();
+    long startedLlmOnlyCompletedCount =
+        startedFacts.stream()
+            .filter(ConsultationMetricsSessionFact::handledInPeriod)
+            .filter(fact -> !fact.hasHumanMessage())
+            .filter(ConsultationMetricsSessionFact::hasLlmMessage)
+            .count();
+    long autoCompletedWorkflowCount =
+        startedFacts.stream()
+            .filter(ConsultationMetricsSessionFact::workflowMatched)
+            .filter(ConsultationMetricsSessionFact::handledInPeriod)
+            .filter(fact -> !fact.hasHumanMessage())
+            .filter(ConsultationMetricsSessionFact::hasLlmMessage)
+            .count();
+    boolean hasCoverageLogs =
+        startedFacts.stream().anyMatch(ConsultationMetricsSessionFact::coverageLogAvailable);
+    String measurementStatus =
+        totalCount > 0 && !hasCoverageLogs ? "NEEDS_INSTRUMENTATION" : "READY";
+    String measurementMessage =
+        "NEEDS_INSTRUMENTATION".equals(measurementStatus)
+            ? "커버리지 산출에 필요한 decision log 또는 workflow match log 계측이 필요합니다."
+            : "커버리지 산출에 필요한 운영 로그가 확인되었습니다.";
+
+    return new ConsultationCoverageMetricsResponse(
+        workflowMatchedCount,
+        rate(workflowMatchedCount, totalCount),
+        intentClassifiedCount,
+        rate(intentClassifiedCount, totalCount),
+        lowConfidenceCount,
+        rate(lowConfidenceCount, totalCount),
+        unmatchedSessionCount,
+        autoCompletedWorkflowCount,
+        rate(startedHumanInterventionCount, totalCount),
+        rate(startedLlmOnlyCompletedCount, startedCompletedCount),
+        measurementStatus,
+        measurementMessage,
+        coverageTrend(startedFacts, period));
+  }
+
+  private List<ConsultationCoverageTrendPointResponse> coverageTrend(
+      List<ConsultationMetricsSessionFact> startedFacts, MetricPeriod period) {
+    Map<LocalDate, List<ConsultationMetricsSessionFact>> factsByDate = new LinkedHashMap<>();
+    LocalDate startDate = period.start().atZoneSameInstant(METRIC_ZONE).toLocalDate();
+    LocalDate endDateExclusive = period.endExclusive().atZoneSameInstant(METRIC_ZONE).toLocalDate();
+    for (LocalDate date = startDate; date.isBefore(endDateExclusive); date = date.plusDays(1)) {
+      factsByDate.put(date, new ArrayList<>());
+    }
+
+    for (ConsultationMetricsSessionFact fact : startedFacts) {
+      if (fact.startedAt() == null) {
+        continue;
+      }
+      LocalDate date = fact.startedAt().atZoneSameInstant(METRIC_ZONE).toLocalDate();
+      List<ConsultationMetricsSessionFact> dailyFacts = factsByDate.get(date);
+      if (dailyFacts != null) {
+        dailyFacts.add(fact);
+      }
+    }
+
+    return factsByDate.entrySet().stream()
+        .map(
+            entry -> {
+              long totalCount = entry.getValue().size();
+              long matchedCount =
+                  entry.getValue().stream()
+                      .filter(ConsultationMetricsSessionFact::workflowMatched)
+                      .count();
+              return new ConsultationCoverageTrendPointResponse(
+                  entry.getKey(), totalCount, matchedCount, rate(matchedCount, totalCount));
+            })
+        .toList();
+  }
+
+  private Double rate(long numerator, long denominator) {
+    if (denominator == 0) {
+      return null;
+    }
+    return Math.round(((double) numerator / denominator) * 1000.0) / 10.0;
   }
 
   private record MetricPeriod(

@@ -10,7 +10,10 @@ import {
 import { toast } from "sonner";
 
 import { consultationApi } from "@/features/consultation/api/consultationApi";
-import type { ConsultationMetrics } from "@/features/consultation/api/consultationApi";
+import type {
+  ConsultationCoverageMetrics,
+  ConsultationMetrics,
+} from "@/features/consultation/api/consultationApi";
 import { KnowledgePackHealthPanel } from "@/features/workspace-dashboard-health";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
@@ -177,6 +180,13 @@ function formatDelta(delta: number | null | undefined, state: DashboardDataState
   return `전 기간 ${sign}${delta.toFixed(1)}%`;
 }
 
+function formatPercent(value: MetricValue, state: DashboardDataState): string {
+  if (state === "loading") return "로딩중";
+  if (state === "error") return "--";
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return `${value.toFixed(1)}%`;
+}
+
 function hasMetricData(metrics: ConsultationMetrics | null): boolean {
   if (!metrics) return false;
   return (
@@ -274,6 +284,122 @@ function DashboardMetricsGrid({
         description="선택 기간에 시작됐고 아직 완료되지 않은 상담 수"
         state={state}
       />
+    </section>
+  );
+}
+
+function CoverageMetricCard({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <article className={styles.coverageCard}>
+      <span className={styles.slotLabel}>{label}</span>
+      <strong>{value}</strong>
+      <p>{description}</p>
+    </article>
+  );
+}
+
+function AutomationCoveragePanel({
+  coverage,
+  state,
+}: {
+  coverage: ConsultationCoverageMetrics | null | undefined;
+  state: DashboardDataState;
+}) {
+  const needsInstrumentation = coverage?.measurementStatus === "NEEDS_INSTRUMENTATION";
+  const measurementStatus =
+    state === "loading" ? "LOADING" : coverage?.measurementStatus ?? "EMPTY";
+  const measurementLabel =
+    state === "loading" ? "계산 중" : needsInstrumentation ? "계측 필요" : coverage ? "계측 확인" : "--";
+  const trend = coverage?.trend ?? [];
+  const maxTrendTotal = Math.max(1, ...trend.map((point) => point.totalConsultationCount));
+
+  return (
+    <section className={styles.coveragePanel} aria-labelledby="automation-coverage-title">
+      <div className={styles.coverageHeader}>
+        <div>
+        <span className={styles.panelEyebrow}>Automation Coverage</span>
+          <h2 id="automation-coverage-title" className={styles.sectionTitle}>
+            자동화 커버리지
+          </h2>
+          <p className={styles.sectionDescription}>
+            운영 지식팩이 실제 상담을 workflow로 얼마나 커버했는지 확인합니다.
+          </p>
+        </div>
+        <span className={styles.measurementBadge} data-status={measurementStatus}>
+          {measurementLabel}
+        </span>
+      </div>
+
+      {needsInstrumentation ? (
+        <div className={styles.instrumentationNotice} role="status">
+          {coverage?.measurementMessage}
+        </div>
+      ) : null}
+
+      <div className={styles.coverageGrid} aria-label="자동화 커버리지 지표">
+        <CoverageMetricCard
+          label="Workflow Match"
+          value={formatPercent(coverage?.workflowMatchRate, state)}
+          description={`${formatCount(coverage?.workflowMatchedCount, state)}건이 workflow에 매칭됨`}
+        />
+        <CoverageMetricCard
+          label="Intent Success"
+          value={formatPercent(coverage?.intentClassificationSuccessRate, state)}
+          description={`${formatCount(coverage?.intentClassificationSuccessCount, state)}건의 intent 분류 성공`}
+        />
+        <CoverageMetricCard
+          label="Low Confidence"
+          value={formatCount(coverage?.lowConfidenceCount, state)}
+          description={`${formatPercent(coverage?.lowConfidenceRate, state)} 저신뢰 케이스`}
+        />
+        <CoverageMetricCard
+          label="Unmatched"
+          value={formatCount(coverage?.unmatchedSessionCount, state)}
+          description="workflow나 intent를 찾지 못한 상담"
+        />
+        <CoverageMetricCard
+          label="Auto Completed"
+          value={formatCount(coverage?.autoCompletedWorkflowCount, state)}
+          description="상담사 개입 없이 자동 완료"
+        />
+        <CoverageMetricCard
+          label="Handoff Rate"
+          value={formatPercent(coverage?.humanHandoffRate, state)}
+          description="전체 운영 상담 중 상담사 개입"
+        />
+        <CoverageMetricCard
+          label="LLM-only"
+          value={formatPercent(coverage?.llmOnlyProcessingRate, state)}
+          description="완료 상담 중 LLM-only 처리"
+        />
+      </div>
+
+      <div className={styles.trendPanel} aria-label="기간별 커버리지 추이">
+        {trend.length > 0 ? (
+          trend.map((point) => {
+            const width = `${Math.max(4, (point.totalConsultationCount / maxTrendTotal) * 100)}%`;
+            return (
+              <div key={point.date} className={styles.trendRow}>
+                <span>{point.date}</span>
+                <div className={styles.trendTrack} aria-hidden="true">
+                  <span style={{ width }} />
+                </div>
+                <strong>{formatPercent(point.workflowMatchRate, state)}</strong>
+              </div>
+            );
+          })
+        ) : (
+          <p className={styles.trendEmpty}>기간별 커버리지 추이가 없습니다.</p>
+        )}
+      </div>
     </section>
   );
 }
@@ -566,6 +692,7 @@ export function WorkspaceDashboardPage() {
       <DashboardFilters filters={filters} onChange={setFilters} />
       <FilterSummary filters={filters} />
       <DashboardMetricsGrid metrics={metrics} state={dataState} />
+      <AutomationCoveragePanel coverage={metrics?.coverage} state={dataState} />
       <KnowledgePackHealthPanel workspaceId={parsedWorkspaceId} />
       <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} />
 

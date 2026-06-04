@@ -21,6 +21,7 @@ import org.springframework.stereotype.Repository;
 public class JpaConsultationMetricsRepository implements ConsultationMetricsRepository {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final double LOW_CONFIDENCE_THRESHOLD = 0.7;
 
   private final EntityManager entityManager;
 
@@ -59,6 +60,60 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
                 and ss.started_at < :periodEnd
                 and cm.sender_role in ('USER', 'CUSTOMER')
               group by ss.id
+            ),
+            decision_summary as (
+              select
+                we.chat_session_id,
+                count(dl.id) as decision_log_count,
+                bool_or(
+                  dl.decision_type = 'INTENT_SELECTED'
+                  and dl.intent_definition_id is not null
+                ) as intent_selected,
+                bool_or(
+                  dl.confidence_score is not null
+                  and dl.confidence_score < :lowConfidenceThreshold
+                ) as low_confidence_decision,
+                bool_or(
+                  upper(dl.selected_action) in (
+                    'HANDOFF',
+                    'HANDOFF_REQUIRED',
+                    'HUMAN_HANDOFF',
+                    'ASSIGN_COUNSELOR'
+                  )
+                ) as handoff_selected
+              from runtime.workflow_execution we
+              join runtime.decision_log dl on dl.workflow_execution_id = we.id
+              group by we.chat_session_id
+            ),
+            execution_summary as (
+              select
+                chat_session_id,
+                bool_or(workflow_definition_id is not null) as has_workflow,
+                bool_or(intent_definition_id is not null) as has_intent
+              from runtime.workflow_execution
+              group by chat_session_id
+            ),
+            latest_match_decision as (
+              select
+                ranked.chat_session_id,
+                ranked.selected_workflow_id,
+                ranked.selected_intent_id,
+                ranked.status,
+                ranked.confidence_score
+              from (
+                select
+                  wmd.chat_session_id,
+                  wmd.selected_workflow_id,
+                  wmd.selected_intent_id,
+                  wmd.status,
+                  wmd.confidence_score,
+                  row_number() over (
+                    partition by wmd.chat_session_id
+                    order by wmd.created_at desc, wmd.id desc
+                  ) as row_no
+                from runtime.workflow_match_decision wmd
+              ) ranked
+              where ranked.row_no = 1
             )
             select
               ss.id as session_id,
@@ -111,14 +166,50 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
                 ss.status in ('OPEN', 'ACTIVE')
                 and ss.started_at >= :periodStart
                 and ss.started_at < :periodEnd
-              ) as unresolved_in_period
+              ) as unresolved_in_period,
+              (
+                coalesce(es.has_workflow, false)
+                or lmd.selected_workflow_id is not null
+              ) as workflow_matched,
+              (
+                coalesce(es.has_intent, false)
+                or lmd.selected_intent_id is not null
+                or coalesce(ds.intent_selected, false)
+              ) as intent_classified,
+              (
+                coalesce(ds.low_confidence_decision, false)
+                or (
+                  lmd.confidence_score is not null
+                  and lmd.confidence_score < :lowConfidenceThreshold
+                )
+                or lmd.status in ('AMBIGUOUS', 'BLOCKED', 'ERROR')
+              ) as low_confidence,
+              (
+                lmd.status = 'UNKNOWN'
+                or (
+                  (coalesce(ds.decision_log_count, 0) > 0 or lmd.chat_session_id is not null)
+                  and not coalesce(es.has_workflow, false)
+                  and not coalesce(es.has_intent, false)
+                  and lmd.selected_workflow_id is null
+                  and lmd.selected_intent_id is null
+                )
+              ) as unmatched,
+              (
+                coalesce(ds.decision_log_count, 0) > 0
+                or lmd.chat_session_id is not null
+              ) as coverage_log_available,
+              coalesce(ds.handoff_selected, false) as handoff_selected
             from scoped_sessions ss
             left join first_customer fc on fc.session_id = ss.id
+            left join execution_summary es on es.chat_session_id = ss.id
+            left join decision_summary ds on ds.chat_session_id = ss.id
+            left join latest_match_decision lmd on lmd.chat_session_id = ss.id
             """);
 
     query.setParameter("workspaceId", workspaceId);
     query.setParameter("periodStart", periodStart);
     query.setParameter("periodEnd", periodEnd);
+    query.setParameter("lowConfidenceThreshold", LOW_CONFIDENCE_THRESHOLD);
 
     @SuppressWarnings("unchecked")
     List<Object[]> rows = query.getResultList();
@@ -139,6 +230,7 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
     }
     return new ConsultationMetricsSessionFact(
         toLong(row[0]),
+        toOffsetDateTime(row[9]),
         toOffsetDateTime(row[1]),
         toOffsetDateTime(row[2]),
         toOffsetDateTime(row[3]),
@@ -147,7 +239,13 @@ public class JpaConsultationMetricsRepository implements ConsultationMetricsRepo
         handledToday,
         unresolvedInPeriod,
         toBoolean(row[6]),
-        toBoolean(row[7]));
+        toBoolean(row[7]),
+        toBoolean(row[17]),
+        toBoolean(row[12]),
+        toBoolean(row[13]),
+        toBoolean(row[14]),
+        toBoolean(row[15]),
+        toBoolean(row[16]));
   }
 
   private boolean isResolvedToday(
