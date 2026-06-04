@@ -17,6 +17,7 @@ import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.CreateSimulationFeedbackCommand;
 import com.init.workflowruntime.application.command.CreateSimulationSessionCommand;
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
@@ -34,10 +35,18 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.DomainPage;
 import com.init.workflowruntime.domain.DomainPageRequest;
+import com.init.workflowruntime.domain.SimulationFeedback;
+import com.init.workflowruntime.domain.SimulationFeedbackContent;
+import com.init.workflowruntime.domain.SimulationFeedbackRepository;
+import com.init.workflowruntime.domain.SimulationFeedbackSeverity;
+import com.init.workflowruntime.domain.SimulationFeedbackStatus;
+import com.init.workflowruntime.domain.SimulationFeedbackType;
+import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.model.WorkspaceMember;
 import com.init.workspace.domain.model.WorkspaceMemberRole;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -60,6 +69,7 @@ class SimulationServiceTest {
 
   @Mock private ChatSessionRepository chatSessionRepository;
   @Mock private ChatMessageRepository chatMessageRepository;
+  @Mock private SimulationFeedbackRepository simulationFeedbackRepository;
   @Mock private DomainPackVersionRepository domainPackVersionRepository;
   @Mock private IntentDefinitionRepository intentDefinitionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
@@ -77,6 +87,7 @@ class SimulationServiceTest {
         new SimulationService(
             chatSessionRepository,
             chatMessageRepository,
+            simulationFeedbackRepository,
             domainPackVersionRepository,
             intentDefinitionRepository,
             workflowDefinitionRepository,
@@ -319,6 +330,249 @@ class SimulationServiceTest {
     assertThat(messageCaptor.getAllValues().get(1).getContent()).contains("현재 응답을 생성할 수 없습니다");
   }
 
+  @Test
+  @DisplayName("createFeedback: simulation turn 피드백을 저장하고 상세에 피드백 표시를 포함한다")
+  void should_createFeedback_forSimulationTurn() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    ChatMessage targetMessage = withMessageId(message(55L, 2, "ASSISTANT", "바로 환불됩니다."), 2L);
+    SimulationFeedback savedFeedback =
+        withFeedbackId(
+            SimulationFeedback.create(
+                WORKSPACE_ID,
+                55L,
+                2L,
+                new SimulationFeedbackContent(
+                    SimulationFeedbackType.MISSING_SLOT_QUESTION,
+                    "주문번호를 묻지 않았습니다.",
+                    "주문번호를 먼저 요청합니다.",
+                    SimulationFeedbackSeverity.HIGH),
+                USER_ID),
+            900L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findById(2L)).willReturn(Optional.of(targetMessage));
+    given(simulationFeedbackRepository.save(any(SimulationFeedback.class)))
+        .willReturn(savedFeedback);
+    givenDetailDependencies(55L, List.of(savedFeedback));
+
+    SimulationSessionDetailResponse result =
+        service.createFeedback(
+            new CreateSimulationFeedbackCommand(
+                WORKSPACE_ID,
+                55L,
+                USER_ID,
+                2L,
+                SimulationFeedbackType.MISSING_SLOT_QUESTION,
+                "  주문번호를 묻지 않았습니다.  ",
+                "주문번호를 먼저 요청합니다.",
+                SimulationFeedbackSeverity.HIGH));
+
+    ArgumentCaptor<SimulationFeedback> feedbackCaptor =
+        ArgumentCaptor.forClass(SimulationFeedback.class);
+    verify(simulationFeedbackRepository).save(feedbackCaptor.capture());
+    assertThat(feedbackCaptor.getValue().getDescription()).isEqualTo("주문번호를 묻지 않았습니다.");
+    assertThat(result.feedback().items()).hasSize(1);
+    assertThat(result.feedback().messageFeedbackCounts()).containsEntry(2L, 1L);
+  }
+
+  @Test
+  @DisplayName("createFeedback: 다른 세션의 메시지를 turn 피드백 대상으로 지정하면 실패한다")
+  void should_throw_when_feedbackMessageBelongsToDifferentSession() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    ChatMessage otherSessionMessage = withMessageId(message(99L, 1, "ASSISTANT", "다른 세션 메시지"), 2L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findById(2L)).willReturn(Optional.of(otherSessionMessage));
+    CreateSimulationFeedbackCommand command =
+        new CreateSimulationFeedbackCommand(
+            WORKSPACE_ID,
+            55L,
+            USER_ID,
+            2L,
+            SimulationFeedbackType.WORKFLOW_BRANCH_ERROR,
+            "분기가 맞지 않습니다.",
+            "handoff 분기로 이동해야 합니다.",
+            SimulationFeedbackSeverity.CRITICAL);
+
+    assertThatThrownBy(() -> service.createFeedback(command))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Simulation message not found");
+  }
+
+  @Test
+  @DisplayName("createFeedback: 세션 전체 피드백은 메시지 조회 없이 저장한다")
+  void should_createFeedback_forSession() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    SimulationFeedback savedFeedback =
+        withFeedbackId(
+            SimulationFeedback.create(
+                WORKSPACE_ID,
+                55L,
+                null,
+                new SimulationFeedbackContent(
+                    SimulationFeedbackType.OTHER,
+                    "세션 전체 흐름이 어색합니다.",
+                    "질문 순서를 조정합니다.",
+                    SimulationFeedbackSeverity.MEDIUM),
+                USER_ID),
+            901L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+    given(simulationFeedbackRepository.save(any(SimulationFeedback.class)))
+        .willReturn(savedFeedback);
+    givenDetailDependencies(55L, List.of(savedFeedback));
+
+    SimulationSessionDetailResponse result =
+        service.createFeedback(
+            new CreateSimulationFeedbackCommand(
+                WORKSPACE_ID,
+                55L,
+                USER_ID,
+                null,
+                SimulationFeedbackType.OTHER,
+                "세션 전체 흐름이 어색합니다.",
+                "질문 순서를 조정합니다.",
+                SimulationFeedbackSeverity.MEDIUM));
+
+    verify(chatMessageRepository, org.mockito.Mockito.never()).findById(any());
+    assertThat(result.feedback().items()).hasSize(1);
+    assertThat(result.feedback().messageFeedbackCounts()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("createFeedback: 없는 메시지를 turn 피드백 대상으로 지정하면 실패한다")
+  void should_throw_when_feedbackMessageMissing() {
+    givenMembership();
+    ChatSession session = withId(simulationSession(), 55L);
+    given(chatSessionRepository.findById(55L)).willReturn(Optional.of(session));
+    given(chatMessageRepository.findById(2L)).willReturn(Optional.empty());
+    CreateSimulationFeedbackCommand command =
+        new CreateSimulationFeedbackCommand(
+            WORKSPACE_ID,
+            55L,
+            USER_ID,
+            2L,
+            SimulationFeedbackType.WORKFLOW_BRANCH_ERROR,
+            "분기가 맞지 않습니다.",
+            "handoff 분기로 이동해야 합니다.",
+            SimulationFeedbackSeverity.CRITICAL);
+
+    assertThatThrownBy(() -> service.createFeedback(command))
+        .isInstanceOf(NotFoundException.class)
+        .hasMessageContaining("Simulation message not found");
+  }
+
+  @Test
+  @DisplayName("listFeedback: status 필터로 workspace feedback을 페이지 조회한다")
+  void should_listFeedback_byStatus() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(
+            SimulationFeedback.create(
+                WORKSPACE_ID,
+                55L,
+                null,
+                new SimulationFeedbackContent(
+                    SimulationFeedbackType.OTHER,
+                    "세션 전체 흐름이 어색합니다.",
+                    "질문 순서를 조정합니다.",
+                    SimulationFeedbackSeverity.MEDIUM),
+                USER_ID),
+            901L);
+    given(simulationFeedbackRepository.findByWorkspaceIdAndStatus(any(), any(), any()))
+        .willReturn(new DomainPage<>(List.of(feedback), 0, 20, 1, 1));
+
+    var result = service.listFeedback(WORKSPACE_ID, USER_ID, "OPEN", 0, 20);
+
+    assertThat(result.content()).hasSize(1);
+    verify(simulationFeedbackRepository)
+        .findByWorkspaceIdAndStatus(eq(WORKSPACE_ID), eq(SimulationFeedbackStatus.OPEN), any());
+  }
+
+  @Test
+  @DisplayName("listFeedback: status 필터 대문자 변환은 기본 Locale 영향을 받지 않는다")
+  void should_listFeedback_parseStatusWithRootLocale() {
+    Locale previousLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+      givenMembership();
+      given(simulationFeedbackRepository.findByWorkspaceIdAndStatus(any(), any(), any()))
+          .willReturn(new DomainPage<>(List.of(), 0, 20, 0, 0));
+
+      service.listFeedback(WORKSPACE_ID, USER_ID, "candidate_created", 0, 20);
+
+      verify(simulationFeedbackRepository)
+          .findByWorkspaceIdAndStatus(
+              eq(WORKSPACE_ID), eq(SimulationFeedbackStatus.CANDIDATE_CREATED), any());
+    } finally {
+      Locale.setDefault(previousLocale);
+    }
+  }
+
+  @Test
+  @DisplayName("listFeedback: status 필터가 없으면 workspace 전체 feedback을 페이지 조회한다")
+  void should_listFeedback_withoutStatus() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(
+            SimulationFeedback.create(
+                WORKSPACE_ID,
+                55L,
+                null,
+                new SimulationFeedbackContent(
+                    SimulationFeedbackType.OTHER,
+                    "세션 전체 흐름이 어색합니다.",
+                    "질문 순서를 조정합니다.",
+                    SimulationFeedbackSeverity.MEDIUM),
+                USER_ID),
+            901L);
+    given(simulationFeedbackRepository.findByWorkspaceId(any(), any()))
+        .willReturn(new DomainPage<>(List.of(feedback), 0, 20, 1, 1));
+
+    var result = service.listFeedback(WORKSPACE_ID, USER_ID, " ", -1, 0);
+
+    assertThat(result.content()).hasSize(1);
+    verify(simulationFeedbackRepository)
+        .findByWorkspaceId(eq(WORKSPACE_ID), eq(new DomainPageRequest(0, 20)));
+  }
+
+  @Test
+  @DisplayName("createFeedback: workspace 멤버가 아니면 피드백을 작성할 수 없다")
+  void should_throw_when_creatingFeedback_withoutMembership() {
+    CreateSimulationFeedbackCommand command =
+        new CreateSimulationFeedbackCommand(
+            WORKSPACE_ID,
+            55L,
+            USER_ID,
+            null,
+            SimulationFeedbackType.OTHER,
+            "세션 전체 흐름이 어색합니다.",
+            "질문 순서를 조정합니다.",
+            SimulationFeedbackSeverity.MEDIUM);
+
+    assertThatThrownBy(() -> service.createFeedback(command))
+        .isInstanceOf(WorkspaceAccessDeniedException.class)
+        .hasMessageContaining("워크스페이스에 접근 권한이 없습니다.");
+  }
+
+  @Test
+  @DisplayName("listFeedback: workspace 멤버가 아니면 피드백 목록을 조회할 수 없다")
+  void should_throw_when_listingFeedback_withoutMembership() {
+    assertThatThrownBy(() -> service.listFeedback(WORKSPACE_ID, USER_ID, "OPEN", 0, 20))
+        .isInstanceOf(WorkspaceAccessDeniedException.class)
+        .hasMessageContaining("워크스페이스에 접근 권한이 없습니다.");
+  }
+
+  @Test
+  @DisplayName("listFeedback: 지원하지 않는 status 필터는 거절한다")
+  void should_throw_when_feedbackStatusInvalid() {
+    givenMembership();
+
+    assertThatThrownBy(() -> service.listFeedback(WORKSPACE_ID, USER_ID, "WAITING", 0, 20))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("지원하지 않는 피드백 상태입니다");
+  }
+
   private void givenMembership() {
     given(workspaceMemberRepository.findByWorkspaceIdAndUserId(WORKSPACE_ID, USER_ID))
         .willReturn(
@@ -326,6 +580,10 @@ class SimulationServiceTest {
   }
 
   private void givenDetailDependencies(Long sessionId) {
+    givenDetailDependencies(sessionId, List.of());
+  }
+
+  private void givenDetailDependencies(Long sessionId, List<SimulationFeedback> feedbacks) {
     ChatSession session = withId(simulationSession(), sessionId);
     ChatMessage customer = withMessageId(message(sessionId, 1, "USER", "환불 상태 알려주세요"), 1L);
     ChatMessage assistant = withMessageId(message(sessionId, 2, "ASSISTANT", "확인해드릴게요."), 2L);
@@ -364,6 +622,8 @@ class SimulationServiceTest {
                 null,
                 List.of(),
                 List.of()));
+    given(simulationFeedbackRepository.findByChatSessionIdOrderByCreatedAtAsc(sessionId))
+        .willReturn(feedbacks);
   }
 
   private ChatSession simulationSession() {
@@ -416,5 +676,10 @@ class SimulationServiceTest {
   private ChatMessage withMessageId(ChatMessage message, Long id) {
     ReflectionTestUtils.setField(message, "id", id);
     return message;
+  }
+
+  private SimulationFeedback withFeedbackId(SimulationFeedback feedback, Long id) {
+    ReflectionTestUtils.setField(feedback, "id", id);
+    return feedback;
   }
 }

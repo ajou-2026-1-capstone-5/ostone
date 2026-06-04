@@ -2,10 +2,14 @@ package com.init.workflowruntime.presentation;
 
 import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.SimulationService;
+import com.init.workflowruntime.application.command.CreateSimulationFeedbackCommand;
 import com.init.workflowruntime.application.command.CreateSimulationSessionCommand;
 import com.init.workflowruntime.application.command.SendSimulationMessageCommand;
 import com.init.workflowruntime.application.dto.SimulationSessionDetailResponse;
 import com.init.workflowruntime.application.dto.SimulationSessionPageResponse;
+import com.init.workflowruntime.domain.SimulationFeedbackSeverity;
+import com.init.workflowruntime.domain.SimulationFeedbackType;
+import com.init.workflowruntime.presentation.dto.CreateSimulationFeedbackRequest;
 import com.init.workflowruntime.presentation.dto.CreateSimulationSessionRequest;
 import com.init.workflowruntime.presentation.dto.SendSimulationMessageRequest;
 import jakarta.validation.Valid;
@@ -74,5 +78,25 @@ public class SimulationController {
     return ResponseEntity.ok(
         simulationService.sendMessage(
             new SendSimulationMessageCommand(workspaceId, sessionId, userId, request.content())));
+  }
+
+  @PostMapping("/{sessionId}/feedback")
+  public ResponseEntity<SimulationSessionDetailResponse> createFeedback(
+      @PathVariable Long workspaceId,
+      @PathVariable Long sessionId,
+      @Valid @RequestBody CreateSimulationFeedbackRequest request,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(
+        simulationService.createFeedback(
+            new CreateSimulationFeedbackCommand(
+                workspaceId,
+                sessionId,
+                userId,
+                request.chatMessageId(),
+                SimulationFeedbackType.valueOf(request.feedbackType().name()),
+                request.description(),
+                request.expectedBehavior(),
+                SimulationFeedbackSeverity.valueOf(request.severity().name()))));
   }
 }

@@ -11,6 +11,7 @@ import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.WorkflowDefinitionRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.workflowruntime.application.command.CreateSimulationFeedbackCommand;
 import com.init.workflowruntime.application.command.CreateSimulationSessionCommand;
 import com.init.workflowruntime.application.command.GenerateWorkflowAwareResponseCommand;
 import com.init.workflowruntime.application.command.GetCurrentWorkflowCommand;
@@ -22,6 +23,8 @@ import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolContextResponse;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
+import com.init.workflowruntime.application.dto.SimulationFeedbackPageResponse;
+import com.init.workflowruntime.application.dto.SimulationFeedbackSessionResponse;
 import com.init.workflowruntime.application.dto.SimulationSessionDetailResponse;
 import com.init.workflowruntime.application.dto.SimulationSessionPageResponse;
 import com.init.workflowruntime.domain.ChatMessage;
@@ -31,9 +34,14 @@ import com.init.workflowruntime.domain.ChatSessionRepository;
 import com.init.workflowruntime.domain.ChatSessionStatus;
 import com.init.workflowruntime.domain.DomainPage;
 import com.init.workflowruntime.domain.DomainPageRequest;
+import com.init.workflowruntime.domain.SimulationFeedback;
+import com.init.workflowruntime.domain.SimulationFeedbackContent;
+import com.init.workflowruntime.domain.SimulationFeedbackRepository;
+import com.init.workflowruntime.domain.SimulationFeedbackStatus;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import com.init.workspace.domain.repository.WorkspaceMemberRepository;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +60,7 @@ public class SimulationService {
 
   private final ChatSessionRepository chatSessionRepository;
   private final ChatMessageRepository chatMessageRepository;
+  private final SimulationFeedbackRepository simulationFeedbackRepository;
   private final DomainPackVersionRepository domainPackVersionRepository;
   private final IntentDefinitionRepository intentDefinitionRepository;
   private final WorkflowDefinitionRepository workflowDefinitionRepository;
@@ -64,6 +73,7 @@ public class SimulationService {
   public SimulationService(
       ChatSessionRepository chatSessionRepository,
       ChatMessageRepository chatMessageRepository,
+      SimulationFeedbackRepository simulationFeedbackRepository,
       DomainPackVersionRepository domainPackVersionRepository,
       IntentDefinitionRepository intentDefinitionRepository,
       WorkflowDefinitionRepository workflowDefinitionRepository,
@@ -74,6 +84,7 @@ public class SimulationService {
       ObjectMapper objectMapper) {
     this.chatSessionRepository = chatSessionRepository;
     this.chatMessageRepository = chatMessageRepository;
+    this.simulationFeedbackRepository = simulationFeedbackRepository;
     this.domainPackVersionRepository = domainPackVersionRepository;
     this.intentDefinitionRepository = intentDefinitionRepository;
     this.workflowDefinitionRepository = workflowDefinitionRepository;
@@ -129,6 +140,39 @@ public class SimulationService {
     validateWorkspaceMembership(workspaceId, userId);
     ChatSession session = findSimulationSession(workspaceId, sessionId);
     return detail(session, userId);
+  }
+
+  @Transactional
+  public SimulationSessionDetailResponse createFeedback(CreateSimulationFeedbackCommand command) {
+    validateWorkspaceMembership(command.workspaceId(), command.userId());
+    ChatSession session = findSimulationSession(command.workspaceId(), command.sessionId());
+    validateFeedbackMessage(session.getId(), command.chatMessageId());
+    SimulationFeedback feedback =
+        SimulationFeedback.create(
+            command.workspaceId(),
+            session.getId(),
+            command.chatMessageId(),
+            new SimulationFeedbackContent(
+                command.feedbackType(),
+                command.description(),
+                command.expectedBehavior(),
+                command.severity()),
+            command.userId());
+    simulationFeedbackRepository.save(feedback);
+    return detail(session, command.userId());
+  }
+
+  public SimulationFeedbackPageResponse listFeedback(
+      Long workspaceId, Long userId, String status, int page, int size) {
+    validateWorkspaceMembership(workspaceId, userId);
+    SimulationFeedbackStatus parsedStatus = parseFeedbackStatus(status);
+    DomainPageRequest pageRequest = normalizedPageRequest(page, size);
+    DomainPage<SimulationFeedback> feedbackPage =
+        parsedStatus == null
+            ? simulationFeedbackRepository.findByWorkspaceId(workspaceId, pageRequest)
+            : simulationFeedbackRepository.findByWorkspaceIdAndStatus(
+                workspaceId, parsedStatus, pageRequest);
+    return SimulationFeedbackPageResponse.from(feedbackPage);
   }
 
   @Transactional
@@ -229,6 +273,35 @@ public class SimulationService {
     }
   }
 
+  private void validateFeedbackMessage(Long sessionId, Long chatMessageId) {
+    if (chatMessageId == null) {
+      return;
+    }
+    ChatMessage message =
+        chatMessageRepository
+            .findById(chatMessageId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        "SIMULATION_MESSAGE_NOT_FOUND",
+                        "Simulation message not found: " + chatMessageId));
+    if (!sessionId.equals(message.getChatSessionId())) {
+      throw new NotFoundException(
+          "SIMULATION_MESSAGE_NOT_FOUND", "Simulation message not found: " + chatMessageId);
+    }
+  }
+
+  private SimulationFeedbackStatus parseFeedbackStatus(String status) {
+    if (status == null || status.isBlank()) {
+      return null;
+    }
+    try {
+      return SimulationFeedbackStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException("INVALID_FEEDBACK_STATUS", "지원하지 않는 피드백 상태입니다: " + status);
+    }
+  }
+
   private void validateWorkspaceMembership(Long workspaceId, Long userId) {
     workspaceMemberRepository
         .findByWorkspaceIdAndUserId(workspaceId, userId)
@@ -250,7 +323,9 @@ public class SimulationService {
         messages,
         matchedWorkflow,
         context.slotValues(),
-        context.slots());
+        context.slots(),
+        SimulationFeedbackSessionResponse.from(
+            simulationFeedbackRepository.findByChatSessionIdOrderByCreatedAtAsc(session.getId())));
   }
 
   private ChatMessage saveMessage(ChatSession session, String senderRole, String content) {

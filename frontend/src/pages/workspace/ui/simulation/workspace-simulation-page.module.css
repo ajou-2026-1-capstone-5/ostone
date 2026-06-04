@@ -264,6 +264,44 @@
   font-weight: 540;
 }
 
+.messageActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.feedbackBadge {
+  min-width: 20px;
+  border: 1px solid var(--ink);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+  text-align: center;
+}
+
+.messageFeedbackButton {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--paper);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.messageFeedbackButton:hover,
+.messageFeedbackButton:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 10%);
+}
+
 .message p {
   margin: var(--s-2) 0 0;
   color: var(--ink);
@@ -300,7 +338,9 @@
 }
 
 .stateList div,
-.slotPanel {
+.slotPanel,
+.feedbackPanel,
+.feedbackListPanel {
   border: 1px solid var(--line);
   border-radius: var(--r-3);
   background: var(--paper-2);
@@ -359,6 +399,106 @@
   color: var(--ink);
   font-weight: 540;
   overflow-wrap: anywhere;
+}
+
+.feedbackPanel,
+.feedbackListPanel {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.feedbackPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.feedbackPanelHeader h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 540;
+}
+
+.feedbackPanelHeader span {
+  max-width: 140px;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedbackField {
+  display: grid;
+  gap: var(--s-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 540;
+}
+
+.feedbackField textarea {
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid hsl(var(--input));
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: var(--s-3);
+}
+
+.feedbackField textarea:focus-visible {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5);
+}
+
+.feedbackMuted {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.feedbackList {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feedbackList li {
+  display: grid;
+  gap: var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  padding: var(--s-3);
+}
+
+.feedbackList strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+}
+
+.feedbackList span {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 540;
+}
+
+.feedbackList p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 @media (max-width: 1180px) {
