@@ -97,6 +97,9 @@ jobs:
       TF_VAR_airflow_simple_admin_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD }}
       TF_VAR_airflow_simple_viewer_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD }}
       TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
+      TF_VAR_toss_secret_key: ${{ secrets.PROD_TOSS_SECRET_KEY }}
+      TF_VAR_toss_webhook_secret: ${{ secrets.PROD_TOSS_WEBHOOK_SECRET }}
+      TF_VAR_toss_billing_key_encryption_key: ${{ secrets.PROD_TOSS_BILLING_KEY_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -146,6 +149,9 @@ jobs:
             TF_VAR_airflow_api_auth_jwt_secret
             TF_VAR_airflow_simple_admin_password
             TF_VAR_airflow_simple_viewer_password
+            TF_VAR_toss_secret_key
+            TF_VAR_toss_webhook_secret
+            TF_VAR_toss_billing_key_encryption_key
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }
