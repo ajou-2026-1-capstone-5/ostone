@@ -60,7 +60,8 @@ class BillingOverviewServiceTest {
     BillingKey billingKey = billingKey();
     Payment payment = donePayment();
 
-    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.of(subscription));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L))
+        .willReturn(Optional.of(subscription));
     given(planRepository.findById(2L)).willReturn(Optional.of(plan));
     given(billingKeyRepository.findActiveByWorkspaceId(1L)).willReturn(Optional.of(billingKey));
     given(paymentRepository.findByWorkspaceIdOrderByCreatedAtDesc(1L)).willReturn(List.of(payment));
@@ -118,8 +119,7 @@ class BillingOverviewServiceTest {
   }
 
   private Payment donePayment() {
-    Payment payment =
-        Payment.createOrder(1L, 10L, "ord_1", 29000, "KRW", "Pro (Monthly)");
+    Payment payment = Payment.createOrder(1L, 10L, "ord_1", 29000, "KRW", "Pro (Monthly)");
     ReflectionTestUtils.setField(payment, "id", 7L);
     payment.complete(
         "pay_1", "카드", periodStart, "https://receipt.example", "{\"status\":\"DONE\"}");

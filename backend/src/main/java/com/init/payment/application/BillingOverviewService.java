@@ -55,7 +55,9 @@ public class BillingOverviewService {
             .map(BillingKeySummary::from)
             .orElse(null);
     List<PaymentResult> payments =
-        paymentRepository.findByWorkspaceIdOrderByCreatedAtDesc(subscription.getWorkspaceId()).stream()
+        paymentRepository
+            .findByWorkspaceIdOrderByCreatedAtDesc(subscription.getWorkspaceId())
+            .stream()
             .map(PaymentResult::from)
             .toList();
 

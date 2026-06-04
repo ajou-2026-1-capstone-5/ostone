@@ -62,8 +62,7 @@ class PaymentAccessGuardTest {
   @DisplayName("billing overview 관리 권한은 OWNER/ADMIN만 통과한다")
   void requireBillingManager_ownerOrAdmin_passes() {
     given(workspaceMembershipPort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(1L, 99L, Set.of("OWNER", "ADMIN")))
-        .willReturn(true);
+    given(workspaceMembershipPort.hasAnyRole(1L, 99L, Set.of("OWNER", "ADMIN"))).willReturn(true);
 
     assertThatCode(() -> guard.requireBillingManager(1L, 99L)).doesNotThrowAnyException();
   }
@@ -72,8 +71,7 @@ class PaymentAccessGuardTest {
   @DisplayName("billing overview는 OPERATOR 역할이면 거부한다")
   void requireBillingManager_operator_throws() {
     given(workspaceMembershipPort.existsById(1L)).willReturn(true);
-    given(workspaceMembershipPort.hasAnyRole(1L, 99L, Set.of("OWNER", "ADMIN")))
-        .willReturn(false);
+    given(workspaceMembershipPort.hasAnyRole(1L, 99L, Set.of("OWNER", "ADMIN"))).willReturn(false);
 
     assertThatThrownBy(() -> guard.requireBillingManager(1L, 99L))
         .isInstanceOf(PaymentWorkspaceAccessDeniedException.class);
