@@ -55,7 +55,7 @@ public class SimulationImprovementCandidateService {
   public SimulationImprovementCandidateResponse createFromFeedback(
       CreateSimulationImprovementCandidateCommand command) {
     validateWorkspaceMembership(command.workspaceId(), command.userId());
-    SimulationFeedback feedback = findFeedback(command.feedbackId());
+    SimulationFeedback feedback = findFeedbackForUpdate(command.feedbackId());
     validateFeedbackWorkspace(command.workspaceId(), feedback);
 
     return candidateRepository
@@ -169,9 +169,9 @@ public class SimulationImprovementCandidateService {
     };
   }
 
-  private SimulationFeedback findFeedback(Long feedbackId) {
+  private SimulationFeedback findFeedbackForUpdate(Long feedbackId) {
     return feedbackRepository
-        .findById(feedbackId)
+        .findByIdForUpdate(feedbackId)
         .orElseThrow(
             () ->
                 new NotFoundException(

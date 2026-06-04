@@ -1,8 +1,10 @@
 package com.init.workflowruntime.domain;
 
-public class InvalidSimulationImprovementCandidateException extends RuntimeException {
+import com.init.shared.application.exception.BadRequestException;
+
+public class InvalidSimulationImprovementCandidateException extends BadRequestException {
 
   public InvalidSimulationImprovementCandidateException(String message) {
-    super(message);
+    super("INVALID_SIMULATION_IMPROVEMENT_CANDIDATE", message);
   }
 }

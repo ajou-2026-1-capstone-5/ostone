@@ -9,6 +9,8 @@ public interface SimulationFeedbackRepository {
 
   Optional<SimulationFeedback> findById(Long id);
 
+  Optional<SimulationFeedback> findByIdForUpdate(Long id);
+
   List<SimulationFeedback> findByChatSessionIdOrderByCreatedAtAsc(Long chatSessionId);
 
   DomainPage<SimulationFeedback> findByWorkspaceId(Long workspaceId, DomainPageRequest pageRequest);

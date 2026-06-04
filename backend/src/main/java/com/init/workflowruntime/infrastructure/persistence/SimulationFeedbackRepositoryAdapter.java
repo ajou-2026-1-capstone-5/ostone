@@ -31,6 +31,11 @@ public class SimulationFeedbackRepositoryAdapter implements SimulationFeedbackRe
   }
 
   @Override
+  public Optional<SimulationFeedback> findByIdForUpdate(Long id) {
+    return jpaRepository.findByIdForUpdate(id);
+  }
+
+  @Override
   public List<SimulationFeedback> findByChatSessionIdOrderByCreatedAtAsc(Long chatSessionId) {
     return jpaRepository.findByChatSessionIdOrderByCreatedAtAsc(chatSessionId);
   }

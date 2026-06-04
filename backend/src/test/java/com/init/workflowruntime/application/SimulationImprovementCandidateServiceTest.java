@@ -80,7 +80,7 @@ class SimulationImprovementCandidateServiceTest {
         withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
     ChatSession session = withSessionId(simulationSession(), SESSION_ID);
     SimulationImprovementCandidate saved = withCandidateId(candidate(feedback), 1000L);
-    given(feedbackRepository.findById(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
     given(candidateRepository.save(any(SimulationImprovementCandidate.class))).willReturn(saved);
@@ -120,7 +120,7 @@ class SimulationImprovementCandidateServiceTest {
         withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
     feedback.markCandidateCreated();
     SimulationImprovementCandidate existing = withCandidateId(candidate(feedback), 1000L);
-    given(feedbackRepository.findById(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.of(existing));
 
     var result =
@@ -139,7 +139,7 @@ class SimulationImprovementCandidateServiceTest {
     SimulationFeedback feedback =
         withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
     feedback.markCandidateCreated();
-    given(feedbackRepository.findById(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
 
     assertThatThrownBy(
@@ -158,7 +158,7 @@ class SimulationImprovementCandidateServiceTest {
     SimulationFeedback feedback =
         withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
     ChatSession session = withSessionId(simulationSession(), SESSION_ID);
-    given(feedbackRepository.findById(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
     given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
@@ -193,7 +193,7 @@ class SimulationImprovementCandidateServiceTest {
                 USER_ID),
             FEEDBACK_ID);
     ChatSession session = withSessionId(simulationSession(), SESSION_ID);
-    given(feedbackRepository.findById(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
     given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
     given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
     given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
@@ -253,7 +253,20 @@ class SimulationImprovementCandidateServiceTest {
     given(candidateRepository.findByWorkspaceId(any(), any()))
         .willReturn(new DomainPage<>(List.of(), 0, 20, 0, 0));
 
-    service.listCandidates(WORKSPACE_ID, USER_ID, " ", -1, 0);
+    service.listCandidates(WORKSPACE_ID, USER_ID, " ", 0, 20);
+
+    verify(candidateRepository)
+        .findByWorkspaceId(eq(WORKSPACE_ID), eq(new DomainPageRequest(0, 20)));
+  }
+
+  @Test
+  @DisplayName("listCandidates: 잘못된 page와 size는 기본값으로 정규화한다")
+  void shouldNormalizeInvalidPageAndSizeToDefaults() {
+    givenMembership();
+    given(candidateRepository.findByWorkspaceId(any(), any()))
+        .willReturn(new DomainPage<>(List.of(), 0, 20, 0, 0));
+
+    service.listCandidates(WORKSPACE_ID, USER_ID, "", -1, 0);
 
     verify(candidateRepository)
         .findByWorkspaceId(eq(WORKSPACE_ID), eq(new DomainPageRequest(0, 20)));

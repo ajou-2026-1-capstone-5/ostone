@@ -410,7 +410,11 @@ export function WorkspaceSimulationPage() {
     try {
       await simulationApi.createImprovementCandidate(parsedWorkspaceId, feedback.id);
       toast.success("개선 후보를 생성했습니다.");
-      await Promise.all([reloadFeedback(), reloadCandidates()]);
+      try {
+        await Promise.all([reloadFeedback(), reloadCandidates()]);
+      } catch {
+        toast.error("개선 후보 목록 새로고침에 실패했습니다.");
+      }
     } catch {
       toast.error("개선 후보를 생성하지 못했습니다.");
     } finally {
@@ -428,7 +432,11 @@ export function WorkspaceSimulationPage() {
         status,
       });
       toast.success("개선 후보 상태를 변경했습니다.");
-      await reloadCandidates();
+      try {
+        await reloadCandidates();
+      } catch {
+        toast.error("개선 후보 목록 새로고침에 실패했습니다.");
+      }
     } catch {
       toast.error("개선 후보 상태를 변경하지 못했습니다.");
     } finally {
