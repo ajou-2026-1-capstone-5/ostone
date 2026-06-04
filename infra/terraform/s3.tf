@@ -1,4 +1,9 @@
 locals {
+  raw_input_cors_allowed_origins = distinct(concat(
+    ["https://app.${var.domain_name}"],
+    var.raw_input_cors_allowed_origins
+  ))
+
   s3_buckets = {
     ml_artifacts = {
       name = var.s3_bucket_names.ml_artifacts
@@ -142,21 +147,21 @@ resource "aws_s3_bucket_cors_configuration" "buckets" {
 # Browsers upload raw-file ZIPs straight to the ml_input bucket via presigned
 # PUT, so only the headers required to sign and complete that flow are allowed.
 resource "aws_s3_bucket_cors_configuration" "raw_input" {
-  count = length(var.raw_input_cors_allowed_origins) == 0 ? 0 : 1
+  count = length(local.raw_input_cors_allowed_origins) == 0 ? 0 : 1
 
   bucket = aws_s3_bucket.buckets["ml_input"].id
 
   cors_rule {
     allowed_headers = [
-      "Content-Type",
-      "Content-Length",
+      "content-type",
+      "content-length",
       "x-amz-server-side-encryption",
       "x-amz-content-sha256",
       "x-amz-date",
-      "Authorization"
+      "authorization"
     ]
     allowed_methods = ["PUT", "HEAD", "GET"]
-    allowed_origins = var.raw_input_cors_allowed_origins
+    allowed_origins = local.raw_input_cors_allowed_origins
     expose_headers  = ["ETag"]
     max_age_seconds = 3000
   }

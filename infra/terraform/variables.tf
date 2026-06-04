@@ -215,7 +215,7 @@ variable "cors_allowed_origins" {
 }
 
 variable "raw_input_cors_allowed_origins" {
-  description = "Browser origins allowed to upload raw-file ZIPs to the ml_input bucket via presigned PUT. Empty disables raw-input CORS."
+  description = "Additional browser origins allowed to upload raw-file ZIPs to the ml_input bucket via presigned PUT. The app domain is always included."
   type        = list(string)
   default     = []
 }
