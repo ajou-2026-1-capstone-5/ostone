@@ -9,10 +9,20 @@ import { ApiRequestError } from "@/shared/api";
 import { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
 
 const mocks = vi.hoisted(() => ({
+  invalidateQueries: vi.fn(),
   mutate: vi.fn(),
+  setQueryData: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({
+    invalidateQueries: mocks.invalidateQueries,
+    setQueryData: mocks.setQueryData,
+  }),
 }));
 
 vi.mock("@/shared/api/generated/endpoints/workspace-controller/workspace-controller", () => ({
+  getListWorkspacesQueryKey: () => ["/api/v1/workspaces"] as const,
   useCreateWorkspace: () => ({
     mutate: mocks.mutate,
   }),
@@ -85,7 +95,9 @@ function submitWorkspaceName(name = "Support Team") {
 
 describe("CreateWorkspaceDialog", () => {
   beforeEach(() => {
+    mocks.invalidateQueries.mockReset();
     mocks.mutate.mockReset();
+    mocks.setQueryData.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
@@ -101,6 +113,70 @@ describe("CreateWorkspaceDialog", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(createdWorkspace));
     expect(toast.success).toHaveBeenCalledWith("워크스페이스를 생성했습니다.");
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("생성 성공 시 listWorkspaces 캐시에 생성한 워크스페이스를 즉시 추가하고 갱신한다", async () => {
+    mocks.mutate.mockImplementation((_variables: unknown, callbacks: CreateWorkspaceCallbacks) => {
+      callbacks.onSuccess?.({ data: createdWorkspace });
+    });
+    renderDialog();
+
+    submitWorkspaceName();
+
+    await waitFor(() =>
+      expect(mocks.setQueryData).toHaveBeenCalledWith(
+        ["/api/v1/workspaces"],
+        expect.any(Function),
+      ),
+    );
+    const updateCache = mocks.setQueryData.mock.calls[0][1] as (
+      current: WorkspaceResponse[] | undefined,
+    ) => WorkspaceResponse[] | { data: WorkspaceResponse[]; headers: Headers; status: number };
+
+    expect(updateCache([{ id: 100, name: "Existing", status: "ACTIVE" }])).toEqual([
+      { id: 100, name: "Existing", status: "ACTIVE" },
+      createdWorkspace,
+    ]);
+    expect(updateCache(undefined)).toEqual({
+      data: [createdWorkspace],
+      headers: expect.any(Headers),
+      status: 200,
+    });
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["/api/v1/workspaces"],
+    });
+  });
+
+  it("생성 성공 시 generated 응답 형태의 listWorkspaces 캐시도 보존하며 갱신한다", async () => {
+    mocks.mutate.mockImplementation((_variables: unknown, callbacks: CreateWorkspaceCallbacks) => {
+      callbacks.onSuccess?.({ data: createdWorkspace });
+    });
+    renderDialog();
+
+    submitWorkspaceName();
+
+    await waitFor(() => expect(mocks.setQueryData).toHaveBeenCalled());
+    const updateCache = mocks.setQueryData.mock.calls[0][1] as (current: {
+      data: WorkspaceResponse[];
+      status: number;
+    }) => { data: WorkspaceResponse[]; status: number };
+
+    expect(
+      updateCache({
+        data: [
+          {
+            id: createdWorkspace.id,
+            name: "Old Name",
+            description: "preserved description",
+            status: "ACTIVE",
+          },
+        ],
+        status: 200,
+      }),
+    ).toEqual({
+      data: [{ ...createdWorkspace, description: "preserved description" }],
+      status: 200,
+    });
   });
 
   it("워크스페이스 이름을 trim하고 생성 요청 payload를 만든다", () => {
