@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircleIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,7 +11,10 @@ import {
   type WorkspaceFieldErrors,
   type WorkspaceResponse,
 } from "@/entities/workspace";
-import { useCreateWorkspace } from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
+import {
+  getListWorkspacesQueryKey,
+  useCreateWorkspace,
+} from "@/shared/api/generated/endpoints/workspace-controller/workspace-controller";
 import { ApiRequestError, selectApiData } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -32,6 +36,41 @@ interface CreateWorkspaceDialogProps {
   onSuccess: (workspace: WorkspaceResponse) => Promise<void> | void;
 }
 
+type WorkspaceListCache =
+  | WorkspaceResponse[]
+  | { data?: WorkspaceResponse[]; headers?: Headers; status?: number };
+
+function upsertWorkspace(workspaces: WorkspaceResponse[], created: WorkspaceResponse) {
+  const existingIndex = workspaces.findIndex((workspace) => workspace.id === created.id);
+  if (existingIndex === -1) {
+    return [...workspaces, created];
+  }
+
+  return workspaces.map((workspace, index) =>
+    index === existingIndex ? { ...workspace, ...created } : workspace,
+  );
+}
+
+function updateWorkspaceListCache(
+  current: WorkspaceListCache | undefined,
+  created: WorkspaceResponse,
+): WorkspaceListCache {
+  if (Array.isArray(current)) {
+    return upsertWorkspace(current, created);
+  }
+
+  const nextWorkspaces = upsertWorkspace(current?.data ?? [], created);
+  if (current) {
+    return { ...current, data: nextWorkspaces };
+  }
+
+  return {
+    data: nextWorkspaces,
+    headers: new Headers(),
+    status: 200,
+  };
+}
+
 export function CreateWorkspaceDialog({
   open,
   onOpenChange,
@@ -41,6 +80,7 @@ export function CreateWorkspaceDialog({
   const [fieldErrors, setFieldErrors] = useState<WorkspaceFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameErrorId = fieldErrors.name ? "workspace-name-error" : undefined;
+  const queryClient = useQueryClient();
   const createWorkspace = useCreateWorkspace();
 
   const resetForm = () => {
@@ -88,6 +128,11 @@ export function CreateWorkspaceDialog({
           }
 
           toast.success("워크스페이스를 생성했습니다.");
+          const listWorkspacesQueryKey = getListWorkspacesQueryKey();
+          queryClient.setQueryData<WorkspaceListCache>(listWorkspacesQueryKey, (current) =>
+            updateWorkspaceListCache(current, created),
+          );
+          void queryClient.invalidateQueries({ queryKey: listWorkspacesQueryKey });
           closeDialog();
           try {
             await onSuccess(created);
