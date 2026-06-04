@@ -10,7 +10,8 @@ from typing import Any
 import pytest
 
 import pipeline.ecs_stage_worker as worker
-from pipeline.ecs_stage_worker import StageWorkerError, _stage_callable, run_worker
+from pipeline.common.exceptions import PipelineStageError
+from pipeline.ecs_stage_worker import StageWorkerError, _stage_callable, main, run_worker
 
 
 def _install_stage_module(monkeypatch: pytest.MonkeyPatch, name: str, run: Any) -> None:
@@ -120,6 +121,34 @@ def test_run_worker_requires_stage_name(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
     with pytest.raises(StageWorkerError, match="PIPELINE_STAGE_NAME"):
         run_worker()
+
+
+def test_main_writes_failure_result_when_stage_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    result_path = tmp_path / "result.json"
+
+    def run_stage(_upstream_manifest_path: str | None) -> dict[str, object]:
+        raise PipelineStageError("Failed to read raw object from S3/MinIO: key=raw.zip")
+
+    _install_stage_module(monkeypatch, "tests.fake_stage_failure", run_stage)
+    monkeypatch.setenv("PIPELINE_STAGE_NAME", "test_stage")
+    monkeypatch.setenv("PIPELINE_STAGE_RESULT_URI", str(result_path))
+    monkeypatch.setenv("PIPELINE_STAGE_SCRATCH_ROOT", str(tmp_path / "scratch"))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_CALLBACK_ENABLED", "false")
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 1
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "failed"
+    assert payload["error"] == {
+        "type": "PipelineStageError",
+        "message": "Failed to read raw object from S3/MinIO: key=raw.zip",
+    }
 
 
 def test_stage_callable_rejects_unsupported_stage() -> None:

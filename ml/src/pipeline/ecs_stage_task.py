@@ -69,6 +69,7 @@ def run_stage_task(
     stage_context: StageContext,
     runtime_config: PipelineRuntimeConfig,
     upstream_manifest_path: str | None,
+    raw_object_key: str | None = None,
 ) -> dict[str, str]:
     ecs_config = EcsStageTaskConfig.from_env(runtime_config)
     result_uri = _result_uri(ecs_config, stage_context)
@@ -79,9 +80,16 @@ def run_stage_task(
         runtime_config,
         upstream_manifest_path,
         result_uri,
+        raw_object_key,
     )
     task_arn = _task_arn(task_payload)
-    _wait_for_task(ecs_config, task_arn)
+    try:
+        _wait_for_task(ecs_config, task_arn)
+    except PipelineStageError as exc:
+        failure_message = _failure_message_from_result(result_uri)
+        if failure_message:
+            raise PipelineStageError(f"{exc}; stage error: {failure_message}") from exc
+        raise
     result = read_json_uri(result_uri)
     manifest_uri = result.get("artifact_manifest_path") or result.get("manifestUri")
     if not isinstance(manifest_uri, str) or not manifest_uri:
@@ -96,6 +104,7 @@ def _submit_task(
     runtime_config: PipelineRuntimeConfig,
     upstream_manifest_path: str | None,
     result_uri: str,
+    raw_object_key: str | None,
 ) -> Mapping[str, Any]:
     task_definition = _task_definition_for_stage(ecs_config, stage_name)
     container_name = _container_name_for_stage(ecs_config, stage_name)
@@ -121,6 +130,7 @@ def _submit_task(
                         runtime_config,
                         upstream_manifest_path,
                         result_uri,
+                        raw_object_key,
                     ),
                 }
             ]
@@ -172,6 +182,7 @@ def _container_environment(
     runtime_config: PipelineRuntimeConfig,
     upstream_manifest_path: str | None,
     result_uri: str,
+    raw_object_key: str | None,
 ) -> list[dict[str, str]]:
     values: dict[str, str | None] = {
         "PIPELINE_STAGE_NAME": stage_name,
@@ -185,7 +196,7 @@ def _container_environment(
         "PIPELINE_WORKSPACE_ID": stage_context.workspace_id,
         "PIPELINE_DATASET_ID": stage_context.dataset_id,
         "PIPELINE_JOB_ID": stage_context.pipeline_job_id,
-        "PIPELINE_RAW_OBJECT_KEY": _conf_env("PIPELINE_RAW_OBJECT_KEY", "AIRFLOW_OBJECT_KEY"),
+        "PIPELINE_RAW_OBJECT_KEY": raw_object_key or _conf_env("PIPELINE_RAW_OBJECT_KEY", "AIRFLOW_OBJECT_KEY"),
         "ML_ARTIFACT_STORE": runtime_config.artifact_store,
         "ML_ARTIFACT_BUCKET": runtime_config.artifact_bucket,
         "ML_ARTIFACT_PREFIX": runtime_config.artifact_prefix,
@@ -254,6 +265,20 @@ def _result_uri(ecs_config: EcsStageTaskConfig, stage_context: StageContext) -> 
         if part
     )
     return f"s3://{ecs_config.result_bucket}/{key}"
+
+
+def _failure_message_from_result(result_uri: str) -> str | None:
+    try:
+        result = read_json_uri(result_uri)
+    except Exception:
+        return None
+    error = result.get("error")
+    if not isinstance(error, Mapping):
+        return None
+    message = error.get("message")
+    if isinstance(message, str) and message.strip():
+        return message.strip()
+    return None
 
 
 def _required_env(name: str) -> str:

@@ -123,7 +123,13 @@ def _run_stage(
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
     if _stage_execution_mode() == STAGE_EXECUTION_MODE_ECS:
-        return run_stage_task(stage_name, stage_context, runtime_config, upstream_manifest_path)
+        return run_stage_task(
+            stage_name,
+            stage_context,
+            runtime_config,
+            upstream_manifest_path,
+            raw_object_key=_raw_object_key_for_stage(stage_name),
+        )
     if stage_callable is None:
         stage_callable = _stage_callable(stage_name)
     manifest_payload: dict[str, object] = {
@@ -154,6 +160,12 @@ def _run_stage(
         manifest_payload["status"] = "completed"
         manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
     return {"artifact_manifest_path": str(manifest_path)}
+
+
+def _raw_object_key_for_stage(stage_name: str) -> str | None:
+    if stage_name != "ingestion":
+        return None
+    return _conf_value("object_key") or _conf_value("objectKey")
 
 
 def _manifest_payload_from_exception(exc: BaseException) -> dict[str, object]:
@@ -206,7 +218,9 @@ def _validated_replay_manifest_s3_uri(
         raise PipelineConfigurationError("S3 upstream_manifest_path requires ML_ARTIFACT_STORE=s3.")
     if not upstream_manifest_path.endswith("/manifest.json"):
         raise PipelineConfigurationError("upstream_manifest_path must point to a manifest.json file.")
-    if runtime_config.artifact_bucket and not upstream_manifest_path.startswith(f"s3://{runtime_config.artifact_bucket}/"):
+    if runtime_config.artifact_bucket and not upstream_manifest_path.startswith(
+        f"s3://{runtime_config.artifact_bucket}/"
+    ):
         raise PipelineConfigurationError("upstream_manifest_path must be under ML_ARTIFACT_BUCKET.")
     return upstream_manifest_path
 

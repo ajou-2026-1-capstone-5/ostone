@@ -78,6 +78,45 @@ def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> No
     } in environment
 
 
+def test_run_stage_task_forwards_raw_object_key_to_ingestion(monkeypatch) -> None:
+    calls: dict[str, Any] = {}
+
+    class FakeEcsClient:
+        def run_task(self, **kwargs: Any) -> dict[str, Any]:
+            calls["run_task"] = kwargs
+            return {"tasks": [{"taskArn": "arn:aws:ecs:task/ingestion"}]}
+
+        def describe_tasks(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "tasks": [
+                    {
+                        "lastStatus": "STOPPED",
+                        "stoppedReason": "Essential container in task exited",
+                        "containers": [{"name": "ml-stage-cpu", "exitCode": 0}],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("pipeline.ecs_stage_task.boto3.client", lambda service: FakeEcsClient())
+    monkeypatch.setattr(
+        "pipeline.ecs_stage_task.read_json_uri",
+        lambda uri: {"artifact_manifest_path": "s3://artifacts/domain-pack/dag/run/ingestion/manifest.json"},
+    )
+    _set_required_ecs_env(monkeypatch)
+
+    result = run_stage_task(
+        "ingestion",
+        _stage_context("ingestion"),
+        _runtime_config(),
+        None,
+        raw_object_key="completed/workspaces/1/raw.zip",
+    )
+
+    assert result["artifact_manifest_path"] == "s3://artifacts/domain-pack/dag/run/ingestion/manifest.json"
+    environment = calls["run_task"]["overrides"]["containerOverrides"][0]["environment"]
+    assert {"name": "PIPELINE_RAW_OBJECT_KEY", "value": "completed/workspaces/1/raw.zip"} in environment
+
+
 def test_config_from_env_requires_network_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("PIPELINE_ECS_CLUSTER", "cluster")
     monkeypatch.setenv("PIPELINE_ECS_CPU_TASK_DEFINITION", "cpu-task")
@@ -162,6 +201,36 @@ def test_run_stage_task_raises_on_container_failure(monkeypatch: pytest.MonkeyPa
 
     with pytest.raises(PipelineStageError, match="exitCode=2"):
         run_stage_task("preprocessing", _stage_context("preprocessing"), _runtime_config(), None)
+
+
+def test_run_stage_task_includes_worker_failure_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeEcsClient:
+        def run_task(self, **_kwargs: Any) -> dict[str, Any]:
+            return {"tasks": [{"taskArn": "arn:aws:ecs:task/failed"}]}
+
+        def describe_tasks(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "tasks": [
+                    {
+                        "lastStatus": "STOPPED",
+                        "stoppedReason": "Essential container in task exited",
+                        "containers": [{"name": "ml-stage-cpu", "exitCode": 1}],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("pipeline.ecs_stage_task.boto3.client", lambda service: FakeEcsClient())
+    monkeypatch.setattr(
+        "pipeline.ecs_stage_task.read_json_uri",
+        lambda uri: {
+            "status": "failed",
+            "error": {"type": "PipelineStageError", "message": "Failed to read raw object from S3/MinIO: key=raw.zip"},
+        },
+    )
+    _set_required_ecs_env(monkeypatch)
+
+    with pytest.raises(PipelineStageError, match="Failed to read raw object from S3/MinIO: key=raw.zip"):
+        run_stage_task("ingestion", _stage_context("ingestion"), _runtime_config(), None)
 
 
 def test_run_stage_task_requires_manifest_uri_in_result(monkeypatch: pytest.MonkeyPatch) -> None:
