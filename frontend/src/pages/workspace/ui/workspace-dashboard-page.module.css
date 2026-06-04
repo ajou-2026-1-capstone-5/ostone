@@ -58,6 +58,13 @@
   gap: var(--s-3);
 }
 
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
 .sectionTitle {
   margin: 0;
   font-family: var(--sans);
@@ -223,7 +230,8 @@
   line-height: 1.55;
 }
 
-.coveragePanel {
+.coveragePanel,
+.hotpathPanel {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
@@ -253,7 +261,41 @@
   white-space: nowrap;
 }
 
+.totalBadge,
+.surgeBadge,
+.rankBadge,
+.unavailableText {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 .measurementBadge[data-status="NEEDS_INSTRUMENTATION"] {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.totalBadge {
+  color: var(--ink-2);
+  background: var(--paper-2);
+}
+
+.surgeBadge {
+  border-color: var(--ink);
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.rankBadge {
   color: var(--ink);
   background: var(--paper);
 }
@@ -343,6 +385,185 @@
   margin: 0;
   color: var(--ink-2);
   font-size: 13px;
+}
+
+.unavailableText {
+  color: var(--ink-3);
+  background: var(--paper-2);
+}
+
+.hotpathState {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper-2);
+  text-align: center;
+}
+
+.hotpathTopGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.hotpathCard {
+  min-width: 0;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  padding: var(--s-4);
+  background: var(--paper-2);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.hotpathCard:hover,
+.hotpathCard:focus-visible {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.hotpathCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.hotpathCard h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 540;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.hotpathCard dl {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.hotpathCard dl div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.hotpathCard dt {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 450;
+}
+
+.hotpathCard dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+}
+
+.rankingTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+}
+
+.rankingTable {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+  background: var(--paper);
+}
+
+.rankingTable th,
+.rankingTable td {
+  padding: var(--s-3);
+  border-bottom: 1px solid var(--line-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.rankingTable th {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  background: var(--paper-2);
+}
+
+.rankingTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.surgingRow td {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.workflowDetailLink,
+.workflowDetailDisabled,
+.workflowNameCell,
+.changeCell {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.changeCell {
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.workflowDetailLink,
+.workflowDetailDisabled {
+  align-items: center;
+  gap: var(--s-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.workflowDetailLink:hover,
+.workflowDetailLink:focus-visible {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.workflowNameCell {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workflowNameCell strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+}
+
+.workflowNameCell span,
+.workflowDetailDisabled em {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-style: normal;
 }
 
 .statePanel,
@@ -472,7 +693,8 @@
   .filterSummary,
   .metricGrid,
   .coverageGrid,
-  .slotGrid {
+  .slotGrid,
+  .hotpathTopGrid {
     grid-template-columns: 1fr;
   }
 
