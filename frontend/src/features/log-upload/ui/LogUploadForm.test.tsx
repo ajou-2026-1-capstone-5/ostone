@@ -37,6 +37,7 @@ let startError = "업로드 실패";
 let lastStartParams: StartParams | null = null;
 let callTriggerOnSuccess: ((response: unknown, variables: TriggerVariables) => void) | null = null;
 let callTriggerOnError: ((error: unknown) => void) | null = null;
+let mockTriggerIsPending = false;
 
 vi.mock("../model/useRawFileUpload", () => ({
   useRawFileUpload: () => ({
@@ -81,7 +82,7 @@ vi.mock(
         mutate: (...args: unknown[]) => {
           mockTriggerMutate(...args);
         },
-        isPending: false,
+        isPending: mockTriggerIsPending,
         reset: mockTriggerReset,
       };
     },
@@ -142,6 +143,7 @@ describe("LogUploadForm", () => {
     lastStartParams = null;
     callTriggerOnSuccess = null;
     callTriggerOnError = null;
+    mockTriggerIsPending = false;
   });
 
   it("renders upload header and file uploader", () => {
@@ -324,6 +326,33 @@ describe("LogUploadForm", () => {
     expect(mockTriggerMutate).toHaveBeenCalledWith({ workspaceId: 1, datasetId: 42 });
   });
 
+  it("ignores rapid duplicate generation clicks before pending state re-renders", () => {
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
+    const input = screen.getByTestId("file-input");
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByText("처리 시작"));
+
+    const triggerButton = screen.getByText("도메인팩 초안 생성 시작");
+    fireEvent.click(triggerButton);
+    fireEvent.click(triggerButton);
+
+    expect(mockTriggerMutate).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("생성 요청 중")).toBeInTheDocument();
+  });
+
+  it("disables generation CTA while mutation is pending", () => {
+    mockTriggerIsPending = true;
+
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
+    const input = screen.getByTestId("file-input");
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByText("처리 시작"));
+
+    expect(screen.getByText("도메인팩 초안 생성 시작").closest("button")).toBeDisabled();
+  });
+
   it("shows review CTA after generation request succeeds with pipeline job id", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     const file = new File(["data"], "data.zip", { type: "application/zip" });
@@ -377,7 +406,9 @@ describe("LogUploadForm", () => {
 
     expect(screen.getByText("생성 요청 실패")).toBeInTheDocument();
     expect(screen.getByText("Airflow 연결 실패")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("다시 생성 요청"));
+    const retryButton = screen.getByText("다시 생성 요청");
+    fireEvent.click(retryButton);
+    fireEvent.click(retryButton);
     expect(mockTriggerMutate).toHaveBeenCalledTimes(2);
   });
 

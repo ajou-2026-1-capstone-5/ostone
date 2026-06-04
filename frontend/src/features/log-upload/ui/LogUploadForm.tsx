@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -88,16 +88,19 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [uploadedDataset, setUploadedDataset] = useState<UploadedDataset | null>(null);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({ kind: "idle" });
+  const generationRequestInFlightRef = useRef(false);
 
   const rawFileUpload = useRawFileUpload();
 
   const generationMutation = useTriggerDomainPackGeneration({
     mutation: {
       onSuccess: (response) => {
+        generationRequestInFlightRef.current = false;
         setGenerationStatus({ kind: "success", ...readGenerationResponse(response) });
         toast.success("도메인팩 초안 생성 요청 완료");
       },
       onError: (error) => {
+        generationRequestInFlightRef.current = false;
         const message = getErrorMessage(error, "도메인팩 초안 생성 요청에 실패했습니다.");
         setGenerationStatus({ kind: "error", message });
         toast.error(message, {
@@ -132,6 +135,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setStatus("idle");
     setUploadedDataset(null);
     setGenerationStatus({ kind: "idle" });
+    generationRequestInFlightRef.current = false;
     rawFileUpload.reset();
     generationMutation.reset();
   };
@@ -152,6 +156,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
           fileName: fileToUpload.name,
         });
         setGenerationStatus({ kind: "idle" });
+        generationRequestInFlightRef.current = false;
         setStatus("success");
         toast.success("업로드 완료");
       },
@@ -159,6 +164,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
         setStatus("idle");
         setUploadedDataset(null);
         setGenerationStatus({ kind: "idle" });
+        generationRequestInFlightRef.current = false;
         toast.error(message, {
           action: {
             label: "재시도",
@@ -179,7 +185,11 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
       toast.error("생성 요청에 필요한 데이터셋 정보를 확인할 수 없습니다.");
       return;
     }
+    if (generationRequestInFlightRef.current || generationMutation.isPending) {
+      return;
+    }
 
+    generationRequestInFlightRef.current = true;
     setGenerationStatus({ kind: "triggering" });
     generationMutation.mutate({
       workspaceId,
@@ -194,6 +204,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     setUploadedDataset(null);
     setStatus("idle");
     setGenerationStatus({ kind: "idle" });
+    generationRequestInFlightRef.current = false;
   };
 
   const domainPacksPath = workspaceId ? `/workspaces/${workspaceId}/domain-packs` : "/workspaces";
@@ -274,7 +285,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
                 <Button variant="secondary" onClick={handleReset}>
                   다른 파일 업로드
                 </Button>
-                <Button onClick={handleStartGeneration} disabled={!canStartGeneration}>
+                <Button
+                  onClick={handleStartGeneration}
+                  disabled={!canStartGeneration || isGenerationPending}
+                >
                   도메인팩 초안 생성 시작
                 </Button>
               </div>
@@ -303,7 +317,10 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
                 <Button variant="secondary" onClick={handleReset}>
                   다른 파일 업로드
                 </Button>
-                <Button onClick={handleStartGeneration} disabled={!canStartGeneration}>
+                <Button
+                  onClick={handleStartGeneration}
+                  disabled={!canStartGeneration || isGenerationPending}
+                >
                   다시 생성 요청
                 </Button>
               </div>

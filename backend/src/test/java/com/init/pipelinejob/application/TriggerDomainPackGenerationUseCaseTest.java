@@ -7,12 +7,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.pipelinejob.application.exception.AirflowConfigurationInvalidException;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
-import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.domain.model.PipelineJob;
 import com.init.pipelinejob.domain.repository.PipelineJobRepository;
@@ -160,19 +160,26 @@ class TriggerDomainPackGenerationUseCaseTest {
   }
 
   @Test
-  @DisplayName("active job이 있으면 409 예외를 던진다")
-  void execute_activeJob_throwsAlreadyRunning() {
+  @DisplayName("active job이 있으면 기존 job을 반환하고 새 Airflow trigger를 만들지 않는다")
+  void execute_activeJob_returnsExistingJob() {
     allowAccess();
     given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
         .willReturn(Optional.of(pipelineJob(11L, PipelineJob.STATUS_RUNNING)));
 
-    assertThatThrownBy(() -> useCase.execute(command()))
-        .isInstanceOf(PipelineJobAlreadyRunningException.class);
+    TriggerDomainPackGenerationResult result = useCase.execute(command());
+
+    assertThat(result.pipelineJobId()).isEqualTo(11L);
+    assertThat(result.status()).isEqualTo(PipelineJob.STATUS_RUNNING);
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(triggerPort, never()).dagId();
+    verify(triggerPort, never()).trigger(any());
+    verify(workspaceQuotaValidator, never()).assertPipelineRunAllowed(any());
+    verify(freeOnboardingService, never()).claimGenerationIfNeeded(any(), any(), any());
   }
 
   @Test
-  @DisplayName("대기 콜백 상태까지 active job으로 판단해 중복 실행을 막는다")
-  void execute_callbackWaitingStatuses_throwAlreadyRunning() {
+  @DisplayName("대기 콜백 상태까지 active job으로 판단해 기존 job을 반환한다")
+  void execute_callbackWaitingStatuses_returnExistingJob() {
     allowAccess();
     given(pipelineJobRepository.findActiveDomainPackGenerationJob(1L, 7L))
         .willAnswer(invocation -> Optional.of(pipelineJob(11L, activeStatus.get())));
@@ -181,17 +188,23 @@ class TriggerDomainPackGenerationUseCaseTest {
         new String[] {
           PipelineJob.STATUS_QUEUED,
           PipelineJob.STATUS_RUNNING,
+          PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION,
+          PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK,
           PipelineJob.STATUS_WAITING_INTENT_CALLBACK,
           PipelineJob.STATUS_WAITING_WORKFLOW_CALLBACK
         }) {
       activeStatus.set(status);
 
-      assertThatThrownBy(() -> useCase.execute(command()))
-          .as("status=%s", status)
-          .isInstanceOf(PipelineJobAlreadyRunningException.class);
+      TriggerDomainPackGenerationResult result = useCase.execute(command());
+
+      assertThat(result.status()).as("status=%s", status).isEqualTo(status);
     }
 
     verify(triggerPort, never()).trigger(any());
+    verify(pipelineJobRepository, never()).saveAndFlush(any());
+    verify(workspaceQuotaValidator, never()).assertPipelineRunAllowed(any());
+    verify(freeOnboardingService, times(6)).assertCanTriggerDomainPackGeneration(1L, 7L);
+    verify(freeOnboardingService, never()).claimGenerationIfNeeded(any(), any(), any());
   }
 
   @Test

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.init.pipelinejob.application.exception.AirflowTriggerFailedException;
 import com.init.pipelinejob.application.exception.DatasetNotFoundException;
-import com.init.pipelinejob.application.exception.PipelineJobAlreadyRunningException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceAccessDeniedException;
 import com.init.pipelinejob.application.exception.PipelineJobWorkspaceNotFoundException;
 import com.init.pipelinejob.domain.model.PipelineJob;
@@ -15,6 +14,7 @@ import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import com.init.workspace.application.WorkspaceFreeOnboardingService;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Service;
@@ -67,18 +67,21 @@ public class TriggerDomainPackGenerationUseCase {
   }
 
   public TriggerDomainPackGenerationResult execute(TriggerDomainPackGenerationCommand command) {
-    CreatedPipelineJob createdJob = createQueuedPipelineJob(command);
+    TriggerPreparation preparation = prepareTrigger(command);
+    if (!preparation.created()) {
+      return toResult(preparation.job());
+    }
 
     try {
       triggerPort.trigger(
           DomainPackGenerationTriggerCommand.initial(
               command.workspaceId(),
               command.datasetId(),
-              createdJob.pipelineJobId(),
-              createdJob.airflowRunId(),
-              createdJob.objectKey()));
+              preparation.job().getId(),
+              preparation.job().getAirflowRunId(),
+              preparation.objectKey()));
     } catch (AirflowTriggerFailedException ex) {
-      markFailed(createdJob.pipelineJobId(), ex.getMessage());
+      markFailed(preparation.job().getId(), ex.getMessage());
       throw ex;
     }
 
@@ -87,11 +90,11 @@ public class TriggerDomainPackGenerationUseCase {
             () -> {
               PipelineJob job =
                   pipelineJobRepository
-                      .findById(createdJob.pipelineJobId())
+                      .findById(preparation.job().getId())
                       .orElseThrow(
                           () ->
                               new IllegalStateException(
-                                  "생성된 pipeline job을 찾을 수 없습니다. id=" + createdJob.pipelineJobId()));
+                                  "생성된 pipeline job을 찾을 수 없습니다. id=" + preparation.job().getId()));
               if (!PipelineJob.STATUS_QUEUED.equals(job.getStatus())) {
                 return job;
               }
@@ -102,17 +105,17 @@ public class TriggerDomainPackGenerationUseCase {
     return toResult(runningJob);
   }
 
-  private CreatedPipelineJob createQueuedPipelineJob(TriggerDomainPackGenerationCommand command) {
+  private TriggerPreparation prepareTrigger(TriggerDomainPackGenerationCommand command) {
     return executeInTransaction(
         () -> {
           concurrencyGuard.lockTriggerCreation(command.workspaceId(), command.datasetId());
           validateAccess(command);
-          pipelineJobRepository
-              .findActiveDomainPackGenerationJob(command.workspaceId(), command.datasetId())
-              .ifPresent(
-                  job -> {
-                    throw new PipelineJobAlreadyRunningException(job.getId(), job.getStatus());
-                  });
+          Optional<PipelineJob> activeJob =
+              pipelineJobRepository.findActiveDomainPackGenerationJob(
+                  command.workspaceId(), command.datasetId());
+          if (activeJob.isPresent()) {
+            return TriggerPreparation.existing(activeJob.get());
+          }
           workspaceQuotaValidator.assertPipelineRunAllowed(command.workspaceId());
 
           String dagId = triggerPort.dagId();
@@ -132,7 +135,7 @@ public class TriggerDomainPackGenerationUseCase {
           PipelineJob queuedJob = pipelineJobRepository.saveAndFlush(savedJob);
           freeOnboardingService.claimGenerationIfNeeded(
               command.workspaceId(), command.datasetId(), queuedJob.getId());
-          return new CreatedPipelineJob(queuedJob.getId(), queuedJob.getAirflowRunId(), objectKey);
+          return TriggerPreparation.created(queuedJob, objectKey);
         });
   }
 
@@ -226,5 +229,14 @@ public class TriggerDomainPackGenerationUseCase {
     return transactionTemplate.execute(status -> callback.get());
   }
 
-  private record CreatedPipelineJob(Long pipelineJobId, String airflowRunId, String objectKey) {}
+  private record TriggerPreparation(PipelineJob job, String objectKey, boolean created) {
+
+    static TriggerPreparation existing(PipelineJob job) {
+      return new TriggerPreparation(job, null, false);
+    }
+
+    static TriggerPreparation created(PipelineJob job, String objectKey) {
+      return new TriggerPreparation(job, objectKey, true);
+    }
+  }
 }
