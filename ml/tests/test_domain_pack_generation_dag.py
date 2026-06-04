@@ -125,6 +125,62 @@ def test_failed_stage_writes_failure_manifest(monkeypatch: pytest.MonkeyPatch, t
     assert manifest["payload"]["error"]["type"] == "StageFailure"
 
 
+def test_ecs_ingestion_stage_forwards_conf_object_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path))
+    monkeypatch.setenv("PIPELINE_BACKEND_BASE_URL", "http://backend:8080")
+    monkeypatch.setenv("PIPELINE_STAGE_EXECUTION_MODE", "ecs")
+    calls: dict[str, object] = {}
+
+    class DagRun:
+        conf = {
+            "workspace_id": "3",
+            "dataset_id": "5",
+            "pipeline_job_id": "11",
+            "object_key": "completed/workspaces/3/datasets/raw.zip",
+        }
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {
+            "dag": type("Dag", (), {"dag_id": "domain_pack_generation"})(),
+            "run_id": "manual__run",
+            "dag_run": DagRun(),
+        },
+    )
+
+    def fake_run_stage_task(
+        stage_name: str,
+        stage_context: object,
+        runtime_config: object,
+        upstream_manifest_path: str | None,
+        raw_object_key: str | None = None,
+    ) -> dict[str, str]:
+        calls["stage_name"] = stage_name
+        calls["raw_object_key"] = raw_object_key
+        calls["upstream_manifest_path"] = upstream_manifest_path
+        return {"artifact_manifest_path": "/tmp/manifest.json"}
+
+    monkeypatch.setattr(dag_module, "run_stage_task", fake_run_stage_task)
+
+    assert dag_module._run_stage("ingestion") == {"artifact_manifest_path": "/tmp/manifest.json"}
+    assert calls == {
+        "stage_name": "ingestion",
+        "raw_object_key": "completed/workspaces/3/datasets/raw.zip",
+        "upstream_manifest_path": None,
+    }
+
+
+def test_raw_object_key_for_stage_ignores_non_ingestion(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    assert dag_module._raw_object_key_for_stage("preprocessing") is None
+
+
 def test_run_evaluation_stage_requires_upstream_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
     dag_module = _import_dag_module(monkeypatch)
 
@@ -167,6 +223,21 @@ def test_validated_replay_manifest_path_requires_artifact_root(
 
     with pytest.raises(PipelineConfigurationError, match="manifest.json"):
         dag_module._validated_replay_manifest_path(str(valid_manifest.with_name("payload.json")), runtime_config)
+
+
+def test_validated_replay_manifest_path_accepts_s3_manifest_under_bucket(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+    runtime_config = dag_module.PipelineRuntimeConfig(
+        artifact_root=Path("/tmp/artifacts"),
+        backend_base_url="http://backend:8080",
+        callback_enabled=False,
+        artifact_store="s3",
+        artifact_bucket="artifacts",
+    )
+
+    manifest_uri = "s3://artifacts/domain_pack_generation/run/representation/manifest.json"
+
+    assert dag_module._validated_replay_manifest_path(manifest_uri, runtime_config) == manifest_uri
 
 
 def test_checkpoint_callback_requires_enabled_callbacks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

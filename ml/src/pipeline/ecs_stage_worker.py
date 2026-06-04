@@ -130,13 +130,36 @@ def main() -> None:
     try:
         run_worker()
     except (PipelineConfigurationError, StageWorkerError) as exc:
+        _write_failure_result(exc)
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         logger.exception("Stage worker failed")
+        _write_failure_result(exc)
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
+
+
+def _write_failure_result(exc: BaseException) -> None:
+    result_uri = os.getenv("PIPELINE_STAGE_RESULT_URI", "").strip()
+    if not result_uri:
+        return
+    stage_name = os.getenv("PIPELINE_STAGE_NAME", "").strip() or "unknown"
+    try:
+        write_json_uri(
+            result_uri,
+            {
+                "stageName": stage_name,
+                "status": "failed",
+                "error": {
+                    "type": type(exc).__name__,
+                    "message": str(exc),
+                },
+            },
+        )
+    except Exception:
+        logger.exception("Failed to write ECS stage failure result.")
 
 
 if __name__ == "__main__":
