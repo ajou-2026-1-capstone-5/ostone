@@ -60,6 +60,7 @@ jobs:
       cloudfront_distribution_id: ${{ steps.tf_outputs.outputs.cloudfront_distribution_id }}
       ecs_cluster_name: ${{ steps.tf_outputs.outputs.ecs_cluster_name }}
       backend_service_name: ${{ steps.tf_outputs.outputs.backend_service_name }}
+      backend_task_definition_arn: ${{ steps.tf_outputs.outputs.backend_task_definition_arn }}
       airflow_init_task_definition_arn: ${{ steps.tf_outputs.outputs.airflow_init_task_definition_arn }}
       airflow_apiserver_service_name: ${{ steps.tf_outputs.outputs.airflow_apiserver_service_name }}
       airflow_scheduler_service_name: ${{ steps.tf_outputs.outputs.airflow_scheduler_service_name }}
@@ -175,6 +176,7 @@ jobs:
             echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
             echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)"
             echo "backend_service_name=$(terraform output -raw backend_service_name)"
+            echo "backend_task_definition_arn=$(terraform output -raw backend_task_definition_arn)"
             echo "airflow_init_task_definition_arn=$(terraform output -raw airflow_init_task_definition_arn)"
             echo "airflow_apiserver_service_name=$(terraform output -raw airflow_apiserver_service_name)"
             echo "airflow_scheduler_service_name=$(terraform output -raw airflow_scheduler_service_name)"
@@ -245,6 +247,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECS_CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
           ECS_SERVICE: ${{ needs.terraform.outputs.backend_service_name }}
+          ECS_TASK_DEFINITION: ${{ needs.terraform.outputs.backend_task_definition_arn }}
           BACKEND_AUTOSCALING_MAX_CAPACITY: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
@@ -309,14 +312,12 @@ jobs:
             --max-capacity "$BACKEND_MAX_CAPACITY" \
             --region ap-northeast-2
 
-          TASK_DEF_ARN="$(aws ecs describe-services \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE" \
-            --region ap-northeast-2 \
-            --query 'services[0].taskDefinition' \
-            --output text)"
+          # Terraform이 이번 apply에서 등록한 backend task definition을 기준으로 이미지만 교체한다.
+          # 서비스의 현재 task definition을 읽으면 aws_ecs_service.backend의
+          # ignore_changes=[task_definition] 때문에 Terraform이 새로 추가한 env/secret(TOSS_* 등)이
+          # 반영되지 않아 컨테이너가 빈 값으로 부팅하다 실패한다.
           aws ecs describe-task-definition \
-            --task-definition "$TASK_DEF_ARN" \
+            --task-definition "$ECS_TASK_DEFINITION" \
             --region ap-northeast-2 \
             --query 'taskDefinition' > task-definition.json
           jq --arg image "$IMAGE_URI" '
