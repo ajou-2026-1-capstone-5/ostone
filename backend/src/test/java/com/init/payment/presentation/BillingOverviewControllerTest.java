@@ -74,6 +74,7 @@ class BillingOverviewControllerTest {
         .perform(get(URL))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.subscription").isEmpty())
+        .andExpect(jsonPath("$.billingKey").isEmpty())
         .andExpect(jsonPath("$.payments").isEmpty())
         .andExpect(jsonPath("$.quotaUsages").isEmpty());
   }

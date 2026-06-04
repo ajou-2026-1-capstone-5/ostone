@@ -19,8 +19,8 @@ export function QuotaUsageCard({ quotaUsages }: QuotaUsageCardProps) {
         <h2 className={styles.cardTitle}>Quota</h2>
       </div>
       <div className={styles.quotaList}>
-        {quotaUsages.map((quota) => (
-          <QuotaUsageRow key={quota.resource} quota={quota} />
+        {quotaUsages.map((quota, index) => (
+          <QuotaUsageRow key={`${quota.resource ?? "unknown"}-${index}`} quota={quota} />
         ))}
       </div>
     </section>
@@ -30,7 +30,7 @@ export function QuotaUsageCard({ quotaUsages }: QuotaUsageCardProps) {
 function QuotaUsageRow({ quota }: { quota: QuotaUsageResponse }) {
   const used = quota.used ?? 0;
   const limit = quota.limit ?? 0;
-  const ratio = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
+  const ratio = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   const label = QUOTA_LABELS[quota.resource ?? ""] ?? quota.resource ?? "Quota";
   const isWarning = Boolean(quota.warning);
 
