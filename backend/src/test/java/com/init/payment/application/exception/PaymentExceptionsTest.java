@@ -37,6 +37,10 @@ class PaymentExceptionsTest {
         PaymentExceptions.gatewayUnavailable(new IllegalStateException()),
         "PAYMENT_GATEWAY_UNAVAILABLE",
         BadGatewayException.class);
+    assertCode(
+        PaymentExceptions.gatewayUnavailable(),
+        "PAYMENT_GATEWAY_UNAVAILABLE",
+        BadGatewayException.class);
     assertCode(PaymentExceptions.notFound("없음"), "PAYMENT_NOT_FOUND", NotFoundException.class);
     assertCode(
         PaymentExceptions.notRefundable("불가"), "PAYMENT_NOT_REFUNDABLE", BadRequestException.class);

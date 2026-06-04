@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -19,14 +21,18 @@ import com.init.payment.domain.repository.PaymentRepository;
 import com.init.shared.application.exception.BusinessException;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AdminBillingUseCase")
@@ -36,7 +42,15 @@ class AdminBillingUseCaseTest {
   @Mock private PaymentRepository paymentRepository;
   @Mock private PaymentCancelRepository paymentCancelRepository;
   @Mock private TossPaymentGateway tossPaymentGateway;
+  @Mock private PlatformTransactionManager transactionManager;
   @InjectMocks private AdminBillingUseCase adminBillingUseCase;
+
+  @BeforeEach
+  void setUp() {
+    lenient()
+        .when(transactionManager.getTransaction(any()))
+        .thenReturn(new SimpleTransactionStatus());
+  }
 
   @Test
   @DisplayName("refundFull: Toss cancel 성공 → 결제 취소와 환불 기록 저장")
@@ -60,6 +74,9 @@ class AdminBillingUseCaseTest {
     ArgumentCaptor<PaymentCancel> cancelCaptor = ArgumentCaptor.forClass(PaymentCancel.class);
     verify(paymentCancelRepository).save(cancelCaptor.capture());
     assertThat(cancelCaptor.getValue().getReason()).isEqualTo("고객 요청");
+    InOrder inOrder = inOrder(transactionManager, tossPaymentGateway);
+    inOrder.verify(transactionManager).commit(any());
+    inOrder.verify(tossPaymentGateway).cancelPayment("pay_1", "고객 요청", "admin-full-refund-100");
   }
 
   @Test
@@ -115,6 +132,48 @@ class AdminBillingUseCaseTest {
         .isInstanceOf(BusinessException.class)
         .hasFieldOrPropertyWithValue("code", "PAYMENT_ALREADY_REFUNDED");
     verify(tossPaymentGateway, never()).cancelPayment(any(), any(), any());
+    verify(paymentCancelRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("refundFull: Toss 호출 후 이미 환불 기록이 생기면 저장 없이 실패")
+  void should_저장없이실패_when_Toss호출후이미환불됨() {
+    // given
+    Payment payment = completedPayment("ord_1", "pay_1");
+    OffsetDateTime canceledAt = OffsetDateTime.parse("2026-06-03T12:00:00Z");
+    given(paymentRepository.findByIdForUpdate(100L)).willReturn(Optional.of(payment));
+    given(paymentCancelRepository.existsByPaymentId(100L)).willReturn(false, true);
+    given(tossPaymentGateway.cancelPayment(eq("pay_1"), eq("고객 요청"), eq("admin-full-refund-100")))
+        .willReturn(new TossCancelResult("tx_cancel_1", canceledAt));
+    AdminBillingRefundCommand command = new AdminBillingRefundCommand(100L, "고객 요청");
+
+    // when & then
+    assertThatThrownBy(() -> adminBillingUseCase.refundFull(command))
+        .isInstanceOf(BusinessException.class)
+        .hasFieldOrPropertyWithValue("code", "PAYMENT_ALREADY_REFUNDED");
+    verify(tossPaymentGateway).cancelPayment("pay_1", "고객 요청", "admin-full-refund-100");
+    verify(paymentCancelRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("refundFull: Toss 호출 후 결제 키가 바뀌면 저장 없이 실패")
+  void should_저장없이실패_when_Toss호출후결제키변경됨() {
+    // given
+    Payment payment = completedPayment("ord_1", "pay_1");
+    Payment changedPayment = completedPayment("ord_1", "pay_changed");
+    OffsetDateTime canceledAt = OffsetDateTime.parse("2026-06-03T12:00:00Z");
+    given(paymentRepository.findByIdForUpdate(100L))
+        .willReturn(Optional.of(payment), Optional.of(changedPayment));
+    given(paymentCancelRepository.existsByPaymentId(100L)).willReturn(false);
+    given(tossPaymentGateway.cancelPayment(eq("pay_1"), eq("고객 요청"), eq("admin-full-refund-100")))
+        .willReturn(new TossCancelResult("tx_cancel_1", canceledAt));
+    AdminBillingRefundCommand command = new AdminBillingRefundCommand(100L, "고객 요청");
+
+    // when & then
+    assertThatThrownBy(() -> adminBillingUseCase.refundFull(command))
+        .isInstanceOf(BusinessException.class)
+        .hasFieldOrPropertyWithValue("code", "PAYMENT_NOT_REFUNDABLE");
+    verify(tossPaymentGateway).cancelPayment("pay_1", "고객 요청", "admin-full-refund-100");
     verify(paymentCancelRepository, never()).save(any());
   }
 

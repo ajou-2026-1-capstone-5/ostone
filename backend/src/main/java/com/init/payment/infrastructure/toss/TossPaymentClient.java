@@ -104,12 +104,9 @@ public class TossPaymentClient implements TossPaymentPort, TossPaymentGateway {
       return new TossCancelResult(
           text(cancel, "transactionKey"), parseDateTime(text(cancel, "canceledAt")));
     } catch (RestClientResponseException ex) {
-      if (ex.getStatusCode().is4xxClientError()) {
-        throw PaymentExceptions.gatewayRejected("Toss가 환불 요청을 거절했습니다.");
-      }
-      throw PaymentExceptions.gatewayUnavailable(ex);
+      throw mapCancelResponseException(ex);
     } catch (RestClientException | HttpMessageConversionException ex) {
-      throw PaymentExceptions.gatewayUnavailable(ex);
+      throw PaymentExceptions.gatewayUnavailable();
     }
   }
 
@@ -190,6 +187,36 @@ public class TossPaymentClient implements TossPaymentPort, TossPaymentGateway {
       throw PaymentExceptions.gatewayRejected("Toss 환불 응답에 거래 키가 없습니다.");
     }
     return cancel;
+  }
+
+  private RuntimeException mapCancelResponseException(RestClientResponseException ex) {
+    int status = ex.getStatusCode().value();
+    String code = tossErrorCode(ex);
+    if (status == 400) {
+      return PaymentExceptions.gatewayRejected("Toss가 환불 요청을 거절했습니다.");
+    }
+    if (status == 403 && isCancelRejected(code)) {
+      return PaymentExceptions.gatewayRejected("Toss가 환불 요청을 거절했습니다.");
+    }
+    return PaymentExceptions.gatewayUnavailable();
+  }
+
+  @Nullable
+  private String tossErrorCode(RestClientResponseException ex) {
+    try {
+      JsonNode root = readTree(ex.getResponseBodyAsString());
+      String code = text(root, "code");
+      return code == null || code.isBlank() ? null : code;
+    } catch (PaymentGatewayException parseFailure) {
+      return null;
+    }
+  }
+
+  private boolean isCancelRejected(@Nullable String code) {
+    return "NOT_CANCELABLE_PAYMENT".equals(code)
+        || "NOT_CANCELABLE_AMOUNT".equals(code)
+        || "NOT_SUPPORTED_REFUND".equals(code)
+        || "REFUND_REJECTED".equals(code);
   }
 
   private JsonNode readTree(String raw) {

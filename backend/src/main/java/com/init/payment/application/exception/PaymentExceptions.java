@@ -33,6 +33,11 @@ public final class PaymentExceptions {
         "PAYMENT_GATEWAY_UNAVAILABLE", "Toss cancel API request failed.", cause);
   }
 
+  public static BadGatewayException gatewayUnavailable() {
+    return new BadGatewayException(
+        "PAYMENT_GATEWAY_UNAVAILABLE", "Toss cancel API request failed.");
+  }
+
   public static NotFoundException notFound(String message) {
     return new NotFoundException("PAYMENT_NOT_FOUND", message);
   }
