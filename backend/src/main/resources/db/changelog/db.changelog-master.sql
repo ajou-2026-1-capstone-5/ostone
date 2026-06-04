@@ -930,6 +930,46 @@ CREATE INDEX idx_workflow_match_decision_recent_confident_workflow
     WHERE status = 'CONFIDENT'
       AND selected_workflow_id IS NOT NULL;
 
+--changeset init:20260604-create-simulation-feedback
+--comment: Store structured simulation feedback separately from operational consultation logs
+CREATE TABLE runtime.simulation_feedback (
+    id                BIGSERIAL PRIMARY KEY,
+    workspace_id      BIGINT NOT NULL REFERENCES app.workspace(id) ON DELETE CASCADE,
+    chat_session_id   BIGINT NOT NULL REFERENCES runtime.chat_session(id) ON DELETE CASCADE,
+    chat_message_id   BIGINT REFERENCES runtime.chat_message(id) ON DELETE SET NULL,
+    feedback_type     VARCHAR(50) NOT NULL,
+    description       TEXT NOT NULL,
+    expected_behavior TEXT NOT NULL,
+    severity          VARCHAR(50) NOT NULL,
+    status            VARCHAR(50) NOT NULL DEFAULT 'OPEN',
+    created_by        BIGINT NOT NULL REFERENCES app.app_user(id),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_simulation_feedback_type
+        CHECK (feedback_type IN (
+            'INTENT_MISMATCH',
+            'MISSING_SLOT_QUESTION',
+            'INAPPROPRIATE_RESPONSE',
+            'POLICY_CONDITION_MISSING',
+            'RISK_HANDOFF_REQUIRED',
+            'WORKFLOW_BRANCH_ERROR',
+            'OTHER'
+        )),
+    CONSTRAINT chk_simulation_feedback_severity
+        CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+    CONSTRAINT chk_simulation_feedback_status
+        CHECK (status IN ('OPEN', 'CANDIDATE_CREATED', 'RESOLVED', 'DISMISSED'))
+);
+
+CREATE INDEX idx_simulation_feedback_session_created
+    ON runtime.simulation_feedback (chat_session_id, created_at);
+
+CREATE INDEX idx_simulation_feedback_workspace_status_created
+    ON runtime.simulation_feedback (workspace_id, status, created_at DESC);
+
+CREATE INDEX idx_simulation_feedback_workspace_created
+    ON runtime.simulation_feedback (workspace_id, created_at DESC);
+
 --changeset init:20260601-add-response-mode-to-chat-session
 --comment: Add session-level AI response mode for counselor intervention control
 ALTER TABLE runtime.chat_session

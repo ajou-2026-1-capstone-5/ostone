@@ -9,6 +9,7 @@ export interface SimulationSessionDetail {
   matchedWorkflow: LlmToolWorkflowPayload | null;
   slotValues: Record<string, unknown> | null;
   slots: Array<Record<string, unknown>>;
+  feedback?: SimulationFeedbackSession;
 }
 
 export interface SimulationSessionPage {
@@ -26,6 +27,55 @@ export interface CreateSimulationSessionPayload {
 
 export interface SendSimulationMessagePayload {
   content: string;
+}
+
+export type SimulationFeedbackType =
+  | "INTENT_MISMATCH"
+  | "MISSING_SLOT_QUESTION"
+  | "INAPPROPRIATE_RESPONSE"
+  | "POLICY_CONDITION_MISSING"
+  | "RISK_HANDOFF_REQUIRED"
+  | "WORKFLOW_BRANCH_ERROR"
+  | "OTHER";
+
+export type SimulationFeedbackSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export type SimulationFeedbackStatus = "OPEN" | "CANDIDATE_CREATED" | "RESOLVED" | "DISMISSED";
+
+export interface SimulationFeedback {
+  id: number;
+  workspaceId: number;
+  sessionId: number;
+  chatMessageId: number | null;
+  feedbackType: SimulationFeedbackType;
+  description: string;
+  expectedBehavior: string;
+  severity: SimulationFeedbackSeverity;
+  status: SimulationFeedbackStatus;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SimulationFeedbackSession {
+  items: SimulationFeedback[];
+  messageFeedbackCounts: Record<string, number>;
+}
+
+export interface SimulationFeedbackPage {
+  content: SimulationFeedback[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface CreateSimulationFeedbackPayload {
+  chatMessageId?: number | null;
+  feedbackType: SimulationFeedbackType;
+  description: string;
+  expectedBehavior: string;
+  severity: SimulationFeedbackSeverity;
 }
 
 type MaybeWrapped<T> = T | { data?: T };
@@ -102,5 +152,48 @@ export const simulationApi = {
       response,
       "시뮬레이션 메시지 응답을 확인할 수 없습니다.",
     );
+  },
+
+  createFeedback: async (
+    workspaceId: number,
+    sessionId: number,
+    payload: CreateSimulationFeedbackPayload,
+  ): Promise<SimulationSessionDetail> => {
+    const response = await customFetch<MaybeWrapped<SimulationSessionDetail>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/sessions/${sessionId}/feedback`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationSessionDetail>(
+      response,
+      "시뮬레이션 피드백 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  listFeedback: async (
+    workspaceId: number,
+    params: { status?: SimulationFeedbackStatus | ""; page?: number; size?: number } = {},
+  ): Promise<SimulationFeedbackPage> => {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set("status", params.status);
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.size !== undefined) searchParams.set("size", String(params.size));
+    const query = searchParams.toString();
+    const path = query
+      ? `/api/v1/workspaces/${workspaceId}/simulation/feedback?${query}`
+      : `/api/v1/workspaces/${workspaceId}/simulation/feedback`;
+    const response = await customFetch<MaybeWrapped<SimulationFeedbackPage>>(path, {
+      method: "GET",
+    });
+    const data = selectApiData<SimulationFeedbackPage>(response);
+    return {
+      content: data?.content ?? [],
+      page: data?.page ?? 0,
+      size: data?.size ?? 20,
+      totalElements: data?.totalElements ?? data?.content?.length ?? 0,
+      totalPages: data?.totalPages ?? 0,
+    };
   },
 };

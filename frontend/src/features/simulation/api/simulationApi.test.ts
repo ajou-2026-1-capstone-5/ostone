@@ -75,10 +75,9 @@ describe("simulationApi", () => {
 
     const result = await simulationApi.getSession(7, 20);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/7/simulation/sessions/20",
-      { method: "GET" },
-    );
+    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/workspaces/7/simulation/sessions/20", {
+      method: "GET",
+    });
     expect(result).toEqual(detail);
   });
 
@@ -102,5 +101,69 @@ describe("simulationApi", () => {
       },
     );
     expect(result).toEqual(detail);
+  });
+
+  it("createFeedback이 session feedback endpoint로 구조화된 피드백을 보낸다", async () => {
+    const detail = {
+      session: { id: 20, channel: "SIMULATION", status: "ACTIVE", metaJson: "{}" },
+      messages: [],
+      matchedWorkflow: null,
+      slotValues: {},
+      slots: [],
+      feedback: { items: [], messageFeedbackCounts: {} },
+    };
+    const payload = {
+      chatMessageId: 2,
+      feedbackType: "MISSING_SLOT_QUESTION" as const,
+      description: "주문번호를 묻지 않았습니다.",
+      expectedBehavior: "주문번호를 먼저 요청합니다.",
+      severity: "HIGH" as const,
+    };
+    mockedCustomFetch.mockResolvedValue({ data: detail });
+
+    const result = await simulationApi.createFeedback(7, 20, payload);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/sessions/20/feedback",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    expect(result).toEqual(detail);
+  });
+
+  it("listFeedback이 status query와 기본 page shape을 반환한다", async () => {
+    const feedback = [
+      {
+        id: 1,
+        workspaceId: 7,
+        sessionId: 20,
+        chatMessageId: 2,
+        feedbackType: "MISSING_SLOT_QUESTION",
+        description: "주문번호를 묻지 않았습니다.",
+        expectedBehavior: "주문번호를 먼저 요청합니다.",
+        severity: "HIGH",
+        status: "OPEN",
+        createdBy: 3,
+        createdAt: "2026-06-04T10:00:00Z",
+        updatedAt: "2026-06-04T10:00:00Z",
+      },
+    ];
+    mockedCustomFetch.mockResolvedValue({ data: { content: feedback, page: 0, size: 20 } });
+
+    const result = await simulationApi.listFeedback(7, { status: "OPEN", page: 0, size: 20 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/feedback?status=OPEN&page=0&size=20",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: feedback,
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 0,
+    });
   });
 });

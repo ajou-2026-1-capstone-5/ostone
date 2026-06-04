@@ -8,4 +8,5 @@ public record SimulationSessionDetailResponse(
     List<ChatMessageResponse> messages,
     LlmToolWorkflowResponse matchedWorkflow,
     JsonNode slotValues,
-    List<LlmToolSlotResponse> slots) {}
+    List<LlmToolSlotResponse> slots,
+    SimulationFeedbackSessionResponse feedback) {}

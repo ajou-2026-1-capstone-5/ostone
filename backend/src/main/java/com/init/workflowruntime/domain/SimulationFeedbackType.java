@@ -1,0 +1,11 @@
+package com.init.workflowruntime.domain;
+
+public enum SimulationFeedbackType {
+  INTENT_MISMATCH,
+  MISSING_SLOT_QUESTION,
+  INAPPROPRIATE_RESPONSE,
+  POLICY_CONDITION_MISSING,
+  RISK_HANDOFF_REQUIRED,
+  WORKFLOW_BRANCH_ERROR,
+  OTHER
+}
