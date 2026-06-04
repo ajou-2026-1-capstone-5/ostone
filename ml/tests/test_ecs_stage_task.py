@@ -8,7 +8,7 @@ import pytest
 from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineConfigurationError, PipelineStageError
-from pipeline.ecs_stage_task import EcsStageTaskConfig, run_stage_task
+from pipeline.ecs_stage_task import EcsStageTaskConfig, _failure_message_from_result, run_stage_task
 
 
 def test_run_stage_task_submits_ecs_task_and_returns_manifest(monkeypatch) -> None:
@@ -231,6 +231,21 @@ def test_run_stage_task_includes_worker_failure_result(monkeypatch: pytest.Monke
 
     with pytest.raises(PipelineStageError, match="Failed to read raw object from S3/MinIO: key=raw.zip"):
         run_stage_task("ingestion", _stage_context("ingestion"), _runtime_config(), None)
+
+
+def test_failure_message_from_result_ignores_missing_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("pipeline.ecs_stage_task.read_json_uri", lambda _uri: {"status": "failed"})
+
+    assert _failure_message_from_result("s3://artifacts/result.json") is None
+
+
+def test_failure_message_from_result_ignores_blank_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "pipeline.ecs_stage_task.read_json_uri",
+        lambda _uri: {"error": {"type": "PipelineStageError", "message": "  "}},
+    )
+
+    assert _failure_message_from_result("s3://artifacts/result.json") is None
 
 
 def test_run_stage_task_requires_manifest_uri_in_result(monkeypatch: pytest.MonkeyPatch) -> None:

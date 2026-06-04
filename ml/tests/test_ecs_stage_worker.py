@@ -11,7 +11,7 @@ import pytest
 
 import pipeline.ecs_stage_worker as worker
 from pipeline.common.exceptions import PipelineStageError
-from pipeline.ecs_stage_worker import StageWorkerError, _stage_callable, main, run_worker
+from pipeline.ecs_stage_worker import StageWorkerError, _stage_callable, _write_failure_result, main, run_worker
 
 
 def _install_stage_module(monkeypatch: pytest.MonkeyPatch, name: str, run: Any) -> None:
@@ -149,6 +149,47 @@ def test_main_writes_failure_result_when_stage_fails(
         "type": "PipelineStageError",
         "message": "Failed to read raw object from S3/MinIO: key=raw.zip",
     }
+
+
+def test_main_writes_failure_result_when_worker_configuration_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    result_path = tmp_path / "result.json"
+    monkeypatch.setenv("PIPELINE_STAGE_RESULT_URI", str(result_path))
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 1
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload["stageName"] == "unknown"
+    assert payload["status"] == "failed"
+    assert payload["error"]["type"] == "StageWorkerError"
+    assert "PIPELINE_STAGE_NAME" in payload["error"]["message"]
+
+
+def test_write_failure_result_ignores_missing_result_uri(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PIPELINE_STAGE_RESULT_URI", raising=False)
+
+    _write_failure_result(RuntimeError("boom"))
+
+
+def test_write_failure_result_logs_write_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("PIPELINE_STAGE_RESULT_URI", "s3://artifacts/result.json")
+    monkeypatch.setenv("PIPELINE_STAGE_NAME", "ingestion")
+
+    def failing_write(_uri: str, _payload: object) -> None:
+        raise RuntimeError("write failed")
+
+    monkeypatch.setattr("pipeline.ecs_stage_worker.write_json_uri", failing_write)
+
+    _write_failure_result(RuntimeError("stage failed"))
+
+    assert "Failed to write ECS stage failure result." in caplog.text
 
 
 def test_stage_callable_rejects_unsupported_stage() -> None:
