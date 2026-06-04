@@ -220,7 +220,7 @@ describe("LogUploadForm", () => {
     );
 
     expect(screen.getByText("처리 시작").closest("button")).toBeDisabled();
-    expect(mockUploadMutate).not.toHaveBeenCalled();
+    expect(mockUploadStart).not.toHaveBeenCalled();
   });
 
   it("allows upload when free onboarding is consumed but subscription is active", () => {

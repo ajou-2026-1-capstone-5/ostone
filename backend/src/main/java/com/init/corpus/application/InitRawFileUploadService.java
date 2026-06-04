@@ -11,7 +11,6 @@ import com.init.corpus.domain.model.Dataset;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
-import com.init.corpus.infrastructure.storage.StorageProperties;
 import com.init.shared.application.exception.BadRequestException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -29,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  * meta_json}에 기록한 뒤 presigned PUT URL을 발급한다. 실제 바이트는 클라이언트가 S3로 직접 업로드한다.
  */
 @Service
+@Transactional(readOnly = true)
 public class InitRawFileUploadService {
 
   /** presigned 직접 업로드의 최대 객체 크기. */
@@ -48,7 +48,7 @@ public class InitRawFileUploadService {
   private final WorkspaceMembershipRepository workspaceMembershipRepository;
   private final DatasetRepository datasetRepository;
   private final RawFileStoragePort storagePort;
-  private final StorageProperties storageProperties;
+  private final RawFileUploadStorageConfig storageConfig;
   private final ObjectMapper objectMapper;
 
   public InitRawFileUploadService(
@@ -56,13 +56,13 @@ public class InitRawFileUploadService {
       WorkspaceMembershipRepository workspaceMembershipRepository,
       DatasetRepository datasetRepository,
       RawFileStoragePort storagePort,
-      StorageProperties storageProperties,
+      RawFileUploadStorageConfig storageConfig,
       ObjectMapper objectMapper) {
     this.workspaceExistenceRepository = workspaceExistenceRepository;
     this.workspaceMembershipRepository = workspaceMembershipRepository;
     this.datasetRepository = datasetRepository;
     this.storagePort = storagePort;
-    this.storageProperties = storageProperties;
+    this.storageConfig = storageConfig;
     this.objectMapper = objectMapper;
   }
 
@@ -124,7 +124,7 @@ public class InitRawFileUploadService {
         objectKey,
         command.contentType(),
         UPLOAD_URL_TTL.toSeconds(),
-        storageProperties.serverSideEncryptionEnabled());
+        storageConfig.serverSideEncryptionEnabled());
   }
 
   private String buildPendingObjectKey(Long workspaceId, String datasetKey, String filename) {

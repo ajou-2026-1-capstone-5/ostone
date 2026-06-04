@@ -33,7 +33,7 @@ export function initRawFileUpload(
   workspaceId: number,
   request: InitRawFileUploadRequest,
 ): Promise<InitRawFileUploadResponse> {
-  // OpenAPI-ungenerated: presigned upload init endpoint is not in generated client yet.
+  // OpenAPI-ungenerated
   return apiClient.post<InitRawFileUploadResponse>(
     `/workspaces/${workspaceId}/datasets/uploads:init`,
     request,
@@ -44,7 +44,7 @@ export function completeRawFileUpload(
   workspaceId: number,
   datasetId: number,
 ): Promise<CompleteRawFileUploadResponse> {
-  // OpenAPI-ungenerated: presigned upload complete endpoint is not in generated client yet.
+  // OpenAPI-ungenerated
   return apiClient.post<CompleteRawFileUploadResponse>(
     `/workspaces/${workspaceId}/datasets/uploads/${datasetId}:complete`,
     undefined,

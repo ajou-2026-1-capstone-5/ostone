@@ -1,5 +1,6 @@
 package com.init.corpus.infrastructure.storage;
 
+import com.init.corpus.application.RawFileUploadStorageConfig;
 import java.net.URI;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,11 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner.Builder;
 @Configuration
 @EnableConfigurationProperties(StorageProperties.class)
 public class StorageConfig {
+
+  @Bean
+  public RawFileUploadStorageConfig rawFileUploadStorageConfig(StorageProperties properties) {
+    return new RawFileUploadStorageConfig(properties.serverSideEncryptionEnabled());
+  }
 
   @Bean
   public S3Client s3Client(StorageProperties properties) {

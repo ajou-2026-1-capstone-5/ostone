@@ -20,7 +20,6 @@ import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceExistenceRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
-import com.init.corpus.infrastructure.storage.StorageProperties;
 import com.init.shared.application.exception.BadRequestException;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,8 +43,7 @@ class InitRawFileUploadServiceTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private InitRawFileUploadService service;
 
-  private static final StorageProperties SSE_ON =
-      new StorageProperties("bucket", "ap-northeast-2", null, null, null, null, false, true);
+  private static final RawFileUploadStorageConfig SSE_ON = new RawFileUploadStorageConfig(true);
 
   private InitRawFileUploadCommand command(long sizeBytes) {
     return command(sizeBytes, "application/zip");
