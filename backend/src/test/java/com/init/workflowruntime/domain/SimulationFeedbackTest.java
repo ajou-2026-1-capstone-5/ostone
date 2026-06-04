@@ -42,6 +42,27 @@ class SimulationFeedbackTest {
   }
 
   @Test
+  @DisplayName("markCandidateCreated: OPEN 피드백을 후보 생성 상태로 전환한다")
+  void shouldMarkCandidateCreated() {
+    SimulationFeedback feedback = feedback();
+
+    feedback.markCandidateCreated();
+
+    assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.CANDIDATE_CREATED);
+  }
+
+  @Test
+  @DisplayName("markCandidateCreated: OPEN이 아니면 후보 생성 상태로 전환할 수 없다")
+  void shouldRejectCandidateCreatedTransition_whenFeedbackNotOpen() {
+    SimulationFeedback feedback = feedback();
+    feedback.markCandidateCreated();
+
+    assertThatThrownBy(feedback::markCandidateCreated)
+        .isInstanceOf(InvalidSimulationFeedbackException.class)
+        .hasMessageContaining("OPEN feedback");
+  }
+
+  @Test
   @DisplayName("onPersist: 생성/수정 시각과 기본 상태를 채운다")
   void shouldFillLifecycleDefaultsOnPersist() {
     SimulationFeedback feedback = feedback();

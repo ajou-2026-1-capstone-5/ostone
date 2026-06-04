@@ -150,6 +150,14 @@ public class SimulationFeedback {
     return updatedAt;
   }
 
+  public void markCandidateCreated() {
+    if (this.status != SimulationFeedbackStatus.OPEN) {
+      throw new InvalidSimulationFeedbackException(
+          "candidate can only be created from OPEN feedback");
+    }
+    this.status = SimulationFeedbackStatus.CANDIDATE_CREATED;
+  }
+
   private static Long requireId(Long value, String fieldName) {
     if (value == null) {
       throw new InvalidSimulationFeedbackException(fieldName + " must not be null");

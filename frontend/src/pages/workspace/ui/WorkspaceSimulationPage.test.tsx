@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 
 import { WorkspaceSimulationPage } from "./WorkspaceSimulationPage";
-import { simulationApi } from "@/features/simulation";
+import { simulationApi, type SimulationImprovementCandidate } from "@/features/simulation";
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
 
 const setCrumbs = vi.fn();
@@ -29,6 +29,9 @@ vi.mock("@/features/simulation", () => ({
     sendMessage: vi.fn(),
     createFeedback: vi.fn(),
     listFeedback: vi.fn(),
+    createImprovementCandidate: vi.fn(),
+    listImprovementCandidates: vi.fn(),
+    updateImprovementCandidateStatus: vi.fn(),
   },
 }));
 
@@ -99,6 +102,37 @@ const detail = {
   },
 };
 
+const candidate = {
+  id: 1000,
+  workspaceId: 1,
+  domainPackVersionId: 101,
+  feedbackId: 900,
+  sessionId: 10,
+  chatMessageId: 1,
+  candidateType: "SLOT_QUESTION",
+  targetElementType: "SLOT",
+  targetElementId: null,
+  targetElementKey: null,
+  beforeSummary: "주문번호를 묻지 않았습니다.",
+  afterSummary: "주문번호를 먼저 요청합니다.",
+  evidenceSummary: "simulation feedback #900",
+  status: "DRAFT",
+  createdBy: 7,
+  createdAt: "2026-06-04T10:45:00Z",
+  updatedAt: "2026-06-04T10:45:00Z",
+} as const;
+
+function candidateWithType(
+  id: number,
+  candidateType: SimulationImprovementCandidate["candidateType"],
+): SimulationImprovementCandidate {
+  return {
+    ...candidate,
+    id,
+    candidateType,
+  };
+}
+
 const otherDetail = {
   ...detail,
   session: otherSession,
@@ -165,6 +199,18 @@ beforeEach(() => {
     size: 20,
     totalElements: 1,
     totalPages: 1,
+  });
+  mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+    content: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  });
+  mockedSimulationApi.createImprovementCandidate.mockResolvedValue(candidate);
+  mockedSimulationApi.updateImprovementCandidateStatus.mockResolvedValue({
+    ...candidate,
+    status: "READY_FOR_REVIEW",
   });
   mockedSimulationApi.sendMessage.mockResolvedValue({
     ...detail,
@@ -320,6 +366,189 @@ describe("WorkspaceSimulationPage", () => {
       expect(toast.error).toHaveBeenCalledWith("피드백 목록 새로고침에 실패했습니다.");
     });
     expect(toast.error).not.toHaveBeenCalledWith("시뮬레이션 피드백을 저장하지 못했습니다.");
+  });
+
+  it("OPEN 피드백에서 개선 후보를 생성하고 목록을 새로고침한다", async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(1, 900);
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("개선 후보 생성 후 목록 새로고침 실패는 생성 실패로 처리하지 않는다", async () => {
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
+      new Error("refresh failed"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(1, 900);
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록 새로고침에 실패했습니다.");
+    });
+    expect(toast.error).not.toHaveBeenCalledWith("개선 후보를 생성하지 못했습니다.");
+  });
+
+  it("개선 후보 상태를 변경하고 후보 목록을 새로고침한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [candidate],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText("개선 후보 상태 변경"), {
+      target: { value: "READY_FOR_REVIEW" },
+    });
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
+        status: "READY_FOR_REVIEW",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보 상태를 변경했습니다.");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("개선 후보 상태 변경 후 목록 새로고침 실패는 변경 실패로 처리하지 않는다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [candidate],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
+      new Error("refresh failed"),
+    );
+    fireEvent.change(statusSelect, {
+      target: { value: "READY_FOR_REVIEW" },
+    });
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
+        status: "READY_FOR_REVIEW",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보 상태를 변경했습니다.");
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록 새로고침에 실패했습니다.");
+    });
+    expect(toast.error).not.toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
+  });
+
+  it("개선 후보 유형 라벨을 표시한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        candidateWithType(1001, "INTENT_DESCRIPTION_EXAMPLE"),
+        candidateWithType(1002, "POLICY_CONDITION"),
+        candidateWithType(1003, "RISK_RULE"),
+        candidateWithType(1004, "WORKFLOW_STATE_TRANSITION"),
+        candidateWithType(1005, "HANDOFF_CONDITION"),
+        candidateWithType(1006, "RESPONSE_COPY"),
+        candidateWithType(1007, "OTHER"),
+        candidateWithType(
+          1008,
+          "CUSTOM" as SimulationImprovementCandidate["candidateType"],
+        ),
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 8,
+      totalPages: 1,
+    });
+    renderPage();
+
+    expect(await screen.findByText("intent 설명/예시")).toBeInTheDocument();
+    expect(screen.getByText("policy 조건")).toBeInTheDocument();
+    expect(screen.getByText("risk rule")).toBeInTheDocument();
+    expect(screen.getByText("workflow 전이")).toBeInTheDocument();
+    expect(screen.getByText("handoff 조건")).toBeInTheDocument();
+    expect(screen.getByText("응답 문구")).toBeInTheDocument();
+    expect(screen.getAllByText("기타")).toHaveLength(2);
+    expect(screen.getByText("CUSTOM")).toBeInTheDocument();
+  });
+
+  it("개선 후보 목록 로드 실패를 토스트로 알린다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(new Error("load failed"));
+    renderPage();
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록을 불러오지 못했습니다.");
+    });
+  });
+
+  it("개선 후보 생성 실패를 토스트로 알린다", async () => {
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    mockedSimulationApi.createImprovementCandidate.mockRejectedValueOnce(
+      new Error("create failed"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "후보" }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("개선 후보를 생성하지 못했습니다.");
+    });
+  });
+
+  it("개선 후보 상태 변경 실패를 토스트로 알린다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [candidate],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    mockedSimulationApi.updateImprovementCandidateStatus.mockRejectedValueOnce(
+      new Error("update failed"),
+    );
+    fireEvent.change(statusSelect, {
+      target: { value: "READY_FOR_REVIEW" },
+    });
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
+    });
+  });
+
+  it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText("개선 후보 상태 필터"), {
+      target: { value: "READY_FOR_REVIEW" },
+    });
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledWith(1, {
+        status: "READY_FOR_REVIEW",
+        page: 0,
+        size: 20,
+      });
+    });
   });
 
   it("Enter 키로 고객 메시지를 전송한다", async () => {
