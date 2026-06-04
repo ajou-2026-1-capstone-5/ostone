@@ -2,7 +2,7 @@ package com.init.payment.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.then;
+import static org.mockito.BDDMockito.then;
 
 import com.init.payment.domain.model.BillingInterval;
 import com.init.payment.domain.model.BillingKey;
