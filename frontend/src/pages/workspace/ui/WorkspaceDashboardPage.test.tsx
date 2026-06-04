@@ -31,6 +31,34 @@ const metricsResponse = {
     humanInterventionCountChangeRate: -3.5,
     unresolvedSessionCountChangeRate: null,
   },
+  coverage: {
+    workflowMatchedCount: 72,
+    workflowMatchRate: 60,
+    intentClassificationSuccessCount: 68,
+    intentClassificationSuccessRate: 56.7,
+    lowConfidenceCount: 9,
+    lowConfidenceRate: 7.5,
+    unmatchedSessionCount: 6,
+    autoCompletedWorkflowCount: 54,
+    humanHandoffRate: 21.7,
+    llmOnlyProcessingRate: 72.9,
+    measurementStatus: "READY" as const,
+    measurementMessage: "커버리지 산출에 필요한 운영 로그가 확인되었습니다.",
+    trend: [
+      {
+        date: "2026-05-28",
+        totalConsultationCount: 40,
+        workflowMatchedCount: 20,
+        workflowMatchRate: 50,
+      },
+      {
+        date: "2026-05-29",
+        totalConsultationCount: 80,
+        workflowMatchedCount: 52,
+        workflowMatchRate: 65,
+      },
+    ],
+  },
   handledTodayCount: 96,
   llmHandledTodayCount: 70,
   humanHandledTodayCount: 26,
@@ -98,6 +126,12 @@ describe("WorkspaceDashboardPage", () => {
     expect(await screen.findByText("120")).toBeInTheDocument();
     expect(screen.getByText("1분 15초")).toBeInTheDocument();
     expect(screen.getByText("전 기간 +20.0%")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "자동화 커버리지" })).toBeInTheDocument();
+    expect(screen.getByText("계측 확인")).toBeInTheDocument();
+    expect(screen.getByText("60.0%")).toBeInTheDocument();
+    expect(screen.getByText("21.7%")).toBeInTheDocument();
+    expect(screen.getByText("72.9%")).toBeInTheDocument();
+    expect(screen.getByText("2026-05-29")).toBeInTheDocument();
     expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent("workspace 1 health");
     await waitFor(() => expect(mockedGetMetrics).toHaveBeenCalledWith(1, expect.any(Object)));
   });
@@ -150,11 +184,28 @@ describe("WorkspaceDashboardPage", () => {
         humanInterventionCountChangeRate: null,
         unresolvedSessionCountChangeRate: null,
       },
+      coverage: {
+        workflowMatchedCount: 0,
+        workflowMatchRate: 0,
+        intentClassificationSuccessCount: 0,
+        intentClassificationSuccessRate: 0,
+        lowConfidenceCount: 0,
+        lowConfidenceRate: 0,
+        unmatchedSessionCount: 0,
+        autoCompletedWorkflowCount: 0,
+        humanHandoffRate: 0,
+        llmOnlyProcessingRate: null,
+        measurementStatus: "NEEDS_INSTRUMENTATION" as const,
+        measurementMessage:
+          "커버리지 산출에 필요한 decision log 또는 workflow match log 계측이 필요합니다.",
+        trend: [],
+      },
     });
 
     renderPage();
 
     expect(await screen.findByTestId("dashboard-empty")).toBeInTheDocument();
+    expect(screen.getByText("계측 필요")).toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByText("전 기간 --").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("dashboard-upload-cta")).toHaveAttribute(

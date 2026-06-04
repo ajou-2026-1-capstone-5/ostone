@@ -15,6 +15,7 @@ public record ConsultationMetricsResponse(
     long humanInterventionCount,
     long unresolvedSessionCount,
     ConsultationMetricsComparisonResponse comparison,
+    ConsultationCoverageMetricsResponse coverage,
     long handledTodayCount,
     long llmHandledTodayCount,
     long humanHandledTodayCount) {}

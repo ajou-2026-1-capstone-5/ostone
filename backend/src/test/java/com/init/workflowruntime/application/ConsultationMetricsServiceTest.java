@@ -57,7 +57,7 @@ class ConsultationMetricsServiceTest {
     given(consultationMetricsRepository.findSessionFacts(WORKSPACE_ID, periodStart(), periodEnd()))
         .willReturn(
             List.of(
-                fact(
+                coverageFact(
                     1L,
                     base,
                     base.plusSeconds(3),
@@ -67,8 +67,13 @@ class ConsultationMetricsServiceTest {
                     true,
                     false,
                     true,
-                    false),
-                fact(
+                    false,
+                    true,
+                    true,
+                    false,
+                    false,
+                    true),
+                coverageFact(
                     2L,
                     base,
                     base.plusSeconds(420),
@@ -78,8 +83,13 @@ class ConsultationMetricsServiceTest {
                     true,
                     false,
                     false,
+                    true,
+                    false,
+                    false,
+                    false,
+                    true,
                     true),
-                fact(
+                coverageFact(
                     3L,
                     base,
                     base.plusSeconds(2),
@@ -89,6 +99,11 @@ class ConsultationMetricsServiceTest {
                     true,
                     false,
                     true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    false,
                     true)));
     given(
             consultationMetricsRepository.findSessionFacts(
@@ -135,6 +150,19 @@ class ConsultationMetricsServiceTest {
     assertThat(response.comparison().totalConsultationCountChangeRate()).isEqualTo(50.0);
     assertThat(response.comparison().completedConsultationCountChangeRate()).isEqualTo(50.0);
     assertThat(response.comparison().averageFirstResponseSecondsChangeRate()).isEqualTo(-53.0);
+    assertThat(response.coverage().workflowMatchedCount()).isEqualTo(2);
+    assertThat(response.coverage().workflowMatchRate()).isEqualTo(66.7);
+    assertThat(response.coverage().intentClassificationSuccessCount()).isEqualTo(2);
+    assertThat(response.coverage().intentClassificationSuccessRate()).isEqualTo(66.7);
+    assertThat(response.coverage().lowConfidenceCount()).isEqualTo(1);
+    assertThat(response.coverage().lowConfidenceRate()).isEqualTo(33.3);
+    assertThat(response.coverage().unmatchedSessionCount()).isEqualTo(1);
+    assertThat(response.coverage().autoCompletedWorkflowCount()).isEqualTo(1);
+    assertThat(response.coverage().humanHandoffRate()).isEqualTo(66.7);
+    assertThat(response.coverage().llmOnlyProcessingRate()).isEqualTo(33.3);
+    assertThat(response.coverage().measurementStatus()).isEqualTo("READY");
+    assertThat(response.coverage().trend()).hasSize(1);
+    assertThat(response.coverage().trend().getFirst().workflowMatchRate()).isEqualTo(66.7);
     assertThat(response.handledTodayCount()).isEqualTo(3);
     assertThat(response.llmHandledTodayCount()).isEqualTo(1);
     assertThat(response.humanHandledTodayCount()).isEqualTo(2);
@@ -189,6 +217,8 @@ class ConsultationMetricsServiceTest {
     assertThat(response.totalConsultationCount()).isEqualTo(2);
     assertThat(response.completedConsultationCount()).isEqualTo(1);
     assertThat(response.unresolvedSessionCount()).isEqualTo(1);
+    assertThat(response.coverage().trend()).hasSize(7);
+    assertThat(response.coverage().trend().getFirst().totalConsultationCount()).isEqualTo(2);
     assertThat(response.comparison().unresolvedSessionCountChangeRate()).isNull();
   }
 
@@ -216,6 +246,8 @@ class ConsultationMetricsServiceTest {
     assertThat(response.handledTodayCount()).isZero();
     assertThat(response.totalConsultationCount()).isEqualTo(2);
     assertThat(response.unresolvedSessionCount()).isEqualTo(2);
+    assertThat(response.coverage().measurementStatus()).isEqualTo("NEEDS_INSTRUMENTATION");
+    assertThat(response.coverage().workflowMatchRate()).isZero();
     assertThat(response.llmHandledTodayCount()).isZero();
     assertThat(response.humanHandledTodayCount()).isZero();
   }
@@ -266,6 +298,7 @@ class ConsultationMetricsServiceTest {
     return new ConsultationMetricsSessionFact(
         sessionId,
         firstCustomerAt,
+        firstCustomerAt,
         firstResponseAt,
         firstLlmResponseAt,
         firstHumanResponseAt,
@@ -273,6 +306,48 @@ class ConsultationMetricsServiceTest {
         handledInPeriod,
         unresolvedInPeriod,
         hasLlmMessage,
-        hasHumanMessage);
+        hasHumanMessage,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false);
+  }
+
+  private ConsultationMetricsSessionFact coverageFact(
+      Long sessionId,
+      OffsetDateTime firstCustomerAt,
+      OffsetDateTime firstResponseAt,
+      OffsetDateTime firstLlmResponseAt,
+      OffsetDateTime firstHumanResponseAt,
+      boolean startedInPeriod,
+      boolean handledInPeriod,
+      boolean unresolvedInPeriod,
+      boolean hasLlmMessage,
+      boolean hasHumanMessage,
+      boolean workflowMatched,
+      boolean intentClassified,
+      boolean lowConfidence,
+      boolean unmatched,
+      boolean coverageLogAvailable) {
+    return new ConsultationMetricsSessionFact(
+        sessionId,
+        firstCustomerAt,
+        firstCustomerAt,
+        firstResponseAt,
+        firstLlmResponseAt,
+        firstHumanResponseAt,
+        startedInPeriod,
+        handledInPeriod,
+        unresolvedInPeriod,
+        hasLlmMessage,
+        hasHumanMessage,
+        false,
+        workflowMatched,
+        intentClassified,
+        lowConfidence,
+        unmatched,
+        coverageLogAvailable);
   }
 }

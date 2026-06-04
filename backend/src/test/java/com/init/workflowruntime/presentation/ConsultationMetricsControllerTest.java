@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.ConsultationMetricsService;
 import com.init.workflowruntime.application.command.GetWorkspaceMetricsCommand;
+import com.init.workflowruntime.application.dto.ConsultationCoverageMetricsResponse;
+import com.init.workflowruntime.application.dto.ConsultationCoverageTrendPointResponse;
 import com.init.workflowruntime.application.dto.ConsultationMetricsResponse;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
 import java.time.LocalDate;
@@ -58,6 +60,7 @@ class ConsultationMetricsControllerTest {
                 5,
                 2,
                 null,
+                coverage(),
                 14,
                 9,
                 5));
@@ -74,6 +77,10 @@ class ConsultationMetricsControllerTest {
         .andExpect(jsonPath("$.llmHandledCount").value(9))
         .andExpect(jsonPath("$.humanInterventionCount").value(5))
         .andExpect(jsonPath("$.unresolvedSessionCount").value(2))
+        .andExpect(jsonPath("$.coverage.workflowMatchedCount").value(12))
+        .andExpect(jsonPath("$.coverage.workflowMatchRate").value(60.0))
+        .andExpect(jsonPath("$.coverage.measurementStatus").value("READY"))
+        .andExpect(jsonPath("$.coverage.trend[0].date").value("2026-05-27"))
         .andExpect(jsonPath("$.handledTodayCount").value(14))
         .andExpect(jsonPath("$.llmHandledTodayCount").value(9))
         .andExpect(jsonPath("$.humanHandledTodayCount").value(5));
@@ -100,6 +107,7 @@ class ConsultationMetricsControllerTest {
                 1,
                 2,
                 null,
+                coverage(),
                 6,
                 5,
                 1));
@@ -146,6 +154,7 @@ class ConsultationMetricsControllerTest {
                 0,
                 0,
                 null,
+                coverage(),
                 0,
                 0,
                 0));
@@ -157,6 +166,25 @@ class ConsultationMetricsControllerTest {
         .andExpect(jsonPath("$.averageLlmFirstResponseSeconds").isEmpty())
         .andExpect(jsonPath("$.averageHumanFirstResponseSeconds").isEmpty())
         .andExpect(jsonPath("$.handledTodayCount").value(0));
+  }
+
+  private ConsultationCoverageMetricsResponse coverage() {
+    return new ConsultationCoverageMetricsResponse(
+        12,
+        60.0,
+        11,
+        55.0,
+        2,
+        10.0,
+        1,
+        8,
+        25.0,
+        64.3,
+        "READY",
+        "커버리지 산출에 필요한 운영 로그가 확인되었습니다.",
+        List.of(
+            new ConsultationCoverageTrendPointResponse(
+                LocalDate.parse("2026-05-27"), 20, 12, 60.0)));
   }
 
   private UsernamePasswordAuthenticationToken auth() {

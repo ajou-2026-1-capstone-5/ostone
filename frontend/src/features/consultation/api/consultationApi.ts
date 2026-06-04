@@ -68,6 +68,7 @@ export interface ConsultationMetrics {
   humanInterventionCount: number;
   unresolvedSessionCount: number;
   comparison: ConsultationMetricsComparison | null;
+  coverage: ConsultationCoverageMetrics | null;
   handledTodayCount: number;
   llmHandledTodayCount: number;
   humanHandledTodayCount: number;
@@ -82,6 +83,29 @@ export interface ConsultationMetricsComparison {
   llmHandledCountChangeRate: number | null;
   humanInterventionCountChangeRate: number | null;
   unresolvedSessionCountChangeRate: number | null;
+}
+
+export interface ConsultationCoverageMetrics {
+  workflowMatchedCount: number;
+  workflowMatchRate: number | null;
+  intentClassificationSuccessCount: number;
+  intentClassificationSuccessRate: number | null;
+  lowConfidenceCount: number;
+  lowConfidenceRate: number | null;
+  unmatchedSessionCount: number;
+  autoCompletedWorkflowCount: number;
+  humanHandoffRate: number | null;
+  llmOnlyProcessingRate: number | null;
+  measurementStatus: "READY" | "NEEDS_INSTRUMENTATION";
+  measurementMessage: string;
+  trend: ConsultationCoverageTrendPoint[];
+}
+
+export interface ConsultationCoverageTrendPoint {
+  date: string;
+  totalConsultationCount: number;
+  workflowMatchedCount: number;
+  workflowMatchRate: number | null;
 }
 
 export interface ConsultationMetricsParams {

@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 
 public record ConsultationMetricsSessionFact(
     Long sessionId,
+    OffsetDateTime startedAt,
     OffsetDateTime firstCustomerAt,
     OffsetDateTime firstResponseAt,
     OffsetDateTime firstLlmResponseAt,
@@ -12,4 +13,10 @@ public record ConsultationMetricsSessionFact(
     boolean handledInPeriod,
     boolean unresolvedInPeriod,
     boolean hasLlmMessage,
-    boolean hasHumanMessage) {}
+    boolean hasHumanMessage,
+    boolean handoffSelected,
+    boolean workflowMatched,
+    boolean intentClassified,
+    boolean lowConfidence,
+    boolean unmatched,
+    boolean coverageLogAvailable) {}
