@@ -4,10 +4,10 @@ import { Navigate, useLocation, useOutletContext, useParams } from "react-router
 import {
   BillingMethodCard,
   PaymentHistoryList,
+  QuotaUsageCard,
   SubscriptionStatusCard,
   deriveCustomerKey,
-  usePayments,
-  useSubscription,
+  useBillingOverview,
   type BillingKeyResponse,
   type PaymentResponse,
 } from "@/entities/billing";
@@ -39,12 +39,12 @@ export function BillingPage() {
     return () => setCrumbs([]);
   }, [setCrumbs]);
 
-  const subscriptionQuery = useSubscription(parsedWorkspaceId);
-  const subscription = subscriptionQuery.data ?? null;
+  const overviewQuery = useBillingOverview(parsedWorkspaceId);
+  const overview = overviewQuery.data ?? null;
+  const subscription = overview?.subscription ?? null;
   const showRegister = !subscription || subscription.status === "INCOMPLETE";
-
-  const paymentsQuery = usePayments(parsedWorkspaceId, !showRegister);
-  const payments = paymentsQuery.data ?? [];
+  const payments = overview?.payments ?? [];
+  const quotaUsages = overview?.quotaUsages ?? [];
 
   if (parsedWorkspaceId === null) {
     return <Navigate to="/workspaces" replace />;
@@ -63,23 +63,23 @@ export function BillingPage() {
         <p className={styles.pageSubtitle}>워크스페이스 구독과 자동결제, 결제 내역을 관리합니다.</p>
       </div>
 
-      {subscriptionQuery.isLoading && (
+      {overviewQuery.isLoading && (
         <div className={styles.statePanel} data-testid="billing-loading">
           <LoadingSpinner />
-          <p className={styles.stateText}>구독 정보를 불러오는 중입니다.</p>
+          <p className={styles.stateText}>빌링 정보를 불러오는 중입니다.</p>
         </div>
       )}
 
-      {!subscriptionQuery.isLoading && subscriptionQuery.isError && (
+      {!overviewQuery.isLoading && overviewQuery.isError && (
         <div className={styles.statePanel} data-testid="billing-error">
           <ErrorState
-            message="구독 정보를 불러오지 못했습니다."
-            onRetry={() => void subscriptionQuery.refetch()}
+            message="빌링 정보를 불러오지 못했습니다."
+            onRetry={() => void overviewQuery.refetch()}
           />
         </div>
       )}
 
-      {!subscriptionQuery.isLoading && !subscriptionQuery.isError && showRegister && (
+      {!overviewQuery.isLoading && !overviewQuery.isError && showRegister && (
         <PlanCard
           action={
             <RegisterBillingButton workspaceId={parsedWorkspaceId} subscription={subscription} />
@@ -92,29 +92,22 @@ export function BillingPage() {
         />
       )}
 
-      {!subscriptionQuery.isLoading &&
-        !subscriptionQuery.isError &&
+      {!overviewQuery.isLoading &&
+        !overviewQuery.isError &&
         !showRegister &&
         subscription && (
           <div className={styles.sections}>
             <div className={styles.topRow}>
               <SubscriptionStatusCard subscription={subscription} />
               <BillingMethodCard
-                billingKey={billingKeyFromRedirect}
+                billingKey={billingKeyFromRedirect ?? overview?.billingKey}
                 fallbackMethod={latestDoneMethod}
               />
             </div>
 
-            {paymentsQuery.isLoading ? (
-              <div className={styles.statePanel}>
-                <LoadingSpinner />
-                <p className={styles.stateText}>결제 내역을 불러오는 중입니다.</p>
-              </div>
-            ) : paymentsQuery.isError ? (
-              <div className={styles.statePanel}>
-                <p className={styles.stateText}>결제 내역을 불러오지 못했습니다.</p>
-              </div>
-            ) : payments.length > 0 ? (
+            {quotaUsages.length > 0 ? <QuotaUsageCard quotaUsages={quotaUsages} /> : null}
+
+            {payments.length > 0 ? (
               <PaymentHistoryList
                 payments={payments}
                 renderActions={(payment: PaymentResponse) =>

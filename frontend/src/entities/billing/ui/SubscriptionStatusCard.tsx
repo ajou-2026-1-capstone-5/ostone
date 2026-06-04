@@ -31,6 +31,8 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
           {formatDate(subscription.currentPeriodStart)} ~{" "}
           {formatDate(subscription.currentPeriodEnd)}
         </dd>
+        <dt className={styles.defTerm}>다음 결제일</dt>
+        <dd className={styles.defValue}>{formatDate(subscription.currentPeriodEnd)}</dd>
         {subscription.cancelAtPeriodEnd ? (
           <>
             <dt className={styles.defTerm}>해지 예약</dt>

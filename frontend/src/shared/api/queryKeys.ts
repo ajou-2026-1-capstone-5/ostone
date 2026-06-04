@@ -15,6 +15,7 @@ export const workspaceMemberQueryKeys = {
 
 export const billingQueryKeys = {
   all: ["billing"] as const,
+  overview: (workspaceId: number) => [...billingQueryKeys.all, "overview", workspaceId] as const,
   subscription: (workspaceId: number) =>
     [...billingQueryKeys.all, "subscription", workspaceId] as const,
   payments: (workspaceId: number) => [...billingQueryKeys.all, "payments", workspaceId] as const,

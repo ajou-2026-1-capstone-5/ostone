@@ -15,6 +15,15 @@ public class JdbcWorkspaceQuotaUsageRepository implements WorkspaceQuotaUsagePor
   }
 
   @Override
+  public long countMembers(Long workspaceId) {
+    return jdbcClient
+        .sql("SELECT COUNT(*) FROM app.workspace_member WHERE workspace_id = :workspaceId")
+        .param("workspaceId", workspaceId)
+        .query(Long.class)
+        .single();
+  }
+
+  @Override
   public long countDatasetUploads(
       Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive) {
     return jdbcClient
