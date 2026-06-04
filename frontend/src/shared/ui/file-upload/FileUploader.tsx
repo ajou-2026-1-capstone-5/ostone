@@ -6,6 +6,7 @@ import {
   RAW_LOG_UPLOAD_FILE_TYPE_LABELS,
   RAW_LOG_UPLOAD_MAX_SIZE_LABEL,
 } from "../../lib/rawLogUploadPolicy";
+import { Button } from "../button/Button";
 import styles from "./file-uploader.module.css";
 
 interface FileUploaderProps {
@@ -18,6 +19,7 @@ interface FileUploaderProps {
   progress?: number;
   status?: "idle" | "uploading" | "analyzing" | "success";
   disabled?: boolean;
+  onCancel?: () => void;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
@@ -30,6 +32,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   progress = 0,
   status = "idle",
   disabled = false,
+  onCancel,
 }) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +87,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
             <div className={styles.progressBar} style={{ width: `${progress}%` }} />
           </div>
           <span className={styles.progressText}>{Math.round(progress)}%</span>
+          {onCancel && status !== "analyzing" && (
+            <div className={styles.cancelAction}>
+              <Button variant="secondary" onClick={onCancel}>
+                업로드 취소
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );

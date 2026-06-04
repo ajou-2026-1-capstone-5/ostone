@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 import zipfile
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
-from typing import Any, cast
+from pathlib import Path, PurePosixPath
+from typing import IO, Any, cast
 
 import boto3  # type: ignore[import-untyped]
 from botocore.config import Config  # type: ignore[import-untyped]
@@ -22,6 +23,19 @@ DEFAULT_INGESTION_ARTIFACT_NAME = "conversations.jsonl"
 CUSTOMER_ROLE = "CUSTOMER"
 AGENT_ROLE = "AGENT"
 PARSED_DATASET_SCHEMA_VERSION = "parsed-consultation-dataset.v1"
+
+# Streaming ingestion limits sized for the 2vCPU/8GB Fargate task. Peak memory stays
+# O(chunk + single-entry) because the raw object is staged to disk and parsed entry by
+# entry, so these caps guard ephemeral disk, decompression cost, and downstream volume
+# rather than process memory.
+_DOWNLOAD_CHUNK_BYTES = 8 * 1024 * 1024
+# Upload/storage permits up to 4GB raw objects; reject anything larger before it lands on disk.
+MAX_RAW_OBJECT_BYTES = 4 * 1024 * 1024 * 1024
+MAX_ZIP_ENTRY_COUNT = 100_000
+MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
+MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES = 12 * 1024 * 1024 * 1024
+MAX_ZIP_COMPRESSION_RATIO = 100
+MAX_INGESTION_CONVERSATIONS = 50_000
 
 _FORBIDDEN_INPUT_KEYS = frozenset({"consulting_category"})
 _CUSTOMER_PREFIXES = ("고객님", "Customer", "CLIENT", "문의자", "고객", "손님", "C")
@@ -43,19 +57,23 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, str]:
     output_dir = ensure_stage_directory(runtime_context.stage_context, runtime_config)
     output_path = output_dir / DEFAULT_INGESTION_ARTIFACT_NAME
 
-    raw_bytes = _read_raw_object(runtime_context.object_key)
-    conversations = list(_parse_raw_payload(raw_bytes, runtime_context.stage_context.dataset_id))
-    if not conversations:
+    raw_path = _read_raw_object(runtime_context.object_key)
+    try:
+        conversations = _parse_raw_payload(raw_path, runtime_context.stage_context.dataset_id)
+        conversation_count = _write_jsonl(output_path, conversations)
+    finally:
+        raw_path.unlink(missing_ok=True)
+
+    if conversation_count == 0:
         raise PipelineStageError("Raw consultation file did not contain any parseable conversations.")
 
-    _write_jsonl(output_path, conversations)
     manifest_path = write_stage_manifest(
         runtime_context.stage_context,
         runtime_config,
         {
             "artifact_path": output_path.name,
             "object_key": runtime_context.object_key,
-            "conversation_count": len(conversations),
+            "conversation_count": conversation_count,
         },
     )
     return {"artifact_manifest_path": str(manifest_path.resolve())}
@@ -133,15 +151,41 @@ def _context_value(
     return default
 
 
-def _read_raw_object(object_key: str) -> bytes:
+def _read_raw_object(object_key: str) -> Path:
     bucket = _required_env("STORAGE_S3_BUCKET")
     client = _s3_client()
+    handle, temp_name = tempfile.mkstemp(prefix="ingestion-raw-", suffix=".bin", dir=_scratch_dir())
+    temp_path = Path(temp_name)
     try:
         response = client.get_object(Bucket=bucket, Key=object_key)
-        body = response["Body"]
-        return cast(bytes, body.read())
+        with os.fdopen(handle, "wb") as scratch:
+            _stream_body_to_file(response["Body"], scratch, object_key)
+        return temp_path
+    except PipelineStageError:
+        temp_path.unlink(missing_ok=True)
+        raise
     except Exception as exc:
+        temp_path.unlink(missing_ok=True)
         raise PipelineStageError(f"Failed to read raw object from S3/MinIO: key={object_key}") from exc
+
+
+def _stream_body_to_file(body: Any, destination: IO[bytes], object_key: str) -> None:
+    downloaded = 0
+    while True:
+        chunk = body.read(_DOWNLOAD_CHUNK_BYTES)
+        if not chunk:
+            break
+        downloaded += len(chunk)
+        if downloaded > MAX_RAW_OBJECT_BYTES:
+            raise PipelineStageError(
+                "업로드 파일 크기가 처리 가능 한도를 초과했습니다. "
+                f"key={object_key}, 최대 {MAX_RAW_OBJECT_BYTES} 바이트까지 처리할 수 있습니다."
+            )
+        destination.write(chunk)
+
+
+def _scratch_dir() -> str:
+    return os.getenv("PIPELINE_SCRATCH_DIR", "").strip() or tempfile.gettempdir()
 
 
 def _s3_client() -> Any:
@@ -165,45 +209,111 @@ def _s3_client() -> Any:
     return boto3.client(**kwargs)
 
 
-def _parse_raw_payload(raw_bytes: bytes, dataset_id: str | None) -> Iterable[dict[str, object]]:
-    for index, row in enumerate(_extract_raw_rows(raw_bytes)):
+def _parse_raw_payload(source: Path | bytes, dataset_id: str | None) -> Iterator[dict[str, object]]:
+    emitted = 0
+    for index, row in enumerate(_extract_raw_rows(source)):
         conversation = _build_conversation(row, index, dataset_id)
-        if conversation is not None:
-            yield conversation
+        if conversation is None:
+            continue
+        emitted += 1
+        if emitted > MAX_INGESTION_CONVERSATIONS:
+            raise PipelineStageError(
+                "처리 가능 상담 건수를 초과했습니다. "
+                f"최대 {MAX_INGESTION_CONVERSATIONS}건까지 처리할 수 있습니다."
+            )
+        yield conversation
 
 
-def _extract_raw_rows(raw_bytes: bytes) -> list[Mapping[str, object]]:
-    if _is_zip_bytes(raw_bytes):
-        return _extract_rows_from_zip(raw_bytes)
-    text = raw_bytes.decode("utf-8-sig")
-    payload = _load_json_or_jsonl(text)
-    return _extract_rows(payload)
+def _extract_raw_rows(source: Path | bytes) -> Iterator[Mapping[str, object]]:
+    if isinstance(source, Path):
+        if zipfile.is_zipfile(source):
+            yield from _extract_rows_from_zip(source)
+            return
+        text = source.read_bytes().decode("utf-8-sig")
+    else:
+        if zipfile.is_zipfile(BytesIO(source)):
+            yield from _extract_rows_from_zip(BytesIO(source))
+            return
+        text = source.decode("utf-8-sig")
+    yield from _extract_rows(_load_json_or_jsonl(text))
 
 
-def _is_zip_bytes(raw_bytes: bytes) -> bool:
-    return zipfile.is_zipfile(BytesIO(raw_bytes))
-
-
-def _extract_rows_from_zip(raw_bytes: bytes) -> list[Mapping[str, object]]:
-    rows: list[Mapping[str, object]] = []
+def _extract_rows_from_zip(source: Path | BytesIO) -> Iterator[Mapping[str, object]]:
+    emitted = False
     try:
-        with zipfile.ZipFile(BytesIO(raw_bytes)) as archive:
-            for info in sorted(archive.infolist(), key=lambda item: item.filename):
-                if info.is_dir() or not _is_supported_archive_member(info.filename):
+        with zipfile.ZipFile(source) as archive:
+            entries = sorted(archive.infolist(), key=lambda item: item.filename)
+            _enforce_zip_limits(entries)
+            for info in entries:
+                if info.is_dir() or not _is_supported_archive_member(info):
                     continue
                 with archive.open(info) as member:
                     payload = _load_json_or_jsonl(member.read().decode("utf-8-sig"))
-                rows.extend(_extract_rows(payload))
+                for row in _extract_rows(payload):
+                    emitted = True
+                    yield row
     except (OSError, zipfile.BadZipFile, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise PipelineStageError("Invalid parsed consultation zip archive.") from exc
-    if not rows:
+    if not emitted:
         raise PipelineStageError("Parsed consultation zip archive did not contain any JSON conversation rows.")
-    return rows
 
 
-def _is_supported_archive_member(filename: str) -> bool:
-    lowered = filename.lower()
+def _enforce_zip_limits(entries: list[zipfile.ZipInfo]) -> None:
+    if len(entries) > MAX_ZIP_ENTRY_COUNT:
+        raise PipelineStageError(
+            "압축 파일의 항목 수가 처리 가능 한도를 초과했습니다. "
+            f"최대 {MAX_ZIP_ENTRY_COUNT}개까지 처리할 수 있습니다."
+        )
+    total_uncompressed = 0
+    total_compressed = 0
+    for info in entries:
+        if info.is_dir():
+            continue
+        if info.file_size > MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES:
+            raise PipelineStageError(
+                "압축 파일 내 단일 항목 크기가 처리 가능 한도를 초과했습니다. "
+                f"최대 {MAX_ZIP_ENTRY_UNCOMPRESSED_BYTES} 바이트까지 처리할 수 있습니다: {info.filename}"
+            )
+        if info.compress_size > 0 and info.file_size / info.compress_size > MAX_ZIP_COMPRESSION_RATIO:
+            raise PipelineStageError(
+                "압축 파일의 압축률이 비정상적으로 높습니다(zip-bomb 의심). "
+                f"허용 압축률 {MAX_ZIP_COMPRESSION_RATIO}배 이내여야 합니다: {info.filename}"
+            )
+        total_uncompressed += info.file_size
+        total_compressed += info.compress_size
+    if total_uncompressed > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES:
+        raise PipelineStageError(
+            "압축 해제 후 전체 크기가 처리 가능 한도를 초과했습니다. "
+            f"최대 {MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES} 바이트까지 처리할 수 있습니다."
+        )
+    if total_compressed > 0 and total_uncompressed / total_compressed > MAX_ZIP_COMPRESSION_RATIO:
+        raise PipelineStageError(
+            "압축 파일의 전체 압축률이 비정상적으로 높습니다(zip-bomb 의심). "
+            f"허용 압축률 {MAX_ZIP_COMPRESSION_RATIO}배 이내여야 합니다."
+        )
+
+
+def _is_supported_archive_member(info: zipfile.ZipInfo) -> bool:
+    if _is_unsafe_archive_path(info.filename) or _is_archive_metadata_path(info.filename):
+        return False
+    lowered = info.filename.lower()
     return lowered.endswith(".json") or lowered.endswith(".jsonl")
+
+
+def _is_archive_metadata_path(filename: str) -> bool:
+    parts = PurePosixPath(filename.replace("\\", "/")).parts
+    if any(part == "__MACOSX" for part in parts):
+        return True
+    return bool(parts) and parts[-1].startswith("._")
+
+
+def _is_unsafe_archive_path(filename: str) -> bool:
+    if not filename or filename.startswith("/") or filename.startswith("\\"):
+        return True
+    normalized = filename.replace("\\", "/")
+    if PurePosixPath(normalized).is_absolute():
+        return True
+    return any(part == ".." for part in PurePosixPath(normalized).parts)
 
 
 def _load_json_or_jsonl(text: str) -> object:
@@ -423,10 +533,13 @@ def _normalize_text(value: object) -> str:
     return text.strip()
 
 
-def _write_jsonl(path: Path, rows: Iterable[dict[str, object]]) -> None:
+def _write_jsonl(path: Path, rows: Iterable[dict[str, object]]) -> int:
+    count = 0
     with path.open("w", encoding="utf-8") as output:
         for row in rows:
             output.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+            count += 1
+    return count
 
 
 def _required_env(key: str) -> str:

@@ -214,6 +214,23 @@ variable "cors_allowed_origins" {
   default     = []
 }
 
+variable "raw_input_cors_allowed_origins" {
+  description = "Browser origins allowed to upload raw-file ZIPs to the ml_input bucket via presigned PUT. Empty disables raw-input CORS."
+  type        = list(string)
+  default     = []
+}
+
+variable "raw_input_pending_expiration_days" {
+  description = "Days before objects under the ml_input pending/ prefix expire, cleaning up orphans left when a presigned upload is never completed."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.raw_input_pending_expiration_days >= 1
+    error_message = "raw_input_pending_expiration_days must be at least 1."
+  }
+}
+
 variable "permissions_boundary_arn" {
   description = "Optional IAM permissions boundary ARN for created roles."
   type        = string

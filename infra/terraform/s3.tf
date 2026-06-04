@@ -6,6 +6,7 @@ locals {
         {
           id              = "storage-class-after-30-days"
           status          = "Enabled"
+          prefix          = null
           transition_days = 30
           storage_class   = "STANDARD_IA"
           expiration_days = null
@@ -13,6 +14,7 @@ locals {
         {
           id              = "glacier-after-90-days"
           status          = "Enabled"
+          prefix          = null
           transition_days = 90
           storage_class   = "GLACIER"
           expiration_days = null
@@ -20,6 +22,7 @@ locals {
         {
           id              = "deep-archive-after-365-days"
           status          = "Enabled"
+          prefix          = null
           transition_days = 365
           storage_class   = "DEEP_ARCHIVE"
           expiration_days = null
@@ -32,6 +35,7 @@ locals {
         {
           id              = "expire-after-7-days"
           status          = "Enabled"
+          prefix          = null
           transition_days = null
           storage_class   = null
           expiration_days = 7
@@ -41,12 +45,18 @@ locals {
     ml_input = {
       name = var.s3_bucket_names.ml_input
       lifecycle_rules = [
+        # Only orphaned pending uploads expire. This rule is scoped to the
+        # pending/ prefix, so promoted objects under completed/ are never
+        # expired by it. On upload completion the backend server-side copies
+        # pending/... to completed/... and deletes the original, keeping the
+        # promoted object available until the ML pipeline reads it.
         {
-          id              = "expire-after-1-day"
+          id              = "expire-pending-uploads"
           status          = "Enabled"
+          prefix          = "pending/"
           transition_days = null
           storage_class   = null
-          expiration_days = 1
+          expiration_days = var.raw_input_pending_expiration_days
         }
       ]
     }
@@ -56,6 +66,7 @@ locals {
         {
           id              = "glacier-after-365-days"
           status          = "Enabled"
+          prefix          = null
           transition_days = 365
           storage_class   = "GLACIER"
           expiration_days = null
@@ -111,7 +122,10 @@ resource "aws_s3_bucket_versioning" "buckets" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "buckets" {
-  for_each = length(var.cors_allowed_origins) == 0 ? {} : aws_s3_bucket.buckets
+  for_each = length(var.cors_allowed_origins) == 0 ? {} : {
+    for key, bucket in aws_s3_bucket.buckets : key => bucket
+    if key != "ml_input"
+  }
 
   bucket = each.value.id
 
@@ -120,6 +134,29 @@ resource "aws_s3_bucket_cors_configuration" "buckets" {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "PUT", "POST", "DELETE", "HEAD"]
     allowed_origins = var.cors_allowed_origins
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
+# Browsers upload raw-file ZIPs straight to the ml_input bucket via presigned
+# PUT, so only the headers required to sign and complete that flow are allowed.
+resource "aws_s3_bucket_cors_configuration" "raw_input" {
+  count = length(var.raw_input_cors_allowed_origins) == 0 ? 0 : 1
+
+  bucket = aws_s3_bucket.buckets["ml_input"].id
+
+  cors_rule {
+    allowed_headers = [
+      "Content-Type",
+      "Content-Length",
+      "x-amz-server-side-encryption",
+      "x-amz-content-sha256",
+      "x-amz-date",
+      "Authorization"
+    ]
+    allowed_methods = ["PUT", "HEAD", "GET"]
+    allowed_origins = var.raw_input_cors_allowed_origins
     expose_headers  = ["ETag"]
     max_age_seconds = 3000
   }
@@ -140,7 +177,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "buckets" {
       id     = rule.value.id
       status = rule.value.status
 
-      filter {}
+      filter {
+        prefix = rule.value.prefix
+      }
 
       dynamic "transition" {
         for_each = rule.value.transition_days == null ? [] : [rule.value]

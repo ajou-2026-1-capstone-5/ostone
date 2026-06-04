@@ -64,16 +64,46 @@ public class Dataset {
 
   public static Dataset create(
       Long workspaceId, String datasetKey, String name, String sourceType, Long createdBy) {
+    Dataset dataset = newDataset(workspaceId, datasetKey, name, sourceType, createdBy);
+    dataset.status = DatasetStatus.READY;
+    return dataset;
+  }
+
+  /**
+   * presigned 업로드 흐름에서 사용하는 팩토리. 클라이언트가 S3로 직접 업로드를 마치고 complete를 호출하기 전까지 데이터셋은 {@code UPLOADING}
+   * 상태로 머문다.
+   */
+  public static Dataset createUploading(
+      Long workspaceId, String datasetKey, String name, String sourceType, Long createdBy) {
+    Dataset dataset = newDataset(workspaceId, datasetKey, name, sourceType, createdBy);
+    dataset.status = DatasetStatus.UPLOADING;
+    return dataset;
+  }
+
+  private static Dataset newDataset(
+      Long workspaceId, String datasetKey, String name, String sourceType, Long createdBy) {
     Dataset dataset = new Dataset();
     dataset.workspaceId = workspaceId;
     dataset.datasetKey = datasetKey;
     dataset.name = name;
     dataset.sourceType = sourceType;
-    dataset.status = DatasetStatus.READY;
     dataset.piiRedactionStatus = PiiRedactionStatus.PENDING;
     dataset.metaJson = "{}";
     dataset.createdBy = createdBy;
     return dataset;
+  }
+
+  /**
+   * 업로드 완료 후 ML 파이프라인 처리 단계로 전이한다. 이미 {@code PROCESSING} 이상이면 멱등하게 무시되어 중복 트리거를 막는다.
+   *
+   * @return 이번 호출로 실제 {@code PROCESSING} 전이가 일어났으면 true, 이미 처리 중이거나 완료 상태면 false
+   */
+  public boolean markProcessing() {
+    if (status == DatasetStatus.UPLOADING) {
+      this.status = DatasetStatus.PROCESSING;
+      return true;
+    }
+    return false;
   }
 
   @PrePersist
@@ -106,6 +136,14 @@ public class Dataset {
 
   public PiiRedactionStatus getPiiRedactionStatus() {
     return piiRedactionStatus;
+  }
+
+  public String getMetaJson() {
+    return metaJson;
+  }
+
+  public Long getCreatedBy() {
+    return createdBy;
   }
 
   public void updateMetaJson(String metaJson) {
