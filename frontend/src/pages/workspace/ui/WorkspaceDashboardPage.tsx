@@ -213,7 +213,7 @@ function hasWorkflowRankingData(rankings: WorkspaceWorkflowRankingResponse | nul
 function hasActionRecommendationData(
   recommendations: WorkspaceDashboardActionRecommendations | null,
 ): boolean {
-  return (recommendations?.recommendations.length ?? 0) > 0;
+  return (recommendations?.recommendations?.length ?? 0) > 0;
 }
 
 function DashboardMetricCard({

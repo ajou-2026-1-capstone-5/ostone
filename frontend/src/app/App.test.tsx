@@ -121,6 +121,18 @@ describe("App", () => {
           }),
         });
       }
+      if (url.startsWith("/api/v1/workspaces/1/dashboard/action-recommendations")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            workspaceId: 1,
+            periodStart: "2026-05-28T00:00:00+09:00",
+            periodEnd: "2026-06-04T00:00:00+09:00",
+            recommendations: [],
+          }),
+        });
+      }
       return Promise.resolve({
         ok: true,
         status: 200,
