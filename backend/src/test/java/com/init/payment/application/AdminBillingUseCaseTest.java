@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.init.payment.application.exception.PaymentExceptions;
@@ -32,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +79,14 @@ class AdminBillingUseCaseTest {
     InOrder inOrder = inOrder(transactionManager, tossPaymentGateway);
     inOrder.verify(transactionManager).commit(any());
     inOrder.verify(tossPaymentGateway).cancelPayment("pay_1", "고객 요청", "admin-full-refund-100");
+    ArgumentCaptor<TransactionDefinition> transactionCaptor =
+        ArgumentCaptor.forClass(TransactionDefinition.class);
+    verify(transactionManager, times(2)).getTransaction(transactionCaptor.capture());
+    assertThat(transactionCaptor.getAllValues())
+        .allSatisfy(
+            definition ->
+                assertThat(definition.getPropagationBehavior())
+                    .isEqualTo(TransactionDefinition.PROPAGATION_REQUIRES_NEW));
   }
 
   @Test
