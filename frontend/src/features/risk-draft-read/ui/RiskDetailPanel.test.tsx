@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
+import { RISK_READ_ERROR_MESSAGES } from "../model/mapApiError";
 import { useRiskDetail } from "../model/useRiskDetail";
 import { RiskDetailPanel } from "./RiskDetailPanel";
 
@@ -87,6 +88,23 @@ describe("RiskDetailPanel", () => {
     expect(screen.getByText("수정일 · 확인 전")).toBeInTheDocument();
   });
 
+  it("JSON 필드가 객체이거나 파싱되지 않는 문자열이어도 상세 화면을 유지한다", () => {
+    mockedUseRiskDetail.mockReturnValue({
+      status: "ready",
+      data: {
+        ...stubRisk,
+        triggerConditionJson: { channel: "web" } as never,
+        handlingActionJson: "{invalid-json",
+      },
+    });
+
+    renderPanel();
+
+    expect(screen.getByText(/"channel": "web"/)).toBeInTheDocument();
+    expect(screen.getByText("{invalid-json")).toBeInTheDocument();
+    expect(screen.getByText("사기 위험")).toBeInTheDocument();
+  });
+
   it("수정 버튼을 누르면 onEdit에 riskId를 전달한다", () => {
     mockedUseRiskDetail.mockReturnValue({ status: "ready", data: stubRisk });
     const { onEdit } = renderPanel();
@@ -111,6 +129,23 @@ describe("RiskDetailPanel", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "주의 사항을 찾을 수 없습니다.",
       expect.objectContaining({ id: expect.stringContaining("risk-detail-error") }),
+    );
+  });
+
+  it("서버 오류는 찾을 수 없음과 다른 안내로 toast와 placeholder에 표시한다", () => {
+    mockedUseRiskDetail.mockReturnValue({
+      status: "error",
+      code: "SERVER_ERROR",
+      message: RISK_READ_ERROR_MESSAGES.SERVER_ERROR,
+      httpStatus: 500,
+    });
+
+    renderPanel();
+
+    expect(screen.getByText(RISK_READ_ERROR_MESSAGES.SERVER_ERROR)).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith(
+      RISK_READ_ERROR_MESSAGES.SERVER_ERROR,
+      expect.objectContaining({ id: expect.stringContaining("SERVER_ERROR") }),
     );
   });
 });

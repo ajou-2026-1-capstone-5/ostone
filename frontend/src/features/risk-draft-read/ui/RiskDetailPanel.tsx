@@ -189,13 +189,13 @@ function InfoGrid({ fields }: Readonly<{ fields: readonly RiskInfoField[] }>) {
 function JsonCard({
   label,
   value,
-}: Readonly<{ label: string; value: RiskDefinition[RiskJsonKey] }>) {
+}: Readonly<{ label: string; value: RiskDefinition[RiskJsonKey] | unknown }>) {
   return (
     <article className={styles.card} data-json-field={label.toLowerCase()}>
       <div className={styles.cardHeader}>{label}</div>
       <div className={styles.cardBody}>
         <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay((value ?? "") as string)}</code>
+          <code>{formatJsonForDisplay(value)}</code>
         </pre>
       </div>
     </article>
@@ -212,7 +212,17 @@ function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>)
   );
 }
 
-function formatJsonForDisplay(raw: string): string {
+function formatJsonForDisplay(raw: unknown): string {
+  if (raw === null || raw === undefined) return "—";
+
+  if (typeof raw !== "string") {
+    try {
+      return JSON.stringify(raw, null, 2);
+    } catch {
+      return String(raw);
+    }
+  }
+
   if (!raw.trim()) return "—";
 
   try {
