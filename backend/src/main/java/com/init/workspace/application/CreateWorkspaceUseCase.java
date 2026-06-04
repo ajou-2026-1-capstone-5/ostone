@@ -1,5 +1,6 @@
 package com.init.workspace.application;
 
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import com.init.workspace.application.exception.WorkspaceInvalidKeyException;
 import com.init.workspace.application.exception.WorkspaceKeyAlreadyExistsException;
 import com.init.workspace.domain.model.Workspace;
@@ -22,12 +23,15 @@ public class CreateWorkspaceUseCase {
 
   private final WorkspaceRepository workspaceRepository;
   private final WorkspaceMemberRepository workspaceMemberRepository;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
 
   public CreateWorkspaceUseCase(
       WorkspaceRepository workspaceRepository,
-      WorkspaceMemberRepository workspaceMemberRepository) {
+      WorkspaceMemberRepository workspaceMemberRepository,
+      WorkspaceQuotaValidator workspaceQuotaValidator) {
     this.workspaceRepository = workspaceRepository;
     this.workspaceMemberRepository = workspaceMemberRepository;
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
   }
 
   @Transactional
@@ -55,6 +59,8 @@ public class CreateWorkspaceUseCase {
           "Workspace create failed during save for workspaceKey={}", workspaceKey.getValue(), ex);
       throw ex;
     }
+
+    workspaceQuotaValidator.assertMemberAddAllowed(savedWorkspace.getId());
 
     WorkspaceMember ownerMember =
         workspaceMemberRepository.save(

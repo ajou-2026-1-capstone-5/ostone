@@ -50,6 +50,12 @@ public class Plan {
   @Column(name = "pipeline_run_limit", nullable = false)
   private int pipelineRunLimit;
 
+  @Column(name = "pipeline_run_hourly_limit", nullable = false)
+  private int pipelineRunHourlyLimit;
+
+  @Column(name = "contact_only", nullable = false)
+  private boolean contactOnly;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
@@ -60,6 +66,24 @@ public class Plan {
 
   public static Plan create(
       String planKey, String name, long amount, String currency, BillingInterval billingInterval) {
+    return create(planKey, name, amount, currency, billingInterval, 10, 10, 10, 1, false);
+  }
+
+  /**
+   * 한도/contact-only를 명시하는 팩토리. {@code -1}은 무제한(Enterprise) 센티넬이며, validator/FE에서 {@code limit < 0}을
+   * 무제한으로 해석한다.
+   */
+  public static Plan create(
+      String planKey,
+      String name,
+      long amount,
+      String currency,
+      BillingInterval billingInterval,
+      int memberLimit,
+      int datasetUploadLimit,
+      int pipelineRunLimit,
+      int pipelineRunHourlyLimit,
+      boolean contactOnly) {
     if (planKey == null || planKey.isBlank()) {
       throw new IllegalArgumentException("planKey must not be blank");
     }
@@ -78,9 +102,11 @@ public class Plan {
     plan.currency = money.currency();
     plan.billingInterval = billingInterval;
     plan.status = STATUS_ACTIVE;
-    plan.memberLimit = 10;
-    plan.datasetUploadLimit = 10;
-    plan.pipelineRunLimit = 10;
+    plan.memberLimit = memberLimit;
+    plan.datasetUploadLimit = datasetUploadLimit;
+    plan.pipelineRunLimit = pipelineRunLimit;
+    plan.pipelineRunHourlyLimit = pipelineRunHourlyLimit;
+    plan.contactOnly = contactOnly;
     return plan;
   }
 
@@ -138,6 +164,14 @@ public class Plan {
 
   public int getPipelineRunLimit() {
     return pipelineRunLimit;
+  }
+
+  public int getPipelineRunHourlyLimit() {
+    return pipelineRunHourlyLimit;
+  }
+
+  public boolean isContactOnly() {
+    return contactOnly;
   }
 
   public OffsetDateTime getCreatedAt() {

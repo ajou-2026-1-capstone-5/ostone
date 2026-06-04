@@ -123,6 +123,7 @@ export * from './pipelineReviewCheckpointCallbackRequest.zod';
 export * from './pipelineReviewCheckpointCallbackResponse.zod';
 export * from './pipelineWorkflowDraftCallbackRequest.zod';
 export * from './pipelineWorkflowDraftCallbackResponse.zod';
+export * from './planCatalogResponse.zod';
 export * from './policyDefinitionResponse.zod';
 export * from './policyDefinitionSummary.zod';
 export * from './policyDraftRequest.zod';

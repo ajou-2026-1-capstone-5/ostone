@@ -139,6 +139,34 @@ describe("useRegisterBilling", () => {
     expect(mockToastError).toHaveBeenCalledWith("잘못된 클라이언트 키입니다.");
   });
 
+  it("planKey 지정 시 해당 planKey로 createSubscription 호출", async () => {
+    const tossPaymentMock = { requestBillingAuth: vi.fn().mockResolvedValue({}) };
+    mockLoadToss.mockResolvedValue({ payment: vi.fn().mockReturnValue(tossPaymentMock) } as never);
+    mockCreateSubscription.mockResolvedValue({ data: stubSubscription } as never);
+
+    const { result } = renderHook(() => useRegisterBilling(), { wrapper: createWrapper() });
+    act(() => {
+      result.current.mutate({ workspaceId: 1, subscription: null, planKey: "max_monthly" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockCreateSubscription).toHaveBeenCalledWith(1, { planKey: "max_monthly" });
+  });
+
+  it("planKey 생략 시 기본 pro_monthly로 createSubscription 호출", async () => {
+    const tossPaymentMock = { requestBillingAuth: vi.fn().mockResolvedValue({}) };
+    mockLoadToss.mockResolvedValue({ payment: vi.fn().mockReturnValue(tossPaymentMock) } as never);
+    mockCreateSubscription.mockResolvedValue({ data: stubSubscription } as never);
+
+    const { result } = renderHook(() => useRegisterBilling(), { wrapper: createWrapper() });
+    act(() => {
+      result.current.mutate({ workspaceId: 1, subscription: null });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockCreateSubscription).toHaveBeenCalledWith(1, { planKey: "pro_monthly" });
+  });
+
   it("subscription 이미 있으면 createSubscription 미호출", async () => {
     const tossPaymentMock = {
       requestBillingAuth: vi.fn().mockResolvedValue({}),

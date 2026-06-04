@@ -20,6 +20,7 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -82,6 +83,23 @@ class SubscriptionServiceTest {
     assertThat(result.status()).isEqualTo("INCOMPLETE");
     assertThat(result.planKey()).isEqualTo("pro_monthly");
     assertThat(result.customerKey()).startsWith("wsk_1_");
+  }
+
+  @Test
+  @DisplayName("contact-only(Enterprise) 플랜은 구독 생성을 거부한다")
+  void createSubscription_contactOnlyPlan_throws() {
+    Plan enterprise =
+        Plan.create(
+            "enterprise", "Enterprise", 0, "KRW", BillingInterval.MONTH, -1, -1, -1, -1, true);
+    ReflectionTestUtils.setField(enterprise, "id", 20L);
+    given(planRepository.findByPlanKey("enterprise")).willReturn(Optional.of(enterprise));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.createSubscription(
+                    new CreateSubscriptionCommand(1L, 99L, "enterprise")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("도입 문의");
   }
 
   @Test

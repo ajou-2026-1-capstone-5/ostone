@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +29,8 @@ import com.init.review.domain.repository.ReviewDecisionRepository;
 import com.init.review.domain.repository.ReviewSessionRepository;
 import com.init.review.domain.repository.ReviewTaskRepository;
 import com.init.shared.application.exception.BadRequestException;
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -61,6 +65,7 @@ class PipelineReviewCheckpointUseCaseTest {
   @Mock private PipelineJobFailurePersistenceService failurePersistenceService;
   @Mock private DomainPackGenerationTriggerPort triggerPort;
   @Mock private WorkspaceMembershipPort workspaceMembershipPort;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private PipelineReviewCheckpointUseCase useCase;
@@ -78,6 +83,7 @@ class PipelineReviewCheckpointUseCaseTest {
             failurePersistenceService,
             triggerPort,
             workspaceMembershipPort,
+            workspaceQuotaValidator,
             objectMapper,
             CLOCK);
   }
@@ -267,6 +273,25 @@ class PipelineReviewCheckpointUseCaseTest {
     assertThat(triggerCaptor.getValue().runMode()).isEqualTo("DOMAIN_CONFIRMED_REPLAY");
     assertThat(triggerCaptor.getValue().confirmedDomainProfileJson()).contains("카드 상담");
     assertThat(triggerCaptor.getValue().skipFeedbackCheckpoint()).isFalse();
+  }
+
+  @Test
+  @DisplayName("시간당 도메인팩 작업 한도 초과 시 confirm domain은 replay 없이 차단된다")
+  void confirmDomain_quotaExceeded_blocksBeforeMutation() {
+    PipelineJob job = job(PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION, "{}");
+    givenReviewAccess(job);
+    willThrow(new QuotaExceededException("DOMAIN_PACK_OPERATION", 1, 1))
+        .given(workspaceQuotaValidator)
+        .assertPipelineRunAllowed(1L);
+
+    assertThatThrownBy(
+            () ->
+                useCase.confirmDomain(
+                    new PipelineReviewCheckpointUseCase.ConfirmDomainCommand(
+                        1L, 7L, 101L, 9L, "대표 도메인")))
+        .isInstanceOf(QuotaExceededException.class);
+
+    verify(triggerPort, never()).trigger(any(DomainPackGenerationTriggerCommand.class));
   }
 
   @Test

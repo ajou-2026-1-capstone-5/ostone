@@ -38,4 +38,14 @@ describe("QuotaUsageCard", () => {
     expect(screen.getByText("1 / 0")).toBeTruthy();
     expect(container.querySelectorAll('[style="width: 0%;"]')).toHaveLength(2);
   });
+
+  it("limit이 -1이면 무제한으로 표시하고 진행바/경고를 숨긴다", () => {
+    const { container } = render(
+      <QuotaUsageCard quotaUsages={[{ resource: "MEMBER", used: 5, limit: -1, warning: true }]} />,
+    );
+
+    expect(screen.getByText("5 / 무제한")).toBeTruthy();
+    expect(screen.queryByText("한도에 도달했습니다.")).toBeNull();
+    expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
+  });
 });

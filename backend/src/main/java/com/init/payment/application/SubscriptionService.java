@@ -17,6 +17,7 @@ import com.init.payment.domain.repository.BillingKeyRepository;
 import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.function.Supplier;
@@ -72,6 +73,10 @@ public class SubscriptionService {
         planRepository
             .findByPlanKey(command.planKey())
             .orElseThrow(() -> new PlanNotFoundException(command.planKey()));
+
+    if (plan.isContactOnly()) {
+      throw new BadRequestException("PLAN_CONTACT_ONLY", "도입 문의가 필요한 요금제입니다. 별도 연락처로 문의해 주세요.");
+    }
 
     subscriptionRepository
         .findCurrentByWorkspaceId(command.workspaceId())

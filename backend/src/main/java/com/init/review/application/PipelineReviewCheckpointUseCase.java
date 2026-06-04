@@ -26,6 +26,7 @@ import com.init.review.domain.repository.ReviewSessionRepository;
 import com.init.review.domain.repository.ReviewTaskRepository;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ public class PipelineReviewCheckpointUseCase {
   private final PipelineJobFailurePersistenceService failurePersistenceService;
   private final DomainPackGenerationTriggerPort triggerPort;
   private final WorkspaceMembershipPort workspaceMembershipPort;
+  private final WorkspaceQuotaValidator workspaceQuotaValidator;
   private final ObjectMapper objectMapper;
   private final Clock clock;
 
@@ -76,6 +78,7 @@ public class PipelineReviewCheckpointUseCase {
       PipelineJobFailurePersistenceService failurePersistenceService,
       DomainPackGenerationTriggerPort triggerPort,
       WorkspaceMembershipPort workspaceMembershipPort,
+      WorkspaceQuotaValidator workspaceQuotaValidator,
       ObjectMapper objectMapper,
       Clock clock) {
     this.pipelineJobRepository = pipelineJobRepository;
@@ -87,6 +90,7 @@ public class PipelineReviewCheckpointUseCase {
     this.failurePersistenceService = failurePersistenceService;
     this.triggerPort = triggerPort;
     this.workspaceMembershipPort = workspaceMembershipPort;
+    this.workspaceQuotaValidator = workspaceQuotaValidator;
     this.objectMapper = objectMapper;
     this.clock = clock;
   }
@@ -121,6 +125,7 @@ public class PipelineReviewCheckpointUseCase {
             command.pipelineJobId(),
             command.userId(),
             PipelineJob.STATUS_WAITING_DOMAIN_CONFIRMATION);
+    workspaceQuotaValidator.assertPipelineRunAllowed(command.workspaceId());
     ReviewSession session =
         openSession(command.pipelineJobId(), ReviewSession.KIND_DOMAIN_CONFIRMATION, true);
     requireWorkspace(session, command.workspaceId());
@@ -182,6 +187,7 @@ public class PipelineReviewCheckpointUseCase {
             command.pipelineJobId(),
             command.userId(),
             PipelineJob.STATUS_WAITING_HUMAN_FEEDBACK);
+    workspaceQuotaValidator.assertPipelineRunAllowed(command.workspaceId());
     ReviewSession session =
         openSession(command.pipelineJobId(), ReviewSession.KIND_HUMAN_FEEDBACK, true);
     requireWorkspace(session, command.workspaceId());

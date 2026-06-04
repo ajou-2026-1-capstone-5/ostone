@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useParams, useOutletContext, useLocation, Navigate } from "react-router-dom";
-import { useBillingOverview } from "@/entities/billing";
+import { useBillingOverview, usePlanCatalog } from "@/entities/billing";
 import { BillingPage } from "./BillingPage";
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -20,6 +20,7 @@ vi.mock("@/entities/billing", async (importOriginal) => {
   return {
     ...original,
     useBillingOverview: vi.fn(),
+    usePlanCatalog: vi.fn(),
     deriveCustomerKey: vi.fn().mockReturnValue("ws_1"),
   };
 });
@@ -43,10 +44,6 @@ vi.mock("@/features/cancel-subscription", () => ({
   RefundButton: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("@/features/subscribe-plan", () => ({
-  PlanCard: vi.fn().mockReturnValue(null),
-}));
-
 vi.mock("@/widgets/workspace-settings-nav", () => ({
   WorkspaceSettingsNav: vi.fn().mockReturnValue(null),
 }));
@@ -55,6 +52,7 @@ const mockUseParams = vi.mocked(useParams);
 const mockUseOutletContext = vi.mocked(useOutletContext);
 const mockUseLocation = vi.mocked(useLocation);
 const mockUseBillingOverview = vi.mocked(useBillingOverview);
+const mockUsePlanCatalog = vi.mocked(usePlanCatalog);
 
 const baseSubscription = {
   id: 1,
@@ -86,7 +84,12 @@ const donePayment = {
 
 const baseOverview = {
   subscription: baseSubscription,
-  billingKey: { id: 7, cardCompany: "신한카드", cardNumberMasked: "1234-****-****-5678", status: "ACTIVE" },
+  billingKey: {
+    id: 7,
+    cardCompany: "신한카드",
+    cardNumberMasked: "1234-****-****-5678",
+    status: "ACTIVE",
+  },
   payments: [],
   quotaUsages: [
     { resource: "MEMBER", used: 8, limit: 10, warning: false },
@@ -94,6 +97,63 @@ const baseOverview = {
     { resource: "PIPELINE_RUN", used: 11, limit: 10, warning: true },
   ],
 };
+
+const catalog = [
+  {
+    planKey: "pro_monthly",
+    name: "Pro (Monthly)",
+    amount: 29000,
+    currency: "KRW",
+    interval: "MONTH",
+    memberLimit: 3,
+    datasetUploadLimit: 10,
+    pipelineRunHourlyLimit: 1,
+    contactOnly: false,
+    unlimited: false,
+  },
+  {
+    planKey: "max_monthly",
+    name: "Max (Monthly)",
+    amount: 49000,
+    currency: "KRW",
+    interval: "MONTH",
+    memberLimit: 10,
+    datasetUploadLimit: 10,
+    pipelineRunHourlyLimit: 5,
+    contactOnly: false,
+    unlimited: false,
+  },
+  {
+    planKey: "enterprise",
+    name: "Enterprise",
+    amount: 0,
+    currency: "KRW",
+    interval: "MONTH",
+    memberLimit: -1,
+    datasetUploadLimit: -1,
+    pipelineRunHourlyLimit: -1,
+    contactOnly: true,
+    unlimited: true,
+  },
+];
+
+function setupRegister(subscription: unknown, catalogQuery: Record<string, unknown>) {
+  mockUseParams.mockReturnValue({ workspaceId: "1" });
+  mockUseOutletContext.mockReturnValue({ setCrumbs: vi.fn() } as never);
+  mockUseLocation.mockReturnValue({ state: null } as never);
+  mockUseBillingOverview.mockReturnValue({
+    data: { subscription, billingKey: null, payments: [], quotaUsages: [] },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  } as never);
+  mockUsePlanCatalog.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+    ...catalogQuery,
+  } as never);
+}
 
 function setupDefaults(queryOverrides = {}) {
   mockUseParams.mockReturnValue({ workspaceId: "1" });
@@ -105,6 +165,12 @@ function setupDefaults(queryOverrides = {}) {
     isError: false,
     refetch: vi.fn(),
     ...queryOverrides,
+  } as never);
+  mockUsePlanCatalog.mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
   } as never);
 }
 
@@ -175,6 +241,40 @@ describe("BillingPage", () => {
     render(<BillingPage />);
     expect(screen.getByText("신한카드")).toBeTruthy();
     expect(screen.getByText("1234-****-****-5678")).toBeTruthy();
+  });
+
+  it("미구독 시 Free/Pro/Max/Enterprise 비교 카드와 도입 문의를 렌더링한다", () => {
+    setupRegister(null, { data: catalog });
+    render(<BillingPage />);
+    expect(screen.getByText("Free")).toBeTruthy();
+    expect(screen.getByText("Pro")).toBeTruthy();
+    expect(screen.getByText("Max")).toBeTruthy();
+    expect(screen.getByText("Enterprise")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "도입 문의" })).toBeTruthy();
+    // Free 카드: 이름 옆 "현재 플랜" 태그 + 비활성 "현재 플랜" CTA (둘 다 노출)
+    expect(screen.getAllByText("현재 플랜").length).toBeGreaterThan(0);
+  });
+
+  it("요금제 로딩 중 plans-loading 패널 표시", () => {
+    setupRegister(null, { isLoading: true, data: undefined });
+    render(<BillingPage />);
+    expect(screen.getByTestId("plans-loading")).toBeTruthy();
+  });
+
+  it("요금제 에러 시 plans-error 패널 표시", () => {
+    setupRegister(null, { isError: true, data: undefined });
+    render(<BillingPage />);
+    expect(screen.getByTestId("plans-error")).toBeTruthy();
+    expect(screen.getByText("요금제를 불러오지 못했습니다.")).toBeTruthy();
+  });
+
+  it("INCOMPLETE 구독이면 Free 카드는 비활성 '기본 제공'을 표시한다", () => {
+    setupRegister(
+      { ...baseSubscription, status: "INCOMPLETE", planKey: "pro_monthly" },
+      { data: catalog },
+    );
+    render(<BillingPage />);
+    expect(screen.getByText("기본 제공")).toBeTruthy();
   });
 
   it("workspaceId가 유효하지 않으면 Navigate 렌더링", () => {

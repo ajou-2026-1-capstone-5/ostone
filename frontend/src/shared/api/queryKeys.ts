@@ -19,6 +19,7 @@ export const billingQueryKeys = {
   subscription: (workspaceId: number) =>
     [...billingQueryKeys.all, "subscription", workspaceId] as const,
   payments: (workspaceId: number) => [...billingQueryKeys.all, "payments", workspaceId] as const,
+  plans: () => [...billingQueryKeys.all, "plans"] as const,
 };
 
 export const intentQueryKeys = {

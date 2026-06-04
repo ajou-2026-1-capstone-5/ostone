@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>워크스페이스 설정 · 구독 — 요금제 비교 (목업)</title>
+    <!--
+      구독 요금제 재구성 목업 (Free / Pro / Max / Enterprise)
+      - 워크스페이스 설정 → 구독 탭의 "미구독(showRegister)" 상태 화면
+      - 색상은 frontend/DESIGN.md의 엄격한 흑백 모노크롬 + tokens.css oklch 토큰을 그대로 인라인
+      - 참조 스크린샷(ChatGPT Free/Plus)은 레이아웃 참조용이며 다크 테마는 채택하지 않음
+      - 실제 구현이 아닌 정적 산출물(계획 문서와 동시 산출 제약 충족)
+    -->
+    <style>
+      :root {
+        --paper: oklch(0.985 0.003 100);
+        --paper-2: oklch(0.972 0.004 100);
+        --paper-3: oklch(0.955 0.005 100);
+        --line: oklch(0.9 0.006 260);
+        --line-2: oklch(0.94 0.005 260);
+        --ink: oklch(0.18 0.012 260);
+        --ink-2: oklch(0.36 0.012 260);
+        --ink-3: oklch(0.55 0.012 260);
+        --ink-4: oklch(0.72 0.01 260);
+
+        --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+          Roboto, "Helvetica Neue", sans-serif;
+        --mono: "Geist Mono", "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+        --r-2: 4px;
+        --r-3: 6px;
+        --r-pill: 999px;
+
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-5: 20px;
+        --s-6: 24px;
+        --s-8: 32px;
+        --s-10: 40px;
+        --s-12: 48px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper-2);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-feature-settings: "kern";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--s-12) var(--s-6) var(--s-16, 64px);
+      }
+
+      /* settings tab nav */
+      .nav {
+        display: flex;
+        gap: var(--s-2);
+        margin-bottom: var(--s-8);
+      }
+      .nav a {
+        font-size: 14px;
+        text-decoration: none;
+        color: var(--ink-3);
+        padding: var(--s-2) var(--s-4);
+        border-radius: var(--r-pill);
+        letter-spacing: -0.14px;
+      }
+      .nav a.active {
+        color: var(--paper);
+        background: var(--ink);
+      }
+
+      .page-header {
+        margin-bottom: var(--s-8);
+      }
+      .page-title {
+        margin: 0 0 var(--s-2);
+        font-size: 28px;
+        font-weight: 540;
+        letter-spacing: -0.6px;
+      }
+      .page-subtitle {
+        margin: 0;
+        font-size: 14px;
+        color: var(--ink-3);
+        letter-spacing: -0.14px;
+      }
+
+      /* card grid */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-4);
+        align-items: stretch;
+      }
+
+      .card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-4);
+        padding: var(--s-6);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--r-3);
+      }
+      .card.popular {
+        border-color: var(--ink);
+      }
+
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-3);
+      }
+
+      .name-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-2);
+      }
+      .name {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 540;
+        letter-spacing: -0.4px;
+      }
+      .badge {
+        font-family: var(--mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--paper);
+        background: var(--ink);
+        padding: 3px var(--s-2);
+        border-radius: var(--r-pill);
+      }
+      .current-tag {
+        font-size: 11px;
+        color: var(--ink-3);
+        border: 1px solid var(--line);
+        padding: 3px var(--s-2);
+        border-radius: var(--r-pill);
+      }
+
+      .price-row {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-1);
+        min-height: 40px;
+      }
+      .price {
+        font-size: 30px;
+        font-weight: 540;
+        letter-spacing: -0.6px;
+        font-variant-numeric: tabular-nums;
+      }
+      .price.contact {
+        font-size: 22px;
+        color: var(--ink-2);
+      }
+      .period {
+        font-size: 13px;
+        color: var(--ink-3);
+      }
+
+      .tagline {
+        margin: 0;
+        font-size: 13px;
+        color: var(--ink-2);
+        letter-spacing: -0.14px;
+        min-height: 36px;
+      }
+
+      .features {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+        flex: 1;
+      }
+      .feature {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s-2);
+        font-size: 13px;
+        color: var(--ink-2);
+        letter-spacing: -0.14px;
+        line-height: 1.4;
+      }
+      .feature svg {
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: var(--ink);
+      }
+
+      .cta {
+        appearance: none;
+        width: 100%;
+        font-family: var(--sans);
+        font-size: 14px;
+        font-weight: 450;
+        letter-spacing: -0.14px;
+        padding: var(--s-3) var(--s-5);
+        border-radius: var(--r-pill);
+        border: 1px solid var(--ink);
+        background: var(--ink);
+        color: var(--paper);
+        cursor: pointer;
+      }
+      .cta.secondary {
+        background: var(--paper);
+        color: var(--ink);
+      }
+      .cta.disabled {
+        background: var(--paper-3);
+        border-color: var(--line);
+        color: var(--ink-3);
+        cursor: default;
+      }
+      .cta:focus-visible {
+        outline: none;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 3px oklch(0.18 0.012 260 / 0.18);
+      }
+
+      .footer-link {
+        margin-top: var(--s-8);
+        text-align: center;
+      }
+      .footer-link a {
+        font-size: 13px;
+        color: var(--ink-2);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* enterprise contact dialog */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: oklch(0.18 0.012 260 / 0.32);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--s-6);
+      }
+      .dialog {
+        width: 100%;
+        max-width: 420px;
+        background: var(--paper);
+        border: 1px solid var(--ink);
+        border-radius: var(--r-3);
+        padding: var(--s-8);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-4);
+      }
+      .dialog h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 540;
+        letter-spacing: -0.4px;
+      }
+      .dialog p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--ink-2);
+        line-height: 1.6;
+        letter-spacing: -0.14px;
+      }
+      .contact-box {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-1);
+        padding: var(--s-4);
+        background: var(--paper-3);
+        border-radius: var(--r-2);
+      }
+      .contact-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-3);
+      }
+      .contact-value {
+        font-size: 20px;
+        font-weight: 540;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.2px;
+      }
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--s-2);
+      }
+      .dialog-actions .cta {
+        width: auto;
+      }
+
+      .note {
+        margin-top: var(--s-10);
+        font-size: 12px;
+        color: var(--ink-3);
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 520px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="nav" aria-label="워크스페이스 설정">
+        <a href="#">멤버</a>
+        <a href="#" class="active" aria-current="page">구독</a>
+      </nav>
+
+      <header class="page-header">
+        <h1 class="page-title">구독</h1>
+        <p class="page-subtitle">워크스페이스에 맞는 요금제를 선택하세요. 언제든 변경·해지할 수 있습니다.</p>
+      </header>
+
+      <section class="grid" aria-label="요금제 비교">
+        <!-- Free -->
+        <article class="card">
+          <span class="eyebrow">Plan</span>
+          <div class="name-row">
+            <h2 class="name">Free</h2>
+            <span class="current-tag">현재 플랜</span>
+          </div>
+          <div class="price-row">
+            <span class="price">₩0</span>
+            <span class="period">/ 월</span>
+          </div>
+          <p class="tagline">핵심 기능을 가볍게 체험</p>
+          <ul class="features">
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              워크스페이스 멤버 1명
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              도메인팩 생성·검토 최초 1회 무료
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              코어 모델 체험
+            </li>
+          </ul>
+          <button type="button" class="cta disabled" disabled>현재 플랜</button>
+        </article>
+
+        <!-- Pro -->
+        <article class="card popular">
+          <span class="eyebrow">Plan</span>
+          <div class="name-row">
+            <h2 class="name">Pro</h2>
+            <span class="badge">인기</span>
+          </div>
+          <div class="price-row">
+            <span class="price">₩29,000</span>
+            <span class="period">/ 월</span>
+          </div>
+          <p class="tagline">소규모 팀의 정기 운영에 적합</p>
+          <ul class="features">
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              워크스페이스 멤버 3명
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              도메인팩 생성·검토 시간당 1회
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              월 단위 자동결제 · 언제든 해지
+            </li>
+          </ul>
+          <button type="button" class="cta">Pro로 업그레이드</button>
+        </article>
+
+        <!-- Max -->
+        <article class="card">
+          <span class="eyebrow">Plan</span>
+          <div class="name-row">
+            <h2 class="name">Max</h2>
+          </div>
+          <div class="price-row">
+            <span class="price">₩49,000</span>
+            <span class="period">/ 월</span>
+          </div>
+          <p class="tagline">활발하게 운영하는 팀을 위한 확장</p>
+          <ul class="features">
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              워크스페이스 멤버 10명
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              도메인팩 생성·검토 시간당 5회
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Airflow 서버 우선 액세스권
+            </li>
+          </ul>
+          <button type="button" class="cta secondary">Max로 업그레이드</button>
+        </article>
+
+        <!-- Enterprise -->
+        <article class="card">
+          <span class="eyebrow">Plan</span>
+          <div class="name-row">
+            <h2 class="name">Enterprise</h2>
+          </div>
+          <div class="price-row">
+            <span class="price contact">문의</span>
+          </div>
+          <p class="tagline">조직 규모 도입과 맞춤 지원</p>
+          <ul class="features">
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              하위 요금제의 모든 기능 포함
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              워크스페이스 · 도메인팩 생성·검토 무제한
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              전담 기술 지원
+            </li>
+            <li class="feature">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              온보딩 지원
+            </li>
+          </ul>
+          <button type="button" class="cta secondary" id="enterprise-cta">도입 문의</button>
+        </article>
+      </section>
+
+      <p class="note">
+        ※ 정적 목업입니다. 실제 화면은 <code>GET /api/v1/plans</code> 카탈로그 응답으로 렌더되며,
+        Free는 현재 미구독 상태일 때 "현재 플랜"으로 표시됩니다.
+      </p>
+    </main>
+
+    <!-- Enterprise 도입 문의 다이얼로그 (카드 결제 UI 대신 연락처 제시) -->
+    <div class="overlay" id="enterprise-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <div class="dialog">
+        <h3 id="dialog-title">Enterprise 도입 문의</h3>
+        <p>
+          조직 규모 도입과 맞춤 지원이 필요하신가요? 아래 연락처로 문의해 주시면 담당자가
+          요금제와 온보딩을 안내해 드립니다.
+        </p>
+        <div class="contact-box">
+          <span class="contact-label">전화 문의</span>
+          <span class="contact-value">02-XXX-XXXX</span>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="cta secondary" onclick="document.getElementById('enterprise-dialog').style.display='none'">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 목업 상호작용: Enterprise CTA → 연락처 다이얼로그 (Toss 결제창 미연결)
+      var dialog = document.getElementById("enterprise-dialog");
+      dialog.style.display = "none";
+      document.getElementById("enterprise-cta").addEventListener("click", function () {
+        dialog.style.display = "flex";
+      });
+      dialog.addEventListener("click", function (e) {
+        if (e.target === dialog) dialog.style.display = "none";
+      });
+    </script>
+  </body>
+</html>

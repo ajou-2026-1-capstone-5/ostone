@@ -1160,3 +1160,38 @@ ALTER TABLE corpus.dataset_raw_file
         (checksum_status = 'PENDING' AND checksum_sha256 IS NULL)
         OR (checksum_status IN ('VERIFIED', 'FAILED') AND checksum_sha256 IS NOT NULL)
     );
+
+--changeset init:20260604-add-payment-plan-hourly-and-contact
+--comment: 시간당 도메인팩 생성·검토 한도 컬럼 + contact-only(Enterprise) 플래그 추가, -1(무제한) 센티넬 허용을 위한 CHECK 완화
+alter table payment.plan add column pipeline_run_hourly_limit integer not null default 1;
+alter table payment.plan add column contact_only boolean not null default false;
+alter table payment.plan drop constraint if exists chk_payment_plan_member_limit;
+alter table payment.plan drop constraint if exists chk_payment_plan_dataset_upload_limit;
+alter table payment.plan drop constraint if exists chk_payment_plan_pipeline_run_limit;
+alter table payment.plan
+    add constraint chk_payment_plan_member_limit check (member_limit >= -1),
+    add constraint chk_payment_plan_dataset_upload_limit check (dataset_upload_limit >= -1),
+    add constraint chk_payment_plan_pipeline_run_limit check (pipeline_run_limit >= -1),
+    add constraint chk_payment_plan_pipeline_run_hourly_limit check (pipeline_run_hourly_limit >= -1);
+
+--changeset init:20260604-update-pro-plan-limits
+--comment: Pro 플랜 한도 재조정 — 워크스페이스 멤버 3명, 도메인팩 생성·검토 시간당 1회
+update payment.plan set member_limit = 3, pipeline_run_hourly_limit = 1 where plan_key = 'pro_monthly';
+
+--changeset init:20260604-seed-max-plan
+--comment: Max 플랜 시드 — 멤버 10명, 도메인팩 생성·검토 시간당 5회, Airflow 우선 액세스(표시용)
+insert into payment.plan (plan_key, name, amount, currency, bill_interval, status,
+                          member_limit, dataset_upload_limit, pipeline_run_limit,
+                          pipeline_run_hourly_limit, contact_only)
+values ('max_monthly', 'Max (Monthly)', 49000, 'KRW', 'MONTH', 'ACTIVE',
+        10, 10, 10, 5, false)
+on conflict (plan_key) do nothing;
+
+--changeset init:20260604-seed-enterprise-plan
+--comment: Enterprise 플랜 시드 — 무제한(-1) + contact-only(가격 미표시, 별도 문의)
+insert into payment.plan (plan_key, name, amount, currency, bill_interval, status,
+                          member_limit, dataset_upload_limit, pipeline_run_limit,
+                          pipeline_run_hourly_limit, contact_only)
+values ('enterprise', 'Enterprise', 0, 'KRW', 'MONTH', 'ACTIVE',
+        -1, -1, -1, -1, true)
+on conflict (plan_key) do nothing;
