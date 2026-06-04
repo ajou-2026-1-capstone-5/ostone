@@ -298,6 +298,24 @@ variable "airflow_simple_viewer_password" {
   sensitive   = true
 }
 
+variable "toss_secret_key" {
+  description = "Toss Payments v2 API secret key (sk) used by the backend payment client."
+  type        = string
+  sensitive   = true
+}
+
+variable "toss_webhook_secret" {
+  description = "Toss Payments webhook signing secret used to verify inbound payment callbacks."
+  type        = string
+  sensitive   = true
+}
+
+variable "toss_billing_key_encryption_key" {
+  description = "Application-side key used to encrypt stored Toss billing keys at rest."
+  type        = string
+  sensitive   = true
+}
+
 variable "airflow_api_desired_count" {
   description = "Desired ECS task count for Airflow API server."
   type        = number

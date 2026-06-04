@@ -190,6 +190,18 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name      = "AIRFLOW_WEBHOOK_SECRET"
           valueFrom = "${aws_secretsmanager_secret.app.arn}:airflow_webhook_secret::"
+        },
+        {
+          name      = "TOSS_SECRET_KEY"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:toss_secret_key::"
+        },
+        {
+          name      = "TOSS_WEBHOOK_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:toss_webhook_secret::"
+        },
+        {
+          name      = "TOSS_BILLING_KEY_ENCRYPTION_KEY"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:toss_billing_key_encryption_key::"
         }
       ]
 

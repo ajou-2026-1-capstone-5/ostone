@@ -95,6 +95,10 @@ sonar {
         property("sonar.projectKey", "ajou-2026-1-capstone-5_ostone_backend")
         property("sonar.organization", "ajou-2026-1-capstone-5")
         property("sonar.host.url", "https://sonarcloud.io")
+        // CI 러너에 이미 설치된 JDK 21을 스캐너 런타임으로 사용한다. SonarCloud JRE 자동
+        // 프로비저닝(api.sonarcloud.io/analysis/jres)이 간헐적으로 403을 반환해 backend-sonar가
+        // flaky하게 실패하던 것을 방지한다. frontend/ml은 JRE 번들 scan-action이라 영향 없음.
+        property("sonar.scanner.skipJreProvisioning", "true")
         property("sonar.coverage.jacoco.xmlReportPaths",
             "${layout.buildDirectory.get().asFile.path}/reports/jacoco/test/jacocoTestReport.xml")
         property("sonar.exclusions",

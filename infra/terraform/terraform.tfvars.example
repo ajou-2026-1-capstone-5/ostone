@@ -16,6 +16,10 @@ airflow_api_base_url = "http://<airflow-private-ip>:8080"
 airflow_api_allow_insecure_http = true
 airflow_webhook_secret = "replace-with-secure-webhook-secret"
 
+toss_secret_key                 = "replace-with-toss-api-secret-key"
+toss_webhook_secret             = "replace-with-toss-webhook-secret"
+toss_billing_key_encryption_key = "replace-with-billing-key-encryption-key"
+
 backend_desired_count = 0
 backend_autoscaling_min_capacity = 0
 backend_autoscaling_max_capacity = 3

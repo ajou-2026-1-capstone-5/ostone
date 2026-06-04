@@ -39,6 +39,9 @@ resource "aws_secretsmanager_secret_version" "app" {
     airflow_simple_admin_password  = var.airflow_simple_admin_password
     airflow_simple_viewer_password = var.airflow_simple_viewer_password
     llm_runtime_api_key            = var.llm_runtime_api_key
+    toss_secret_key                = var.toss_secret_key
+    toss_webhook_secret            = var.toss_webhook_secret
+    toss_billing_key_encryption_key = var.toss_billing_key_encryption_key
   })
 }
 

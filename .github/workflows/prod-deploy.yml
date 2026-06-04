@@ -60,6 +60,7 @@ jobs:
       cloudfront_distribution_id: ${{ steps.tf_outputs.outputs.cloudfront_distribution_id }}
       ecs_cluster_name: ${{ steps.tf_outputs.outputs.ecs_cluster_name }}
       backend_service_name: ${{ steps.tf_outputs.outputs.backend_service_name }}
+      backend_task_definition_arn: ${{ steps.tf_outputs.outputs.backend_task_definition_arn }}
       airflow_init_task_definition_arn: ${{ steps.tf_outputs.outputs.airflow_init_task_definition_arn }}
       airflow_apiserver_service_name: ${{ steps.tf_outputs.outputs.airflow_apiserver_service_name }}
       airflow_scheduler_service_name: ${{ steps.tf_outputs.outputs.airflow_scheduler_service_name }}
@@ -97,6 +98,9 @@ jobs:
       TF_VAR_airflow_simple_admin_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_ADMIN_PASSWORD }}
       TF_VAR_airflow_simple_viewer_password: ${{ secrets.PROD_AIRFLOW_SIMPLE_VIEWER_PASSWORD }}
       TF_VAR_llm_runtime_api_key: ${{ secrets.PROD_LLM_RUNTIME_API_KEY || '' }}
+      TF_VAR_toss_secret_key: ${{ secrets.PROD_TOSS_SECRET_KEY }}
+      TF_VAR_toss_webhook_secret: ${{ secrets.PROD_TOSS_WEBHOOK_SECRET }}
+      TF_VAR_toss_billing_key_encryption_key: ${{ secrets.PROD_TOSS_BILLING_KEY_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -146,6 +150,9 @@ jobs:
             TF_VAR_airflow_api_auth_jwt_secret
             TF_VAR_airflow_simple_admin_password
             TF_VAR_airflow_simple_viewer_password
+            TF_VAR_toss_secret_key
+            TF_VAR_toss_webhook_secret
+            TF_VAR_toss_billing_key_encryption_key
           )
           for name in "${required[@]}"; do
             test -n "${!name:-}" || { echo "$name is required"; exit 1; }
@@ -169,6 +176,7 @@ jobs:
             echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
             echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)"
             echo "backend_service_name=$(terraform output -raw backend_service_name)"
+            echo "backend_task_definition_arn=$(terraform output -raw backend_task_definition_arn)"
             echo "airflow_init_task_definition_arn=$(terraform output -raw airflow_init_task_definition_arn)"
             echo "airflow_apiserver_service_name=$(terraform output -raw airflow_apiserver_service_name)"
             echo "airflow_scheduler_service_name=$(terraform output -raw airflow_scheduler_service_name)"
@@ -239,6 +247,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECS_CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
           ECS_SERVICE: ${{ needs.terraform.outputs.backend_service_name }}
+          ECS_TASK_DEFINITION: ${{ needs.terraform.outputs.backend_task_definition_arn }}
           BACKEND_AUTOSCALING_MAX_CAPACITY: ${{ vars.PROD_BACKEND_AUTOSCALING_MAX_CAPACITY || '3' }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
@@ -303,14 +312,12 @@ jobs:
             --max-capacity "$BACKEND_MAX_CAPACITY" \
             --region ap-northeast-2
 
-          TASK_DEF_ARN="$(aws ecs describe-services \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE" \
-            --region ap-northeast-2 \
-            --query 'services[0].taskDefinition' \
-            --output text)"
+          # Terraform이 이번 apply에서 등록한 backend task definition을 기준으로 이미지만 교체한다.
+          # 서비스의 현재 task definition을 읽으면 aws_ecs_service.backend의
+          # ignore_changes=[task_definition] 때문에 Terraform이 새로 추가한 env/secret(TOSS_* 등)이
+          # 반영되지 않아 컨테이너가 빈 값으로 부팅하다 실패한다.
           aws ecs describe-task-definition \
-            --task-definition "$TASK_DEF_ARN" \
+            --task-definition "$ECS_TASK_DEFINITION" \
             --region ap-northeast-2 \
             --query 'taskDefinition' > task-definition.json
           jq --arg image "$IMAGE_URI" '
@@ -370,9 +377,11 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ vars.PROD_API_BASE_URL }}
           VITE_WS_URL: ${{ vars.PROD_WS_URL }}
+          VITE_TOSS_CLIENT_KEY: ${{ vars.PROD_TOSS_CLIENT_KEY }}
         run: |
           test -n "$VITE_API_BASE_URL"
           test -n "$VITE_WS_URL"
+          test -n "$VITE_TOSS_CLIENT_KEY"
           cd frontend
           pnpm install --frozen-lockfile
           pnpm build
