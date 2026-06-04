@@ -1,10 +1,13 @@
 package com.init.workspace.infrastructure.persistence;
 
+import com.init.workspace.application.WorkspaceDashboardDecisionSignalResult;
 import com.init.workspace.application.WorkspaceDashboardGenerationResult;
 import com.init.workspace.application.WorkspaceDashboardHealthResult;
 import com.init.workspace.application.WorkspaceDashboardKnowledgePackResult;
 import com.init.workspace.application.WorkspaceDashboardLogUploadResult;
 import com.init.workspace.application.WorkspaceDashboardQueryPort;
+import com.init.workspace.application.WorkspaceDashboardRecommendationSignalsResult;
+import com.init.workspace.application.WorkspaceDashboardWorkflowRecommendationSignal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -16,6 +19,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQueryPort {
+
+  private static final double LOW_CONFIDENCE_THRESHOLD = 0.6;
+  private static final int LOW_COMPLETION_MIN_EXECUTION_COUNT = 3;
+  private static final double LOW_COMPLETION_RATE_THRESHOLD = 70.0;
+  private static final double HOTPATH_SURGE_CHANGE_RATE_THRESHOLD = 30.0;
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -30,6 +38,22 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
         findLastLogUpload(workspaceId),
         findLastKnowledgePackGeneration(workspaceId),
         countPendingReviewTasks(workspaceId));
+  }
+
+  @Override
+  public WorkspaceDashboardRecommendationSignalsResult findRecommendationSignals(
+      Long workspaceId,
+      OffsetDateTime periodStart,
+      OffsetDateTime periodEnd,
+      OffsetDateTime previousPeriodStart) {
+    return new WorkspaceDashboardRecommendationSignalsResult(
+        periodStart,
+        periodEnd,
+        findKnowledgePackHealth(workspaceId),
+        findDecisionSignals(workspaceId, periodStart, periodEnd),
+        findDecisionSignals(workspaceId, previousPeriodStart, periodStart),
+        findHotpathSurgeWorkflow(workspaceId, periodStart, periodEnd, previousPeriodStart),
+        findLowCompletionWorkflow(workspaceId, periodStart, periodEnd));
   }
 
   private WorkspaceDashboardKnowledgePackResult findActiveKnowledgePack(Long workspaceId) {
@@ -123,6 +147,161 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
     return count != null ? count : 0L;
   }
 
+  private WorkspaceDashboardDecisionSignalResult findDecisionSignals(
+      Long workspaceId, OffsetDateTime periodStart, OffsetDateTime periodEnd) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("workspaceId", workspaceId)
+            .addValue("periodStart", periodStart)
+            .addValue("periodEnd", periodEnd)
+            .addValue("lowConfidenceThreshold", LOW_CONFIDENCE_THRESHOLD);
+    return jdbcTemplate.queryForObject(
+        """
+        SELECT
+          COUNT(dl.id) AS decision_log_count,
+          COALESCE(SUM(jsonb_array_length(dl.missing_slots_json)), 0) AS missing_slot_hit_count,
+          COALESCE(SUM(jsonb_array_length(dl.risk_hits_json)), 0) AS risk_hit_count,
+          COUNT(dl.id) FILTER (
+            WHERE dl.confidence_score IS NOT NULL
+              AND dl.confidence_score < :lowConfidenceThreshold
+          ) AS low_confidence_count
+        FROM runtime.decision_log dl
+        JOIN runtime.workflow_execution we ON we.id = dl.workflow_execution_id
+        JOIN runtime.chat_session cs ON cs.id = we.chat_session_id
+        WHERE cs.workspace_id = :workspaceId
+          AND we.started_at >= :periodStart
+          AND we.started_at < :periodEnd
+          AND (
+            cs.channel IS NULL
+            OR (
+              UPPER(cs.channel) NOT IN ('DEMO', 'DEMO_WEB', 'SIMULATION', 'SIMULATION_WEB')
+              AND UPPER(cs.channel) NOT LIKE 'SIMULATION%'
+            )
+          )
+        """,
+        params,
+        (rs, rowNum) ->
+            new WorkspaceDashboardDecisionSignalResult(
+                rs.getLong("decision_log_count"),
+                rs.getLong("missing_slot_hit_count"),
+                rs.getLong("risk_hit_count"),
+                rs.getLong("low_confidence_count")));
+  }
+
+  private WorkspaceDashboardWorkflowRecommendationSignal findHotpathSurgeWorkflow(
+      Long workspaceId,
+      OffsetDateTime periodStart,
+      OffsetDateTime periodEnd,
+      OffsetDateTime previousPeriodStart) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("workspaceId", workspaceId)
+            .addValue("periodStart", periodStart)
+            .addValue("periodEnd", periodEnd)
+            .addValue("previousPeriodStart", previousPeriodStart)
+            .addValue("surgeThreshold", HOTPATH_SURGE_CHANGE_RATE_THRESHOLD);
+    List<WorkspaceDashboardWorkflowRecommendationSignal> rows =
+        jdbcTemplate.query(
+            workflowAggregateQuery(
+                """
+                WHERE p.execution_count > 0
+                  AND ((c.execution_count - p.execution_count) * 100.0 / p.execution_count) >= :surgeThreshold
+                ORDER BY change_rate DESC, c.execution_count DESC, workflow_name ASC
+                LIMIT 1
+                """),
+            params,
+            (rs, rowNum) -> mapWorkflowSignal(rs));
+    return rows.stream().findFirst().orElse(null);
+  }
+
+  private WorkspaceDashboardWorkflowRecommendationSignal findLowCompletionWorkflow(
+      Long workspaceId, OffsetDateTime periodStart, OffsetDateTime periodEnd) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("workspaceId", workspaceId)
+            .addValue("periodStart", periodStart)
+            .addValue("periodEnd", periodEnd)
+            .addValue("previousPeriodStart", periodStart)
+            .addValue("minExecutionCount", LOW_COMPLETION_MIN_EXECUTION_COUNT)
+            .addValue("completionRateThreshold", LOW_COMPLETION_RATE_THRESHOLD);
+    List<WorkspaceDashboardWorkflowRecommendationSignal> rows =
+        jdbcTemplate.query(
+            workflowAggregateQuery(
+                """
+                WHERE c.execution_count >= :minExecutionCount
+                  AND (c.completed_count * 100.0 / c.execution_count) < :completionRateThreshold
+                ORDER BY completion_rate ASC, c.execution_count DESC, workflow_name ASC
+                LIMIT 1
+                """),
+            params,
+            (rs, rowNum) -> mapWorkflowSignal(rs));
+    return rows.stream().findFirst().orElse(null);
+  }
+
+  private String workflowAggregateQuery(String tailSql) {
+    return """
+        WITH current_workflows AS (
+          SELECT
+            COALESCE('workflow:' || we.workflow_definition_id::text, 'code:' || wd.workflow_code, 'unknown') AS group_key,
+            we.workflow_definition_id,
+            dp.id AS domain_pack_id,
+            wd.domain_pack_version_id,
+            COALESCE(NULLIF(wd.name, ''), '워크플로우 #' || we.workflow_definition_id::text, '미확인 워크플로우') AS workflow_name,
+            COUNT(*) AS execution_count,
+            COUNT(*) FILTER (WHERE we.status = 'COMPLETED') AS completed_count
+          FROM runtime.workflow_execution we
+          JOIN runtime.chat_session cs ON cs.id = we.chat_session_id
+          LEFT JOIN pack.workflow_definition wd ON wd.id = we.workflow_definition_id
+          LEFT JOIN pack.domain_pack_version dpv ON dpv.id = wd.domain_pack_version_id
+          LEFT JOIN pack.domain_pack dp ON dp.id = dpv.domain_pack_id
+          WHERE cs.workspace_id = :workspaceId
+            AND we.started_at >= :periodStart
+            AND we.started_at < :periodEnd
+            AND (
+              cs.channel IS NULL
+              OR (
+                UPPER(cs.channel) NOT IN ('DEMO', 'DEMO_WEB', 'SIMULATION', 'SIMULATION_WEB')
+                AND UPPER(cs.channel) NOT LIKE 'SIMULATION%'
+              )
+            )
+          GROUP BY group_key, we.workflow_definition_id, dp.id, wd.domain_pack_version_id, workflow_name
+        ),
+        previous_workflows AS (
+          SELECT
+            COALESCE('workflow:' || we.workflow_definition_id::text, 'code:' || wd.workflow_code, 'unknown') AS group_key,
+            COUNT(*) AS execution_count
+          FROM runtime.workflow_execution we
+          JOIN runtime.chat_session cs ON cs.id = we.chat_session_id
+          LEFT JOIN pack.workflow_definition wd ON wd.id = we.workflow_definition_id
+          WHERE cs.workspace_id = :workspaceId
+            AND we.started_at >= :previousPeriodStart
+            AND we.started_at < :periodStart
+            AND (
+              cs.channel IS NULL
+              OR (
+                UPPER(cs.channel) NOT IN ('DEMO', 'DEMO_WEB', 'SIMULATION', 'SIMULATION_WEB')
+                AND UPPER(cs.channel) NOT LIKE 'SIMULATION%'
+              )
+            )
+          GROUP BY group_key
+        )
+        SELECT
+          c.workflow_definition_id,
+          c.domain_pack_id,
+          c.domain_pack_version_id,
+          c.workflow_name,
+          c.execution_count,
+          ROUND((c.completed_count * 100.0 / c.execution_count)::numeric, 1) AS completion_rate,
+          CASE
+            WHEN p.execution_count > 0 THEN ROUND(((c.execution_count - p.execution_count) * 100.0 / p.execution_count)::numeric, 1)
+            ELSE NULL
+          END AS change_rate
+        FROM current_workflows c
+        LEFT JOIN previous_workflows p ON p.group_key = c.group_key
+        """
+        + tailSql;
+  }
+
   private WorkspaceDashboardKnowledgePackResult mapKnowledgePack(ResultSet rs) throws SQLException {
     return new WorkspaceDashboardKnowledgePackResult(
         rs.getLong("pack_id"),
@@ -155,8 +334,25 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
         rs.getString("last_error_message"));
   }
 
+  private WorkspaceDashboardWorkflowRecommendationSignal mapWorkflowSignal(ResultSet rs)
+      throws SQLException {
+    return new WorkspaceDashboardWorkflowRecommendationSignal(
+        nullableLong(rs, "workflow_definition_id"),
+        nullableLong(rs, "domain_pack_id"),
+        nullableLong(rs, "domain_pack_version_id"),
+        rs.getString("workflow_name"),
+        rs.getLong("execution_count"),
+        nullableDouble(rs, "completion_rate"),
+        nullableDouble(rs, "change_rate"));
+  }
+
   private Long nullableLong(ResultSet rs, String columnName) throws SQLException {
     long value = rs.getLong(columnName);
+    return rs.wasNull() ? null : value;
+  }
+
+  private Double nullableDouble(ResultSet rs, String columnName) throws SQLException {
+    double value = rs.getDouble(columnName);
     return rs.wasNull() ? null : value;
   }
 

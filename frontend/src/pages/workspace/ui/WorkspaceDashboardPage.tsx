@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useOutletContext, useParams } from "react-router-dom";
 import {
   ArrowRightIcon,
+  CheckCircle2Icon,
   FileUpIcon,
   FlaskConicalIcon,
   PackagePlusIcon,
@@ -17,6 +18,11 @@ import type {
   WorkspaceWorkflowRankingResponse,
 } from "@/features/consultation/api/consultationApi";
 import { KnowledgePackHealthPanel } from "@/features/workspace-dashboard-health";
+import {
+  fetchWorkspaceDashboardActionRecommendations,
+  type WorkspaceDashboardActionRecommendation,
+  type WorkspaceDashboardActionRecommendations,
+} from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { buildDemoChatPath } from "@/shared/lib/demoRoutes";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
@@ -204,6 +210,12 @@ function hasWorkflowRankingData(rankings: WorkspaceWorkflowRankingResponse | nul
   return (rankings?.rankings?.length ?? 0) > 0;
 }
 
+function hasActionRecommendationData(
+  recommendations: WorkspaceDashboardActionRecommendations | null,
+): boolean {
+  return (recommendations?.recommendations.length ?? 0) > 0;
+}
+
 function DashboardMetricCard({
   label,
   value,
@@ -372,7 +384,7 @@ function AutomationCoveragePanel({
 }) {
   const needsInstrumentation = coverage?.measurementStatus === "NEEDS_INSTRUMENTATION";
   const measurementStatus =
-    state === "loading" ? "LOADING" : coverage?.measurementStatus ?? "EMPTY";
+    state === "loading" ? "LOADING" : (coverage?.measurementStatus ?? "EMPTY");
   const measurementLabel =
     state === "loading"
       ? "계산 중"
@@ -604,6 +616,82 @@ function HotpathWorkflowRankingPanel({
   );
 }
 
+function ActionRecommendationCard({ item }: { item: WorkspaceDashboardActionRecommendation }) {
+  return (
+    <Link to={item.targetPath} className={styles.recommendationCard}>
+      <span className={styles.ruleBadge}>{item.ruleCode.replaceAll("_", " ")}</span>
+      <h3>{item.title}</h3>
+      <p>{item.description}</p>
+      <dl>
+        <div>
+          <dt>{item.evidenceLabel}</dt>
+          <dd>{item.evidenceValue}</dd>
+        </div>
+      </dl>
+      <span className={styles.recommendationLink}>
+        바로 보기
+        <ArrowRightIcon aria-hidden="true" />
+      </span>
+    </Link>
+  );
+}
+
+function ActionRecommendationsPanel({
+  recommendations,
+  state,
+  error,
+}: {
+  recommendations: WorkspaceDashboardActionRecommendations | null;
+  state: DashboardDataState;
+  error: string | null;
+}) {
+  const items = recommendations?.recommendations ?? [];
+
+  return (
+    <section className={styles.recommendationPanel} aria-labelledby="action-recommendation-title">
+      <div className={styles.panelHeader}>
+        <div>
+          <span className={styles.panelEyebrow}>Next Actions</span>
+          <h2 id="action-recommendation-title" className={styles.sectionTitle}>
+            추천 액션
+          </h2>
+          <p className={styles.sectionDescription}>
+            운영 지표의 이상 신호를 기준으로 지금 확인할 화면을 제안합니다.
+          </p>
+        </div>
+      </div>
+
+      {error ? (
+        <div className={styles.recommendationState} data-testid="recommendation-error">
+          <ErrorState message={error} />
+        </div>
+      ) : null}
+
+      {!error && state === "loading" ? (
+        <div className={styles.recommendationState} data-testid="recommendation-loading">
+          <LoadingSpinner />
+          <p className={styles.stateText}>추천 액션을 계산하는 중입니다.</p>
+        </div>
+      ) : null}
+
+      {!error && state !== "loading" && items.length === 0 ? (
+        <div className={styles.recommendationState} data-testid="recommendation-empty">
+          <CheckCircle2Icon aria-hidden="true" className={styles.panelIcon} />
+          <p className={styles.stateText}>현재 큰 이상 없음</p>
+        </div>
+      ) : null}
+
+      {!error && items.length > 0 ? (
+        <div className={styles.recommendationGrid} aria-label="고객 액션 추천">
+          {items.map((item) => (
+            <ActionRecommendationCard key={item.ruleCode} item={item} />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function DashboardFilters({
   filters,
   onChange,
@@ -815,6 +903,10 @@ export function WorkspaceDashboardPage() {
   );
   const [isWorkflowRankingsLoading, setIsWorkflowRankingsLoading] = useState(false);
   const [workflowRankingsError, setWorkflowRankingsError] = useState<string | null>(null);
+  const [actionRecommendations, setActionRecommendations] =
+    useState<WorkspaceDashboardActionRecommendations | null>(null);
+  const [isActionRecommendationsLoading, setIsActionRecommendationsLoading] = useState(false);
+  const [actionRecommendationsError, setActionRecommendationsError] = useState<string | null>(null);
   const metricDateRange = useMemo(() => buildMetricDateRange(filters), [filters]);
   const metricsState = useMemo<DashboardDataState>(() => {
     if (isMetricsLoading) return "loading";
@@ -828,19 +920,36 @@ export function WorkspaceDashboardPage() {
     if (hasWorkflowRankingData(workflowRankings)) return "partial";
     return "empty";
   }, [isWorkflowRankingsLoading, workflowRankingsError, workflowRankings]);
+  const actionRecommendationState = useMemo<DashboardDataState>(() => {
+    if (isActionRecommendationsLoading) return "loading";
+    if (actionRecommendationsError) return "error";
+    if (hasActionRecommendationData(actionRecommendations)) return "partial";
+    return "empty";
+  }, [isActionRecommendationsLoading, actionRecommendationsError, actionRecommendations]);
   const dataState = useMemo<DashboardDataState>(() => {
-    const hasAnyData = hasMetricData(metrics) || hasWorkflowRankingData(workflowRankings);
-    if ((isMetricsLoading || isWorkflowRankingsLoading) && !hasAnyData) return "loading";
+    const hasAnyData =
+      hasMetricData(metrics) ||
+      hasWorkflowRankingData(workflowRankings) ||
+      hasActionRecommendationData(actionRecommendations);
+    if (
+      (isMetricsLoading || isWorkflowRankingsLoading || isActionRecommendationsLoading) &&
+      !hasAnyData
+    ) {
+      return "loading";
+    }
     if (hasAnyData) return "partial";
-    if (metricsError && workflowRankingsError) return "error";
+    if (metricsError && workflowRankingsError && actionRecommendationsError) return "error";
     return "empty";
   }, [
     isMetricsLoading,
     isWorkflowRankingsLoading,
+    isActionRecommendationsLoading,
     metrics,
     workflowRankings,
+    actionRecommendations,
     metricsError,
     workflowRankingsError,
+    actionRecommendationsError,
   ]);
 
   useEffect(() => {
@@ -886,6 +995,53 @@ export function WorkspaceDashboardPage() {
     }
 
     void loadMetrics();
+
+    return () => {
+      ignore = true;
+    };
+  }, [parsedWorkspaceId, metricDateRange]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadActionRecommendations() {
+      if (parsedWorkspaceId === null) {
+        setActionRecommendations(null);
+        setActionRecommendationsError(null);
+        setIsActionRecommendationsLoading(false);
+        return;
+      }
+
+      if (!metricDateRange.from || !metricDateRange.to) {
+        setActionRecommendations(null);
+        setActionRecommendationsError(null);
+        setIsActionRecommendationsLoading(false);
+        return;
+      }
+
+      setIsActionRecommendationsLoading(true);
+      setActionRecommendationsError(null);
+      try {
+        const data = await fetchWorkspaceDashboardActionRecommendations(
+          parsedWorkspaceId,
+          metricDateRange,
+        );
+        if (ignore) return;
+        setActionRecommendations(data);
+      } catch (error) {
+        if (ignore) return;
+        console.error("Failed to load dashboard action recommendations:", error);
+        setActionRecommendations(null);
+        setActionRecommendationsError("추천 액션을 불러오지 못했습니다.");
+        toast.error("추천 액션을 불러오지 못했습니다.");
+      } finally {
+        if (!ignore) {
+          setIsActionRecommendationsLoading(false);
+        }
+      }
+    }
+
+    void loadActionRecommendations();
 
     return () => {
       ignore = true;
@@ -960,6 +1116,11 @@ export function WorkspaceDashboardPage() {
 
       <DashboardFilters filters={filters} onChange={setFilters} />
       <FilterSummary filters={filters} />
+      <ActionRecommendationsPanel
+        recommendations={actionRecommendations}
+        state={actionRecommendationState}
+        error={actionRecommendationsError}
+      />
       <DashboardMetricsGrid metrics={metrics} state={metricsState} />
       <AutomationCoveragePanel coverage={metrics?.coverage} state={metricsState} />
       <KnowledgePackHealthPanel workspaceId={parsedWorkspaceId} />
