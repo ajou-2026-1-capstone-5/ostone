@@ -6,6 +6,7 @@ import com.init.workflowruntime.domain.SimulationFeedback;
 import com.init.workflowruntime.domain.SimulationFeedbackRepository;
 import com.init.workflowruntime.domain.SimulationFeedbackStatus;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
@@ -22,6 +23,11 @@ public class SimulationFeedbackRepositoryAdapter implements SimulationFeedbackRe
   @Override
   public SimulationFeedback save(SimulationFeedback feedback) {
     return jpaRepository.save(feedback);
+  }
+
+  @Override
+  public Optional<SimulationFeedback> findById(Long id) {
+    return jpaRepository.findById(id);
   }
 
   @Override

@@ -970,6 +970,59 @@ CREATE INDEX idx_simulation_feedback_workspace_status_created
 CREATE INDEX idx_simulation_feedback_workspace_created
     ON runtime.simulation_feedback (workspace_id, created_at DESC);
 
+--changeset init:20260604-create-simulation-improvement-candidate
+--comment: Store reviewable improvement candidates generated from simulation feedback
+CREATE TABLE runtime.simulation_improvement_candidate (
+    id                     BIGSERIAL PRIMARY KEY,
+    workspace_id           BIGINT NOT NULL REFERENCES app.workspace(id) ON DELETE CASCADE,
+    domain_pack_version_id BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    feedback_id            BIGINT NOT NULL REFERENCES runtime.simulation_feedback(id) ON DELETE CASCADE,
+    chat_session_id        BIGINT NOT NULL REFERENCES runtime.chat_session(id) ON DELETE CASCADE,
+    chat_message_id        BIGINT REFERENCES runtime.chat_message(id) ON DELETE SET NULL,
+    candidate_type         VARCHAR(60) NOT NULL,
+    target_element_type    VARCHAR(60) NOT NULL,
+    target_element_id      BIGINT,
+    target_element_key     VARCHAR(255),
+    before_summary         TEXT NOT NULL,
+    after_summary          TEXT NOT NULL,
+    evidence_summary       TEXT NOT NULL,
+    status                 VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    created_by             BIGINT NOT NULL REFERENCES app.app_user(id),
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uk_simulation_improvement_candidate_feedback UNIQUE (feedback_id),
+    CONSTRAINT chk_simulation_improvement_candidate_type
+        CHECK (candidate_type IN (
+            'INTENT_DESCRIPTION_EXAMPLE',
+            'SLOT_QUESTION',
+            'POLICY_CONDITION',
+            'RISK_RULE',
+            'WORKFLOW_STATE_TRANSITION',
+            'HANDOFF_CONDITION',
+            'RESPONSE_COPY',
+            'OTHER'
+        )),
+    CONSTRAINT chk_simulation_improvement_candidate_target_type
+        CHECK (target_element_type IN (
+            'INTENT',
+            'SLOT',
+            'POLICY',
+            'RISK_RULE',
+            'WORKFLOW',
+            'HANDOFF',
+            'RESPONSE',
+            'UNKNOWN'
+        )),
+    CONSTRAINT chk_simulation_improvement_candidate_status
+        CHECK (status IN ('DRAFT', 'READY_FOR_REVIEW', 'APPLIED', 'REJECTED'))
+);
+
+CREATE INDEX idx_simulation_improvement_candidate_workspace_status_created
+    ON runtime.simulation_improvement_candidate (workspace_id, status, created_at DESC);
+
+CREATE INDEX idx_simulation_improvement_candidate_workspace_created
+    ON runtime.simulation_improvement_candidate (workspace_id, created_at DESC);
+
 --changeset init:20260601-add-response-mode-to-chat-session
 --comment: Add session-level AI response mode for counselor intervention control
 ALTER TABLE runtime.chat_session

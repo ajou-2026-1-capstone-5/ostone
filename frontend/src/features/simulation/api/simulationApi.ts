@@ -42,6 +42,32 @@ export type SimulationFeedbackSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type SimulationFeedbackStatus = "OPEN" | "CANDIDATE_CREATED" | "RESOLVED" | "DISMISSED";
 
+export type SimulationImprovementCandidateType =
+  | "INTENT_DESCRIPTION_EXAMPLE"
+  | "SLOT_QUESTION"
+  | "POLICY_CONDITION"
+  | "RISK_RULE"
+  | "WORKFLOW_STATE_TRANSITION"
+  | "HANDOFF_CONDITION"
+  | "RESPONSE_COPY"
+  | "OTHER";
+
+export type SimulationImprovementCandidateTargetType =
+  | "INTENT"
+  | "SLOT"
+  | "POLICY"
+  | "RISK_RULE"
+  | "WORKFLOW"
+  | "HANDOFF"
+  | "RESPONSE"
+  | "UNKNOWN";
+
+export type SimulationImprovementCandidateStatus =
+  | "DRAFT"
+  | "READY_FOR_REVIEW"
+  | "APPLIED"
+  | "REJECTED";
+
 export interface SimulationFeedback {
   id: number;
   workspaceId: number;
@@ -76,6 +102,46 @@ export interface CreateSimulationFeedbackPayload {
   description: string;
   expectedBehavior: string;
   severity: SimulationFeedbackSeverity;
+}
+
+export interface SimulationImprovementCandidate {
+  id: number;
+  workspaceId: number;
+  domainPackVersionId: number;
+  feedbackId: number;
+  sessionId: number;
+  chatMessageId: number | null;
+  candidateType: SimulationImprovementCandidateType;
+  targetElementType: SimulationImprovementCandidateTargetType;
+  targetElementId: number | null;
+  targetElementKey: string | null;
+  beforeSummary: string;
+  afterSummary: string;
+  evidenceSummary: string;
+  status: SimulationImprovementCandidateStatus;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SimulationImprovementCandidatePage {
+  content: SimulationImprovementCandidate[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface CreateSimulationImprovementCandidatePayload {
+  targetElementType?: SimulationImprovementCandidateTargetType;
+  targetElementId?: number | null;
+  targetElementKey?: string;
+  beforeSummary?: string;
+  afterSummary?: string;
+}
+
+export interface UpdateSimulationImprovementCandidateStatusPayload {
+  status: SimulationImprovementCandidateStatus;
 }
 
 type MaybeWrapped<T> = T | { data?: T };
@@ -195,5 +261,84 @@ export const simulationApi = {
       totalElements: data?.totalElements ?? data?.content?.length ?? 0,
       totalPages: data?.totalPages ?? 0,
     };
+  },
+
+  createImprovementCandidate: async (
+    workspaceId: number,
+    feedbackId: number,
+    payload: CreateSimulationImprovementCandidatePayload = {},
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/from-feedback/${feedbackId}`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  listImprovementCandidates: async (
+    workspaceId: number,
+    params: {
+      status?: SimulationImprovementCandidateStatus | "";
+      page?: number;
+      size?: number;
+    } = {},
+  ): Promise<SimulationImprovementCandidatePage> => {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.set("status", params.status);
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.size !== undefined) searchParams.set("size", String(params.size));
+    const query = searchParams.toString();
+    const path = query
+      ? `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates?${query}`
+      : `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates`;
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidatePage>>(path, {
+      method: "GET",
+    });
+    const data = selectApiData<SimulationImprovementCandidatePage>(response);
+    return {
+      content: data?.content ?? [],
+      page: data?.page ?? 0,
+      size: data?.size ?? 20,
+      totalElements: data?.totalElements ?? data?.content?.length ?? 0,
+      totalPages: data?.totalPages ?? 0,
+    };
+  },
+
+  getImprovementCandidate: async (
+    workspaceId: number,
+    candidateId: number,
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}`,
+      { method: "GET" },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 상세 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  updateImprovementCandidateStatus: async (
+    workspaceId: number,
+    candidateId: number,
+    payload: UpdateSimulationImprovementCandidateStatusPayload,
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 상태 응답을 확인할 수 없습니다.",
+    );
   },
 };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useOutletContext, useParams } from "react-router-dom";
-import { FlagIcon, PlusIcon, RefreshCwIcon, SendIcon } from "lucide-react";
+import { FlagIcon, LightbulbIcon, PlusIcon, RefreshCwIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
@@ -10,6 +10,8 @@ import {
   type SimulationFeedbackSeverity,
   type SimulationFeedbackStatus,
   type SimulationFeedbackType,
+  type SimulationImprovementCandidate,
+  type SimulationImprovementCandidateStatus,
   type SimulationSessionDetail,
 } from "@/features/simulation";
 import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
@@ -50,6 +52,24 @@ const FEEDBACK_STATUSES: Array<{ value: SimulationFeedbackStatus | ""; label: st
   { value: "RESOLVED", label: "RESOLVED" },
   { value: "DISMISSED", label: "DISMISSED" },
   { value: "", label: "전체" },
+];
+
+const CANDIDATE_STATUSES: Array<{
+  value: SimulationImprovementCandidateStatus | "";
+  label: string;
+}> = [
+  { value: "DRAFT", label: "DRAFT" },
+  { value: "READY_FOR_REVIEW", label: "READY_FOR_REVIEW" },
+  { value: "APPLIED", label: "APPLIED" },
+  { value: "REJECTED", label: "REJECTED" },
+  { value: "", label: "전체" },
+];
+
+const CANDIDATE_STATUS_OPTIONS: SimulationImprovementCandidateStatus[] = [
+  "DRAFT",
+  "READY_FOR_REVIEW",
+  "APPLIED",
+  "REJECTED",
 ];
 
 type Meta = {
@@ -106,6 +126,29 @@ function feedbackTypeLabel(type: SimulationFeedbackType): string {
   return FEEDBACK_TYPES.find((item) => item.value === type)?.label ?? type;
 }
 
+function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"]): string {
+  switch (type) {
+    case "INTENT_DESCRIPTION_EXAMPLE":
+      return "intent 설명/예시";
+    case "SLOT_QUESTION":
+      return "slot 질문";
+    case "POLICY_CONDITION":
+      return "policy 조건";
+    case "RISK_RULE":
+      return "risk rule";
+    case "WORKFLOW_STATE_TRANSITION":
+      return "workflow 전이";
+    case "HANDOFF_CONDITION":
+      return "handoff 조건";
+    case "RESPONSE_COPY":
+      return "응답 문구";
+    case "OTHER":
+      return "기타";
+    default:
+      return type;
+  }
+}
+
 export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
@@ -120,6 +163,10 @@ export function WorkspaceSimulationPage() {
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<SimulationFeedbackStatus | "">(
     "OPEN",
   );
+  const [candidateItems, setCandidateItems] = useState<SimulationImprovementCandidate[]>([]);
+  const [candidateStatusFilter, setCandidateStatusFilter] = useState<
+    SimulationImprovementCandidateStatus | ""
+  >("DRAFT");
   const [feedbackTarget, setFeedbackTarget] = useState("session");
   const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(DEFAULT_FEEDBACK_TYPE);
   const [feedbackSeverity, setFeedbackSeverity] =
@@ -129,9 +176,12 @@ export function WorkspaceSimulationPage() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
+  const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const workflows = useListAllWorkspaceWorkflows({ workspaceId: parsedWorkspaceId });
@@ -148,6 +198,16 @@ export function WorkspaceSimulationPage() {
       size: PAGE_SIZE,
     });
     setFeedbackItems(page.content);
+  };
+
+  const reloadCandidates = async (status = candidateStatusFilter) => {
+    if (parsedWorkspaceId === null) return;
+    const page = await simulationApi.listImprovementCandidates(parsedWorkspaceId, {
+      status,
+      page: 0,
+      size: PAGE_SIZE,
+    });
+    setCandidateItems(page.content);
   };
 
   useEffect(() => {
@@ -216,6 +276,32 @@ export function WorkspaceSimulationPage() {
       active = false;
     };
   }, [feedbackStatusFilter, parsedWorkspaceId]);
+
+  useEffect(() => {
+    if (parsedWorkspaceId === null) return;
+
+    let active = true;
+    setIsLoadingCandidates(true);
+    simulationApi
+      .listImprovementCandidates(parsedWorkspaceId, {
+        status: candidateStatusFilter,
+        page: 0,
+        size: PAGE_SIZE,
+      })
+      .then((page) => {
+        if (active) setCandidateItems(page.content);
+      })
+      .catch(() => {
+        if (active) toast.error("개선 후보 목록을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (active) setIsLoadingCandidates(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [candidateStatusFilter, parsedWorkspaceId]);
 
   useEffect(() => {
     if (parsedWorkspaceId === null || selectedSessionId === null) {
@@ -316,6 +402,37 @@ export function WorkspaceSimulationPage() {
       toast.error("시뮬레이션 피드백을 저장하지 못했습니다.");
     } finally {
       setIsSubmittingFeedback(false);
+    }
+  };
+
+  const handleCreateCandidate = async (feedback: SimulationFeedback) => {
+    setCreatingCandidateId(feedback.id);
+    try {
+      await simulationApi.createImprovementCandidate(parsedWorkspaceId, feedback.id);
+      toast.success("개선 후보를 생성했습니다.");
+      await Promise.all([reloadFeedback(), reloadCandidates()]);
+    } catch {
+      toast.error("개선 후보를 생성하지 못했습니다.");
+    } finally {
+      setCreatingCandidateId(null);
+    }
+  };
+
+  const handleCandidateStatusChange = async (
+    candidate: SimulationImprovementCandidate,
+    status: SimulationImprovementCandidateStatus,
+  ) => {
+    setUpdatingCandidateId(candidate.id);
+    try {
+      await simulationApi.updateImprovementCandidateStatus(parsedWorkspaceId, candidate.id, {
+        status,
+      });
+      toast.success("개선 후보 상태를 변경했습니다.");
+      await reloadCandidates();
+    } catch {
+      toast.error("개선 후보 상태를 변경하지 못했습니다.");
+    } finally {
+      setUpdatingCandidateId(null);
     }
   };
 
@@ -644,11 +761,93 @@ export function WorkspaceSimulationPage() {
               <ul className={styles.feedbackList}>
                 {feedbackItems.map((feedback) => (
                   <li key={feedback.id}>
-                    <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
-                    <span>
-                      {feedback.severity} · {feedback.status}
-                    </span>
+                    <div className={styles.feedbackRowHeader}>
+                      <div>
+                        <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
+                        <span>
+                          {feedback.severity} · {feedback.status}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleCreateCandidate(feedback)}
+                        disabled={feedback.status !== "OPEN" || creatingCandidateId === feedback.id}
+                      >
+                        <LightbulbIcon className={styles.buttonIcon} />
+                        <span>{creatingCandidateId === feedback.id ? "생성 중" : "후보"}</span>
+                      </Button>
+                    </div>
                     <p>{feedback.description}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className={styles.feedbackListPanel}>
+            <div className={styles.feedbackPanelHeader}>
+              <h3>Improvement Candidates</h3>
+              <NativeSelect
+                value={candidateStatusFilter}
+                onChange={(event) =>
+                  setCandidateStatusFilter(
+                    event.target.value as SimulationImprovementCandidateStatus | "",
+                  )
+                }
+                aria-label="개선 후보 상태 필터"
+              >
+                {CANDIDATE_STATUSES.map((item) => (
+                  <NativeSelectOption key={item.value || "ALL"} value={item.value}>
+                    {item.label}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+            {isLoadingCandidates ? (
+              <p className={styles.feedbackMuted}>개선 후보를 불러오는 중입니다.</p>
+            ) : candidateItems.length === 0 ? (
+              <p className={styles.feedbackMuted}>조건에 맞는 개선 후보가 없습니다.</p>
+            ) : (
+              <ul className={styles.candidateList}>
+                {candidateItems.map((candidate) => (
+                  <li key={candidate.id}>
+                    <div className={styles.feedbackRowHeader}>
+                      <div>
+                        <strong>{candidateTypeLabel(candidate.candidateType)}</strong>
+                        <span>
+                          version #{candidate.domainPackVersionId} · {candidate.targetElementType}
+                        </span>
+                      </div>
+                      <NativeSelect
+                        value={candidate.status}
+                        onChange={(event) =>
+                          void handleCandidateStatusChange(
+                            candidate,
+                            event.target.value as SimulationImprovementCandidateStatus,
+                          )
+                        }
+                        disabled={updatingCandidateId === candidate.id}
+                        aria-label="개선 후보 상태 변경"
+                      >
+                        {CANDIDATE_STATUS_OPTIONS.map((status) => (
+                          <NativeSelectOption key={status} value={status}>
+                            {status}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </div>
+                    <dl className={styles.candidateSummary}>
+                      <div>
+                        <dt>Before</dt>
+                        <dd>{candidate.beforeSummary}</dd>
+                      </div>
+                      <div>
+                        <dt>After</dt>
+                        <dd>{candidate.afterSummary}</dd>
+                      </div>
+                    </dl>
                   </li>
                 ))}
               </ul>
