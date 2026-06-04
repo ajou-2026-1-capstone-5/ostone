@@ -1,5 +1,6 @@
 package com.init.workflowruntime.application;
 
+import com.init.shared.application.exception.BadRequestException;
 import com.init.workflowruntime.application.command.GetWorkspaceWorkflowRankingsCommand;
 import com.init.workflowruntime.application.dto.WorkspaceWorkflowRankingItemResponse;
 import com.init.workflowruntime.application.dto.WorkspaceWorkflowRankingResponse;
@@ -93,9 +94,16 @@ public class WorkspaceWorkflowRankingService {
   }
 
   private RankingPeriod resolvePeriod(GetWorkspaceWorkflowRankingsCommand command) {
+    boolean hasFrom = command.fromDate() != null;
+    boolean hasTo = command.toDate() != null;
+    if (hasFrom != hasTo) {
+      throw new BadRequestException(
+          "INVALID_WORKFLOW_RANKING_PERIOD", "fromDate and toDate must be provided together");
+    }
+
     LocalDate startDate;
     LocalDate endDateExclusive;
-    if (command.fromDate() != null) {
+    if (hasFrom) {
       startDate = command.fromDate();
       endDateExclusive = command.toDate().plusDays(1);
     } else {
