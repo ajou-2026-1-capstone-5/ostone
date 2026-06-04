@@ -9,7 +9,7 @@ import { requireApiData, selectApiData } from "@/shared/api";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
 
 // OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
-// dashboard workflow rankings, assign/release, draft-response는 수동 호출로 유지한다.
+// dashboard workflow rankings/bottleneck analysis, assign/release, draft-response는 수동 호출로 유지한다.
 
 export type ChatSession = Omit<ChatSessionResponse, "responseMode"> & {
   assignedCounselorId?: number | null;
@@ -141,6 +141,52 @@ export interface WorkspaceWorkflowRankingResponse {
   totalConsultationCount: number;
   rankings: WorkspaceWorkflowRanking[];
   topRankings: WorkspaceWorkflowRanking[];
+}
+
+export interface WorkflowTransitionMetric {
+  stateFrom: string | null;
+  stateTo: string;
+  passCount: number;
+}
+
+export interface WorkflowStateBottleneck {
+  stateName: string;
+  metricValue: number;
+  executionCount: number;
+  description: string;
+}
+
+export interface WorkflowHitMetric {
+  name: string;
+  count: number;
+  stateName: string;
+  description: string;
+}
+
+export interface WorkflowHumanInterventionMetric {
+  stateName: string;
+  count: number;
+  description: string;
+}
+
+export interface WorkspaceWorkflowBottleneckAnalysis {
+  workspaceId: number;
+  workflowDefinitionId: number;
+  periodStart: string;
+  periodEnd: string;
+  totalExecutionCount: number;
+  completedCount: number;
+  failedCount: number;
+  runningCount: number;
+  transitions: WorkflowTransitionMetric[];
+  longestDwellState: WorkflowStateBottleneck | null;
+  mostStoppedState: WorkflowStateBottleneck | null;
+  stateMetrics: WorkflowHitMetric[];
+  missingSlotTop: WorkflowHitMetric[];
+  policyHitTop: WorkflowHitMetric[];
+  riskHitTop: WorkflowHitMetric[];
+  humanInterventionPoints: WorkflowHumanInterventionMetric[];
+  improvementHints: string[];
 }
 
 export interface DraftResponse {
@@ -402,6 +448,25 @@ export const consultationApi = {
     return requireApiData<WorkspaceWorkflowRankingResponse>(
       response,
       "워크플로우 랭킹 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  getWorkflowBottleneckAnalysis: async (
+    workspaceId: number,
+    workflowDefinitionId: number,
+    params: ConsultationMetricsParams = {},
+  ): Promise<WorkspaceWorkflowBottleneckAnalysis> => {
+    const searchParams = new URLSearchParams();
+    if (params.from) searchParams.set("from", params.from);
+    if (params.to) searchParams.set("to", params.to);
+    const query = searchParams.toString();
+    const url = `/api/v1/workspaces/${workspaceId}/dashboard/workflows/${workflowDefinitionId}/bottleneck-analysis${query ? `?${query}` : ""}`;
+    const response = await customFetch<
+      WorkspaceWorkflowBottleneckAnalysis | { data?: WorkspaceWorkflowBottleneckAnalysis }
+    >(url, { method: "GET" });
+    return requireApiData<WorkspaceWorkflowBottleneckAnalysis>(
+      response,
+      "워크플로우 병목 분석 응답을 확인할 수 없습니다.",
     );
   },
 

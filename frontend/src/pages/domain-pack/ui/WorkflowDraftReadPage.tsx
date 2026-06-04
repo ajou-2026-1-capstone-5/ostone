@@ -2,6 +2,11 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { usePackDetail } from "@/features/domain-pack-summary-read";
+import { consultationApi } from "@/features/consultation/api/consultationApi";
+import type {
+  WorkflowHitMetric,
+  WorkspaceWorkflowBottleneckAnalysis,
+} from "@/features/consultation/api/consultationApi";
 import { InlineWorkflowEditor } from "@/features/update-workflow";
 import { intentRevisionDraftApi } from "@/features/intent-revision-draft";
 import { buildDomainPackCrumbs, domainPackSectionPath } from "@/shared/lib/domainPackRoutes";
@@ -29,6 +34,8 @@ import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import { GraphViewer } from "@/features/workflow-viewer/ui/GraphViewer";
 import styles from "./workflow-draft-read-page.module.css";
 
+type AnalysisState = "loading" | "error" | "empty" | "ready";
+
 function isWorkflowGraph(v: unknown): v is WorkflowGraph {
   return (
     typeof v === "object" &&
@@ -51,6 +58,201 @@ function parseGraphJson(raw: unknown): WorkflowGraph | null {
   return isWorkflowGraph(raw) ? raw : null;
 }
 
+function formatMetricCount(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+function formatSeconds(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  if (value < 60) return `${value}초`;
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return seconds === 0 ? `${minutes}분` : `${minutes}분 ${seconds}초`;
+}
+
+function formatInclusivePeriodEnd(value: string): string {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function HitList({ title, items }: { title: string; items: WorkflowHitMetric[] }) {
+  return (
+    <section className={styles.analysisListGroup} aria-label={title}>
+      <h4>{title}</h4>
+      {items.length > 0 ? (
+        <ol>
+          {items.map((item) => (
+            <li key={`${title}-${item.stateName}-${item.name}`}>
+              <span>
+                <strong>{item.name}</strong>
+                <em>{item.stateName}</em>
+              </span>
+              <b>{formatMetricCount(item.count)}</b>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className={styles.analysisEmptyText}>관측된 항목이 없습니다.</p>
+      )}
+    </section>
+  );
+}
+
+function WorkflowBottleneckAnalysisPanel({
+  analysis,
+  state,
+  error,
+  onRetry,
+}: {
+  analysis: WorkspaceWorkflowBottleneckAnalysis | null;
+  state: AnalysisState;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  if (state === "loading") {
+    return (
+      <section className={styles.analysisPanel} data-testid="workflow-analysis-loading">
+        <LoadingSpinner />
+        <p className={styles.analysisEmptyText}>워크플로우 병목 분석을 불러오는 중입니다.</p>
+      </section>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <section className={styles.analysisPanel} data-testid="workflow-analysis-error">
+        <ErrorState message={error ?? "워크플로우 병목 분석을 불러오지 못했습니다."} onRetry={onRetry} />
+      </section>
+    );
+  }
+
+  if (state === "empty" || !analysis) {
+    return (
+      <section className={styles.analysisPanel} data-testid="workflow-analysis-empty">
+        <div className={styles.analysisHeader}>
+          <div>
+            <span className={styles.analysisEyebrow}>Bottleneck Analysis</span>
+            <h3>운영 실행 병목 분석</h3>
+          </div>
+        </div>
+        <p className={styles.analysisEmptyText}>선택 기간에 분석할 운영 실행 로그가 없습니다.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.analysisPanel} data-testid="workflow-analysis-panel">
+      <div className={styles.analysisHeader}>
+        <div>
+          <span className={styles.analysisEyebrow}>Bottleneck Analysis</span>
+          <h3>운영 실행 병목 분석</h3>
+          <p>
+            상태 전이와 runtime decision 로그를 기준으로 slot, policy, risk 개선 지점을
+            요약합니다.
+          </p>
+        </div>
+        <span className={styles.analysisPeriod}>
+          {analysis.periodStart.slice(0, 10)} ~ {formatInclusivePeriodEnd(analysis.periodEnd)}
+        </span>
+      </div>
+
+      <div className={styles.analysisMetricGrid} aria-label="워크플로우 실행 상태 요약">
+        <article>
+          <span>전체 실행</span>
+          <strong>{formatMetricCount(analysis.totalExecutionCount)}</strong>
+        </article>
+        <article>
+          <span>완료</span>
+          <strong>{formatMetricCount(analysis.completedCount)}</strong>
+        </article>
+        <article>
+          <span>실패</span>
+          <strong>{formatMetricCount(analysis.failedCount)}</strong>
+        </article>
+        <article>
+          <span>진행 중</span>
+          <strong>{formatMetricCount(analysis.runningCount)}</strong>
+        </article>
+      </div>
+
+      <div className={styles.bottleneckGrid}>
+        <article className={styles.bottleneckCard}>
+          <span>가장 오래 머문 state</span>
+          <strong>{analysis.longestDwellState?.stateName ?? "--"}</strong>
+          <p>
+            {analysis.longestDwellState
+              ? `${formatSeconds(analysis.longestDwellState.metricValue)} 평균 체류`
+              : "계산 가능한 연속 step이 없습니다."}
+          </p>
+        </article>
+        <article className={styles.bottleneckCard}>
+          <span>가장 많이 멈춘 state</span>
+          <strong>{analysis.mostStoppedState?.stateName ?? "--"}</strong>
+          <p>
+            {analysis.mostStoppedState
+              ? `${formatMetricCount(analysis.mostStoppedState.metricValue)}건이 실패 또는 진행 중`
+              : "멈춘 실행이 관측되지 않았습니다."}
+          </p>
+        </article>
+      </div>
+
+      <div className={styles.transitionList} aria-label="상태 전이 통과 수">
+        <h4>상태 전이 흐름</h4>
+        {analysis.transitions.length > 0 ? (
+          analysis.transitions.slice(0, 8).map((transition) => (
+            <div
+              key={`${transition.stateFrom ?? "start"}-${transition.stateTo}`}
+              className={styles.transitionRow}
+            >
+              <span>{transition.stateFrom ?? "시작"}</span>
+              <Icon name="chevron" size={13} />
+              <strong>{transition.stateTo}</strong>
+              <b>{formatMetricCount(transition.passCount)}회</b>
+            </div>
+          ))
+        ) : (
+          <p className={styles.analysisEmptyText}>표시할 상태 전이가 없습니다.</p>
+        )}
+      </div>
+
+      <div className={styles.analysisLists}>
+        <HitList title="Missing Slot TOP 5" items={analysis.missingSlotTop} />
+        <HitList title="Policy Hit TOP 5" items={analysis.policyHitTop} />
+        <HitList title="Risk Hit TOP 5" items={analysis.riskHitTop} />
+      </div>
+
+      <section className={styles.analysisListGroup} aria-label="상담사 개입 발생 지점">
+        <h4>상담사 개입 지점</h4>
+        {analysis.humanInterventionPoints.length > 0 ? (
+          <ol>
+            {analysis.humanInterventionPoints.map((point) => (
+              <li key={point.stateName}>
+                <span>
+                  <strong>{point.stateName}</strong>
+                  <em>{point.description}</em>
+                </span>
+                <b>{formatMetricCount(point.count)}</b>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className={styles.analysisEmptyText}>상담사 개입 지점이 관측되지 않았습니다.</p>
+        )}
+      </section>
+
+      <section className={styles.hintPanel} aria-label="검토 권장 설명">
+        {analysis.improvementHints.map((hint) => (
+          <p key={hint}>{hint}</p>
+        ))}
+      </section>
+    </section>
+  );
+}
+
 export function WorkflowDraftReadPage() {
   const { workspaceId, packId, workflowId } = useParams();
   const [search] = useSearchParams();
@@ -64,6 +266,9 @@ export function WorkflowDraftReadPage() {
     versionId: number;
     workflowId: number;
   } | null>(null);
+  const [analysis, setAnalysis] = useState<WorkspaceWorkflowBottleneckAnalysis | null>(null);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const wsId = parseRouteId(workspaceId);
   const pId = parseRouteId(packId);
@@ -96,6 +301,12 @@ export function WorkflowDraftReadPage() {
     [workflow?.graphJson],
   );
   const nodeCount = graph?.nodes?.length ?? 0;
+  const analysisState = useMemo<AnalysisState>(() => {
+    if (isAnalysisLoading) return "loading";
+    if (analysisError) return "error";
+    if ((analysis?.totalExecutionCount ?? 0) > 0) return "ready";
+    return "empty";
+  }, [isAnalysisLoading, analysisError, analysis]);
 
   useEffect(() => {
     if (!isEditDirty) return;
@@ -108,6 +319,66 @@ export function WorkflowDraftReadPage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isEditDirty]);
+
+  const loadAnalysis = async () => {
+    if (wsId === null || wfId === null) {
+      setAnalysis(null);
+      setAnalysisError(null);
+      setIsAnalysisLoading(false);
+      return;
+    }
+
+    setIsAnalysisLoading(true);
+    setAnalysisError(null);
+    try {
+      const data = await consultationApi.getWorkflowBottleneckAnalysis(wsId, wfId);
+      setAnalysis(data);
+    } catch (error) {
+      console.error("Failed to load workflow bottleneck analysis:", error);
+      setAnalysis(null);
+      setAnalysisError("워크플로우 병목 분석을 불러오지 못했습니다.");
+      toast.error("워크플로우 병목 분석을 불러오지 못했습니다.");
+    } finally {
+      setIsAnalysisLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function run() {
+      if (wsId === null || wfId === null || !enabled) {
+        setAnalysis(null);
+        setAnalysisError(null);
+        setIsAnalysisLoading(false);
+        return;
+      }
+
+      setIsAnalysisLoading(true);
+      setAnalysisError(null);
+      try {
+        const data = await consultationApi.getWorkflowBottleneckAnalysis(wsId, wfId);
+        if (ignore) return;
+        setAnalysis(data);
+      } catch (error) {
+        if (ignore) return;
+        console.error("Failed to load workflow bottleneck analysis:", error);
+        setAnalysis(null);
+        setAnalysisError("워크플로우 병목 분석을 불러오지 못했습니다.");
+        toast.error("워크플로우 병목 분석을 불러오지 못했습니다.");
+      } finally {
+        if (!ignore) {
+          setIsAnalysisLoading(false);
+        }
+      }
+    }
+
+    void run();
+
+    return () => {
+      ignore = true;
+    };
+  }, [wsId, wfId, enabled]);
 
   if (
     wsId === null ||
@@ -361,6 +632,14 @@ export function WorkflowDraftReadPage() {
 
           {enabled && !query.isLoading && !query.isError && workflow && graphContent}
         </div>
+        {enabled && !isEditing && (
+          <WorkflowBottleneckAnalysisPanel
+            analysis={analysis}
+            state={analysisState}
+            error={analysisError}
+            onRetry={() => void loadAnalysis()}
+          />
+        )}
       </div>
       <AlertDialog
         open={pendingClose !== null}

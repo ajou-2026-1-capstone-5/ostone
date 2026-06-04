@@ -8,6 +8,7 @@ const mockUseGetWorkflowDefinition = vi.fn();
 const mockUsePackDetail = vi.fn();
 const mockCreateRevisionDraft = vi.fn();
 const mockListWorkflows = vi.fn();
+const mockGetWorkflowBottleneckAnalysis = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 vi.mock("@/entities/workflow", () => ({
@@ -16,6 +17,13 @@ vi.mock("@/entities/workflow", () => ({
 
 vi.mock("@/features/domain-pack-summary-read", () => ({
   usePackDetail: (...args: unknown[]) => mockUsePackDetail(...args),
+}));
+
+vi.mock("@/features/consultation/api/consultationApi", () => ({
+  consultationApi: {
+    getWorkflowBottleneckAnalysis: (...args: unknown[]) =>
+      mockGetWorkflowBottleneckAnalysis(...args),
+  },
 }));
 
 vi.mock("@/features/update-workflow", () => ({
@@ -103,8 +111,28 @@ beforeEach(() => {
   mockUsePackDetail.mockReset();
   mockCreateRevisionDraft.mockReset();
   mockListWorkflows.mockReset();
+  mockGetWorkflowBottleneckAnalysis.mockReset();
   mockToastSuccess.mockReset();
   mockToastError.mockReset();
+  mockGetWorkflowBottleneckAnalysis.mockResolvedValue({
+    workspaceId: 1,
+    workflowDefinitionId: 10,
+    periodStart: "2026-05-29T00:00:00+09:00",
+    periodEnd: "2026-06-05T00:00:00+09:00",
+    totalExecutionCount: 0,
+    completedCount: 0,
+    failedCount: 0,
+    runningCount: 0,
+    transitions: [],
+    longestDwellState: null,
+    mostStoppedState: null,
+    stateMetrics: [],
+    missingSlotTop: [],
+    policyHitTop: [],
+    riskHitTop: [],
+    humanInterventionPoints: [],
+    improvementHints: ["선택 기간에 개선 우선순위를 판단할 병목 신호가 아직 충분하지 않습니다."],
+  });
   mockUsePackDetail.mockReturnValue({
     data: {
       name: "CS Pack",
@@ -170,6 +198,167 @@ describe("WorkflowDraftReadPage", () => {
     expect(screen.queryByText("refund.standard")).not.toBeInTheDocument();
     expect(screen.getByText("노드 2개")).toBeInTheDocument();
     expect(screen.getByTestId("graph-viewer")).toHaveTextContent("graph nodes: 2");
+  });
+
+  it("운영 실행 병목 분석 패널을 표시한다", async () => {
+    mockGetWorkflowBottleneckAnalysis.mockResolvedValueOnce({
+      workspaceId: 1,
+      workflowDefinitionId: 10,
+      periodStart: "2026-05-29T00:00:00+09:00",
+      periodEnd: "2026-06-05T00:00:00+09:00",
+      totalExecutionCount: 3,
+      completedCount: 1,
+      failedCount: 1,
+      runningCount: 1,
+      transitions: [{ stateFrom: "collect_slots", stateTo: "verify_policy", passCount: 2 }],
+      longestDwellState: {
+        stateName: "collect_slots",
+        metricValue: 420,
+        executionCount: 2,
+        description: "평균 420초 동안 머문 state",
+      },
+      mostStoppedState: {
+        stateName: "verify_policy",
+        metricValue: 1,
+        executionCount: 1,
+        description: "실패/진행 중 실행이 가장 많이 멈춘 state",
+      },
+      stateMetrics: [],
+      missingSlotTop: [
+        {
+          name: "order_id",
+          count: 2,
+          stateName: "collect_slots",
+          description: "collect_slots에서 자주 비어 있는 slot",
+        },
+      ],
+      policyHitTop: [],
+      riskHitTop: [],
+      humanInterventionPoints: [
+        {
+          stateName: "verify_policy",
+          count: 1,
+          description: "상담사 개입 action이 자주 발생한 state",
+        },
+      ],
+      improvementHints: ["order_id slot 수집 문구와 검증 규칙을 우선 점검하세요."],
+    });
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+
+    expect(await screen.findByTestId("workflow-analysis-panel")).toHaveTextContent(
+      "운영 실행 병목 분석",
+    );
+    expect(screen.getByText("전체 실행")).toBeInTheDocument();
+    expect(screen.getAllByText("collect_slots").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("verify_policy").length).toBeGreaterThan(0);
+    expect(screen.getByText("order_id")).toBeInTheDocument();
+    expect(screen.getByText("2026-05-29 ~ 2026-06-04")).toBeInTheDocument();
+    expect(screen.getByText("7분 평균 체류")).toBeInTheDocument();
+    expect(mockGetWorkflowBottleneckAnalysis).toHaveBeenCalledWith(1, 10);
+  });
+
+  it("운영 실행 병목 분석 로딩 상태를 표시한다", async () => {
+    mockGetWorkflowBottleneckAnalysis.mockReturnValueOnce(new Promise(() => undefined));
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+
+    expect(await screen.findByTestId("workflow-analysis-loading")).toHaveTextContent(
+      "워크플로우 병목 분석을 불러오는 중입니다.",
+    );
+  });
+
+  it("운영 실행 병목 분석 데이터가 없으면 빈 상태를 표시한다", async () => {
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+
+    expect(await screen.findByTestId("workflow-analysis-empty")).toHaveTextContent(
+      "선택 기간에 분석할 운영 실행 로그가 없습니다.",
+    );
+  });
+
+  it("운영 실행 병목 분석 실패 상태에서 다시 시도할 수 있다", async () => {
+    mockGetWorkflowBottleneckAnalysis
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce({
+        workspaceId: 1,
+        workflowDefinitionId: 10,
+        periodStart: "2026-05-29T00:00:00+09:00",
+        periodEnd: "2026-06-05T00:00:00+09:00",
+        totalExecutionCount: 1,
+        completedCount: 0,
+        failedCount: 0,
+        runningCount: 1,
+        transitions: [],
+        longestDwellState: {
+          stateName: "collect_slots",
+          metricValue: 75,
+          executionCount: 1,
+          description: "평균 75초 동안 머문 state",
+        },
+        mostStoppedState: null,
+        stateMetrics: [],
+        missingSlotTop: [],
+        policyHitTop: [],
+        riskHitTop: [],
+        humanInterventionPoints: [],
+        improvementHints: ["collect_slots에서 머무는 시간이 길어 다음 안내 문구나 조건을 점검하세요."],
+      });
+    mockUseGetWorkflowDefinition.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        id: 10,
+        name: "환불 처리",
+        workflowCode: "refund.standard",
+        graphJson: JSON.stringify({ direction: "LR", nodes: [], edges: [] }),
+      },
+    });
+
+    renderPage("/workspaces/1/domain-packs/2/workflows/10?versionId=3");
+
+    expect(await screen.findByTestId("workflow-analysis-error")).toHaveTextContent(
+      "워크플로우 병목 분석을 불러오지 못했습니다.",
+    );
+    expect(mockToastError).toHaveBeenCalledWith("워크플로우 병목 분석을 불러오지 못했습니다.");
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByTestId("workflow-analysis-panel")).toHaveTextContent(
+      "1분 15초 평균 체류",
+    );
+    expect(screen.getByText("멈춘 실행이 관측되지 않았습니다.")).toBeInTheDocument();
+    expect(mockGetWorkflowBottleneckAnalysis).toHaveBeenCalledTimes(2);
   });
 
   it("graphJson이 없으면 빈 그래프 안내를 표시한다", () => {

@@ -724,4 +724,78 @@ describe("consultationApi", () => {
     );
     expect(result).toEqual(stubRanking);
   });
+
+  it("getWorkflowBottleneckAnalysis가 워크플로우 병목 분석 endpoint를 호출한다", async () => {
+    const stubAnalysis = {
+      workspaceId: 2,
+      workflowDefinitionId: 10,
+      periodStart: "2026-05-21T00:00:00+09:00",
+      periodEnd: "2026-05-28T00:00:00+09:00",
+      totalExecutionCount: 3,
+      completedCount: 1,
+      failedCount: 1,
+      runningCount: 1,
+      transitions: [{ stateFrom: "collect_slots", stateTo: "verify_policy", passCount: 2 }],
+      longestDwellState: {
+        stateName: "collect_slots",
+        metricValue: 420,
+        executionCount: 2,
+        description: "평균 420초 동안 머문 state",
+      },
+      mostStoppedState: null,
+      stateMetrics: [],
+      missingSlotTop: [],
+      policyHitTop: [],
+      riskHitTop: [],
+      humanInterventionPoints: [],
+      improvementHints: [],
+    };
+    mockedCustomFetch.mockResolvedValue({
+      data: stubAnalysis,
+      status: 200,
+      headers: new Headers(),
+    });
+
+    const result = await consultationApi.getWorkflowBottleneckAnalysis(2, 10, {
+      from: "2026-05-21",
+      to: "2026-05-27",
+    });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/dashboard/workflows/10/bottleneck-analysis?from=2026-05-21&to=2026-05-27",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubAnalysis);
+  });
+
+  it("getWorkflowBottleneckAnalysis가 기간 없이 워크플로우 병목 분석 endpoint를 호출한다", async () => {
+    const stubAnalysis = {
+      workspaceId: 2,
+      workflowDefinitionId: 10,
+      periodStart: "2026-05-29T00:00:00+09:00",
+      periodEnd: "2026-06-05T00:00:00+09:00",
+      totalExecutionCount: 0,
+      completedCount: 0,
+      failedCount: 0,
+      runningCount: 0,
+      transitions: [],
+      longestDwellState: null,
+      mostStoppedState: null,
+      stateMetrics: [],
+      missingSlotTop: [],
+      policyHitTop: [],
+      riskHitTop: [],
+      humanInterventionPoints: [],
+      improvementHints: [],
+    };
+    mockedCustomFetch.mockResolvedValue(stubAnalysis as never);
+
+    const result = await consultationApi.getWorkflowBottleneckAnalysis(2, 10);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/2/dashboard/workflows/10/bottleneck-analysis",
+      { method: "GET" },
+    );
+    expect(result).toEqual(stubAnalysis);
+  });
 });
