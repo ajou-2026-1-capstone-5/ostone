@@ -46,12 +46,13 @@
 .badge {
   flex-shrink: 0;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--paper);
+  font-weight: 600;
+  color: #ffffff;
   background: var(--ink);
-  padding: 3px var(--s-2);
+  padding: 3px var(--s-3);
   border-radius: var(--r-pill);
 }
 

@@ -627,6 +627,13 @@
   gap: var(--s-2);
 }
 
+/* 아이콘 포함 CTA의 좁은 좌우 패딩(svg 시 12px)을 넉넉하게 — 레이블과 테두리 사이 여백 확보 */
+.ctaGrid > a,
+.ctaGrid > button {
+  min-height: 40px;
+  padding-inline: var(--s-5);
+}
+
 .panelIcon {
   width: 32px;
   height: 32px;

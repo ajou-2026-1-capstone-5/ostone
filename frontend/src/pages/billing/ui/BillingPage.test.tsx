@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useParams, useOutletContext, useLocation, Navigate } from "react-router-dom";
 import { useBillingOverview, usePlanCatalog } from "@/entities/billing";
@@ -57,7 +57,7 @@ const mockUsePlanCatalog = vi.mocked(usePlanCatalog);
 const baseSubscription = {
   id: 1,
   workspaceId: 1,
-  planKey: "PRO",
+  planKey: "pro_monthly",
   status: "ACTIVE",
   customerKey: "ws_1",
   cancelAtPeriodEnd: false,
@@ -208,6 +208,37 @@ describe("BillingPage", () => {
     render(<BillingPage />);
     expect(screen.getByRole("heading", { level: 1, name: "구독" })).toBeTruthy();
     expect(screen.getByText("다음 결제일")).toBeTruthy();
+  });
+
+  it("구독 중이면 기본은 관리 화면 + '플랜 업그레이드' 버튼을 보여주고 비교 카드는 숨긴다", () => {
+    setupDefaults();
+    mockUsePlanCatalog.mockReturnValue({
+      data: catalog,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    render(<BillingPage />);
+    expect(screen.getByText("다음 결제일")).toBeTruthy();
+    expect(screen.getByTestId("upgrade-plan-button")).toBeTruthy();
+    expect(screen.queryByText("Max")).toBeNull();
+  });
+
+  it("'플랜 업그레이드' 클릭 시 요금제 비교와 현재 플랜 '이용 중' 버튼을 보여준다", () => {
+    setupDefaults();
+    mockUsePlanCatalog.mockReturnValue({
+      data: catalog,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    render(<BillingPage />);
+    fireEvent.click(screen.getByTestId("upgrade-plan-button"));
+    expect(screen.getByText("Max")).toBeTruthy();
+    expect(screen.getByText("Enterprise")).toBeTruthy();
+    expect(screen.getByTestId("current-plan-cta")).toBeTruthy();
+    expect(screen.getByText("이용 중")).toBeTruthy();
+    expect(screen.getByText("← 구독 관리로 돌아가기")).toBeTruthy();
   });
 
   it("overview 에러 시 에러 메시지 표시", () => {

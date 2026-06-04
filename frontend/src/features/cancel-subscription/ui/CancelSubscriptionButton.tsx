@@ -59,10 +59,11 @@ export function CancelSubscriptionButton({ workspaceId }: CancelSubscriptionButt
       <Button
         type="button"
         variant="outline"
-        className="rounded-full px-5"
+        size="lg"
+        className="h-11 rounded-full px-9! border-[var(--danger)] text-[var(--danger)] hover:border-[var(--danger)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger)]"
         onClick={() => setOpen(true)}
       >
-        구독 해지
+        해지
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
@@ -81,7 +82,7 @@ export function CancelSubscriptionButton({ workspaceId }: CancelSubscriptionButt
               닫기
             </Button>
             <Button type="button" onClick={handleConfirm} disabled={cancel.isPending}>
-              {cancel.isPending ? "처리 중…" : "구독 해지"}
+              {cancel.isPending ? "처리 중…" : "해지"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -372,7 +372,7 @@ function AutomationCoveragePanel({
 }) {
   const needsInstrumentation = coverage?.measurementStatus === "NEEDS_INSTRUMENTATION";
   const measurementStatus =
-    state === "loading" ? "LOADING" : coverage?.measurementStatus ?? "EMPTY";
+    state === "loading" ? "LOADING" : (coverage?.measurementStatus ?? "EMPTY");
   const measurementLabel =
     state === "loading"
       ? "계산 중"
@@ -782,7 +782,7 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
         <Button asChild variant="default">
           <Link to={`/workspaces/${workspaceId}/upload`} data-testid="dashboard-upload-cta">
             <FileUpIcon aria-hidden="true" />
-            상담 로그 업로드
+            상담 업로드
           </Link>
         </Button>
         <Button asChild variant="outline">

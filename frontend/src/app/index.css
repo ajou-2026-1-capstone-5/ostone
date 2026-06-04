@@ -18,7 +18,8 @@
 }
 
 :root {
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
     "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   --font-mono: "Geist Mono", "SF Mono", Menlo, Monaco, Consolas, monospace;
@@ -140,14 +141,22 @@ body {
   overflow-x: hidden;
 }
 
-a {
-  color: var(--primary-color);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
+/*
+ * base 레이어에 둬 utilities 레이어(예: shadcn Button의 text-primary-foreground)가 이기게 한다.
+ * 미적용(unlayered) 시 Tailwind v4 cascade layer 규칙상 이 anchor 색이 utilities를 덮어,
+ * 검은 배경 버튼-링크(Button asChild + Link)가 검은 글씨로 렌더되어 보이지 않는다.
+ * 평문 링크는 utilities 색이 없으므로 기본 색을 그대로 유지한다.
+ */
+@layer base {
+  a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
 
-a:hover {
-  color: var(--primary-color-hover);
+  a:hover {
+    color: var(--primary-color-hover);
+  }
 }
 
 @keyframes slide-up {

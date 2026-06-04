@@ -25,7 +25,7 @@ export function RegisterBillingButton({
   return (
     <Button
       type="button"
-      className="w-full rounded-full px-6"
+      className="h-11 w-full rounded-full px-6"
       disabled={register.isPending || clientKeyMissing}
       onClick={() => register.mutate({ workspaceId, subscription, planKey })}
     >
