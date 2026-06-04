@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.Nullable;
 
 @Entity
 @Table(name = "payment", schema = "payment")
@@ -180,6 +181,21 @@ public class Payment {
     this.rawResponse = rawResponse;
   }
 
+  public PaymentCancel refundFull(
+      @Nullable String reason,
+      @Nullable String transactionKey,
+      @Nullable OffsetDateTime canceledAt) {
+    if (status != PaymentStatus.DONE) {
+      throw new IllegalStateException("DONE payment is required for full refund");
+    }
+    validateRequired(reason, "reason");
+    validateRequired(transactionKey, "transactionKey");
+    PaymentCancel cancel =
+        PaymentCancel.create(id, amount, reason, transactionKey, null, canceledAt);
+    this.status = PaymentStatus.CANCELED;
+    return cancel;
+  }
+
   public boolean isDone() {
     return status == PaymentStatus.DONE;
   }
@@ -266,5 +282,11 @@ public class Payment {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  private static void validateRequired(@Nullable String value, String name) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(name + " must not be null or blank");
+    }
   }
 }

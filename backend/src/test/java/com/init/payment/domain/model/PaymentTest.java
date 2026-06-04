@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("Payment 도메인")
 class PaymentTest {
@@ -107,5 +108,62 @@ class PaymentTest {
   void negativeAmount_rejected() {
     assertThatThrownBy(() -> Payment.createOrder(1L, 5L, "ord_1", -1, "KRW", "Pro"))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("refundFull: DONE 결제를 CANCELED로 전이하고 전액 취소 기록을 만든다")
+  void refundFull_cancelsDonePayment() {
+    Payment payment = completedPayment("ord_refund_1");
+    OffsetDateTime canceledAt = OffsetDateTime.parse("2026-06-02T00:00:00Z");
+
+    PaymentCancel cancel = payment.refundFull("고객 요청", "tx_cancel_1", canceledAt);
+
+    assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCELED);
+    assertThat(cancel.getPaymentId()).isEqualTo(100L);
+    assertThat(cancel.getCancelAmount()).isEqualTo(29000L);
+    assertThat(cancel.getReason()).isEqualTo("고객 요청");
+    assertThat(cancel.getTransactionKey()).isEqualTo("tx_cancel_1");
+    assertThat(cancel.getCanceledAt()).isEqualTo(canceledAt);
+  }
+
+  @Test
+  @DisplayName("refundFull: DONE이 아닌 결제는 전액 환불할 수 없다")
+  void refundFull_requiresDonePayment() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_ready", 29000, "KRW", "Pro");
+
+    assertThatThrownBy(() -> payment.refundFull("고객 요청", "tx_cancel_1", NOW))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("DONE payment is required for full refund");
+  }
+
+  @Test
+  @DisplayName("refundFull: reason과 transactionKey는 필수다")
+  void refundFull_requiresReasonAndTransactionKey() {
+    Payment missingReason = completedPayment("ord_refund_2");
+    Payment missingTransactionKey = completedPayment("ord_refund_3");
+
+    assertThatThrownBy(() -> missingReason.refundFull(" ", "tx_cancel_1", NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("reason must not be null or blank");
+    assertThatThrownBy(() -> missingTransactionKey.refundFull("고객 요청", " ", NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("transactionKey must not be null or blank");
+  }
+
+  @Test
+  @DisplayName("refundFull: 취소 시각이 없으면 저장 시점에 채울 수 있도록 null을 허용한다")
+  void refundFull_allowsNullCanceledAt() {
+    Payment payment = completedPayment("ord_refund_4");
+
+    PaymentCancel cancel = payment.refundFull("고객 요청", "tx_cancel_1", null);
+
+    assertThat(cancel.getCanceledAt()).isNull();
+  }
+
+  private Payment completedPayment(String orderId) {
+    Payment payment = Payment.createOrder(1L, 5L, orderId, 29000, "KRW", "Pro");
+    ReflectionTestUtils.setField(payment, "id", 100L);
+    payment.complete("pay_" + orderId, "카드", NOW, "https://receipt", "{}");
+    return payment;
   }
 }

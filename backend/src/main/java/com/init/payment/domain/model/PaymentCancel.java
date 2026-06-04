@@ -43,6 +43,16 @@ public class PaymentCancel {
       String reason,
       String transactionKey,
       String idempotencyKey) {
+    return create(paymentId, cancelAmount, reason, transactionKey, idempotencyKey, null);
+  }
+
+  public static PaymentCancel create(
+      Long paymentId,
+      long cancelAmount,
+      String reason,
+      String transactionKey,
+      String idempotencyKey,
+      OffsetDateTime canceledAt) {
     if (paymentId == null) {
       throw new IllegalArgumentException("paymentId must not be null");
     }
@@ -56,12 +66,15 @@ public class PaymentCancel {
     cancel.reason = reason;
     cancel.transactionKey = transactionKey;
     cancel.idempotencyKey = idempotencyKey;
+    cancel.canceledAt = canceledAt;
     return cancel;
   }
 
   @PrePersist
   protected void onPersist() {
-    this.canceledAt = OffsetDateTime.now();
+    if (canceledAt == null) {
+      this.canceledAt = OffsetDateTime.now();
+    }
   }
 
   public Long getId() {

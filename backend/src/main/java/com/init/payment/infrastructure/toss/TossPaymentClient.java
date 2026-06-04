@@ -3,8 +3,11 @@ package com.init.payment.infrastructure.toss;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.payment.application.TossPayloadMasker;
+import com.init.payment.application.exception.PaymentExceptions;
 import com.init.payment.application.exception.PaymentGatewayException;
 import com.init.payment.application.exception.PaymentRejectedException;
+import com.init.payment.application.gateway.TossCancelResult;
+import com.init.payment.application.gateway.TossPaymentGateway;
 import com.init.payment.application.port.TossBillingExecuteCommand;
 import com.init.payment.application.port.TossBillingKeyResult;
 import com.init.payment.application.port.TossPaymentPort;
@@ -19,13 +22,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConversionException;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
-public class TossPaymentClient implements TossPaymentPort {
+public class TossPaymentClient implements TossPaymentPort, TossPaymentGateway {
 
   private static final Logger log = LoggerFactory.getLogger(TossPaymentClient.class);
   private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
@@ -91,6 +95,25 @@ public class TossPaymentClient implements TossPaymentPort {
   }
 
   @Override
+  public TossCancelResult cancelPayment(String paymentKey, String reason, String idempotencyKey) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("cancelReason", reason);
+    try {
+      JsonNode root = postRaw("/v1/payments/" + paymentKey + "/cancel", body, idempotencyKey);
+      JsonNode cancel = latestCancel(root);
+      return new TossCancelResult(
+          text(cancel, "transactionKey"), parseDateTime(text(cancel, "canceledAt")));
+    } catch (RestClientResponseException ex) {
+      if (ex.getStatusCode().is4xxClientError()) {
+        throw PaymentExceptions.gatewayRejected("Toss가 환불 요청을 거절했습니다.");
+      }
+      throw PaymentExceptions.gatewayUnavailable(ex);
+    } catch (RestClientException | HttpMessageConversionException ex) {
+      throw PaymentExceptions.gatewayUnavailable(ex);
+    }
+  }
+
+  @Override
   public TossPaymentResult getPayment(String paymentKey) {
     try {
       String raw =
@@ -109,20 +132,7 @@ public class TossPaymentClient implements TossPaymentPort {
   private JsonNode post(
       String path, Map<String, Object> body, String action, String idempotencyKey) {
     try {
-      String raw =
-          restClient
-              .post()
-              .uri(apiPath(path))
-              .contentType(MediaType.APPLICATION_JSON)
-              .headers(
-                  headers -> {
-                    headers.setBasicAuth(secretKey(), "");
-                    headers.set(IDEMPOTENCY_KEY_HEADER, idempotencyKey);
-                  })
-              .body(body)
-              .retrieve()
-              .body(String.class);
-      return readTree(raw);
+      return postRaw(path, body, idempotencyKey);
     } catch (RestClientResponseException ex) {
       if (ex.getStatusCode().is4xxClientError()) {
         log.warn("Toss API가 요청을 거절했습니다: action={}, status={}", action, ex.getStatusCode());
@@ -132,6 +142,23 @@ public class TossPaymentClient implements TossPaymentPort {
     } catch (RestClientException | HttpMessageConversionException ex) {
       throw gatewayError(action, ex);
     }
+  }
+
+  private JsonNode postRaw(String path, Map<String, Object> body, String idempotencyKey) {
+    String raw =
+        restClient
+            .post()
+            .uri(apiPath(path))
+            .contentType(MediaType.APPLICATION_JSON)
+            .headers(
+                headers -> {
+                  headers.setBasicAuth(secretKey(), "");
+                  headers.set(IDEMPOTENCY_KEY_HEADER, idempotencyKey);
+                })
+            .body(body)
+            .retrieve()
+            .body(String.class);
+    return readTree(raw);
   }
 
   private TossPaymentResult toPaymentResult(JsonNode root) {
@@ -150,6 +177,19 @@ public class TossPaymentClient implements TossPaymentPort {
         text(root.path("receipt"), "url"),
         transactionKey,
         maskedJson(root));
+  }
+
+  private JsonNode latestCancel(JsonNode root) {
+    JsonNode cancels = root.path("cancels");
+    if (!cancels.isArray() || cancels.isEmpty()) {
+      throw PaymentExceptions.gatewayRejected("Toss 환불 응답에 취소 기록이 없습니다.");
+    }
+    JsonNode cancel = cancels.get(cancels.size() - 1);
+    String transactionKey = text(cancel, "transactionKey");
+    if (transactionKey == null || transactionKey.isBlank()) {
+      throw PaymentExceptions.gatewayRejected("Toss 환불 응답에 거래 키가 없습니다.");
+    }
+    return cancel;
   }
 
   private JsonNode readTree(String raw) {
@@ -192,7 +232,7 @@ public class TossPaymentClient implements TossPaymentPort {
     return RestClient.builder().requestFactory(requestFactory).build();
   }
 
-  private static Duration durationOrDefault(Duration duration, Duration defaultValue) {
+  private static Duration durationOrDefault(@Nullable Duration duration, Duration defaultValue) {
     return duration == null ? defaultValue : duration;
   }
 
@@ -216,7 +256,7 @@ public class TossPaymentClient implements TossPaymentPort {
     return b;
   }
 
-  private static OffsetDateTime parseDateTime(String value) {
+  private static OffsetDateTime parseDateTime(@Nullable String value) {
     if (value == null || value.isBlank()) {
       return null;
     }

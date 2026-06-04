@@ -10,6 +10,8 @@ public interface PaymentRepository {
 
   Optional<Payment> findById(Long id);
 
+  Optional<Payment> findByIdForUpdate(Long id);
+
   Optional<Payment> findByOrderId(String orderId);
 
   Optional<Payment> findByWorkspaceIdAndOrderId(Long workspaceId, String orderId);

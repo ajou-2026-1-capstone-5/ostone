@@ -9,8 +9,8 @@ import { ConsultationPage } from "../pages/consultation/ui/ConsultationPage";
 import { UserChatPage } from "../pages/user-chat";
 import { DemoPage } from "../pages/demo";
 import { AdminLayout } from "../pages/admin/ui/AdminLayout";
+import { AdminBillingPage } from "../pages/admin/ui/AdminBillingPage";
 import { AdminCustomersPage } from "../pages/admin/ui/AdminCustomersPage";
-import { AdminPlaceholderPage } from "../pages/admin/ui/AdminPlaceholderPage";
 import { AdminPipelineJobsPage } from "../pages/admin/ui/AdminPipelineJobsPage";
 import { AdminSuperAdminsPage } from "../pages/admin/ui/AdminSuperAdminsPage";
 import { NotFoundPage } from "../pages/not-found/ui/NotFoundPage";
@@ -81,10 +81,7 @@ export function App() {
         >
           <Route index element={<Navigate to="super-admins" replace />} />
           <Route path="customers" element={<AdminCustomersPage />} />
-          <Route
-            path="billing"
-            element={<AdminPlaceholderPage eyebrow="Billing" title="결제 관리" />}
-          />
+          <Route path="billing" element={<AdminBillingPage />} />
           <Route path="airflow" element={<AdminPipelineJobsPage />} />
           <Route path="super-admins" element={<AdminSuperAdminsPage />} />
         </Route>

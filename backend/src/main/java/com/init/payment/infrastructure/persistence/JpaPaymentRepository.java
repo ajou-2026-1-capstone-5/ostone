@@ -18,6 +18,11 @@ public interface JpaPaymentRepository extends JpaRepository<Payment, Long>, Paym
   Optional<Payment> findByOrderId(String orderId);
 
   @Override
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT p FROM Payment p WHERE p.id = :id")
+  Optional<Payment> findByIdForUpdate(@Param("id") Long id);
+
+  @Override
   Optional<Payment> findByWorkspaceIdAndOrderId(Long workspaceId, String orderId);
 
   @Override
