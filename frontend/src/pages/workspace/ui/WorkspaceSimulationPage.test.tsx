@@ -29,6 +29,9 @@ vi.mock("@/features/simulation", () => ({
     sendMessage: vi.fn(),
     createFeedback: vi.fn(),
     listFeedback: vi.fn(),
+    createImprovementCandidate: vi.fn(),
+    listImprovementCandidates: vi.fn(),
+    updateImprovementCandidateStatus: vi.fn(),
   },
 }));
 
@@ -165,6 +168,13 @@ beforeEach(() => {
     size: 20,
     totalElements: 1,
     totalPages: 1,
+  });
+  mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+    content: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
   });
   mockedSimulationApi.sendMessage.mockResolvedValue({
     ...detail,
