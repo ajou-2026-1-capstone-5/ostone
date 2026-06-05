@@ -17,8 +17,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
 
-  private static final String SIMULATION_CHANNEL = "SIMULATION";
-
   private final JpaChatSessionRepository jpaRepository;
 
   public ChatSessionRepositoryAdapter(JpaChatSessionRepository jpaRepository) {
@@ -67,8 +65,9 @@ public class ChatSessionRepositoryAdapter implements ChatSessionRepository {
       findFirstByWorkspaceIdAndStartedByAndStatusInOrderByStartedAtDescIdDesc(
           Long workspaceId, Long startedBy, Collection<ChatSessionStatus> statuses) {
     return jpaRepository
-        .findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
-            workspaceId, startedBy, statuses, SIMULATION_CHANNEL);
+        .findReusableOperationalSessions(workspaceId, startedBy, statuses, PageRequest.of(0, 1))
+        .stream()
+        .findFirst();
   }
 
   @Override

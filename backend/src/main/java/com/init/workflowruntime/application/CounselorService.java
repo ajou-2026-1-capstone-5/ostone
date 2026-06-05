@@ -337,7 +337,8 @@ public class CounselorService {
   }
 
   private boolean isOperationalSession(ChatSession session) {
-    return !SIMULATION_CHANNEL.equals(session.getChannel());
+    String channel = session.getChannel();
+    return channel == null || !channel.toUpperCase(Locale.ROOT).startsWith(SIMULATION_CHANNEL);
   }
 
   private ChatSessionResponseMode parseResponseMode(String responseMode) {

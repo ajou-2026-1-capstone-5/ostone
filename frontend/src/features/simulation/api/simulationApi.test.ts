@@ -36,6 +36,34 @@ const candidate = {
   updatedAt: "2026-06-04T10:05:00Z",
 } as const;
 
+const goldenCase = {
+  id: 900,
+  workspaceId: 7,
+  sourceSessionId: 20,
+  sourceDomainPackVersionId: 101,
+  name: "환불 검증",
+  inputMessagesJson: '[{"content":"환불하고 싶어요"}]',
+  expectedJson: '{"currentState":"collect_order_no"}',
+  createdBy: 3,
+  createdAt: "2026-06-05T10:05:00Z",
+  updatedAt: "2026-06-05T10:05:00Z",
+  latestReplayResult: null,
+} as const;
+
+const replayResult = {
+  id: 950,
+  workspaceId: 7,
+  goldenCaseId: 900,
+  domainPackVersionId: 101,
+  replaySessionId: 901,
+  status: "PASS",
+  expectedJson: "{}",
+  actualJson: "{}",
+  failureSummary: null,
+  createdBy: 3,
+  createdAt: "2026-06-05T10:06:00Z",
+} as const;
+
 describe("simulationApi", () => {
   beforeEach(() => {
     mockedCustomFetch.mockReset();
@@ -299,5 +327,81 @@ describe("simulationApi", () => {
       },
     );
     expect(result.status).toBe("REJECTED");
+  });
+
+  it("listGoldenCases가 page query와 기본 page shape을 반환한다", async () => {
+    mockedCustomFetch.mockResolvedValue({ data: { content: [goldenCase], page: 0, size: 20 } });
+
+    const result = await simulationApi.listGoldenCases(7, { page: 0, size: 20 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/golden-cases?page=0&size=20",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: [goldenCase],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 0,
+    });
+  });
+
+  it("createGoldenCase가 세션별 검증 케이스 endpoint를 호출한다", async () => {
+    const payload = {
+      name: "환불 검증",
+      expectedIntentCode: "refund_request",
+      expectedWorkflowCode: "refund_workflow",
+      expectedCurrentState: "collect_order_no",
+      expectedActionType: "ASK_SLOT",
+      expectedSlotValues: { orderNo: "A-100" },
+    };
+    mockedCustomFetch.mockResolvedValue({ data: goldenCase });
+
+    const result = await simulationApi.createGoldenCase(7, 20, payload);
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/sessions/20/golden-cases",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    expect(result).toEqual(goldenCase);
+  });
+
+  it("replayGoldenCase가 replay endpoint를 호출한다", async () => {
+    mockedCustomFetch.mockResolvedValue({ data: replayResult });
+
+    const result = await simulationApi.replayGoldenCase(7, 900, { domainPackVersionId: 101 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/golden-cases/900/replays",
+      {
+        method: "POST",
+        body: JSON.stringify({ domainPackVersionId: 101 }),
+      },
+    );
+    expect(result.status).toBe("PASS");
+  });
+
+  it("listGoldenCaseReplays가 replay 결과 목록 endpoint를 호출한다", async () => {
+    mockedCustomFetch.mockResolvedValue({
+      data: { content: [replayResult], page: 1, size: 5 },
+    });
+
+    const result = await simulationApi.listGoldenCaseReplays(7, 900, { page: 1, size: 5 });
+
+    expect(mockedCustomFetch).toHaveBeenCalledWith(
+      "/api/v1/workspaces/7/simulation/golden-cases/900/replays?page=1&size=5",
+      { method: "GET" },
+    );
+    expect(result).toEqual({
+      content: [replayResult],
+      page: 1,
+      size: 5,
+      totalElements: 1,
+      totalPages: 0,
+    });
   });
 });

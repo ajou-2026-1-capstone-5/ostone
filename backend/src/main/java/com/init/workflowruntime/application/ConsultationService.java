@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
@@ -273,7 +274,8 @@ public class ConsultationService {
   }
 
   private void validateOperationalSession(ChatSession session) {
-    if (SIMULATION_CHANNEL.equals(session.getChannel())) {
+    String channel = session.getChannel();
+    if (channel != null && channel.toUpperCase(Locale.ROOT).startsWith(SIMULATION_CHANNEL)) {
       throw new NotFoundException("SESSION_NOT_FOUND", "Session not found: " + session.getId());
     }
   }

@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useOutletContext, useParams } from "react-router-dom";
-import { FlagIcon, LightbulbIcon, PlusIcon, RefreshCwIcon, SendIcon } from "lucide-react";
+import {
+  CheckCircleIcon,
+  FlagIcon,
+  LightbulbIcon,
+  PlayIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SendIcon,
+  XCircleIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
@@ -10,6 +19,8 @@ import {
   type SimulationFeedbackSeverity,
   type SimulationFeedbackStatus,
   type SimulationFeedbackType,
+  type SimulationGoldenCase,
+  type SimulationGoldenCaseReplayStatus,
   type SimulationImprovementCandidate,
   type SimulationImprovementCandidateStatus,
   type SimulationSessionDetail,
@@ -64,6 +75,8 @@ const CANDIDATE_STATUSES: Array<{
   { value: "REJECTED", label: "REJECTED" },
   { value: "", label: "전체" },
 ];
+
+const ACTION_TYPES = ["ASK_SLOT", "ADVANCE", "ANSWER", "COMPLETED", "HANDOFF", "WAIT"] as const;
 
 type Meta = {
   customerName?: string;
@@ -142,6 +155,35 @@ function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"
   }
 }
 
+function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): string {
+  switch (status) {
+    case "PASS":
+      return "PASS";
+    case "FAIL":
+      return "FAIL";
+    default:
+      return "미실행";
+  }
+}
+
+function readExpectedField(goldenCase: SimulationGoldenCase, field: string): string | null {
+  try {
+    const parsed = JSON.parse(goldenCase.expectedJson);
+    if (parsed && typeof parsed === "object" && field in parsed) {
+      const value = (parsed as Record<string, unknown>)[field];
+      return value == null ? null : String(value);
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function optionalText(value?: string | null): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
 export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
   const parsedWorkspaceId = parseRouteId(workspaceId);
@@ -157,6 +199,7 @@ export function WorkspaceSimulationPage() {
     "OPEN",
   );
   const [candidateItems, setCandidateItems] = useState<SimulationImprovementCandidate[]>([]);
+  const [goldenCases, setGoldenCases] = useState<SimulationGoldenCase[]>([]);
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<
     SimulationImprovementCandidateStatus | ""
   >("DRAFT");
@@ -166,13 +209,19 @@ export function WorkspaceSimulationPage() {
     useState<SimulationFeedbackSeverity>(DEFAULT_FEEDBACK_SEVERITY);
   const [feedbackDescription, setFeedbackDescription] = useState("");
   const [feedbackExpectedBehavior, setFeedbackExpectedBehavior] = useState("");
+  const [goldenCaseName, setGoldenCaseName] = useState("");
+  const [expectedActionType, setExpectedActionType] = useState("");
+  const [replayVersionId, setReplayVersionId] = useState("");
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
+  const [isLoadingGoldenCases, setIsLoadingGoldenCases] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isCreatingGoldenCase, setIsCreatingGoldenCase] = useState(false);
+  const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<number | null>(null);
   const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
   const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
   const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
@@ -183,6 +232,7 @@ export function WorkspaceSimulationPage() {
     const numericId = Number(workflowDefinitionId);
     return workflows.entries.find((entry) => entry.workflowId === numericId) ?? null;
   }, [workflowDefinitionId, workflows.entries]);
+  const matched = detail?.matchedWorkflow ?? null;
 
   const reloadFeedback = async (status = feedbackStatusFilter) => {
     if (parsedWorkspaceId === null) return;
@@ -204,6 +254,15 @@ export function WorkspaceSimulationPage() {
     setCandidateItems(page.content);
   };
 
+  const reloadGoldenCases = async () => {
+    if (parsedWorkspaceId === null) return;
+    const page = await simulationApi.listGoldenCases(parsedWorkspaceId, {
+      page: 0,
+      size: PAGE_SIZE,
+    });
+    setGoldenCases(page.content);
+  };
+
   useEffect(() => {
     setCrumbs(["시뮬레이션"]);
     return () => setCrumbs([]);
@@ -216,6 +275,21 @@ export function WorkspaceSimulationPage() {
     setFeedbackDescription("");
     setFeedbackExpectedBehavior("");
   }, [selectedSessionId]);
+
+  useEffect(() => {
+    if (detail?.session) {
+      setGoldenCaseName(`${customerName(detail.session)} 검증 케이스`);
+      setReplayVersionId(
+        detail.matchedWorkflow?.domainPackVersionId
+          ? String(detail.matchedWorkflow.domainPackVersionId)
+          : "",
+      );
+    } else {
+      setGoldenCaseName("");
+      setReplayVersionId("");
+    }
+    setExpectedActionType("");
+  }, [detail?.session, detail?.matchedWorkflow?.domainPackVersionId]);
 
   useEffect(() => {
     if (parsedWorkspaceId === null) return;
@@ -296,6 +370,28 @@ export function WorkspaceSimulationPage() {
       active = false;
     };
   }, [candidateStatusFilter, parsedWorkspaceId]);
+
+  useEffect(() => {
+    if (parsedWorkspaceId === null) return;
+
+    let active = true;
+    setIsLoadingGoldenCases(true);
+    simulationApi
+      .listGoldenCases(parsedWorkspaceId, { page: 0, size: PAGE_SIZE })
+      .then((page) => {
+        if (active) setGoldenCases(page.content);
+      })
+      .catch(() => {
+        if (active) toast.error("검증 케이스 목록을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (active) setIsLoadingGoldenCases(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [parsedWorkspaceId]);
 
   useEffect(() => {
     if (parsedWorkspaceId === null || selectedSessionId === null) {
@@ -476,9 +572,69 @@ export function WorkspaceSimulationPage() {
     }
   };
 
+  const handleCreateGoldenCase = async () => {
+    if (detail?.session.id == null) return;
+    if (
+      messages.filter(
+        (message) => message.senderRole === "USER" || message.senderRole === "CUSTOMER",
+      ).length === 0
+    ) {
+      toast.error("고객 메시지가 있어야 검증 케이스로 저장할 수 있습니다.");
+      return;
+    }
+    setIsCreatingGoldenCase(true);
+    try {
+      await simulationApi.createGoldenCase(parsedWorkspaceId, detail.session.id, {
+        name: optionalText(goldenCaseName),
+        expectedIntentCode: optionalText(matched?.intentCode),
+        expectedWorkflowCode: optionalText(matched?.workflowCode),
+        expectedCurrentState: optionalText(matched?.currentState),
+        expectedActionType: optionalText(expectedActionType),
+        expectedSlotValues: detail.slotValues ?? {},
+      });
+      toast.success("검증 케이스를 저장했습니다.");
+      try {
+        await reloadGoldenCases();
+      } catch {
+        toast.error("검증 케이스 목록 새로고침에 실패했습니다.");
+      }
+    } catch {
+      toast.error("검증 케이스를 저장하지 못했습니다.");
+    } finally {
+      setIsCreatingGoldenCase(false);
+    }
+  };
+
+  const handleReplayGoldenCase = async (goldenCase: SimulationGoldenCase) => {
+    const versionId = Number.parseInt(replayVersionId, 10);
+    if (!Number.isFinite(versionId) || versionId <= 0) {
+      toast.error("Replay version을 입력하세요.");
+      return;
+    }
+    setReplayingGoldenCaseId(goldenCase.id);
+    try {
+      const result = await simulationApi.replayGoldenCase(parsedWorkspaceId, goldenCase.id, {
+        domainPackVersionId: versionId,
+      });
+      toast.success(
+        result.status === "PASS"
+          ? "검증 케이스 replay가 통과했습니다."
+          : "검증 케이스 replay가 실패했습니다.",
+      );
+      try {
+        await reloadGoldenCases();
+      } catch {
+        toast.error("검증 케이스 목록 새로고침에 실패했습니다.");
+      }
+    } catch {
+      toast.error("검증 케이스 replay를 실행하지 못했습니다.");
+    } finally {
+      setReplayingGoldenCaseId(null);
+    }
+  };
+
   const messages = detail?.messages ?? [];
   const slots = slotEntries(detail);
-  const matched = detail?.matchedWorkflow ?? null;
   const feedbackCounts = detail?.feedback?.messageFeedbackCounts ?? {};
   const selectedFeedbackTarget = messages.find((message) => String(message.id) === feedbackTarget);
   const selectedTargetLabel =
@@ -689,6 +845,119 @@ export function WorkspaceSimulationPage() {
             )}
           </div>
 
+          <div className={styles.goldenCasePanel}>
+            <div className={styles.feedbackPanelHeader}>
+              <h3>검증 케이스</h3>
+              <span>{goldenCases.length}</span>
+            </div>
+            <label className={styles.feedbackField}>
+              <span>이름</span>
+              <input
+                value={goldenCaseName}
+                onChange={(event) => setGoldenCaseName(event.target.value)}
+                maxLength={255}
+                aria-label="검증 케이스 이름"
+              />
+            </label>
+            <label className={styles.feedbackField}>
+              <span>기대 action</span>
+              <NativeSelect
+                value={expectedActionType}
+                onChange={(event) => setExpectedActionType(event.target.value)}
+                aria-label="기대 action"
+              >
+                <NativeSelectOption value="">현재 replay에서 비교 안 함</NativeSelectOption>
+                {ACTION_TYPES.map((type) => (
+                  <NativeSelectOption key={type} value={type}>
+                    {type}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className={styles.feedbackField}>
+              <span>Replay version</span>
+              <input
+                value={replayVersionId}
+                onChange={(event) => setReplayVersionId(event.target.value)}
+                inputMode="numeric"
+                aria-label="Replay version"
+              />
+            </label>
+            <Button
+              type="button"
+              onClick={handleCreateGoldenCase}
+              disabled={isCreatingGoldenCase || detail === null}
+            >
+              <CheckCircleIcon className={styles.buttonIcon} />
+              <span>{isCreatingGoldenCase ? "저장 중" : "등록"}</span>
+            </Button>
+            {isLoadingGoldenCases ? (
+              <p className={styles.feedbackMuted}>검증 케이스를 불러오는 중입니다.</p>
+            ) : goldenCases.length === 0 ? (
+              <p className={styles.feedbackMuted}>저장된 검증 케이스가 없습니다.</p>
+            ) : (
+              <ul className={styles.goldenCaseList}>
+                {goldenCases.map((goldenCase) => {
+                  const replayStatus = goldenCase.latestReplayResult?.status;
+                  const state = readExpectedField(goldenCase, "currentState");
+                  const action = readExpectedField(goldenCase, "actionType");
+                  return (
+                    <li key={goldenCase.id}>
+                      <div className={styles.feedbackRowHeader}>
+                        <div>
+                          <strong>{goldenCase.name}</strong>
+                          <span>
+                            version #{goldenCase.sourceDomainPackVersionId}
+                            {state ? ` · ${state}` : ""}
+                            {action ? ` · ${action}` : ""}
+                          </span>
+                        </div>
+                        <span
+                          className={`${styles.replayStatus} ${
+                            replayStatus === "PASS"
+                              ? styles.replayStatusPass
+                              : replayStatus === "FAIL"
+                                ? styles.replayStatusFail
+                                : ""
+                          }`}
+                        >
+                          {replayStatus === "FAIL" ? (
+                            <XCircleIcon className={styles.buttonIcon} />
+                          ) : replayStatus === "PASS" ? (
+                            <CheckCircleIcon className={styles.buttonIcon} />
+                          ) : (
+                            <PlayIcon className={styles.buttonIcon} />
+                          )}
+                          {replayStatusLabel(replayStatus)}
+                        </span>
+                      </div>
+                      {goldenCase.latestReplayResult?.failureSummary ? (
+                        <p className={styles.failureSummary}>
+                          {goldenCase.latestReplayResult.failureSummary}
+                        </p>
+                      ) : null}
+                      <div className={styles.candidateActions}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleReplayGoldenCase(goldenCase)}
+                          disabled={replayingGoldenCaseId === goldenCase.id}
+                          aria-label={`${goldenCase.name} replay`}
+                        >
+                          <PlayIcon className={styles.buttonIcon} />
+                          <span>
+                            {replayingGoldenCaseId === goldenCase.id ? "Replay 중" : "Replay"}
+                          </span>
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           <div className={styles.feedbackPanel}>
             <div className={styles.feedbackPanelHeader}>
               <h3>Feedback</h3>
@@ -894,7 +1163,9 @@ export function WorkspaceSimulationPage() {
                             void handleCandidateStatusChange(candidate, "READY_FOR_REVIEW")
                           }
                         >
-                          <span>{updatingCandidateId === candidate.id ? "요청 중" : "리뷰 요청"}</span>
+                          <span>
+                            {updatingCandidateId === candidate.id ? "요청 중" : "리뷰 요청"}
+                          </span>
                         </Button>
                       </div>
                     ) : null}

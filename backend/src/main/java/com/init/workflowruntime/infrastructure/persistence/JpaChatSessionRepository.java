@@ -28,7 +28,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
       select cs
       from ChatSession cs
       where cs.status = :status
-        and cs.channel <> 'SIMULATION'
+        and upper(cs.channel) not like 'SIMULATION%'
       order by cs.startedAt desc
       """)
   List<ChatSession> findByStatusOrderByStartedAtDesc(@Param("status") ChatSessionStatus status);
@@ -38,7 +38,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
       select cs
       from ChatSession cs
       where cs.status in :statuses
-        and cs.channel <> 'SIMULATION'
+        and upper(cs.channel) not like 'SIMULATION%'
       order by cs.startedAt desc
       """)
   List<ChatSession> findByStatusInOrderByStartedAtDesc(
@@ -50,7 +50,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
       from ChatSession cs
       where cs.workspaceId = :workspaceId
         and cs.status in :statuses
-        and cs.channel <> 'SIMULATION'
+        and upper(cs.channel) not like 'SIMULATION%'
       order by cs.startedAt desc
       """)
   List<ChatSession> findByWorkspaceIdAndStatusInOrderByStartedAtDesc(
@@ -59,12 +59,21 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
 
   List<ChatSession> findByAssignedCounselorId(Long counselorId);
 
-  Optional<ChatSession>
-      findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
-          Long workspaceId,
-          Long startedBy,
-          Collection<ChatSessionStatus> statuses,
-          String excludedChannel);
+  @Query(
+      """
+      select cs
+      from ChatSession cs
+      where cs.workspaceId = :workspaceId
+        and cs.startedBy = :startedBy
+        and cs.status in :statuses
+        and upper(cs.channel) not like 'SIMULATION%'
+      order by cs.startedAt desc, cs.id desc
+      """)
+  List<ChatSession> findReusableOperationalSessions(
+      @Param("workspaceId") Long workspaceId,
+      @Param("startedBy") Long startedBy,
+      @Param("statuses") Collection<ChatSessionStatus> statuses,
+      Pageable pageable);
 
   Page<ChatSession> findByWorkspaceId(Long workspaceId, Pageable pageable);
 
@@ -74,7 +83,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
       from ChatSession cs
       where cs.workspaceId = :workspaceId
         and cs.status = :status
-        and cs.channel <> 'SIMULATION'
+        and upper(cs.channel) not like 'SIMULATION%'
       """)
   Page<ChatSession> findByWorkspaceIdAndStatus(
       @Param("workspaceId") Long workspaceId,
@@ -89,7 +98,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
       select cs
       from ChatSession cs
       where cs.status = :status
-        and cs.channel <> 'SIMULATION'
+        and upper(cs.channel) not like 'SIMULATION%'
       """)
   Page<ChatSession> findByStatus(@Param("status") ChatSessionStatus status, Pageable pageable);
 
@@ -99,7 +108,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
           SELECT cs.*
           FROM runtime.chat_session cs
           WHERE cs.workspace_id = :workspaceId
-            AND cs.channel <> 'SIMULATION'
+            AND UPPER(cs.channel) NOT LIKE 'SIMULATION%'
             AND (:status IS NULL OR cs.status = :status)
             AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
             AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)
@@ -122,7 +131,7 @@ public interface JpaChatSessionRepository extends JpaRepository<ChatSession, Lon
           SELECT COUNT(*)
           FROM runtime.chat_session cs
           WHERE cs.workspace_id = :workspaceId
-            AND cs.channel <> 'SIMULATION'
+            AND UPPER(cs.channel) NOT LIKE 'SIMULATION%'
             AND (:status IS NULL OR cs.status = :status)
             AND (:assignedCounselorId IS NULL OR cs.assigned_counselor_id = :assignedCounselorId)
             AND (:startedFrom IS NULL OR cs.started_at >= :startedFrom)
