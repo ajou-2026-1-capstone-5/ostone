@@ -146,11 +146,22 @@ const actionRecommendationResponse = {
     {
       ruleCode: "HOTPATH_SURGE",
       priority: 85,
+      sourceLabel: "운영 지표 기반",
       title: "환불 처리 workflow 점검",
       description: "선택 기간 실행량이 전 기간보다 크게 증가했습니다.",
       evidenceLabel: "전 기간 대비",
       evidenceValue: "+33.3%",
       targetPath: "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+    },
+    {
+      ruleCode: "SIMULATION_OPEN_FEEDBACK",
+      priority: 95,
+      sourceLabel: "시뮬레이션에서 발견됨",
+      title: "개선 후보 생성",
+      description: "미처리 시뮬레이션 피드백이 있어 지식팩 개선 후보로 정리할 수 있습니다.",
+      evidenceLabel: "Open feedback",
+      evidenceValue: "4건",
+      targetPath: "/workspaces/1/simulation?feedbackStatus=OPEN",
     },
   ],
 };
@@ -237,9 +248,15 @@ describe("WorkspaceDashboardPage", () => {
     expect(await screen.findByRole("heading", { name: "추천 액션" })).toBeInTheDocument();
     expect(screen.getByText("환불 처리 workflow 점검")).toBeInTheDocument();
     expect(screen.getByText("+33.3%")).toBeInTheDocument();
+    expect(screen.getByText("시뮬레이션에서 발견됨")).toBeInTheDocument();
+    expect(screen.getByText("4건")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /환불 처리 workflow 점검/ })).toHaveAttribute(
       "href",
       "/workspaces/1/domain-packs/11/workflows/100?versionId=22",
+    );
+    expect(screen.getByRole("link", { name: /개선 후보 생성/ })).toHaveAttribute(
+      "href",
+      "/workspaces/1/simulation?feedbackStatus=OPEN",
     );
     expect(screen.getByTestId("knowledge-health-panel")).toHaveTextContent("workspace 1 health");
     expect(await screen.findByText("핫패스 워크플로우 랭킹")).toBeInTheDocument();

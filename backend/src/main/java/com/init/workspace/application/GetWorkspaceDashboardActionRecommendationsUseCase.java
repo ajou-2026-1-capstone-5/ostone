@@ -23,9 +23,12 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
   private static final ZoneId METRIC_ZONE = ZoneId.of("Asia/Seoul");
   private static final int MAX_RECOMMENDATIONS = 3;
   private static final int STALE_KNOWLEDGE_PACK_DAYS = 30;
+  private static final int REPEATED_FEEDBACK_TYPE_THRESHOLD = 3;
   private static final double RISK_SURGE_THRESHOLD = 30.0;
   private static final double MISSING_SLOT_RATE_THRESHOLD = 20.0;
   private static final double LOW_CONFIDENCE_RATE_THRESHOLD = 10.0;
+  private static final String OPERATIONAL_SOURCE_LABEL = "운영 지표 기반";
+  private static final String SIMULATION_SOURCE_LABEL = "시뮬레이션에서 발견됨";
 
   private final WorkspaceRepository workspaceRepository;
   private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -54,6 +57,10 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
             workspaceId, period.start(), period.endExclusive(), period.previousStart());
 
     List<WorkspaceDashboardActionRecommendationResult> recommendations = new ArrayList<>();
+    addOpenSimulationFeedbackRecommendation(workspaceId, signals, recommendations);
+    addSimulationReviewCandidateRecommendation(workspaceId, signals, recommendations);
+    addFailedGoldenCaseRecommendation(workspaceId, signals, recommendations);
+    addRepeatedSimulationFeedbackRecommendation(workspaceId, signals, recommendations);
     addPipelineFailedRecommendation(workspaceId, signals, recommendations);
     addRiskHitSurgeRecommendation(workspaceId, signals, recommendations);
     addHotpathSurgeRecommendation(workspaceId, signals, recommendations);
@@ -113,6 +120,91 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
     return new RecommendationPeriod(start, end, previousStart);
   }
 
+  private void addOpenSimulationFeedbackRecommendation(
+      Long workspaceId,
+      WorkspaceDashboardRecommendationSignalsResult signals,
+      List<WorkspaceDashboardActionRecommendationResult> recommendations) {
+    WorkspaceDashboardSimulationSignalResult simulation = simulationSignals(signals);
+    if (simulation.openFeedbackCount() <= 0) {
+      return;
+    }
+
+    recommendations.add(
+        new WorkspaceDashboardActionRecommendationResult(
+            "SIMULATION_OPEN_FEEDBACK",
+            95,
+            SIMULATION_SOURCE_LABEL,
+            "개선 후보 생성",
+            "미처리 시뮬레이션 피드백이 있어 지식팩 개선 후보로 정리할 수 있습니다.",
+            "Open feedback",
+            formatCount(simulation.openFeedbackCount()),
+            "/workspaces/%d/simulation?feedbackStatus=OPEN".formatted(workspaceId)));
+  }
+
+  private void addSimulationReviewCandidateRecommendation(
+      Long workspaceId,
+      WorkspaceDashboardRecommendationSignalsResult signals,
+      List<WorkspaceDashboardActionRecommendationResult> recommendations) {
+    WorkspaceDashboardSimulationSignalResult simulation = simulationSignals(signals);
+    if (simulation.readyForReviewCandidateCount() <= 0) {
+      return;
+    }
+
+    recommendations.add(
+        new WorkspaceDashboardActionRecommendationResult(
+            "SIMULATION_REVIEW_PENDING_CANDIDATE",
+            92,
+            SIMULATION_SOURCE_LABEL,
+            "개선 후보 검토 진행",
+            "시뮬레이션에서 만든 개선 후보가 review 대기 중입니다.",
+            "Review 대기 후보",
+            formatCount(simulation.readyForReviewCandidateCount()),
+            "/workspaces/%d/simulation?candidateStatus=READY_FOR_REVIEW".formatted(workspaceId)));
+  }
+
+  private void addFailedGoldenCaseRecommendation(
+      Long workspaceId,
+      WorkspaceDashboardRecommendationSignalsResult signals,
+      List<WorkspaceDashboardActionRecommendationResult> recommendations) {
+    WorkspaceDashboardSimulationSignalResult simulation = simulationSignals(signals);
+    if (simulation.failedGoldenCaseCount() <= 0) {
+      return;
+    }
+
+    recommendations.add(
+        new WorkspaceDashboardActionRecommendationResult(
+            "SIMULATION_GOLDEN_CASE_FAILED",
+            88,
+            SIMULATION_SOURCE_LABEL,
+            "변경 영향 확인",
+            "최근 replay에서 실패한 검증 케이스가 있어 변경 영향을 확인해야 합니다.",
+            "실패 검증 케이스",
+            formatCount(simulation.failedGoldenCaseCount()),
+            "/workspaces/%d/simulation?focus=golden-cases".formatted(workspaceId)));
+  }
+
+  private void addRepeatedSimulationFeedbackRecommendation(
+      Long workspaceId,
+      WorkspaceDashboardRecommendationSignalsResult signals,
+      List<WorkspaceDashboardActionRecommendationResult> recommendations) {
+    WorkspaceDashboardSimulationSignalResult simulation = simulationSignals(signals);
+    if (simulation.topOpenFeedbackTypeCount() < REPEATED_FEEDBACK_TYPE_THRESHOLD
+        || simulation.topOpenFeedbackType() == null) {
+      return;
+    }
+
+    recommendations.add(
+        new WorkspaceDashboardActionRecommendationResult(
+            "SIMULATION_REPEATED_FEEDBACK_TYPE",
+            82,
+            SIMULATION_SOURCE_LABEL,
+            "workflow/slot/policy 집중 점검",
+            "동일 유형의 시뮬레이션 피드백이 반복되어 관련 정의를 함께 점검해야 합니다.",
+            formatFeedbackType(simulation.topOpenFeedbackType()),
+            formatCount(simulation.topOpenFeedbackTypeCount()),
+            "/workspaces/%d/simulation?feedbackStatus=OPEN".formatted(workspaceId)));
+  }
+
   private void addPipelineFailedRecommendation(
       Long workspaceId,
       WorkspaceDashboardRecommendationSignalsResult signals,
@@ -126,6 +218,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "PIPELINE_FAILED",
             100,
+            OPERATIONAL_SOURCE_LABEL,
             "생성 실패 확인",
             "최근 지식팩 생성이 실패했습니다. 실패 사유를 확인하고 다시 실행하세요.",
             "Pipeline job",
@@ -148,6 +241,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "RISK_HIT_SURGE",
             90,
+            OPERATIONAL_SOURCE_LABEL,
             "주의 사항 검토",
             "선택 기간 risk hit가 전 기간보다 크게 증가했습니다.",
             "Risk hit",
@@ -168,6 +262,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "HOTPATH_SURGE",
             85,
+            OPERATIONAL_SOURCE_LABEL,
             workflow.workflowName() + " workflow 점검",
             "선택 기간 실행량이 전 기간보다 크게 증가했습니다.",
             "전 기간 대비",
@@ -188,6 +283,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "LOW_COMPLETION_RATE",
             80,
+            OPERATIONAL_SOURCE_LABEL,
             "병목 state 확인",
             workflow.workflowName() + " workflow 완료율이 낮습니다.",
             "완료율",
@@ -209,6 +305,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "MISSING_SLOT_HIGH",
             75,
+            OPERATIONAL_SOURCE_LABEL,
             "확인 항목 수정",
             "상담 중 필요한 slot을 채우지 못한 결정 로그 비율이 높습니다.",
             "Missing slot",
@@ -230,6 +327,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "LOW_CONFIDENCE_HIGH",
             70,
+            OPERATIONAL_SOURCE_LABEL,
             "상담 로그 추가 업로드",
             "저신뢰 decision 비율이 높아 최근 상담 로그 보강이 필요합니다.",
             "Low confidence",
@@ -258,6 +356,7 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
         new WorkspaceDashboardActionRecommendationResult(
             "STALE_KNOWLEDGE_PACK",
             60,
+            OPERATIONAL_SOURCE_LABEL,
             "새 로그로 지식팩 업데이트",
             "운영 중인 지식팩이 오래되어 최근 상담 패턴 반영이 필요할 수 있습니다.",
             "Published",
@@ -278,6 +377,28 @@ public class GetWorkspaceDashboardActionRecommendationsUseCase {
             workflow.domainPackId(),
             workflow.workflowDefinitionId(),
             workflow.domainPackVersionId());
+  }
+
+  private WorkspaceDashboardSimulationSignalResult simulationSignals(
+      WorkspaceDashboardRecommendationSignalsResult signals) {
+    WorkspaceDashboardSimulationSignalResult simulation = signals.simulationSignals();
+    if (simulation != null) {
+      return simulation;
+    }
+    return new WorkspaceDashboardSimulationSignalResult(0, 0, 0, null, 0);
+  }
+
+  private String formatFeedbackType(String feedbackType) {
+    return switch (feedbackType) {
+      case "INTENT_MISMATCH" -> "Intent mismatch";
+      case "MISSING_SLOT_QUESTION" -> "Missing slot";
+      case "INAPPROPRIATE_RESPONSE" -> "응답 문구";
+      case "POLICY_CONDITION_MISSING" -> "Policy 조건";
+      case "RISK_HANDOFF_REQUIRED" -> "Risk/handoff";
+      case "WORKFLOW_BRANCH_ERROR" -> "Workflow 분기";
+      case "OTHER" -> "기타 feedback";
+      default -> feedbackType;
+    };
   }
 
   private Double changeRate(long current, long previous) {

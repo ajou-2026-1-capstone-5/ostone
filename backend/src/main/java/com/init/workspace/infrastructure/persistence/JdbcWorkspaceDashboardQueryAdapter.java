@@ -7,6 +7,7 @@ import com.init.workspace.application.WorkspaceDashboardKnowledgePackResult;
 import com.init.workspace.application.WorkspaceDashboardLogUploadResult;
 import com.init.workspace.application.WorkspaceDashboardQueryPort;
 import com.init.workspace.application.WorkspaceDashboardRecommendationSignalsResult;
+import com.init.workspace.application.WorkspaceDashboardSimulationSignalResult;
 import com.init.workspace.application.WorkspaceDashboardWorkflowRecommendationSignal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -53,7 +54,8 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
         findDecisionSignals(workspaceId, periodStart, periodEnd),
         findDecisionSignals(workspaceId, previousPeriodStart, periodStart),
         findHotpathSurgeWorkflow(workspaceId, periodStart, periodEnd, previousPeriodStart),
-        findLowCompletionWorkflow(workspaceId, periodStart, periodEnd));
+        findLowCompletionWorkflow(workspaceId, periodStart, periodEnd),
+        findSimulationSignals(workspaceId));
   }
 
   private WorkspaceDashboardKnowledgePackResult findActiveKnowledgePack(Long workspaceId) {
@@ -238,6 +240,78 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
     return rows.stream().findFirst().orElse(null);
   }
 
+  private WorkspaceDashboardSimulationSignalResult findSimulationSignals(Long workspaceId) {
+    MapSqlParameterSource params = new MapSqlParameterSource("workspaceId", workspaceId);
+    WorkspaceDashboardSimulationSignalResult counts =
+        jdbcTemplate.queryForObject(
+            """
+            WITH latest_replay AS (
+              SELECT DISTINCT ON (golden_case_id)
+                golden_case_id,
+                status
+              FROM runtime.simulation_golden_case_replay_result
+              WHERE workspace_id = :workspaceId
+              ORDER BY golden_case_id, created_at DESC, id DESC
+            )
+            SELECT
+              (
+                SELECT COUNT(*)
+                FROM runtime.simulation_feedback
+                WHERE workspace_id = :workspaceId
+                  AND status = 'OPEN'
+              ) AS open_feedback_count,
+              (
+                SELECT COUNT(*)
+                FROM runtime.simulation_improvement_candidate
+                WHERE workspace_id = :workspaceId
+                  AND status = 'READY_FOR_REVIEW'
+              ) AS ready_for_review_candidate_count,
+              (
+                SELECT COUNT(*)
+                FROM latest_replay
+                WHERE status = 'FAIL'
+              ) AS failed_golden_case_count
+            """,
+            params,
+            (rs, rowNum) ->
+                new WorkspaceDashboardSimulationSignalResult(
+                    rs.getLong("open_feedback_count"),
+                    rs.getLong("ready_for_review_candidate_count"),
+                    rs.getLong("failed_golden_case_count"),
+                    null,
+                    0));
+    WorkspaceDashboardSimulationFeedbackTypeSignal topFeedbackType =
+        findTopOpenFeedbackType(workspaceId);
+    if (counts == null) {
+      counts = new WorkspaceDashboardSimulationSignalResult(0, 0, 0, null, 0);
+    }
+    return new WorkspaceDashboardSimulationSignalResult(
+        counts.openFeedbackCount(),
+        counts.readyForReviewCandidateCount(),
+        counts.failedGoldenCaseCount(),
+        topFeedbackType != null ? topFeedbackType.feedbackType() : null,
+        topFeedbackType != null ? topFeedbackType.feedbackCount() : 0);
+  }
+
+  private WorkspaceDashboardSimulationFeedbackTypeSignal findTopOpenFeedbackType(Long workspaceId) {
+    List<WorkspaceDashboardSimulationFeedbackTypeSignal> rows =
+        jdbcTemplate.query(
+            """
+            SELECT feedback_type, COUNT(*) AS feedback_count
+            FROM runtime.simulation_feedback
+            WHERE workspace_id = :workspaceId
+              AND status = 'OPEN'
+            GROUP BY feedback_type
+            ORDER BY feedback_count DESC, feedback_type ASC
+            LIMIT 1
+            """,
+            Map.of("workspaceId", workspaceId),
+            (rs, rowNum) ->
+                new WorkspaceDashboardSimulationFeedbackTypeSignal(
+                    rs.getString("feedback_type"), rs.getLong("feedback_count")));
+    return rows.stream().findFirst().orElse(null);
+  }
+
   private String workflowAggregateQuery(String tailSql) {
     return """
         WITH current_workflows AS (
@@ -359,4 +433,7 @@ public class JdbcWorkspaceDashboardQueryAdapter implements WorkspaceDashboardQue
   private OffsetDateTime offsetDateTime(ResultSet rs, String columnName) throws SQLException {
     return rs.getObject(columnName, OffsetDateTime.class);
   }
+
+  private record WorkspaceDashboardSimulationFeedbackTypeSignal(
+      String feedbackType, long feedbackCount) {}
 }

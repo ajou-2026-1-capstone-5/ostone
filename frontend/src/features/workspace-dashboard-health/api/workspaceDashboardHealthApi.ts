@@ -43,6 +43,7 @@ export interface WorkspaceDashboardHealth {
 export interface WorkspaceDashboardActionRecommendation {
   ruleCode: string;
   priority: number;
+  sourceLabel: string;
   title: string;
   description: string;
   evidenceLabel: string;
