@@ -110,8 +110,11 @@ class CompleteRawFileUploadServiceTest {
 
       List<TransactionSynchronization> synchronizations =
           List.copyOf(TransactionSynchronizationManager.getSynchronizations());
-      assertThat(synchronizations).hasSize(1);
+      assertThat(synchronizations).hasSize(2);
       synchronizations.forEach(TransactionSynchronization::afterCommit);
+      synchronizations.forEach(
+          synchronization ->
+              synchronization.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
     } finally {
       TransactionSynchronizationManager.clearSynchronization();
     }
@@ -123,6 +126,7 @@ class CompleteRawFileUploadServiceTest {
 
     // pending 원본 삭제와 트리거는 커밋 이후에 수행된다.
     verify(storagePort).delete(OBJECT_KEY);
+    verify(storagePort, never()).delete(COMPLETED_KEY);
 
     ArgumentCaptor<DatasetRawFile> rawFileCaptor = ArgumentCaptor.forClass(DatasetRawFile.class);
     verify(rawFileRepository).save(rawFileCaptor.capture());
@@ -133,6 +137,94 @@ class CompleteRawFileUploadServiceTest {
     assertThat(saved.getEtag()).isEqualTo("\"etag-123\"");
 
     verify(triggerPort).trigger(1L, 42L, COMPLETED_KEY);
+  }
+
+  @Test
+  @DisplayName("should_not_persist_or_trigger_when_storage_promotion_fails")
+  void complete_copyFails_doesNotPersistOrTrigger() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+    given(storagePort.headObject(OBJECT_KEY))
+        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
+    org.mockito.BDDMockito.willThrow(new IllegalStateException("copy failed"))
+        .given(storagePort)
+        .copyObject(OBJECT_KEY, COMPLETED_KEY);
+
+    assertThatThrownBy(() -> service.complete(command())).isInstanceOf(IllegalStateException.class);
+
+    assertThat(dataset.getStatus()).isEqualTo(DatasetStatus.UPLOADING);
+    verify(rawFileRepository, never()).save(any());
+    verify(datasetRepository, never()).save(any());
+    verify(storagePort, never()).delete(anyString());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_delete_completed_object_when_db_save_rolls_back_after_promotion")
+  void complete_dbSaveFails_deletesCompletedObjectOnRollback() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+    given(storagePort.headObject(OBJECT_KEY))
+        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
+    org.mockito.BDDMockito.willThrow(new IllegalStateException("db down"))
+        .given(rawFileRepository)
+        .save(any());
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      assertThatThrownBy(() -> service.complete(command()))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("db down");
+
+      List<TransactionSynchronization> synchronizations =
+          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      assertThat(synchronizations).hasSize(1);
+      synchronizations.forEach(
+          synchronization ->
+              synchronization.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+
+    verify(storagePort).copyObject(OBJECT_KEY, COMPLETED_KEY);
+    verify(storagePort).delete(COMPLETED_KEY);
+    verify(storagePort, never()).delete(OBJECT_KEY);
+    verify(datasetRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_delete_completed_object_when_transaction_completion_is_unknown")
+  void complete_transactionUnknown_deletesCompletedObject() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+    given(storagePort.headObject(OBJECT_KEY))
+        .willReturn(Optional.of(new ObjectMetadata(EXPECTED_SIZE, "\"etag-123\"")));
+    given(datasetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      service.complete(command());
+
+      List<TransactionSynchronization> synchronizations =
+          List.copyOf(TransactionSynchronizationManager.getSynchronizations());
+      assertThat(synchronizations).hasSize(2);
+      synchronizations.forEach(
+          synchronization ->
+              synchronization.afterCompletion(TransactionSynchronization.STATUS_UNKNOWN));
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+
+    verify(storagePort).delete(COMPLETED_KEY);
+    verify(storagePort, never()).delete(OBJECT_KEY);
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
   }
 
   @Test
