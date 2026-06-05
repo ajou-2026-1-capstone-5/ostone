@@ -6,10 +6,17 @@
  */
 import { z as zod } from 'zod';
 
+export const createSessionBodyCustomerNameMin = 0;
+export const createSessionBodyCustomerNameMax = 100;
+
+export const createSessionBodyIntentCodeMin = 0;
+export const createSessionBodyIntentCodeMax = 255;
 
 
 export const CreateSessionBody = zod.object({
-  "customerName": zod.string().min(1).optional()
+  "customerName": zod.string().min(createSessionBodyCustomerNameMin).max(createSessionBodyCustomerNameMax).optional(),
+  "intentCode": zod.string().min(createSessionBodyIntentCodeMin).max(createSessionBodyIntentCodeMax).optional(),
+  "workflowDefinitionId": zod.number().optional()
 })
 
 export type CreateSessionBody = zod.input<typeof CreateSessionBody>;

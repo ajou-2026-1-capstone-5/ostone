@@ -134,6 +134,27 @@ services:
     networks:
       - init-network
 
+  minio-init:
+    image: minio/mc:RELEASE.2025-01-17T23-25-50Z
+    container_name: init-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-init-raw-files-dev}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+        mc mb --ignore-existing "local/$$STORAGE_S3_BUCKET" local/init-raw-files-dev local/init-raw-files-local &&
+        echo 'minio-init: buckets ready'
+    restart: "no"
+    networks:
+      - init-network
+
 volumes:
   postgres_data:
   minio_data:

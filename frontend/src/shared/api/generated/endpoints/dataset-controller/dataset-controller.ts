@@ -15,12 +15,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CompleteRawFileUploadResponse,
   DatasetUploadRequest,
   DatasetUploadResponse,
-  RawDatasetUploadRequest,
-  RawFileUploadResponse,
-  UploadRawFileBody,
-  UploadRawFileParams
+  InitRawFileUploadRequest,
+  InitRawFileUploadResponse,
+  RawDatasetUploadRequest
 } from '../../zod';
 
 import { customFetch } from '../../../mutator';
@@ -107,6 +107,160 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUploadDatasetMutationOptions(options), queryClient);
     }
+    export type initRawFileUploadResponse200 = {
+  data: InitRawFileUploadResponse
+  status: 200
+}
+
+export type initRawFileUploadResponseSuccess = (initRawFileUploadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type initRawFileUploadResponse = (initRawFileUploadResponseSuccess)
+
+export const getInitRawFileUploadUrl = (workspaceId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/datasets/uploads:init`
+}
+
+export const initRawFileUpload = async (workspaceId: number,
+    initRawFileUploadRequest: InitRawFileUploadRequest, options?: RequestInit): Promise<initRawFileUploadResponse> => {
+
+  return customFetch<initRawFileUploadResponse>(getInitRawFileUploadUrl(workspaceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      initRawFileUploadRequest,)
+  }
+);}
+
+
+
+
+export const getInitRawFileUploadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initRawFileUpload>>, TError,{workspaceId: number;data: InitRawFileUploadRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof initRawFileUpload>>, TError,{workspaceId: number;data: InitRawFileUploadRequest}, TContext> => {
+
+const mutationKey = ['initRawFileUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initRawFileUpload>>, {workspaceId: number;data: InitRawFileUploadRequest}> = (props) => {
+          const {workspaceId,data} = props ?? {};
+
+          return  initRawFileUpload(workspaceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InitRawFileUploadMutationResult = NonNullable<Awaited<ReturnType<typeof initRawFileUpload>>>
+    export type InitRawFileUploadMutationBody = InitRawFileUploadRequest
+    export type InitRawFileUploadMutationError = unknown
+
+    export const useInitRawFileUpload = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initRawFileUpload>>, TError,{workspaceId: number;data: InitRawFileUploadRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof initRawFileUpload>>,
+        TError,
+        {workspaceId: number;data: InitRawFileUploadRequest},
+        TContext
+      > => {
+      return useMutation(getInitRawFileUploadMutationOptions(options), queryClient);
+    }
+    export type completeRawFileUploadResponse200 = {
+  data: CompleteRawFileUploadResponse
+  status: 200
+}
+
+export type completeRawFileUploadResponseSuccess = (completeRawFileUploadResponse200) & {
+  headers: Headers;
+};
+;
+
+export type completeRawFileUploadResponse = (completeRawFileUploadResponseSuccess)
+
+export const getCompleteRawFileUploadUrl = (workspaceId: number,
+    datasetId: number,) => {
+
+
+
+
+  return `/api/v1/workspaces/${workspaceId}/datasets/uploads/${datasetId}:complete`
+}
+
+export const completeRawFileUpload = async (workspaceId: number,
+    datasetId: number, options?: RequestInit): Promise<completeRawFileUploadResponse> => {
+
+  return customFetch<completeRawFileUploadResponse>(getCompleteRawFileUploadUrl(workspaceId,datasetId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCompleteRawFileUploadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeRawFileUpload>>, TError,{workspaceId: number;datasetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeRawFileUpload>>, TError,{workspaceId: number;datasetId: number}, TContext> => {
+
+const mutationKey = ['completeRawFileUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeRawFileUpload>>, {workspaceId: number;datasetId: number}> = (props) => {
+          const {workspaceId,datasetId} = props ?? {};
+
+          return  completeRawFileUpload(workspaceId,datasetId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteRawFileUploadMutationResult = NonNullable<Awaited<ReturnType<typeof completeRawFileUpload>>>
+
+    export type CompleteRawFileUploadMutationError = unknown
+
+    export const useCompleteRawFileUpload = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeRawFileUpload>>, TError,{workspaceId: number;datasetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeRawFileUpload>>,
+        TError,
+        {workspaceId: number;datasetId: number},
+        TContext
+      > => {
+      return useMutation(getCompleteRawFileUploadMutationOptions(options), queryClient);
+    }
     export type uploadRawDatasetResponse200 = {
   data: DatasetUploadResponse
   status: 200
@@ -183,94 +337,4 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUploadRawDatasetMutationOptions(options), queryClient);
-    }
-    export type uploadRawFileResponse200 = {
-  data: RawFileUploadResponse
-  status: 200
-}
-
-export type uploadRawFileResponseSuccess = (uploadRawFileResponse200) & {
-  headers: Headers;
-};
-;
-
-export type uploadRawFileResponse = (uploadRawFileResponseSuccess)
-
-export const getUploadRawFileUrl = (workspaceId: number,
-    params: UploadRawFileParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/workspaces/${workspaceId}/datasets/raw-file?${stringifiedParams}` : `/api/v1/workspaces/${workspaceId}/datasets/raw-file`
-}
-
-export const uploadRawFile = async (workspaceId: number,
-    params: UploadRawFileParams,
-    uploadRawFileBody?: UploadRawFileBody, options?: RequestInit): Promise<uploadRawFileResponse> => {
-    const formData = new FormData();
-if(uploadRawFileBody?.file !== undefined) {
- formData.append(`file`, uploadRawFileBody.file);
- }
-
-  return customFetch<uploadRawFileResponse>(getUploadRawFileUrl(workspaceId,params),
-  {
-    ...options,
-    method: 'POST'
-    ,
-    body:
-      formData,
-  }
-);}
-
-
-
-
-export const getUploadRawFileMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadRawFile>>, TError,{workspaceId: number;params: UploadRawFileParams;data?: UploadRawFileBody}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof uploadRawFile>>, TError,{workspaceId: number;params: UploadRawFileParams;data?: UploadRawFileBody}, TContext> => {
-
-const mutationKey = ['uploadRawFile'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadRawFile>>, {workspaceId: number;params: UploadRawFileParams;data?: UploadRawFileBody}> = (props) => {
-          const {workspaceId,params,data} = props ?? {};
-
-          return  uploadRawFile(workspaceId,params,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UploadRawFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadRawFile>>>
-    export type UploadRawFileMutationBody = UploadRawFileBody | undefined
-    export type UploadRawFileMutationError = unknown
-
-    export const useUploadRawFile = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadRawFile>>, TError,{workspaceId: number;params: UploadRawFileParams;data?: UploadRawFileBody}, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof uploadRawFile>>,
-        TError,
-        {workspaceId: number;params: UploadRawFileParams;data?: UploadRawFileBody},
-        TContext
-      > => {
-      return useMutation(getUploadRawFileMutationOptions(options), queryClient);
     }

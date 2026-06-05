@@ -1,8 +1,10 @@
 import {
   generateDraftResponse,
   getMessages,
-  sendMessage,
-  updateStatus,
+  // orval은 다른 컨트롤러와의 operationId 충돌을 sendMessage1/updateStatus1로
+  // 회피한다(동일 경로 /consultation/sessions/{id}/messages·/status). alias로 고정한다.
+  sendMessage1 as sendMessage,
+  updateStatus1 as updateStatus,
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { getQueue } from "@/shared/api/generated/endpoints/workspace-consultation-queue-controller/workspace-consultation-queue-controller";
 import {

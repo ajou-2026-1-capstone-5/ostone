@@ -10,7 +10,7 @@ export const DatasetUploadResponse = zod.object({
   "datasetId": zod.number().optional(),
   "datasetKey": zod.string().optional(),
   "workspaceId": zod.number().optional(),
-  "status": zod.enum(['READY', 'PROCESSING', 'DONE', 'ERROR']).optional(),
+  "status": zod.enum(['UPLOADING', 'READY', 'PROCESSING', 'DONE', 'ERROR']).optional(),
   "piiRedactionStatus": zod.enum(['PENDING', 'IN_PROGRESS', 'DONE', 'ERROR']).optional(),
   "conversationCount": zod.number().optional()
 })

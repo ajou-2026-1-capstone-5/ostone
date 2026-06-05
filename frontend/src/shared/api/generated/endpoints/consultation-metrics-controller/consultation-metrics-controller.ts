@@ -20,7 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ConsultationMetricsResponse
+  ConsultationMetricsResponse,
+  GetMetricsParams
 } from '../../zod';
 
 import { customFetch } from '../../../mutator';
@@ -42,17 +43,26 @@ export type getMetricsResponseSuccess = (getMetricsResponse200) & {
 
 export type getMetricsResponse = (getMetricsResponseSuccess)
 
-export const getGetMetricsUrl = (workspaceId: number,) => {
+export const getGetMetricsUrl = (workspaceId: number,
+    params?: GetMetricsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/workspaces/${workspaceId}/consultation/metrics`
+  return stringifiedParams.length > 0 ? `/api/v1/workspaces/${workspaceId}/consultation/metrics?${stringifiedParams}` : `/api/v1/workspaces/${workspaceId}/consultation/metrics`
 }
 
-export const getMetrics = async (workspaceId: number, options?: RequestInit): Promise<getMetricsResponse> => {
+export const getMetrics = async (workspaceId: number,
+    params?: GetMetricsParams, options?: RequestInit): Promise<getMetricsResponse> => {
 
-  return customFetch<getMetricsResponse>(getGetMetricsUrl(workspaceId),
+  return customFetch<getMetricsResponse>(getGetMetricsUrl(workspaceId,params),
   {
     ...options,
     method: 'GET'
@@ -65,23 +75,25 @@ export const getMetrics = async (workspaceId: number, options?: RequestInit): Pr
 
 
 
-export const getGetMetricsQueryKey = (workspaceId: number,) => {
+export const getGetMetricsQueryKey = (workspaceId: number,
+    params?: GetMetricsParams,) => {
     return [
-    `/api/v1/workspaces/${workspaceId}/consultation/metrics`
+    `/api/v1/workspaces/${workspaceId}/consultation/metrics`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(workspaceId: number,
+    params?: GetMetricsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMetricsQueryKey(workspaceId);
+  const queryKey =  queryOptions?.queryKey ?? getGetMetricsQueryKey(workspaceId,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMetrics>>> = ({ signal }) => getMetrics(workspaceId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMetrics>>> = ({ signal }) => getMetrics(workspaceId,params, { signal, ...requestOptions });
 
 
 
@@ -95,7 +107,8 @@ export type GetMetricsQueryError = unknown
 
 
 export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(
- workspaceId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
+ workspaceId: number,
+    params: undefined |  GetMetricsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMetrics>>,
           TError,
@@ -105,7 +118,8 @@ export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TE
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
+ workspaceId: number,
+    params?: GetMetricsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMetrics>>,
           TError,
@@ -115,16 +129,18 @@ export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TE
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ workspaceId: number,
+    params?: GetMetricsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = unknown>(
- workspaceId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ workspaceId: number,
+    params?: GetMetricsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMetricsQueryOptions(workspaceId,options)
+  const queryOptions = getGetMetricsQueryOptions(workspaceId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

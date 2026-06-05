@@ -15,7 +15,10 @@ export const BillingAuthorizationResponse = zod.object({
   "currentPeriodStart": zod.iso.datetime({"offset":true}).optional(),
   "currentPeriodEnd": zod.iso.datetime({"offset":true}).optional(),
   "cancelAtPeriodEnd": zod.boolean().optional(),
-  "customerKey": zod.string().optional()
+  "customerKey": zod.string().optional(),
+  "memberLimit": zod.number().optional(),
+  "datasetUploadLimit": zod.number().optional(),
+  "pipelineRunLimit": zod.number().optional()
 }).optional(),
   "billingKey": zod.object({
   "id": zod.number().optional(),

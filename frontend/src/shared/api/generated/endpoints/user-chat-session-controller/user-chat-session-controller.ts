@@ -36,19 +36,19 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type createSessionResponse200 = {
+export type createSession1Response200 = {
   data: ChatSessionResponse
   status: 200
 }
 
-export type createSessionResponseSuccess = (createSessionResponse200) & {
+export type createSession1ResponseSuccess = (createSession1Response200) & {
   headers: Headers;
 };
 ;
 
-export type createSessionResponse = (createSessionResponseSuccess)
+export type createSession1Response = (createSession1ResponseSuccess)
 
-export const getCreateSessionUrl = (workspaceId: number,) => {
+export const getCreateSession1Url = (workspaceId: number,) => {
 
 
 
@@ -56,10 +56,10 @@ export const getCreateSessionUrl = (workspaceId: number,) => {
   return `/api/v1/workspaces/${workspaceId}/chat/sessions`
 }
 
-export const createSession = async (workspaceId: number,
-    createUserChatSessionRequest: CreateUserChatSessionRequest, options?: RequestInit): Promise<createSessionResponse> => {
+export const createSession1 = async (workspaceId: number,
+    createUserChatSessionRequest: CreateUserChatSessionRequest, options?: RequestInit): Promise<createSession1Response> => {
 
-  return customFetch<createSessionResponse>(getCreateSessionUrl(workspaceId),
+  return customFetch<createSession1Response>(getCreateSession1Url(workspaceId),
   {
     ...options,
     method: 'POST',
@@ -72,11 +72,11 @@ export const createSession = async (workspaceId: number,
 
 
 
-export const getCreateSessionMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext> => {
+export const getCreateSession1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession1>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSession1>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext> => {
 
-const mutationKey = ['createSession'];
+const mutationKey = ['createSession1'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -86,10 +86,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSession>>, {workspaceId: number;data: CreateUserChatSessionRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSession1>>, {workspaceId: number;data: CreateUserChatSessionRequest}> = (props) => {
           const {workspaceId,data} = props ?? {};
 
-          return  createSession(workspaceId,data,requestOptions)
+          return  createSession1(workspaceId,data,requestOptions)
         }
 
 
@@ -99,19 +99,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createSession>>>
-    export type CreateSessionMutationBody = CreateUserChatSessionRequest
-    export type CreateSessionMutationError = unknown
+    export type CreateSession1MutationResult = NonNullable<Awaited<ReturnType<typeof createSession1>>>
+    export type CreateSession1MutationBody = CreateUserChatSessionRequest
+    export type CreateSession1MutationError = unknown
 
-    export const useCreateSession = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+    export const useCreateSession1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession1>>, TError,{workspaceId: number;data: CreateUserChatSessionRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createSession>>,
+        Awaited<ReturnType<typeof createSession1>>,
         TError,
         {workspaceId: number;data: CreateUserChatSessionRequest},
         TContext
       > => {
-      return useMutation(getCreateSessionMutationOptions(options), queryClient);
+      return useMutation(getCreateSession1MutationOptions(options), queryClient);
     }
     export type getCurrentSessionResponse200 = {
   data: ChatSessionResponse

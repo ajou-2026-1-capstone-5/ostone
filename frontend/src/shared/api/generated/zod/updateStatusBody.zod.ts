@@ -9,10 +9,7 @@ import { z as zod } from 'zod';
 
 
 export const UpdateStatusBody = zod.object({
-  "status": zod.string().min(1).optional(),
-  "resolutionOutcome": zod.string().optional(),
-  "resolutionReason": zod.string().optional(),
-  "followUpRequired": zod.boolean().optional()
+  "status": zod.string().min(1).optional()
 })
 
 export type UpdateStatusBody = zod.input<typeof UpdateStatusBody>;
