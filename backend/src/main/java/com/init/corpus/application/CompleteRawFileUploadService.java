@@ -65,9 +65,9 @@ public class CompleteRawFileUploadService {
   private static final String COMPLETED_PREFIX = "completed/";
 
   /**
-   * presigned 업로드를 완료 처리한다. DB 상태 전이(객체 승격, {@code dataset_raw_file} 저장, {@code PROCESSING} 전이)는
-   * 트랜잭션 내에서 커밋하고, Airflow 트리거는 커밋이 성공한 뒤(afterCommit)에 수행한다. 트리거가 실패해도 이미 커밋된 DB 상태는 롤백되지 않으며, 트리거
-   * 구현체가 실패한 데이터셋을 복구 가능한 상태로 별도 전이한다.
+   * presigned 업로드를 완료 처리한다. {@code completed/} 객체 승격 후 DB 상태 전이({@code dataset_raw_file} 저장, {@code
+   * PROCESSING} 전이)는 트랜잭션 내에서 커밋하고, Airflow 트리거는 커밋이 성공한 뒤(afterCommit)에 수행한다. 트리거가 실패해도 이미 커밋된 DB
+   * 상태는 롤백되지 않으며, 트리거 구현체가 실패한 데이터셋을 복구 가능한 상태로 별도 전이한다.
    */
   @Transactional
   public CompleteRawFileUploadResult complete(CompleteRawFileUploadCommand command) {
@@ -124,6 +124,7 @@ public class CompleteRawFileUploadService {
           "업로드 세션 objectKey가 pending/ 접두사를 가져야 합니다. objectKey=" + session.objectKey());
     }
     storagePort.copyObject(session.objectKey(), completedKey);
+    registerRollbackCleanup(completedKey);
 
     DatasetRawFile rawFile =
         DatasetRawFile.createPending(
@@ -151,6 +152,21 @@ public class CompleteRawFileUploadService {
         saved.getStatus());
   }
 
+  private void registerRollbackCleanup(String completedKey) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCompletion(int status) {
+            if (status != STATUS_COMMITTED) {
+              deleteCompletedObject(completedKey);
+            }
+          }
+        });
+  }
+
   private void registerAfterCommitActions(
       Long workspaceId, Long datasetId, String pendingKey, String completedKey) {
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -174,6 +190,14 @@ public class CompleteRawFileUploadService {
       storagePort.delete(pendingKey);
     } catch (RuntimeException ex) {
       log.warn("[complete] pending 원본 객체 삭제 실패. objectKey={}", pendingKey, ex);
+    }
+  }
+
+  private void deleteCompletedObject(String completedKey) {
+    try {
+      storagePort.delete(completedKey);
+    } catch (RuntimeException ex) {
+      log.warn("[complete] rollback 보상 completed 객체 삭제 실패. objectKey={}", completedKey, ex);
     }
   }
 
