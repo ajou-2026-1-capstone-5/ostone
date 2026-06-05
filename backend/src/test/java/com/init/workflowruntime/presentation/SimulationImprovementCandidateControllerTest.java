@@ -11,7 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.init.workflowruntime.application.SimulationImprovementCandidateService;
+import com.init.workflowruntime.application.command.ApproveSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.CreateSimulationImprovementCandidateCommand;
+import com.init.workflowruntime.application.command.RejectSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.UpdateSimulationImprovementCandidateStatusCommand;
 import com.init.workflowruntime.application.dto.SimulationImprovementCandidatePageResponse;
 import com.init.workflowruntime.application.dto.SimulationImprovementCandidateResponse;
@@ -131,6 +133,13 @@ class SimulationImprovementCandidateControllerTest {
                 "질문 없음",
                 "질문 추가",
                 "feedback #900",
+                null,
+                null,
+                null,
+                "{}",
+                null,
+                null,
+                null,
                 SimulationImprovementCandidateStatus.READY_FOR_REVIEW,
                 7L,
                 null,
@@ -168,7 +177,68 @@ class SimulationImprovementCandidateControllerTest {
                 10L, 7L, 900L, null, null, null, null, null));
   }
 
+  @Test
+  @DisplayName(
+      "POST /api/v1/workspaces/{workspaceId}/simulation/improvement-candidates/{candidateId}/approve - 후보 승인")
+  void shouldApproveCandidate() throws Exception {
+    given(
+            candidateService.approve(
+                eq(new ApproveSimulationImprovementCandidateCommand(10L, 7L, 1000L, "반영합니다."))))
+        .willReturn(response(1000L, SimulationImprovementCandidateStatus.APPLIED, "반영합니다."));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/10/simulation/improvement-candidates/1000/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"반영합니다.\"}")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("APPLIED"))
+        .andExpect(jsonPath("$.decisionReason").value("반영합니다."));
+  }
+
+  @Test
+  @DisplayName("POST 후보 승인: body가 없으면 사유 없이 승인한다")
+  void shouldApproveCandidateWithEmptyBody() throws Exception {
+    given(
+            candidateService.approve(
+                eq(new ApproveSimulationImprovementCandidateCommand(10L, 7L, 1000L, null))))
+        .willReturn(response(1000L, SimulationImprovementCandidateStatus.APPLIED, null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/10/simulation/improvement-candidates/1000/approve")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("APPLIED"));
+  }
+
+  @Test
+  @DisplayName(
+      "POST /api/v1/workspaces/{workspaceId}/simulation/improvement-candidates/{candidateId}/reject - 후보 반려")
+  void shouldRejectCandidate() throws Exception {
+    given(
+            candidateService.reject(
+                eq(new RejectSimulationImprovementCandidateCommand(10L, 7L, 1000L, "근거가 부족합니다."))))
+        .willReturn(response(1000L, SimulationImprovementCandidateStatus.REJECTED, "근거가 부족합니다."));
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/10/simulation/improvement-candidates/1000/reject")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"근거가 부족합니다.\"}")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("REJECTED"))
+        .andExpect(jsonPath("$.decisionReason").value("근거가 부족합니다."));
+  }
+
   private SimulationImprovementCandidateResponse response(Long candidateId) {
+    return response(candidateId, SimulationImprovementCandidateStatus.DRAFT, null);
+  }
+
+  private SimulationImprovementCandidateResponse response(
+      Long candidateId, SimulationImprovementCandidateStatus status, String decisionReason) {
     return new SimulationImprovementCandidateResponse(
         candidateId,
         10L,
@@ -183,7 +253,14 @@ class SimulationImprovementCandidateControllerTest {
         "질문 없음",
         "질문 추가",
         "feedback #900",
-        SimulationImprovementCandidateStatus.DRAFT,
+        null,
+        null,
+        null,
+        "{}",
+        decisionReason,
+        null,
+        null,
+        status,
         7L,
         null,
         null);

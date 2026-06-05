@@ -55,7 +55,6 @@ export const LoginForm: React.FC = () => {
       saveAuthSession(
         {
           accessToken: result.accessToken ?? "",
-          refreshToken: result.refreshToken ?? "",
           tokenType: result.tokenType ?? "Bearer",
           expiresIn: result.expiresIn ?? 0,
         },

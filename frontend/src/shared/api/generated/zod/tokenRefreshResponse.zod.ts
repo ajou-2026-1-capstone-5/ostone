@@ -8,7 +8,6 @@ import { z as zod } from 'zod';
 
 export const TokenRefreshResponse = zod.object({
   "accessToken": zod.string().optional(),
-  "refreshToken": zod.string().optional(),
   "tokenType": zod.string().optional(),
   "expiresIn": zod.number().optional()
 })

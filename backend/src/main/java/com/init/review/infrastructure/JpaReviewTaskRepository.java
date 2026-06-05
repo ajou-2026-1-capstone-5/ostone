@@ -3,6 +3,7 @@ package com.init.review.infrastructure;
 import com.init.review.domain.model.ReviewTask;
 import com.init.review.domain.repository.ReviewTaskRepository;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,4 +13,8 @@ public interface JpaReviewTaskRepository
 
   @Override
   List<ReviewTask> findByReviewSessionIdOrderByIdAsc(Long reviewSessionId);
+
+  @Override
+  Optional<ReviewTask> findFirstByReviewSessionIdAndTargetTypeAndTargetIdOrderByIdDesc(
+      Long reviewSessionId, String targetType, Long targetId);
 }

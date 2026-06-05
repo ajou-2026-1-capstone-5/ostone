@@ -13,11 +13,12 @@ import {
 } from "@/shared/api/generated/endpoints/counselor-session-controller/counselor-session-controller";
 import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
+import type { GetSessionsParams } from "@/shared/api/generated/zod";
 import type {
-  ChatMessageResponse,
-  ChatSessionResponse,
-  GetSessionsParams,
-} from "@/shared/api/generated/zod";
+  ConsultationChatMessage,
+  ConsultationChatSession,
+  ConsultationResponseMode,
+} from "@/entities/chat";
 
 // 상담 endpoint는 가능한 한 generated controller에 위임한다:
 // queue(getQueue) / sessions(getSessions) / messages(getMessages) /
@@ -25,11 +26,8 @@ import type {
 // 단, dashboard workflow rankings·bottleneck analysis와, from/to 기간 필터가 필요한 metrics는
 // generated 시그니처가 해당 파라미터를 노출하지 않아 customFetch 직접 호출을 유지한다.
 
-export type ChatSession = Omit<ChatSessionResponse, "responseMode"> & {
-  assignedCounselorId?: number | null;
-  responseMode?: ConsultationResponseMode | null;
-};
-export type ChatMessage = ChatMessageResponse;
+export type ChatSession = ConsultationChatSession;
+export type ChatMessage = ConsultationChatMessage;
 export interface ChatMessagePage {
   content: ChatMessage[];
   page: number;
@@ -38,7 +36,7 @@ export interface ChatMessagePage {
   totalPages: number;
 }
 export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
-export type ConsultationResponseMode = "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY";
+export type { ConsultationResponseMode };
 export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
 export interface ChatSessionPage {
   content: ChatSession[];

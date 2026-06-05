@@ -196,7 +196,8 @@ docker compose logs -f airflow-apiserver
 | 목적            | 커맨드                                    |
 | --------------- | ----------------------------------------- |
 | 빌드            | `./gradlew build`                         |
-| 테스트          | `./gradlew test`                          |
+| 빠른 H2 테스트  | `./gradlew test` 또는 `./gradlew testH2`  |
+| PostgreSQL 테스트 | `./gradlew testPg`                      |
 | 실행            | `./gradlew bootRun`                       |
 | JAR 패키징      | `./gradlew bootJar`                       |
 | 코드 포맷팅     | `./gradlew spotlessApply`                 |
@@ -207,7 +208,19 @@ docker compose logs -f airflow-apiserver
 
 - `default`: PostgreSQL + Liquibase
 - `local`: SQL 로깅 활성화 (`application-local.yml`)
-- `test`: H2 인메모리 + Liquibase 비활성화
+- `test`: 기본 테스트 리소스 기준 H2 인메모리 + Liquibase 비활성화
+
+**테스트 DB 전략**:
+
+- `./gradlew test`와 `./gradlew testH2`는 빠른 단위/슬라이스 검증용 기본 경로이며, `backend/src/test/resources/application.yml`의 H2 인메모리 DB와 Hibernate `create-drop`을 사용하고 Liquibase를 비활성화한다.
+- `./gradlew testPg`는 통합/CI 재현용 경로이며, PostgreSQL에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 필요하면 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓴다.
+- CI backend job은 `pgvector/pgvector:pg16` 서비스를 띄우고 `CREATE EXTENSION IF NOT EXISTS vector;`를 적용한 뒤 `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest`를 실행한다. CI 실패를 로컬에서 같은 조건으로 재현하려면 동일한 PostgreSQL/pgvector DB를 준비한 뒤 `./gradlew testPg`를 실행한다.
+
+```bash
+docker run --rm --name ostone-test-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d pgvector/pgvector:pg16
+docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+(cd backend && ./gradlew testPg)
+```
 
 ### Frontend (pnpm)
 
@@ -274,10 +287,11 @@ ml: # uv sync && uv run pytest
 
 **Gotchas**:
 
-- CI: `./gradlew build -x checkstyleMain -x checkstyleTest` (체크스타일 스킵)
+- CI: `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest` (PostgreSQL/Liquibase 테스트 + 체크스타일 스킵)
   - 실제 빌드 영향 없음, CI 속도 최적화를 위한 건너뛰기
   - 로컬에서는 `./gradlew check`로 전체 검사 권장
-- 테스트: H2 인메모리 (`jdbc:h2:mem:testdb`) 사용, Liquibase 비활성화
+- 기본 테스트: H2 인메모리 (`jdbc:h2:mem:testdb`) 사용, Liquibase 비활성화
+- CI 재현 테스트: `./gradlew testPg`로 PostgreSQL + Liquibase 활성화 조건 사용
 - CORS 기본 허용: `http://localhost:5173` (프론트 개발 서버)
 
 ### Docker 이미지 빌드

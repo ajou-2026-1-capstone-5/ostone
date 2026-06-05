@@ -1,5 +1,5 @@
 const ACCESS_TOKEN_KEY = "accessToken";
-const REFRESH_TOKEN_KEY = "refreshToken";
+const LEGACY_REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
 export const SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
@@ -48,34 +48,29 @@ export interface AuthUser {
 
 export interface AuthTokens {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   expiresIn: number;
 }
 
 export function saveAuthSession(tokens: AuthTokens, user: AuthUser): void {
   setAuthValue(ACCESS_TOKEN_KEY, tokens.accessToken);
-  setAuthValue(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  removeAuthValue(LEGACY_REFRESH_TOKEN_KEY);
   setAuthValue(USER_KEY, JSON.stringify(user));
 }
 
 export function saveAuthTokens(tokens: AuthTokens): void {
   setAuthValue(ACCESS_TOKEN_KEY, tokens.accessToken);
-  setAuthValue(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  removeAuthValue(LEGACY_REFRESH_TOKEN_KEY);
 }
 
 export function clearAuthSession(): void {
   removeAuthValue(ACCESS_TOKEN_KEY);
-  removeAuthValue(REFRESH_TOKEN_KEY);
+  removeAuthValue(LEGACY_REFRESH_TOKEN_KEY);
   removeAuthValue(USER_KEY);
 }
 
 export function getAccessToken(): string | null {
   return getAuthValue(ACCESS_TOKEN_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  return getAuthValue(REFRESH_TOKEN_KEY);
 }
 
 export function getAuthUser(): AuthUser | null {

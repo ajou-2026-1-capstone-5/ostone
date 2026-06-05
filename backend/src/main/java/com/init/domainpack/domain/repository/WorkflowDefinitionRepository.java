@@ -19,6 +19,9 @@ public interface WorkflowDefinitionRepository {
 
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionId(Long id, Long domainPackVersionId);
 
+  Optional<WorkflowDefinition> findByDomainPackVersionIdAndWorkflowCode(
+      Long domainPackVersionId, String workflowCode);
+
   Optional<WorkflowDefinition> findByIdAndDomainPackVersionIdForUpdate(
       Long id, Long domainPackVersionId);
 

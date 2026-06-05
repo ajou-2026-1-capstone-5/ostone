@@ -1,7 +1,6 @@
 import {
   clearAuthSession,
   getAccessToken,
-  getRefreshToken,
   saveAuthTokens,
   type AuthTokens,
 } from "@/shared/lib/auth";
@@ -26,6 +25,11 @@ interface ResponseHandlingOptions {
   clearSessionOnUnauthorized: boolean;
 }
 
+function isJsonContentType(contentType: string): boolean {
+  const normalized = contentType.toLowerCase();
+  return normalized.includes("application/json") || normalized.includes("+json");
+}
+
 function selectTokenRefreshBody(body: unknown): AuthTokens | null {
   const candidate =
     body &&
@@ -42,7 +46,6 @@ function selectTokenRefreshBody(body: unknown): AuthTokens | null {
   const tokens = candidate as Partial<AuthTokens>;
   if (
     typeof tokens.accessToken !== "string" ||
-    typeof tokens.refreshToken !== "string" ||
     typeof tokens.tokenType !== "string" ||
     typeof tokens.expiresIn !== "number"
   ) {
@@ -51,7 +54,6 @@ function selectTokenRefreshBody(body: unknown): AuthTokens | null {
 
   return {
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
     tokenType: tokens.tokenType,
     expiresIn: tokens.expiresIn,
   };
@@ -134,19 +136,10 @@ class ApiClient {
   }
 
   private async requestTokenRefresh(): Promise<boolean> {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      clearAuthSession();
-      return false;
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/auth/refresh`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -185,11 +178,21 @@ class ApiClient {
       throw new ApiRequestError(response.status, errorData.code, errorData.message);
     }
 
-    if (response.status === 204) {
+    if (response.status === 204 || response.status === 205) {
       return undefined as T;
     }
 
-    return response.json() as Promise<T>;
+    const contentType = response.headers.get("Content-Type") ?? "";
+    if (!isJsonContentType(contentType)) {
+      return undefined as T;
+    }
+
+    const bodyText = await response.text();
+    if (bodyText.length === 0) {
+      return undefined as T;
+    }
+
+    return JSON.parse(bodyText) as T;
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {

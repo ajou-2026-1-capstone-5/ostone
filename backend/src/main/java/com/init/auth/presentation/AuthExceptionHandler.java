@@ -1,7 +1,7 @@
 package com.init.auth.presentation;
 
 import com.init.auth.application.exception.PasswordResetRequiredException;
-import com.init.auth.presentation.dto.PasswordResetRequiredResponse;
+import com.init.shared.presentation.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class AuthExceptionHandler {
 
   @ExceptionHandler(PasswordResetRequiredException.class)
-  public ResponseEntity<PasswordResetRequiredResponse> handlePasswordResetRequired(
+  public ResponseEntity<ErrorResponse> handlePasswordResetRequired(
       PasswordResetRequiredException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(new PasswordResetRequiredResponse(ex.getCode(), ex.getMessage(), ex.getResetToken()));
+        .body(new ErrorResponse(ex.getCode(), ex.getMessage()));
   }
 }

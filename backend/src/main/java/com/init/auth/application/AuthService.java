@@ -70,7 +70,7 @@ public class AuthService {
       OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
       user.initiatePasswordReset(tokenHash, expiresAt);
       userRepository.save(user);
-      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", rawToken);
+      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.");
     }
 
     return issueTokens(user);
@@ -98,7 +98,7 @@ public class AuthService {
 
     RefreshToken refreshToken =
         refreshTokenRepository
-            .findByTokenHash(tokenHash)
+            .findByTokenHashForUpdate(tokenHash)
             .orElseThrow(() -> new InvalidTokenException("유효하지 않은 리프레시 토큰입니다."));
 
     if (!refreshToken.isValid()) {

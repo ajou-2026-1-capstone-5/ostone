@@ -12,6 +12,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -68,6 +70,28 @@ public class SimulationImprovementCandidate {
   @Column(name = "evidence_summary", nullable = false, columnDefinition = "TEXT")
   private String evidenceSummary;
 
+  @Column(name = "review_session_id")
+  private Long reviewSessionId;
+
+  @Column(name = "review_task_id")
+  private Long reviewTaskId;
+
+  @Column(name = "applied_domain_pack_version_id")
+  private Long appliedDomainPackVersionId;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "draft_patch_json", nullable = false, columnDefinition = "jsonb")
+  private String draftPatchJson;
+
+  @Column(name = "decision_reason", columnDefinition = "TEXT")
+  private String decisionReason;
+
+  @Column(name = "decided_by")
+  private Long decidedBy;
+
+  @Column(name = "decided_at")
+  private OffsetDateTime decidedAt;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
   private SimulationImprovementCandidateStatus status;
@@ -114,6 +138,7 @@ public class SimulationImprovementCandidate {
     candidate.afterSummary = normalizeSummary(requiredDraft.afterSummary(), "afterSummary");
     candidate.evidenceSummary =
         normalizeSummary(requiredDraft.evidenceSummary(), "evidenceSummary");
+    candidate.draftPatchJson = "{}";
     candidate.status = SimulationImprovementCandidateStatus.DRAFT;
     candidate.createdBy = requireId(createdBy, "createdBy");
     return candidate;
@@ -131,6 +156,9 @@ public class SimulationImprovementCandidate {
     if (this.status == null) {
       this.status = SimulationImprovementCandidateStatus.DRAFT;
     }
+    if (this.draftPatchJson == null || this.draftPatchJson.isBlank()) {
+      this.draftPatchJson = "{}";
+    }
   }
 
   @PreUpdate
@@ -140,6 +168,52 @@ public class SimulationImprovementCandidate {
 
   public void changeStatus(SimulationImprovementCandidateStatus nextStatus) {
     this.status = requireNonNull(nextStatus, "status");
+  }
+
+  public void defineDraftPatch(String draftPatchJson) {
+    String normalized = normalizeOptionalText(draftPatchJson);
+    this.draftPatchJson = normalized != null ? normalized : "{}";
+  }
+
+  public void submitForReview(Long reviewSessionId, Long reviewTaskId) {
+    if (this.status != SimulationImprovementCandidateStatus.DRAFT
+        && this.status != SimulationImprovementCandidateStatus.READY_FOR_REVIEW) {
+      throw new InvalidSimulationImprovementCandidateException(
+          "review can only be requested from DRAFT or READY_FOR_REVIEW candidate");
+    }
+    this.reviewSessionId = requireId(reviewSessionId, "reviewSessionId");
+    this.reviewTaskId = requireId(reviewTaskId, "reviewTaskId");
+    this.status = SimulationImprovementCandidateStatus.READY_FOR_REVIEW;
+  }
+
+  public void markApplied(
+      Long appliedDomainPackVersionId, Long decidedBy, String reason, OffsetDateTime decidedAt) {
+    if (this.status != SimulationImprovementCandidateStatus.READY_FOR_REVIEW) {
+      throw new InvalidSimulationImprovementCandidateException(
+          "candidate can only be applied from READY_FOR_REVIEW");
+    }
+    this.appliedDomainPackVersionId =
+        requireId(appliedDomainPackVersionId, "appliedDomainPackVersionId");
+    markDecision(SimulationImprovementCandidateStatus.APPLIED, decidedBy, reason, decidedAt);
+  }
+
+  public void markRejected(Long decidedBy, String reason, OffsetDateTime decidedAt) {
+    if (this.status != SimulationImprovementCandidateStatus.READY_FOR_REVIEW) {
+      throw new InvalidSimulationImprovementCandidateException(
+          "candidate can only be rejected from READY_FOR_REVIEW");
+    }
+    markDecision(SimulationImprovementCandidateStatus.REJECTED, decidedBy, reason, decidedAt);
+  }
+
+  private void markDecision(
+      SimulationImprovementCandidateStatus status,
+      Long decidedBy,
+      String reason,
+      OffsetDateTime decidedAt) {
+    this.status = status;
+    this.decisionReason = normalizeOptionalText(reason);
+    this.decidedBy = requireId(decidedBy, "decidedBy");
+    this.decidedAt = requireNonNull(decidedAt, "decidedAt");
   }
 
   public Long getId() {
@@ -192,6 +266,34 @@ public class SimulationImprovementCandidate {
 
   public String getEvidenceSummary() {
     return evidenceSummary;
+  }
+
+  public Long getReviewSessionId() {
+    return reviewSessionId;
+  }
+
+  public Long getReviewTaskId() {
+    return reviewTaskId;
+  }
+
+  public Long getAppliedDomainPackVersionId() {
+    return appliedDomainPackVersionId;
+  }
+
+  public String getDraftPatchJson() {
+    return draftPatchJson;
+  }
+
+  public String getDecisionReason() {
+    return decisionReason;
+  }
+
+  public Long getDecidedBy() {
+    return decidedBy;
+  }
+
+  public OffsetDateTime getDecidedAt() {
+    return decidedAt;
   }
 
   public SimulationImprovementCandidateStatus getStatus() {

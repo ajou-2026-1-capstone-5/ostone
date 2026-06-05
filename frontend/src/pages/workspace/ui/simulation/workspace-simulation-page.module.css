@@ -339,6 +339,7 @@
 
 .stateList div,
 .slotPanel,
+.goldenCasePanel,
 .feedbackPanel,
 .feedbackListPanel {
   border: 1px solid var(--line);
@@ -402,6 +403,7 @@
 }
 
 .feedbackPanel,
+.goldenCasePanel,
 .feedbackListPanel {
   display: grid;
   gap: var(--s-3);
@@ -439,9 +441,11 @@
   font-weight: 540;
 }
 
+.feedbackField input,
 .feedbackField textarea {
+  width: 100%;
+  min-width: 0;
   min-height: 72px;
-  resize: vertical;
   border: 1px solid hsl(var(--input));
   border-radius: 8px;
   background: var(--paper);
@@ -452,6 +456,16 @@
   padding: var(--s-3);
 }
 
+.feedbackField input {
+  min-height: 36px;
+  padding: 0 var(--s-3);
+}
+
+.feedbackField textarea {
+  resize: vertical;
+}
+
+.feedbackField input:focus-visible,
 .feedbackField textarea:focus-visible {
   outline: none;
   border-color: hsl(var(--ring));
@@ -471,6 +485,64 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.goldenCaseList {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goldenCaseList li {
+  display: grid;
+  gap: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  padding: var(--s-3);
+}
+
+.goldenCaseList strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 540;
+}
+
+.goldenCaseList span {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 540;
+}
+
+.replayStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.replayStatusPass {
+  border-color: rgb(23 124 76 / 45%);
+  color: rgb(19 112 67);
+}
+
+.replayStatusFail {
+  border-color: rgb(180 58 58 / 45%);
+  color: rgb(158 42 42);
+}
+
+.failureSummary {
+  margin: 0;
+  color: rgb(158 42 42);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .feedbackList li {
@@ -543,6 +615,13 @@
   font-weight: 540;
 }
 
+.statusPill {
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
 .candidateSummary {
   display: grid;
   gap: var(--s-2);
@@ -567,6 +646,38 @@
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+.evidenceMeta {
+  display: block;
+  margin-top: 4px;
+}
+
+.candidateReviewForm {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.candidateReviewForm input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--paper);
+  padding: 8px 10px;
+  color: var(--ink);
+}
+
+.candidateActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
+.decisionReason {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 @media (max-width: 1180px) {

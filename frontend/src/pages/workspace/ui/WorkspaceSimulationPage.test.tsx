@@ -32,6 +32,12 @@ vi.mock("@/features/simulation", () => ({
     createImprovementCandidate: vi.fn(),
     listImprovementCandidates: vi.fn(),
     updateImprovementCandidateStatus: vi.fn(),
+    approveImprovementCandidate: vi.fn(),
+    rejectImprovementCandidate: vi.fn(),
+    listGoldenCases: vi.fn(),
+    createGoldenCase: vi.fn(),
+    replayGoldenCase: vi.fn(),
+    listGoldenCaseReplays: vi.fn(),
   },
 }));
 
@@ -74,7 +80,15 @@ const detail = {
     },
   ],
   matchedWorkflow: {
+    sessionId: 10,
+    workspaceId: 1,
+    domainPackId: 11,
+    domainPackVersionId: 101,
+    executionId: 77,
     intentName: "환불 문의",
+    intentCode: "refund_request",
+    workflowDefinitionId: 100,
+    workflowCode: "refund_workflow",
     workflowName: "환불 처리",
     currentState: "collect_order_no",
     executionStatus: "ACTIVE",
@@ -116,10 +130,53 @@ const candidate = {
   beforeSummary: "주문번호를 묻지 않았습니다.",
   afterSummary: "주문번호를 먼저 요청합니다.",
   evidenceSummary: "simulation feedback #900",
+  reviewSessionId: null,
+  reviewTaskId: null,
+  appliedDomainPackVersionId: null,
+  draftPatchJson: "{}",
+  decisionReason: null,
+  decidedBy: null,
+  decidedAt: null,
   status: "DRAFT",
   createdBy: 7,
   createdAt: "2026-06-04T10:45:00Z",
   updatedAt: "2026-06-04T10:45:00Z",
+} as const;
+
+const goldenCase = {
+  id: 950,
+  workspaceId: 1,
+  sourceSessionId: 10,
+  sourceDomainPackVersionId: 101,
+  name: "환불 검증",
+  inputMessagesJson: '[{"content":"환불하고 싶어요"}]',
+  expectedJson:
+    '{"intentCode":"refund_request","workflowCode":"refund_workflow","currentState":"collect_order_no","actionType":"ASK_SLOT"}',
+  createdBy: 7,
+  createdAt: "2026-06-05T10:45:00Z",
+  updatedAt: "2026-06-05T10:45:00Z",
+  latestReplayResult: null,
+} as const;
+
+const replayResult = {
+  id: 990,
+  workspaceId: 1,
+  goldenCaseId: 950,
+  domainPackVersionId: 101,
+  replaySessionId: 960,
+  status: "PASS",
+  expectedJson: "{}",
+  actualJson: "{}",
+  failureSummary: null,
+  createdBy: 7,
+  createdAt: "2026-06-05T10:46:00Z",
+} as const;
+
+const failedReplayResult = {
+  ...replayResult,
+  id: 991,
+  status: "FAIL",
+  failureSummary: "currentState expected collect_order_no but was handoff",
 } as const;
 
 function candidateWithType(
@@ -212,6 +269,26 @@ beforeEach(() => {
     ...candidate,
     status: "READY_FOR_REVIEW",
   });
+  mockedSimulationApi.approveImprovementCandidate.mockResolvedValue({
+    ...candidate,
+    status: "APPLIED",
+    appliedDomainPackVersionId: 102,
+    decisionReason: "시뮬레이션 리뷰 승인",
+  });
+  mockedSimulationApi.rejectImprovementCandidate.mockResolvedValue({
+    ...candidate,
+    status: "REJECTED",
+    decisionReason: "근거가 부족합니다.",
+  });
+  mockedSimulationApi.listGoldenCases.mockResolvedValue({
+    content: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  });
+  mockedSimulationApi.createGoldenCase.mockResolvedValue(goldenCase);
+  mockedSimulationApi.replayGoldenCase.mockResolvedValue(replayResult);
   mockedSimulationApi.sendMessage.mockResolvedValue({
     ...detail,
     messages: [
@@ -412,9 +489,7 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    fireEvent.change(await screen.findByLabelText("개선 후보 상태 변경"), {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(await screen.findByRole("button", { name: "리뷰 요청" }));
 
     await waitFor(() => {
       expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
@@ -437,13 +512,11 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
       new Error("refresh failed"),
     );
-    fireEvent.change(statusSelect, {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(requestButton);
 
     await waitFor(() => {
       expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
@@ -467,10 +540,7 @@ describe("WorkspaceSimulationPage", () => {
         candidateWithType(1005, "HANDOFF_CONDITION"),
         candidateWithType(1006, "RESPONSE_COPY"),
         candidateWithType(1007, "OTHER"),
-        candidateWithType(
-          1008,
-          "CUSTOM" as SimulationImprovementCandidate["candidateType"],
-        ),
+        candidateWithType(1008, "CUSTOM" as SimulationImprovementCandidate["candidateType"]),
       ],
       page: 0,
       size: 20,
@@ -522,17 +592,166 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
     mockedSimulationApi.updateImprovementCandidateStatus.mockRejectedValueOnce(
       new Error("update failed"),
     );
-    fireEvent.change(statusSelect, {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(requestButton);
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
     });
+  });
+
+  it("READY_FOR_REVIEW 개선 후보를 승인하고 목록을 새로고침한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "승인" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.approveImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+        reason: "시뮬레이션 리뷰 승인",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 draft version에 반영했습니다.");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("READY_FOR_REVIEW 개선 후보를 반려하고 사유를 전달한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText("개선 후보 반려 사유"), {
+      target: { value: "근거가 부족합니다." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "반려" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.rejectImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+        reason: "근거가 부족합니다.",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 반려했습니다.");
+  });
+
+  it("현재 runtime snapshot을 검증 케이스로 저장한다", async () => {
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    fireEvent.change(await screen.findByLabelText("검증 케이스 이름"), {
+      target: { value: "환불 주문번호 검증" },
+    });
+    fireEvent.change(await screen.findByLabelText("기대 action"), {
+      target: { value: "ASK_SLOT" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createGoldenCase).toHaveBeenCalledWith(1, 10, {
+        name: "환불 주문번호 검증",
+        expectedIntentCode: "refund_request",
+        expectedWorkflowCode: "refund_workflow",
+        expectedCurrentState: "collect_order_no",
+        expectedActionType: "ASK_SLOT",
+        expectedSlotValues: { orderNo: "A-100" },
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("검증 케이스를 저장했습니다.");
+  });
+
+  it("저장된 검증 케이스를 선택 version으로 replay한다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [goldenCase],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    fireEvent.click(await screen.findByRole("button", { name: "환불 검증 replay" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.replayGoldenCase).toHaveBeenCalledWith(1, 950, {
+        domainPackVersionId: 101,
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("검증 케이스 replay가 통과했습니다.");
+  });
+
+  it("최근 replay 실패 요약을 검증 케이스 목록에 표시한다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [
+        {
+          ...goldenCase,
+          latestReplayResult: failedReplayResult,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    expect(await screen.findByText("FAIL")).toBeInTheDocument();
+    expect(
+      screen.getByText("currentState expected collect_order_no but was handoff"),
+    ).toBeInTheDocument();
+  });
+
+  it("Replay version이 비어 있으면 replay 요청을 보내지 않는다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [goldenCase],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await screen.findByRole("button", { name: "환불 검증 replay" });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Replay version")).toHaveValue("101");
+    });
+    fireEvent.change(screen.getByLabelText("Replay version"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "환불 검증 replay" }));
+
+    expect(toast.error).toHaveBeenCalledWith("Replay version을 입력하세요.");
+    expect(mockedSimulationApi.replayGoldenCase).not.toHaveBeenCalled();
   });
 
   it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
+import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.domain.model.AppUser;
 import com.init.auth.domain.model.RefreshToken;
 import com.init.auth.domain.model.UserStatus;
@@ -170,6 +171,29 @@ class AuthServiceTest {
         .hasMessageContaining("비활성화된 계정입니다.");
   }
 
+  @Test
+  @DisplayName("login: 비밀번호 재설정 필요 → reset token hash 저장 후 PasswordResetRequiredException 발생")
+  void should_재설정토큰저장하고예외발생_when_비밀번호재설정필요() {
+    // given
+    LoginCommand command = new LoginCommand("hong@example.com", "password123");
+
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
+    ReflectionTestUtils.setField(user, "id", 1L);
+    ReflectionTestUtils.setField(user, "passwordResetRequired", true);
+    given(userRepository.findByEmail("hong@example.com")).willReturn(Optional.of(user));
+    given(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).willReturn(true);
+    given(tokenHasher.hash(anyString())).willReturn("sha256-reset-hash");
+
+    // when & then
+    assertThatThrownBy(() -> authService.login(command))
+        .isInstanceOf(PasswordResetRequiredException.class)
+        .hasMessageContaining("비밀번호 재설정이 필요합니다.");
+    assertThat(user.isPasswordResetTokenValid()).isTrue();
+    verify(userRepository).save(user);
+    verify(jwtService, never()).generateAccessToken(any(), anyString(), anyString());
+    verify(refreshTokenRepository, never()).save(any());
+  }
+
   // ── refresh ───────────────────────────────────────────────────────────────
 
   @Test
@@ -181,7 +205,7 @@ class AuthServiceTest {
 
     RefreshToken refreshToken =
         RefreshToken.create(1L, "sha256-hash-of-token", OffsetDateTime.now().plusDays(7));
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-of-token"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-of-token"))
         .willReturn(Optional.of(refreshToken));
 
     Claims claims = org.mockito.Mockito.mock(Claims.class);
@@ -210,6 +234,8 @@ class AuthServiceTest {
     assertThat(result.accessToken()).isEqualTo("new-access-token");
     assertThat(result.refreshToken()).isEqualTo("new-refresh-token");
     assertThat(result.tokenType()).isEqualTo("Bearer");
+    verify(refreshTokenRepository).findByTokenHashForUpdate("sha256-hash-of-token");
+    verify(refreshTokenRepository, never()).findByTokenHash("sha256-hash-of-token");
   }
 
   @Test
@@ -222,7 +248,7 @@ class AuthServiceTest {
     // 만료된 토큰 (expiresAt이 과거)
     RefreshToken expiredToken =
         RefreshToken.create(1L, "sha256-hash-expired", OffsetDateTime.now().minusSeconds(1));
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-expired"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-expired"))
         .willReturn(Optional.of(expiredToken));
 
     // when & then
@@ -237,7 +263,7 @@ class AuthServiceTest {
     // given
     TokenRefreshCommand command = new TokenRefreshCommand("unknown-token");
     given(tokenHasher.hash("unknown-token")).willReturn("sha256-hash-unknown");
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-unknown"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-unknown"))
         .willReturn(Optional.empty());
 
     // when & then
@@ -256,7 +282,7 @@ class AuthServiceTest {
     RefreshToken revokedToken =
         RefreshToken.create(1L, "sha256-hash-revoked", OffsetDateTime.now().plusDays(7));
     revokedToken.revoke();
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-revoked"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-revoked"))
         .willReturn(Optional.of(revokedToken));
 
     // when & then

@@ -1,9 +1,14 @@
 package com.init.auth.presentation;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +21,7 @@ import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +29,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -120,7 +127,7 @@ class AuthControllerTest {
   // ── login ─────────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("login: 올바른 이메일·비밀번호 → 200 OK, 토큰 반환")
+  @DisplayName("login: 올바른 이메일·비밀번호 → 200 OK, access token 반환 및 refresh cookie 설정")
   void should_200반환_when_로그인성공() throws Exception {
     // given
     LoginResult loginResult =
@@ -148,8 +155,18 @@ class AuthControllerTest {
                     }
                     """))
         .andExpect(status().isOk())
+        .andExpect(
+            header()
+                .string(
+                    HttpHeaders.SET_COOKIE,
+                    allOf(
+                        containsString("ostone_refresh_token=refresh-token"),
+                        containsString("Path=/api/v1/auth"),
+                        containsString("Max-Age=604800"),
+                        containsString("HttpOnly"),
+                        containsString("SameSite=Lax"))))
         .andExpect(jsonPath("$.accessToken").value("access-token"))
-        .andExpect(jsonPath("$.refreshToken").value("refresh-token"))
+        .andExpect(jsonPath("$.refreshToken").doesNotExist())
         .andExpect(jsonPath("$.tokenType").value("Bearer"))
         .andExpect(jsonPath("$.user.email").value("hong@example.com"))
         .andExpect(jsonPath("$.user.name").value("홍길동"));
@@ -198,11 +215,11 @@ class AuthControllerTest {
   }
 
   @Test
-  @DisplayName("login: 비밀번호 재설정 필요 → 403 Forbidden, PASSWORD_RESET_REQUIRED 코드 반환")
+  @DisplayName("login: 비밀번호 재설정 필요 → 403 Forbidden, resetToken 없이 PASSWORD_RESET_REQUIRED 코드 반환")
   void should_403반환_when_비밀번호재설정필요() throws Exception {
     // given
     given(authService.login(any()))
-        .willThrow(new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", "reset-token-123"));
+        .willThrow(new PasswordResetRequiredException("비밀번호 재설정이 필요합니다."));
 
     // when & then
     mockMvc
@@ -218,13 +235,14 @@ class AuthControllerTest {
                     """))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("PASSWORD_RESET_REQUIRED"))
-        .andExpect(jsonPath("$.resetToken").value("reset-token-123"));
+        .andExpect(jsonPath("$.message").value("비밀번호 재설정이 필요합니다."))
+        .andExpect(jsonPath("$.resetToken").doesNotExist());
   }
 
   // ── refresh ───────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("refresh: 유효한 리프레시 토큰 → 200 OK, 새 토큰 반환")
+  @DisplayName("refresh: 유효한 리프레시 cookie → 200 OK, 새 access token 반환 및 refresh cookie 회전")
   void should_200반환_when_토큰갱신성공() throws Exception {
     // given
     TokenRefreshResult refreshResult =
@@ -235,21 +253,25 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "refreshToken": "valid-refresh-token"
-                    }
-                    """))
+                .cookie(new Cookie("ostone_refresh_token", "valid-refresh-token")))
         .andExpect(status().isOk())
+        .andExpect(
+            header()
+                .string(
+                    HttpHeaders.SET_COOKIE,
+                    allOf(
+                        containsString("ostone_refresh_token=new-refresh-token"),
+                        containsString("Path=/api/v1/auth"),
+                        containsString("Max-Age=604800"),
+                        containsString("HttpOnly"),
+                        containsString("SameSite=Lax"))))
         .andExpect(jsonPath("$.accessToken").value("new-access-token"))
-        .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"))
+        .andExpect(jsonPath("$.refreshToken").doesNotExist())
         .andExpect(jsonPath("$.tokenType").value("Bearer"));
   }
 
   @Test
-  @DisplayName("refresh: 만료된 리프레시 토큰 → 401 Unauthorized, INVALID_TOKEN 코드 반환")
+  @DisplayName("refresh: 만료된 리프레시 cookie → 401 Unauthorized, INVALID_TOKEN 코드 반환")
   void should_401반환_when_만료된리프레시토큰() throws Exception {
     // given
     given(authService.refresh(any())).willThrow(new InvalidTokenException("만료되거나 폐기된 리프레시 토큰입니다."));
@@ -258,21 +280,26 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "refreshToken": "expired-token"
-                    }
-                    """))
+                .cookie(new Cookie("ostone_refresh_token", "expired-token")))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+  }
+
+  @Test
+  @DisplayName("refresh: 리프레시 cookie 없음 → 401 Unauthorized, INVALID_TOKEN 코드 반환")
+  void should_401반환_when_리프레시쿠키없음() throws Exception {
+    mockMvc
+        .perform(post("/api/v1/auth/refresh"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+
+    verify(authService, never()).refresh(any());
   }
 
   // ── logout ────────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("logout: 유효한 리프레시 토큰 → 204 No Content")
+  @DisplayName("logout: 유효한 리프레시 cookie → 204 No Content, refresh cookie 만료")
   void should_204반환_when_로그아웃성공() throws Exception {
     // given
     willDoNothing().given(authService).logout(any());
@@ -281,13 +308,28 @@ class AuthControllerTest {
     mockMvc
         .perform(
             post("/api/v1/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "refreshToken": "some-refresh-token"
-                    }
-                    """))
-        .andExpect(status().isNoContent());
+                .cookie(new Cookie("ostone_refresh_token", "some-refresh-token")))
+        .andExpect(status().isNoContent())
+        .andExpect(
+            header()
+                .string(
+                    HttpHeaders.SET_COOKIE,
+                    allOf(
+                        containsString("ostone_refresh_token="),
+                        containsString("Path=/api/v1/auth"),
+                        containsString("Max-Age=0"),
+                        containsString("HttpOnly"),
+                        containsString("SameSite=Lax"))));
+  }
+
+  @Test
+  @DisplayName("logout: 리프레시 cookie 없음 → 204 No Content, refresh cookie 만료")
+  void should_204반환_when_로그아웃쿠키없음() throws Exception {
+    mockMvc
+        .perform(post("/api/v1/auth/logout"))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
+
+    verify(authService, never()).logout(any());
   }
 }

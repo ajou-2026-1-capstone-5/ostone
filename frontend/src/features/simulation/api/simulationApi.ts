@@ -1,7 +1,10 @@
 import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
-import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
-import type { LlmToolWorkflowPayload } from "@/features/consultation/api/llmToolWorkflowApi";
+import type {
+  ConsultationChatMessage as ChatMessage,
+  ConsultationChatSession as ChatSession,
+} from "@/entities/chat";
+import type { LlmToolWorkflowPayload } from "@/entities/workflow";
 
 export interface SimulationSessionDetail {
   session: ChatSession;
@@ -68,6 +71,8 @@ export type SimulationImprovementCandidateStatus =
   | "APPLIED"
   | "REJECTED";
 
+export type SimulationGoldenCaseReplayStatus = "PASS" | "FAIL";
+
 export interface SimulationFeedback {
   id: number;
   workspaceId: number;
@@ -118,6 +123,13 @@ export interface SimulationImprovementCandidate {
   beforeSummary: string;
   afterSummary: string;
   evidenceSummary: string;
+  reviewSessionId: number | null;
+  reviewTaskId: number | null;
+  appliedDomainPackVersionId: number | null;
+  draftPatchJson: string;
+  decisionReason: string | null;
+  decidedBy: number | null;
+  decidedAt: string | null;
   status: SimulationImprovementCandidateStatus;
   createdBy: number;
   createdAt: string;
@@ -126,6 +138,50 @@ export interface SimulationImprovementCandidate {
 
 export interface SimulationImprovementCandidatePage {
   content: SimulationImprovementCandidate[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface SimulationGoldenCaseReplayResult {
+  id: number;
+  workspaceId: number;
+  goldenCaseId: number;
+  domainPackVersionId: number;
+  replaySessionId: number;
+  status: SimulationGoldenCaseReplayStatus;
+  expectedJson: string;
+  actualJson: string;
+  failureSummary: string | null;
+  createdBy: number;
+  createdAt: string;
+}
+
+export interface SimulationGoldenCase {
+  id: number;
+  workspaceId: number;
+  sourceSessionId: number;
+  sourceDomainPackVersionId: number;
+  name: string;
+  inputMessagesJson: string;
+  expectedJson: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  latestReplayResult: SimulationGoldenCaseReplayResult | null;
+}
+
+export interface SimulationGoldenCasePage {
+  content: SimulationGoldenCase[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface SimulationGoldenCaseReplayResultPage {
+  content: SimulationGoldenCaseReplayResult[];
   page: number;
   size: number;
   totalElements: number;
@@ -144,10 +200,57 @@ export interface UpdateSimulationImprovementCandidateStatusPayload {
   status: SimulationImprovementCandidateStatus;
 }
 
+export interface ReviewSimulationImprovementCandidatePayload {
+  reason?: string;
+}
+
+export interface RejectSimulationImprovementCandidatePayload {
+  reason: string;
+}
+
+export interface CreateSimulationGoldenCasePayload {
+  name?: string;
+  expectedIntentCode?: string | null;
+  expectedWorkflowCode?: string | null;
+  expectedCurrentState?: string | null;
+  expectedActionType?: string | null;
+  expectedSlotValues?: Record<string, unknown> | null;
+}
+
+export interface ReplaySimulationGoldenCasePayload {
+  domainPackVersionId: number;
+}
+
 type MaybeWrapped<T> = T | { data?: T };
 
 function unwrapSessionPage(response: MaybeWrapped<SimulationSessionPage>): SimulationSessionPage {
   const data = selectApiData<SimulationSessionPage>(response);
+  return {
+    content: data?.content ?? [],
+    page: data?.page ?? 0,
+    size: data?.size ?? 20,
+    totalElements: data?.totalElements ?? data?.content?.length ?? 0,
+    totalPages: data?.totalPages ?? 0,
+  };
+}
+
+function unwrapGoldenCasePage(
+  response: MaybeWrapped<SimulationGoldenCasePage>,
+): SimulationGoldenCasePage {
+  const data = selectApiData<SimulationGoldenCasePage>(response);
+  return {
+    content: data?.content ?? [],
+    page: data?.page ?? 0,
+    size: data?.size ?? 20,
+    totalElements: data?.totalElements ?? data?.content?.length ?? 0,
+    totalPages: data?.totalPages ?? 0,
+  };
+}
+
+function unwrapReplayResultPage(
+  response: MaybeWrapped<SimulationGoldenCaseReplayResultPage>,
+): SimulationGoldenCaseReplayResultPage {
+  const data = selectApiData<SimulationGoldenCaseReplayResultPage>(response);
   return {
     content: data?.content ?? [],
     page: data?.page ?? 0,
@@ -340,5 +443,112 @@ export const simulationApi = {
       response,
       "시뮬레이션 개선 후보 상태 응답을 확인할 수 없습니다.",
     );
+  },
+
+  approveImprovementCandidate: async (
+    workspaceId: number,
+    candidateId: number,
+    payload: ReviewSimulationImprovementCandidatePayload = {},
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}/approve`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 승인 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  rejectImprovementCandidate: async (
+    workspaceId: number,
+    candidateId: number,
+    payload: RejectSimulationImprovementCandidatePayload,
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 반려 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  listGoldenCases: async (
+    workspaceId: number,
+    params: { page?: number; size?: number } = {},
+  ): Promise<SimulationGoldenCasePage> => {
+    const searchParams = new URLSearchParams();
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.size !== undefined) searchParams.set("size", String(params.size));
+    const query = searchParams.toString();
+    const path = query
+      ? `/api/v1/workspaces/${workspaceId}/simulation/golden-cases?${query}`
+      : `/api/v1/workspaces/${workspaceId}/simulation/golden-cases`;
+    const response = await customFetch<MaybeWrapped<SimulationGoldenCasePage>>(path, {
+      method: "GET",
+    });
+    return unwrapGoldenCasePage(response);
+  },
+
+  createGoldenCase: async (
+    workspaceId: number,
+    sessionId: number,
+    payload: CreateSimulationGoldenCasePayload,
+  ): Promise<SimulationGoldenCase> => {
+    const response = await customFetch<MaybeWrapped<SimulationGoldenCase>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/sessions/${sessionId}/golden-cases`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationGoldenCase>(
+      response,
+      "검증 케이스 생성 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  replayGoldenCase: async (
+    workspaceId: number,
+    goldenCaseId: number,
+    payload: ReplaySimulationGoldenCasePayload,
+  ): Promise<SimulationGoldenCaseReplayResult> => {
+    const response = await customFetch<MaybeWrapped<SimulationGoldenCaseReplayResult>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/golden-cases/${goldenCaseId}/replays`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationGoldenCaseReplayResult>(
+      response,
+      "검증 케이스 replay 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  listGoldenCaseReplays: async (
+    workspaceId: number,
+    goldenCaseId: number,
+    params: { page?: number; size?: number } = {},
+  ): Promise<SimulationGoldenCaseReplayResultPage> => {
+    const searchParams = new URLSearchParams();
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.size !== undefined) searchParams.set("size", String(params.size));
+    const query = searchParams.toString();
+    const path = query
+      ? `/api/v1/workspaces/${workspaceId}/simulation/golden-cases/${goldenCaseId}/replays?${query}`
+      : `/api/v1/workspaces/${workspaceId}/simulation/golden-cases/${goldenCaseId}/replays`;
+    const response = await customFetch<MaybeWrapped<SimulationGoldenCaseReplayResultPage>>(path, {
+      method: "GET",
+    });
+    return unwrapReplayResultPage(response);
   },
 };

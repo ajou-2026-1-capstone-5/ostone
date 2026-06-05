@@ -2,6 +2,8 @@ package com.init.corpus.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -80,6 +82,26 @@ class DatasetControllerRawFileTest {
         .andExpect(jsonPath("$.uploadUrl").isString())
         .andExpect(jsonPath("$.objectKey").isString())
         .andExpect(jsonPath("$.serverSideEncryptionRequired").value(true));
+  }
+
+  @Test
+  @DisplayName("POST /uploads:init — datasetKey에 경로 구분자가 있으면 400")
+  @WithLongPrincipal(1L)
+  void initUpload_unsafeDatasetKey_returns400() throws Exception {
+    String body =
+        "{\"datasetKey\":\"foo/bar\",\"name\":\"테스트\",\"sourceType\":\"CRM\","
+            + "\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"sizeBytes\":1024}";
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/1/datasets/uploads:init")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .with(csrf()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+    verify(initRawFileUploadService, never()).init(any());
   }
 
   @Test

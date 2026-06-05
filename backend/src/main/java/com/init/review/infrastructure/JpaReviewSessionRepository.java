@@ -13,4 +13,9 @@ public interface JpaReviewSessionRepository
   @Override
   Optional<ReviewSession> findFirstByPipelineJobIdAndReviewKindOrderByOpenedAtDesc(
       Long pipelineJobId, String reviewKind);
+
+  @Override
+  Optional<ReviewSession>
+      findFirstByWorkspaceIdAndDomainPackVersionIdAndReviewKindAndStatusOrderByOpenedAtDesc(
+          Long workspaceId, Long domainPackVersionId, String reviewKind, String status);
 }

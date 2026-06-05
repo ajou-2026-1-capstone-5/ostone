@@ -10,6 +10,11 @@ export type {
 } from "./model/types";
 
 export type { WorkflowTransitionDetail } from "@/shared/api/generated/zod";
+export type {
+  LlmToolWorkflowPayload,
+  MatchedWorkflow,
+  TerminalState,
+} from "./model/matchedWorkflow";
 
 export { toFlow, convertFlowToWorkflowGraph } from "./lib/graphConverter";
 

@@ -4,6 +4,35 @@ import { resolveApiBase, ApiRequestError, apiClient } from "./index";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    ...init,
+    headers,
+  });
+}
+
+function emptyResponse(init: ResponseInit = {}): Response {
+  return new Response(null, {
+    status: 200,
+    ...init,
+  });
+}
+
+function textResponse(body: string, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "text/plain");
+
+  return new Response(body, {
+    status: 200,
+    ...init,
+    headers,
+  });
+}
+
 afterAll(() => {
   vi.unstubAllGlobals();
 });
@@ -46,10 +75,7 @@ describe("apiClient", () => {
   describe("post", () => {
     it("POST 메서드로 fetch를 호출하고 body를 JSON.stringify한다", async () => {
       const mockResponse = { id: 1, name: "test" };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const result = await apiClient.post<{ id: number; name: string }>("/test", { name: "test" });
 
@@ -71,10 +97,7 @@ describe("apiClient", () => {
   describe("get", () => {
     it("GET 메서드로 fetch를 호출하고 signal을 전달한다", async () => {
       const mockResponse = { data: "test" };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const abortController = new AbortController();
       const result = await apiClient.get<{ data: string }>("/test", {
@@ -96,10 +119,7 @@ describe("apiClient", () => {
   describe("patch", () => {
     it("PATCH 메서드로 fetch를 호출하고 body를 JSON.stringify한다", async () => {
       const mockResponse = { id: 1, name: "updated" };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const result = await apiClient.patch<{ id: number; name: string }>("/test/1", {
         name: "updated",
@@ -119,10 +139,7 @@ describe("apiClient", () => {
 
   describe("delete", () => {
     it("DELETE 메서드로 fetch를 호출한다", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 204,
-      });
+      mockFetch.mockResolvedValueOnce(emptyResponse({ status: 204 }));
 
       await apiClient.delete<void>("/test/1");
 
@@ -138,10 +155,7 @@ describe("apiClient", () => {
   describe("request", () => {
     it("임의 메서드로 fetch를 호출하고 headers를 병합한다", async () => {
       const mockResponse = { success: true };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const result = await apiClient.request<{ success: boolean }>("/test", {
         method: "PUT",
@@ -167,10 +181,7 @@ describe("apiClient", () => {
 
     it("auth endpoint 요청에는 저장된 access token을 Authorization header로 붙이지 않는다", async () => {
       const mockResponse = { success: true };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await apiClient.request<{ success: boolean }>("/auth/login", {
         method: "POST",
@@ -184,10 +195,7 @@ describe("apiClient", () => {
 
     it("demo endpoint 요청에는 저장된 access token을 Authorization header로 붙이지 않는다", async () => {
       const mockResponse = { id: 1 };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await apiClient.request<{ id: number }>("/workspaces/2/demo/chat-sessions", {
         method: "POST",
@@ -201,10 +209,7 @@ describe("apiClient", () => {
 
     it("body가 object인 경우 JSON.stringify한다", async () => {
       const mockResponse = { id: 1 };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const testData = { name: "test" };
       await apiClient.request<{ id: number }>("/test", {
@@ -222,10 +227,7 @@ describe("apiClient", () => {
 
     it("body가 Blob인 경우 그대로 전달한다", async () => {
       const mockResponse = { id: 1 };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const blob = new Blob(["test"], { type: "image/png" });
       await apiClient.request<{ id: number }>("/test", {
@@ -243,10 +245,7 @@ describe("apiClient", () => {
 
     it("body가 FormData인 경우 그대로 전달한다", async () => {
       const mockResponse = { id: 1 };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const formData = new FormData();
       formData.append("file", new Blob(["test"]));
@@ -266,10 +265,36 @@ describe("apiClient", () => {
 
   describe("handleResponse", () => {
     it("204 응답 시 undefined를 반환한다", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 204,
-      });
+      mockFetch.mockResolvedValueOnce(emptyResponse({ status: 204 }));
+
+      const result = await apiClient.get<void>("/test");
+
+      expect(result).toBeUndefined();
+    });
+
+    it("200 빈 본문 성공 응답 시 undefined를 반환한다", async () => {
+      mockFetch.mockResolvedValueOnce(
+        emptyResponse({
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await apiClient.get<void>("/test");
+
+      expect(result).toBeUndefined();
+    });
+
+    it("JSON 성공 응답은 body를 파싱해 반환한다", async () => {
+      const mockResponse = { id: 1, name: "test" };
+      mockFetch.mockResolvedValueOnce(jsonResponse(mockResponse));
+
+      const result = await apiClient.get<{ id: number; name: string }>("/test");
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("JSON이 아닌 성공 응답은 파싱하지 않고 undefined를 반환한다", async () => {
+      mockFetch.mockResolvedValueOnce(textResponse("ok"));
 
       const result = await apiClient.get<void>("/test");
 
@@ -330,32 +355,28 @@ describe("apiClient", () => {
     it("인증된 요청 401 후 refresh 성공 시 새 access token으로 원 요청을 한 번 재시도한다", async () => {
       Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
       localStorage.setItem("accessToken", "expired-access-token");
-      localStorage.setItem("refreshToken", "valid-refresh-token");
+      localStorage.setItem("refreshToken", "legacy-refresh-token");
       localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-          json: async () => ({
-            code: "UNAUTHORIZED",
-            message: "인증이 필요합니다.",
-          }),
-        })
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              code: "UNAUTHORIZED",
+              message: "인증이 필요합니다.",
+            },
+            { status: 401 },
+          ),
+        )
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
           json: async () => ({
             accessToken: "new-access-token",
-            refreshToken: "new-refresh-token",
             tokenType: "Bearer",
             expiresIn: 3600,
           }),
         })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ id: 1 }),
-        });
+        .mockResolvedValueOnce(jsonResponse({ id: 1 }));
 
       const result = await apiClient.get<{ id: number }>("/test");
 
@@ -366,21 +387,22 @@ describe("apiClient", () => {
         "/api/v1/auth/refresh",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ refreshToken: "valid-refresh-token" }),
+          credentials: "include",
         }),
       );
+      expect(mockFetch.mock.calls[1][1]).not.toHaveProperty("body");
 
       const retryHeaders = mockFetch.mock.calls[2][1].headers as Headers;
       expect(retryHeaders.get("Authorization")).toBe("Bearer new-access-token");
       expect(getStoredItem("accessToken")).toBe("new-access-token");
-      expect(getStoredItem("refreshToken")).toBe("new-refresh-token");
+      expect(getStoredItem("refreshToken")).toBeNull();
       expect(getStoredItem("user")).toBe(JSON.stringify({ id: 1 }));
     });
 
     it("인증된 요청 401 후 refresh 실패 시 auth session을 정리하고 원 응답 에러를 반환한다", async () => {
       Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
       localStorage.setItem("accessToken", "expired-access-token");
-      localStorage.setItem("refreshToken", "expired-refresh-token");
+      localStorage.setItem("refreshToken", "legacy-expired-refresh-token");
       localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch
         .mockResolvedValueOnce({
@@ -406,6 +428,14 @@ describe("apiClient", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "/api/v1/auth/refresh",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "include",
+        }),
+      );
       expect(getStoredItem("accessToken")).toBeNull();
       expect(getStoredItem("refreshToken")).toBeNull();
       expect(getStoredItem("user")).toBeNull();

@@ -64,8 +64,8 @@ public class CompleteRawFileUploadService {
 
   /**
    * presigned 업로드를 완료 처리한다. DB 상태 전이(객체 승격, {@code dataset_raw_file} 저장, {@code PROCESSING} 전이)는
-   * 트랜잭션 내에서 커밋하고, Airflow 트리거는 커밋이 성공한 뒤(afterCommit)에 수행한다. 트리거가 실패해도 이미 커밋된 DB 상태는 롤백되지 않으며
-   * 데이터셋은 {@code PROCESSING}으로 유지된다(재트리거는 별도 재시도 경로).
+   * 트랜잭션 내에서 커밋하고, Airflow 트리거는 커밋이 성공한 뒤(afterCommit)에 수행한다. 트리거가 실패해도 이미 커밋된 DB 상태는 롤백되지 않으며, 트리거
+   * 구현체가 실패한 데이터셋을 복구 가능한 상태로 별도 전이한다.
    */
   @Transactional
   public CompleteRawFileUploadResult complete(CompleteRawFileUploadCommand command) {
