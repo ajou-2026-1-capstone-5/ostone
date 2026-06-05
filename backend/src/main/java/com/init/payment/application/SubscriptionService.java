@@ -232,8 +232,7 @@ public class SubscriptionService {
       return constraintName != null && constraintName.contains(OPEN_SUBSCRIPTION_UNIQUE_INDEX);
     }
 
-    Throwable rootCause = ex.getMostSpecificCause();
-    String message = rootCause != null ? rootCause.getMessage() : null;
+    String message = ex.getMostSpecificCause().getMessage();
     return message != null && message.contains(OPEN_SUBSCRIPTION_UNIQUE_INDEX);
   }
 }

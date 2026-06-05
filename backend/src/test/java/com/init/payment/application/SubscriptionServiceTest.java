@@ -21,6 +21,7 @@ import com.init.payment.domain.repository.PaymentRepository;
 import com.init.payment.domain.repository.PlanRepository;
 import com.init.payment.domain.repository.SubscriptionRepository;
 import com.init.shared.application.exception.BadRequestException;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -127,11 +128,29 @@ class SubscriptionServiceTest {
             new DataIntegrityViolationException(
                 "duplicate key value violates unique constraint "
                     + "\"uq_payment_subscription_workspace_open\""));
+    CreateSubscriptionCommand command = new CreateSubscriptionCommand(1L, 99L, "pro_monthly");
 
-    assertThatThrownBy(
-            () ->
-                subscriptionService.createSubscription(
-                    new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
+    assertThatThrownBy(() -> subscriptionService.createSubscription(command))
+        .isInstanceOf(ActiveSubscriptionExistsException.class)
+        .hasCauseInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
+  @DisplayName("구독 저장 중 Hibernate constraintName으로 open subscription index가 전달되면 409 예외로 변환한다")
+  void createSubscription_openSubscriptionConstraintName_throwsActiveSubscriptionExists() {
+    given(planRepository.findByPlanKey("pro_monthly")).willReturn(Optional.of(plan(10L)));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
+    given(subscriptionRepository.save(any()))
+        .willThrow(
+            new DataIntegrityViolationException(
+                "duplicate",
+                new org.hibernate.exception.ConstraintViolationException(
+                    "duplicate",
+                    new SQLException("duplicate"),
+                    "uq_payment_subscription_workspace_open")));
+    CreateSubscriptionCommand command = new CreateSubscriptionCommand(1L, 99L, "pro_monthly");
+
+    assertThatThrownBy(() -> subscriptionService.createSubscription(command))
         .isInstanceOf(ActiveSubscriptionExistsException.class)
         .hasCauseInstanceOf(DataIntegrityViolationException.class);
   }
@@ -143,11 +162,9 @@ class SubscriptionServiceTest {
     given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
     given(subscriptionRepository.save(any()))
         .willThrow(new DataIntegrityViolationException("foreign key violation"));
+    CreateSubscriptionCommand command = new CreateSubscriptionCommand(1L, 99L, "pro_monthly");
 
-    assertThatThrownBy(
-            () ->
-                subscriptionService.createSubscription(
-                    new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
+    assertThatThrownBy(() -> subscriptionService.createSubscription(command))
         .isInstanceOf(DataIntegrityViolationException.class);
   }
 
