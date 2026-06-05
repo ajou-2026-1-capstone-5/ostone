@@ -1,0 +1,233 @@
+{
+  "description": "Allowlist for production frontend apiClient/customFetch calls that are not yet served by generated Orval endpoints.",
+  "entries": [
+    {
+      "file": "src/entities/chat/api/chatApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/chat/sessions/current?${}",
+      "reason": "OpenAPI generated endpoint is not available for current user chat session lookup.",
+      "scope": "User chat current-session read endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/entities/chat/api/chatApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/chat/sessions",
+      "reason": "OpenAPI generated endpoint is not available for creating a fresh user chat session.",
+      "scope": "User chat session create endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/entities/chat/api/chatApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/demo/chat-sessions",
+      "reason": "OpenAPI generated endpoint is not available for registering demo chat sessions.",
+      "scope": "Demo chat session create endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/entities/chat/api/chatApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/demo/chat-sessions/${}/messages",
+      "occurrences": 2,
+      "reason": "OpenAPI generated endpoint is not available for demo chat message send/read.",
+      "scope": "Demo chat session message read and send endpoints.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/features/admin-billing/api/adminBillingApi.ts",
+      "importName": "apiClient",
+      "callee": "apiClient.get",
+      "endpoint": "/admin/billing/customers",
+      "reason": "OpenAPI generated endpoint is not available until the admin billing backend spec is regenerated.",
+      "scope": "Admin billing customer list endpoint.",
+      "wrapperPurpose": "query key standardization"
+    },
+    {
+      "file": "src/features/admin-billing/api/adminBillingApi.ts",
+      "importName": "apiClient",
+      "callee": "apiClient.post",
+      "endpoint": "/admin/billing/payments/${}/refunds",
+      "reason": "OpenAPI generated endpoint is not available until the admin billing backend spec is regenerated.",
+      "scope": "Admin billing payment refund endpoint.",
+      "wrapperPurpose": "toast/error mapping"
+    },
+    {
+      "file": "src/features/consultation/api/consultationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "identifier:url",
+      "occurrences": 3,
+      "reason": "Generated signatures do not expose the dashboard metric query parameters used by these reads.",
+      "scope": "Consultation metrics, workflow ranking, and bottleneck analysis computed URLs.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/consultation/api/llmToolWorkflowApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/consultation/sessions/${}/matched-workflow",
+      "reason": "OpenAPI generated endpoint is not available for matched workflow lookup.",
+      "scope": "Consultation matched-workflow sidebar read endpoint.",
+      "wrapperPurpose": "error mapping"
+    },
+    {
+      "file": "src/features/log-upload/api/rawFileUpload.ts",
+      "importName": "apiClient",
+      "callee": "apiClient.post",
+      "endpoint": "/workspaces/${}/datasets/uploads:init",
+      "reason": "OpenAPI generated endpoint is not available for raw object upload init.",
+      "scope": "Raw file upload init endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/features/log-upload/api/rawFileUpload.ts",
+      "importName": "apiClient",
+      "callee": "apiClient.post",
+      "endpoint": "/workspaces/${}/datasets/uploads/${}:complete",
+      "reason": "OpenAPI generated endpoint is not available for raw object upload completion.",
+      "scope": "Raw file upload complete endpoint.",
+      "wrapperPurpose": "response normalization"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions${}",
+      "reason": "OpenAPI generated endpoint is not available for simulation session listing.",
+      "scope": "Simulation session list endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions",
+      "reason": "OpenAPI generated endpoint is not available for simulation session creation.",
+      "scope": "Simulation session create endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions/${}",
+      "reason": "OpenAPI generated endpoint is not available for simulation session detail reads.",
+      "scope": "Simulation session detail endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions/${}/messages",
+      "reason": "OpenAPI generated endpoint is not available for simulation message send.",
+      "scope": "Simulation session message endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions/${}/feedback",
+      "reason": "OpenAPI generated endpoint is not available for simulation feedback creation.",
+      "scope": "Simulation session feedback endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "identifier:path",
+      "occurrences": 4,
+      "reason": "OpenAPI generated endpoints are not available for computed paginated simulation reads.",
+      "scope": "Simulation feedback, improvement-candidate, golden-case, and replay list endpoints.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/improvement-candidates/from-feedback/${}",
+      "reason": "OpenAPI generated endpoint is not available for creating improvement candidates from feedback.",
+      "scope": "Simulation improvement candidate create-from-feedback endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/improvement-candidates/${}",
+      "reason": "OpenAPI generated endpoint is not available for simulation improvement candidate detail reads.",
+      "scope": "Simulation improvement candidate detail endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/improvement-candidates/${}/status",
+      "reason": "OpenAPI generated endpoint is not available for simulation improvement candidate status updates.",
+      "scope": "Simulation improvement candidate status endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/improvement-candidates/${}/approve",
+      "reason": "OpenAPI generated endpoint is not available for simulation improvement candidate approval.",
+      "scope": "Simulation improvement candidate approval endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/improvement-candidates/${}/reject",
+      "reason": "OpenAPI generated endpoint is not available for simulation improvement candidate rejection.",
+      "scope": "Simulation improvement candidate rejection endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/sessions/${}/golden-cases",
+      "reason": "OpenAPI generated endpoint is not available for simulation golden case creation.",
+      "scope": "Simulation golden case create endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/simulation/api/simulationApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/simulation/golden-cases/${}/replays",
+      "reason": "OpenAPI generated endpoint is not available for simulation golden case replay creation.",
+      "scope": "Simulation golden case replay endpoint.",
+      "wrapperPurpose": "unwrap/select"
+    },
+    {
+      "file": "src/features/workspace-dashboard-health/api/workspaceDashboardHealthApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/dashboard/knowledge-pack-health",
+      "reason": "OpenAPI is not generated for this dashboard read endpoint yet.",
+      "scope": "Workspace dashboard knowledge-pack health endpoint.",
+      "wrapperPurpose": "query key standardization"
+    },
+    {
+      "file": "src/features/workspace-dashboard-health/api/workspaceDashboardHealthApi.ts",
+      "importName": "customFetch",
+      "callee": "customFetch",
+      "endpoint": "/api/v1/workspaces/${}/dashboard/action-recommendations${}",
+      "reason": "OpenAPI is not generated for this dashboard read endpoint yet.",
+      "scope": "Workspace dashboard action recommendations endpoint.",
+      "wrapperPurpose": "query key standardization"
+    }
+  ]
+}
