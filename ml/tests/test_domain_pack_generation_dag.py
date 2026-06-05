@@ -165,7 +165,12 @@ def test_ecs_ingestion_stage_forwards_conf_object_key(
         calls["upstream_manifest_path"] = upstream_manifest_path
         return {"artifact_manifest_path": "/tmp/manifest.json"}
 
-    monkeypatch.setattr(dag_module, "run_stage_task", fake_run_stage_task)
+    monkeypatch.setattr("pipeline.airflow_stage_runner.run_stage_task", fake_run_stage_task)
+    monkeypatch.setattr(
+        dag_module,
+        "_stage_callable",
+        lambda stage_name: pytest.fail(f"ECS mode must not resolve direct stage callable: {stage_name}"),
+    )
 
     assert dag_module._run_stage("ingestion") == {"artifact_manifest_path": "/tmp/manifest.json"}
     assert calls == {
