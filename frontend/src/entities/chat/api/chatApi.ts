@@ -82,6 +82,8 @@ function toDemoChatMessage(
     content: message.content ?? "",
     senderType,
     ...(senderType === "USER" ? { senderName: customerName } : {}),
+    // 데모 워크플로 응답에는 서버 seqNo가 없으므로 응답 배열 순서를 정렬 기준으로 보존한다.
+    seqNo: index,
     createdAt: message.timestamp ?? new Date().toISOString(),
   };
 }

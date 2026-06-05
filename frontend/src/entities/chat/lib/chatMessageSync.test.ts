@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChatMessage } from "../model/types";
 import {
+  compareMessageOrder,
   isChatMessageResponse,
   isRealtimeChatMessage,
   mergeMessages,
@@ -44,6 +45,7 @@ describe("chatMessageSync", () => {
       id: "91",
       sessionId: 77,
       senderType: "AGENT",
+      seqNo: 4,
       content: "상담사 답변입니다.",
       createdAt: "2026-05-22T00:00:03Z",
     });
@@ -54,6 +56,7 @@ describe("chatMessageSync", () => {
       id: "srv-77-seq-4",
       sessionId: 77,
       senderType: "BOT",
+      seqNo: 4,
       content: "동일 메시지",
       createdAt: "1970-01-01T00:00:00.000Z",
     });
@@ -146,6 +149,107 @@ describe("chatMessageSync", () => {
       currentMessages[1],
       nextMessages[0],
     ]);
+  });
+
+  it("WebSocket 이벤트가 역순으로 도착해도 seqNo 순서로 정렬한다", () => {
+    const userMessage: ChatMessage = {
+      id: "10",
+      sessionId: 77,
+      senderType: "USER",
+      seqNo: 1,
+      content: "환불 가능한가요?",
+      // 시계 오차로 사용자 메시지가 봇 응답보다 늦은 시각으로 기록됨
+      createdAt: "2026-05-22T00:00:05Z",
+    };
+    const botMessage: ChatMessage = {
+      id: "11",
+      sessionId: 77,
+      senderType: "BOT",
+      seqNo: 2,
+      content: "네, 7일 이내 가능합니다.",
+      createdAt: "2026-05-22T00:00:04Z",
+    };
+
+    // 봇 응답(seqNo 2)이 사용자 질문(seqNo 1)보다 먼저 도착해도 seqNo 순서를 따른다.
+    expect(mergeMessages([botMessage], [userMessage])).toEqual([userMessage, botMessage]);
+  });
+
+  it("seqNo가 없는 optimistic 메시지는 서버 확정 메시지 뒤로 안정 정렬한다", () => {
+    const serverUserMessage: ChatMessage = {
+      id: "20",
+      sessionId: 77,
+      senderType: "USER",
+      seqNo: 7,
+      content: "첫 질문",
+      createdAt: "2026-05-22T00:00:01Z",
+    };
+    const localUserMessage: ChatMessage = {
+      id: "local-user-77-1",
+      sessionId: 77,
+      senderType: "USER",
+      content: "다음 질문",
+      createdAt: "2026-05-22T00:00:02Z",
+    };
+
+    // optimistic 메시지(seqNo 없음)는 시각과 무관하게 seqNo가 있는 메시지 뒤로 간다.
+    expect(mergeMessages([localUserMessage], [serverUserMessage])).toEqual([
+      serverUserMessage,
+      localUserMessage,
+    ]);
+  });
+
+  it("동일 seqNo·동일 시각이면 원래(병합) 순서를 유지한다", () => {
+    const first: ChatMessage = {
+      id: "30",
+      sessionId: 77,
+      senderType: "USER",
+      seqNo: 9,
+      content: "먼저",
+      createdAt: "2026-05-22T00:00:09Z",
+    };
+    const second: ChatMessage = {
+      id: "31",
+      sessionId: 77,
+      senderType: "BOT",
+      seqNo: 9,
+      content: "나중",
+      createdAt: "2026-05-22T00:00:09Z",
+    };
+
+    expect(mergeMessages([first, second], [])).toEqual([first, second]);
+    expect(compareMessageOrder(first, second)).toBe(0);
+  });
+
+  it("실시간 메시지의 seqNo를 보존해 정렬에 활용한다", () => {
+    expect(
+      toRealtimeChatMessage(
+        {
+          id: 50,
+          seqNo: 3,
+          senderRole: "BOT",
+          content: "봇 응답",
+          createdAt: "2026-05-22T00:00:02Z",
+        },
+        77,
+      ),
+    ).toEqual({
+      id: "50",
+      sessionId: 77,
+      senderType: "BOT",
+      seqNo: 3,
+      content: "봇 응답",
+      createdAt: "2026-05-22T00:00:02Z",
+    });
+
+    expect(
+      isRealtimeChatMessage({
+        id: "rt-1",
+        seqNo: "3",
+        senderRole: "BOT",
+        content: "봇 응답",
+        createdAt: "2026-05-22T00:00:02Z",
+      }),
+    ).toBe(false);
   });
 
   it("사용자 메시지에 고객 이름을 보강한다", () => {
