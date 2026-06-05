@@ -184,6 +184,67 @@ class PaymentServiceTest {
   }
 
   @Test
+  @DisplayName("취소 가능 금액이 남지 않으면 Toss를 호출하지 않는다")
+  void cancel_noRemaining_throws() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+    payment.markPartialCanceled("{}");
+    ReflectionTestUtils.setField(payment, "id", 7L);
+    given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
+        .willReturn(Optional.of(payment));
+    given(paymentCancelRepository.sumCancelAmountByPaymentId(7L)).willReturn(29000L);
+
+    assertThatThrownBy(
+            () ->
+                paymentService.cancelPayment(
+                    new CancelPaymentCommand(1L, 99L, "pay_1", "고객요청", null, "idem-none-1")))
+        .isInstanceOf(PaymentCancelNotAllowedException.class);
+    verify(tossPaymentPort, never()).cancelPayment(any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("취소 idempotency key가 없으면 서비스가 생성한 key로 Toss 요청과 취소 내역 저장을 수행한다")
+  void cancel_missingIdempotencyKey_generatesKey() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    payment.complete("pay_1", "카드", OffsetDateTime.now(clock), null, "{}");
+    ReflectionTestUtils.setField(payment, "id", 7L);
+    given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
+        .willReturn(Optional.of(payment));
+    given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+    given(tossPaymentPort.cancelPayment(eq("pay_1"), eq("고객 요청"), eq(10000L), any()))
+        .willReturn(partialCanceledResult());
+
+    PaymentResult result =
+        paymentService.cancelPayment(
+            new CancelPaymentCommand(1L, 99L, "pay_1", "고객 요청", 10000L, null));
+
+    ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+    verify(tossPaymentPort)
+        .cancelPayment(eq("pay_1"), eq("고객 요청"), eq(10000L), keyCaptor.capture());
+    ArgumentCaptor<PaymentCancel> cancelCaptor = ArgumentCaptor.forClass(PaymentCancel.class);
+    verify(paymentCancelRepository).save(cancelCaptor.capture());
+    assertThat(keyCaptor.getValue()).isNotBlank();
+    assertThat(cancelCaptor.getValue().getIdempotencyKey()).isEqualTo(keyCaptor.getValue());
+    assertThat(result.status()).isEqualTo("PARTIAL_CANCELED");
+  }
+
+  @Test
+  @DisplayName("취소할 수 없는 결제 상태이면 Toss를 호출하지 않는다")
+  void cancel_nonCancelableStatus_throws() {
+    Payment payment = Payment.createOrder(1L, 5L, "ord_1", 29000, "KRW", "Pro");
+    ReflectionTestUtils.setField(payment, "id", 7L);
+    given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_1", 1L))
+        .willReturn(Optional.of(payment));
+
+    assertThatThrownBy(
+            () ->
+                paymentService.cancelPayment(
+                    new CancelPaymentCommand(1L, 99L, "pay_1", "고객요청", null, "idem-ready-1")))
+        .isInstanceOf(PaymentCancelNotAllowedException.class);
+    verify(tossPaymentPort, never()).cancelPayment(any(), any(), any(), any());
+  }
+
+  @Test
   @DisplayName("결제를 찾을 수 없으면 cancelPayment 시 PaymentNotFoundException을 던진다")
   void cancel_paymentNotFound_throws() {
     given(paymentRepository.findByPaymentKeyAndWorkspaceIdForUpdate("pay_x", 1L))
