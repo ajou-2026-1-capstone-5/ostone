@@ -390,6 +390,44 @@ describe("IntentDetailPanel", () => {
     expect(screen.getByText("order_id: 12345 확인 요청")).toBeInTheDocument();
   });
 
+  it("embedding/vector 형태 값은 대표 문장으로 표시하지 않는다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          sampleSegmentTexts: [
+            "[0.1234, -0.5678, 0.9012]",
+            "0.0012 3.4e-5 -1.2e-6",
+            [0.11, 0.22, 0.33],
+            "고객: 카드 분실 신고하고 싶어요",
+          ],
+        }),
+      }),
+    );
+
+    renderPanel();
+
+    expect(screen.getByText("대표 문장")).toBeInTheDocument();
+    expect(screen.getByText("카드 분실 신고하고 싶어요")).toBeInTheDocument();
+    expect(screen.queryByText("[0.1234, -0.5678, 0.9012]")).not.toBeInTheDocument();
+    expect(screen.queryByText("0.0012 3.4e-5 -1.2e-6")).not.toBeInTheDocument();
+  });
+
+  it("근거에 사람이 읽을 수 있는 문장이 없으면 빈 상태를 표시한다", () => {
+    mockedUseIntentDetail.mockReturnValue(
+      readyDetail({
+        ...stubDetail,
+        evidenceJson: JSON.stringify({
+          sampleSegmentTexts: ["[0.1, 0.2, 0.3]", "1.5e-4, -2.6e-5"],
+        }),
+      }),
+    );
+
+    renderPanel();
+
+    expect(screen.getByText("대표 문장이 없습니다.")).toBeInTheDocument();
+  });
+
   it("JSON 탭에서 JSON 타입별 메타 정보를 표시한다", () => {
     mockedUseIntentDetail.mockReturnValue(
       readyDetail({

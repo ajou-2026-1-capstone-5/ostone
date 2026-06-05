@@ -421,8 +421,33 @@ function buildEvidenceLines(raw: string): EvidenceLine[] {
 
   return sourceItems
     .map((item, index) => evidenceItemToLine(item, index))
-    .filter((line): line is EvidenceLine => line !== null)
+    .filter((line): line is EvidenceLine => line !== null && isHumanReadableText(line.text))
     .slice(0, 5);
+}
+
+// 대표 문장은 운영자가 읽는 상담 발화여야 한다. embedding/vector처럼
+// 숫자 배열로만 이루어진 값은 대표 문장이 아니므로 제외한다.
+// (상담 ID 등 ID 참조는 turn 라벨과 함께 표시되는 기존 동작이므로 유지한다.)
+function isHumanReadableText(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return !looksLikeNumericVector(trimmed);
+}
+
+// Number 변환으로 숫자 토큰을 판별한다. 정규식 기반 검사는 ReDoS 위험이 있어 피한다.
+function isNumericToken(token: string): boolean {
+  return token.length > 0 && Number.isFinite(Number(token));
+}
+
+function looksLikeNumericVector(text: string): boolean {
+  const inner = text.replace(/^\[/, "").replace(/\]$/, "").trim();
+  if (!inner) return false;
+  const tokens = inner.split(/[,\s]+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+  if (!tokens.every(isNumericToken)) return false;
+  // 다중 숫자 토큰은 벡터/배열, 단일 토큰이라도 소수점/지수를 포함하면
+  // embedding 성분이다. 단일 정수는 상담 ID 등일 수 있으므로 제외하지 않는다.
+  return tokens.length >= 2 || /[.eE]/.test(tokens[0]);
 }
 
 function resolveEvidenceSourceItems(parsed: unknown): unknown[] {
