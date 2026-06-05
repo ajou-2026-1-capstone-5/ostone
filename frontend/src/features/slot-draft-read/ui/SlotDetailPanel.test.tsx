@@ -47,7 +47,8 @@ describe("SlotDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("확인 항목을 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("선택된 확인 항목이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("목록에서 항목을 선택하면 상세 정보가 표시됩니다.")).toBeInTheDocument();
   });
 
   it("loading 상태에서는 스켈레톤을 보여준다", () => {

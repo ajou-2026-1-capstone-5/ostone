@@ -41,10 +41,10 @@ test.describe("Domain pack core read flows", () => {
         await expect(page.getByText("도메인팩 정보")).toBeVisible();
         await expect(page.getByText("환불 자동화 팩")).toBeVisible();
         await expect(page.getByText("매핑률")).toBeVisible();
-        await expect(page.getByRole("button", { name: "확인 항목 상세 보기" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "확인 항목 목록 보기" })).toBeVisible();
         await captureScreen(page, testInfo, "domain-pack-summary");
 
-        await page.getByRole("button", { name: "확인 항목 상세 보기" }).click();
+        await page.getByRole("button", { name: "확인 항목 목록 보기" }).click();
         await expect(page).toHaveURL(/\/workspaces\/1\/domain-packs\/1\/slots\?versionId=1/);
         await expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/slots");
       });

@@ -7,6 +7,7 @@ import {
   useIntentPreview,
   useSlotPreview,
   usePolicyPreview,
+  useRiskPreview,
   useWorkflowPreview,
 } from "../model/usePreviewLists";
 import styles from "./ComponentCountGrid.module.css";
@@ -18,6 +19,7 @@ interface ComponentCountGridProps {
   intentCount: number;
   slotCount: number;
   policyCount: number;
+  riskCount: number;
   workflowCount: number;
 }
 
@@ -28,6 +30,7 @@ export function ComponentCountGrid({
   intentCount,
   slotCount,
   policyCount,
+  riskCount,
   workflowCount,
 }: ComponentCountGridProps) {
   const navigate = useNavigate();
@@ -35,6 +38,7 @@ export function ComponentCountGrid({
   const intentPreview = useIntentPreview(wsId, packId, versionId);
   const slotPreview = useSlotPreview(wsId, packId, versionId);
   const policyPreview = usePolicyPreview(wsId, packId, versionId);
+  const riskPreview = useRiskPreview(wsId, packId, versionId);
   const workflowPreview = useWorkflowPreview(wsId, packId, versionId);
 
   useEffect(() => {
@@ -50,6 +54,10 @@ export function ComponentCountGrid({
   }, [policyPreview.isError]);
 
   useEffect(() => {
+    if (riskPreview.isError) toast.error("주의 사항 미리보기를 불러오지 못했습니다.");
+  }, [riskPreview.isError]);
+
+  useEffect(() => {
     if (workflowPreview.isError) toast.error("워크플로우 미리보기를 불러오지 못했습니다.");
   }, [workflowPreview.isError]);
 
@@ -60,21 +68,21 @@ export function ComponentCountGrid({
         count={intentCount}
         disabled={false}
         onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "intents"))}
-        previewNames={intentPreview.data?.map((i) => i.name) as string[]}
+        previewItems={buildPreviewItems(intentPreview.data, "상담 유형")}
         isLoadingPreview={intentPreview.isLoading}
+        emptyMessage={buildEmptyMessage("상담 유형", intentPreview.isError)}
+        onPreviewItemClick={(id) =>
+          navigate(domainPackSectionPath(wsId, packId, versionId, "intents", id))
+        }
       />
       <CountCard
         label="확인 항목"
         count={slotCount}
         disabled={false}
         onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "slots"))}
-        previewItems={
-          slotPreview.data?.map((s) => ({ id: s.id, name: s.name })) as {
-            id: number;
-            name: string;
-          }[]
-        }
+        previewItems={buildPreviewItems(slotPreview.data, "확인 항목")}
         isLoadingPreview={slotPreview.isLoading}
+        emptyMessage={buildEmptyMessage("확인 항목", slotPreview.isError)}
         onPreviewItemClick={(id) =>
           navigate(domainPackSectionPath(wsId, packId, versionId, "slots", id))
         }
@@ -84,21 +92,33 @@ export function ComponentCountGrid({
         count={policyCount}
         disabled={false}
         onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "policies"))}
-        previewNames={policyPreview.data?.map((p) => p.name) as string[]}
+        previewItems={buildPreviewItems(policyPreview.data, "응대 기준")}
         isLoadingPreview={policyPreview.isLoading}
+        emptyMessage={buildEmptyMessage("응대 기준", policyPreview.isError)}
+        onPreviewItemClick={(id) =>
+          navigate(domainPackSectionPath(wsId, packId, versionId, "policies", id))
+        }
+      />
+      <CountCard
+        label="주의 사항"
+        count={riskCount}
+        disabled={false}
+        onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "risks"))}
+        previewItems={buildPreviewItems(riskPreview.data, "주의 사항")}
+        isLoadingPreview={riskPreview.isLoading}
+        emptyMessage={buildEmptyMessage("주의 사항", riskPreview.isError)}
+        onPreviewItemClick={(id) =>
+          navigate(domainPackSectionPath(wsId, packId, versionId, "risks", id))
+        }
       />
       <CountCard
         label="워크플로우"
         count={workflowCount}
         disabled={false}
         onNavigate={() => navigate(domainPackSectionPath(wsId, packId, versionId, "workflows"))}
-        previewItems={
-          workflowPreview.data?.map((w) => ({ id: w.id, name: w.name })) as {
-            id: number;
-            name: string;
-          }[]
-        }
+        previewItems={buildPreviewItems(workflowPreview.data, "워크플로우")}
         isLoadingPreview={workflowPreview.isLoading}
+        emptyMessage={buildEmptyMessage("워크플로우", workflowPreview.isError)}
         onPreviewItemClick={(id) =>
           navigate(domainPackSectionPath(wsId, packId, versionId, "workflows", id))
         }
@@ -113,9 +133,9 @@ interface CountCardProps {
   disabled: boolean;
   tooltip?: string;
   onNavigate?: () => void;
-  previewNames?: string[];
   previewItems?: Array<{ id: number; name: string }>;
   isLoadingPreview: boolean;
+  emptyMessage: string;
   onPreviewItemClick?: (id: number) => void;
 }
 
@@ -125,9 +145,9 @@ function CountCard({
   disabled,
   tooltip,
   onNavigate,
-  previewNames,
   previewItems,
   isLoadingPreview,
+  emptyMessage,
   onPreviewItemClick,
 }: CountCardProps) {
   return (
@@ -137,16 +157,6 @@ function CountCard({
     >
       <div className={styles.cardHeader}>
         <span className={styles.cardLabel}>{label}</span>
-        {!disabled && onNavigate && (
-          <button
-            type="button"
-            className={styles.cardArrowButton}
-            aria-label={`${label} 상세 보기`}
-            onClick={onNavigate}
-          >
-            <ChevronRightIcon aria-hidden />
-          </button>
-        )}
       </div>
       <span className={styles.countNumber}>{count}</span>
       {isLoadingPreview ? (
@@ -187,17 +197,53 @@ function CountCard({
             </li>
           ))}
         </ul>
-      ) : previewNames && previewNames.length > 0 ? (
-        <ul className={styles.previewList}>
-          {previewNames.map((name, idx) => (
-            <li key={`${name}-${idx}`} className={styles.previewItem}>
-              {name}
-            </li>
-          ))}
-        </ul>
       ) : disabled ? (
         <span className={styles.disabledNote}>준비 중</span>
-      ) : null}
+      ) : (
+        <span className={styles.emptyNote}>{emptyMessage}</span>
+      )}
+      {!disabled && onNavigate && (
+        <button
+          type="button"
+          className={styles.cardActionButton}
+          aria-label={`${label} 목록 보기`}
+          onClick={onNavigate}
+        >
+          <span>목록 보기</span>
+          <ChevronRightIcon aria-hidden />
+        </button>
+      )}
     </div>
   );
+}
+
+type PreviewSourceItem = Readonly<{
+  id?: number | null;
+  name?: string | null;
+}>;
+
+function buildPreviewItems(
+  items: readonly PreviewSourceItem[] | undefined,
+  fallbackLabel: string,
+): Array<{ id: number; name: string }> | undefined {
+  if (!items) return undefined;
+  return items.flatMap((item, index) => {
+    if (item.id == null) return [];
+    return [
+      {
+        id: item.id,
+        name: formatPreviewName(item.name, fallbackLabel, index),
+      },
+    ];
+  });
+}
+
+function formatPreviewName(name: string | null | undefined, fallbackLabel: string, index: number) {
+  const trimmed = name?.trim();
+  return trimmed ? trimmed : `${fallbackLabel} #${index + 1}`;
+}
+
+function buildEmptyMessage(label: string, hasPreviewError: boolean): string {
+  if (hasPreviewError) return "미리보기를 불러오지 못했습니다.";
+  return `등록된 ${label} 초안이 없습니다.`;
 }

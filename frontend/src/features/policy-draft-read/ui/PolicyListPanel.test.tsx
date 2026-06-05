@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePolicyList } from "../model/usePolicyList";
 import { PolicyListPanel } from "./PolicyListPanel";
+import type { PolicySummary } from "@/entities/policy";
 
 vi.mock("../model/usePolicyList", () => ({
   usePolicyList: vi.fn(),
@@ -25,7 +26,7 @@ const stubPolicy = {
   status: "INACTIVE" as const,
   createdAt: "",
   updatedAt: "",
-};
+} satisfies PolicySummary;
 
 function renderPanel(onSelect = vi.fn()) {
   render(
@@ -49,7 +50,7 @@ describe("PolicyListPanel", () => {
   });
 
   it("ready 상태에서는 목록을 렌더링하고 선택 이벤트를 전달한다", () => {
-    mockedUsePolicyList.mockReturnValue({ status: "ready", data: [stubPolicy as any] });
+    mockedUsePolicyList.mockReturnValue({ status: "ready", data: [stubPolicy] });
     const { onSelect } = renderPanel();
 
     fireEvent.click(screen.getByRole("button", { name: /POL_REFUND/ }));
@@ -57,6 +58,15 @@ describe("PolicyListPanel", () => {
     expect(screen.getByText("1개")).toBeInTheDocument();
     expect(screen.getByText("환불 정책")).toBeInTheDocument();
     expect(onSelect).toHaveBeenCalledWith(4);
+  });
+
+  it("ready 상태에서 데이터가 없으면 빈 목록 안내를 보여준다", () => {
+    mockedUsePolicyList.mockReturnValue({ status: "ready", data: [] });
+
+    renderPanel();
+
+    expect(screen.getByText("0개")).toBeInTheDocument();
+    expect(screen.getByText("응대 기준 목록이 비어 있습니다.")).toBeInTheDocument();
   });
 
   it("error 상태에서는 재시도 버튼을 제공한다", () => {

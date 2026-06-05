@@ -97,7 +97,7 @@
   flex: 1;
 }
 
-@media (max-width: 1599px) {
+@media (max-width: 767px) {
   .pageHeader {
     padding: 16px 16px 14px;
     gap: 10px;
@@ -147,7 +147,7 @@
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 768px) {
   .backButton {
     display: none;
   }

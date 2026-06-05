@@ -85,7 +85,8 @@ export function RiskDetailPanel({
     return (
       <section className={styles.panel} aria-label="주의 사항 상세">
         <div className={styles.placeholder}>
-          <span>주의 사항을 선택하세요.</span>
+          <span>선택된 주의 사항이 없습니다.</span>
+          <span>목록에서 항목을 선택하면 상세 정보가 표시됩니다.</span>
         </div>
       </section>
     );

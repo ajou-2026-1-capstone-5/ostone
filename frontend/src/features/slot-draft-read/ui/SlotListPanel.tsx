@@ -62,7 +62,7 @@ export function SlotListPanel({
 
         {state.status === "ready" && state.data.length === 0 && (
           <div className={styles.emptyState}>
-            <span>등록된 확인 항목 초안이 없습니다.</span>
+            <span>확인 항목 목록이 비어 있습니다.</span>
           </div>
         )}
 

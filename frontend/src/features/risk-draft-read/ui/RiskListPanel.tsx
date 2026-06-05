@@ -76,7 +76,7 @@ function RiskListContent({
     const message =
       state.status === "error"
         ? RISK_READ_ERROR_MESSAGES.LOAD_LIST_FAILED
-        : "등록된 주의 사항 초안이 없습니다.";
+        : "주의 사항 목록이 비어 있습니다.";
 
     return (
       <RiskListMessage

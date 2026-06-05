@@ -371,6 +371,7 @@ export function SummaryDetailPanel({
             intentCount={v.intentCount ?? 0}
             slotCount={v.slotCount ?? 0}
             policyCount={v.policyCount ?? 0}
+            riskCount={v.riskCount ?? 0}
             workflowCount={v.workflowCount ?? 0}
           />
         )}

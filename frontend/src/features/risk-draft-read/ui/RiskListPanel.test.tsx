@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRiskList } from "../model/useRiskList";
 import { RiskListPanel } from "./RiskListPanel";
+import type { RiskSummary } from "@/entities/risk";
 
 vi.mock("../model/useRiskList", () => ({
   useRiskList: vi.fn(),
@@ -25,7 +26,7 @@ const stubRisk = {
   status: "INACTIVE" as const,
   createdAt: "",
   updatedAt: "",
-};
+} satisfies RiskSummary;
 
 function renderPanel(onSelect = vi.fn()) {
   render(
@@ -49,7 +50,7 @@ describe("RiskListPanel", () => {
   });
 
   it("ready 상태에서는 목록을 렌더링하고 선택 이벤트를 전달한다", () => {
-    mockedUseRiskList.mockReturnValue({ status: "ready", data: [stubRisk as any] });
+    mockedUseRiskList.mockReturnValue({ status: "ready", data: [stubRisk] });
     const { onSelect } = renderPanel();
 
     const riskButton = screen.getByRole("button", { name: /RISK_FRAUD/ });
@@ -67,7 +68,7 @@ describe("RiskListPanel", () => {
     renderPanel();
 
     expect(screen.getByText("0개")).toBeInTheDocument();
-    expect(screen.getByText("등록된 주의 사항 초안이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("주의 사항 목록이 비어 있습니다.")).toBeInTheDocument();
   });
 
   it("error 상태에서는 재시도 버튼을 제공한다", () => {
