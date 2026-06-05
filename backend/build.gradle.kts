@@ -62,6 +62,41 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.register("testH2") {
+    group = "verification"
+    description = "Runs the backend test suite with the default H2 in-memory test database."
+    dependsOn(tasks.test)
+}
+
+tasks.register<Test>("testPg") {
+    group = "verification"
+    description = "Runs the backend test suite against PostgreSQL with Liquibase enabled."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    shouldRunAfter(tasks.test)
+    environment(
+        mapOf(
+            "SPRING_DATASOURCE_URL" to
+                providers.environmentVariable("SPRING_DATASOURCE_URL")
+                    .orElse("jdbc:postgresql://localhost:5432/testdb")
+                    .get(),
+            "SPRING_DATASOURCE_USERNAME" to
+                providers.environmentVariable("SPRING_DATASOURCE_USERNAME")
+                    .orElse("postgres")
+                    .get(),
+            "SPRING_DATASOURCE_PASSWORD" to
+                providers.environmentVariable("SPRING_DATASOURCE_PASSWORD")
+                    .orElse("postgres")
+                    .get(),
+            "SPRING_DATASOURCE_DRIVER_CLASS_NAME" to "org.postgresql.Driver",
+            "SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT" to
+                "org.hibernate.dialect.PostgreSQLDialect",
+            "SPRING_LIQUIBASE_ENABLED" to "true",
+            "SPRING_JPA_HIBERNATE_DDL_AUTO" to "validate",
+        ),
+    )
+}
+
 tasks.bootJar {
     archiveFileName.set("app.jar")
 }
