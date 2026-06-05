@@ -93,6 +93,11 @@
   align-self: stretch;
 }
 
+.listSlot:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgb(0 0 0 / 0.08);
+}
+
 .detailSlot {
   flex: 1;
 }

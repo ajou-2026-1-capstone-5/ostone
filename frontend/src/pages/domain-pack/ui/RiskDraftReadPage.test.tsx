@@ -80,6 +80,17 @@ describe("RiskDraftReadPage", () => {
     });
   });
 
+  it("위험요소 상세에서 목록 버튼을 누르면 선택 없는 목록 URL로 replace한다", () => {
+    navigate.mockReset();
+    renderPage("/workspaces/1/domain-packs/7/risks/3?versionId=101");
+
+    fireEvent.click(screen.getByRole("button", { name: "목록" }));
+
+    expect(navigate).toHaveBeenCalledWith("/workspaces/1/domain-packs/7/risks?versionId=101", {
+      replace: true,
+    });
+  });
+
   it("수정 버튼을 누르면 편집 패널로 전환하고 닫을 수 있다", () => {
     renderPage("/workspaces/1/domain-packs/7/risks/4?versionId=101");
 
