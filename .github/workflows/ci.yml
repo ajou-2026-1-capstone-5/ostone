@@ -97,9 +97,9 @@ jobs:
       - name: Install pgvector extension
         run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
-      - name: Build Backend
+      - name: Build Backend with PostgreSQL test DB
         working-directory: ./backend
-        run: ./gradlew build -x checkstyleMain -x checkstyleTest
+        run: ./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
           SPRING_DATASOURCE_USERNAME: postgres

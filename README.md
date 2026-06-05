@@ -417,7 +417,7 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 | 모듈 | 빌드 | 테스트 |
 | --- | --- | --- |
-| Backend | `(cd backend && ./gradlew build)` | `(cd backend && ./gradlew test)` |
+| Backend | `(cd backend && ./gradlew build)` | H2: `(cd backend && ./gradlew test)` / PostgreSQL: `(cd backend && ./gradlew testPg)` |
 | Frontend | `(cd frontend && pnpm build)` | `(cd frontend && pnpm test)` |
 | ML | `(cd ml && uv sync)` | `(cd ml && uv run pytest)` |
 
@@ -430,11 +430,18 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 ### CI
 
 - **paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트한다.
-  - `backend`: `./gradlew build -x checkstyleMain -x checkstyleTest` (CI 속도 최적화용 체크스타일 스킵)
+  - `backend`: `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest` (PostgreSQL/Liquibase 테스트 후 CI 속도 최적화용 체크스타일 스킵)
   - `frontend`: `pnpm install && pnpm test && pnpm build`
   - `ml`: `uv sync && uv run pytest`
 - **spec-check**: `feature/*`, `fix/*`, `spec/*` 브랜치는 `.agent/specs/{이슈번호}.md` 스펙 파일을 필수 검증한다.
-- 테스트는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
+- Backend의 빠른 로컬 테스트(`./gradlew test` 또는 `./gradlew testH2`)는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
+- Backend의 CI 재현 테스트(`./gradlew testPg`)는 PostgreSQL/pgvector DB에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 로컬 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓸 수 있다.
+
+```bash
+docker run --rm --name ostone-test-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d pgvector/pgvector:pg16
+docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+(cd backend && ./gradlew testPg)
+```
 
 ### 정적 분석 / 품질 게이트
 
