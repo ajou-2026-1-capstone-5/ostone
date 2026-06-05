@@ -24,6 +24,13 @@ function seedAuthenticatedSession() {
   );
 }
 
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 describe("App", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -103,41 +110,29 @@ describe("App", () => {
 
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url === "/api/v1/workspaces") {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => [workspaceBody],
-        });
+        return Promise.resolve(jsonResponse([workspaceBody]));
       }
       if (url === "/api/v1/workspaces/1/dashboard/knowledge-pack-health") {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
+        return Promise.resolve(
+          jsonResponse({
             activeKnowledgePack: null,
             lastLogUpload: null,
             lastKnowledgePackGeneration: null,
             pendingReviewCount: 0,
           }),
-        });
+        );
       }
       if (url.startsWith("/api/v1/workspaces/1/dashboard/action-recommendations")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
+        return Promise.resolve(
+          jsonResponse({
             workspaceId: 1,
             periodStart: "2026-05-28T00:00:00+09:00",
             periodEnd: "2026-06-04T00:00:00+09:00",
             recommendations: [],
           }),
-        });
+        );
       }
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => workspaceBody,
-      });
+      return Promise.resolve(jsonResponse(workspaceBody));
     });
 
     vi.stubGlobal("fetch", fetchMock);
