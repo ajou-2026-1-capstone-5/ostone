@@ -72,6 +72,8 @@ class PipelineReviewCheckpointUseCaseTest {
 
   @BeforeEach
   void setUp() {
+    PipelineReviewCheckpointJsonSupport jsonSupport =
+        new PipelineReviewCheckpointJsonSupport(objectMapper);
     useCase =
         new PipelineReviewCheckpointUseCase(
             pipelineJobRepository,
@@ -79,12 +81,24 @@ class PipelineReviewCheckpointUseCaseTest {
             reviewSessionRepository,
             reviewTaskRepository,
             reviewDecisionRepository,
-            callbackSupportService,
-            failurePersistenceService,
-            triggerPort,
+            new PipelineReviewCheckpointCallbackProcessor(
+                pipelineJobRepository,
+                pipelineArtifactRepository,
+                reviewSessionRepository,
+                reviewTaskRepository,
+                callbackSupportService,
+                new PipelineReviewTaskFactory(jsonSupport),
+                jsonSupport),
+            new PipelineReviewReplayOrchestrator(
+                pipelineArtifactRepository,
+                pipelineJobRepository,
+                failurePersistenceService,
+                triggerPort,
+                jsonSupport,
+                CLOCK),
             workspaceMembershipPort,
             workspaceQuotaValidator,
-            objectMapper,
+            jsonSupport,
             CLOCK);
   }
 
