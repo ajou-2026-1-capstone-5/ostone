@@ -172,7 +172,7 @@ jobs:
 
       - name: Build Backend with PostgreSQL test DB
         working-directory: ./backend
-        run: ./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest
+        run: ./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
           SPRING_DATASOURCE_USERNAME: postgres
@@ -181,6 +181,17 @@ jobs:
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
           SPRING_LIQUIBASE_ENABLED: "true"
           SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/build/reports/jacoco/test/jacocoTestReport.xml
+            backend/build/reports/jacoco/test/html/
+          if-no-files-found: ignore
+
   frontend:
     needs: paths-filter
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}
@@ -204,7 +215,15 @@ jobs:
 
       - name: Run tests
         working-directory: ./frontend
-        run: pnpm test
+        run: pnpm test -- --coverage --run
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          if-no-files-found: ignore
 
       - name: Build
         working-directory: ./frontend
@@ -287,7 +306,15 @@ jobs:
 
       - name: Run tests
         working-directory: ./ml
-        run: uv run pytest
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml
+
+      - name: Upload ML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-coverage
+          path: ml/coverage.xml
+          if-no-files-found: ignore
 
   backend-sonar:
     needs: paths-filter

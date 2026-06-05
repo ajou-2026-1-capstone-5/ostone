@@ -9,9 +9,14 @@
 | 개발 서버     | `pnpm dev`     |
 | 빌드          | `pnpm build`   |
 | 테스트        | `pnpm test`    |
+| 커버리지 검증 | `pnpm test -- --coverage --run` |
 | 린트          | `pnpm lint`    |
 | 포맷          | `pnpm format`  |
 | API 코드 생성 | `pnpm api:gen` |
+
+## Coverage Gate
+
+Vitest coverage는 `vite.config.ts`에서 statements 80%, branches 70%, functions 75%, lines 80% baseline을 강제한다. CI의 frontend job은 `pnpm test -- --coverage --run`을 실행하므로 threshold 미달 시 실패하며, 부족한 파일과 라인은 터미널 coverage table과 `coverage/lcov.info`에서 확인한다.
 
 ## API Codegen Workflow
 

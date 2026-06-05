@@ -39,7 +39,13 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       provider: "v8",
-      reporter: ["lcov", "text"],
+      reporter: ["html", "lcov", "text"],
+      thresholds: {
+        statements: 80,
+        branches: 70,
+        functions: 75,
+        lines: 80,
+      },
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/",

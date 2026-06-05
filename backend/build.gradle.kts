@@ -117,12 +117,54 @@ jacoco {
     toolVersion = "0.8.12"
 }
 
+val jacocoCoverageExclusions = listOf(
+    "**/*Application.class",
+    "**/config/**",
+    "**/dto/**",
+    "**/entity/**",
+    "**/infrastructure/**",
+    "**/application/**/*Command.class",
+)
+
 tasks.jacocoTestReport {
     reports {
         xml.required.set(true)
-        html.required.set(false)
+        html.required.set(true)
     }
     dependsOn(tasks.test)
+    classDirectories.setFrom(
+        files(
+            sourceSets.main.get().output.classesDirs.map {
+                fileTree(it) {
+                    exclude(jacocoCoverageExclusions)
+                }
+            },
+        ),
+    )
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    classDirectories.setFrom(tasks.jacocoTestReport.get().classDirectories)
+    violationRules {
+        rule {
+            element = "BUNDLE"
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.90".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 sonar {
