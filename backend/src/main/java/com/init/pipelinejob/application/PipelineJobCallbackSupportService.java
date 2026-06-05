@@ -47,15 +47,12 @@ public class PipelineJobCallbackSupportService {
     this.webhookReceiptRepository = webhookReceiptRepository;
     this.clock = clock;
     this.transactionTemplate = new TransactionTemplate(transactionManager);
-    this.airflowWebhookSecret = airflowWebhookSecret;
+    this.airflowWebhookSecret = resolveAirflowWebhookSecret(airflowWebhookSecret);
     this.freeOnboardingService = freeOnboardingService;
   }
 
   public void validateWebhookSecret(String providedSecret) {
-    byte[] expected =
-        airflowWebhookSecret == null
-            ? new byte[0]
-            : airflowWebhookSecret.getBytes(StandardCharsets.UTF_8);
+    byte[] expected = airflowWebhookSecret.getBytes(StandardCharsets.UTF_8);
     byte[] actual =
         providedSecret == null ? new byte[0] : providedSecret.getBytes(StandardCharsets.UTF_8);
     if (!MessageDigest.isEqual(actual, expected)) {
@@ -181,6 +178,13 @@ public class PipelineJobCallbackSupportService {
 
   public OffsetDateTime now() {
     return OffsetDateTime.now(clock);
+  }
+
+  private String resolveAirflowWebhookSecret(String airflowWebhookSecret) {
+    if (airflowWebhookSecret == null || airflowWebhookSecret.isBlank()) {
+      throw new IllegalArgumentException("airflow.webhook.secret must not be blank");
+    }
+    return airflowWebhookSecret;
   }
 
   private <T> T executeInTransaction(Supplier<T> callback) {

@@ -148,7 +148,8 @@ class AirflowIngestionTriggerAdapterTest {
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(1),
                 true),
-            new AirflowApiProperties.Dags(null, new AirflowApiProperties.Ingestion("")));
+            new AirflowApiProperties.Dags(null, new AirflowApiProperties.Ingestion("")),
+            webhook());
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
 
@@ -167,7 +168,8 @@ class AirflowIngestionTriggerAdapterTest {
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(1),
                 true),
-            new AirflowApiProperties.Dags(null, null));
+            new AirflowApiProperties.Dags(null, null),
+            webhook());
     AirflowIngestionTriggerAdapter adapter =
         new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
 
@@ -217,8 +219,13 @@ class AirflowIngestionTriggerAdapterTest {
                 Duration.ofSeconds(1),
                 true),
             new AirflowApiProperties.Dags(
-                null, new AirflowApiProperties.Ingestion("test-ingestion-dag")));
+                null, new AirflowApiProperties.Ingestion("test-ingestion-dag")),
+            webhook());
     return new AirflowIngestionTriggerAdapter(properties, objectMapper, fixedClock);
+  }
+
+  private AirflowApiProperties.Webhook webhook() {
+    return new AirflowApiProperties.Webhook("test-airflow-webhook-secret");
   }
 
   private IngestionTriggerCommand command() {

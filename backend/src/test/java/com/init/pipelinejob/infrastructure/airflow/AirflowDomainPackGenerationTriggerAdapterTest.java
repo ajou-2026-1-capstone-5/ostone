@@ -137,7 +137,8 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
         new AirflowApiProperties(
             null,
             new AirflowApiProperties.Dags(
-                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null));
+                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null),
+            webhook());
     AirflowDomainPackGenerationTriggerAdapter adapter =
         new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
 
@@ -311,8 +312,13 @@ class AirflowDomainPackGenerationTriggerAdapterTest {
             new AirflowApiProperties.Api(
                 baseUrl, "admin", "admin-password", connectTimeout, readTimeout, true),
             new AirflowApiProperties.Dags(
-                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null));
+                new AirflowApiProperties.DomainPackGeneration("domain_pack_generation"), null),
+            webhook());
     return new AirflowDomainPackGenerationTriggerAdapter(properties, objectMapper, fixedClock);
+  }
+
+  private AirflowApiProperties.Webhook webhook() {
+    return new AirflowApiProperties.Webhook("test-airflow-webhook-secret");
   }
 
   private String readBody(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
