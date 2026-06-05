@@ -4,16 +4,25 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 
 import { WorkspaceSimulationPage } from "./WorkspaceSimulationPage";
-import { simulationApi, type SimulationImprovementCandidate } from "@/features/simulation";
+import {
+  simulationApi,
+  type SimulationImprovementCandidate,
+} from "@/features/simulation";
 import { useListAllWorkspaceWorkflows } from "@/entities/workflow";
 
 const setCrumbs = vi.fn();
 
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
-    useOutletContext: () => ({ setCrumbs, workspace: { id: 1, name: "CS Team" } }),
+    useOutletContext: () => ({
+      setCrumbs,
+      workspace: { id: 1, name: "CS Team" },
+    }),
   };
 });
 
@@ -213,11 +222,25 @@ function renderPage(path = "/workspaces/1/simulation") {
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/workspaces/:workspaceId/simulation" element={<WorkspaceSimulationPage />} />
-        <Route path="/workspaces" element={<div data-testid="workspace-root" />} />
+        <Route
+          path="/workspaces/:workspaceId/simulation"
+          element={<WorkspaceSimulationPage />}
+        />
+        <Route
+          path="/workspaces"
+          element={<div data-testid="workspace-root" />}
+        />
       </Routes>
     </MemoryRouter>,
   );
+}
+
+async function openFeedbackTab() {
+  fireEvent.click(await screen.findByRole("tab", { name: "피드백" }));
+}
+
+async function openCandidateTab() {
+  fireEvent.click(await screen.findByRole("tab", { name: "개선 후보" }));
 }
 
 beforeEach(() => {
@@ -245,8 +268,9 @@ beforeEach(() => {
     totalElements: 1,
     totalPages: 1,
   });
-  mockedSimulationApi.getSession.mockImplementation(async (_workspaceId, sessionId) =>
-    sessionId === otherSession.id ? otherDetail : detail,
+  mockedSimulationApi.getSession.mockImplementation(
+    async (_workspaceId, sessionId) =>
+      sessionId === otherSession.id ? otherDetail : detail,
   );
   mockedSimulationApi.createSession.mockResolvedValue(detail);
   mockedSimulationApi.createFeedback.mockResolvedValue(detail);
@@ -314,7 +338,9 @@ describe("WorkspaceSimulationPage", () => {
   it("세션 목록과 runtime 상태를 표시한다", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "상담 시뮬레이션" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "상담 시뮬레이션" }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("테스트 고객")).toBeInTheDocument();
     expect(await screen.findByText("환불하고 싶어요")).toBeInTheDocument();
     expect(screen.getByText("환불 문의")).toBeInTheDocument();
@@ -324,10 +350,18 @@ describe("WorkspaceSimulationPage", () => {
   });
 
   it("대시보드 추천 query로 피드백과 개선 후보 상태 필터를 초기화한다", async () => {
-    renderPage("/workspaces/1/simulation?feedbackStatus=RESOLVED&candidateStatus=READY_FOR_REVIEW");
+    renderPage(
+      "/workspaces/1/simulation?feedbackStatus=RESOLVED&candidateStatus=READY_FOR_REVIEW",
+    );
 
-    expect(await screen.findByLabelText("피드백 상태 필터")).toHaveValue("RESOLVED");
-    expect(screen.getByLabelText("개선 후보 상태 필터")).toHaveValue("READY_FOR_REVIEW");
+    await openFeedbackTab();
+    expect(await screen.findByLabelText("피드백 상태 필터")).toHaveValue(
+      "RESOLVED",
+    );
+    await openCandidateTab();
+    expect(screen.getByLabelText("개선 후보 상태 필터")).toHaveValue(
+      "READY_FOR_REVIEW",
+    );
     await waitFor(() => {
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledWith(1, {
         status: "RESOLVED",
@@ -336,7 +370,9 @@ describe("WorkspaceSimulationPage", () => {
       });
     });
     await waitFor(() => {
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledWith(1, {
+      expect(
+        mockedSimulationApi.listImprovementCandidates,
+      ).toHaveBeenCalledWith(1, {
         status: "READY_FOR_REVIEW",
         page: 0,
         size: 20,
@@ -363,9 +399,12 @@ describe("WorkspaceSimulationPage", () => {
   it("고객 메시지를 전송하고 응답을 화면에 반영한다", async () => {
     renderPage();
 
-    fireEvent.change(await screen.findByPlaceholderText("고객 역할 메시지 입력"), {
-      target: { value: "A-100 주문 환불이요" },
-    });
+    fireEvent.change(
+      await screen.findByPlaceholderText("고객 역할 메시지 입력"),
+      {
+        target: { value: "A-100 주문 환불이요" },
+      },
+    );
     fireEvent.click(screen.getByRole("button", { name: "전송" }));
 
     await waitFor(() => {
@@ -373,13 +412,20 @@ describe("WorkspaceSimulationPage", () => {
         content: "A-100 주문 환불이요",
       });
     });
-    expect(await screen.findByText("주문번호를 알려주세요.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("주문번호를 알려주세요."),
+    ).toBeInTheDocument();
   });
 
   it("turn 단위 피드백을 작성하고 session 상세를 갱신한다", async () => {
     renderPage();
 
     fireEvent.click(await screen.findByLabelText("Turn 1 피드백 대상 선택"));
+    expect(screen.getByRole("tab", { name: "피드백" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(await screen.findByLabelText("피드백 대상 선택")).toHaveValue("1");
     fireEvent.change(screen.getByLabelText("피드백 유형 선택"), {
       target: { value: "MISSING_SLOT_QUESTION" },
     });
@@ -437,7 +483,9 @@ describe("WorkspaceSimulationPage", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("피드백 대상 선택")).toHaveValue("session");
     });
-    expect(screen.getByLabelText("피드백 유형 선택")).toHaveValue("INTENT_MISMATCH");
+    expect(screen.getByLabelText("피드백 유형 선택")).toHaveValue(
+      "INTENT_MISMATCH",
+    );
     expect(screen.getByLabelText("피드백 심각도 선택")).toHaveValue("MEDIUM");
     expect(screen.getByLabelText("설명")).toHaveValue("");
     expect(screen.getByLabelText("기대 응답/행동")).toHaveValue("");
@@ -447,37 +495,51 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     expect(await screen.findByText("환불하고 싶어요")).toBeInTheDocument();
+    await openFeedbackTab();
     fireEvent.change(await screen.findByLabelText("설명"), {
       target: { value: "주문번호를 묻지 않았습니다." },
     });
     fireEvent.change(screen.getByLabelText("기대 응답/행동"), {
       target: { value: "주문번호를 먼저 요청합니다." },
     });
-    mockedSimulationApi.listFeedback.mockRejectedValueOnce(new Error("refresh failed"));
+    mockedSimulationApi.listFeedback.mockRejectedValueOnce(
+      new Error("refresh failed"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "피드백 저장" }));
 
     await waitFor(() => {
       expect(mockedSimulationApi.createFeedback).toHaveBeenCalled();
     });
-    expect(toast.success).toHaveBeenCalledWith("시뮬레이션 피드백을 남겼습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "시뮬레이션 피드백을 남겼습니다.",
+    );
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("피드백 목록 새로고침에 실패했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "피드백 목록 새로고침에 실패했습니다.",
+      );
     });
-    expect(toast.error).not.toHaveBeenCalledWith("시뮬레이션 피드백을 저장하지 못했습니다.");
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "시뮬레이션 피드백을 저장하지 못했습니다.",
+    );
   });
 
   it("OPEN 피드백에서 개선 후보를 생성하고 목록을 새로고침한다", async () => {
     renderPage();
 
+    await openFeedbackTab();
     fireEvent.click(await screen.findByRole("button", { name: "후보" }));
 
     await waitFor(() => {
-      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(1, 900);
+      expect(
+        mockedSimulationApi.createImprovementCandidate,
+      ).toHaveBeenCalledWith(1, 900);
     });
     expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
     await waitFor(() => {
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(
+        mockedSimulationApi.listImprovementCandidates,
+      ).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -485,19 +547,26 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await screen.findByText("환불하고 싶어요");
+    await openFeedbackTab();
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
       new Error("refresh failed"),
     );
     fireEvent.click(screen.getByRole("button", { name: "후보" }));
 
     await waitFor(() => {
-      expect(mockedSimulationApi.createImprovementCandidate).toHaveBeenCalledWith(1, 900);
+      expect(
+        mockedSimulationApi.createImprovementCandidate,
+      ).toHaveBeenCalledWith(1, 900);
     });
     expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록 새로고침에 실패했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "개선 후보 목록 새로고침에 실패했습니다.",
+      );
     });
-    expect(toast.error).not.toHaveBeenCalledWith("개선 후보를 생성하지 못했습니다.");
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "개선 후보를 생성하지 못했습니다.",
+    );
   });
 
   it("개선 후보 상태를 변경하고 후보 목록을 새로고침한다", async () => {
@@ -510,17 +579,28 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
+    await openCandidateTab();
     fireEvent.click(await screen.findByRole("button", { name: "리뷰 요청" }));
 
     await waitFor(() => {
-      expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
+      expect(
+        mockedSimulationApi.updateImprovementCandidateStatus,
+      ).toHaveBeenCalledWith(1, 1000, {
         status: "READY_FOR_REVIEW",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보 상태를 변경했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "개선 후보 상태를 변경했습니다.",
+    );
     await waitFor(() => {
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(
+        mockedSimulationApi.listImprovementCandidates,
+      ).toHaveBeenCalledTimes(2);
     });
+    expect(screen.getByRole("tab", { name: "개선 후보" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   it("개선 후보 상태 변경 후 목록 새로고침 실패는 변경 실패로 처리하지 않는다", async () => {
@@ -533,22 +613,33 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
+    await openCandidateTab();
+    const requestButton = await screen.findByRole("button", {
+      name: "리뷰 요청",
+    });
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
       new Error("refresh failed"),
     );
     fireEvent.click(requestButton);
 
     await waitFor(() => {
-      expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
+      expect(
+        mockedSimulationApi.updateImprovementCandidateStatus,
+      ).toHaveBeenCalledWith(1, 1000, {
         status: "READY_FOR_REVIEW",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보 상태를 변경했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "개선 후보 상태를 변경했습니다.",
+    );
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록 새로고침에 실패했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "개선 후보 목록 새로고침에 실패했습니다.",
+      );
     });
-    expect(toast.error).not.toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "개선 후보 상태를 변경하지 못했습니다.",
+    );
   });
 
   it("개선 후보 유형 라벨을 표시한다", async () => {
@@ -561,7 +652,10 @@ describe("WorkspaceSimulationPage", () => {
         candidateWithType(1005, "HANDOFF_CONDITION"),
         candidateWithType(1006, "RESPONSE_COPY"),
         candidateWithType(1007, "OTHER"),
-        candidateWithType(1008, "CUSTOM" as SimulationImprovementCandidate["candidateType"]),
+        candidateWithType(
+          1008,
+          "CUSTOM" as SimulationImprovementCandidate["candidateType"],
+        ),
       ],
       page: 0,
       size: 20,
@@ -570,13 +664,18 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
+    await openCandidateTab();
+    expect(screen.getByRole("tab", { name: "개선 후보" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(await screen.findByText("intent 설명/예시")).toBeInTheDocument();
     expect(screen.getByText("policy 조건")).toBeInTheDocument();
     expect(screen.getByText("risk rule")).toBeInTheDocument();
     expect(screen.getByText("workflow 전이")).toBeInTheDocument();
     expect(screen.getByText("handoff 조건")).toBeInTheDocument();
     expect(screen.getByText("응답 문구")).toBeInTheDocument();
-    expect(screen.getAllByText("기타")).toHaveLength(2);
+    expect(screen.getAllByText("기타")).toHaveLength(1);
     expect(screen.getByText("CUSTOM")).toBeInTheDocument();
     expect(screen.getAllByText("초안").length).toBeGreaterThan(0);
     expect(screen.getAllByText("변경 전").length).toBeGreaterThan(0);
@@ -584,11 +683,15 @@ describe("WorkspaceSimulationPage", () => {
   });
 
   it("개선 후보 목록 로드 실패를 토스트로 알린다", async () => {
-    mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(new Error("load failed"));
+    mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
+      new Error("load failed"),
+    );
     renderPage();
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("개선 후보 목록을 불러오지 못했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "개선 후보 목록을 불러오지 못했습니다.",
+      );
     });
   });
 
@@ -596,13 +699,16 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await screen.findByText("환불하고 싶어요");
+    await openFeedbackTab();
     mockedSimulationApi.createImprovementCandidate.mockRejectedValueOnce(
       new Error("create failed"),
     );
     fireEvent.click(screen.getByRole("button", { name: "후보" }));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("개선 후보를 생성하지 못했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "개선 후보를 생성하지 못했습니다.",
+      );
     });
   });
 
@@ -616,14 +722,19 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
+    await openCandidateTab();
+    const requestButton = await screen.findByRole("button", {
+      name: "리뷰 요청",
+    });
     mockedSimulationApi.updateImprovementCandidateStatus.mockRejectedValueOnce(
       new Error("update failed"),
     );
     fireEvent.click(requestButton);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "개선 후보 상태를 변경하지 못했습니다.",
+      );
     });
   });
 
@@ -644,16 +755,23 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
+    await openCandidateTab();
     fireEvent.click(await screen.findByRole("button", { name: "승인" }));
 
     await waitFor(() => {
-      expect(mockedSimulationApi.approveImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+      expect(
+        mockedSimulationApi.approveImprovementCandidate,
+      ).toHaveBeenCalledWith(1, 1000, {
         reason: "시뮬레이션 리뷰 승인",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보를 초안 버전에 반영했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "개선 후보를 초안 버전에 반영했습니다.",
+    );
     await waitFor(() => {
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(
+        mockedSimulationApi.listImprovementCandidates,
+      ).toHaveBeenCalledTimes(2);
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
     });
   });
@@ -675,13 +793,16 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
+    await openCandidateTab();
     fireEvent.change(await screen.findByLabelText("개선 후보 반려 사유"), {
       target: { value: "근거가 부족합니다." },
     });
     fireEvent.click(screen.getByRole("button", { name: "반려" }));
 
     await waitFor(() => {
-      expect(mockedSimulationApi.rejectImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+      expect(
+        mockedSimulationApi.rejectImprovementCandidate,
+      ).toHaveBeenCalledWith(1, 1000, {
         reason: "근거가 부족합니다.",
       });
     });
@@ -724,14 +845,22 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await screen.findByText("환불하고 싶어요");
-    fireEvent.click(await screen.findByRole("button", { name: "환불 검증 replay" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "환불 검증 replay" }),
+    );
 
     await waitFor(() => {
-      expect(mockedSimulationApi.replayGoldenCase).toHaveBeenCalledWith(1, 950, {
-        domainPackVersionId: 101,
-      });
+      expect(mockedSimulationApi.replayGoldenCase).toHaveBeenCalledWith(
+        1,
+        950,
+        {
+          domainPackVersionId: 101,
+        },
+      );
     });
-    expect(toast.success).toHaveBeenCalledWith("검증 케이스 replay가 통과했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "검증 케이스 replay가 통과했습니다.",
+    );
   });
 
   it("최근 replay 실패 요약을 검증 케이스 목록에 표시한다", async () => {
@@ -751,7 +880,9 @@ describe("WorkspaceSimulationPage", () => {
 
     expect(await screen.findByText("FAIL")).toBeInTheDocument();
     expect(
-      screen.getByText("currentState expected collect_order_no but was handoff"),
+      screen.getByText(
+        "currentState expected collect_order_no but was handoff",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -781,12 +912,15 @@ describe("WorkspaceSimulationPage", () => {
   it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {
     renderPage();
 
+    await openCandidateTab();
     fireEvent.change(await screen.findByLabelText("개선 후보 상태 필터"), {
       target: { value: "READY_FOR_REVIEW" },
     });
 
     await waitFor(() => {
-      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledWith(1, {
+      expect(
+        mockedSimulationApi.listImprovementCandidates,
+      ).toHaveBeenCalledWith(1, {
         status: "READY_FOR_REVIEW",
         page: 0,
         size: 20,
