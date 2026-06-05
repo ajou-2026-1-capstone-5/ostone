@@ -1,0 +1,52 @@
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 540;
+  letter-spacing: -0.01em;
+  color: #000000;
+}
+
+.nodeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nodeItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.nodeName {
+  font-size: 0.75rem;
+  font-weight: 540;
+  color: #000000;
+}
+
+.nodeDescription {
+  font-size: 0.75rem;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.6);
+}

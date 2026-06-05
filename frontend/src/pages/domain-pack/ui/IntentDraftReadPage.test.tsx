@@ -116,45 +116,52 @@ vi.mock("@/features/intent-draft-read/ui", () => ({
   MatchedWorkflowSection: ({ intentId }: { intentId: number | null }) => (
     <div data-testid={`matched-workflow-section-stub-${intentId ?? "none"}`} />
   ),
-  IntentDetailPanel: ({
-    intentId,
-    headerActions,
-    afterHeader,
-    beforeJsonCards,
-    children,
-    intentListState,
-  }: {
-    intentId: number | null;
-    headerActions?: (detail: { id: number; intentCode: string }) => React.ReactNode;
-    afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
-    beforeJsonCards?: () => React.ReactNode;
-    children?: (detail: {
-      id: number;
-      intentCode: string;
-      name: string;
-      description: string;
-    }) => React.ReactNode;
-    intentListState?: unknown;
-  }) => {
-    mocks.intentDetailPanelProps({ intentId, intentListState });
-    if (intentId === null) return <div>empty intent detail</div>;
-    const detail = {
-      id: intentId,
-      intentCode: "refund",
-      name: "환불 문의",
-      description: "기존 설명",
-    };
-    return (
-      <section>
-        <header>{headerActions?.(detail)}</header>
-        <div>intent detail {intentId}</div>
-        {afterHeader?.(detail)}
-        {beforeJsonCards?.()}
-        {children?.(detail)}
-      </section>
-    );
-  },
 }));
+
+vi.mock("@/entities/intent", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/entities/intent")>();
+  return {
+    ...actual,
+    IntentDetailPanel: ({
+      intentId,
+      headerActions,
+      afterHeader,
+      beforeJsonCards,
+      children,
+      intentListState,
+    }: {
+      intentId: number | null;
+      headerActions?: (detail: { id: number; intentCode: string }) => React.ReactNode;
+      afterHeader?: (detail: { id: number; intentCode: string }) => React.ReactNode;
+      beforeJsonCards?: () => React.ReactNode;
+      children?: (detail: {
+        id: number;
+        intentCode: string;
+        name: string;
+        description: string;
+      }) => React.ReactNode;
+      intentListState?: unknown;
+    }) => {
+      mocks.intentDetailPanelProps({ intentId, intentListState });
+      if (intentId === null) return <div>empty intent detail</div>;
+      const detail = {
+        id: intentId,
+        intentCode: "refund",
+        name: "환불 문의",
+        description: "기존 설명",
+      };
+      return (
+        <section>
+          <header>{headerActions?.(detail)}</header>
+          <div>intent detail {intentId}</div>
+          {afterHeader?.(detail)}
+          {beforeJsonCards?.()}
+          {children?.(detail)}
+        </section>
+      );
+    },
+  };
+});
 
 vi.mock("@/features/approve-intent", () => ({
   IntentDetailWithApproval: ({

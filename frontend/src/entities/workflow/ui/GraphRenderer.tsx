@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { ReactFlow, Background, Controls, type NodeProps, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { WorkflowGraph } from "@/entities/workflow";
-import { toFlow } from "@/entities/workflow";
+import type { WorkflowGraph } from "../model/types";
+import { toFlow } from "../lib/graphConverter";
 import { StartNode } from "./nodes/StartNode";
 import { ActionNode } from "./nodes/ActionNode";
 import { DecisionNode } from "./nodes/DecisionNode";

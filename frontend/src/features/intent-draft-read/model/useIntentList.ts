@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useListIntents } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 import { intentQueryKeys, selectApiList } from "@/shared/api";
-import { mapApiError } from "./mapApiError";
+import { mapApiError } from "@/entities/intent";
 import type { IntentListState, IntentSummary } from "../../../entities/intent";
 
 export function useIntentList(

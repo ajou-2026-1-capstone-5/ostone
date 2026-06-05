@@ -181,6 +181,33 @@
   box-shadow: 0 0 0 3px oklch(0.58 0.2 265 / 0.18);
 }
 
+.policyRefGroup {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.policyRefName,
+.policyRefUnknown {
+  max-width: 200px;
+  overflow: hidden;
+  font-size: 9.5px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.policyRefName {
+  color: var(--node-indigo-600);
+}
+
+.policyRefUnknown {
+  color: rgba(15, 23, 42, 0.55);
+  font-style: italic;
+}
+
 /* ---- Kind variants ----------------------------------------------------
    Only header gradient + border tone carry the accent. .body stays white
    to match ACTION; visually consistent description block across kinds.

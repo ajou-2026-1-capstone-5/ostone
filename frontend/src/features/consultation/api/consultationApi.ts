@@ -1,19 +1,30 @@
 import {
+  generateDraftResponse,
   getMessages,
   sendMessage,
   updateStatus,
-  getGetMessagesUrl,
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
+import { getQueue } from "@/shared/api/generated/endpoints/workspace-consultation-queue-controller/workspace-consultation-queue-controller";
+import {
+  assignSession,
+  getSessions,
+  releaseSession,
+  updateResponseMode,
+} from "@/shared/api/generated/endpoints/counselor-session-controller/counselor-session-controller";
 import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
+import type { GetSessionsParams } from "@/shared/api/generated/zod";
 import type {
   ConsultationChatMessage,
   ConsultationChatSession,
   ConsultationResponseMode,
 } from "@/entities/chat";
 
-// OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
-// dashboard workflow rankings/bottleneck analysis, assign/release, draft-response는 수동 호출로 유지한다.
+// 상담 endpoint는 가능한 한 generated controller에 위임한다:
+// queue(getQueue) / sessions(getSessions) / messages(getMessages) /
+// assign·release·response-mode(counselor-session) / draft-response(consultation).
+// 단, dashboard workflow rankings·bottleneck analysis와, from/to 기간 필터가 필요한 metrics는
+// generated 시그니처가 해당 파라미터를 노출하지 않아 customFetch 직접 호출을 유지한다.
 
 export type ChatSession = ConsultationChatSession;
 export type ChatMessage = ConsultationChatMessage;
@@ -296,27 +307,34 @@ function unwrapMessagePage(
   };
 }
 
+function toGetSessionsParams(params?: ChatSessionListParams): GetSessionsParams {
+  const result: GetSessionsParams = {};
+  if (params?.status) result.status = params.status;
+  if (params?.keyword) result.keyword = params.keyword;
+  if (params?.startedFrom) result.startedFrom = params.startedFrom;
+  if (params?.startedTo) result.startedTo = params.startedTo;
+  if (params?.assignedCounselorId !== undefined) {
+    result.assignedCounselorId = params.assignedCounselorId;
+  }
+  if (params?.page !== undefined) result.page = params.page;
+  if (params?.size !== undefined) result.size = params.size;
+  return result;
+}
+
 async function fetchMessagePage(
   sessionId: number,
   params: { page?: number; size?: number } = {},
 ): Promise<ChatMessagePage> {
   const page = normalizeMessagePage(params.page);
   const size = normalizeMessagePageSize(params.size);
-  const searchParams = new URLSearchParams();
-  searchParams.set("page", String(page));
-  searchParams.set("size", String(size));
-  const url = `${getGetMessagesUrl(sessionId)}?${searchParams.toString()}`;
-  const response = await customFetch<MessageListResponse>(url, { method: "GET" });
-  return unwrapMessagePage(response, { page, size });
+  const response = await getMessages(sessionId, { page, size });
+  return unwrapMessagePage(response as unknown as MessageListResponse, { page, size });
 }
 
 export const consultationApi = {
   getQueue: async (workspaceId: number): Promise<ChatSession[]> => {
-    const response = await customFetch<ChatSession[] | { data?: ChatSession[] }>(
-      `/api/v1/workspaces/${workspaceId}/consultation/queue`,
-      { method: "GET" },
-    );
-    return selectApiData<ChatSession[]>(response) ?? [];
+    const response = await getQueue(workspaceId);
+    return selectApiData<ChatSession[]>(response as unknown as { data?: ChatSession[] }) ?? [];
   },
 
   getSessions: async (
@@ -331,20 +349,8 @@ export const consultationApi = {
     workspaceId: number,
     params?: ChatSessionListParams,
   ): Promise<ChatSessionPage> => {
-    const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.set("status", params.status);
-    if (params?.keyword) searchParams.set("keyword", params.keyword);
-    if (params?.startedFrom) searchParams.set("startedFrom", params.startedFrom);
-    if (params?.startedTo) searchParams.set("startedTo", params.startedTo);
-    if (params?.assignedCounselorId !== undefined) {
-      searchParams.set("assignedCounselorId", String(params.assignedCounselorId));
-    }
-    if (params?.page !== undefined) searchParams.set("page", String(params.page));
-    if (params?.size !== undefined) searchParams.set("size", String(params.size));
-    const query = searchParams.toString();
-    const url = `/api/v1/workspaces/${workspaceId}/consultation/sessions${query ? `?${query}` : ""}`;
-    const response = await customFetch<SessionListResponse>(url, { method: "GET" });
-    return unwrapSessionPage(response);
+    const response = await getSessions(workspaceId, toGetSessionsParams(params));
+    return unwrapSessionPage(response as unknown as SessionListResponse);
   },
 
   getMessages: async (
@@ -388,19 +394,19 @@ export const consultationApi = {
   },
 
   assignSession: async (sessionId: number): Promise<ChatSession> => {
-    const response = await customFetch<ChatSession | { data?: ChatSession }>(
-      `/api/v1/consultation/sessions/${sessionId}/assign`,
-      { method: "POST" },
+    const response = await assignSession(sessionId);
+    return requireApiData<ChatSession>(
+      response as unknown as { data?: ChatSession },
+      "상담 배정 응답을 확인할 수 없습니다.",
     );
-    return requireApiData<ChatSession>(response, "상담 배정 응답을 확인할 수 없습니다.");
   },
 
   releaseSession: async (sessionId: number): Promise<ChatSession> => {
-    const response = await customFetch<ChatSession | { data?: ChatSession }>(
-      `/api/v1/consultation/sessions/${sessionId}/release`,
-      { method: "POST" },
+    const response = await releaseSession(sessionId);
+    return requireApiData<ChatSession>(
+      response as unknown as { data?: ChatSession },
+      "상담 배정 해제 응답을 확인할 수 없습니다.",
     );
-    return requireApiData<ChatSession>(response, "상담 배정 해제 응답을 확인할 수 없습니다.");
   },
 
   updateResponseMode: async (
@@ -408,15 +414,11 @@ export const consultationApi = {
     counselorId: number,
     responseMode: ConsultationResponseMode,
   ): Promise<ChatSession> => {
-    // OpenAPI generated endpoint is not available yet; replace this with generated API after api:gen exposes it.
-    const response = await customFetch<ChatSession | { data?: ChatSession }>(
-      `/api/v1/consultation/sessions/${sessionId}/response-mode`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({ counselorId, responseMode }),
-      },
+    const response = await updateResponseMode(sessionId, { counselorId, responseMode });
+    return requireApiData<ChatSession>(
+      response as unknown as { data?: ChatSession },
+      "AI 응대 모드 변경 응답을 확인할 수 없습니다.",
     );
-    return requireApiData<ChatSession>(response, "AI 응대 모드 변경 응답을 확인할 수 없습니다.");
   },
 
   getMetrics: async (
@@ -472,10 +474,10 @@ export const consultationApi = {
   },
 
   generateDraftResponse: async (sessionId: number): Promise<DraftResponse> => {
-    const response = await customFetch<DraftResponse | { data?: DraftResponse }>(
-      `/api/v1/consultation/sessions/${sessionId}/draft-response`,
-      { method: "POST" },
+    const response = await generateDraftResponse(sessionId);
+    return requireApiData<DraftResponse>(
+      response as unknown as { data?: DraftResponse },
+      "답변 초안 응답을 확인할 수 없습니다.",
     );
-    return requireApiData<DraftResponse>(response, "답변 초안 응답을 확인할 수 없습니다.");
   },
 };

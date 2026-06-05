@@ -17,7 +17,7 @@ const intentDetailPanelMocks = vi.hoisted(() => ({
   status: "DRAFT" as MockIntentDetail["status"],
 }));
 
-vi.mock("../../intent-draft-read/ui", () => ({
+vi.mock("@/entities/intent", () => ({
   IntentDetailPanel: ({ headerActions, children }: IntentDetailPanelMockProps) => {
     const detail: MockIntentDetail = { name: "test_intent", status: intentDetailPanelMocks.status };
     return (

@@ -8,8 +8,8 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useIntentDetail } from "../model/useIntentDetail";
-import type { IntentDetail, IntentListState } from "../../../entities/intent";
+import { useIntentDetail } from "../api/useIntentDetail";
+import type { IntentDetail, IntentListState } from "../model/types";
 import styles from "./IntentDetailPanel.module.css";
 
 interface IntentDetailPanelProps {

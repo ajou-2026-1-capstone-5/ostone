@@ -31,6 +31,9 @@ import { EditableTerminalNode } from "./nodes/EditableTerminalNode";
 import { EditableEdge } from "./edges/EditableEdge";
 import { PlainEdge } from "./edges/PlainEdge";
 import { AddNodeToolbar } from "./AddNodeToolbar";
+import { PolicyNameContext } from "./PolicyNameContext";
+
+const EMPTY_POLICY_NAMES: ReadonlyMap<string, string> = new Map();
 
 const nodeTypes: NodeTypes = {
   start: EditableStartNode,
@@ -193,20 +196,25 @@ export interface InteractiveGraphEditorProps {
   initialEdges: Edge[];
   /** Do not perform heavy synchronous work here; called only on meaningful structural changes. */
   onStateChange: (nodes: Node[], edges: Edge[]) => void;
+  /** policyCode → 표시 이름 맵. ACTION 노드의 policyRef 해석에 사용한다. */
+  policyNames?: ReadonlyMap<string, string>;
 }
 
 export function InteractiveGraphEditor({
   initialNodes,
   initialEdges,
   onStateChange,
+  policyNames,
 }: InteractiveGraphEditorProps) {
   return (
     <ReactFlowProvider>
-      <InteractiveGraphEditorCore
-        initialNodes={initialNodes}
-        initialEdges={initialEdges}
-        onStateChange={onStateChange}
-      />
+      <PolicyNameContext.Provider value={policyNames ?? EMPTY_POLICY_NAMES}>
+        <InteractiveGraphEditorCore
+          initialNodes={initialNodes}
+          initialEdges={initialEdges}
+          onStateChange={onStateChange}
+        />
+      </PolicyNameContext.Provider>
     </ReactFlowProvider>
   );
 }

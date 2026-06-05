@@ -103,6 +103,19 @@
   color: var(--danger);
 }
 
+.advanced {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+.advancedTrigger {
+  font-size: 0.8rem;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.7);
+}
+
 .editorSlot {
   flex: 1 1 auto;
   min-height: 360px;

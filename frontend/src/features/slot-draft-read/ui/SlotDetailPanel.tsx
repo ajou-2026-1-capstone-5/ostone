@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useSlotDetail } from "../model/useSlotDetail";
 import type { SlotDefinition } from "@/entities/slot";
+import { ReadableJsonCard } from "@/shared/ui/ReadableJsonCard";
 import styles from "./SlotDetailPanel.module.css";
 
 interface SlotDetailPanelProps {
@@ -98,9 +99,9 @@ export function SlotDetailPanel({ wsId, packId, versionId, slotId }: SlotDetailP
             value={<span className={styles.value}>{formatDate(state.data.updatedAt ?? "")}</span>}
           />
         </div>
-        <JsonCard label="검증 규칙" value={state.data.validationRuleJson ?? ""} />
-        <JsonCard label="기본값" value={(state.data.defaultValueJson ?? "") || null} />
-        <JsonCard label="추가 정보" value={state.data.metaJson ?? ""} />
+        <ReadableJsonCard label="검증 규칙" raw={state.data.validationRuleJson} />
+        <ReadableJsonCard label="기본값" raw={state.data.defaultValueJson} />
+        <ReadableJsonCard label="추가 정보" raw={state.data.metaJson} />
       </div>
     </section>
   );
@@ -128,28 +129,6 @@ function InfoCard({ label, value }: { label: string; value: ReactNode }) {
       <div className={styles.cardBody}>{value}</div>
     </div>
   );
-}
-
-function JsonCard({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className={styles.card}>
-      <header className={styles.cardHeader}>{label}</header>
-      <div className={styles.cardBody}>
-        <pre className={styles.jsonBlock}>
-          <code>{value === null ? "—" : formatJsonForDisplay(value)}</code>
-        </pre>
-      </div>
-    </div>
-  );
-}
-
-function formatJsonForDisplay(raw: string): string {
-  if (!raw) return "—";
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
-  } catch {
-    return raw;
-  }
 }
 
 function formatDate(raw: string): string {

@@ -5,12 +5,35 @@ import { useEditableNode } from "./useEditableNode";
 import { useEditableField } from "./useEditableField";
 import { NodeDeleteToolbar } from "./NodeDeleteToolbar";
 import { EditableNodeShell } from "./EditableNodeShell";
+import { usePolicyNames } from "../PolicyNameContext";
+import { resolvePolicyName, type PolicyRefResolution } from "../../model/policyNames";
 
 /** Width-of-content heuristic for the policyRef chip-input: clamp to a
     sensible range so the chip doesn't shrink to a thin sliver when empty
     nor stretch beyond the card width when filled with a long code. */
 function chipInputSize(value: string): number {
   return Math.max(8, Math.min(value.length + 2, 24));
+}
+
+const POLICY_REF_HELP =
+  "실행 시 적용할 응대 기준(Policy)을 가리키는 내부 식별자입니다. 화면 표시 이름이 아닙니다.";
+
+function PolicyRefHint({ resolution }: Readonly<{ resolution: PolicyRefResolution }>) {
+  if (resolution.status === "resolved") {
+    return (
+      <span className={styles.policyRefName} data-testid="policy-ref-name">
+        연결된 응대 기준 · {resolution.name}
+      </span>
+    );
+  }
+  if (resolution.status === "unknown") {
+    return (
+      <span className={styles.policyRefUnknown} data-testid="policy-ref-unknown">
+        알 수 없는 기준 코드
+      </span>
+    );
+  }
+  return null;
 }
 
 export function EditableActionNode({ id, data, selected }: NodeProps) {
@@ -21,6 +44,8 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
     "policyRef",
     typeof data?.policyRef === "string" ? data.policyRef : "",
   );
+  const policyNames = usePolicyNames();
+  const resolution = resolvePolicyName(policyNames, policyRef.value);
   const description = readString(data, "description");
   const badges = readBadges(data);
   const iconHint = readString(data, "iconHint");
@@ -46,16 +71,20 @@ export function EditableActionNode({ id, data, selected }: NodeProps) {
         description={description}
         badges={badges}
         policyRefSlot={
-          <input
-            className={`nodrag nopan ${styles.policyChipInput}`}
-            value={policyRef.value}
-            onChange={policyRef.onChange}
-            onFocus={policyRef.onFocus}
-            onBlur={policyRef.onBlur}
-            size={chipInputSize(policyRef.value)}
-            placeholder="응대 기준 코드"
-            aria-label="응대 기준 참조 코드"
-          />
+          <span className={styles.policyRefGroup}>
+            <input
+              className={`nodrag nopan ${styles.policyChipInput}`}
+              value={policyRef.value}
+              onChange={policyRef.onChange}
+              onFocus={policyRef.onFocus}
+              onBlur={policyRef.onBlur}
+              size={chipInputSize(policyRef.value)}
+              placeholder="응대 기준 코드"
+              aria-label="응대 기준 참조 코드"
+              title={POLICY_REF_HELP}
+            />
+            <PolicyRefHint resolution={resolution} />
+          </span>
         }
         containerTestId="editable-action-node"
       />

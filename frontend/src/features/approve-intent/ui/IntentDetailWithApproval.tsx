@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { IntentDetail, IntentListState } from "@/entities/intent";
-import { IntentDetailPanel } from "../../intent-draft-read/ui";
+import { IntentDetailPanel, type IntentDetail, type IntentListState } from "@/entities/intent";
 import {
   useApproveIntent,
   type IntentApprovalStatus,

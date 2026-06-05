@@ -23,6 +23,10 @@ vi.mock("./InteractiveGraphEditor", () => ({
   ),
 }));
 
+vi.mock("../model/usePolicyNameMap", () => ({
+  usePolicyNameMap: () => new Map<string, string>(),
+}));
+
 import { useUpdateWorkflow } from "../api/useUpdateWorkflow";
 import { WorkflowEditForm } from "./WorkflowEditForm";
 
@@ -100,8 +104,9 @@ describe("WorkflowEditForm", () => {
     expect(screen.getByDisplayValue("표준 환불 처리 절차")).toBeInTheDocument();
   });
 
-  it("renders workflow code as disabled read-only input", () => {
+  it("고급 · 실행 기준 섹션에서 워크플로우 코드를 disabled read-only로 보여준다", () => {
     renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "고급 · 실행 기준" }));
     const codeInput = screen.getByDisplayValue("WF-REFUND-01");
     expect(codeInput).toBeDisabled();
   });

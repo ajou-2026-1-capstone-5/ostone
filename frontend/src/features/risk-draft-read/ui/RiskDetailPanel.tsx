@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { RISK_READ_ERROR_MESSAGES } from "../model/mapApiError";
 import { useRiskDetail } from "../model/useRiskDetail";
 import type { RiskDefinition } from "@/entities/risk";
+import { ReadableJsonCard } from "@/shared/ui/ReadableJsonCard";
 import styles from "./RiskDetailPanel.module.css";
 
 const RISK_JSON_FIELDS = [
@@ -32,8 +33,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
   hour: "2-digit",
   minute: "2-digit",
 });
-
-type RiskJsonKey = (typeof RISK_JSON_FIELDS)[number][1];
 
 type RiskInfoField = Readonly<{
   label: string;
@@ -137,7 +136,7 @@ export function RiskDetailPanel({
       <div className={styles.body}>
         <InfoGrid fields={infoFields} />
         {RISK_JSON_FIELDS.map(([label, key]) => (
-          <JsonCard key={key} label={label} value={detail[key] ?? ""} />
+          <ReadableJsonCard key={key} label={label} raw={detail[key]} />
         ))}
       </div>
     </section>
@@ -186,22 +185,6 @@ function InfoGrid({ fields }: Readonly<{ fields: readonly RiskInfoField[] }>) {
   );
 }
 
-function JsonCard({
-  label,
-  value,
-}: Readonly<{ label: string; value: RiskDefinition[RiskJsonKey] | unknown }>) {
-  return (
-    <article className={styles.card} data-json-field={label.toLowerCase()}>
-      <div className={styles.cardHeader}>{label}</div>
-      <div className={styles.cardBody}>
-        <pre className={styles.jsonBlock}>
-          <code>{formatJsonForDisplay(value)}</code>
-        </pre>
-      </div>
-    </article>
-  );
-}
-
 function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>) {
   const statusClassName = status === "ACTIVE" ? styles.badgeActive : styles.badgeInactive;
 
@@ -210,27 +193,6 @@ function StatusBadge({ status }: Readonly<{ status: RiskDefinition["status"] }>)
       {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
     </span>
   );
-}
-
-function formatJsonForDisplay(raw: unknown): string {
-  if (raw === null || raw === undefined) return "—";
-
-  if (typeof raw !== "string") {
-    try {
-      return JSON.stringify(raw, null, 2);
-    } catch {
-      return String(raw);
-    }
-  }
-
-  if (!raw.trim()) return "—";
-
-  try {
-    const parsedJson: unknown = JSON.parse(raw);
-    return JSON.stringify(parsedJson, null, 2);
-  } catch {
-    return raw;
-  }
 }
 
 function formatDate(raw: string): string {

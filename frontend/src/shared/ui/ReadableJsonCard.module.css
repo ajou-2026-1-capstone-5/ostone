@@ -1,0 +1,107 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+.cardHeader {
+  font-family: "figmaMono", "SF Mono", menlo, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty,
+.scalar,
+.fallback {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #000000;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.empty {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.fallback {
+  font-family: "figmaMono", "SF Mono", menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.entryRow {
+  display: grid;
+  grid-template-columns: minmax(88px, 32%) 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.entryLabel {
+  font-size: 0.8rem;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.entryValue {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #000000;
+  word-break: break-word;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.listItem {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #000000;
+  word-break: break-word;
+}
+
+.rawAccordion {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.rawTrigger {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.jsonBlock {
+  margin: 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: "figmaMono", "SF Mono", menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #000000;
+}
