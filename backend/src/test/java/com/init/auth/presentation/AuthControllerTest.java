@@ -215,11 +215,11 @@ class AuthControllerTest {
   }
 
   @Test
-  @DisplayName("login: 비밀번호 재설정 필요 → 403 Forbidden, PASSWORD_RESET_REQUIRED 코드 반환")
+  @DisplayName("login: 비밀번호 재설정 필요 → 403 Forbidden, resetToken 없이 PASSWORD_RESET_REQUIRED 코드 반환")
   void should_403반환_when_비밀번호재설정필요() throws Exception {
     // given
     given(authService.login(any()))
-        .willThrow(new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", "reset-token-123"));
+        .willThrow(new PasswordResetRequiredException("비밀번호 재설정이 필요합니다."));
 
     // when & then
     mockMvc
@@ -235,7 +235,8 @@ class AuthControllerTest {
                     """))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("PASSWORD_RESET_REQUIRED"))
-        .andExpect(jsonPath("$.resetToken").value("reset-token-123"));
+        .andExpect(jsonPath("$.message").value("비밀번호 재설정이 필요합니다."))
+        .andExpect(jsonPath("$.resetToken").doesNotExist());
   }
 
   // ── refresh ───────────────────────────────────────────────────────────────
