@@ -1,29 +1,7 @@
 import { customFetch } from "@/shared/api/mutator";
+import type { LlmToolWorkflowPayload, MatchedWorkflow } from "@/entities/workflow";
 
-export type TerminalState = string;
-
-export interface LlmToolWorkflowPayload {
-  sessionId: number | null;
-  workspaceId: number | null;
-  domainPackId: number | null;
-  domainPackVersionId: number | null;
-  executionId: number | null;
-  executionStatus: string | null;
-  currentState: string | null;
-  workflowDefinitionId: number | null;
-  workflowCode: string | null;
-  workflowName: string | null;
-  workflowDescription: string | null;
-  graphJson?: unknown;
-  initialState?: string | null;
-  terminalStates?: TerminalState[] | null;
-  intentCode?: string | null;
-  intentName?: string | null;
-}
-
-export type MatchedWorkflow = LlmToolWorkflowPayload & {
-  workflowDefinitionId: number;
-};
+export type { LlmToolWorkflowPayload, MatchedWorkflow };
 
 export function isMatchedWorkflow(
   payload: LlmToolWorkflowPayload | null,

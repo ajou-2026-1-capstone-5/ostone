@@ -6,16 +6,17 @@ import {
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
-import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
+import type {
+  ConsultationChatMessage,
+  ConsultationChatSession,
+  ConsultationResponseMode,
+} from "@/entities/chat";
 
 // OpenAPI 미생성 endpoint: workspace-scoped queue/metrics/sessions list,
 // dashboard workflow rankings/bottleneck analysis, assign/release, draft-response는 수동 호출로 유지한다.
 
-export type ChatSession = Omit<ChatSessionResponse, "responseMode"> & {
-  assignedCounselorId?: number | null;
-  responseMode?: ConsultationResponseMode | null;
-};
-export type ChatMessage = ChatMessageResponse;
+export type ChatSession = ConsultationChatSession;
+export type ChatMessage = ConsultationChatMessage;
 export interface ChatMessagePage {
   content: ChatMessage[];
   page: number;
@@ -24,7 +25,7 @@ export interface ChatMessagePage {
   totalPages: number;
 }
 export type ConsultationSessionStatus = "OPEN" | "ACTIVE" | "RESOLVED" | "COMPLETED";
-export type ConsultationResponseMode = "AI_ACTIVE" | "HUMAN_ACTIVE" | "AI_ASSIST_ONLY";
+export type { ConsultationResponseMode };
 export type ResolutionOutcome = "RESOLVED" | "CUSTOMER_LEFT" | "PENDING" | "FOLLOW_UP_REQUIRED";
 export interface ChatSessionPage {
   content: ChatSession[];
