@@ -192,9 +192,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 14px 12px;
   border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
   margin-bottom: 4px;

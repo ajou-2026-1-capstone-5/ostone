@@ -201,15 +201,33 @@
 
 .messageGroup {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 0;
   max-width: 75%;
-  cursor: pointer;
   border-radius: var(--r-3);
   transition: background 0.15s;
   position: relative;
 }
 
-.messageGroup:focus-visible {
+.messageSelectButton {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.messageSelectButtonAgent {
+  flex-direction: row-reverse;
+}
+
+.messageSelectButton:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
@@ -235,7 +253,6 @@
 
 .messageGroupAgent {
   align-self: flex-end;
-  flex-direction: row-reverse;
 }
 
 .msgAvatar {
@@ -313,6 +330,14 @@
 .deliveryMetaAgent {
   justify-content: flex-end;
   text-align: right;
+}
+
+.messageGroupCustomer .deliveryMeta {
+  margin-left: 42px;
+}
+
+.messageGroupAgent .deliveryMeta {
+  margin-right: 42px;
 }
 
 .deliveryMetaFailed {

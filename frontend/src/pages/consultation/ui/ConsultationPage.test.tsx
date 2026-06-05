@@ -211,6 +211,12 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
 }
 
+const getQueueCustomerButton = (customerName: string) =>
+  screen.getByRole("button", { name: new RegExp(customerName) });
+
+const getMessageSelectButton = (messageContent: string) =>
+  screen.getByRole("button", { name: new RegExp(messageContent) });
+
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{location.pathname}</div>;
@@ -416,7 +422,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("정세션")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("정세션").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("정세션");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -534,7 +540,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
     });
 
-    const messageItem = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    const messageItem = getMessageSelectButton("환불 문의 드립니다.");
     if (messageItem) {
       fireEvent.click(messageItem);
     }
@@ -569,7 +575,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
     });
 
-    const messageItem = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    const messageItem = getMessageSelectButton("환불 문의 드립니다.");
     if (messageItem) {
       fireEvent.click(messageItem);
     }
@@ -643,7 +649,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1029,7 +1035,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByLabelText("읽지 않은 고객 메시지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("박서연").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("박서연");
     if (customerItem) fireEvent.click(customerItem);
 
     await waitFor(() => {
@@ -1044,7 +1050,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) fireEvent.click(customerItem);
 
     await waitFor(() => {
@@ -1101,7 +1107,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) fireEvent.click(customerItem);
 
     await waitFor(() => {
@@ -1128,7 +1134,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       customerItem.click();
     }
@@ -1161,7 +1167,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1196,7 +1202,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1229,7 +1235,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1269,7 +1275,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1300,7 +1306,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1356,7 +1362,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1395,7 +1401,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1419,7 +1425,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1452,7 +1458,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1476,7 +1482,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1506,7 +1512,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       fireEvent.click(customerItem);
     }
@@ -1519,7 +1525,7 @@ describe("ConsultationPage", () => {
     );
     await user.type(memo, "카드사 확인 필요");
 
-    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    const messageGroup = getMessageSelectButton("환불 문의 드립니다.");
     if (!messageGroup) throw new Error("message group not found");
     fireEvent.click(messageGroup);
 
@@ -1552,7 +1558,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       customerItem.click();
     }
@@ -1574,7 +1580,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       customerItem.click();
     }
@@ -1613,7 +1619,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1634,7 +1640,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1650,7 +1656,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
@@ -1677,7 +1683,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1715,7 +1721,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1747,7 +1753,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1781,7 +1787,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1839,7 +1845,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1867,7 +1873,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1896,7 +1902,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -1927,7 +1933,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2097,7 +2103,7 @@ describe("ConsultationPage", () => {
 
     vi.mocked(consultationApi.getMessagePage).mockRejectedValueOnce(new Error("DB Error"));
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) {
       customerItem.click();
     }
@@ -2135,7 +2141,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("홍길동")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2157,7 +2163,7 @@ describe("ConsultationPage", () => {
       totalPages: 0,
     });
 
-    const hongEl = screen.getByText("홍길동").closest("div");
+    const hongEl = getQueueCustomerButton("홍길동");
     if (hongEl) hongEl.click();
 
     await waitFor(() => {
@@ -2176,7 +2182,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2202,7 +2208,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2232,7 +2238,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2272,7 +2278,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2313,7 +2319,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
@@ -2347,7 +2353,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     const input = await screen.findByPlaceholderText("메시지를 입력하세요...");
@@ -2380,7 +2386,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2410,7 +2416,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     await waitFor(() => {
@@ -2435,7 +2441,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest("div");
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) customerItem.click();
 
     const textarea = await screen.findByPlaceholderText(
@@ -2454,7 +2460,7 @@ describe("ConsultationPage", () => {
       expect(screen.getByText("김민지")).toBeInTheDocument();
     });
 
-    const customerItem = screen.getByText("김민지").closest('[role="button"]');
+    const customerItem = getQueueCustomerButton("김민지");
     if (customerItem) fireEvent.click(customerItem);
 
     const textarea = await screen.findByPlaceholderText(

@@ -26,23 +26,24 @@ export function Queue({
         const isActive = item.id === activeId;
         const displayName = item.name?.trim() || "Unknown";
         return (
-          <div
+          <button
             key={item.id}
+            type="button"
             onClick={() => onSelect?.(item.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onSelect?.(item.id);
-              }
-            }}
-            role="button"
-            tabIndex={0}
+            aria-current={isActive ? "true" : undefined}
             style={{
+              display: "block",
+              width: "100%",
               padding: "12px 14px 12px 16px",
+              borderTop: 0,
+              borderRight: 0,
               borderBottom: "1px solid var(--line)",
-              background: isActive ? "var(--paper-3)" : undefined,
               borderLeft: isActive ? "3px solid var(--signal)" : "3px solid transparent",
+              background: isActive ? "var(--paper-3)" : "transparent",
+              color: "inherit",
               cursor: "pointer",
+              font: "inherit",
+              textAlign: "left",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -67,7 +68,7 @@ export function Queue({
               <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>“{item.preview}”</Mono>
             </div>
             <Pill tone="signal">{item.topic}</Pill>
-          </div>
+          </button>
         );
       })}
     </div>

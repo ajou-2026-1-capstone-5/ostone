@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 
 const baseMessages: ChatMessage[] = [
@@ -37,6 +38,9 @@ const renderChatPanel = (messages: ChatMessage[] = baseMessages, sessionId = "se
       onSelectMessage={vi.fn()}
     />,
   );
+
+const getMessageButton = (messageContent: string) =>
+  screen.getByRole("button", { name: new RegExp(messageContent) });
 
 const setScrollMetrics = (
   element: HTMLElement,
@@ -270,8 +274,9 @@ describe("ChatPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", () => {
+  it("고객 메시지는 선택할 수 있고 키보드로도 선택된다", async () => {
     const onSelectMessage = vi.fn();
+    const user = userEvent.setup();
 
     render(
       <ChatPanel
@@ -294,13 +299,14 @@ describe("ChatPanel", () => {
     expect(screen.getByText("김민지")).toBeInTheDocument();
     expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
 
-    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
-    if (!messageGroup) throw new Error("message group not found");
+    const messageButton = getMessageButton("환불 문의 드립니다.");
+    expect(messageButton).toHaveAttribute("aria-pressed", "false");
 
-    fireEvent.click(messageGroup);
+    fireEvent.click(messageButton);
     expect(onSelectMessage).toHaveBeenLastCalledWith("customer-1");
 
-    fireEvent.keyDown(messageGroup, { key: "Enter" });
+    messageButton.focus();
+    await user.keyboard("{Enter}");
     expect(onSelectMessage).toHaveBeenLastCalledWith("customer-1");
   });
   it("시스템 메시지와 내부 메모를 렌더링하고 메모 모드로 전송한다", () => {
@@ -476,15 +482,16 @@ describe("ChatPanel", () => {
       />,
     );
 
-    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
-    if (!messageGroup) throw new Error("message group not found");
+    const messageButton = getMessageButton("환불 문의 드립니다.");
+    expect(messageButton).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(messageGroup);
+    fireEvent.click(messageButton);
     expect(onSelectMessage).toHaveBeenCalledWith(null);
   });
 
-  it("메시지가 선택된 상태에서 Space 키를 누르면 선택이 해제된다", () => {
+  it("메시지가 선택된 상태에서 Space 키를 누르면 선택이 해제된다", async () => {
     const onSelectMessage = vi.fn();
+    const user = userEvent.setup();
 
     render(
       <ChatPanel
@@ -504,15 +511,17 @@ describe("ChatPanel", () => {
       />,
     );
 
-    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
-    if (!messageGroup) throw new Error("message group not found");
+    const messageButton = getMessageButton("환불 문의 드립니다.");
+    expect(messageButton).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.keyDown(messageGroup, { key: " " });
+    messageButton.focus();
+    await user.keyboard(" ");
     expect(onSelectMessage).toHaveBeenCalledWith(null);
   });
 
-  it("메시지가 선택되지 않은 상태에서 Space 키를 누르면 메시지가 선택된다", () => {
+  it("메시지가 선택되지 않은 상태에서 Space 키를 누르면 메시지가 선택된다", async () => {
     const onSelectMessage = vi.fn();
+    const user = userEvent.setup();
 
     render(
       <ChatPanel
@@ -532,10 +541,11 @@ describe("ChatPanel", () => {
       />,
     );
 
-    const messageGroup = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
-    if (!messageGroup) throw new Error("message group not found");
+    const messageButton = getMessageButton("환불 문의 드립니다.");
+    expect(messageButton).toHaveAttribute("aria-pressed", "false");
 
-    fireEvent.keyDown(messageGroup, { key: " " });
+    messageButton.focus();
+    await user.keyboard(" ");
     expect(onSelectMessage).toHaveBeenCalledWith("msg-1");
   });
 

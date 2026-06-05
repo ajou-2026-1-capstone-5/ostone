@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Message, HandoffDivider } from "./Message";
 import { Queue } from "./Queue";
 import { DetectedItems } from "./DetectedItems";
@@ -110,7 +111,7 @@ describe("Queue", () => {
 
   it("applies active styles to active item", () => {
     render(<Queue items={items} activeId="c2" />);
-    const activeItem = screen.getByText("이성민").closest("div")?.parentElement;
+    const activeItem = screen.getByRole("button", { name: /이성민/ });
     expect(activeItem).toBeInTheDocument();
     expect(activeItem!.style.background).toBe("var(--paper-3)");
     expect(activeItem!.style.borderLeft).toBe("3px solid var(--signal)");
@@ -119,23 +120,27 @@ describe("Queue", () => {
   it("calls onSelect when item clicked", () => {
     const onSelect = vi.fn();
     render(<Queue items={items} onSelect={onSelect} />);
-    fireEvent.click(screen.getByText("김민지"));
+    fireEvent.click(screen.getByRole("button", { name: /김민지/ }));
     expect(onSelect).toHaveBeenCalledWith("c1");
   });
 
-  it("calls onSelect on Enter key on queue item", () => {
+  it("calls onSelect on Enter key on queue item", async () => {
+    const user = userEvent.setup();
     const onSelect = vi.fn();
     render(<Queue items={items} onSelect={onSelect} />);
-    const item = screen.getByText("김민지");
-    fireEvent.keyDown(item, { key: "Enter" });
+    const item = screen.getByRole("button", { name: /김민지/ });
+    item.focus();
+    await user.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith("c1");
   });
 
-  it("calls onSelect on Space key on queue item", () => {
+  it("calls onSelect on Space key on queue item", async () => {
+    const user = userEvent.setup();
     const onSelect = vi.fn();
     render(<Queue items={items} onSelect={onSelect} />);
-    const item = screen.getByText("이성민");
-    fireEvent.keyDown(item, { key: " " });
+    const item = screen.getByRole("button", { name: /이성민/ });
+    item.focus();
+    await user.keyboard(" ");
     expect(onSelect).toHaveBeenCalledWith("c2");
   });
 });

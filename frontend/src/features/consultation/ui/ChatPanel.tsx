@@ -246,6 +246,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  const handleMessageSelect = (messageId: string, isSelected: boolean) => {
+    onSelectMessage(isSelected ? null : messageId);
+  };
+
   const renderDeliveryMeta = (msg: ChatMessage, isAgent = false) => {
     if (msg.deliveryStatus === "sending") {
       return (
@@ -357,44 +361,31 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <div
                 key={msg.id}
                 className={`${styles.messageGroup} ${isAgent ? styles.messageGroupAgent : styles.messageGroupCustomer} ${isSelected ? styles.messageSelected : ""}`}
-                onClick={() => {
-                  if (isSelected) {
-                    onSelectMessage(null);
-                  } else {
-                    onSelectMessage(msg.id);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    if (isSelected) {
-                      onSelectMessage(null);
-                    } else {
-                      onSelectMessage(msg.id);
-                    }
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={isSelected}
               >
-                <div
-                  className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
+                <button
+                  type="button"
+                  className={`${styles.messageSelectButton} ${isAgent ? styles.messageSelectButtonAgent : ""}`}
+                  onClick={() => handleMessageSelect(msg.id, isSelected)}
+                  aria-pressed={isSelected}
                 >
-                  {isAgent ? role.avatar : customerInitial}
-                </div>
-                <div>
                   <div
-                    className={`${styles.msgBubble} ${isAgent ? styles.msgBubbleAgent : styles.msgBubbleCustomer} ${msg.deliveryStatus === "sending" ? styles.msgBubbleSending : ""} ${msg.deliveryStatus === "failed" ? styles.msgBubbleFailed : ""}`}
+                    className={`${styles.msgAvatar} ${isAgent ? styles.msgAvatarAgent : styles.msgAvatarCustomer}`}
                   >
-                    {msg.content}
+                    {isAgent ? role.avatar : customerInitial}
                   </div>
-                  <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
-                    <span>{role.label} · </span>
-                    {msg.timestamp}
+                  <div>
+                    <div
+                      className={`${styles.msgBubble} ${isAgent ? styles.msgBubbleAgent : styles.msgBubbleCustomer} ${msg.deliveryStatus === "sending" ? styles.msgBubbleSending : ""} ${msg.deliveryStatus === "failed" ? styles.msgBubbleFailed : ""}`}
+                    >
+                      {msg.content}
+                    </div>
+                    <div className={`${styles.msgTime} ${isAgent ? styles.msgTimeAgent : ""}`}>
+                      <span>{role.label} · </span>
+                      {msg.timestamp}
+                    </div>
                   </div>
-                  {renderDeliveryMeta(msg, isAgent)}
-                </div>
+                </button>
+                {renderDeliveryMeta(msg, isAgent)}
               </div>
             );
           })}
