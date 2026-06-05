@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { toast } from "sonner";
 
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import { fetchWorkspaceDashboardActionRecommendations } from "@/features/workspace-dashboard-health/api/workspaceDashboardHealthApi";
@@ -18,6 +19,7 @@ const mockedGetWorkflowRankings = vi.mocked(
 const mockedFetchActionRecommendations = vi.mocked(
   fetchWorkspaceDashboardActionRecommendations,
 );
+const mockedToastError = vi.mocked(toast.error);
 
 const metricsResponse = {
   workspaceId: 1,
@@ -236,6 +238,7 @@ vi.mock("@/features/workspace-dashboard-health", () => ({
 
 describe("WorkspaceDashboardPage", () => {
   beforeEach(() => {
+    mockedToastError.mockReset();
     mockedGetMetrics.mockReset();
     mockedGetWorkflowRankings.mockReset();
     mockedFetchActionRecommendations.mockReset();
@@ -471,6 +474,29 @@ describe("WorkspaceDashboardPage", () => {
       "일부 운영 데이터만 확인됩니다.",
     );
     expect(screen.queryByTestId("dashboard-error")).not.toBeInTheDocument();
+  });
+
+  it("passive load 실패는 화면 상태로 표시하고 toast를 띄우지 않는다", async () => {
+    mockedGetMetrics.mockRejectedValueOnce(new Error("metrics failed"));
+    mockedGetWorkflowRankings.mockRejectedValueOnce(
+      new Error("rankings failed"),
+    );
+    mockedFetchActionRecommendations.mockRejectedValueOnce(
+      new Error("recommendations failed"),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText("대시보드 데이터를 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("recommendation-error")).toHaveTextContent(
+      "추천 액션을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    );
+    expect(screen.getByTestId("hotpath-error")).toHaveTextContent(
+      "워크플로우 랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    );
+    expect(mockedToastError).not.toHaveBeenCalled();
   });
 
   it("loading, error, partial 상태 패널이 같은 shell 영역에서 렌더링된다", () => {

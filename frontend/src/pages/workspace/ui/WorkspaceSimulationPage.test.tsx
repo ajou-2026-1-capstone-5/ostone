@@ -514,13 +514,57 @@ describe("WorkspaceSimulationPage", () => {
       "시뮬레이션 피드백을 남겼습니다.",
     );
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "피드백 목록 새로고침에 실패했습니다.",
-      );
+      expect(
+        screen.getByText("시뮬레이션 피드백 목록을 불러오지 못했습니다."),
+      ).toBeInTheDocument();
     });
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "시뮬레이션 피드백 목록을 불러오지 못했습니다.",
+    );
     expect(toast.error).not.toHaveBeenCalledWith(
       "시뮬레이션 피드백을 저장하지 못했습니다.",
     );
+  });
+
+  it("피드백 목록 로드 실패는 패널 내부 오류와 재시도를 제공한다", async () => {
+    mockedSimulationApi.listFeedback.mockRejectedValueOnce(
+      new Error("load failed"),
+    );
+    renderPage();
+
+    await openFeedbackTab();
+    expect(
+      await screen.findByText("시뮬레이션 피드백 목록을 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "시뮬레이션 피드백 목록을 불러오지 못했습니다.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(
+      await screen.findByText("주문번호를 묻지 않았습니다."),
+    ).toBeInTheDocument();
+  });
+
+  it("검증 케이스 목록 로드 실패는 패널 내부 오류로 표시한다", async () => {
+    mockedSimulationApi.listGoldenCases.mockRejectedValueOnce(
+      new Error("load failed"),
+    );
+    renderPage();
+
+    expect(
+      await screen.findByText("검증 케이스 목록을 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "검증 케이스 목록을 불러오지 못했습니다.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(
+      await screen.findByText("저장된 검증 케이스가 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("OPEN 피드백에서 개선 후보를 생성하고 목록을 새로고침한다", async () => {
@@ -560,10 +604,13 @@ describe("WorkspaceSimulationPage", () => {
     });
     expect(toast.success).toHaveBeenCalledWith("개선 후보를 생성했습니다.");
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "개선 후보 목록 새로고침에 실패했습니다.",
-      );
+      expect(
+        screen.getByText("개선 후보 목록을 불러오지 못했습니다."),
+      ).toBeInTheDocument();
     });
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "개선 후보 목록을 불러오지 못했습니다.",
+    );
     expect(toast.error).not.toHaveBeenCalledWith(
       "개선 후보를 생성하지 못했습니다.",
     );
@@ -633,10 +680,13 @@ describe("WorkspaceSimulationPage", () => {
       "개선 후보 상태를 변경했습니다.",
     );
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "개선 후보 목록 새로고침에 실패했습니다.",
-      );
+      expect(
+        screen.getByText("개선 후보 목록을 불러오지 못했습니다."),
+      ).toBeInTheDocument();
     });
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "개선 후보 목록을 불러오지 못했습니다.",
+    );
     expect(toast.error).not.toHaveBeenCalledWith(
       "개선 후보 상태를 변경하지 못했습니다.",
     );
@@ -682,17 +732,25 @@ describe("WorkspaceSimulationPage", () => {
     expect(screen.getAllByText("근거").length).toBeGreaterThan(0);
   });
 
-  it("개선 후보 목록 로드 실패를 토스트로 알린다", async () => {
+  it("개선 후보 목록 로드 실패는 패널 내부 오류와 재시도를 제공한다", async () => {
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
       new Error("load failed"),
     );
     renderPage();
 
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "개선 후보 목록을 불러오지 못했습니다.",
-      );
-    });
+    await openCandidateTab();
+    expect(
+      await screen.findByText("개선 후보 목록을 불러오지 못했습니다."),
+    ).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalledWith(
+      "개선 후보 목록을 불러오지 못했습니다.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(
+      await screen.findByText("조건에 맞는 개선 후보가 없습니다."),
+    ).toBeInTheDocument();
   });
 
   it("개선 후보 생성 실패를 토스트로 알린다", async () => {

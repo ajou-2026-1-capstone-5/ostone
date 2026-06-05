@@ -563,6 +563,18 @@
   line-height: 1.6;
 }
 
+.secondaryErrorState {
+  display: flex;
+  min-height: 132px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+  padding: var(--s-4);
+  text-align: center;
+}
+
 .feedbackList {
   display: grid;
   gap: var(--s-2);

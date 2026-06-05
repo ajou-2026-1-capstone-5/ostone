@@ -7,7 +7,6 @@ import {
   FlaskConicalIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { consultationApi } from "@/features/consultation/api/consultationApi";
 import type {
@@ -1092,7 +1091,6 @@ export function WorkspaceDashboardPage() {
         console.error("Failed to load dashboard metrics:", error);
         setMetrics(null);
         setMetricsError("대시보드 지표를 불러오지 못했습니다.");
-        toast.error("대시보드 지표를 불러오지 못했습니다.");
       } finally {
         if (!ignore) {
           setIsMetricsLoading(false);
@@ -1141,8 +1139,9 @@ export function WorkspaceDashboardPage() {
           error,
         );
         setActionRecommendations(null);
-        setActionRecommendationsError("추천 액션을 불러오지 못했습니다.");
-        toast.error("추천 액션을 불러오지 못했습니다.");
+        setActionRecommendationsError(
+          "추천 액션을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
       } finally {
         if (!ignore) {
           setIsActionRecommendationsLoading(false);
@@ -1188,8 +1187,9 @@ export function WorkspaceDashboardPage() {
         if (ignore) return;
         console.error("Failed to load workflow rankings:", error);
         setWorkflowRankings(null);
-        setWorkflowRankingsError("워크플로우 랭킹을 불러오지 못했습니다.");
-        toast.error("워크플로우 랭킹을 불러오지 못했습니다.");
+        setWorkflowRankingsError(
+          "워크플로우 랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
       } finally {
         if (!ignore) {
           setIsWorkflowRankingsLoading(false);
