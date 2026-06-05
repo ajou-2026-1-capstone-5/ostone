@@ -1,12 +1,17 @@
 package com.init.corpus.presentation.dto;
 
+import com.init.corpus.application.RawFileUploadDatasetKeyPolicy;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record InitRawFileUploadRequest(
     @NotBlank(message = "datasetKey는 필수입니다.")
         @Size(max = 100, message = "datasetKey는 100자 이하여야 합니다.")
+        @Pattern(
+            regexp = RawFileUploadDatasetKeyPolicy.SAFE_OBJECT_KEY_SEGMENT_REGEXP,
+            message = "datasetKey는 영문자, 숫자, 하이픈(-), 밑줄(_)만 사용하고 영문자 또는 숫자로 시작해야 합니다.")
         String datasetKey,
     @NotBlank(message = "name은 필수입니다.") @Size(max = 255, message = "name은 255자 이하여야 합니다.")
         String name,
