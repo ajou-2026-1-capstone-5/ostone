@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -114,6 +115,40 @@ class SubscriptionServiceTest {
                 subscriptionService.createSubscription(
                     new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
         .isInstanceOf(ActiveSubscriptionExistsException.class);
+  }
+
+  @Test
+  @DisplayName("구독 저장 중 open subscription partial unique index 충돌 시 409 예외로 변환한다")
+  void createSubscription_openSubscriptionUniqueViolation_throwsActiveSubscriptionExists() {
+    given(planRepository.findByPlanKey("pro_monthly")).willReturn(Optional.of(plan(10L)));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
+    given(subscriptionRepository.save(any()))
+        .willThrow(
+            new DataIntegrityViolationException(
+                "duplicate key value violates unique constraint "
+                    + "\"uq_payment_subscription_workspace_open\""));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.createSubscription(
+                    new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
+        .isInstanceOf(ActiveSubscriptionExistsException.class)
+        .hasCauseInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
+  @DisplayName("구독 저장 중 open subscription partial unique index 외 무결성 오류는 그대로 전파한다")
+  void createSubscription_otherIntegrityViolation_rethrowsOriginalException() {
+    given(planRepository.findByPlanKey("pro_monthly")).willReturn(Optional.of(plan(10L)));
+    given(subscriptionRepository.findCurrentByWorkspaceId(1L)).willReturn(Optional.empty());
+    given(subscriptionRepository.save(any()))
+        .willThrow(new DataIntegrityViolationException("foreign key violation"));
+
+    assertThatThrownBy(
+            () ->
+                subscriptionService.createSubscription(
+                    new CreateSubscriptionCommand(1L, 99L, "pro_monthly")))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
