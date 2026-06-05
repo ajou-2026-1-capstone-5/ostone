@@ -21,6 +21,7 @@ import com.init.shared.application.exception.BadRequestException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.function.Supplier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class SubscriptionService {
+
+  private static final String OPEN_SUBSCRIPTION_UNIQUE_INDEX =
+      "uq_payment_subscription_workspace_open";
 
   private final SubscriptionRepository subscriptionRepository;
   private final PlanRepository planRepository;
@@ -87,7 +91,7 @@ public class SubscriptionService {
 
     Subscription subscription = Subscription.create(command.workspaceId(), plan.getId());
     subscription.assignCustomerKey(PaymentIdentifiers.customerKey(command.workspaceId()));
-    Subscription saved = subscriptionRepository.save(subscription);
+    Subscription saved = saveNewSubscription(subscription, command.workspaceId());
     return SubscriptionResult.from(saved, plan);
   }
 
@@ -208,5 +212,27 @@ public class SubscriptionService {
 
   private <T> T inTx(Supplier<T> callback) {
     return transactionTemplate.execute(status -> callback.get());
+  }
+
+  private Subscription saveNewSubscription(Subscription subscription, Long workspaceId) {
+    try {
+      return subscriptionRepository.save(subscription);
+    } catch (DataIntegrityViolationException ex) {
+      if (isOpenSubscriptionUniqueIndexViolation(ex)) {
+        throw new ActiveSubscriptionExistsException(workspaceId, ex);
+      }
+      throw ex;
+    }
+  }
+
+  private boolean isOpenSubscriptionUniqueIndexViolation(DataIntegrityViolationException ex) {
+    Throwable cause = ex.getCause();
+    if (cause instanceof org.hibernate.exception.ConstraintViolationException violationException) {
+      String constraintName = violationException.getConstraintName();
+      return constraintName != null && constraintName.contains(OPEN_SUBSCRIPTION_UNIQUE_INDEX);
+    }
+
+    String message = ex.getMostSpecificCause().getMessage();
+    return message != null && message.contains(OPEN_SUBSCRIPTION_UNIQUE_INDEX);
   }
 }
