@@ -1,0 +1,8 @@
+.passiveSuccessToast {
+  pointer-events: none;
+}
+
+.passiveSuccessToast [data-button],
+.passiveSuccessToast [data-close-button] {
+  pointer-events: auto;
+}
