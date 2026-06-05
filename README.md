@@ -406,15 +406,21 @@ pnpm install
 # 최초 1회 env 파일 준비
 cp .env.example .env
 
-# 전체 로컬 스택 실행 (frontend는 컨테이너 안에서 dev server 구동)
-pnpm run dev
+# 제품 런타임(light) 실행 — postgres + minio + backend + frontend
+pnpm run dev          # = pnpm run up:light
 ```
 
-`pnpm run dev`는 `.env`가 준비되어 있는지 확인하고 `backend` JAR를 패키징한 뒤 `docker compose up -d`를 실행한다. 이 명령 한 번으로 `postgres`, `backend`, `frontend`, Airflow 서비스(`airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`)가 함께 기동된다. ML 개발 의존성은 필요 시 아래 명령으로 동기화한다.
+`pnpm run dev`(=`up:light`)는 `.env`를 확인하고, backend JAR가 없거나 오래된 경우에만 자동으로 다시 패키징(preflight)한 뒤 `docker compose up -d`로 **light** 모드를 기동한다. MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성하므로 수동 `mc mb`가 필요 없다.
 
-```bash
-pnpm run deps:ml
-```
+**실행 모드** — Airflow는 compose profile로 분리되어 opt-in이다.
+
+| 모드 | 명령 | 구동 서비스 | 용도 |
+| --- | --- | --- | --- |
+| light | `pnpm run up:light` (=`dev`,`up`) | postgres, minio(+init), backend, frontend | 제품 런타임만. FE/BE 개발. 가장 빠름 |
+| pipeline | `pnpm run up:pipeline` | postgres, minio(+init), airflow-\* ×4 | DAG/파이프라인 작업 |
+| full | `pnpm run up:full` | 전체 | 통합 시연 / E2E |
+
+> **동작 변경**: 프로필 분리 이후 인자 없는 `docker compose up -d`는 **light**만 기동한다(Airflow 미포함). 전체 스택은 `pnpm run up:full` 또는 `COMPOSE_PROFILES=full docker compose up -d`로 띄운다. 종료는 `pnpm run down`. ML 개발 의존성은 `pnpm run deps:ml`로 동기화한다.
 
 ### 접속 포인트
 
@@ -425,13 +431,25 @@ pnpm run deps:ml
 | MinIO 콘솔 | http://localhost:9001 |
 | Airflow | http://localhost:8081 |
 
+> Airflow(`8081`)는 `pipeline`/`full` 모드에서만 기동된다(light 모드 제외).
+
 ### API 문서 (Swagger UI)
 
 Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를 제공한다(기본 경로 `/swagger-ui.html`). `prod` 프로필에서는 보안상 api-docs·swagger-ui가 비활성화된다(`application-prod.yml`).
 
 ### 데모 시드 데이터
 
-`local`(또는 `dev`) 프로필로 backend를 기동하면 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다(`ActiveVentureDomainPackSeedRunner`, `@Profile({"local","dev"})`). 데모 계정은 `activeventure.demo@ostone.local`, `hanacard.demo@ostone.local`이다. 별도의 환불 요청 데모 워크플로우는 `demo` 프로필에서만 시드된다.
+`local`(또는 `dev`) 프로필로 backend를 기동하면 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다(`ActiveVentureDomainPackSeedRunner`, `@Profile({"local","dev"})`, 멱등 upsert). 아래 데모 계정으로 운영자 콘솔(http://localhost:5173)에 바로 로그인할 수 있다.
+
+| 워크스페이스 | 이메일 | 비밀번호 | 역할 |
+| --- | --- | --- | --- |
+| 액티벤처 여행 상담 (ws 1) | `activeventure.demo@ostone.local` | `demo1234` | OPERATOR |
+| 하나카드 카드 상담 (ws 2) | `hanacard.demo@ostone.local` | `demo1234` | OPERATOR |
+
+- **로컬 데모 전용** 계정이다. 환경별 secret(`JWT_SECRET` 등)과 혼동하지 않는다.
+- 로그인이 안 되면: ① 활성 프로필이 `local` 또는 `dev`인지 확인 → ② backend 로그에서 `ActiveVentureDomainPackSeedRunner`의 `Seed demo account ...` 라인 확인 → ③ DB `app.app_user` / `app.workspace_member` 행 확인.
+- 비밀번호는 seed runner의 `DEMO_SIGN_IN_VALUE` 상수에서 정의된다. 코드와 본 표의 일치는 `scripts/demo-credentials-consistency.test.mjs`가 CI에서 검증한다.
+- 별도의 환불 요청 데모 워크플로우는 `demo` 프로필에서만 시드된다.
 
 ### 포트 충돌 대응
 

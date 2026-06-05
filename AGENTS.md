@@ -158,7 +158,7 @@ ml/
 
 ### Docker Compose
 
-**로컬 개발 진입점**: `docker compose up -d` 한 번으로 FE(`http://localhost:5173`) / BE(`http://localhost:8080`) / MinIO 콘솔(`http://localhost:9001`) / Airflow(`http://localhost:8081`) 가 전부 구동된다. **호스트에서 별도로 `pnpm dev` 를 띄울 필요 없다** — frontend 는 Vite dev server 가 컨테이너 안에서 5173 으로 실행되며 `./frontend` 디렉터리는 volume mount 되어 HMR 이 즉시 반영된다.
+**로컬 개발 진입점**: `pnpm run dev`(= `up:light`) 한 번으로 제품 런타임(postgres / BE `http://localhost:8080` / FE `http://localhost:5173` / MinIO 콘솔 `http://localhost:9001`)이 **light** 모드로 구동된다(Airflow 제외). Airflow까지 필요하면 `pnpm run up:pipeline` 또는 `pnpm run up:full`. 프로필 분리 이후 인자 없는 `docker compose up -d` 도 light만 띄운다. **호스트에서 별도로 `pnpm dev` 를 띄울 필요 없다** — frontend 는 Vite dev server 가 컨테이너 안에서 5173 으로 실행되며 `./frontend` 디렉터리는 volume mount 되어 HMR 이 즉시 반영된다.
 
 **포트 컨벤션**: `5173` = 로컬 개발 (Vite dev server, `frontend/Dockerfile.dev`). `3000` = production 이미지 내부 nginx 포트 (`frontend/Dockerfile`). 로컬에서 3000 으로 접근할 일은 없다.
 
@@ -166,28 +166,28 @@ ml/
 # 최초 1회 env 파일 준비
 cp .env.example .env
 
-# backend 컨테이너 사용 시 선행 빌드 (jar 패키징 필요)
-(cd backend && ./gradlew bootJar)
+# light 실행 (postgres + minio(+init) + backend + frontend)
+# preflight가 backend jar 신선도를 자동 확인·빌드하고, minio-init가 개발 버킷을 자동 생성한다.
+pnpm run dev            # = pnpm run up:light
 
-# 전체 서비스 실행 (frontend 는 컨테이너 안에서 pnpm install + dev server 구동)
-docker compose up -d
+# 모드별
+pnpm run up:pipeline    # + Airflow 스택
+pnpm run up:full        # 전체
+pnpm run down           # 전체 종료
 
-# 개별 서비스
-docker compose up -d postgres
-docker compose up -d backend
-docker compose up -d frontend
-docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
+# 개별 서비스 (raw docker compose — Airflow는 profile 활성화 필요)
+docker compose up -d postgres backend frontend
+COMPOSE_PROFILES=full docker compose up -d airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor
 
-# 로그 확인
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f airflow-apiserver
+# 로그 확인 (light) / pipeline은 pnpm run logs:pipeline
+pnpm run logs
 ```
 
 기본 원칙:
 
-- Airflow 로컬 런타임은 루트 `docker compose` 기준으로 함께 관리한다.
-- `backend` 이미지는 선행 `bootJar` 빌드를 전제한다. `frontend` 는 dev mode 라 선행 빌드 불필요.
+- 실행 모드는 compose profile로 분리: light(기본/runtime) / pipeline(+Airflow) / full(전체). 인자 없는 `docker compose up -d`는 light. `COMPOSE_PROFILES`는 셸 환경변수로만 profile을 활성화한다(.env에 적은 값은 미반영). npm `up:*` 스크립트가 이를 처리한다.
+- `backend` 로컬 컨테이너는 `pnpm run preflight:backend-jar`가 jar 존재·신선도를 확인해 필요 시 자동 `bootJar`한다(`up:light`/`up:full`에 내장). 수동 빌드는 `pnpm run build:backend:jar`.
+- MinIO 개발 버킷은 `minio-init` 서비스가 healthy 직후 자동 생성한다(수동 `mc mb` 불필요).
 - Dockerfile이나 의존성 변경을 강제로 다시 반영할 때만 `docker compose up --build -d`를 사용한다.
 - production frontend 이미지를 로컬에서 검증할 때만 `docker build -f frontend/Dockerfile -t init-frontend-prod ./frontend` 로 별도 빌드한다 (compose 와 무관).
 
