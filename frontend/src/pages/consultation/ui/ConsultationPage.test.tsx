@@ -2265,6 +2265,46 @@ describe("ConsultationPage", () => {
     });
   });
 
+  it("keeps createdAt order when seqNo-less realtime messages arrive out of order", async () => {
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    const customerItem = screen.getByText("김민지").closest("div");
+    if (customerItem) customerItem.click();
+
+    await waitFor(() => {
+      expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+      expect(stompState.callbacks.has("/topic/chat.1")).toBe(true);
+    });
+
+    // 서버가 seqNo를 싣지 않은 채 챗봇 응답이 사용자 응답보다 먼저 도착(역순)해도
+    // createdAt 기준으로 사용자 응답이 먼저 렌더링되어야 한다.
+    act(() => {
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 402,
+        senderRole: "ASSISTANT",
+        content: "역순 챗봇 메시지.",
+        createdAt: "2026-05-27T00:00:09+09:00",
+      });
+      stompState.callbacks.get("/topic/chat.1")?.({
+        id: 401,
+        senderRole: "CUSTOMER",
+        content: "역순 사용자 메시지.",
+        createdAt: "2026-05-27T00:00:08+09:00",
+      });
+    });
+
+    const messageList = screen.getByTestId("chat-message-list");
+    await waitFor(() => {
+      expect(messageList).toHaveTextContent(
+        /역순 사용자 메시지\.[\s\S]*역순 챗봇 메시지\./,
+      );
+    });
+  });
+
   it("handles counselor echo and replaces the pending optimistic message", async () => {
     const user = userEvent.setup();
     render(<ConsultationPage />, { wrapper: Wrapper });
