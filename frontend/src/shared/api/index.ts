@@ -26,6 +26,11 @@ interface ResponseHandlingOptions {
   clearSessionOnUnauthorized: boolean;
 }
 
+function isJsonContentType(contentType: string): boolean {
+  const normalized = contentType.toLowerCase();
+  return normalized.includes("application/json") || normalized.includes("+json");
+}
+
 function selectTokenRefreshBody(body: unknown): AuthTokens | null {
   const candidate =
     body &&
@@ -185,11 +190,21 @@ class ApiClient {
       throw new ApiRequestError(response.status, errorData.code, errorData.message);
     }
 
-    if (response.status === 204) {
+    if (response.status === 204 || response.status === 205) {
       return undefined as T;
     }
 
-    return response.json() as Promise<T>;
+    const contentType = response.headers.get("Content-Type") ?? "";
+    if (!isJsonContentType(contentType)) {
+      return undefined as T;
+    }
+
+    const bodyText = await response.text();
+    if (bodyText.length === 0) {
+      return undefined as T;
+    }
+
+    return JSON.parse(bodyText) as T;
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
