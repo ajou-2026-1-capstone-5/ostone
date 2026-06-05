@@ -31,7 +31,20 @@ function makeWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
+function makeWrapperWithClient() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+  return { wrapper, queryClient };
+}
+
 const params = { workspaceId: 1, packId: 2, versionId: 3, riskId: 4 };
+const riskKeys = {
+  list: (...args: number[]) => ["risk", "list", ...args] as const,
+};
 
 const stubRisk = {
   id: 4,
@@ -72,6 +85,40 @@ describe("useUpdateRisk", () => {
     });
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("주의 사항이 수정되었습니다."));
+  });
+
+  it("성공 시 raw API response 형태로 저장된 목록 캐시도 갱신한다", async () => {
+    const updatedRisk = { ...stubRisk, name: "새 위험요소", riskLevel: "CRITICAL" };
+    mockedUpdateRisk.mockResolvedValue({
+      data: updatedRisk,
+      status: 200,
+      headers: new Headers(),
+    });
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    queryClient.setQueryData(riskKeys.list(1, 2, 3), {
+      data: [stubRisk],
+      status: 200,
+    });
+    const { result } = renderHook(() => useUpdateRisk(), { wrapper });
+
+    act(() => {
+      result.current.mutate({
+        ...params,
+        body: { name: "새 위험요소", riskLevel: "CRITICAL" },
+      });
+    });
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("주의 사항이 수정되었습니다."));
+    expect(queryClient.getQueryData(riskKeys.list(1, 2, 3))).toEqual({
+      data: [
+        expect.objectContaining({
+          id: 4,
+          name: "새 위험요소",
+          riskLevel: "CRITICAL",
+        }),
+      ],
+      status: 200,
+    });
   });
 
   it("수정 응답 data가 없으면 성공 처리하지 않고 실패 메시지를 표시한다", async () => {

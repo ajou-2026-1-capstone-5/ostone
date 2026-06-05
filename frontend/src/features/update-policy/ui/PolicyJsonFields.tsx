@@ -1,6 +1,7 @@
 import { useFormContext } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/shared/ui/form";
 import { JsonTextarea } from "./JsonTextarea";
+import styles from "./policy-json-fields.module.css";
 import type { PolicyEditFormValues } from "../model/schema";
 
 const JSON_FIELDS: ReadonlyArray<
@@ -22,7 +23,7 @@ export function PolicyJsonFields() {
   const { control } = useFormContext<PolicyEditFormValues>();
 
   return (
-    <>
+    <div className={styles.grid}>
       {JSON_FIELDS.map((jsonField) => (
         <FormField
           key={jsonField.name}
@@ -39,6 +40,6 @@ export function PolicyJsonFields() {
           )}
         />
       ))}
-    </>
+    </div>
   );
 }

@@ -17,6 +17,13 @@ interface UpdatePolicyStatusParams {
   status: UpdatePolicyStatusRequest["status"];
 }
 
+type PolicyListCache =
+  | PolicyDefinitionSummary[]
+  | ({ data?: PolicyDefinitionSummary[] } & Record<string, unknown>);
+
+type PolicyStatusPatch = Pick<PolicyDefinitionSummary, "status"> &
+  Partial<Pick<PolicyDefinitionSummary, "updatedAt">>;
+
 export const UPDATE_POLICY_STATUS_MUTATION_KEY = ["updatePolicyStatus"] as const;
 
 export function useUpdatePolicyStatus() {
@@ -45,13 +52,13 @@ export function useUpdatePolicyStatus() {
       await queryClient.cancelQueries({ queryKey: listKey });
 
       const previousDetail = queryClient.getQueryData<PolicyDefinitionResponse>(detailKey);
-      const previousList = queryClient.getQueryData<PolicyDefinitionSummary[]>(listKey);
+      const previousList = queryClient.getQueryData<PolicyListCache>(listKey);
 
       queryClient.setQueryData<PolicyDefinitionResponse>(detailKey, (old) =>
         old ? { ...old, status } : old,
       );
-      queryClient.setQueryData<PolicyDefinitionSummary[]>(listKey, (old) =>
-        old?.map((item) => (item.id === policyId ? { ...item, status } : item)),
+      queryClient.setQueryData<PolicyListCache>(listKey, (old) =>
+        updatePolicyStatusListCache(old, policyId, { status }),
       );
 
       return { previousDetail, previousList, detailKey, listKey };
@@ -80,19 +87,35 @@ export function useUpdatePolicyStatus() {
         policyQueryKeys.detail(workspaceId, packId, versionId, policyId),
         updatedPolicy,
       );
-      queryClient.setQueryData<PolicyDefinitionSummary[]>(
+      queryClient.setQueryData<PolicyListCache>(
         policyQueryKeys.list(workspaceId, packId, versionId),
-        (old) =>
-          old?.map((item) =>
-            item.id === policyId
-              ? {
-                  ...item,
-                  status: updatedPolicy.status,
-                  updatedAt: updatedPolicy.updatedAt,
-                }
-              : item,
-          ),
+        (old) => updatePolicyStatusListCache(old, policyId, updatedPolicy),
       );
     },
   });
+}
+
+function updatePolicyStatusListCache<T extends PolicyListCache | undefined>(
+  old: T,
+  policyId: number,
+  patch: PolicyStatusPatch,
+): T {
+  const updateItem = (item: PolicyDefinitionSummary): PolicyDefinitionSummary =>
+    item.id === policyId
+      ? {
+          ...item,
+          status: patch.status,
+          updatedAt: patch.updatedAt ?? item.updatedAt,
+        }
+      : item;
+
+  if (Array.isArray(old)) {
+    return old.map(updateItem) as T;
+  }
+
+  if (old && typeof old === "object" && Array.isArray(old.data)) {
+    return { ...old, data: old.data.map(updateItem) } as T;
+  }
+
+  return old;
 }

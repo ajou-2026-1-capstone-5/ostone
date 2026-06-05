@@ -32,9 +32,19 @@ interface UseListAllWorkspaceWorkflowsParams {
   workspaceId: number | null;
 }
 
-function pickLatestVersionId(detail: DomainPackDetailResult | undefined): number | null {
+function pickWorkspaceWorkflowVersionId(detail: DomainPackDetailResult | undefined): number | null {
   if (!detail?.versions || detail.versions.length === 0) return null;
+  if (
+    typeof detail.currentVersionId === "number" &&
+    detail.versions.some((version) => version.versionId === detail.currentVersionId)
+  ) {
+    return detail.currentVersionId;
+  }
+
   const sorted = [...detail.versions].sort((a, b) => (b.versionNo ?? 0) - (a.versionNo ?? 0));
+  const published = sorted.find((version) => version.lifecycleStatus === "PUBLISHED");
+  if (published?.versionId != null) return published.versionId;
+
   return sorted[0]?.versionId ?? null;
 }
 
@@ -65,7 +75,7 @@ export function useListAllWorkspaceWorkflows({
 
   const packVersionPairs = packs.map((pack, idx) => {
     const detail = selectApiData<DomainPackDetailResult>(detailQueries[idx]?.data);
-    return { pack, versionId: pickLatestVersionId(detail) };
+    return { pack, versionId: pickWorkspaceWorkflowVersionId(detail) };
   });
 
   const workflowQueries = useQueries({

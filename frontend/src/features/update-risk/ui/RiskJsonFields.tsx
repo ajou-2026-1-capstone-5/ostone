@@ -2,6 +2,7 @@ import type { FieldPath } from "react-hook-form";
 import { useFormContext } from "react-hook-form";
 import { JsonFormField } from "@/shared/ui/json-form-field";
 import type { RiskEditFormValues } from "../model/schema";
+import styles from "./risk-json-fields.module.css";
 
 const JSON_FIELDS = [
   { name: "triggerConditionJson", label: "트리거 조건 JSON" },
@@ -16,7 +17,7 @@ export function RiskJsonFields() {
   const { control } = useFormContext<RiskEditFormValues>();
 
   return (
-    <>
+    <div className={styles.grid}>
       {JSON_FIELDS.map((jsonField) => (
         <JsonFormField<RiskEditFormValues>
           key={jsonField.name}
@@ -25,6 +26,6 @@ export function RiskJsonFields() {
           label={jsonField.label}
         />
       ))}
-    </>
+    </div>
   );
 }

@@ -13,6 +13,7 @@ import { UPDATE_RISK_STATUS_MUTATION_KEY } from "../api/useUpdateRiskStatus";
 import { RiskJsonFields } from "./RiskJsonFields";
 import { RiskStatusToggle } from "./RiskStatusToggle";
 import type { RiskDefinition, RiskLevel, UpdateRiskRequest } from "@/entities/risk";
+import styles from "./risk-edit-form.module.css";
 
 const RISK_LEVEL_OPTIONS: ReadonlyArray<RiskLevel> = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
@@ -64,7 +65,16 @@ export function RiskEditForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
+        <div className={styles.actionBar}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isAnyPending}>
+            취소
+          </Button>
+          <Button type="submit" disabled={isAnyPending}>
+            저장
+          </Button>
+        </div>
+
         <FormField
           control={form.control}
           name="name"
@@ -131,7 +141,7 @@ export function RiskEditForm({
 
         <RiskJsonFields />
 
-        <div className="flex flex-row items-center justify-between border-t pt-4">
+        <div className={styles.statusRow}>
           <span className="text-sm font-medium leading-none">상태</span>
           <RiskStatusToggle
             workspaceId={workspaceId}
@@ -141,15 +151,6 @@ export function RiskEditForm({
             currentStatus={(risk.status ?? "INACTIVE") as "ACTIVE" | "INACTIVE"}
             disabled={isAnyPending}
           />
-        </div>
-
-        <div className="flex gap-2 justify-end border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isAnyPending}>
-            취소
-          </Button>
-          <Button type="submit" disabled={isAnyPending}>
-            저장
-          </Button>
         </div>
       </form>
     </Form>

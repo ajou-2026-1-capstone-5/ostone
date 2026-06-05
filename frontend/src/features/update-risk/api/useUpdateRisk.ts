@@ -17,6 +17,10 @@ interface UpdateRiskParams {
   body: UpdateRiskRequest;
 }
 
+type RiskListCache =
+  | RiskDefinitionSummary[]
+  | ({ data?: RiskDefinitionSummary[] } & Record<string, unknown>);
+
 export function useUpdateRisk() {
   const queryClient = useQueryClient();
 
@@ -33,21 +37,9 @@ export function useUpdateRisk() {
         riskQueryKeys.detail(workspaceId, packId, versionId, riskId),
         updatedRisk,
       );
-      queryClient.setQueryData<RiskDefinitionSummary[]>(
+      queryClient.setQueryData<RiskListCache>(
         riskQueryKeys.list(workspaceId, packId, versionId),
-        (old) =>
-          old?.map((item) =>
-            item.id === riskId
-              ? {
-                  ...item,
-                  name: updatedRisk.name,
-                  description: updatedRisk.description,
-                  riskLevel: updatedRisk.riskLevel,
-                  status: updatedRisk.status,
-                  updatedAt: updatedRisk.updatedAt,
-                }
-              : item,
-          ),
+        (old) => updateRiskListCache(old, riskId, updatedRisk),
       );
       toast.success("주의 사항이 수정되었습니다.");
     },
@@ -65,4 +57,32 @@ export function useUpdateRisk() {
       toast.error(RISK_ERROR_MESSAGES.UPDATE_FAILED);
     },
   });
+}
+
+function updateRiskListCache<T extends RiskListCache | undefined>(
+  old: T,
+  riskId: number,
+  updatedRisk: RiskDefinitionSummary,
+): T {
+  const updateItem = (item: RiskDefinitionSummary): RiskDefinitionSummary =>
+    item.id === riskId
+      ? {
+          ...item,
+          name: updatedRisk.name,
+          description: updatedRisk.description,
+          riskLevel: updatedRisk.riskLevel,
+          status: updatedRisk.status,
+          updatedAt: updatedRisk.updatedAt,
+        }
+      : item;
+
+  if (Array.isArray(old)) {
+    return old.map(updateItem) as T;
+  }
+
+  if (old && typeof old === "object" && Array.isArray(old.data)) {
+    return { ...old, data: old.data.map(updateItem) } as T;
+  }
+
+  return old;
 }

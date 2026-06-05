@@ -13,6 +13,10 @@ interface UpdatePolicyParams {
   body: UpdatePolicyRequest;
 }
 
+type PolicyListCache =
+  | PolicyDefinitionSummary[]
+  | ({ data?: PolicyDefinitionSummary[] } & Record<string, unknown>);
+
 export function useUpdatePolicy() {
   const queryClient = useQueryClient();
 
@@ -27,21 +31,9 @@ export function useUpdatePolicy() {
         policyQueryKeys.detail(workspaceId, packId, versionId, policyId),
         updatedPolicy,
       );
-      queryClient.setQueryData<PolicyDefinitionSummary[]>(
+      queryClient.setQueryData<PolicyListCache>(
         policyQueryKeys.list(workspaceId, packId, versionId),
-        (old) =>
-          old?.map((item) =>
-            item.id === policyId
-              ? {
-                  ...item,
-                  name: updatedPolicy.name,
-                  description: updatedPolicy.description,
-                  severity: updatedPolicy.severity,
-                  status: updatedPolicy.status,
-                  updatedAt: updatedPolicy.updatedAt,
-                }
-              : item,
-          ),
+        (old) => updatePolicyListCache(old, policyId, updatedPolicy),
       );
       toast.success("응대 기준이 수정되었습니다.");
     },
@@ -59,4 +51,32 @@ export function useUpdatePolicy() {
       toast.error(POLICY_ERROR_MESSAGES.UPDATE_FAILED);
     },
   });
+}
+
+function updatePolicyListCache<T extends PolicyListCache | undefined>(
+  old: T,
+  policyId: number,
+  updatedPolicy: PolicyDefinitionSummary,
+): T {
+  const updateItem = (item: PolicyDefinitionSummary): PolicyDefinitionSummary =>
+    item.id === policyId
+      ? {
+          ...item,
+          name: updatedPolicy.name,
+          description: updatedPolicy.description,
+          severity: updatedPolicy.severity,
+          status: updatedPolicy.status,
+          updatedAt: updatedPolicy.updatedAt,
+        }
+      : item;
+
+  if (Array.isArray(old)) {
+    return old.map(updateItem) as T;
+  }
+
+  if (old && typeof old === "object" && Array.isArray(old.data)) {
+    return { ...old, data: old.data.map(updateItem) } as T;
+  }
+
+  return old;
 }

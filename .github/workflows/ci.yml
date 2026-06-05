@@ -196,6 +196,46 @@ jobs:
         working-directory: ./frontend
         run: pnpm build
 
+  frontend-e2e:
+    needs: paths-filter
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.TOOL_NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "./frontend/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: ./frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run mocked E2E tests
+        working-directory: ./frontend
+        run: pnpm e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
   ml:
     needs: paths-filter
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.ml == 'true' }}
@@ -347,7 +387,7 @@ jobs:
 
   ci-gate:
     if: always()
-    needs: [paths-filter, spec-check, tool-version-check, backend, frontend, ml, backend-sonar, frontend-sonar, ml-sonar]
+    needs: [paths-filter, spec-check, tool-version-check, backend, frontend, frontend-e2e, ml, backend-sonar, frontend-sonar, ml-sonar]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI results
@@ -358,6 +398,7 @@ jobs:
             "${{ needs.tool-version-check.result }}"
             "${{ needs.backend.result }}"
             "${{ needs.frontend.result }}"
+            "${{ needs.frontend-e2e.result }}"
             "${{ needs.ml.result }}"
             "${{ needs.backend-sonar.result }}"
             "${{ needs.frontend-sonar.result }}"

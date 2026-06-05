@@ -47,7 +47,7 @@ const stubRisk: RiskDefinition = {
   domainPackVersionId: 3,
   riskCode: "RISK_FRAUD",
   name: "사기 위험",
-  description: undefined as any,
+  description: null,
   riskLevel: "HIGH",
   triggerConditionJson: "{}",
   handlingActionJson: "{}",
@@ -66,8 +66,9 @@ describe("useUpdateRiskStatus", () => {
   });
 
   it("성공 시 detail/list query cache를 갱신한다", async () => {
+    const updatedRisk: RiskDefinition = { ...stubRisk, status: "INACTIVE" };
     mockedUpdateRiskStatus.mockResolvedValue({
-      data: { ...stubRisk, status: "INACTIVE" } as any,
+      data: updatedRisk,
       status: 200,
       headers: new Headers(),
     });
@@ -91,6 +92,74 @@ describe("useUpdateRiskStatus", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(queryClient.getQueryData<RiskDefinition>(detailKey)?.status).toBe("INACTIVE");
     expect(queryClient.getQueryData<RiskSummary[]>(listKey)?.[0]?.status).toBe("INACTIVE");
+  });
+
+  it("성공 시 raw API response 형태로 저장된 목록 캐시 상태도 갱신한다", async () => {
+    const updatedRisk: RiskDefinition = {
+      ...stubRisk,
+      status: "INACTIVE",
+      updatedAt: "2026-04-17T10:00:00Z",
+    };
+    mockedUpdateRiskStatus.mockResolvedValue({
+      data: updatedRisk,
+      status: 200,
+      headers: new Headers(),
+    });
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    const listKey = riskKeys.list(params.workspaceId, params.packId, params.versionId);
+    queryClient.setQueryData(listKey, {
+      data: [stubRisk],
+      status: 200,
+    });
+
+    const { result } = renderHook(() => useUpdateRiskStatus(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ ...params, status: "INACTIVE" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData(listKey)).toEqual({
+      data: [
+        expect.objectContaining({
+          id: 4,
+          status: "INACTIVE",
+          updatedAt: "2026-04-17T10:00:00Z",
+        }),
+      ],
+      status: 200,
+    });
+  });
+
+  it("상태 변경 응답 data가 없으면 rollback 후 실패 메시지를 표시한다", async () => {
+    mockedUpdateRiskStatus.mockResolvedValue({
+      data: undefined,
+      status: 200,
+      headers: new Headers(),
+    } as Awaited<ReturnType<typeof updateRiskStatus>>);
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    const detailKey = riskKeys.detail(
+      params.workspaceId,
+      params.packId,
+      params.versionId,
+      params.riskId,
+    );
+    const listKey = riskKeys.list(params.workspaceId, params.packId, params.versionId);
+    queryClient.setQueryData<RiskDefinition>(detailKey, stubRisk);
+    queryClient.setQueryData<RiskSummary[]>(listKey, [stubRisk]);
+
+    const { result } = renderHook(() => useUpdateRiskStatus(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ ...params, status: "INACTIVE" });
+    });
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(RISK_ERROR_MESSAGES.STATUS_FAILED),
+    );
+    expect(result.current.isError).toBe(true);
+    expect(queryClient.getQueryData<RiskDefinition>(detailKey)?.status).toBe("ACTIVE");
+    expect(queryClient.getQueryData<RiskSummary[]>(listKey)?.[0]?.status).toBe("ACTIVE");
   });
 
   it("RISK_NOT_EDITABLE 오류 시 rollback 후 전용 메시지를 표시한다", async () => {

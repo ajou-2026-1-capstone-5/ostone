@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { toast } from "sonner";
 import { CancelSubscriptionButton } from "./CancelSubscriptionButton";
@@ -16,10 +16,10 @@ const mockToastSuccess = vi.mocked(toast.success);
 const mockToastError = vi.mocked(toast.error);
 
 function clickConfirmButton() {
-  fireEvent.click(screen.getByRole("button", { name: "해지" }));
-  const allButtons = screen.getAllByRole("button");
-  const confirmBtn = allButtons.find((b) => b.textContent === "해지" && b !== allButtons[0]);
-  if (confirmBtn) fireEvent.click(confirmBtn);
+  fireEvent.click(screen.getByRole("button", { name: "구독 해지" }));
+  fireEvent.click(
+    within(screen.getByRole("alertdialog")).getByRole("button", { name: "구독 해지" }),
+  );
 }
 
 describe("CancelSubscriptionButton", () => {
@@ -35,18 +35,18 @@ describe("CancelSubscriptionButton", () => {
 
   it("구독 해지 버튼을 렌더링한다", () => {
     render(<CancelSubscriptionButton workspaceId={1} />);
-    expect(screen.getByText("해지")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "구독 해지" })).toBeTruthy();
   });
 
   it("버튼 클릭 시 다이얼로그가 열린다", () => {
     render(<CancelSubscriptionButton workspaceId={1} />);
-    fireEvent.click(screen.getByRole("button", { name: "해지" }));
+    fireEvent.click(screen.getByRole("button", { name: "구독 해지" }));
     expect(screen.getByText("구독을 해지할까요?")).toBeTruthy();
   });
 
   it("다이얼로그의 닫기 버튼으로 닫힌다", () => {
     render(<CancelSubscriptionButton workspaceId={1} />);
-    fireEvent.click(screen.getByRole("button", { name: "해지" }));
+    fireEvent.click(screen.getByRole("button", { name: "구독 해지" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
   });
 
@@ -56,7 +56,7 @@ describe("CancelSubscriptionButton", () => {
       isPending: true,
     } as never);
     render(<CancelSubscriptionButton workspaceId={1} />);
-    fireEvent.click(screen.getByRole("button", { name: "해지" }));
+    fireEvent.click(screen.getByRole("button", { name: "구독 해지" }));
     expect(screen.getByText("처리 중…")).toBeTruthy();
   });
 

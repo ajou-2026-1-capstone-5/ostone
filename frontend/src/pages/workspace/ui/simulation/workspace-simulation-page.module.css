@@ -113,15 +113,19 @@
 
 .labGrid {
   display: grid;
-  min-height: 560px;
+  height: clamp(420px, calc(100dvh - 300px), 780px);
+  min-height: 0;
   grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(260px, 340px);
   gap: var(--s-4);
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .sessionPane,
 .chatPane,
 .statePane {
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-3);
   background: var(--paper);
@@ -130,6 +134,12 @@
 .sessionPane,
 .statePane {
   padding: var(--s-4);
+}
+
+.sessionPane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .chatPane {
@@ -144,6 +154,7 @@
 }
 
 .paneHeader {
+  flex-shrink: 0;
   justify-content: space-between;
 }
 
@@ -176,9 +187,13 @@
 
 .sessionList {
   display: flex;
+  min-height: 0;
   flex-direction: column;
   gap: var(--s-2);
   margin-top: var(--s-4);
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
 }
 
 .sessionItem {
@@ -232,6 +247,7 @@
   overflow-y: auto;
   padding: var(--s-5);
   background: var(--paper-2);
+  scrollbar-gutter: stable;
 }
 
 .emptyMessage {
@@ -312,6 +328,7 @@
 
 .composer {
   align-items: stretch;
+  flex-shrink: 0;
   padding: var(--s-4);
   border-top: 1px solid var(--line);
 }
@@ -410,6 +427,14 @@
   margin-top: var(--s-4);
 }
 
+.statePane {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 .feedbackPanelHeader {
   display: flex;
   align-items: center;
@@ -418,10 +443,12 @@
 }
 
 .feedbackPanelHeader h3 {
+  flex: 0 0 auto;
   margin: 0;
   color: var(--ink);
   font-size: 14px;
   font-weight: 540;
+  white-space: nowrap;
 }
 
 .feedbackPanelHeader span {
@@ -694,6 +721,21 @@
 
   .labGrid {
     display: flex;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
     flex-direction: column;
+  }
+
+  .sessionPane,
+  .chatPane,
+  .statePane {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .sessionList,
+  .messageList {
+    overflow: visible;
   }
 }
