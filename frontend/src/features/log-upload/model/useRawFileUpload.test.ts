@@ -126,6 +126,182 @@ describe("useRawFileUpload", () => {
     });
   });
 
+  it("업로드 진행 중 start를 다시 호출하면 새 요청을 만들지 않고 거절한다", async () => {
+    let resolveInit!: (v: typeof initResponse) => void;
+    mockInit.mockReturnValueOnce(
+      new Promise<typeof initResponse>((res) => {
+        resolveInit = res;
+      }),
+    );
+
+    const firstOnError = vi.fn();
+    const duplicateOnError = vi.fn();
+    const { result } = renderHook(() => useRawFileUpload());
+
+    let uploadPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      uploadPromise = result.current.start({
+        workspaceId: 1,
+        file: makeFile(),
+        onSuccess: vi.fn(),
+        onError: firstOnError,
+      });
+    });
+
+    await act(async () => {
+      await result.current.start({
+        workspaceId: 1,
+        file: makeFile("retry.zip"),
+        onSuccess: vi.fn(),
+        onError: duplicateOnError,
+      });
+    });
+
+    expect(mockInit).toHaveBeenCalledTimes(1);
+    expect(duplicateOnError).toHaveBeenCalledWith("이미 업로드가 진행 중입니다.");
+    expect(firstOnError).not.toHaveBeenCalled();
+    expect(result.current.isUploading).toBe(true);
+
+    mockPut.mockResolvedValueOnce(undefined);
+    mockComplete.mockResolvedValueOnce(completeResponse);
+    await act(async () => {
+      resolveInit(initResponse);
+      await uploadPromise;
+    });
+  });
+
+  it("중복 start 거절 후 cancel은 기존 업로드 controller를 abort한다", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    mockInit.mockResolvedValueOnce(initResponse);
+    mockPut.mockImplementationOnce(async ({ signal }) => {
+      capturedSignal = signal;
+      await new Promise<void>((_, reject) => {
+        signal?.addEventListener("abort", () => reject(new PresignedUploadAbortError()));
+      });
+    });
+
+    const duplicateOnError = vi.fn();
+    const { result } = renderHook(() => useRawFileUpload());
+
+    let uploadPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      uploadPromise = result.current.start({
+        workspaceId: 1,
+        file: makeFile(),
+        onSuccess: vi.fn(),
+        onError: vi.fn(),
+      });
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await result.current.start({
+        workspaceId: 1,
+        file: makeFile("retry.zip"),
+        onSuccess: vi.fn(),
+        onError: duplicateOnError,
+      });
+    });
+
+    act(() => {
+      result.current.cancel();
+    });
+
+    expect(mockInit).toHaveBeenCalledTimes(1);
+    expect(duplicateOnError).toHaveBeenCalledWith("이미 업로드가 진행 중입니다.");
+    expect(capturedSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      await uploadPromise;
+    });
+  });
+
+  it("이전 업로드 cleanup은 reset 후 새 업로드 controller를 지우지 않는다", async () => {
+    let rejectFirstUpload!: (reason?: unknown) => void;
+    let secondSignal: AbortSignal | undefined;
+    let resolveFirstPutStarted!: () => void;
+    let resolveSecondPutStarted!: () => void;
+    const firstPutStarted = new Promise<void>((resolve) => {
+      resolveFirstPutStarted = resolve;
+    });
+    const secondPutStarted = new Promise<void>((resolve) => {
+      resolveSecondPutStarted = resolve;
+    });
+
+    mockInit.mockResolvedValueOnce(initResponse).mockResolvedValueOnce({
+      ...initResponse,
+      datasetId: 43,
+    });
+    mockPut
+      .mockImplementationOnce(async () => {
+        resolveFirstPutStarted();
+        await new Promise<void>((_, reject) => {
+          rejectFirstUpload = reject;
+        });
+      })
+      .mockImplementationOnce(async ({ signal }) => {
+        secondSignal = signal;
+        resolveSecondPutStarted();
+        await new Promise<void>((_, reject) => {
+          signal?.addEventListener("abort", () => reject(new PresignedUploadAbortError()));
+        });
+      });
+
+    const { result } = renderHook(() => useRawFileUpload());
+
+    let firstUploadPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      firstUploadPromise = result.current.start({
+        workspaceId: 1,
+        file: makeFile(),
+        onSuccess: vi.fn(),
+        onError: vi.fn(),
+      });
+    });
+
+    await act(async () => {
+      await firstPutStarted;
+    });
+
+    act(() => {
+      result.current.reset();
+    });
+
+    let secondUploadPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      secondUploadPromise = result.current.start({
+        workspaceId: 1,
+        file: makeFile("next.zip"),
+        onSuccess: vi.fn(),
+        onError: vi.fn(),
+      });
+    });
+
+    await act(async () => {
+      await secondPutStarted;
+    });
+
+    await act(async () => {
+      rejectFirstUpload(new PresignedUploadAbortError());
+      await firstUploadPromise;
+    });
+
+    expect(result.current.isUploading).toBe(true);
+
+    act(() => {
+      result.current.cancel();
+    });
+
+    expect(secondSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      await secondUploadPromise;
+    });
+  });
+
   it("putPresignedFile의 onProgress 콜백으로 progress가 갱신된다", async () => {
     let continueUpload!: () => void;
     let finishUpload!: () => void;
