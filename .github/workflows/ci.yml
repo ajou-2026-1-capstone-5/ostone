@@ -30,16 +30,23 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'lint-staged.config.js'
               - 'mise.toml'
               - '.github/workflows/ci.yml'
             frontend:
               - 'frontend/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
+              - 'lint-staged.config.js'
               - 'mise.toml'
               - '.github/workflows/ci.yml'
             ml:
               - 'ml/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'lint-staged.config.js'
               - 'mise.toml'
               - '.github/workflows/ci.yml'
 
@@ -167,12 +174,19 @@ jobs:
         run: |
           echo "Gradle cache hit: ${{ steps.backend-gradle-cache.outputs.cache-hit || 'false' }}"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.TOOL_NODE_VERSION }}
+
       - name: Install pgvector extension
         run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Build Backend with PostgreSQL test DB
-        working-directory: ./backend
-        run: ./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest
+        run: pnpm run ci:backend
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
           SPRING_DATASOURCE_USERNAME: postgres
@@ -210,12 +224,10 @@ jobs:
           cache-dependency-path: "./frontend/pnpm-lock.yaml"
 
       - name: Install dependencies
-        working-directory: ./frontend
-        run: pnpm install --frozen-lockfile
+        run: pnpm run deps:frontend
 
-      - name: Run tests
-        working-directory: ./frontend
-        run: pnpm test -- --coverage --run
+      - name: Run frontend CI checks
+        run: pnpm run ci:frontend
 
       - name: Upload frontend coverage report
         if: always()
@@ -224,10 +236,6 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/
           if-no-files-found: ignore
-
-      - name: Build
-        working-directory: ./frontend
-        run: pnpm build
 
   frontend-e2e:
     needs: paths-filter
@@ -247,16 +255,13 @@ jobs:
           cache-dependency-path: "./frontend/pnpm-lock.yaml"
 
       - name: Install dependencies
-        working-directory: ./frontend
-        run: pnpm install --frozen-lockfile
+        run: pnpm run deps:frontend
 
       - name: Install Playwright Chromium
-        working-directory: ./frontend
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm run e2e:frontend:install
 
       - name: Run mocked E2E tests
-        working-directory: ./frontend
-        run: pnpm e2e
+        run: pnpm run e2e:frontend
 
       - name: Upload Playwright report
         if: always()
@@ -287,26 +292,19 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.TOOL_UV_VERSION }}
+          cache-local-path: /tmp/.uv-cache
+          ignore-nothing-to-cache: true
 
-      - name: Restore uv cache
-        id: ml-uv-cache
-        uses: actions/cache@v4
-        continue-on-error: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: /tmp/.uv-cache
-          key: ${{ runner.os }}-uv-ml-${{ env.TOOL_UV_VERSION }}-${{ hashFiles('ml/.python-version', 'ml/pyproject.toml', 'ml/uv.lock') }}
+          node-version: ${{ env.TOOL_NODE_VERSION }}
 
-      - name: Log uv cache result
-        run: |
-          echo "uv cache hit: ${{ steps.ml-uv-cache.outputs.cache-hit || 'false' }}"
-
-      - name: Sync dependencies
-        working-directory: ./ml
-        run: uv sync
-
-      - name: Run tests
-        working-directory: ./ml
-        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml
+      - name: Run ML CI checks
+        run: pnpm run ci:ml
 
       - name: Upload ML coverage report
         if: always()
@@ -331,6 +329,14 @@ jobs:
           java-version: ${{ env.TOOL_JAVA_VERSION }}
           distribution: "temurin"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.TOOL_NODE_VERSION }}
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
@@ -353,8 +359,7 @@ jobs:
           echo "Gradle cache hit: ${{ steps.backend-sonar-gradle-cache.outputs.cache-hit || 'false' }}"
 
       - name: Run backend SonarCloud analysis
-        working-directory: ./backend
-        run: ./gradlew test jacocoTestReport sonar --info ${{ github.event_name == 'pull_request' && '-Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300' || '' }}
+        run: pnpm run ci:backend:sonar ${{ github.event_name == 'pull_request' && '-Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300' || '' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -384,12 +389,10 @@ jobs:
           cache-dependency-path: "./frontend/pnpm-lock.yaml"
 
       - name: Install dependencies
-        working-directory: ./frontend
-        run: pnpm install --frozen-lockfile
+        run: pnpm run deps:frontend
 
       - name: Run tests with coverage
-        working-directory: ./frontend
-        run: pnpm test -- --coverage
+        run: pnpm run test:frontend:coverage
 
       - name: Run frontend SonarCloud analysis
         uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7 (SHA pinned per Oracle C1-1)
@@ -428,26 +431,22 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.TOOL_UV_VERSION }}
+          cache-local-path: /tmp/.uv-cache
+          ignore-nothing-to-cache: true
 
-      - name: Restore uv cache
-        id: ml-sonar-uv-cache
-        uses: actions/cache@v4
-        continue-on-error: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: /tmp/.uv-cache
-          key: ${{ runner.os }}-uv-ml-sonar-${{ env.TOOL_UV_VERSION }}-${{ hashFiles('ml/.python-version', 'ml/pyproject.toml', 'ml/uv.lock') }}
-
-      - name: Log uv cache result
-        run: |
-          echo "uv cache hit: ${{ steps.ml-sonar-uv-cache.outputs.cache-hit || 'false' }}"
+          node-version: ${{ env.TOOL_NODE_VERSION }}
 
       - name: Sync dependencies
-        working-directory: ./ml
-        run: uv sync
+        run: pnpm run deps:ml
 
       - name: Run tests with coverage
-        working-directory: ./ml
-        run: uv run pytest --cov=src --cov-report=xml:coverage.xml
+        run: pnpm run test:ml:coverage
 
       - name: Run ML SonarCloud analysis
         uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7 (SHA pinned per Oracle C1-1)
@@ -462,7 +461,19 @@ jobs:
 
   ci-gate:
     if: always()
-    needs: [paths-filter, spec-check, tool-version-check, backend, frontend, frontend-e2e, ml, backend-sonar, frontend-sonar, ml-sonar]
+    needs:
+      [
+        paths-filter,
+        spec-check,
+        tool-version-check,
+        backend,
+        frontend,
+        frontend-e2e,
+        ml,
+        backend-sonar,
+        frontend-sonar,
+        ml-sonar,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI results

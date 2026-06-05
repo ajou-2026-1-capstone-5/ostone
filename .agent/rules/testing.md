@@ -21,13 +21,29 @@
 
 ### 커버리지 측정 절차
 
-| 스택              | 로컬 실행 명령                                           | CI 강제 기준                         | 생성되는 리포트                             |
-| ----------------- | -------------------------------------------------------- | ------------------------------------ | ------------------------------------------- |
-| Backend (JaCoCo)  | `./gradlew test jacocoTestCoverageVerification`          | line 90%, branch 70%                 | `build/reports/jacoco/test/jacocoTestReport.xml`, `build/reports/jacoco/test/html/index.html` |
-| Frontend (Vitest) | `pnpm test -- --coverage --run`                          | statements 80%, branches 70%, functions 75%, lines 80% | `coverage/index.html`, `coverage/lcov.info` |
-| ML (pytest-cov)   | `uv run pytest --cov=src --cov-report=term-missing`      | total 80% (`tool.coverage.report.fail_under`) | `coverage.xml`, terminal missing-line report |
+| 스택              | 로컬 실행 명령                    | CI 강제 기준                                           | 생성되는 리포트                                                                                               |
+| ----------------- | --------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Backend (JaCoCo)  | `pnpm run test:backend:coverage`  | line 90%, branch 70%                                   | `backend/build/reports/jacoco/test/jacocoTestReport.xml`, `backend/build/reports/jacoco/test/html/index.html` |
+| Frontend (Vitest) | `pnpm run test:frontend:coverage` | statements 80%, branches 70%, functions 75%, lines 80% | `frontend/coverage/index.html`, `frontend/coverage/lcov.info`                                                 |
+| ML (pytest-cov)   | `pnpm run test:ml:coverage`       | total 80% (`tool.coverage.report.fail_under`)          | `ml/coverage.xml`, terminal missing-line report                                                               |
 
-**PR 체크포인트**: CI에서 Backend `jacocoTestCoverageVerification`, Frontend Vitest coverage threshold, ML `fail_under = 80`이 실제로 실행된다. 커버리지 미달 시 빌드 실패로 처리하며, terminal 출력과 CI coverage artifact의 HTML/XML/LCOV 리포트에서 부족한 파일과 라인을 확인한다.
+**PR 체크포인트**: CI basic은 루트 package scripts인 `pnpm run ci:backend`, `pnpm run ci:frontend`, `pnpm run e2e:frontend`, `pnpm run ci:ml`을 실행한다. Backend `jacocoTestCoverageVerification`, Frontend Vitest coverage threshold, ML `fail_under = 80`이 실제로 실행되며, coverage artifact의 HTML/XML/LCOV 리포트에서 부족한 파일과 라인을 확인한다.
+
+## 품질 검사 책임 분리
+
+| 구분             | 목적                                  | 실행 명령                                                                                                                                                                                              |
+| ---------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| pre-commit       | staged 파일 대상 빠른 검사            | `pnpm exec lint-staged`가 `format:backend:check`, `lint:frontend`, `format:frontend`, `lint:ml`, `format:ml`, `typecheck:ml` 호출                                                                      |
+| CI basic         | PR에서 반드시 막아야 하는 최소 품질선 | `pnpm run ci:backend`, `pnpm run ci:frontend`, `pnpm run e2e:frontend`, `pnpm run ci:ml`                                                                                                               |
+| CI full / manual | 느리거나 포괄적인 검사                | `pnpm run test:backend:coverage`, `pnpm run ci:backend:sonar`, `pnpm run test:frontend:coverage`, `pnpm run test:ml:coverage`, `pnpm run lint:backend`, `pnpm run quality:ml`, `pnpm run format:check` |
+
+CI basic에서 backend checkstyle, frontend lint, ML ruff/mypy를 모두 반복 실행하지 않는 이유는 PR feedback 시간을 줄이기 위해서다. 해당 검사는 pre-commit과 full/manual package scripts에서 실행 위치를 명확히 나눈다.
+
+| 모듈     | pre-commit 포함 검사          | CI basic 포함 검사                            | CI full / manual 포함 검사                         |
+| -------- | ----------------------------- | --------------------------------------------- | -------------------------------------------------- |
+| Backend  | Spotless format check         | PostgreSQL/Liquibase test, build              | checkstyle, JaCoCo/Sonar 사전 테스트               |
+| Frontend | ESLint, Vite+ format          | Vitest coverage, production build, mocked E2E | coverage test, SonarCloud 분석                     |
+| ML       | ruff check, ruff format, mypy | uv sync, coverage pytest                      | ruff format check, ruff check, mypy, coverage test |
 
 ## Backend (JUnit 5 + Spring Boot Test)
 
@@ -169,4 +185,5 @@ describe("LoginForm", () => {
 ## 검증 방법
 
 - **PR 리뷰**: `.agent/rules/code-review.md` 테스트 체크리스트 참조
-- **CI**: Backend `./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest`, Frontend `pnpm test -- --coverage --run && pnpm build`, ML `uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml`
+- **CI basic**: `pnpm run ci:backend`, `pnpm run ci:frontend`, `pnpm run e2e:frontend`, `pnpm run ci:ml`
+- **Full/manual**: `pnpm run lint:backend`, `pnpm run quality:ml`, `pnpm run format:check`
