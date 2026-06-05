@@ -30,6 +30,7 @@ import type {
   GenerateWorkflowAwareResponseResult,
   GetMessagesParams,
   LlmToolWorkflowResponse,
+  MessageDomainPackElementsResponse,
   SendMessageRequest,
   UpdateStatusRequest
 } from '../../zod';
@@ -162,19 +163,19 @@ export function useGetMessages<TData = Awaited<ReturnType<typeof getMessages>>, 
 
 
 
-export type sendMessageResponse200 = {
+export type sendMessage1Response200 = {
   data: ChatMessageResponse
   status: 200
 }
 
-export type sendMessageResponseSuccess = (sendMessageResponse200) & {
+export type sendMessage1ResponseSuccess = (sendMessage1Response200) & {
   headers: Headers;
 };
 ;
 
-export type sendMessageResponse = (sendMessageResponseSuccess)
+export type sendMessage1Response = (sendMessage1ResponseSuccess)
 
-export const getSendMessageUrl = (sessionId: number,) => {
+export const getSendMessage1Url = (sessionId: number,) => {
 
 
 
@@ -182,10 +183,10 @@ export const getSendMessageUrl = (sessionId: number,) => {
   return `/api/v1/consultation/sessions/${sessionId}/messages`
 }
 
-export const sendMessage = async (sessionId: number,
-    sendMessageRequest: SendMessageRequest, options?: RequestInit): Promise<sendMessageResponse> => {
+export const sendMessage1 = async (sessionId: number,
+    sendMessageRequest: SendMessageRequest, options?: RequestInit): Promise<sendMessage1Response> => {
 
-  return customFetch<sendMessageResponse>(getSendMessageUrl(sessionId),
+  return customFetch<sendMessage1Response>(getSendMessage1Url(sessionId),
   {
     ...options,
     method: 'POST',
@@ -198,11 +199,11 @@ export const sendMessage = async (sessionId: number,
 
 
 
-export const getSendMessageMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{sessionId: number;data: SendMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{sessionId: number;data: SendMessageRequest}, TContext> => {
+export const getSendMessage1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage1>>, TError,{sessionId: number;data: SendMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendMessage1>>, TError,{sessionId: number;data: SendMessageRequest}, TContext> => {
 
-const mutationKey = ['sendMessage'];
+const mutationKey = ['sendMessage1'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -212,10 +213,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendMessage>>, {sessionId: number;data: SendMessageRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendMessage1>>, {sessionId: number;data: SendMessageRequest}> = (props) => {
           const {sessionId,data} = props ?? {};
 
-          return  sendMessage(sessionId,data,requestOptions)
+          return  sendMessage1(sessionId,data,requestOptions)
         }
 
 
@@ -225,19 +226,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type SendMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendMessage>>>
-    export type SendMessageMutationBody = SendMessageRequest
-    export type SendMessageMutationError = unknown
+    export type SendMessage1MutationResult = NonNullable<Awaited<ReturnType<typeof sendMessage1>>>
+    export type SendMessage1MutationBody = SendMessageRequest
+    export type SendMessage1MutationError = unknown
 
-    export const useSendMessage = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{sessionId: number;data: SendMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+    export const useSendMessage1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage1>>, TError,{sessionId: number;data: SendMessageRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof sendMessage>>,
+        Awaited<ReturnType<typeof sendMessage1>>,
         TError,
         {sessionId: number;data: SendMessageRequest},
         TContext
       > => {
-      return useMutation(getSendMessageMutationOptions(options), queryClient);
+      return useMutation(getSendMessage1MutationOptions(options), queryClient);
     }
     export type generateDraftResponseResponse200 = {
   data: GenerateWorkflowAwareResponseResult
@@ -314,19 +315,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getGenerateDraftResponseMutationOptions(options), queryClient);
     }
-    export type updateStatusResponse200 = {
+    export type updateStatus1Response200 = {
   data: ChatSessionResponse
   status: 200
 }
 
-export type updateStatusResponseSuccess = (updateStatusResponse200) & {
+export type updateStatus1ResponseSuccess = (updateStatus1Response200) & {
   headers: Headers;
 };
 ;
 
-export type updateStatusResponse = (updateStatusResponseSuccess)
+export type updateStatus1Response = (updateStatus1ResponseSuccess)
 
-export const getUpdateStatusUrl = (sessionId: number,) => {
+export const getUpdateStatus1Url = (sessionId: number,) => {
 
 
 
@@ -334,10 +335,10 @@ export const getUpdateStatusUrl = (sessionId: number,) => {
   return `/api/v1/consultation/sessions/${sessionId}/status`
 }
 
-export const updateStatus = async (sessionId: number,
-    updateStatusRequest: UpdateStatusRequest, options?: RequestInit): Promise<updateStatusResponse> => {
+export const updateStatus1 = async (sessionId: number,
+    updateStatusRequest: UpdateStatusRequest, options?: RequestInit): Promise<updateStatus1Response> => {
 
-  return customFetch<updateStatusResponse>(getUpdateStatusUrl(sessionId),
+  return customFetch<updateStatus1Response>(getUpdateStatus1Url(sessionId),
   {
     ...options,
     method: 'PATCH',
@@ -350,11 +351,11 @@ export const updateStatus = async (sessionId: number,
 
 
 
-export const getUpdateStatusMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStatus>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateStatus>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext> => {
+export const getUpdateStatus1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStatus1>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStatus1>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext> => {
 
-const mutationKey = ['updateStatus'];
+const mutationKey = ['updateStatus1'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -364,10 +365,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStatus>>, {sessionId: number;data: UpdateStatusRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStatus1>>, {sessionId: number;data: UpdateStatusRequest}> = (props) => {
           const {sessionId,data} = props ?? {};
 
-          return  updateStatus(sessionId,data,requestOptions)
+          return  updateStatus1(sessionId,data,requestOptions)
         }
 
 
@@ -377,21 +378,135 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateStatus>>>
-    export type UpdateStatusMutationBody = UpdateStatusRequest
-    export type UpdateStatusMutationError = unknown
+    export type UpdateStatus1MutationResult = NonNullable<Awaited<ReturnType<typeof updateStatus1>>>
+    export type UpdateStatus1MutationBody = UpdateStatusRequest
+    export type UpdateStatus1MutationError = unknown
 
-    export const useUpdateStatus = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStatus>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+    export const useUpdateStatus1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStatus1>>, TError,{sessionId: number;data: UpdateStatusRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateStatus>>,
+        Awaited<ReturnType<typeof updateStatus1>>,
         TError,
         {sessionId: number;data: UpdateStatusRequest},
         TContext
       > => {
-      return useMutation(getUpdateStatusMutationOptions(options), queryClient);
+      return useMutation(getUpdateStatus1MutationOptions(options), queryClient);
     }
-    export type getMatchedWorkflowResponse200 = {
+    export type getMessageDomainPackElementsResponse200 = {
+  data: MessageDomainPackElementsResponse
+  status: 200
+}
+
+export type getMessageDomainPackElementsResponseSuccess = (getMessageDomainPackElementsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getMessageDomainPackElementsResponse = (getMessageDomainPackElementsResponseSuccess)
+
+export const getGetMessageDomainPackElementsUrl = (sessionId: number,
+    messageId: number,) => {
+
+
+
+
+  return `/api/v1/consultation/sessions/${sessionId}/messages/${messageId}/domain-pack-elements`
+}
+
+export const getMessageDomainPackElements = async (sessionId: number,
+    messageId: number, options?: RequestInit): Promise<getMessageDomainPackElementsResponse> => {
+
+  return customFetch<getMessageDomainPackElementsResponse>(getGetMessageDomainPackElementsUrl(sessionId,messageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMessageDomainPackElementsQueryKey = (sessionId: number,
+    messageId: number,) => {
+    return [
+    `/api/v1/consultation/sessions/${sessionId}/messages/${messageId}/domain-pack-elements`
+    ] as const;
+    }
+
+
+export const getGetMessageDomainPackElementsQueryOptions = <TData = Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError = unknown>(sessionId: number,
+    messageId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMessageDomainPackElementsQueryKey(sessionId,messageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessageDomainPackElements>>> = ({ signal }) => getMessageDomainPackElements(sessionId,messageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(sessionId && messageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMessageDomainPackElementsQueryResult = NonNullable<Awaited<ReturnType<typeof getMessageDomainPackElements>>>
+export type GetMessageDomainPackElementsQueryError = unknown
+
+
+export function useGetMessageDomainPackElements<TData = Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError = unknown>(
+ sessionId: number,
+    messageId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMessageDomainPackElements>>,
+          TError,
+          Awaited<ReturnType<typeof getMessageDomainPackElements>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMessageDomainPackElements<TData = Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError = unknown>(
+ sessionId: number,
+    messageId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMessageDomainPackElements>>,
+          TError,
+          Awaited<ReturnType<typeof getMessageDomainPackElements>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMessageDomainPackElements<TData = Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError = unknown>(
+ sessionId: number,
+    messageId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetMessageDomainPackElements<TData = Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError = unknown>(
+ sessionId: number,
+    messageId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageDomainPackElements>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMessageDomainPackElementsQueryOptions(sessionId,messageId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type getMatchedWorkflowResponse200 = {
   data: LlmToolWorkflowResponse
   status: 200
 }

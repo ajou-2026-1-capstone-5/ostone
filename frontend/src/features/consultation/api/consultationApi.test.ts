@@ -3,8 +3,8 @@ import { consultationApi } from "./consultationApi";
 import {
   generateDraftResponse,
   getMessages,
-  sendMessage,
-  updateStatus,
+  sendMessage1 as sendMessage,
+  updateStatus1 as updateStatus,
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
 import { getQueue } from "@/shared/api/generated/endpoints/workspace-consultation-queue-controller/workspace-consultation-queue-controller";
 import {
@@ -18,8 +18,8 @@ import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/gene
 
 vi.mock("@/shared/api/generated/endpoints/consultation-controller/consultation-controller", () => ({
   getMessages: vi.fn(),
-  sendMessage: vi.fn(),
-  updateStatus: vi.fn(),
+  sendMessage1: vi.fn(),
+  updateStatus1: vi.fn(),
   generateDraftResponse: vi.fn(),
 }));
 

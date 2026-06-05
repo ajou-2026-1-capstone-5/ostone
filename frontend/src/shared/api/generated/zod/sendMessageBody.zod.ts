@@ -6,12 +6,12 @@
  */
 import { z as zod } from 'zod';
 
+export const sendMessageBodyContentMin = 0;
+export const sendMessageBodyContentMax = 4000;
 
 
 export const SendMessageBody = zod.object({
-  "content": zod.string().min(1).optional(),
-  "note": zod.boolean().optional(),
-  "isNote": zod.boolean().optional()
+  "content": zod.string().min(sendMessageBodyContentMin).max(sendMessageBodyContentMax).optional()
 })
 
 export type SendMessageBody = zod.input<typeof SendMessageBody>;

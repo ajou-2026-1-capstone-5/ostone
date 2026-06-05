@@ -5,7 +5,10 @@ import { resolve } from "node:path";
 import { defineConfig } from "orval";
 
 const OPENAPI_PATH = resolve(__dirname, "../backend/build/openapi.json");
-const META_PATH = resolve(__dirname, "./src/shared/api/generated/.codegen-meta.json");
+const META_PATH = resolve(
+  __dirname,
+  "./src/shared/api/generated/.codegen-meta.json",
+);
 const PACKAGE_PATH = resolve(__dirname, "./package.json");
 
 const writeCodegenMeta = (): void => {
@@ -28,15 +31,17 @@ const writeCodegenMeta = (): void => {
   let orvalVersion = "unknown";
   try {
     const pkg = JSON.parse(readFileSync(PACKAGE_PATH, "utf8"));
-    orvalVersion = pkg.devDependencies?.orval ?? pkg.dependencies?.orval ?? "unknown";
+    orvalVersion =
+      pkg.devDependencies?.orval ?? pkg.dependencies?.orval ?? "unknown";
   } catch {
     /* keep default */
   }
+  // generatedAt(타임스탬프)은 의도적으로 제외한다. 메타를 입력 결정적으로 유지해
+  // CI 의 OpenAPI drift 검사가 단순 `git diff` 로 오탐 없이 동작하게 한다.
   const meta = {
     schemaVersion: 1,
     openapiHash: hash,
     openapiPathsCount: pathsCount,
-    generatedAt: new Date().toISOString(),
     orvalVersion,
     openapiSourcePath: "backend/build/openapi.json",
   };

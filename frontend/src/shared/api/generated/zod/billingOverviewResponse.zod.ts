@@ -6,16 +6,44 @@
  */
 import { z as zod } from 'zod';
 
-import { SubscriptionResponse } from './subscriptionResponse.zod';
-import { BillingKeyResponse } from './billingKeyResponse.zod';
-import { PaymentResponse } from './paymentResponse.zod';
-import { QuotaUsageResponse } from './quotaUsageResponse.zod';
-
 export const BillingOverviewResponse = zod.object({
-  "subscription": SubscriptionResponse.nullish(),
-  "billingKey": BillingKeyResponse.nullish(),
-  "payments": zod.array(PaymentResponse).optional(),
-  "quotaUsages": zod.array(QuotaUsageResponse).optional()
+  "subscription": zod.object({
+  "id": zod.number().optional(),
+  "workspaceId": zod.number().optional(),
+  "planKey": zod.string().optional(),
+  "status": zod.string().optional(),
+  "currentPeriodStart": zod.iso.datetime({"offset":true}).optional(),
+  "currentPeriodEnd": zod.iso.datetime({"offset":true}).optional(),
+  "cancelAtPeriodEnd": zod.boolean().optional(),
+  "customerKey": zod.string().optional(),
+  "memberLimit": zod.number().optional(),
+  "datasetUploadLimit": zod.number().optional(),
+  "pipelineRunLimit": zod.number().optional()
+}).optional(),
+  "billingKey": zod.object({
+  "id": zod.number().optional(),
+  "cardCompany": zod.string().optional(),
+  "cardNumberMasked": zod.string().optional(),
+  "status": zod.string().optional()
+}).optional(),
+  "payments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "orderId": zod.string().optional(),
+  "paymentKey": zod.string().optional(),
+  "amount": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "status": zod.string().optional(),
+  "method": zod.string().optional(),
+  "approvedAt": zod.iso.datetime({"offset":true}).optional(),
+  "receiptUrl": zod.string().optional(),
+  "createdAt": zod.iso.datetime({"offset":true}).optional()
+})).optional(),
+  "quotaUsages": zod.array(zod.object({
+  "resource": zod.string().optional(),
+  "used": zod.number().optional(),
+  "limit": zod.number().optional(),
+  "warning": zod.boolean().optional()
+})).optional()
 })
 
 export type BillingOverviewResponse = zod.input<typeof BillingOverviewResponse>;
