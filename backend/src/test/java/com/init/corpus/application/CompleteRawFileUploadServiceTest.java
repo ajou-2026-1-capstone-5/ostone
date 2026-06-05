@@ -79,13 +79,19 @@ class CompleteRawFileUploadServiceTest {
   }
 
   private String buildMeta(long size) {
+    return buildMeta(size, OffsetDateTime.now().plusMinutes(15), 1L);
+  }
+
+  private String buildMeta(long size, OffsetDateTime expiresAt, long createdBy) {
     return "{\"upload\":{\"objectKey\":\""
         + OBJECT_KEY
         + "\",\"expectedSizeBytes\":"
         + size
         + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
-        + OffsetDateTime.now().plusMinutes(15)
-        + "\",\"createdBy\":1}}";
+        + expiresAt
+        + "\",\"createdBy\":"
+        + createdBy
+        + "}}";
   }
 
   @Test
@@ -227,6 +233,116 @@ class CompleteRawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_throw_when_upload_session_expired")
+  void complete_expiredUploadSession_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(buildMeta(EXPECTED_SIZE, OffsetDateTime.now().minusMinutes(1), 1L));
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("만료");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(storagePort, never()).copyObject(anyString(), anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(datasetRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_expiresAt_missing")
+  void complete_missingExpiresAt_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"createdBy\":1}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("expiresAt");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_expiresAt_malformed")
+  void complete_malformedExpiresAt_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\"not-a-date\",\"createdBy\":1}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("expiresAt 형식");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_createdBy_missing")
+  void complete_missingCreatedBy_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
+            + OffsetDateTime.now().plusMinutes(15)
+            + "\"}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("createdBy");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_createdBy_mismatches_request_user")
+  void complete_createdByMismatch_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 2L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(new CompleteRawFileUploadCommand(1L, 42L, 2L)))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("생성자");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(storagePort, never()).copyObject(anyString(), anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(datasetRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
   @DisplayName("should_throw_when_object_size_mismatches_expected")
   void complete_sizeMismatch_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
@@ -274,7 +390,9 @@ class CompleteRawFileUploadServiceTest {
     dataset.updateMetaJson(
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
-            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\"}}");
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
+            + OffsetDateTime.now().plusMinutes(15)
+            + "\",\"createdBy\":1}}");
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
     given(storagePort.headObject("direct/key.zip"))
@@ -354,7 +472,9 @@ class CompleteRawFileUploadServiceTest {
             + OBJECT_KEY
             + "\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
-            + "}}");
+            + ",\"expiresAt\":\""
+            + OffsetDateTime.now().plusMinutes(15)
+            + "\",\"createdBy\":1}}");
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
     given(storagePort.headObject(OBJECT_KEY))
@@ -385,7 +505,9 @@ class CompleteRawFileUploadServiceTest {
     String nonPendingMeta =
         "{\"upload\":{\"objectKey\":\"direct/key.zip\",\"expectedSizeBytes\":"
             + EXPECTED_SIZE
-            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\"}}";
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
+            + OffsetDateTime.now().plusMinutes(15)
+            + "\",\"createdBy\":1}}";
     dataset.updateMetaJson(nonPendingMeta);
     given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
         .willReturn(Optional.of(dataset));
