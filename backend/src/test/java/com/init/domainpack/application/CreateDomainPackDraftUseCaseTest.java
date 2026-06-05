@@ -97,17 +97,25 @@ class CreateDomainPackDraftUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    domainPackDraftPersistenceService =
-        new DomainPackDraftPersistenceService(
-            domainPackVersionRepository,
-            intentDefinitionRepository,
+    DomainPackDraftIntentPersister intentPersister =
+        new DomainPackDraftIntentPersister(intentDefinitionRepository);
+    DomainPackDraftWorkflowMapper workflowMapper =
+        new DomainPackDraftWorkflowMapper(policyDefinitionRepository);
+    DomainPackDraftComponentPersister componentPersister =
+        new DomainPackDraftComponentPersister(
             slotDefinitionRepository,
             policyDefinitionRepository,
             riskDefinitionRepository,
             workflowDefinitionRepository,
-            intentSlotBindingRepository,
+            intentSlotBindingRepository);
+    domainPackDraftPersistenceService =
+        new DomainPackDraftPersistenceService(
+            domainPackVersionRepository,
             domainPackVersionCloneService,
-            profileBuildRequestService);
+            profileBuildRequestService,
+            intentPersister,
+            workflowMapper,
+            componentPersister);
     useCase =
         new CreateDomainPackDraftUseCase(
             domainPackRepository,

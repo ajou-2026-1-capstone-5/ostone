@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,11 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,9 +48,33 @@ class DomainPackDraftPersistenceServiceTest {
   @Mock private RiskDefinitionRepository riskDefinitionRepository;
   @Mock private WorkflowDefinitionRepository workflowDefinitionRepository;
   @Mock private IntentSlotBindingRepository intentSlotBindingRepository;
+  @Mock private DomainPackVersionCloneService domainPackVersionCloneService;
   @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
-  @InjectMocks private DomainPackDraftPersistenceService service;
+  private DomainPackDraftPersistenceService service;
+
+  @BeforeEach
+  void setUp() {
+    DomainPackDraftIntentPersister intentPersister =
+        new DomainPackDraftIntentPersister(intentDefinitionRepository);
+    DomainPackDraftWorkflowMapper workflowMapper =
+        new DomainPackDraftWorkflowMapper(policyDefinitionRepository);
+    DomainPackDraftComponentPersister componentPersister =
+        new DomainPackDraftComponentPersister(
+            slotDefinitionRepository,
+            policyDefinitionRepository,
+            riskDefinitionRepository,
+            workflowDefinitionRepository,
+            intentSlotBindingRepository);
+    service =
+        new DomainPackDraftPersistenceService(
+            domainPackVersionRepository,
+            domainPackVersionCloneService,
+            profileBuildRequestService,
+            intentPersister,
+            workflowMapper,
+            componentPersister);
+  }
 
   @Test
   @DisplayName("기존 DB에 있는 부모 intent를 참조해 child intent를 추가 저장할 수 있다")
@@ -216,6 +242,89 @@ class DomainPackDraftPersistenceServiceTest {
     assertThat(result.addedWorkflowCount()).isEqualTo(1);
     assertThat(result.addedIntentSlotBindingCount()).isEqualTo(1);
     verify(intentDefinitionRepository, never()).saveAllAndFlush(any());
+    verify(profileBuildRequestService).enqueue(101L, "WORKFLOW_DRAFT_IMPORT");
+  }
+
+  @Test
+  @DisplayName("workflow draft component는 slot, policy, risk, workflow, binding 순서로 저장한다")
+  void persistWorkflowDraft_savesComponentsInStableOrder() {
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
+    IntentDefinition existingIntent =
+        IntentDefinition.create(101L, "refund_request", "환불 요청", null, 1, null, null, null, null);
+    ReflectionTestUtils.setField(existingIntent, "id", 55L);
+
+    given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
+    given(
+            policyDefinitionRepository.findExistingPolicyCodesByVersionIdAndCodes(
+                101L, Set.of("refund_policy_default")))
+        .willReturn(Set.of());
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L))
+        .willReturn(List.of(existingIntent));
+    given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(policyDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(riskDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(workflowDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(intentSlotBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+
+    service.persistWorkflowDraft(
+        101L,
+        List.of(
+            new AddWorkflowDraftToVersionCommand.SlotDraft(
+                "order_id", "주문번호", null, "STRING", false, null, null, null)),
+        List.of(
+            new AddWorkflowDraftToVersionCommand.PolicyDraft(
+                "refund_policy_default", "기본 환불 정책", null, "HIGH", null, null, null, null)),
+        List.of(
+            new AddWorkflowDraftToVersionCommand.RiskDraft(
+                "fraud_high_amount", "고액 사기 위험", null, "HIGH", null, null, null, null)),
+        List.of(validWorkflowDraft("refund_policy_default")),
+        List.of(
+            new AddWorkflowDraftToVersionCommand.IntentSlotBindingDraft(
+                "refund_request", "order_id", true, 1, "주문번호를 알려주세요.", null)));
+
+    InOrder inOrder =
+        inOrder(
+            slotDefinitionRepository,
+            policyDefinitionRepository,
+            riskDefinitionRepository,
+            workflowDefinitionRepository,
+            intentSlotBindingRepository);
+    inOrder.verify(slotDefinitionRepository).saveAll(any());
+    inOrder.verify(policyDefinitionRepository).saveAll(any());
+    inOrder.verify(riskDefinitionRepository).saveAll(any());
+    inOrder.verify(workflowDefinitionRepository).saveAll(any());
+    inOrder.verify(intentSlotBindingRepository).saveAll(any());
+  }
+
+  @Test
+  @DisplayName("workflow 저장 건수가 없으면 matching profile enqueue를 호출하지 않는다")
+  void persistWorkflowDraft_withoutWorkflow_doesNotEnqueueProfileBuild() {
+    DomainPackVersion version =
+        DomainPackVersion.ofForTest(101L, 7L, DomainPackVersion.STATUS_DRAFT);
+
+    given(domainPackVersionRepository.findById(101L)).willReturn(Optional.of(version));
+    given(intentDefinitionRepository.findByDomainPackVersionId(101L)).willReturn(List.of());
+    given(slotDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(policyDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(riskDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(workflowDefinitionRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+    given(intentSlotBindingRepository.saveAll(any())).willAnswer(this::saveAllWithIds);
+
+    AddWorkflowDraftToVersionResult result =
+        service.persistWorkflowDraft(
+            101L,
+            List.of(
+                new AddWorkflowDraftToVersionCommand.SlotDraft(
+                    "order_id", "주문번호", null, "STRING", false, null, null, null)),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of());
+
+    assertThat(result.addedSlotCount()).isEqualTo(1);
+    assertThat(result.addedWorkflowCount()).isZero();
+    verify(profileBuildRequestService, never()).enqueue(any(), any());
   }
 
   @Test
@@ -273,6 +382,7 @@ class DomainPackDraftPersistenceServiceTest {
                     List.of(validWorkflowDraft("missing_policy")),
                     List.of()))
         .isInstanceOf(WorkflowActionNodePolicyRefNotFoundException.class);
+    verify(profileBuildRequestService, never()).enqueue(any(), any());
   }
 
   @Test
@@ -319,13 +429,19 @@ class DomainPackDraftPersistenceServiceTest {
                             "missing_intent", "order_id", true, 1, null, null))))
         .isInstanceOf(
             com.init.domainpack.application.exception.DomainPackDraftRequestInvalidException.class);
+    verify(profileBuildRequestService, never()).enqueue(any(), any());
   }
 
   private AddWorkflowDraftToVersionCommand.WorkflowDraft validWorkflowDraft(String policyRef) {
     String graphJson =
-        """
-        {"nodes":[{"id":"start","type":"START"},{"id":"answer","type":"ACTION","policyRef":"%s"},{"id":"terminal","type":"TERMINAL"}],"edges":[{"id":"e1","from":"start","to":"answer"},{"id":"e2","from":"answer","to":"terminal"}]}
-        """
+        ("{\"nodes\":["
+                + "{\"id\":\"start\",\"type\":\"START\"},"
+                + "{\"id\":\"answer\",\"type\":\"ACTION\",\"policyRef\":\"%s\"},"
+                + "{\"id\":\"terminal\",\"type\":\"TERMINAL\"}"
+                + "],\"edges\":["
+                + "{\"id\":\"e1\",\"from\":\"start\",\"to\":\"answer\"},"
+                + "{\"id\":\"e2\",\"from\":\"answer\",\"to\":\"terminal\"}"
+                + "]}")
             .formatted(policyRef);
     return new AddWorkflowDraftToVersionCommand.WorkflowDraft(
         "refund_flow", "환불 플로우", null, graphJson, null, null, "refund_request", true, null);
