@@ -1,7 +1,10 @@
 import { customFetch } from "@/shared/api/mutator";
 import { requireApiData, selectApiData } from "@/shared/api";
-import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
-import type { LlmToolWorkflowPayload } from "@/features/consultation/api/llmToolWorkflowApi";
+import type {
+  ConsultationChatMessage as ChatMessage,
+  ConsultationChatSession as ChatSession,
+} from "@/entities/chat";
+import type { LlmToolWorkflowPayload } from "@/entities/workflow";
 
 export interface SimulationSessionDetail {
   session: ChatSession;
