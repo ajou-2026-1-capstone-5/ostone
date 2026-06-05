@@ -1,6 +1,7 @@
 package com.init.auth.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.init.auth.application.exception.InvalidTokenException;
 import com.init.shared.infrastructure.Sha256TokenHasher;
@@ -99,6 +100,32 @@ class AuthServiceConcurrencyTest {
     } finally {
       executor.shutdownNow();
     }
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  @DisplayName("passwordResetComplete: 비밀번호 재설정 후 기존 리프레시 토큰 → InvalidTokenException")
+  void shouldRejectExistingRefreshTokenAfterPasswordResetComplete() {
+    // given
+    String email = "reset-revokes-refresh@example.com";
+    String password = "password123";
+    authService.signup(new SignupCommand("재설정 사용자", email, password));
+    LoginResult loginResult = authService.login(new LoginCommand(email, password));
+
+    PasswordResetInitResult resetResult =
+        authService.passwordResetInit(new PasswordResetInitCommand(email));
+    assertThat(resetResult.accepted()).isTrue();
+    assertThat(resetResult.rawToken()).isNotBlank();
+
+    // when
+    authService.passwordResetComplete(
+        new PasswordResetCompleteCommand(resetResult.rawToken(), "new-password123"));
+    TokenRefreshCommand refreshCommand = new TokenRefreshCommand(loginResult.refreshToken());
+
+    // then
+    assertThatThrownBy(() -> authService.refresh(refreshCommand))
+        .isInstanceOf(InvalidTokenException.class)
+        .hasMessageContaining("만료되거나 폐기된 리프레시 토큰입니다.");
   }
 
   private Callable<RefreshAttempt> refreshAttempt(

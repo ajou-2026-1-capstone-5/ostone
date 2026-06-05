@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -302,5 +303,48 @@ class AuthServiceTest {
 
     // then
     verify(refreshTokenRepository, never()).save(any());
+  }
+
+  // ── password reset ────────────────────────────────────────────────────────
+
+  @Test
+  @DisplayName("passwordResetComplete: 유효한 재설정 토큰 → 비밀번호 변경 후 사용자 리프레시 토큰 전체 폐기")
+  void should_사용자리프레시토큰전체폐기_when_비밀번호재설정완료() {
+    // given
+    PasswordResetCompleteCommand command =
+        new PasswordResetCompleteCommand("reset-token", "new-password123");
+    given(tokenHasher.hash("reset-token")).willReturn("reset-token-hash");
+
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$oldhash");
+    ReflectionTestUtils.setField(user, "id", 1L);
+    user.initiatePasswordReset("reset-token-hash", OffsetDateTime.parse("2999-01-01T00:00:00Z"));
+    given(userRepository.findByPasswordResetTokenHash("reset-token-hash"))
+        .willReturn(Optional.of(user));
+    given(passwordEncoder.encode("new-password123")).willReturn("$2a$10$newhash");
+
+    // when
+    authService.passwordResetComplete(command);
+
+    // then
+    assertThat(user.getPasswordHash()).isEqualTo("$2a$10$newhash");
+    verify(userRepository).save(user);
+    verify(refreshTokenRepository).revokeAllByUserId(eq(1L), any(OffsetDateTime.class));
+  }
+
+  @Test
+  @DisplayName("passwordResetComplete: 유효하지 않은 재설정 토큰 → 리프레시 토큰 폐기하지 않음")
+  void should_리프레시토큰폐기하지않음_when_유효하지않은재설정토큰() {
+    // given
+    PasswordResetCompleteCommand command =
+        new PasswordResetCompleteCommand("invalid-reset-token", "new-password123");
+    given(tokenHasher.hash("invalid-reset-token")).willReturn("invalid-reset-token-hash");
+    given(userRepository.findByPasswordResetTokenHash("invalid-reset-token-hash"))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> authService.passwordResetComplete(command))
+        .isInstanceOf(InvalidTokenException.class)
+        .hasMessageContaining("유효하지 않은 비밀번호 재설정 토큰입니다.");
+    verify(refreshTokenRepository, never()).revokeAllByUserId(any(), any());
   }
 }

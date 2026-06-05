@@ -13,6 +13,7 @@ import com.init.shared.application.TokenHasher;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
@@ -189,6 +190,7 @@ public class AuthService {
 
     user.completePasswordReset(passwordEncoder.encode(command.newPassword()));
     userRepository.save(user);
+    refreshTokenRepository.revokeAllByUserId(user.getId(), OffsetDateTime.now(ZoneOffset.UTC));
   }
 
   private LoginResult issueTokens(AppUser user) {
