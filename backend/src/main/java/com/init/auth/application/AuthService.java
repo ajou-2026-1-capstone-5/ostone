@@ -70,7 +70,7 @@ public class AuthService {
       OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(30);
       user.initiatePasswordReset(tokenHash, expiresAt);
       userRepository.save(user);
-      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.", rawToken);
+      throw new PasswordResetRequiredException("비밀번호 재설정이 필요합니다.");
     }
 
     return issueTokens(user);

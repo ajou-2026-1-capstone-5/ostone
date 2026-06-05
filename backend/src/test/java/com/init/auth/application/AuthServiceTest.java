@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.init.auth.application.exception.EmailAlreadyExistsException;
 import com.init.auth.application.exception.InvalidCredentialsException;
 import com.init.auth.application.exception.InvalidTokenException;
+import com.init.auth.application.exception.PasswordResetRequiredException;
 import com.init.auth.domain.model.AppUser;
 import com.init.auth.domain.model.RefreshToken;
 import com.init.auth.domain.model.UserStatus;
@@ -168,6 +169,29 @@ class AuthServiceTest {
     assertThatThrownBy(() -> authService.login(command))
         .isInstanceOf(InvalidCredentialsException.class)
         .hasMessageContaining("비활성화된 계정입니다.");
+  }
+
+  @Test
+  @DisplayName("login: 비밀번호 재설정 필요 → reset token hash 저장 후 PasswordResetRequiredException 발생")
+  void should_재설정토큰저장하고예외발생_when_비밀번호재설정필요() {
+    // given
+    LoginCommand command = new LoginCommand("hong@example.com", "password123");
+
+    AppUser user = AppUser.create("홍길동", "hong@example.com", "$2a$10$hashedpassword");
+    ReflectionTestUtils.setField(user, "id", 1L);
+    ReflectionTestUtils.setField(user, "passwordResetRequired", true);
+    given(userRepository.findByEmail("hong@example.com")).willReturn(Optional.of(user));
+    given(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).willReturn(true);
+    given(tokenHasher.hash(anyString())).willReturn("sha256-reset-hash");
+
+    // when & then
+    assertThatThrownBy(() -> authService.login(command))
+        .isInstanceOf(PasswordResetRequiredException.class)
+        .hasMessageContaining("비밀번호 재설정이 필요합니다.");
+    assertThat(user.isPasswordResetTokenValid()).isTrue();
+    verify(userRepository).save(user);
+    verify(jwtService, never()).generateAccessToken(any(), anyString(), anyString());
+    verify(refreshTokenRepository, never()).save(any());
   }
 
   // ── refresh ───────────────────────────────────────────────────────────────
