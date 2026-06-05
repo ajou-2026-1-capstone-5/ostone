@@ -1171,6 +1171,21 @@ create unique index uq_payment_subscription_workspace_open
 --comment: Per-cancel-attempt idempotency key for Toss API — prevents partial-cancel collisions (V-EC-004)
 alter table payment.payment_cancel add column idempotency_key varchar(255);
 
+--changeset init:20260605-deduplicate-payment-cancel-idempotency-key
+--comment: Keep the first cancel row before enforcing per-payment idempotency uniqueness
+delete from payment.payment_cancel pc
+using payment.payment_cancel first_pc
+where pc.payment_id = first_pc.payment_id
+    and pc.idempotency_key = first_pc.idempotency_key
+    and pc.idempotency_key is not null
+    and pc.id > first_pc.id;
+
+--changeset init:20260605-unique-payment-cancel-idempotency-key
+--comment: Prevent duplicate cancel rows for the same payment idempotency key
+create unique index uq_payment_cancel_payment_id_idempotency_key
+    on payment.payment_cancel (payment_id, idempotency_key)
+    where idempotency_key is not null;
+
 --changeset init:20260604-add-payment-plan-quota-limits
 --comment: Add workspace quota limits to subscription plans for hard usage blocking
 alter table payment.plan add column member_limit integer not null default 10;
