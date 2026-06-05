@@ -1,7 +1,6 @@
 package com.init.workflowruntime.application.matching;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.domainpack.domain.model.IntentDefinition;
 import com.init.domainpack.domain.model.WorkflowDefinition;
 import java.util.LinkedHashSet;
@@ -12,10 +11,10 @@ import org.springframework.stereotype.Component;
 public class WorkflowMatchingProfileTextFactory {
 
   private static final int MAX_PROFILE_TEXT_CHARS = 12_000;
-  private final ObjectMapper objectMapper;
+  private final WorkflowMatchingJsonParser jsonParser;
 
-  public WorkflowMatchingProfileTextFactory(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  public WorkflowMatchingProfileTextFactory(WorkflowMatchingJsonParser jsonParser) {
+    this.jsonParser = jsonParser;
   }
 
   public String build(IntentDefinition intent, WorkflowDefinition workflow) {
@@ -53,7 +52,7 @@ public class WorkflowMatchingProfileTextFactory {
   }
 
   private void appendRouteTerms(StringBuilder builder, Set<String> lexicalTerms, String json) {
-    JsonNode route = readTree(json);
+    JsonNode route = jsonParser.readTreeOrEmptyObject(json, "profile_route_condition");
     appendArray(builder, lexicalTerms, "route_required_terms", route.path("requiredTerms"));
     appendArray(builder, lexicalTerms, "route_required_any_terms", route.path("requiredAnyTerms"));
     appendArray(builder, lexicalTerms, "route_optional_terms", route.path("optionalTerms"));
@@ -62,7 +61,7 @@ public class WorkflowMatchingProfileTextFactory {
 
   private void appendIntentEntryTerms(
       StringBuilder builder, Set<String> lexicalTerms, String json) {
-    JsonNode entry = readTree(json);
+    JsonNode entry = jsonParser.readTreeOrEmptyObject(json, "profile_intent_entry_condition");
     appendArray(builder, lexicalTerms, "intent_entry_required_terms", entry.path("requiredTerms"));
     appendArray(
         builder, lexicalTerms, "intent_entry_required_any_terms", entry.path("requiredAnyTerms"));
@@ -72,7 +71,7 @@ public class WorkflowMatchingProfileTextFactory {
 
   private void appendEvidence(
       StringBuilder builder, Set<String> lexicalTerms, String label, String json) {
-    JsonNode evidence = readTree(json);
+    JsonNode evidence = jsonParser.readTreeOrEmptyObject(json, "profile_evidence");
     if (!evidence.isArray()) {
       return;
     }
@@ -85,7 +84,7 @@ public class WorkflowMatchingProfileTextFactory {
   }
 
   private void appendWorkflowSteps(StringBuilder builder, Set<String> lexicalTerms, String json) {
-    JsonNode graph = readTree(json);
+    JsonNode graph = jsonParser.readTreeOrEmptyObject(json, "profile_graph");
     Set<String> steps = new LinkedHashSet<>();
     collectWorkflowStepText(steps, graph.path("nodes"));
     collectWorkflowStepText(steps, graph.path("states"));
@@ -94,7 +93,7 @@ public class WorkflowMatchingProfileTextFactory {
   }
 
   private void appendQualityHints(StringBuilder builder, String json) {
-    JsonNode meta = readTree(json);
+    JsonNode meta = jsonParser.readTreeOrEmptyObject(json, "profile_meta");
     appendNumber(builder, "workflow_replay_fitness", meta, "workflowReplayFitness");
     appendNumber(builder, "workflow_precision", meta, "workflowPrecision");
     appendNumber(builder, "workflow_confidence", meta, "workflowConfidence");
@@ -223,16 +222,5 @@ public class WorkflowMatchingProfileTextFactory {
   private String textField(JsonNode node, String field) {
     JsonNode value = node.path(field);
     return value.isTextual() ? value.asText() : null;
-  }
-
-  private JsonNode readTree(String json) {
-    if (json == null || json.isBlank()) {
-      return objectMapper.createObjectNode();
-    }
-    try {
-      return objectMapper.readTree(json);
-    } catch (Exception e) {
-      return objectMapper.createObjectNode();
-    }
   }
 }

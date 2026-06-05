@@ -51,7 +51,7 @@ class WorkflowMatchingProfileBuildWorkerTest {
             profileRepository,
             workflowDefinitionRepository,
             intentDefinitionRepository,
-            new WorkflowMatchingProfileTextFactory(new ObjectMapper()),
+            profileTextFactory(),
             new ObjectMapper(),
             meterRegistry);
   }
@@ -67,7 +67,7 @@ class WorkflowMatchingProfileBuildWorkerTest {
             profileRepository,
             workflowDefinitionRepository,
             intentDefinitionRepository,
-            new WorkflowMatchingProfileTextFactory(new ObjectMapper()),
+            profileTextFactory(),
             new ObjectMapper(),
             meterRegistry);
 
@@ -198,5 +198,10 @@ class WorkflowMatchingProfileBuildWorkerTest {
         0.65,
         0.50,
         0.30);
+  }
+
+  private WorkflowMatchingProfileTextFactory profileTextFactory() {
+    return new WorkflowMatchingProfileTextFactory(
+        new WorkflowMatchingJsonParser(new ObjectMapper(), meterRegistry));
   }
 }
