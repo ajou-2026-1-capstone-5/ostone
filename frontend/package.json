@@ -9,10 +9,11 @@
     "e2e": "playwright test",
     "e2e:live": "playwright test --config=playwright.live.config.ts --grep-invert @pollutes",
     "e2e:live:pollutes": "playwright test --config=playwright.live.config.ts --grep @pollutes",
-    "test": "pnpm audit:api && vp test",
+    "test": "pnpm audit:api && pnpm audit:fsd && vp test",
     "format": "vp fmt",
     "audit:api": "node scripts/audit-manual-api-calls.mjs",
-    "lint": "pnpm audit:api && eslint .",
+    "audit:fsd": "node scripts/audit-fsd-import-boundaries.mjs",
+    "lint": "pnpm audit:api && pnpm audit:fsd && eslint .",
     "preview": "vp preview",
     "api:gen": "orval --config orval.config.ts"
   },
