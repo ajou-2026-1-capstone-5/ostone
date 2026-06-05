@@ -63,6 +63,50 @@ class SimulationFeedbackTest {
   }
 
   @Test
+  @DisplayName("markResolved: OPEN 또는 후보 생성 피드백을 해결 상태로 전환한다")
+  void shouldMarkResolved() {
+    SimulationFeedback openFeedback = feedback();
+    SimulationFeedback candidateCreatedFeedback = feedback();
+    candidateCreatedFeedback.markCandidateCreated();
+
+    openFeedback.markResolved();
+    candidateCreatedFeedback.markResolved();
+
+    assertThat(openFeedback.getStatus()).isEqualTo(SimulationFeedbackStatus.RESOLVED);
+    assertThat(candidateCreatedFeedback.getStatus()).isEqualTo(SimulationFeedbackStatus.RESOLVED);
+  }
+
+  @Test
+  @DisplayName("markDismissed: OPEN 또는 후보 생성 피드백을 무시 상태로 전환한다")
+  void shouldMarkDismissed() {
+    SimulationFeedback openFeedback = feedback();
+    SimulationFeedback candidateCreatedFeedback = feedback();
+    candidateCreatedFeedback.markCandidateCreated();
+
+    openFeedback.markDismissed();
+    candidateCreatedFeedback.markDismissed();
+
+    assertThat(openFeedback.getStatus()).isEqualTo(SimulationFeedbackStatus.DISMISSED);
+    assertThat(candidateCreatedFeedback.getStatus()).isEqualTo(SimulationFeedbackStatus.DISMISSED);
+  }
+
+  @Test
+  @DisplayName("markResolved/markDismissed: 종료된 피드백은 다시 결정할 수 없다")
+  void shouldRejectDecisionWhenFeedbackClosed() {
+    SimulationFeedback resolved = feedback();
+    SimulationFeedback dismissed = feedback();
+    resolved.markResolved();
+    dismissed.markDismissed();
+
+    assertThatThrownBy(resolved::markDismissed)
+        .isInstanceOf(InvalidSimulationFeedbackException.class)
+        .hasMessageContaining("dismissed from OPEN or CANDIDATE_CREATED");
+    assertThatThrownBy(dismissed::markResolved)
+        .isInstanceOf(InvalidSimulationFeedbackException.class)
+        .hasMessageContaining("resolved from OPEN or CANDIDATE_CREATED");
+  }
+
+  @Test
   @DisplayName("onPersist: 생성/수정 시각과 기본 상태를 채운다")
   void shouldFillLifecycleDefaultsOnPersist() {
     SimulationFeedback feedback = feedback();

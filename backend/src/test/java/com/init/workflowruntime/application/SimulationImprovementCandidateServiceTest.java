@@ -10,9 +10,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.init.domainpack.application.DomainPackDraftSourceType;
+import com.init.domainpack.application.DomainPackVersionCloneCommand;
+import com.init.domainpack.application.DomainPackVersionCloneResult;
 import com.init.domainpack.application.DomainPackVersionCloneService;
 import com.init.domainpack.domain.model.DomainPackVersion;
+import com.init.domainpack.domain.model.IntentDefinition;
+import com.init.domainpack.domain.model.PolicyDefinition;
+import com.init.domainpack.domain.model.RiskDefinition;
 import com.init.domainpack.domain.model.SlotDefinition;
+import com.init.domainpack.domain.model.WorkflowDefinition;
 import com.init.domainpack.domain.repository.DomainPackVersionRepository;
 import com.init.domainpack.domain.repository.IntentDefinitionRepository;
 import com.init.domainpack.domain.repository.PolicyDefinitionRepository;
@@ -61,6 +68,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -220,6 +229,59 @@ class SimulationImprovementCandidateServiceTest {
         .isEqualTo(SimulationImprovementCandidateTargetType.RISK_RULE);
   }
 
+  @ParameterizedTest(name = "{0} -> {1}/{2}")
+  @CsvSource({
+    "INTENT_MISMATCH, INTENT_DESCRIPTION_EXAMPLE, INTENT",
+    "POLICY_CONDITION_MISSING, POLICY_CONDITION, POLICY",
+    "RISK_HANDOFF_REQUIRED, HANDOFF_CONDITION, HANDOFF",
+    "WORKFLOW_BRANCH_ERROR, WORKFLOW_STATE_TRANSITION, WORKFLOW",
+    "INAPPROPRIATE_RESPONSE, RESPONSE_COPY, RESPONSE"
+  })
+  @DisplayName("createFromFeedback: feedback type에서 후보 type과 target type을 추론한다")
+  void shouldInferCandidateAndTargetTypesFromFeedbackType(
+      SimulationFeedbackType feedbackType,
+      SimulationImprovementCandidateType expectedCandidateType,
+      SimulationImprovementCandidateTargetType expectedTargetType) {
+    givenMembership();
+    SimulationFeedback feedback = withFeedbackId(feedback(feedbackType), FEEDBACK_ID);
+    ChatSession session = withSessionId(simulationSession(), SESSION_ID);
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> withCandidateId(invocation.getArgument(0), 1000L));
+
+    var result =
+        service.createFromFeedback(
+            new CreateSimulationImprovementCandidateCommand(
+                WORKSPACE_ID, USER_ID, FEEDBACK_ID, null, null, null, null, null));
+
+    assertThat(result.candidateType()).isEqualTo(expectedCandidateType);
+    assertThat(result.targetElementType()).isEqualTo(expectedTargetType);
+  }
+
+  @Test
+  @DisplayName("createFromFeedback: 빈 target type은 feedback type 기반 target으로 처리한다")
+  void shouldInferTargetTypeWhenRequestedTargetTypeBlank() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.INTENT_MISMATCH), FEEDBACK_ID);
+    ChatSession session = withSessionId(simulationSession(), SESSION_ID);
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(candidateRepository.findByFeedbackId(FEEDBACK_ID)).willReturn(Optional.empty());
+    given(chatSessionRepository.findById(SESSION_ID)).willReturn(Optional.of(session));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> withCandidateId(invocation.getArgument(0), 1000L));
+
+    var result =
+        service.createFromFeedback(
+            new CreateSimulationImprovementCandidateCommand(
+                WORKSPACE_ID, USER_ID, FEEDBACK_ID, " ", null, null, null, null));
+
+    assertThat(result.targetElementType())
+        .isEqualTo(SimulationImprovementCandidateTargetType.INTENT);
+  }
+
   @Test
   @DisplayName("createFromFeedback: 긴 feedback 설명으로 만든 근거 요약은 후보 제한 길이를 넘지 않는다")
   void shouldLimitGeneratedEvidenceSummary() {
@@ -363,6 +425,61 @@ class SimulationImprovementCandidateServiceTest {
   }
 
   @Test
+  @DisplayName("updateStatus: 열린 review session이 없으면 새 session과 task를 만든다")
+  void shouldCreateReviewSessionWhenUpdateStatusHasNoOpenSession() {
+    givenMembership();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    ReviewSession session = reviewSession(2000L);
+    ReviewTask task = reviewTask(session.getId(), candidate.getId(), 3000L);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(
+            reviewSessionRepository
+                .findFirstByWorkspaceIdAndDomainPackVersionIdAndReviewKindAndStatusOrderByOpenedAtDesc(
+                    any(), any(), any(), any()))
+        .willReturn(Optional.empty());
+    given(reviewSessionRepository.save(any(ReviewSession.class))).willReturn(session);
+    given(
+            reviewTaskRepository.findFirstByReviewSessionIdAndTargetTypeAndTargetIdOrderByIdDesc(
+                any(), any(), any()))
+        .willReturn(Optional.empty());
+    given(reviewTaskRepository.save(any(ReviewTask.class))).willReturn(task);
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.updateStatus(
+            new UpdateSimulationImprovementCandidateStatusCommand(
+                WORKSPACE_ID, USER_ID, 1000L, "READY_FOR_REVIEW"));
+
+    assertThat(result.reviewSessionId()).isEqualTo(2000L);
+    assertThat(result.reviewTaskId()).isEqualTo(3000L);
+    verify(reviewSessionRepository).save(any(ReviewSession.class));
+  }
+
+  @Test
+  @DisplayName("updateStatus: 이미 review task가 연결된 후보는 기존 task를 재사용한다")
+  void shouldReuseExistingReviewTaskWhenUpdateStatusAlreadyLinked() {
+    givenMembership();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.updateStatus(
+            new UpdateSimulationImprovementCandidateStatusCommand(
+                WORKSPACE_ID, USER_ID, 1000L, "READY_FOR_REVIEW"));
+
+    assertThat(result.reviewTaskId()).isEqualTo(3000L);
+    verifyNoInteractions(reviewSessionRepository);
+  }
+
+  @Test
   @DisplayName("listCandidates: workspace 멤버가 아니면 후보 목록을 조회할 수 없다")
   void shouldRejectListWithoutMembership() {
     assertThatThrownBy(() -> service.listCandidates(WORKSPACE_ID, USER_ID, "DRAFT", 0, 20))
@@ -385,6 +502,23 @@ class SimulationImprovementCandidateServiceTest {
                         WORKSPACE_ID, USER_ID, 1000L, "WAITING")))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("지원하지 않는 후보 상태입니다");
+  }
+
+  @Test
+  @DisplayName("updateStatus: READY_FOR_REVIEW 외 상태 전이는 승인/반려 endpoint로 유도한다")
+  void shouldRejectTerminalStatusFromUpdateStatus() {
+    givenMembership();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(candidate(feedback(SimulationFeedbackType.OTHER)), 1000L);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+
+    assertThatThrownBy(
+            () ->
+                service.updateStatus(
+                    new UpdateSimulationImprovementCandidateStatusCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, "APPLIED")))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("READY_FOR_REVIEW 전이");
   }
 
   @Test
@@ -441,6 +575,266 @@ class SimulationImprovementCandidateServiceTest {
     assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.RESOLVED);
     verify(reviewDecisionRepository).save(any());
     verify(profileBuildRequestService).enqueue(VERSION_ID, "SIMULATION_CANDIDATE_APPLIED");
+  }
+
+  @Test
+  @DisplayName("approve: INTENT 후보를 draft intent description에 반영한다")
+  void shouldApproveIntentCandidate() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.INTENT,
+            null,
+            "refund_intent",
+            "환불 intent 설명을 보강합니다.");
+    IntentDefinition intent =
+        IntentDefinition.create(
+            VERSION_ID, "refund_intent", "환불", "기존 설명", 1, "{}", "{}", "[]", "{}");
+    givenApprovalBasics(candidate, DomainPackVersion.STATUS_DRAFT);
+    given(
+            intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                VERSION_ID, "refund_intent"))
+        .willReturn(Optional.of(intent));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.status()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(intent.getDescription()).isEqualTo("환불 intent 설명을 보강합니다.");
+    verify(intentDefinitionRepository).save(intent);
+  }
+
+  @Test
+  @DisplayName("approve: POLICY 후보를 draft policy description에 반영한다")
+  void shouldApprovePolicyCandidate() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.POLICY,
+            null,
+            "refund_policy",
+            "환불 정책 조건을 보강합니다.");
+    PolicyDefinition policy =
+        PolicyDefinition.create(
+            VERSION_ID, "refund_policy", "환불 정책", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
+    givenApprovalBasics(candidate, DomainPackVersion.STATUS_DRAFT);
+    given(
+            policyDefinitionRepository.findByDomainPackVersionIdAndPolicyCode(
+                VERSION_ID, "refund_policy"))
+        .willReturn(Optional.of(policy));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    service.approve(
+        new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(policy.getDescription()).isEqualTo("환불 정책 조건을 보강합니다.");
+    verify(policyDefinitionRepository).save(policy);
+  }
+
+  @Test
+  @DisplayName("approve: RISK_RULE 후보를 draft risk description에 반영한다")
+  void shouldApproveRiskCandidate() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.RISK_RULE,
+            null,
+            "handoff_risk",
+            "상담원 연결 위험 조건을 보강합니다.");
+    RiskDefinition risk =
+        RiskDefinition.create(
+            VERSION_ID, "handoff_risk", "상담원 연결", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
+    givenApprovalBasics(candidate, DomainPackVersion.STATUS_DRAFT);
+    given(riskDefinitionRepository.findByDomainPackVersionIdAndRiskCode(VERSION_ID, "handoff_risk"))
+        .willReturn(Optional.of(risk));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    service.approve(
+        new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(risk.getDescription()).isEqualTo("상담원 연결 위험 조건을 보강합니다.");
+    verify(riskDefinitionRepository).save(risk);
+  }
+
+  @Test
+  @DisplayName("approve: WORKFLOW 후보를 draft workflow description에 반영한다")
+  void shouldApproveWorkflowCandidate() {
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.WORKFLOW,
+            null,
+            "refund_workflow",
+            "환불 workflow 분기를 보강합니다.");
+    WorkflowDefinition workflow =
+        WorkflowDefinition.create(
+            VERSION_ID,
+            "refund_workflow",
+            "환불 워크플로우",
+            "기존 설명",
+            "{}",
+            "start",
+            "[]",
+            "[]",
+            "{}",
+            1L,
+            true,
+            "{}");
+    givenApprovalBasics(candidate, DomainPackVersion.STATUS_DRAFT);
+    given(
+            workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
+                VERSION_ID, "refund_workflow"))
+        .willReturn(Optional.of(workflow));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    service.approve(
+        new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(workflow.getDescription()).isEqualTo("환불 workflow 분기를 보강합니다.");
+    verify(workflowDefinitionRepository).save(workflow);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({
+    "INTENT, refund_intent",
+    "SLOT, order_number",
+    "POLICY, refund_policy",
+    "RISK_RULE, handoff_risk",
+    "RESPONSE, refund_response"
+  })
+  @DisplayName("approve: target key가 없으면 source id에서 code를 찾아 draft 요소에 반영한다")
+  void shouldResolveDraftTargetBySourceId(
+      SimulationImprovementCandidateTargetType targetType, String targetCode) {
+    Long targetId = 501L;
+    SimulationImprovementCandidate candidate =
+        readyCandidate(targetType, targetId, null, "id 기반으로 설명을 보강합니다.");
+    givenApprovalBasics(candidate, DomainPackVersion.STATUS_DRAFT);
+    Object target = stubTargetBySourceId(targetType, targetId, targetCode);
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    service.approve(
+        new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertTargetDescription(target, "id 기반으로 설명을 보강합니다.");
+  }
+
+  @Test
+  @DisplayName("approve: published 버전에 draft가 없으면 simulation review draft를 생성해 반영한다")
+  void shouldClonePublishedVersionWhenApproveHasNoDraft() {
+    Long draftVersionId = 202L;
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.SLOT, null, "order_number", "주문번호 질문을 추가합니다.");
+    DomainPackVersion sourceVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_PUBLISHED);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(draftVersionId, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            draftVersionId, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    givenApprovalBasics(candidate, sourceVersion);
+    given(
+            domainPackVersionRepository
+                .findFirstByDomainPackIdAndLifecycleStatusOrderByVersionNoDesc(
+                    50L, DomainPackVersion.STATUS_DRAFT))
+        .willReturn(Optional.empty());
+    given(domainPackVersionCloneService.cloneVersion(any(DomainPackVersionCloneCommand.class)))
+        .willReturn(
+            new DomainPackVersionCloneResult(
+                draftVersionId,
+                2,
+                DomainPackVersion.STATUS_DRAFT,
+                DomainPackDraftSourceType.SIMULATION_REVIEW,
+                VERSION_ID,
+                1,
+                "simulation improvement candidate #1000"));
+    given(domainPackVersionRepository.findByIdForUpdate(draftVersionId))
+        .willReturn(Optional.of(draftVersion));
+    given(
+            slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(
+                draftVersionId, "order_number"))
+        .willReturn(Optional.of(slot));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.appliedDomainPackVersionId()).isEqualTo(draftVersionId);
+    assertThat(slot.getDescription()).isEqualTo("주문번호 질문을 추가합니다.");
+    ArgumentCaptor<DomainPackVersionCloneCommand> cloneCommandCaptor =
+        ArgumentCaptor.forClass(DomainPackVersionCloneCommand.class);
+    verify(domainPackVersionCloneService).cloneVersion(cloneCommandCaptor.capture());
+    assertThat(cloneCommandCaptor.getValue().sourceType())
+        .isEqualTo(DomainPackDraftSourceType.SIMULATION_REVIEW);
+  }
+
+  @Test
+  @DisplayName("approve: published 버전의 기존 draft를 잠가 반영한다")
+  void shouldUseExistingDraftWhenApprovePublishedVersion() {
+    Long draftVersionId = 202L;
+    SimulationImprovementCandidate candidate =
+        readyCandidate(
+            SimulationImprovementCandidateTargetType.SLOT, null, "order_number", "주문번호 질문을 보강합니다.");
+    DomainPackVersion sourceVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_PUBLISHED);
+    DomainPackVersion existingDraft =
+        DomainPackVersion.ofForTest(draftVersionId, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            draftVersionId, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    givenApprovalBasics(candidate, sourceVersion);
+    given(
+            domainPackVersionRepository
+                .findFirstByDomainPackIdAndLifecycleStatusOrderByVersionNoDesc(
+                    50L, DomainPackVersion.STATUS_DRAFT))
+        .willReturn(Optional.of(existingDraft));
+    given(domainPackVersionRepository.findByIdForUpdate(draftVersionId))
+        .willReturn(Optional.of(existingDraft));
+    given(
+            slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(
+                draftVersionId, "order_number"))
+        .willReturn(Optional.of(slot));
+    given(candidateRepository.save(any(SimulationImprovementCandidate.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
+
+    var result =
+        service.approve(
+            new ApproveSimulationImprovementCandidateCommand(WORKSPACE_ID, USER_ID, 1000L, null));
+
+    assertThat(result.appliedDomainPackVersionId()).isEqualTo(draftVersionId);
+    verifyNoInteractions(domainPackVersionCloneService);
+  }
+
+  @Test
+  @DisplayName("approve: 대상 타입이 UNKNOWN이면 반영할 수 없다")
+  void shouldRejectApproveWhenTargetUnknown() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(domainPackVersionRepository.findByIdForUpdate(VERSION_ID))
+        .willReturn(Optional.of(draftVersion));
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("변경 대상 요소");
   }
 
   @Test
@@ -525,6 +919,70 @@ class SimulationImprovementCandidateServiceTest {
   }
 
   @Test
+  @DisplayName("approve: READY가 아닌 후보는 승인할 수 없다")
+  void shouldRejectApproveWhenCandidateNotReady() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("READY_FOR_REVIEW 후보");
+  }
+
+  @Test
+  @DisplayName("reject: review task가 연결되지 않은 READY 후보는 반려할 수 없다")
+  void shouldRejectRejectWhenReviewTaskMissing() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.changeStatus(SimulationImprovementCandidateStatus.READY_FOR_REVIEW);
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+
+    assertThatThrownBy(
+            () ->
+                service.reject(
+                    new RejectSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("review task가 없습니다");
+  }
+
+  @Test
+  @DisplayName("reject: 이미 처리된 review task는 다시 반려할 수 없다")
+  void shouldRejectRejectWhenReviewTaskResolved() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+    task.resolve(USER_ID, OffsetDateTime.now());
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+
+    assertThatThrownBy(
+            () ->
+                service.reject(
+                    new RejectSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("이미 처리된 review task");
+  }
+
+  @Test
   @DisplayName("getCandidate: 다른 workspace 후보는 찾을 수 없는 후보로 처리한다")
   void shouldHideCandidateFromDifferentWorkspace() {
     givenMembership();
@@ -580,6 +1038,149 @@ class SimulationImprovementCandidateServiceTest {
             feedback.getExpectedBehavior(),
             "simulation feedback #" + (feedback.getId() != null ? feedback.getId() : FEEDBACK_ID)),
         USER_ID);
+  }
+
+  private SimulationImprovementCandidate readyCandidate(
+      SimulationImprovementCandidateTargetType targetType,
+      Long targetId,
+      String targetKey,
+      String afterSummary) {
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(
+            SimulationImprovementCandidate.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                FEEDBACK_ID,
+                SESSION_ID,
+                2L,
+                new SimulationImprovementCandidateDraft(
+                    SimulationImprovementCandidateType.OTHER,
+                    targetType,
+                    targetId,
+                    targetKey,
+                    "기존 설명",
+                    afterSummary,
+                    "simulation feedback #900"),
+                USER_ID),
+            1000L);
+    candidate.submitForReview(2000L, 3000L);
+    return candidate;
+  }
+
+  private void givenApprovalBasics(
+      SimulationImprovementCandidate candidate, String sourceVersionStatus) {
+    givenApprovalBasics(
+        candidate, DomainPackVersion.ofForTest(VERSION_ID, 50L, sourceVersionStatus));
+  }
+
+  private void givenApprovalBasics(
+      SimulationImprovementCandidate candidate, DomainPackVersion sourceVersion) {
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+    givenMembership();
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(domainPackVersionRepository.findByIdForUpdate(VERSION_ID))
+        .willReturn(Optional.of(sourceVersion));
+  }
+
+  private Object stubTargetBySourceId(
+      SimulationImprovementCandidateTargetType targetType, Long targetId, String targetCode) {
+    return switch (targetType) {
+      case INTENT -> {
+        IntentDefinition intent =
+            IntentDefinition.create(
+                VERSION_ID, targetCode, "의도", "기존 설명", 1, "{}", "{}", "[]", "{}");
+        ReflectionTestUtils.setField(intent, "id", targetId);
+        given(intentDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
+            .willReturn(Optional.of(intent));
+        given(
+                intentDefinitionRepository.findByDomainPackVersionIdAndIntentCode(
+                    VERSION_ID, targetCode))
+            .willReturn(Optional.of(intent));
+        yield intent;
+      }
+      case SLOT -> {
+        SlotDefinition slot =
+            SlotDefinition.create(
+                VERSION_ID, targetCode, "슬롯", "기존 설명", "STRING", false, "{}", null, "{}");
+        ReflectionTestUtils.setField(slot, "id", targetId);
+        given(slotDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
+            .willReturn(Optional.of(slot));
+        given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, targetCode))
+            .willReturn(Optional.of(slot));
+        yield slot;
+      }
+      case POLICY -> {
+        PolicyDefinition policy =
+            PolicyDefinition.create(
+                VERSION_ID, targetCode, "정책", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
+        ReflectionTestUtils.setField(policy, "id", targetId);
+        given(policyDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
+            .willReturn(Optional.of(policy));
+        given(
+                policyDefinitionRepository.findByDomainPackVersionIdAndPolicyCode(
+                    VERSION_ID, targetCode))
+            .willReturn(Optional.of(policy));
+        yield policy;
+      }
+      case RISK_RULE -> {
+        RiskDefinition risk =
+            RiskDefinition.create(
+                VERSION_ID, targetCode, "위험", "기존 설명", "HIGH", "{}", "{}", "[]", "{}");
+        ReflectionTestUtils.setField(risk, "id", targetId);
+        given(riskDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
+            .willReturn(Optional.of(risk));
+        given(riskDefinitionRepository.findByDomainPackVersionIdAndRiskCode(VERSION_ID, targetCode))
+            .willReturn(Optional.of(risk));
+        yield risk;
+      }
+      case RESPONSE -> {
+        WorkflowDefinition workflow =
+            WorkflowDefinition.create(
+                VERSION_ID,
+                targetCode,
+                "응답 워크플로우",
+                "기존 설명",
+                "{}",
+                "start",
+                "[]",
+                "[]",
+                "{}",
+                1L,
+                true,
+                "{}");
+        ReflectionTestUtils.setField(workflow, "id", targetId);
+        given(workflowDefinitionRepository.findByIdAndDomainPackVersionId(targetId, VERSION_ID))
+            .willReturn(Optional.of(workflow));
+        given(
+                workflowDefinitionRepository.findByDomainPackVersionIdAndWorkflowCode(
+                    VERSION_ID, targetCode))
+            .willReturn(Optional.of(workflow));
+        yield workflow;
+      }
+      default -> throw new IllegalArgumentException("unsupported targetType: " + targetType);
+    };
+  }
+
+  private void assertTargetDescription(Object target, String expectedDescription) {
+    switch (target) {
+      case IntentDefinition intent ->
+          assertThat(intent.getDescription()).isEqualTo(expectedDescription);
+      case SlotDefinition slot -> assertThat(slot.getDescription()).isEqualTo(expectedDescription);
+      case PolicyDefinition policy ->
+          assertThat(policy.getDescription()).isEqualTo(expectedDescription);
+      case RiskDefinition risk -> assertThat(risk.getDescription()).isEqualTo(expectedDescription);
+      case WorkflowDefinition workflow ->
+          assertThat(workflow.getDescription()).isEqualTo(expectedDescription);
+      default -> throw new IllegalArgumentException("unsupported target: " + target);
+    }
   }
 
   private SimulationFeedback withFeedbackId(SimulationFeedback feedback, Long id) {
