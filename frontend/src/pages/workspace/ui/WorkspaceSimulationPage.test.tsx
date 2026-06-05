@@ -172,6 +172,13 @@ const replayResult = {
   createdAt: "2026-06-05T10:46:00Z",
 } as const;
 
+const failedReplayResult = {
+  ...replayResult,
+  id: 991,
+  status: "FAIL",
+  failureSummary: "currentState expected collect_order_no but was handoff",
+} as const;
+
 function candidateWithType(
   id: number,
   candidateType: SimulationImprovementCandidate["candidateType"],
@@ -661,6 +668,9 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await screen.findByText("환불하고 싶어요");
+    fireEvent.change(await screen.findByLabelText("검증 케이스 이름"), {
+      target: { value: "환불 주문번호 검증" },
+    });
     fireEvent.change(await screen.findByLabelText("기대 action"), {
       target: { value: "ASK_SLOT" },
     });
@@ -668,7 +678,7 @@ describe("WorkspaceSimulationPage", () => {
 
     await waitFor(() => {
       expect(mockedSimulationApi.createGoldenCase).toHaveBeenCalledWith(1, 10, {
-        name: "테스트 고객 검증 케이스",
+        name: "환불 주문번호 검증",
         expectedIntentCode: "refund_request",
         expectedWorkflowCode: "refund_workflow",
         expectedCurrentState: "collect_order_no",
@@ -698,6 +708,50 @@ describe("WorkspaceSimulationPage", () => {
       });
     });
     expect(toast.success).toHaveBeenCalledWith("검증 케이스 replay가 통과했습니다.");
+  });
+
+  it("최근 replay 실패 요약을 검증 케이스 목록에 표시한다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [
+        {
+          ...goldenCase,
+          latestReplayResult: failedReplayResult,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    expect(await screen.findByText("FAIL")).toBeInTheDocument();
+    expect(
+      screen.getByText("currentState expected collect_order_no but was handoff"),
+    ).toBeInTheDocument();
+  });
+
+  it("Replay version이 비어 있으면 replay 요청을 보내지 않는다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [goldenCase],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await screen.findByRole("button", { name: "환불 검증 replay" });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Replay version")).toHaveValue("101");
+    });
+    fireEvent.change(screen.getByLabelText("Replay version"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "환불 검증 replay" }));
+
+    expect(toast.error).toHaveBeenCalledWith("Replay version을 입력하세요.");
+    expect(mockedSimulationApi.replayGoldenCase).not.toHaveBeenCalled();
   });
 
   it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {
