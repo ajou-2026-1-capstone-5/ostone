@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { consultationApi } from "./consultationApi";
 import {
+  generateDraftResponse,
   getMessages,
   sendMessage,
   updateStatus,
-  getGetMessagesUrl,
 } from "@/shared/api/generated/endpoints/consultation-controller/consultation-controller";
+import { getQueue } from "@/shared/api/generated/endpoints/workspace-consultation-queue-controller/workspace-consultation-queue-controller";
+import {
+  assignSession,
+  getSessions,
+  releaseSession,
+  updateResponseMode,
+} from "@/shared/api/generated/endpoints/counselor-session-controller/counselor-session-controller";
 import { customFetch } from "@/shared/api/mutator";
 import type { ChatMessageResponse, ChatSessionResponse } from "@/shared/api/generated/zod";
 
@@ -13,10 +20,25 @@ vi.mock("@/shared/api/generated/endpoints/consultation-controller/consultation-c
   getMessages: vi.fn(),
   sendMessage: vi.fn(),
   updateStatus: vi.fn(),
-  getGetMessagesUrl: vi.fn(
-    (sessionId: number) => `/api/v1/consultation/sessions/${sessionId}/messages`,
-  ),
+  generateDraftResponse: vi.fn(),
 }));
+
+vi.mock(
+  "@/shared/api/generated/endpoints/workspace-consultation-queue-controller/workspace-consultation-queue-controller",
+  () => ({
+    getQueue: vi.fn(),
+  }),
+);
+
+vi.mock(
+  "@/shared/api/generated/endpoints/counselor-session-controller/counselor-session-controller",
+  () => ({
+    getSessions: vi.fn(),
+    assignSession: vi.fn(),
+    releaseSession: vi.fn(),
+    updateResponseMode: vi.fn(),
+  }),
+);
 
 vi.mock("@/shared/api/mutator", () => ({
   customFetch: vi.fn(),
@@ -25,7 +47,12 @@ vi.mock("@/shared/api/mutator", () => ({
 const mockedGetMessages = vi.mocked(getMessages);
 const mockedSendMessage = vi.mocked(sendMessage);
 const mockedUpdateStatus = vi.mocked(updateStatus);
-const mockedGetGetMessagesUrl = vi.mocked(getGetMessagesUrl);
+const mockedGenerateDraftResponse = vi.mocked(generateDraftResponse);
+const mockedGetQueue = vi.mocked(getQueue);
+const mockedGetSessions = vi.mocked(getSessions);
+const mockedAssignSession = vi.mocked(assignSession);
+const mockedReleaseSession = vi.mocked(releaseSession);
+const mockedUpdateResponseMode = vi.mocked(updateResponseMode);
 const mockedCustomFetch = vi.mocked(customFetch);
 
 describe("consultationApi", () => {
@@ -33,10 +60,16 @@ describe("consultationApi", () => {
     mockedGetMessages.mockClear();
     mockedSendMessage.mockClear();
     mockedUpdateStatus.mockClear();
+    mockedGenerateDraftResponse.mockClear();
+    mockedGetQueue.mockClear();
+    mockedGetSessions.mockClear();
+    mockedAssignSession.mockClear();
+    mockedReleaseSession.mockClear();
+    mockedUpdateResponseMode.mockClear();
     mockedCustomFetch.mockClear();
   });
 
-  it("getQueue가 queue 데이터를 반환한다", async () => {
+  it("getQueue가 generated getQueue 응답의 data를 반환한다", async () => {
     const stubSessions = [
       {
         id: 1,
@@ -46,17 +79,15 @@ describe("consultationApi", () => {
         startedAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetQueue.mockResolvedValue({
       data: stubSessions,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getQueue(2);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/queue", {
-      method: "GET",
-    });
+    expect(mockedGetQueue).toHaveBeenCalledWith(2);
     expect(result).toEqual(stubSessions);
     expect(result).toHaveLength(1);
   });
@@ -71,7 +102,7 @@ describe("consultationApi", () => {
         startedAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue(stubSessions as never);
+    mockedGetQueue.mockResolvedValue(stubSessions as never);
 
     const result = await consultationApi.getQueue(2);
 
@@ -93,7 +124,7 @@ describe("consultationApi", () => {
       data: stubMessages,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getMessages(1);
 
@@ -110,7 +141,11 @@ describe("consultationApi", () => {
       content: "test",
       createdAt: new Date().toISOString(),
     };
-    mockedSendMessage.mockResolvedValue({ data: stubMessage, status: 200, headers: new Headers() });
+    mockedSendMessage.mockResolvedValue({
+      data: stubMessage,
+      status: 200,
+      headers: new Headers(),
+    } as never);
 
     const result = await consultationApi.sendMessage(1, "test");
 
@@ -143,7 +178,11 @@ describe("consultationApi", () => {
       content: "메모",
       createdAt: new Date().toISOString(),
     };
-    mockedSendMessage.mockResolvedValue({ data: stubNote, status: 200, headers: new Headers() });
+    mockedSendMessage.mockResolvedValue({
+      data: stubNote,
+      status: 200,
+      headers: new Headers(),
+    } as never);
 
     const result = await consultationApi.sendMessage(1, "메모", true);
 
@@ -163,7 +202,7 @@ describe("consultationApi", () => {
       data: stubSession,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.updateStatus(1, "COMPLETED");
 
@@ -183,7 +222,7 @@ describe("consultationApi", () => {
       data: stubSession,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.updateStatus(1, {
       status: "RESOLVED",
@@ -201,7 +240,7 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubSession);
   });
 
-  it("getSessions가 모든 세션을 반환한다", async () => {
+  it("getSessions가 generated getSessions content를 반환한다", async () => {
     const stubSessions = [
       {
         id: 1,
@@ -211,17 +250,15 @@ describe("consultationApi", () => {
         startedAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetSessions.mockResolvedValue({
       data: stubSessions,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getSessions(2);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/sessions", {
-      method: "GET",
-    });
+    expect(mockedGetSessions).toHaveBeenCalledWith(2, {});
     expect(result).toEqual(stubSessions);
   });
 
@@ -235,52 +272,42 @@ describe("consultationApi", () => {
         startedAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({ content: stubSessions, page: 0, size: 20 });
+    mockedGetSessions.mockResolvedValue({ content: stubSessions, page: 0, size: 20 } as never);
 
     const result = await consultationApi.getSessions(2);
 
     expect(result).toEqual(stubSessions);
   });
 
-  it("getSessions가 status 필터를 전달한다", async () => {
+  it("getSessions가 status 필터를 generated params로 전달한다", async () => {
     const stubSessions: ChatSessionResponse[] = [];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetSessions.mockResolvedValue({
       data: stubSessions,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     await consultationApi.getSessions(2, { status: "OPEN" });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/2/consultation/sessions?status=OPEN",
-      {
-        method: "GET",
-      },
-    );
+    expect(mockedGetSessions).toHaveBeenCalledWith(2, { status: "OPEN" });
   });
 
-  it("getSessions가 page/size를 전달한다", async () => {
+  it("getSessions가 page/size를 generated params로 전달한다", async () => {
     const stubSessions: ChatSessionResponse[] = [];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetSessions.mockResolvedValue({
       data: stubSessions,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     await consultationApi.getSessions(2, { page: 1, size: 20 });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/2/consultation/sessions?page=1&size=20",
-      {
-        method: "GET",
-      },
-    );
+    expect(mockedGetSessions).toHaveBeenCalledWith(2, { page: 1, size: 20 });
   });
 
-  it("getSessionPage가 검색/필터 파라미터를 전달하고 page envelope를 반환한다", async () => {
+  it("getSessionPage가 검색/필터 파라미터를 generated params로 전달하고 page envelope를 반환한다", async () => {
     const stubSessions: ChatSessionResponse[] = [];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetSessions.mockResolvedValue({
       data: {
         content: stubSessions,
         page: 1,
@@ -290,7 +317,7 @@ describe("consultationApi", () => {
       },
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getSessionPage(2, {
       status: "COMPLETED",
@@ -302,12 +329,15 @@ describe("consultationApi", () => {
       size: 20,
     });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/workspaces/2/consultation/sessions?status=COMPLETED&keyword=%ED%99%98%EB%B6%88&startedFrom=2026-05-01&startedTo=2026-05-31&assignedCounselorId=42&page=1&size=20",
-      {
-        method: "GET",
-      },
-    );
+    expect(mockedGetSessions).toHaveBeenCalledWith(2, {
+      status: "COMPLETED",
+      keyword: "환불",
+      startedFrom: "2026-05-01",
+      startedTo: "2026-05-31",
+      assignedCounselorId: 42,
+      page: 1,
+      size: 20,
+    });
     expect(result).toEqual({
       content: stubSessions,
       page: 1,
@@ -317,13 +347,13 @@ describe("consultationApi", () => {
     });
   });
 
-  it("getMessages가 params 없이 호출되면 generated 함수를 사용한다", async () => {
+  it("getMessages가 params 없이 호출되면 generated getMessages를 인자 없이 사용한다", async () => {
     const stubMessages: ChatMessageResponse[] = [];
     mockedGetMessages.mockResolvedValue({
       data: stubMessages,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getMessages(1);
 
@@ -332,7 +362,7 @@ describe("consultationApi", () => {
     expect(result).toEqual(stubMessages);
   });
 
-  it("getMessages가 page/size 파라미터와 함께 호출되면 customFetch를 사용한다", async () => {
+  it("getMessages가 page/size 파라미터와 함께 호출되면 generated getMessages에 params를 전달한다", async () => {
     const stubMessages: ChatMessageResponse[] = [
       {
         id: 1,
@@ -343,19 +373,16 @@ describe("consultationApi", () => {
         createdAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetMessages.mockResolvedValue({
       data: stubMessages,
       status: 200,
       headers: new Headers(),
-    });
+    } as never);
 
     const result = await consultationApi.getMessages(1, { page: 0, size: 10 });
 
-    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=10",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 0, size: 10 });
+    expect(mockedCustomFetch).not.toHaveBeenCalled();
     expect(result).toEqual(stubMessages);
   });
 
@@ -370,15 +397,11 @@ describe("consultationApi", () => {
         createdAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue(stubMessages);
+    mockedGetMessages.mockResolvedValue(stubMessages as never);
 
     const result = await consultationApi.getMessages(1, { page: 0, size: 10 });
 
-    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=10",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 0, size: 10 });
     expect(result).toEqual(stubMessages);
   });
 
@@ -393,15 +416,11 @@ describe("consultationApi", () => {
         createdAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({ content: stubMessages, page: 0, size: 10 });
+    mockedGetMessages.mockResolvedValue({ content: stubMessages, page: 0, size: 10 } as never);
 
     const result = await consultationApi.getMessages(1, { page: 0, size: 10 });
 
-    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=10",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 0, size: 10 });
     expect(result).toEqual(stubMessages);
   });
 
@@ -416,21 +435,17 @@ describe("consultationApi", () => {
         createdAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetMessages.mockResolvedValue({
       content: stubMessages,
       page: 0,
       size: 50,
       totalElements: 75,
       totalPages: 2,
-    });
+    } as never);
 
     const result = await consultationApi.getMessagePage(1);
 
-    expect(mockedGetGetMessagesUrl).toHaveBeenCalledWith(1);
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=50",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 0, size: 50 });
     expect(result).toEqual({
       content: stubMessages,
       page: 0,
@@ -451,14 +466,11 @@ describe("consultationApi", () => {
         createdAt: new Date().toISOString(),
       },
     ];
-    mockedCustomFetch.mockResolvedValue(stubMessages);
+    mockedGetMessages.mockResolvedValue(stubMessages as never);
 
     const result = await consultationApi.getMessagePage(1, { page: 2, size: 10 });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=2&size=10",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 2, size: 10 });
     expect(result).toEqual({
       content: stubMessages,
       page: 2,
@@ -469,19 +481,16 @@ describe("consultationApi", () => {
   });
 
   it("getMessagePage가 잘못된 page/size를 요청과 응답에서 보정한다", async () => {
-    mockedCustomFetch.mockResolvedValue({
+    mockedGetMessages.mockResolvedValue({
       content: [],
       page: -3,
       size: 0,
       totalElements: 12,
-    });
+    } as never);
 
     const result = await consultationApi.getMessagePage(1, { page: -1, size: 0 });
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=1",
-      { method: "GET" },
-    );
+    expect(mockedGetMessages).toHaveBeenCalledWith(1, { page: 0, size: 1 });
     expect(result).toEqual({
       content: [],
       page: 0,
@@ -491,7 +500,7 @@ describe("consultationApi", () => {
     });
   });
 
-  it("assignSession이 상담사 ID 없이 assign API를 호출한다", async () => {
+  it("assignSession이 generated assignSession을 호출한다", async () => {
     const stubSession = {
       id: 1,
       status: "ACTIVE",
@@ -500,17 +509,15 @@ describe("consultationApi", () => {
       startedAt: new Date().toISOString(),
       assignedCounselorId: 7,
     };
-    mockedCustomFetch.mockResolvedValue(stubSession);
+    mockedAssignSession.mockResolvedValue(stubSession as never);
 
     const result = await consultationApi.assignSession(1);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/consultation/sessions/1/assign", {
-      method: "POST",
-    });
+    expect(mockedAssignSession).toHaveBeenCalledWith(1);
     expect(result).toEqual(stubSession);
   });
 
-  it("releaseSession이 상담사 ID 없이 release API를 호출한다", async () => {
+  it("releaseSession이 generated releaseSession을 호출한다", async () => {
     const stubSession = {
       id: 1,
       status: "OPEN",
@@ -519,17 +526,15 @@ describe("consultationApi", () => {
       startedAt: new Date().toISOString(),
       assignedCounselorId: null,
     };
-    mockedCustomFetch.mockResolvedValue({ data: stubSession });
+    mockedReleaseSession.mockResolvedValue({ data: stubSession } as never);
 
     const result = await consultationApi.releaseSession(1);
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith("/api/v1/consultation/sessions/1/release", {
-      method: "POST",
-    });
+    expect(mockedReleaseSession).toHaveBeenCalledWith(1);
     expect(result).toEqual(stubSession);
   });
 
-  it("updateResponseMode가 상담사 ID와 모드를 전달한다", async () => {
+  it("updateResponseMode가 generated updateResponseMode에 상담사 ID와 모드를 전달한다", async () => {
     const stubSession = {
       id: 1,
       status: "ACTIVE",
@@ -539,18 +544,25 @@ describe("consultationApi", () => {
       assignedCounselorId: 7,
       responseMode: "AI_ASSIST_ONLY" as const,
     };
-    mockedCustomFetch.mockResolvedValue({ data: stubSession });
+    mockedUpdateResponseMode.mockResolvedValue({ data: stubSession } as never);
 
     const result = await consultationApi.updateResponseMode(1, 7, "AI_ASSIST_ONLY");
 
-    expect(mockedCustomFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/response-mode",
-      {
-        method: "PATCH",
-        body: JSON.stringify({ counselorId: 7, responseMode: "AI_ASSIST_ONLY" }),
-      },
-    );
+    expect(mockedUpdateResponseMode).toHaveBeenCalledWith(1, {
+      counselorId: 7,
+      responseMode: "AI_ASSIST_ONLY",
+    });
     expect(result).toEqual(stubSession);
+  });
+
+  it("generateDraftResponse가 generated generateDraftResponse를 호출하고 data를 반환한다", async () => {
+    const stubDraft = { content: "안녕하세요, 무엇을 도와드릴까요?" };
+    mockedGenerateDraftResponse.mockResolvedValue({ data: stubDraft } as never);
+
+    const result = await consultationApi.generateDraftResponse(1);
+
+    expect(mockedGenerateDraftResponse).toHaveBeenCalledWith(1);
+    expect(result).toEqual(stubDraft);
   });
 
   it("getMetrics가 워크스페이스 상담 지표를 반환한다", async () => {

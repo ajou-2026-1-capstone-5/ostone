@@ -108,25 +108,23 @@ describe("ConsultationPage generated API integration", () => {
       if (url === "/api/v1/workspaces/2/consultation/queue") {
         return Promise.resolve({ data: [assignedSession] });
       }
-      if (url === "/api/v1/consultation/sessions/1/messages?page=0&size=50") {
-        return Promise.resolve({
-          content: [
-            {
-              id: 100,
-              seqNo: 1,
-              senderRole: "CUSTOMER",
-              messageType: "TEXT",
-              content: "generated 상담 메시지",
-              createdAt: "2026-05-22T00:01:00Z",
-            },
-          ],
-          page: 0,
-          size: 50,
-          totalElements: 1,
-          totalPages: 1,
-        });
-      }
       return Promise.reject(new Error(`Unexpected manual endpoint: ${url}`));
+    });
+    mocks.getMessages.mockResolvedValue({
+      content: [
+        {
+          id: 100,
+          seqNo: 1,
+          senderRole: "CUSTOMER",
+          messageType: "TEXT",
+          content: "generated 상담 메시지",
+          createdAt: "2026-05-22T00:01:00Z",
+        },
+      ],
+      page: 0,
+      size: 50,
+      totalElements: 1,
+      totalPages: 1,
     });
     mocks.updateStatus.mockResolvedValue({
       data: {
@@ -146,11 +144,7 @@ describe("ConsultationPage generated API integration", () => {
     expect(mocks.customFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/queue", {
       method: "GET",
     });
-    expect(mocks.customFetch).toHaveBeenCalledWith(
-      "/api/v1/consultation/sessions/1/messages?page=0&size=50",
-      { method: "GET" },
-    );
-    expect(mocks.getMessages).not.toHaveBeenCalled();
+    expect(mocks.getMessages).toHaveBeenCalledWith(1, { page: 0, size: 50 });
   });
 
   it(
