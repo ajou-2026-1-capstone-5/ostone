@@ -523,6 +523,14 @@ jobs:
           SPRING_JPA_HIBERNATE_DDL_AUTO: validate
           JWT_SECRET: ci-openapi-drift-secret-at-least-32-bytes-long
           AIRFLOW_WEBHOOK_SECRET: ci-openapi-drift-airflow-webhook
+          # generateOpenApiDocs boots the full local-profile app, which wires the
+          # OpenAI and Toss clients. These dummy values only satisfy non-blank
+          # boot config (no external calls are made during doc generation) and do
+          # not affect the generated spec — verified to produce an identical hash.
+          AI_API_KEY: sk-ci-openapi-drift-dummy-not-real
+          TOSS_SECRET_KEY: test_sk_ci_openapi_drift_dummy
+          TOSS_WEBHOOK_SECRET: ci-openapi-drift-toss-webhook
+          TOSS_BILLING_KEY_ENCRYPTION_KEY: abcdefghijklmnopqrstuvwxyz012345
 
       - name: Generate frontend client (orval)
         run: pnpm run codegen:frontend
