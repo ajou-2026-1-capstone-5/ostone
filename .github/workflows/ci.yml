@@ -463,6 +463,8 @@ jobs:
     needs: paths-filter
     if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.backend == 'true' || needs.paths-filter.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -479,6 +481,8 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -545,8 +549,12 @@ jobs:
 
   scripts-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   isJarStale,
@@ -45,10 +46,6 @@ test("newestMtimeMs: nonexistent paths → 0", () => {
 });
 
 test("newestMtimeMs: a real file returns a positive mtime", () => {
-  const self = fileURLToPathSafe(import.meta.url);
+  const self = fileURLToPath(import.meta.url);
   assert.ok(newestMtimeMs([self]) > 0);
 });
-
-function fileURLToPathSafe(url) {
-  return new URL(url).pathname;
-}
