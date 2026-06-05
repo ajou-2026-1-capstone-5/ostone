@@ -1215,6 +1215,13 @@ create unique index uq_payment_subscription_workspace_open
     on payment.subscription (workspace_id)
     where status in ('INCOMPLETE', 'ACTIVE', 'PAST_DUE');
 
+--changeset init:20260605-include-authorizing-subscription-open-index
+--comment: Treat billing-key authorization in progress as an open subscription
+drop index if exists payment.uq_payment_subscription_workspace_open;
+create unique index uq_payment_subscription_workspace_open
+    on payment.subscription (workspace_id)
+    where status in ('INCOMPLETE', 'AUTHORIZING', 'ACTIVE', 'PAST_DUE');
+
 --changeset init:20260603-add-idempotency-key-payment-cancel
 --comment: Per-cancel-attempt idempotency key for Toss API — prevents partial-cancel collisions (V-EC-004)
 alter table payment.payment_cancel add column idempotency_key varchar(255);

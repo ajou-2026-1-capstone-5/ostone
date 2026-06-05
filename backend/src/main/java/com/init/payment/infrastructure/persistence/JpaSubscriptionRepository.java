@@ -3,10 +3,14 @@ package com.init.payment.infrastructure.persistence;
 import com.init.payment.domain.model.Subscription;
 import com.init.payment.domain.model.SubscriptionStatus;
 import com.init.payment.domain.repository.SubscriptionRepository;
+import jakarta.persistence.LockModeType;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -18,6 +22,23 @@ public interface JpaSubscriptionRepository
     return findFirstByWorkspaceIdAndStatusNotOrderByIdDesc(
         workspaceId, SubscriptionStatus.CANCELED);
   }
+
+  @Override
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select s from Subscription s where s.id = :id")
+  Optional<Subscription> findByIdForUpdate(@Param("id") Long id);
+
+  @Override
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select s
+      from Subscription s
+      where s.workspaceId = :workspaceId
+        and s.status <> com.init.payment.domain.model.SubscriptionStatus.CANCELED
+      order by s.id desc
+      """)
+  Optional<Subscription> findCurrentByWorkspaceIdForUpdate(@Param("workspaceId") Long workspaceId);
 
   @Override
   default List<Subscription> findChargeable(OffsetDateTime now) {

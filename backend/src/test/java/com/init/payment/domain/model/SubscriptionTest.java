@@ -37,6 +37,22 @@ class SubscriptionTest {
   }
 
   @Test
+  @DisplayName("billing authorization 시작과 실패 재시도 전이는 INCOMPLETE와 AUTHORIZING 사이에서만 허용한다")
+  void billingAuthorization_transitions() {
+    Subscription subscription = Subscription.create(1L, 10L);
+
+    subscription.beginAuthorization();
+    assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.AUTHORIZING);
+
+    subscription.resetAuthorization();
+    assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.INCOMPLETE);
+
+    subscription.activate(START, END, "wsk_1_abc");
+    assertThatThrownBy(subscription::beginAuthorization).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(subscription::resetAuthorization).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
   @DisplayName("정기결제 실패 4회차에 재시도가 소진되어 해지된다 (U-004)")
   void recurringFailure_exhaustsRetryAndCancels() {
     Subscription subscription = activeSubscription();

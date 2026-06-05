@@ -30,6 +30,7 @@ class StatusEnumTest {
   void subscriptionStatus_isActive() {
     assertThat(SubscriptionStatus.ACTIVE.isActive()).isTrue();
     assertThat(SubscriptionStatus.INCOMPLETE.isActive()).isFalse();
+    assertThat(SubscriptionStatus.AUTHORIZING.isActive()).isFalse();
     assertThat(SubscriptionStatus.PAST_DUE.isActive()).isFalse();
     assertThat(SubscriptionStatus.CANCELED.isActive()).isFalse();
   }
@@ -39,6 +40,7 @@ class StatusEnumTest {
   void subscriptionStatus_isTerminated() {
     assertThat(SubscriptionStatus.CANCELED.isTerminated()).isTrue();
     assertThat(SubscriptionStatus.ACTIVE.isTerminated()).isFalse();
+    assertThat(SubscriptionStatus.AUTHORIZING.isTerminated()).isFalse();
     assertThat(SubscriptionStatus.PAST_DUE.isTerminated()).isFalse();
   }
 }
