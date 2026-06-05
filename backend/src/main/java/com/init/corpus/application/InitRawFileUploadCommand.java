@@ -26,6 +26,10 @@ public record InitRawFileUploadCommand(
       throw new BadRequestException(
           "VALIDATION_ERROR", "datasetKey must not exceed 100 characters");
     }
+    if (!RawFileUploadDatasetKeyPolicy.isSafeObjectKeySegment(datasetKey)) {
+      throw new BadRequestException(
+          "VALIDATION_ERROR", RawFileUploadDatasetKeyPolicy.SAFE_OBJECT_KEY_SEGMENT_DESCRIPTION);
+    }
     if (name == null || name.isBlank()) {
       throw new BadRequestException("VALIDATION_ERROR", "name must not be blank");
     }

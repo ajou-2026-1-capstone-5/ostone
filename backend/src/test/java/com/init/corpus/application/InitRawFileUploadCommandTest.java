@@ -1,10 +1,13 @@
 package com.init.corpus.application;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.init.shared.application.exception.BadRequestException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @DisplayName("InitRawFileUploadCommand")
 class InitRawFileUploadCommandTest {
@@ -41,12 +44,34 @@ class InitRawFileUploadCommandTest {
   }
 
   @Test
+  @DisplayName("datasetKey가 안전한 slug이면 생성된다")
+  void compact_constructor_accepts_safe_datasetKey_slug() {
+    assertThatCode(
+            () ->
+                new InitRawFileUploadCommand(
+                    WS_ID, "crm_2026-logs", NAME, SOURCE, USER_ID, FILENAME, CONTENT_TYPE, SIZE))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
   @DisplayName("datasetKey가 null이면 BadRequestException을 던진다")
   void compact_constructor_rejects_null_datasetKey() {
     assertThatThrownBy(
             () ->
                 new InitRawFileUploadCommand(
                     WS_ID, null, NAME, SOURCE, USER_ID, FILENAME, CONTENT_TYPE, SIZE))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("datasetKey");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"../dataset", "foo/bar", "dataset.key", "-dataset", "dataset\nkey"})
+  @DisplayName("datasetKey가 object key 세그먼트로 안전하지 않으면 BadRequestException을 던진다")
+  void compact_constructor_rejects_unsafe_datasetKey_segment(String unsafeKey) {
+    assertThatThrownBy(
+            () ->
+                new InitRawFileUploadCommand(
+                    WS_ID, unsafeKey, NAME, SOURCE, USER_ID, FILENAME, CONTENT_TYPE, SIZE))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("datasetKey");
   }
