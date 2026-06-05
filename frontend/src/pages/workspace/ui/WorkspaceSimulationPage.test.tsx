@@ -903,6 +903,9 @@ describe("WorkspaceSimulationPage", () => {
     renderPage();
 
     await screen.findByText("환불하고 싶어요");
+    await waitFor(() => {
+      expect(screen.getByLabelText("Replay version")).toHaveValue("101");
+    });
     fireEvent.click(
       await screen.findByRole("button", { name: "환불 검증 replay" }),
     );
