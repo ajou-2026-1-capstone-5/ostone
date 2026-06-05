@@ -13,6 +13,9 @@ public interface PipelineJobRepository {
 
   Optional<PipelineJob> findActiveDomainPackGenerationJob(Long workspaceId, Long datasetId);
 
+  Optional<PipelineJob> findLatestByWorkspaceIdAndDatasetIdAndJobType(
+      Long workspaceId, Long datasetId, String jobType);
+
   Page<PipelineJob> findAdminPipelineJobs(
       String status, Long workspaceId, String dagId, String runId, Pageable pageable);
 

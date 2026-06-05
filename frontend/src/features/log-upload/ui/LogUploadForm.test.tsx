@@ -11,13 +11,17 @@ const mockUploadReset = vi.fn();
 const mockTriggerMutate = vi.fn();
 const mockNavigate = vi.fn();
 const mockTriggerReset = vi.fn();
+const mockIngestionRefetch = vi.fn();
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -35,9 +39,17 @@ type TriggerVariables = { workspaceId: number; datasetId: number };
 let startBehavior: "success" | "error" | "pending" = "success";
 let startError = "업로드 실패";
 let lastStartParams: StartParams | null = null;
-let callTriggerOnSuccess: ((response: unknown, variables: TriggerVariables) => void) | null = null;
+let callTriggerOnSuccess:
+  | ((response: unknown, variables: TriggerVariables) => void)
+  | null = null;
 let callTriggerOnError: ((error: unknown) => void) | null = null;
 let mockTriggerIsPending = false;
+let mockIngestionQuery = {
+  data: { pipelineJob: null },
+  isLoading: false,
+  isError: false,
+  isFetching: false,
+};
 
 vi.mock("../model/useRawFileUpload", () => ({
   useRawFileUpload: () => ({
@@ -64,6 +76,13 @@ vi.mock("../model/useRawFileUpload", () => ({
     },
     cancel: mockUploadCancel,
     reset: mockUploadReset,
+  }),
+}));
+
+vi.mock("../model/useLatestDatasetPipelineJob", () => ({
+  useLatestDatasetPipelineJob: () => ({
+    ...mockIngestionQuery,
+    refetch: mockIngestionRefetch,
   }),
 }));
 
@@ -125,7 +144,11 @@ vi.mock("../../../shared/ui/file-upload/FileUploader", () => ({
       <button
         type="button"
         data-testid="force-file-select"
-        onClick={() => onFileSelect(new File(["data"], "blocked.zip", { type: "application/zip" }))}
+        onClick={() =>
+          onFileSelect(
+            new File(["data"], "blocked.zip", { type: "application/zip" }),
+          )
+        }
       >
         force select
       </button>
@@ -144,13 +167,21 @@ describe("LogUploadForm", () => {
     callTriggerOnSuccess = null;
     callTriggerOnError = null;
     mockTriggerIsPending = false;
+    mockIngestionQuery = {
+      data: { pipelineJob: null },
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+    };
   });
 
   it("renders upload header and file uploader", () => {
     render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
     expect(screen.getByText("상담 로그 업로드")).toBeInTheDocument();
     expect(
-      screen.getByText("상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다."),
+      screen.getByText(
+        "상담로그를 업로드 하면 챗봇이 작동할 수 있는 데이터가 생성됩니다.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("무료 온보딩 가능")).toBeInTheDocument();
     expect(screen.getByTestId("file-uploader")).toBeInTheDocument();
@@ -161,12 +192,17 @@ describe("LogUploadForm", () => {
   });
 
   it("shows in-progress onboarding state", () => {
-    render(<LogUploadForm workspaceId={1} freeOnboardingStatus="IN_PROGRESS" />, {
-      wrapper: MemoryRouter,
-    });
+    render(
+      <LogUploadForm workspaceId={1} freeOnboardingStatus="IN_PROGRESS" />,
+      {
+        wrapper: MemoryRouter,
+      },
+    );
 
     expect(screen.getByText("무료 온보딩 진행 중")).toBeInTheDocument();
-    expect(screen.getByText(/도메인팩 초안 생성과 검토 진입/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/도메인팩 초안 생성과 검토 진입/),
+    ).toBeInTheDocument();
   });
 
   it("blocks upload when free onboarding is consumed without active subscription", () => {
@@ -211,7 +247,9 @@ describe("LogUploadForm", () => {
       { wrapper: MemoryRouter },
     );
     const file = new File(["data"], "data.zip", { type: "application/zip" });
-    fireEvent.change(screen.getByTestId("file-input"), { target: { files: [file] } });
+    fireEvent.change(screen.getByTestId("file-input"), {
+      target: { files: [file] },
+    });
 
     rerender(
       <LogUploadForm
@@ -227,7 +265,11 @@ describe("LogUploadForm", () => {
 
   it("allows upload when free onboarding is consumed but subscription is active", () => {
     render(
-      <LogUploadForm workspaceId={1} freeOnboardingStatus="CONSUMED" hasActiveSubscription />,
+      <LogUploadForm
+        workspaceId={1}
+        freeOnboardingStatus="CONSUMED"
+        hasActiveSubscription
+      />,
       { wrapper: MemoryRouter },
     );
 
@@ -249,7 +291,9 @@ describe("LogUploadForm", () => {
     const file = new File(["test"], "test.json", { type: "application/json" });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("ZIP 파일만 업로드할 수 있습니다.");
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      "ZIP 파일만 업로드할 수 있습니다.",
+    );
   });
 
   it("rejects files larger than 4GB with toast error", () => {
@@ -258,7 +302,9 @@ describe("LogUploadForm", () => {
     Object.defineProperty(file, "size", { value: 4 * 1024 * 1024 * 1024 + 1 });
     const input = screen.getByTestId("file-input");
     fireEvent.change(input, { target: { files: [file] } });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("파일 크기는 4GB 이하여야 합니다.");
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+      "파일 크기는 4GB 이하여야 합니다.",
+    );
   });
 
   it("starts the presigned upload on Start Processing click", () => {
@@ -289,9 +335,52 @@ describe("LogUploadForm", () => {
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
     expect(screen.getByText("다른 파일 업로드")).toBeInTheDocument();
+    expect(screen.getByText("파이프라인 준비 중")).toBeInTheDocument();
     expect(screen.getByText("도메인팩 초안 생성 시작")).toBeInTheDocument();
     expect(screen.getByText(/dataset 42/)).toBeInTheDocument();
     expect(screen.queryByText("도메인팩 관리로 이동")).not.toBeInTheDocument();
+  });
+
+  it("shows automatic ingestion pipeline status and opens status screen", () => {
+    mockIngestionQuery = {
+      data: {
+        pipelineJob: {
+          pipelineJobId: 77,
+          workspaceId: 1,
+          datasetId: 42,
+          domainPackId: null,
+          jobType: "INGESTION",
+          status: "RUNNING",
+          airflowDagId: "domain_pack_generation",
+          airflowRunId: "pipeline_job_77",
+          requestedAt: "2026-06-05T01:00:00Z",
+          startedAt: "2026-06-05T01:00:10Z",
+          finishedAt: null,
+          runningDurationSeconds: 95,
+          lastErrorMessage: null,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+    };
+
+    render(<LogUploadForm workspaceId={1} />, { wrapper: MemoryRouter });
+    const file = new File(["data"], "data.zip", { type: "application/zip" });
+    fireEvent.change(screen.getByTestId("file-input"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByText("처리 시작"));
+
+    expect(screen.getByText("자동 생성 파이프라인")).toBeInTheDocument();
+    expect(screen.getByText(/job 77 · pipeline_job_77/)).toBeInTheDocument();
+    expect(screen.getByText("DAG domain_pack_generation")).toBeInTheDocument();
+    expect(screen.getByText("실행 1m 35s")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("상태 화면으로 이동"));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/workspaces/1/pipeline-jobs/77/review",
+    );
   });
 
   it("shows upload failure toast with retry action", () => {
@@ -323,7 +412,10 @@ describe("LogUploadForm", () => {
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
     fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
-    expect(mockTriggerMutate).toHaveBeenCalledWith({ workspaceId: 1, datasetId: 42 });
+    expect(mockTriggerMutate).toHaveBeenCalledWith({
+      workspaceId: 1,
+      datasetId: 42,
+    });
   });
 
   it("ignores rapid duplicate generation clicks before pending state re-renders", () => {
@@ -350,7 +442,9 @@ describe("LogUploadForm", () => {
     fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByText("처리 시작"));
 
-    expect(screen.getByText("도메인팩 초안 생성 시작").closest("button")).toBeDisabled();
+    expect(
+      screen.getByText("도메인팩 초안 생성 시작").closest("button"),
+    ).toBeDisabled();
   });
 
   it("shows review CTA after generation request succeeds with pipeline job id", () => {
@@ -370,7 +464,9 @@ describe("LogUploadForm", () => {
     expect(screen.getByText("생성 요청 완료")).toBeInTheDocument();
     expect(screen.getByText(/job 11 · REQUESTED/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("검토 화면으로 이동"));
-    expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/pipeline-jobs/11/review");
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/workspaces/1/pipeline-jobs/11/review",
+    );
 
     fireEvent.click(screen.getByText("도메인팩 관리로 이동"));
     expect(mockNavigate).toHaveBeenCalledWith("/workspaces/1/domain-packs");
@@ -384,7 +480,10 @@ describe("LogUploadForm", () => {
     fireEvent.click(screen.getByText("처리 시작"));
     fireEvent.click(screen.getByText("도메인팩 초안 생성 시작"));
     act(() => {
-      callTriggerOnSuccess?.({ status: "REQUESTED" }, { workspaceId: 1, datasetId: 42 });
+      callTriggerOnSuccess?.(
+        { status: "REQUESTED" },
+        { workspaceId: 1, datasetId: 42 },
+      );
     });
 
     expect(screen.getByText("생성 요청 완료")).toBeInTheDocument();

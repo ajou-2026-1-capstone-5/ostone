@@ -130,6 +130,22 @@
   text-transform: uppercase;
 }
 
+.pipelineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pipelineMeta span {
+  padding: 6px 10px;
+  color: var(--text-muted);
+  background: #ffffff;
+  border: 1px solid var(--glass-border);
+  border-radius: 50px;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
 .successActions {
   display: flex;
   gap: 16px;
