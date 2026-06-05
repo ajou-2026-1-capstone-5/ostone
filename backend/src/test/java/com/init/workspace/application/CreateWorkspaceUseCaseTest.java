@@ -4,8 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.init.shared.application.exception.QuotaExceededException;
+import com.init.shared.application.quota.WorkspaceQuotaValidator;
 import com.init.workspace.application.exception.WorkspaceInvalidKeyException;
 import com.init.workspace.application.exception.WorkspaceKeyAlreadyExistsException;
 import com.init.workspace.domain.model.Workspace;
@@ -30,12 +34,15 @@ class CreateWorkspaceUseCaseTest {
 
   @Mock private WorkspaceRepository workspaceRepository;
   @Mock private WorkspaceMemberRepository workspaceMemberRepository;
+  @Mock private WorkspaceQuotaValidator workspaceQuotaValidator;
 
   private CreateWorkspaceUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase = new CreateWorkspaceUseCase(workspaceRepository, workspaceMemberRepository);
+    useCase =
+        new CreateWorkspaceUseCase(
+            workspaceRepository, workspaceMemberRepository, workspaceQuotaValidator);
   }
 
   @Test
@@ -53,7 +60,25 @@ class CreateWorkspaceUseCaseTest {
     assertThat(result.workspaceId()).isEqualTo(1L);
     assertThat(result.myRole()).isEqualTo("OWNER");
     verify(workspaceRepository).save(any());
+    verify(workspaceQuotaValidator).assertMemberAddAllowed(1L);
     verify(workspaceMemberRepository).save(any());
+  }
+
+  @Test
+  @DisplayName("멤버 한도 초과 → 멤버 저장 없이 QuotaExceededException")
+  void should_QuotaExceeded_when_memberLimitReached() {
+    Workspace workspace = buildWorkspace(1L, "cs-team-alpha", "CS Team", "desc");
+    given(workspaceRepository.existsByWorkspaceKey(any())).willReturn(false);
+    given(workspaceRepository.save(any())).willReturn(workspace);
+    willThrow(new QuotaExceededException("MEMBER", 3, 3))
+        .given(workspaceQuotaValidator)
+        .assertMemberAddAllowed(1L);
+
+    assertThatThrownBy(
+            () ->
+                useCase.execute(new CreateWorkspaceCommand("cs-team-alpha", "CS Team", "desc", 7L)))
+        .isInstanceOf(QuotaExceededException.class);
+    verify(workspaceMemberRepository, never()).save(any());
   }
 
   @Test

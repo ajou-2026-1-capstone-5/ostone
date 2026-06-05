@@ -870,7 +870,7 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
         <Button asChild variant="default">
           <Link to={`/workspaces/${workspaceId}/upload`} data-testid="dashboard-upload-cta">
             <FileUpIcon aria-hidden="true" />
-            상담 로그 업로드
+            상담 업로드
           </Link>
         </Button>
         <Button asChild variant="outline">

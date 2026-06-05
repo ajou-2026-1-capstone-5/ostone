@@ -50,6 +50,17 @@ describe("RegisterBillingButton", () => {
     expect(mockMutate).toHaveBeenCalledWith({ workspaceId: 1, subscription: null });
   });
 
+  it("planKey prop을 mutate로 전달한다", () => {
+    mockIsTossClientKeyConfigured.mockReturnValue(true);
+    render(<RegisterBillingButton workspaceId={1} subscription={null} planKey="max_monthly" />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(mockMutate).toHaveBeenCalledWith({
+      workspaceId: 1,
+      subscription: null,
+      planKey: "max_monthly",
+    });
+  });
+
   it("isPending 상태에서 결제창 이동 텍스트 표시", () => {
     mockUseRegisterBilling.mockReturnValue({
       mutate: mockMutate,

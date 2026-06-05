@@ -8,5 +8,6 @@ public record WorkspaceQuota(
     int memberLimit,
     int datasetUploadLimit,
     int pipelineRunLimit,
+    int pipelineRunHourlyLimit,
     OffsetDateTime currentPeriodStart,
     OffsetDateTime currentPeriodEnd) {}

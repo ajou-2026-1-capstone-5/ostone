@@ -30,21 +30,24 @@ export function QuotaUsageCard({ quotaUsages }: QuotaUsageCardProps) {
 function QuotaUsageRow({ quota }: { quota: QuotaUsageResponse }) {
   const used = quota.used ?? 0;
   const limit = quota.limit ?? 0;
-  const ratio = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const unlimited = limit < 0;
+  const ratio = !unlimited && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   const label = QUOTA_LABELS[quota.resource ?? ""] ?? quota.resource ?? "Quota";
-  const isWarning = Boolean(quota.warning);
+  const isWarning = !unlimited && Boolean(quota.warning);
 
   return (
     <div className={isWarning ? styles.quotaRowWarning : styles.quotaRow}>
       <div className={styles.quotaMeta}>
         <span className={styles.quotaLabel}>{label}</span>
         <span className={styles.quotaValue}>
-          {used} / {limit}
+          {unlimited ? `${used} / 무제한` : `${used} / ${limit}`}
         </span>
       </div>
-      <div className={styles.quotaTrack} aria-hidden="true">
-        <span className={styles.quotaFill} style={{ width: `${ratio}%` }} />
-      </div>
+      {unlimited ? null : (
+        <div className={styles.quotaTrack} aria-hidden="true">
+          <span className={styles.quotaFill} style={{ width: `${ratio}%` }} />
+        </div>
+      )}
       {isWarning ? <p className={styles.quotaWarningText}>한도에 도달했습니다.</p> : null}
     </div>
   );

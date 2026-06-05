@@ -55,4 +55,40 @@ class PlanTest {
     assertThat(price.amount()).isEqualTo(29000);
     assertThat(price.currency()).isEqualTo("KRW");
   }
+
+  @Test
+  @DisplayName("기본 팩토리는 한도 기본값(멤버10/시간당1)과 비-contact를 적용한다")
+  void create_defaults() {
+    Plan plan = Plan.create("pro_monthly", "Pro", 29000, "KRW", BillingInterval.MONTH);
+
+    assertThat(plan.getMemberLimit()).isEqualTo(10);
+    assertThat(plan.getDatasetUploadLimit()).isEqualTo(10);
+    assertThat(plan.getPipelineRunLimit()).isEqualTo(10);
+    assertThat(plan.getPipelineRunHourlyLimit()).isEqualTo(1);
+    assertThat(plan.isContactOnly()).isFalse();
+  }
+
+  @Test
+  @DisplayName("명시 팩토리는 전달된 한도/contact-only를 그대로 적용한다")
+  void create_withExplicitLimits() {
+    Plan plan =
+        Plan.create(
+            "max_monthly", "Max", 49000, "KRW", BillingInterval.MONTH, 10, 10, 10, 5, false);
+
+    assertThat(plan.getMemberLimit()).isEqualTo(10);
+    assertThat(plan.getPipelineRunHourlyLimit()).isEqualTo(5);
+    assertThat(plan.isContactOnly()).isFalse();
+  }
+
+  @Test
+  @DisplayName("Enterprise는 무제한(-1) 한도와 contact-only로 생성된다")
+  void create_enterpriseUnlimitedContactOnly() {
+    Plan plan =
+        Plan.create(
+            "enterprise", "Enterprise", 0, "KRW", BillingInterval.MONTH, -1, -1, -1, -1, true);
+
+    assertThat(plan.getMemberLimit()).isEqualTo(-1);
+    assertThat(plan.getPipelineRunHourlyLimit()).isEqualTo(-1);
+    assertThat(plan.isContactOnly()).isTrue();
+  }
 }

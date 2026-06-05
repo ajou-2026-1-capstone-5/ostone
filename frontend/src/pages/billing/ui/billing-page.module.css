@@ -46,6 +46,46 @@
   justify-content: flex-end;
 }
 
+.planSwitchBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-6);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--paper);
+}
+
+.switchTitle {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 540;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+
+.switchHint {
+  margin: 2px 0 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  letter-spacing: -0.14px;
+}
+
+.backBar {
+  display: flex;
+}
+
+@media (max-width: 560px) {
+  .planSwitchBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .statePanel {
   min-height: 320px;
   display: flex;
@@ -63,6 +103,15 @@
 .stateText {
   color: var(--ink-2);
   line-height: 1.6;
+}
+
+.planNote {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.6;
+  letter-spacing: -0.14px;
 }
 
 .emptyHistory {

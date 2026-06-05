@@ -17,6 +17,8 @@ interface RegisterBillingParams {
   workspaceId: number;
   /** 현재 구독(없으면 null). INCOMPLETE 면 그대로 customerKey 재사용, 없으면 먼저 생성한다. */
   subscription: SubscriptionResponse | null;
+  /** 선택한 요금제 planKey. 미지정 시 기본 Pro. Enterprise(contact-only)는 이 흐름을 호출하지 않는다. */
+  planKey?: string;
 }
 
 /** 사용자가 자동결제 인증창을 닫은 경우(USER_CANCEL)는 에러 토스트를 띄우지 않는다. */
@@ -60,11 +62,13 @@ export function useRegisterBilling() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ workspaceId, subscription }: RegisterBillingParams) => {
+    mutationFn: async ({ workspaceId, subscription, planKey }: RegisterBillingParams) => {
       let serverCustomerKey = subscription?.customerKey ?? null;
 
       if (!subscription) {
-        const res = await createSubscription(workspaceId, { planKey: PRO_PLAN.planKey });
+        const res = await createSubscription(workspaceId, {
+          planKey: planKey ?? PRO_PLAN.planKey,
+        });
         const created = selectApiData(res) as SubscriptionResponse | undefined;
         serverCustomerKey = created?.customerKey ?? null;
         queryClient.setQueryData(billingQueryKeys.subscription(workspaceId), created ?? null);

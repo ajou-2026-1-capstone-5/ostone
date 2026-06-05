@@ -63,6 +63,35 @@ public class JdbcWorkspaceQuotaUsageRepository implements WorkspaceQuotaUsagePor
   }
 
   @Override
+  public long countDomainPackOperations(
+      Long workspaceId, OffsetDateTime fromInclusive, OffsetDateTime toExclusive) {
+    return jdbcClient
+        .sql(
+            """
+            SELECT (
+                SELECT COUNT(*)
+                  FROM pipeline.pipeline_job
+                 WHERE workspace_id = :workspaceId
+                   AND job_type = 'DOMAIN_PACK_GENERATION'
+                   AND requested_at >= :fromInclusive
+                   AND requested_at < :toExclusive
+            ) + (
+                SELECT COUNT(*)
+                  FROM review.review_decision rd
+                  JOIN review.review_session rs ON rs.id = rd.review_session_id
+                 WHERE rs.workspace_id = :workspaceId
+                   AND rd.decided_at >= :fromInclusive
+                   AND rd.decided_at < :toExclusive
+            )
+            """)
+        .param("workspaceId", workspaceId)
+        .param("fromInclusive", fromInclusive)
+        .param("toExclusive", toExclusive)
+        .query(Long.class)
+        .single();
+  }
+
+  @Override
   public long countDatasetUploads(Long workspaceId) {
     return jdbcClient
         .sql("SELECT COUNT(*) FROM corpus.dataset WHERE workspace_id = :workspaceId")
@@ -80,6 +109,28 @@ public class JdbcWorkspaceQuotaUsageRepository implements WorkspaceQuotaUsagePor
               FROM pipeline.pipeline_job
              WHERE workspace_id = :workspaceId
                AND job_type = 'DOMAIN_PACK_GENERATION'
+            """)
+        .param("workspaceId", workspaceId)
+        .query(Long.class)
+        .single();
+  }
+
+  @Override
+  public long countDomainPackOperations(Long workspaceId) {
+    return jdbcClient
+        .sql(
+            """
+            SELECT (
+                SELECT COUNT(*)
+                  FROM pipeline.pipeline_job
+                 WHERE workspace_id = :workspaceId
+                   AND job_type = 'DOMAIN_PACK_GENERATION'
+            ) + (
+                SELECT COUNT(*)
+                  FROM review.review_decision rd
+                  JOIN review.review_session rs ON rs.id = rd.review_session_id
+                 WHERE rs.workspace_id = :workspaceId
+            )
             """)
         .param("workspaceId", workspaceId)
         .query(Long.class)

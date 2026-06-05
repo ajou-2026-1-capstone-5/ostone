@@ -26,6 +26,7 @@ public class JdbcWorkspaceQuotaRepository implements WorkspaceQuotaQueryPort {
                    p.member_limit,
                    p.dataset_upload_limit,
                    p.pipeline_run_limit,
+                   p.pipeline_run_hourly_limit,
                    s.current_period_start,
                    s.current_period_end
               FROM payment.subscription s
@@ -47,6 +48,7 @@ public class JdbcWorkspaceQuotaRepository implements WorkspaceQuotaQueryPort {
                     rs.getInt("member_limit"),
                     rs.getInt("dataset_upload_limit"),
                     rs.getInt("pipeline_run_limit"),
+                    rs.getInt("pipeline_run_hourly_limit"),
                     rs.getObject("current_period_start", OffsetDateTime.class),
                     rs.getObject("current_period_end", OffsetDateTime.class)))
         .optional();

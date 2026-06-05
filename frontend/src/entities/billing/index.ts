@@ -12,7 +12,15 @@ export type {
   SubscriptionResponse,
   SubscriptionStatus,
 } from "@/entities/billing/model/types";
-export { PRO_PLAN, type BillingPlan } from "@/entities/billing/model/plans";
+export {
+  PRO_PLAN,
+  FREE_PLAN_KEY,
+  ENTERPRISE_CONTACT,
+  PLAN_COPY,
+  type BillingPlan,
+  type PlanCatalogEntry,
+  type PlanCopy,
+} from "@/entities/billing/model/plans";
 export { deriveCustomerKey } from "@/entities/billing/model/customerKey";
 export {
   getPaymentStatusMeta,
@@ -23,6 +31,7 @@ export {
 } from "@/entities/billing/model/status";
 export { formatAmount, formatDate } from "@/entities/billing/lib/format";
 export { useBillingOverview } from "@/entities/billing/api/useBillingOverview";
+export { usePlanCatalog } from "@/entities/billing/api/usePlanCatalog";
 export { useSubscription } from "@/entities/billing/api/useSubscription";
 export { usePayments } from "@/entities/billing/api/usePayments";
 export { StatusBadge } from "@/entities/billing/ui/StatusBadge";

@@ -97,7 +97,7 @@ export function buildWorkspaceDashboardHealthView(
   if (!lastUpload) {
     ctas.push({
       kind: "upload",
-      label: "상담 로그 업로드",
+      label: "상담 업로드",
       to: `/workspaces/${workspaceId}/upload`,
     });
   }

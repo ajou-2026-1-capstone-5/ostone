@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useOutletContext, useParams } from "react-router-dom";
 
 import {
@@ -6,18 +6,24 @@ import {
   PaymentHistoryList,
   QuotaUsageCard,
   SubscriptionStatusCard,
-  deriveCustomerKey,
   useBillingOverview,
+  usePlanCatalog,
+  PLAN_COPY,
+  FREE_PLAN_KEY,
   type BillingKeyResponse,
   type PaymentResponse,
 } from "@/entities/billing";
-import { PlanCard } from "@/features/subscribe-plan";
+import {
+  PlanComparison,
+  EnterpriseContactDialog,
+  type PlanComparisonEntry,
+} from "@/features/subscribe-plan";
 import { RegisterBillingButton } from "@/features/register-billing-method";
-import { PayOnceWidget } from "@/features/pay-once";
 import { CancelSubscriptionButton, RefundButton } from "@/features/cancel-subscription";
 import { WorkspaceSettingsNav } from "@/widgets/workspace-settings-nav";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
+import { Button } from "@/shared/ui/button";
 import { LoadingSpinner } from "@/shared/ui/ostone/atoms/LoadingSpinner";
 import { ErrorState } from "@/shared/ui/ostone/atoms/ErrorState";
 import { EmptyState } from "@/shared/ui/ostone/atoms/EmptyState";
@@ -33,6 +39,7 @@ export function BillingPage() {
   const { setCrumbs } = useOutletContext<ShellContext>();
   const location = useLocation();
   const parsedWorkspaceId = parseRouteId(workspaceId);
+  const [showPlans, setShowPlans] = useState(false);
 
   useEffect(() => {
     setCrumbs(["워크스페이스 설정", "구독"]);
@@ -40,9 +47,11 @@ export function BillingPage() {
   }, [setCrumbs]);
 
   const overviewQuery = useBillingOverview(parsedWorkspaceId);
+  const planCatalogQuery = usePlanCatalog();
   const overview = overviewQuery.data ?? null;
   const subscription = overview?.subscription ?? null;
   const showRegister = !subscription || subscription.status === "INCOMPLETE";
+  const engaged = subscription?.status === "ACTIVE" || subscription?.status === "PAST_DUE";
   const payments = overview?.payments ?? [];
   const quotaUsages = overview?.quotaUsages ?? [];
 
@@ -52,7 +61,104 @@ export function BillingPage() {
 
   const billingKeyFromRedirect = (location.state as BillingLocationState | null)?.billingKey;
   const latestDoneMethod = payments.find((payment) => payment.status === "DONE")?.method;
-  const customerKey = deriveCustomerKey(parsedWorkspaceId, subscription?.customerKey);
+
+  const renderPlanAction = (entry: PlanComparisonEntry) => {
+    if (entry.current && (engaged || !subscription)) {
+      return (
+        <Button
+          type="button"
+          disabled
+          className="h-11 w-full rounded-full px-6 disabled:opacity-100"
+          data-testid="current-plan-cta"
+        >
+          이용 중
+        </Button>
+      );
+    }
+    if (entry.planKey === FREE_PLAN_KEY) {
+      return (
+        <Button type="button" variant="outline" className="h-11 w-full rounded-full px-6" disabled>
+          기본 제공
+        </Button>
+      );
+    }
+    if (entry.contactOnly) {
+      return <EnterpriseContactDialog />;
+    }
+    // 이미 구독(생성됨)이 있으면 다른 플랜으로의 전환은 지원하지 않는다(백엔드 전환 endpoint 부재).
+    // INCOMPLETE 구독은 '현재 플랜'의 결제수단 등록만 가능하므로, 그 외 유료 플랜 CTA 는 비활성화해
+    // 선택한 plan 이 무음으로 무시된 채 기존 플랜으로 결제 등록되는 일을 막는다.
+    if (subscription && !entry.current) {
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full rounded-full px-6"
+          disabled
+          data-testid="plan-switch-disabled-cta"
+        >
+          선택 불가
+        </Button>
+      );
+    }
+    const planName = PLAN_COPY[entry.planKey]?.name ?? "플랜";
+    return (
+      <RegisterBillingButton
+        workspaceId={parsedWorkspaceId}
+        subscription={subscription}
+        planKey={entry.planKey}
+        label={entry.current ? "결제수단 등록" : `${planName}로 업그레이드`}
+      />
+    );
+  };
+
+  const renderPlansSection = (currentPlanKey: string | null, showBack: boolean) => (
+    <div className={styles.sections}>
+      {showBack && (
+        <div className={styles.backBar}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="rounded-full"
+            onClick={() => setShowPlans(false)}
+          >
+            ← 구독 관리로 돌아가기
+          </Button>
+        </div>
+      )}
+
+      {planCatalogQuery.isLoading && (
+        <div className={styles.statePanel} data-testid="plans-loading">
+          <LoadingSpinner />
+          <p className={styles.stateText}>요금제를 불러오는 중입니다.</p>
+        </div>
+      )}
+
+      {!planCatalogQuery.isLoading && planCatalogQuery.isError && (
+        <div className={styles.statePanel} data-testid="plans-error">
+          <ErrorState
+            message="요금제를 불러오지 못했습니다."
+            onRetry={() => void planCatalogQuery.refetch()}
+          />
+        </div>
+      )}
+
+      {!planCatalogQuery.isLoading && !planCatalogQuery.isError && (
+        <>
+          <PlanComparison
+            catalog={planCatalogQuery.data ?? []}
+            currentPlanKey={currentPlanKey}
+            renderAction={renderPlanAction}
+          />
+          <p className={styles.planNote}>
+            {subscription?.status === "INCOMPLETE"
+              ? "구독이 생성되었지만 결제수단이 등록되지 않았습니다. 카드를 등록하면 구독이 활성화됩니다."
+              : "유료 요금제는 카드를 등록하면 매월 자동으로 결제되며 언제든 해지할 수 있습니다."}
+          </p>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className={styles.pageWrapper}>
@@ -79,24 +185,39 @@ export function BillingPage() {
         </div>
       )}
 
-      {!overviewQuery.isLoading && !overviewQuery.isError && showRegister && (
-        <PlanCard
-          action={
-            <RegisterBillingButton workspaceId={parsedWorkspaceId} subscription={subscription} />
-          }
-          note={
-            subscription?.status === "INCOMPLETE"
-              ? "구독이 생성되었지만 결제수단이 등록되지 않았습니다. 카드를 등록하면 구독이 활성화됩니다."
-              : "카드를 등록하면 매월 자동으로 결제되며 언제든 해지할 수 있습니다."
-          }
-        />
-      )}
+      {/* 미구독/INCOMPLETE: 요금제 비교를 바로 노출 */}
+      {!overviewQuery.isLoading &&
+        !overviewQuery.isError &&
+        showRegister &&
+        renderPlansSection(subscription?.planKey ?? FREE_PLAN_KEY, false)}
 
+      {/* 구독 중: 관리 화면을 먼저 보여주고, 업그레이드 버튼으로 요금제 비교로 이동 */}
       {!overviewQuery.isLoading &&
         !overviewQuery.isError &&
         !showRegister &&
-        subscription && (
+        subscription &&
+        (showPlans ? (
+          renderPlansSection(subscription.planKey ?? FREE_PLAN_KEY, true)
+        ) : (
           <div className={styles.sections}>
+            <div className={styles.planSwitchBar}>
+              <div>
+                <p className={styles.switchTitle}>요금제</p>
+                <p className={styles.switchHint}>
+                  더 많은 멤버와 도메인팩 생성·검토 한도가 필요하면 요금제를 업그레이드하세요.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="lg"
+                className="h-11 rounded-full px-9!"
+                onClick={() => setShowPlans(true)}
+                data-testid="upgrade-plan-button"
+              >
+                업그레이드
+              </Button>
+            </div>
+
             <div className={styles.topRow}>
               <SubscriptionStatusCard subscription={subscription} />
               <BillingMethodCard
@@ -122,13 +243,11 @@ export function BillingPage() {
               </div>
             )}
 
-            <PayOnceWidget workspaceId={parsedWorkspaceId} customerKey={customerKey} />
-
             <div className={styles.actionsBar}>
               <CancelSubscriptionButton workspaceId={parsedWorkspaceId} />
             </div>
           </div>
-        )}
+        ))}
     </div>
   );
 }

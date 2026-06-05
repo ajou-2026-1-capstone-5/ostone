@@ -99,7 +99,7 @@ describe("buildWorkspaceDashboardHealthView", () => {
       "상담 로그 업로드 기록이 없습니다.",
     ]);
     expect(view.ctas).toEqual([
-      { kind: "upload", label: "상담 로그 업로드", to: "/workspaces/3/upload" },
+      { kind: "upload", label: "상담 업로드", to: "/workspaces/3/upload" },
       { kind: "generate", label: "지식팩 생성", to: "/workspaces/3/domain-packs" },
     ]);
   });
