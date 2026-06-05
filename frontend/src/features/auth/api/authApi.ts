@@ -26,7 +26,7 @@ export type {
 };
 
 export async function loginApi(data: LoginRequest): Promise<LoginResponse> {
-  const response = await login(data);
+  const response = await login(data, { credentials: "include" });
   return requireApiData<LoginResponse>(response, "로그인 응답을 확인할 수 없습니다.");
 }
 
@@ -35,12 +35,12 @@ export async function signupApi(data: SignupRequest): Promise<SignupResponse> {
   return requireApiData<SignupResponse>(response, "회원가입 응답을 확인할 수 없습니다.");
 }
 
-export async function logoutApi(refreshToken: string): Promise<void> {
-  await logout({ refreshToken });
+export async function logoutApi(): Promise<void> {
+  await logout({ credentials: "include" });
 }
 
-export async function refreshTokenApi(refreshToken: string): Promise<TokenRefreshResponse> {
-  const response = await refresh({ refreshToken });
+export async function refreshTokenApi(): Promise<TokenRefreshResponse> {
+  const response = await refresh({ credentials: "include" });
   return requireApiData<TokenRefreshResponse>(response, "토큰 갱신 응답을 확인할 수 없습니다.");
 }
 

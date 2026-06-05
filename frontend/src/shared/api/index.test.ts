@@ -355,7 +355,7 @@ describe("apiClient", () => {
     it("인증된 요청 401 후 refresh 성공 시 새 access token으로 원 요청을 한 번 재시도한다", async () => {
       Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
       localStorage.setItem("accessToken", "expired-access-token");
-      localStorage.setItem("refreshToken", "valid-refresh-token");
+      localStorage.setItem("refreshToken", "legacy-refresh-token");
       localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch
         .mockResolvedValueOnce(
@@ -372,7 +372,6 @@ describe("apiClient", () => {
           status: 200,
           json: async () => ({
             accessToken: "new-access-token",
-            refreshToken: "new-refresh-token",
             tokenType: "Bearer",
             expiresIn: 3600,
           }),
@@ -388,21 +387,22 @@ describe("apiClient", () => {
         "/api/v1/auth/refresh",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ refreshToken: "valid-refresh-token" }),
+          credentials: "include",
         }),
       );
+      expect(mockFetch.mock.calls[1][1]).not.toHaveProperty("body");
 
       const retryHeaders = mockFetch.mock.calls[2][1].headers as Headers;
       expect(retryHeaders.get("Authorization")).toBe("Bearer new-access-token");
       expect(getStoredItem("accessToken")).toBe("new-access-token");
-      expect(getStoredItem("refreshToken")).toBe("new-refresh-token");
+      expect(getStoredItem("refreshToken")).toBeNull();
       expect(getStoredItem("user")).toBe(JSON.stringify({ id: 1 }));
     });
 
     it("인증된 요청 401 후 refresh 실패 시 auth session을 정리하고 원 응답 에러를 반환한다", async () => {
       Storage.prototype.getItem = vi.fn((key: string) => originalGetItem.call(localStorage, key));
       localStorage.setItem("accessToken", "expired-access-token");
-      localStorage.setItem("refreshToken", "expired-refresh-token");
+      localStorage.setItem("refreshToken", "legacy-expired-refresh-token");
       localStorage.setItem("user", JSON.stringify({ id: 1 }));
       mockFetch
         .mockResolvedValueOnce({
@@ -428,6 +428,14 @@ describe("apiClient", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "/api/v1/auth/refresh",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "include",
+        }),
+      );
       expect(getStoredItem("accessToken")).toBeNull();
       expect(getStoredItem("refreshToken")).toBeNull();
       expect(getStoredItem("user")).toBeNull();

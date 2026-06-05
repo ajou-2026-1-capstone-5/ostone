@@ -5,7 +5,6 @@ import {
   getAuthenticatedRole,
   getAccessToken,
   getAuthUser,
-  getRefreshToken,
   isSuperAdmin,
   isAuthenticated,
   saveAuthSession,
@@ -53,10 +52,11 @@ describe("isAuthenticated", () => {
   });
 
   it("saves, reads, and clears auth session values", () => {
+    localStorage.setItem("refreshToken", "legacy-refresh-token");
+
     saveAuthSession(
       {
         accessToken: "access-token",
-        refreshToken: "refresh-token",
         tokenType: "Bearer",
         expiresIn: 3600,
       },
@@ -64,7 +64,7 @@ describe("isAuthenticated", () => {
     );
 
     expect(getAccessToken()).toBe("access-token");
-    expect(getRefreshToken()).toBe("refresh-token");
+    expect(localStorage.getItem("refreshToken")).toBeNull();
     expect(getAuthUser()).toEqual({
       id: 1,
       email: "admin@ostone.com",
@@ -75,7 +75,6 @@ describe("isAuthenticated", () => {
     clearAuthSession();
 
     expect(getAccessToken()).toBeNull();
-    expect(getRefreshToken()).toBeNull();
     expect(getAuthUser()).toBeNull();
   });
 
@@ -83,22 +82,21 @@ describe("isAuthenticated", () => {
     saveAuthSession(
       {
         accessToken: "old-access-token",
-        refreshToken: "old-refresh-token",
         tokenType: "Bearer",
         expiresIn: 3600,
       },
       { id: 1, email: "admin@ostone.com", name: "관리자", role: "SUPER_ADMIN" },
     );
+    localStorage.setItem("refreshToken", "legacy-refresh-token");
 
     saveAuthTokens({
       accessToken: "new-access-token",
-      refreshToken: "new-refresh-token",
       tokenType: "Bearer",
       expiresIn: 3600,
     });
 
     expect(getAccessToken()).toBe("new-access-token");
-    expect(getRefreshToken()).toBe("new-refresh-token");
+    expect(localStorage.getItem("refreshToken")).toBeNull();
     expect(getAuthUser()).toEqual({
       id: 1,
       email: "admin@ostone.com",
@@ -146,7 +144,6 @@ describe("isAuthenticated", () => {
     saveAuthSession(
       {
         accessToken: "memory-access-token",
-        refreshToken: "memory-refresh-token",
         tokenType: "Bearer",
         expiresIn: 3600,
       },
@@ -154,7 +151,6 @@ describe("isAuthenticated", () => {
     );
 
     expect(getAccessToken()).toBe("memory-access-token");
-    expect(getRefreshToken()).toBe("memory-refresh-token");
     expect(getAuthUser()).toEqual({
       id: 2,
       email: "operator@ostone.com",
