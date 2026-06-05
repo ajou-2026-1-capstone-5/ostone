@@ -8,4 +8,6 @@ public interface RefreshTokenRepository {
   RefreshToken save(RefreshToken token);
 
   Optional<RefreshToken> findByTokenHash(String tokenHash);
+
+  Optional<RefreshToken> findByTokenHashForUpdate(String tokenHash);
 }
