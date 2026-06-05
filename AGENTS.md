@@ -193,16 +193,16 @@ docker compose logs -f airflow-apiserver
 
 ### Backend (Gradle)
 
-| 목적            | 커맨드                                    |
-| --------------- | ----------------------------------------- |
-| 빌드            | `./gradlew build`                         |
-| 빠른 H2 테스트  | `./gradlew test` 또는 `./gradlew testH2`  |
-| PostgreSQL 테스트 | `./gradlew testPg`                      |
-| 실행            | `./gradlew bootRun`                       |
-| JAR 패키징      | `./gradlew bootJar`                       |
-| 코드 포맷팅     | `./gradlew spotlessApply`                 |
-| 체크스타일 검사 | `./gradlew checkstyleMain checkstyleTest` |
-| 전체 검사       | `./gradlew check`                         |
+| 목적              | 커맨드                                    |
+| ----------------- | ----------------------------------------- |
+| 빌드              | `./gradlew build`                         |
+| 빠른 H2 테스트    | `./gradlew test` 또는 `./gradlew testH2`  |
+| PostgreSQL 테스트 | `./gradlew testPg`                        |
+| 실행              | `./gradlew bootRun`                       |
+| JAR 패키징        | `./gradlew bootJar`                       |
+| 코드 포맷팅       | `./gradlew spotlessApply`                 |
+| 체크스타일 검사   | `./gradlew checkstyleMain checkstyleTest` |
+| 전체 검사         | `./gradlew check`                         |
 
 **프로필** (env: `SPRING_PROFILES_ACTIVE=local`):
 
@@ -214,12 +214,12 @@ docker compose logs -f airflow-apiserver
 
 - `./gradlew test`와 `./gradlew testH2`는 빠른 단위/슬라이스 검증용 기본 경로이며, `backend/src/test/resources/application.yml`의 H2 인메모리 DB와 Hibernate `create-drop`을 사용하고 Liquibase를 비활성화한다.
 - `./gradlew testPg`는 통합/CI 재현용 경로이며, PostgreSQL에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 필요하면 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓴다.
-- CI backend job은 `pgvector/pgvector:pg16` 서비스를 띄우고 `CREATE EXTENSION IF NOT EXISTS vector;`를 적용한 뒤 `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest`를 실행한다. CI 실패를 로컬에서 같은 조건으로 재현하려면 동일한 PostgreSQL/pgvector DB를 준비한 뒤 `./gradlew testPg`를 실행한다.
+- CI backend job은 `pgvector/pgvector:pg16` 서비스를 띄우고 `CREATE EXTENSION IF NOT EXISTS vector;`를 적용한 뒤 `pnpm run ci:backend`를 실행한다. CI 실패를 로컬에서 같은 조건으로 재현하려면 동일한 PostgreSQL/pgvector DB를 준비한 뒤 같은 명령을 실행한다.
 
 ```bash
 docker run --rm --name ostone-test-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d pgvector/pgvector:pg16
 docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
-(cd backend && ./gradlew testPg)
+pnpm run ci:backend
 ```
 
 ### Frontend (pnpm)
@@ -250,11 +250,18 @@ docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NO
 
 ### Root Scripts
 
-| 목적        | 커맨드             |
-| ----------- | ------------------ |
-| 의존성 설치 | `pnpm install`     |
-| Husky 설치  | `pnpm run prepare` |
-| 전체 포맷   | `pnpm run format`  |
+| 목적              | 커맨드                   |
+| ----------------- | ------------------------ |
+| 의존성 설치       | `pnpm install`           |
+| Husky 설치        | `pnpm run prepare`       |
+| CI basic 재현     | `pnpm run ci`            |
+| Backend CI 재현   | `pnpm run ci:backend`    |
+| Frontend 의존성   | `pnpm run deps:frontend` |
+| Frontend CI 재현  | `pnpm run ci:frontend`   |
+| Frontend E2E 재현 | `pnpm run e2e:frontend`  |
+| ML CI 재현        | `pnpm run ci:ml`         |
+| ML 포괄 품질      | `pnpm run quality:ml`    |
+| 전체 포맷         | `pnpm run format`        |
 
 ---
 
@@ -270,29 +277,30 @@ docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NO
 
 **lint-staged 설정** (`lint-staged.config.js`):
 
-| 패턴                     | 실행 작업                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `backend/**/*.java`      | `cd backend && ./gradlew spotlessCheck`                                                 |
-| `frontend/**/*.{ts,tsx}` | `cd frontend && pnpm run lint` → `cd frontend && pnpm run format`                       |
-| `ml/**/*.py`             | `cd ml && uv run ruff check` → `cd ml && uv run ruff format` → `cd ml && uv run mypy .` |
+| 패턴                     | 실행 작업                                                           |
+| ------------------------ | ------------------------------------------------------------------- |
+| `backend/**/*.java`      | `pnpm run format:backend:check`                                     |
+| `frontend/**/*.{ts,tsx}` | `pnpm run lint:frontend` → `pnpm run format:frontend`               |
+| `ml/**/*.py`             | `pnpm run lint:ml` → `pnpm run format:ml` → `pnpm run typecheck:ml` |
 
 ### CI/CD
 
 **paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트
 
-```yaml
-backend: # ./gradlew build (checkstyle 스킵)
-frontend: # pnpm install --frozen-lockfile && pnpm test && pnpm build
-ml: # uv sync && uv run pytest
-```
+| 모듈     | CI basic package script                                                   | 포괄 품질 / manual                                |
+| -------- | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| backend  | `pnpm run ci:backend`                                                     | `pnpm run lint:backend`, `./gradlew check`        |
+| frontend | `pnpm run deps:frontend`, `pnpm run ci:frontend`, `pnpm run e2e:frontend` | `pnpm run lint:frontend`, SonarCloud coverage job |
+| ml       | `pnpm run ci:ml`                                                          | `pnpm run quality:ml`, SonarCloud coverage job    |
 
 **Gotchas**:
 
-- CI: `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest` (PostgreSQL/Liquibase 테스트 + 체크스타일 스킵)
+- CI: `./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest` (coverage gate + PostgreSQL/Liquibase 테스트 + 체크스타일 스킵)
   - 실제 빌드 영향 없음, CI 속도 최적화를 위한 건너뛰기
   - 로컬에서는 `./gradlew check`로 전체 검사 권장
+- Frontend lint와 ML ruff/mypy는 현재 CI basic이 아니라 pre-commit staged 파일 검사와 `pnpm run lint:frontend`, `pnpm run quality:ml`에서 담당한다. 전체 baseline이 green이 된 뒤 CI basic 승격 여부를 별도로 판단한다.
 - 기본 테스트: H2 인메모리 (`jdbc:h2:mem:testdb`) 사용, Liquibase 비활성화
-- CI 재현 테스트: `./gradlew testPg`로 PostgreSQL + Liquibase 활성화 조건 사용
+- CI 재현 테스트: `pnpm run ci:backend`로 coverage gate와 PostgreSQL + Liquibase 활성화 조건 사용
 - CORS 기본 허용: `http://localhost:5173` (프론트 개발 서버)
 
 ### Docker 이미지 빌드
@@ -307,11 +315,11 @@ cd frontend && pnpm build && docker build -t init-frontend .
 
 ### 환경 변수
 
-| 변수                                    | 설명                 | 기본값                |
-| --------------------------------------- | -------------------- | --------------------- |
-| `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                |
-| `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`               |
-| `JWT_SECRET`                            | JWT 서명 키          | (필수)                |
+| 변수                                    | 설명                 | 기본값                                                                                                          |
+| --------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL 연결 정보 | `init`                                                                                                          |
+| `SPRING_PROFILES_ACTIVE`                | Spring 프로필        | `local`                                                                                                         |
+| `JWT_SECRET`                            | JWT 서명 키          | (필수)                                                                                                          |
 | `CORS_ALLOWED_ORIGINS`                  | CORS 허용 오리진     | `http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176` |
 
 ---
