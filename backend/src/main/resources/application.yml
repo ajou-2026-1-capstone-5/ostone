@@ -99,6 +99,9 @@ springdoc:
     version: openapi_3_0
 
 app:
+  corpus:
+    raw-json-upload:
+      max-body-size: ${RAW_DATASET_JSON_MAX_BODY_SIZE:1MB}
   ai:
     embedding:
       provider: ${AI_EMBEDDING_PROVIDER:bedrock}
