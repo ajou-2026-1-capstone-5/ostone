@@ -386,7 +386,7 @@ corepack enable
 pnpm install
 ```
 
-`package-lock.json`은 유지하지 않으며, 루트 `pnpm-lock.yaml`과 `frontend/pnpm-lock.yaml`을 각각 해당 디렉터리의 lockfile로 관리한다. 루트 Husky/lint-staged/format 명령도 `pnpm` 기준으로 실행한다.
+`package-lock.json`은 유지하지 않으며, 루트 `pnpm-lock.yaml`과 `frontend/pnpm-lock.yaml`을 각각 해당 디렉터리의 lockfile로 관리한다. 루트 Husky/lint-staged/format 명령과 CI 품질 검사의 공통 진입점은 루트 `package.json`의 package scripts로 관리한다.
 
 ### 실행
 
@@ -428,11 +428,27 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 ### 모듈별 빌드 / 테스트
 
-| 모듈 | 빌드 | 테스트 |
-| --- | --- | --- |
-| Backend | `(cd backend && ./gradlew build)` | H2: `(cd backend && ./gradlew test jacocoTestCoverageVerification)` / PostgreSQL: `(cd backend && ./gradlew testPg)` |
-| Frontend | `(cd frontend && pnpm build)` | `(cd frontend && pnpm test -- --coverage --run)` |
-| ML | `(cd ml && uv sync)` | `(cd ml && uv run pytest --cov=src --cov-report=term-missing)` |
+| 모듈     | 빌드                            | 테스트                                                                                               |
+| -------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Backend  | `pnpm run ci:backend`           | H2 coverage: `pnpm run test:backend:coverage` / PostgreSQL: `pnpm run test:backend:pg`              |
+| Frontend | `pnpm run build:frontend`       | `pnpm run test:frontend:coverage`                                                                    |
+| ML       | `pnpm run deps:ml`              | `pnpm run test:ml:coverage`                                                                          |
+
+### 품질 검사 스크립트
+
+로컬 훅과 CI는 루트 package scripts를 공통 진입점으로 사용한다.
+
+| 구분             | 책임                                                                                                                                     | 실행 위치                                                                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| pre-commit       | staged 파일 대상 빠른 검사. backend Spotless check, frontend lint/format, ML ruff/format/mypy를 실행한다.                                | Husky `pre-commit` → `pnpm exec lint-staged` → 루트 package scripts                                                                                                                                    |
+| CI basic         | PR에서 반드시 막아야 하는 최소 품질선. backend PostgreSQL/Liquibase 테스트+빌드, frontend coverage test+build와 mocked E2E, ML coverage pytest를 실행한다. | `.github/workflows/ci.yml` → `pnpm run ci:backend`, `pnpm run ci:frontend`, `pnpm run e2e:frontend`, `pnpm run ci:ml`                                                                                  |
+| CI full / manual | 느리거나 포괄적인 검사. coverage/Sonar 사전 테스트와 수동 lint/typecheck를 담당한다.                                                     | `pnpm run test:backend:coverage`, `pnpm run ci:backend:sonar`, `pnpm run test:frontend:coverage`, `pnpm run test:ml:coverage`, `pnpm run lint:backend`, `pnpm run quality:ml`, `pnpm run format:check` |
+
+| 모듈     | pre-commit 포함 검사          | CI basic 포함 검사                   | CI full / manual 포함 검사                         |
+| -------- | ----------------------------- | ------------------------------------ | -------------------------------------------------- |
+| Backend  | Spotless format check         | PostgreSQL/Liquibase test, build     | checkstyle, JaCoCo/Sonar 사전 테스트               |
+| Frontend | ESLint, Vite+ format          | Vitest coverage, production build, mocked E2E | coverage test, SonarCloud 분석                     |
+| ML       | ruff check, ruff format, mypy | uv sync, coverage pytest             | ruff format check, ruff check, mypy, coverage test |
 
 전체 커맨드·프로필·Docker 세부 사항은 [`AGENTS.md`](AGENTS.md), 모듈별 상세는 각 모듈 README를 참조한다.
 
@@ -443,24 +459,25 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 ### CI
 
 - **paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트한다.
-  - `backend`: `./gradlew test jacocoTestCoverageVerification testPg build -x checkstyleMain -x checkstyleTest` (H2 coverage gate와 PostgreSQL/Liquibase 재현 테스트를 함께 실행)
-  - `frontend`: `pnpm install --frozen-lockfile && pnpm test -- --coverage --run && pnpm build`
-  - `ml`: `uv sync && uv run pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml`
+  - `backend`: `pnpm run ci:backend` (H2 coverage gate와 PostgreSQL/Liquibase 재현 테스트를 함께 실행하고 checkstyle은 스킵)
+  - `frontend`: `pnpm run deps:frontend && pnpm run ci:frontend`, mocked E2E는 별도 job에서 `pnpm run e2e:frontend`
+  - `ml`: `pnpm run ci:ml`
 - **spec-check**: `feature/*`, `fix/*`, `spec/*` 브랜치는 `.agent/specs/{이슈번호}.md` 스펙 파일을 필수 검증한다.
 - **coverage baseline**: Backend line 90% / branch 70%, Frontend statements 80% / branches 70% / functions 75% / lines 80%, ML total 80%를 CI에서 강제한다. 장기 목표는 `.agent/rules/testing.md`의 70%+ 라인 커버리지와 새 코드 80% 기준이며, baseline은 coverage 개선 PR에서 점진적으로 상향한다. CI는 각 모듈의 coverage artifact를 업로드해 실패한 파일/영역을 확인할 수 있게 한다.
 - Backend의 빠른 로컬 테스트(`./gradlew test` 또는 `./gradlew testH2`)는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
 - Backend의 CI 재현 테스트(`./gradlew testPg`)는 PostgreSQL/pgvector DB에 연결하고 Liquibase를 활성화한 뒤 Hibernate `ddl-auto=validate`로 검증한다. 기본 로컬 연결값은 `jdbc:postgresql://localhost:5432/testdb`, `postgres/postgres`이며 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 덮어쓸 수 있다.
+  CI basic에서는 checkstyle을 실행하지 않는다. checkstyle은 `pnpm run lint:backend`, frontend lint는 pre-commit과 `pnpm run lint:frontend`, ML ruff/mypy는 pre-commit과 `pnpm run quality:ml`에서 실행해 빠른 PR feedback과 포괄 검사를 분리한다.
 
 ```bash
 docker run --rm --name ostone-test-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 -d pgvector/pgvector:pg16
 docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
-(cd backend && ./gradlew testPg)
+pnpm run test:backend:pg
 ```
 
 ### 정적 분석 / 품질 게이트
 
 - **SonarCloud** 정적 분석을 backend / frontend / ml 모듈별로 운영한다(상단 배지).
-- **husky + lint-staged** pre-commit hook: backend `spotlessCheck`, frontend `eslint` + `format`, ml `ruff check` + `ruff format` + `mypy`. commit-msg hook은 commitlint로 Conventional Commits를 강제한다.
+- **husky + lint-staged** pre-commit hook: 루트 package scripts를 통해 backend `spotlessCheck`, frontend `eslint` + `format`, ML `ruff check` + `ruff format` + `mypy`를 실행한다. commit-msg hook은 commitlint로 Conventional Commits를 강제한다.
 
 ### 보안
 
