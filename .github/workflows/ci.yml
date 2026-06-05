@@ -459,6 +459,95 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_SCANNER_SKIP_JRE_PROVISIONING: "true"
 
+  openapi-drift:
+    needs: paths-filter
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.paths-filter.outputs.backend == 'true' || needs.paths-filter.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.TOOL_JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-backend-java-${{ env.TOOL_JAVA_VERSION }}-${{ hashFiles('backend/gradle.lockfile', 'backend/**/*.gradle*', 'backend/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.TOOL_NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "./frontend/pnpm-lock.yaml"
+
+      - name: Install pgvector extension
+        run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Install frontend dependencies
+        run: pnpm run deps:frontend
+
+      - name: Generate backend OpenAPI
+        run: pnpm run codegen:openapi
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+          SPRING_LIQUIBASE_ENABLED: "true"
+          SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+          JWT_SECRET: ci-openapi-drift-secret-at-least-32-bytes-long
+          AIRFLOW_WEBHOOK_SECRET: ci-openapi-drift-airflow-webhook
+
+      - name: Generate frontend client (orval)
+        run: pnpm run codegen:frontend
+
+      - name: Fail on generated drift
+        run: |
+          if ! git diff --exit-code -- frontend/src/shared/api/generated/; then
+            echo "::error::OpenAPI/generated drift detected. The committed frontend/src/shared/api/generated/ is out of sync with backend OpenAPI. Regenerate and commit: pnpm run codegen"
+            exit 1
+          fi
+          echo "✅ No OpenAPI/orval drift."
+
+  scripts-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.TOOL_NODE_VERSION }}
+
+      - name: Run repo tooling tests
+        run: node --test "scripts/**/*.test.mjs"
+
   ci-gate:
     if: always()
     needs:
@@ -473,6 +562,8 @@ jobs:
         backend-sonar,
         frontend-sonar,
         ml-sonar,
+        openapi-drift,
+        scripts-test,
       ]
     runs-on: ubuntu-latest
     steps:
@@ -489,6 +580,8 @@ jobs:
             "${{ needs.backend-sonar.result }}"
             "${{ needs.frontend-sonar.result }}"
             "${{ needs.ml-sonar.result }}"
+            "${{ needs.openapi-drift.result }}"
+            "${{ needs.scripts-test.result }}"
           )
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
