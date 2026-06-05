@@ -21,7 +21,7 @@
     "down": "COMPOSE_PROFILES=light,pipeline,full docker compose down",
     "check": "pnpm run check:backend && pnpm run check:frontend && pnpm run check:ml",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
-    "codegen": "pnpm run env:check && pnpm run codegen:openapi && pnpm run codegen:frontend",
+    "codegen": "node scripts/codegen.mjs",
     "smoke": "pnpm run env:check && (running=\"$(docker compose ps --status running --services backend frontend postgres | sort | tr '\\n' ' ')\"; test \"$running\" = \"backend frontend postgres \" || (echo \"Smoke failed. Expected running services: backend frontend postgres. Actual: ${running:-none}\" && exit 1))",
     "smoke:pipeline": "pnpm run env:check && (running=\"$(docker compose ps --status running --services airflow-apiserver postgres | sort | tr '\\n' ' ')\"; test \"$running\" = \"airflow-apiserver postgres \" || (echo \"Smoke failed. Expected running services: airflow-apiserver postgres. Actual: ${running:-none}\" && exit 1))",
     "logs": "pnpm run env:check && docker compose logs -f backend frontend",
