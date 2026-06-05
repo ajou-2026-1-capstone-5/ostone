@@ -1,6 +1,7 @@
 package com.init.corpus.infrastructure.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -28,6 +29,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -193,5 +195,27 @@ class S3RawFileStorageAdapterTest {
     Optional<ObjectMetadata> result = adapterSseOff.headObject("workspaces/1/missing.zip");
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("S3 headObject가 404를 반환하면 empty를 반환한다")
+  void headObject_s3NotFoundStatus_returnsEmpty() {
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
+        .willThrow(S3Exception.builder().statusCode(404).message("Not Found").build());
+
+    Optional<ObjectMetadata> result = adapterSseOff.headObject("workspaces/1/missing.zip");
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("S3 headObject가 404 외 오류를 반환하면 예외를 전파한다")
+  void headObject_s3NonNotFoundStatus_propagatesException() {
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
+        .willThrow(S3Exception.builder().statusCode(503).message("Slow Down").build());
+
+    assertThatThrownBy(() -> adapterSseOff.headObject("workspaces/1/file.zip"))
+        .isInstanceOf(S3Exception.class)
+        .hasMessageContaining("Slow Down");
   }
 }
