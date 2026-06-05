@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -101,6 +102,11 @@ public class S3RawFileStorageAdapter implements RawFileStoragePort {
       return Optional.of(new ObjectMetadata(response.contentLength(), response.eTag()));
     } catch (NoSuchKeyException e) {
       return Optional.empty();
+    } catch (S3Exception e) {
+      if (e.statusCode() == 404) {
+        return Optional.empty();
+      }
+      throw e;
     }
   }
 }
