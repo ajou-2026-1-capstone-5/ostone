@@ -15,6 +15,8 @@ import com.init.corpus.domain.model.DatasetStatus;
 import com.init.corpus.domain.repository.DatasetRawFileRepository;
 import com.init.corpus.domain.repository.DatasetRepository;
 import com.init.corpus.domain.repository.WorkspaceMembershipRepository;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +85,7 @@ public class CompleteRawFileUploadService {
                 () -> new DatasetNotFoundException("데이터셋을 찾을 수 없습니다. id=" + command.datasetId()));
 
     UploadSession session = readUploadSession(dataset);
+    validateUploadSession(session, command, dataset);
 
     // 멱등: 이미 처리 단계로 넘어간 데이터셋은 객체를 다시 승격하거나 DAG를 다시 트리거하지 않고 현재 상태를 그대로 반환한다.
     if (dataset.getStatus() != DatasetStatus.UPLOADING) {
@@ -181,6 +184,19 @@ public class CompleteRawFileUploadService {
     return objectKey;
   }
 
+  private void validateUploadSession(
+      UploadSession session, CompleteRawFileUploadCommand command, Dataset dataset) {
+    OffsetDateTime now = OffsetDateTime.now();
+    if (!session.expiresAt().isAfter(now)) {
+      throw new InvalidUploadStateException(
+          "업로드 세션이 만료되었습니다. 다시 업로드를 시작해 주세요. datasetId=" + dataset.getId());
+    }
+    if (!session.createdBy().equals(command.createdBy())) {
+      throw new InvalidUploadStateException(
+          "업로드 세션 생성자와 완료 요청 사용자가 일치하지 않습니다. datasetId=" + dataset.getId());
+    }
+  }
+
   private UploadSession readUploadSession(Dataset dataset) {
     JsonNode upload = parseMeta(dataset).path(UploadSessionMeta.FIELD);
     if (!upload.isObject()) {
@@ -205,7 +221,33 @@ public class CompleteRawFileUploadService {
         Optional.ofNullable(upload.path(UploadSessionMeta.CONTENT_TYPE).asText(null))
             .filter(s -> !s.isBlank())
             .orElse("application/zip");
-    return new UploadSession(objectKey, expectedSizeBytes, filename, contentType);
+    OffsetDateTime expiresAt = readExpiresAt(upload, dataset);
+    Long createdBy = readCreatedBy(upload, dataset);
+    return new UploadSession(
+        objectKey, expectedSizeBytes, filename, contentType, expiresAt, createdBy);
+  }
+
+  private OffsetDateTime readExpiresAt(JsonNode upload, Dataset dataset) {
+    String expiresAt = upload.path(UploadSessionMeta.EXPIRES_AT).asText(null);
+    if (expiresAt == null || expiresAt.isBlank()) {
+      throw new InvalidUploadStateException(
+          "업로드 세션에 expiresAt이 없습니다. datasetId=" + dataset.getId());
+    }
+    try {
+      return OffsetDateTime.parse(expiresAt);
+    } catch (DateTimeParseException e) {
+      throw new InvalidUploadStateException(
+          "업로드 세션 expiresAt 형식이 올바르지 않습니다. datasetId=" + dataset.getId());
+    }
+  }
+
+  private Long readCreatedBy(JsonNode upload, Dataset dataset) {
+    JsonNode createdBy = upload.path(UploadSessionMeta.CREATED_BY);
+    if (!createdBy.isIntegralNumber() || !createdBy.canConvertToLong()) {
+      throw new InvalidUploadStateException(
+          "업로드 세션에 createdBy가 없습니다. datasetId=" + dataset.getId());
+    }
+    return createdBy.asLong();
   }
 
   private JsonNode parseMeta(Dataset dataset) {
@@ -223,5 +265,10 @@ public class CompleteRawFileUploadService {
   }
 
   private record UploadSession(
-      String objectKey, long expectedSizeBytes, String filename, String contentType) {}
+      String objectKey,
+      long expectedSizeBytes,
+      String filename,
+      String contentType,
+      OffsetDateTime expiresAt,
+      Long createdBy) {}
 }
