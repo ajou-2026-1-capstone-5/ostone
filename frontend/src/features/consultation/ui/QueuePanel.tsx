@@ -268,19 +268,12 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
       const displayName = c.name?.trim() || "Unknown";
       const subject = c.lastMessagePreview?.trim() || c.title?.trim() || c.handoffReason;
       return (
-        <div
+        <button
           key={c.id}
-          role="button"
-          tabIndex={0}
+          type="button"
           aria-current={activeCustomerId === c.id ? "true" : undefined}
           className={`${styles.queueItem} ${activeCustomerId === c.id ? styles.queueItemActive : ""}`}
           onClick={() => onSelectCustomer(c.id)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onSelectCustomer(c.id);
-            }
-          }}
         >
           <div
             className={`${styles.customerAvatar} ${activeCustomerId === c.id ? styles.customerAvatarActive : ""}`}
@@ -306,7 +299,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
               <span className={styles.unreadDot} role="status" aria-label="읽지 않은 고객 메시지" />
             )}
           </div>
-        </div>
+        </button>
       );
     });
   };

@@ -68,6 +68,9 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>;
 }
 
+const findQueueCustomerButton = (customerName: string) =>
+  screen.findByRole("button", { name: new RegExp(customerName) });
+
 const assignedSession = {
   id: 1,
   status: "ACTIVE",
@@ -137,8 +140,7 @@ describe("ConsultationPage generated API integration", () => {
   it("상담 화면에서 고객 선택 시 generated 메시지 URL 응답을 렌더링한다", async () => {
     render(<ConsultationPage />, { wrapper: Wrapper });
 
-    const customerItem = await screen.findByText("김민지");
-    fireEvent.click(customerItem.closest('[role="button"]') ?? customerItem);
+    fireEvent.click(await findQueueCustomerButton("김민지"));
 
     expect(await screen.findByText("generated 상담 메시지")).toBeInTheDocument();
     expect(mocks.customFetch).toHaveBeenCalledWith("/api/v1/workspaces/2/consultation/queue", {
@@ -152,8 +154,7 @@ describe("ConsultationPage generated API integration", () => {
     async () => {
       render(<ConsultationPage />, { wrapper: Wrapper });
 
-      const customerItem = await screen.findByText("김민지");
-      fireEvent.click(customerItem.closest('[role="button"]') ?? customerItem);
+      fireEvent.click(await findQueueCustomerButton("김민지"));
       await screen.findByText("generated 상담 메시지");
 
       fireEvent.click(screen.getByRole("button", { name: "상담 종료" }));

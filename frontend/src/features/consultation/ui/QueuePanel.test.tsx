@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueuePanel } from "./QueuePanel";
 
 type QueuePanelProps = Parameters<typeof QueuePanel>[0];
@@ -31,7 +32,7 @@ const renderQueuePanel = (props: Partial<QueuePanelProps> = {}) =>
   );
 
 const getQueueItem = (customerName: string) =>
-  screen.getByText(customerName).closest('[role="button"]') as HTMLElement;
+  screen.getByRole("button", { name: new RegExp(customerName) });
 
 const getFilterButton = (filterName: string) => {
   const element = screen.getAllByText(filterName).find((item) => item.closest("button"));
@@ -138,17 +139,21 @@ describe("QueuePanel", () => {
     expect(onSelect).toHaveBeenCalledWith("42");
   });
 
-  it("Enter 키로 onSelectCustomer가 호출된다", () => {
+  it("Enter 키로 onSelectCustomer가 호출된다", async () => {
     const onSelect = vi.fn();
+    const user = userEvent.setup();
     renderQueuePanel({ customers: [makeCustomer("5")], onSelectCustomer: onSelect });
-    fireEvent.keyDown(getQueueItem("고객5"), { key: "Enter" });
+    getQueueItem("고객5").focus();
+    await user.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith("5");
   });
 
-  it("스페이스 키로 onSelectCustomer가 호출된다", () => {
+  it("스페이스 키로 onSelectCustomer가 호출된다", async () => {
     const onSelect = vi.fn();
+    const user = userEvent.setup();
     renderQueuePanel({ customers: [makeCustomer("7")], onSelectCustomer: onSelect });
-    fireEvent.keyDown(getQueueItem("고객7"), { key: " " });
+    getQueueItem("고객7").focus();
+    await user.keyboard(" ");
     expect(onSelect).toHaveBeenCalledWith("7");
   });
 

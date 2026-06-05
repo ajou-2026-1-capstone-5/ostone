@@ -81,7 +81,10 @@ test.describe("Consultation screen", () => {
       test("Then the visible sessions follow the selected controls", async ({ page }, testInfo) => {
         await page.goto("/workspaces/1/consultation");
 
-        const queueItems = page.locator("aside").locator('div[role="button"]');
+        const queueItems = page
+          .locator("aside")
+          .getByRole("button")
+          .filter({ hasText: /김민지|박준호|이서연|최하늘/ });
         await expect(page.getByText("연결 요청 2건 · 미배정 2건 · 진행 4건")).toBeVisible();
         await expect(queueItems.first()).toContainText("김민지");
 
