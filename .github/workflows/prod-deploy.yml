@@ -15,6 +15,11 @@ concurrency:
   group: production-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  TOOL_JAVA_VERSION: "21"
+  TOOL_NODE_VERSION: "22.13.0"
+  TOOL_PNPM_VERSION: "10.33.0"
+
 permissions:
   contents: read
   id-token: write
@@ -196,7 +201,7 @@ jobs:
 
       - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
         with:
-          java-version: "21"
+          java-version: ${{ env.TOOL_JAVA_VERSION }}
           distribution: "temurin"
 
       - name: Build with Gradle
@@ -365,11 +370,11 @@ jobs:
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
-          version: 10
+          version: ${{ env.TOOL_PNPM_VERSION }}
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "22"
+          node-version: ${{ env.TOOL_NODE_VERSION }}
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 

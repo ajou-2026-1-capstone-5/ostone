@@ -355,9 +355,11 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 ### 사전 요구사항
 
 - **Java 21** (Backend)
-- **Node.js + pnpm** (Frontend)
-- **uv** (ML, Python 3.13+)
+- **Node.js 22.13.0 + pnpm 10.33.0** (Frontend)
+- **Python 3.13 + uv 0.11.19** (ML)
 - **Docker / Docker Compose** (전체 스택)
+
+개발 도구 버전은 루트 [`mise.toml`](mise.toml)에서 한 번에 확인한다. 루트 [`package.json`](package.json)과 [`frontend/package.json`](frontend/package.json)의 `packageManager`는 같은 pnpm 버전을 사용하며, Python 기준은 [`ml/.python-version`](ml/.python-version)과 일치한다. GitHub Actions의 Java / Node.js / pnpm / Python / uv setup도 이 루트 기준과 동일한 버전을 사용한다.
 
 ### 환경 변수 (`.env.example` 그룹)
 
