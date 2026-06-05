@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -102,28 +103,47 @@ class SimulationImprovementCandidateServiceTest {
   @Mock private WorkflowMatchingProfileBuildRequestService profileBuildRequestService;
 
   private SimulationImprovementCandidateService service;
+  private SimulationImprovementDraftPatchService draftPatchService;
+  private SimulationImprovementCandidateReviewTaskService reviewTaskService;
+  private SimulationImprovementCandidateDecisionService decisionService;
 
   @BeforeEach
   void setUp() {
-    service =
-        new SimulationImprovementCandidateService(
-            feedbackRepository,
-            candidateRepository,
-            chatSessionRepository,
-            workspaceMemberRepository,
+    ObjectMapper objectMapper = new ObjectMapper();
+    Clock clock = Clock.systemDefaultZone();
+    reviewTaskService =
+        new SimulationImprovementCandidateReviewTaskService(
+            reviewSessionRepository,
+            reviewTaskRepository,
+            reviewDecisionRepository,
+            objectMapper,
+            clock);
+    draftPatchService =
+        new SimulationImprovementDraftPatchService(
             domainPackVersionRepository,
             domainPackVersionCloneService,
             intentDefinitionRepository,
             slotDefinitionRepository,
             policyDefinitionRepository,
             riskDefinitionRepository,
-            workflowDefinitionRepository,
-            reviewSessionRepository,
-            reviewTaskRepository,
-            reviewDecisionRepository,
+            workflowDefinitionRepository);
+    decisionService =
+        new SimulationImprovementCandidateDecisionService(
+            candidateRepository,
+            feedbackRepository,
+            reviewTaskService,
+            draftPatchService,
             profileBuildRequestService,
-            new ObjectMapper(),
-            Clock.systemDefaultZone());
+            clock);
+    service =
+        new SimulationImprovementCandidateService(
+            feedbackRepository,
+            candidateRepository,
+            chatSessionRepository,
+            workspaceMemberRepository,
+            reviewTaskService,
+            decisionService,
+            objectMapper);
   }
 
   @Test
@@ -578,6 +598,66 @@ class SimulationImprovementCandidateServiceTest {
   }
 
   @Test
+  @DisplayName("approve: profile rebuild enqueue 실패 시 후보와 feedback을 terminal 상태로 저장하지 않는다")
+  void shouldNotPersistApprovalStateWhenProfileEnqueueFails() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.MISSING_SLOT_QUESTION), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate =
+        withCandidateId(
+            SimulationImprovementCandidate.create(
+                WORKSPACE_ID,
+                VERSION_ID,
+                FEEDBACK_ID,
+                SESSION_ID,
+                2L,
+                new SimulationImprovementCandidateDraft(
+                    SimulationImprovementCandidateType.SLOT_QUESTION,
+                    SimulationImprovementCandidateTargetType.SLOT,
+                    null,
+                    "order_number",
+                    "주문번호를 묻지 않았습니다.",
+                    "주문번호를 먼저 요청합니다.",
+                    "simulation feedback #900"),
+                USER_ID),
+            1000L);
+    candidate.submitForReview(2000L, 3000L);
+    DomainPackVersion draftVersion =
+        DomainPackVersion.ofForTest(VERSION_ID, 50L, DomainPackVersion.STATUS_DRAFT);
+    SlotDefinition slot =
+        SlotDefinition.create(
+            VERSION_ID, "order_number", "주문번호", "기존 설명", "STRING", false, "{}", null, "{}");
+    ReviewTask task = reviewTask(2000L, candidate.getId(), 3000L);
+
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+    given(reviewTaskRepository.findById(3000L)).willReturn(Optional.of(task));
+    given(domainPackVersionRepository.findByIdForUpdate(VERSION_ID))
+        .willReturn(Optional.of(draftVersion));
+    given(slotDefinitionRepository.findByDomainPackVersionIdAndSlotCode(VERSION_ID, "order_number"))
+        .willReturn(Optional.of(slot));
+    willThrow(new IllegalStateException("profile enqueue failed"))
+        .given(profileBuildRequestService)
+        .enqueue(VERSION_ID, "SIMULATION_CANDIDATE_APPLIED");
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, "반영합니다.")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("profile enqueue failed");
+
+    assertThat(candidate.getStatus())
+        .isEqualTo(SimulationImprovementCandidateStatus.READY_FOR_REVIEW);
+    assertThat(feedback.getStatus()).isEqualTo(SimulationFeedbackStatus.CANDIDATE_CREATED);
+    verify(candidateRepository, never()).save(any());
+    verify(feedbackRepository, never()).save(any());
+    verifyNoInteractions(reviewDecisionRepository);
+  }
+
+  @Test
   @DisplayName("approve: INTENT 후보를 draft intent description에 반영한다")
   void shouldApproveIntentCandidate() {
     SimulationImprovementCandidate candidate =
@@ -935,6 +1015,30 @@ class SimulationImprovementCandidateServiceTest {
                         WORKSPACE_ID, USER_ID, 1000L, null)))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("READY_FOR_REVIEW 후보");
+  }
+
+  @Test
+  @DisplayName("approve: 이미 APPLIED 처리된 후보는 다시 승인할 수 없다")
+  void shouldRejectApproveWhenCandidateAlreadyApplied() {
+    givenMembership();
+    SimulationFeedback feedback =
+        withFeedbackId(feedback(SimulationFeedbackType.OTHER), FEEDBACK_ID);
+    feedback.markCandidateCreated();
+    SimulationImprovementCandidate candidate = withCandidateId(candidate(feedback), 1000L);
+    candidate.submitForReview(2000L, 3000L);
+    candidate.markApplied(VERSION_ID, USER_ID, "이미 반영됨", OffsetDateTime.now());
+    given(candidateRepository.findById(1000L)).willReturn(Optional.of(candidate));
+    given(feedbackRepository.findByIdForUpdate(FEEDBACK_ID)).willReturn(Optional.of(feedback));
+
+    assertThatThrownBy(
+            () ->
+                service.approve(
+                    new ApproveSimulationImprovementCandidateCommand(
+                        WORKSPACE_ID, USER_ID, 1000L, null)))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("READY_FOR_REVIEW 후보");
+
+    verifyNoInteractions(domainPackVersionRepository, profileBuildRequestService);
   }
 
   @Test
