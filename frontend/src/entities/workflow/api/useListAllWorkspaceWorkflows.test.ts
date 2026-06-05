@@ -65,7 +65,7 @@ describe("useListAllWorkspaceWorkflows", () => {
     expect(mockedListDomainPacks).not.toHaveBeenCalled();
   });
 
-  it("모든 pack의 latest version 워크플로우를 평면 entry로 반환한다", async () => {
+  it("모든 pack의 운영 버전 워크플로우를 평면 entry로 반환한다", async () => {
     mockedListDomainPacks.mockResolvedValue({
       data: [
         { packId: 11, name: "CS Support" },
@@ -77,9 +77,11 @@ describe("useListAllWorkspaceWorkflows", () => {
         return Promise.resolve({
           data: {
             packId: 11,
+            currentVersionId: 51,
             versions: [
-              { versionId: 50, versionNo: 1 },
-              { versionId: 51, versionNo: 2 },
+              { versionId: 50, versionNo: 1, lifecycleStatus: "PUBLISHED" },
+              { versionId: 51, versionNo: 2, lifecycleStatus: "PUBLISHED" },
+              { versionId: 52, versionNo: 3, lifecycleStatus: "DRAFT" },
             ],
           },
         }) as never;
@@ -87,7 +89,8 @@ describe("useListAllWorkspaceWorkflows", () => {
       return Promise.resolve({
         data: {
           packId: 12,
-          versions: [{ versionId: 80, versionNo: 1 }],
+          currentVersionId: 80,
+          versions: [{ versionId: 80, versionNo: 1, lifecycleStatus: "PUBLISHED" }],
         },
       }) as never;
     });

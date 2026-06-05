@@ -6,7 +6,7 @@ import type {
   RiskDefinitionSummary,
   UpdateRiskStatusRequest,
 } from "@/shared/api/generated/zod";
-import { ApiRequestError, riskQueryKeys, selectApiData } from "@/shared/api";
+import { ApiRequestError, requireApiData, riskQueryKeys } from "@/shared/api";
 import { RISK_ERROR_MESSAGES } from "./messages";
 
 interface UpdateRiskStatusParams {
@@ -16,6 +16,13 @@ interface UpdateRiskStatusParams {
   riskId: number;
   status: UpdateRiskStatusRequest["status"];
 }
+
+type RiskListCache =
+  | RiskDefinitionSummary[]
+  | ({ data?: RiskDefinitionSummary[] } & Record<string, unknown>);
+
+type RiskStatusPatch = Pick<RiskDefinitionSummary, "status"> &
+  Partial<Pick<RiskDefinitionSummary, "updatedAt">>;
 
 export const UPDATE_RISK_STATUS_MUTATION_KEY = ["updateRiskStatus"] as const;
 
@@ -32,7 +39,10 @@ export function useUpdateRiskStatus() {
       status,
     }: UpdateRiskStatusParams) => {
       const res = await updateRiskStatus(workspaceId, packId, versionId, riskId, { status });
-      return selectApiData(res);
+      return requireApiData<RiskDefinitionResponse>(
+        res,
+        "주의 사항 상태 변경 응답을 확인할 수 없습니다.",
+      );
     },
     onMutate: async ({ workspaceId, packId, versionId, riskId, status }) => {
       const detailKey = riskQueryKeys.detail(workspaceId, packId, versionId, riskId);
@@ -42,13 +52,13 @@ export function useUpdateRiskStatus() {
       await queryClient.cancelQueries({ queryKey: listKey });
 
       const previousDetail = queryClient.getQueryData<RiskDefinitionResponse>(detailKey);
-      const previousList = queryClient.getQueryData<RiskDefinitionSummary[]>(listKey);
+      const previousList = queryClient.getQueryData<RiskListCache>(listKey);
 
       queryClient.setQueryData<RiskDefinitionResponse>(detailKey, (old) =>
         old ? { ...old, status } : old,
       );
-      queryClient.setQueryData<RiskDefinitionSummary[]>(listKey, (old) =>
-        old?.map((item) => (item.id === riskId ? { ...item, status } : item)),
+      queryClient.setQueryData<RiskListCache>(listKey, (old) =>
+        updateRiskStatusListCache(old, riskId, { status }),
       );
 
       return { previousDetail, previousList, detailKey, listKey };
@@ -67,24 +77,39 @@ export function useUpdateRiskStatus() {
       toast.error(RISK_ERROR_MESSAGES.STATUS_FAILED);
     },
     onSuccess: (updatedRisk, { workspaceId, packId, versionId, riskId }) => {
-      if (!updatedRisk) return;
       queryClient.setQueryData(
         riskQueryKeys.detail(workspaceId, packId, versionId, riskId),
         updatedRisk,
       );
-      queryClient.setQueryData<RiskDefinitionSummary[]>(
+      queryClient.setQueryData<RiskListCache>(
         riskQueryKeys.list(workspaceId, packId, versionId),
-        (old) =>
-          old?.map((item) =>
-            item.id === riskId
-              ? {
-                  ...item,
-                  status: updatedRisk.status,
-                  updatedAt: updatedRisk.updatedAt,
-                }
-              : item,
-          ),
+        (old) => updateRiskStatusListCache(old, riskId, updatedRisk),
       );
     },
   });
+}
+
+function updateRiskStatusListCache<T extends RiskListCache | undefined>(
+  old: T,
+  riskId: number,
+  patch: RiskStatusPatch,
+): T {
+  const updateItem = (item: RiskDefinitionSummary): RiskDefinitionSummary =>
+    item.id === riskId
+      ? {
+          ...item,
+          status: patch.status,
+          updatedAt: patch.updatedAt ?? item.updatedAt,
+        }
+      : item;
+
+  if (Array.isArray(old)) {
+    return old.map(updateItem) as T;
+  }
+
+  if (old && typeof old === "object" && Array.isArray(old.data)) {
+    return { ...old, data: old.data.map(updateItem) } as T;
+  }
+
+  return old;
 }

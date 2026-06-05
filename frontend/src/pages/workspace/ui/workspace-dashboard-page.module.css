@@ -1,8 +1,8 @@
 .pageWrapper {
-  padding: var(--s-6) var(--s-8) var(--s-10);
+  padding: var(--s-5) var(--s-8) var(--s-8);
   display: flex;
   flex-direction: column;
-  gap: var(--s-5);
+  gap: var(--s-4);
 }
 
 .pageHeader {
@@ -38,15 +38,16 @@
   margin: var(--s-2) 0 0;
   color: var(--ink-2);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
 .filterBar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-  padding: var(--s-5);
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) minmax(420px, 1.45fr);
+  align-items: end;
+  gap: var(--s-3);
+  padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
   background: var(--paper);
@@ -54,6 +55,7 @@
 
 .filterHeader {
   display: flex;
+  align-self: center;
   justify-content: space-between;
   gap: var(--s-3);
 }
@@ -78,18 +80,18 @@
   margin: var(--s-1) 0 0;
   color: var(--ink-2);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .periodControl {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-2);
+  gap: var(--s-1);
 }
 
 .segmentButton {
-  min-height: 36px;
-  padding: 0 var(--s-4);
+  min-height: 32px;
+  padding: 0 var(--s-3);
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   background: var(--paper);
@@ -116,7 +118,7 @@
 .selectGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(160px, 1fr));
-  gap: var(--s-3);
+  gap: var(--s-2);
 }
 
 .customDateGrid {
@@ -127,7 +129,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: var(--s-1);
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 540;
@@ -135,7 +137,7 @@
 }
 
 .field input[type="date"] {
-  height: 36px;
+  height: 32px;
   min-width: 0;
   border: 1px solid hsl(var(--input));
   border-radius: 6px;
@@ -155,12 +157,12 @@
 .filterSummary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-3);
+  gap: var(--s-2);
 }
 
 .summaryItem {
   min-width: 0;
-  padding: var(--s-4);
+  padding: var(--s-3);
   border: 1px solid var(--line-2);
   border-radius: var(--r-3);
   background: var(--paper-2);
@@ -168,34 +170,35 @@
 
 .summaryItem dt {
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 450;
 }
 
 .summaryItem dd {
   margin: var(--s-1) 0 0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 540;
+  overflow-wrap: anywhere;
 }
 
 .metricGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-3);
+  gap: var(--s-2);
 }
 
 .metricCard {
   min-width: 0;
-  min-height: 164px;
-  padding: var(--s-4);
+  min-height: 128px;
+  padding: var(--s-3);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
   background: var(--paper);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--s-3);
+  gap: var(--s-2);
 }
 
 .metricHeader {
@@ -217,7 +220,7 @@
 .metricValue {
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 540;
   letter-spacing: 0;
   line-height: 1.1;
@@ -227,7 +230,7 @@
   margin: 0;
   color: var(--ink-2);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .coveragePanel,
@@ -235,8 +238,8 @@
 .hotpathPanel {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
-  padding: var(--s-5);
+  gap: var(--s-3);
+  padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
   background: var(--paper);
@@ -414,14 +417,14 @@
 
 .recommendationCard {
   min-width: 0;
-  min-height: 196px;
+  min-height: 168px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: var(--s-3);
   border: 1px solid var(--line);
   border-radius: var(--r-3);
-  padding: var(--s-4);
+  padding: var(--s-3);
   background: var(--paper-2);
   color: inherit;
   text-decoration: none;
@@ -439,7 +442,7 @@
 .recommendationCard h3 {
   margin: 0;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 540;
   line-height: 1.35;
   letter-spacing: 0;
@@ -449,12 +452,12 @@
   margin: 0;
   color: var(--ink-2);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .recommendationCard dl {
   margin: 0;
-  padding: var(--s-3);
+  padding: var(--s-2);
   border: 1px solid var(--line-2);
   border-radius: var(--r-3);
   background: var(--paper);
@@ -834,6 +837,12 @@
   .recommendationGrid,
   .hotpathTopGrid {
     grid-template-columns: 1fr;
+  }
+
+  .filterBar {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .coverageHeader {

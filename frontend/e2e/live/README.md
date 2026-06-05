@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 대상 | 로컬 preview 서버 + 모든 API mock(`page.route`) | 배포된 운영 백엔드(실제 호출) |
 | 검증 범위 | UI 흐름 + 프론트 로직 | 운영 환경이 실제로 살아 있고 핵심 흐름이 동작하는지 |
-| 실행 | CI 포함 자동 실행 | **로컬 수동 전용(CI 금지)** |
+| 실행 | CI 포함 자동 실행 | **로컬 수동 또는 GitHub Actions 수동 실행** |
 | 데이터 | 메모리상 mock | **운영 실데이터에 영향** (오염 방지가 최우선) |
 
 라이브 스모크는 mock을 일절 쓰지 않는다. 배포 직후 운영 환경의 핵심 경로(로그인, 워크스페이스, 도메인팩 조회 등)가 실제로 동작하는지 확인하는 용도다.
@@ -22,7 +22,9 @@
 
 ## 실행법
 
-### 1. 환경변수 파일 작성
+### 로컬 수동 실행
+
+#### 1. 환경변수 파일 작성
 
 예시 파일을 복사해 실제 값을 채운다. `.env.e2e.local`은 gitignore되며 커밋되지 않는다.
 
@@ -40,7 +42,7 @@ cp .env.e2e.example .env.e2e.local
 | `E2E_PASSWORD` | 전용 테스트 계정 비밀번호. |
 | `E2E_ALLOW_POLLUTING` | @pollutes tier 활성화 여부. 기본 `false`. (아래 참고) |
 
-### 2. 기본 실행 (정리 가능/read-only tier)
+#### 2. 기본 실행 (정리 가능/read-only tier)
 
 ```bash
 pnpm e2e:live
@@ -74,6 +76,22 @@ E2E_ALLOW_POLLUTING=true pnpm e2e:live:pollutes
 - 운영 관리 도구에서 `e2e-` prefix로 검색해 해당 계정/세션을 정리한다.
 - 워크스페이스 자동 정리가 누락된 경우 `e2e/live/.cleanup/leftovers.log`에 잔존 리소스가 기록되니, 이 로그를 확인해 수동 정리한다.
 
-## CI 금지 / 로컬 수동 전용
+## GitHub Actions 수동 실행
 
-라이브 스모크는 운영 백엔드를 실제로 호출하므로 **CI에서 실행할 수 없다.** `CI` 환경변수가 설정되어 있으면 globalSetup이 실행을 차단한다. 반드시 로컬에서 수동으로만 실행한다.
+라이브 스모크는 운영 백엔드를 실제로 호출하므로 pull request/push 자동 CI에서는 실행하지 않는다. GitHub Actions에서는 `Live E2E` workflow를 `workflow_dispatch`로 직접 실행할 때만 허용된다.
+
+필수 repository secrets:
+
+| Secret | 설명 |
+| --- | --- |
+| `LIVE_E2E_EMAIL` | 라이브 스모크 전용 테스트 계정 이메일 |
+| `LIVE_E2E_PASSWORD` | 라이브 스모크 전용 테스트 계정 비밀번호 |
+
+수동 실행 입력:
+
+| Input | 설명 |
+| --- | --- |
+| `base_url` | 대상 배포 URL. 기본값은 `https://app.ajou-cstone.com`. |
+| `confirm_prod` | 운영 host 대상일 때 오실행 방지 확인값. 운영이면 `app.ajou-cstone.com`. |
+
+수동 workflow는 기본 tier와 `@pollutes` tier를 항상 함께 실행한다. 운영 데이터가 잔존할 수 있으므로 실행 후 artifact의 `frontend/e2e/live/.cleanup/leftovers.log`가 있으면 운영자가 수동 정리한다.

@@ -1,0 +1,365 @@
+import { expect, test } from "@playwright/test";
+
+import { installAuth } from "./support/generated-api-auth";
+import { captureScreen, installAppApiMocks } from "./support/app-mocks";
+import { installMockStomp } from "./support/mock-stomp";
+
+function dateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dashboardRangeQuery(period: "today" | "7d" | "30d"): string {
+  const today = new Date();
+  const from = new Date(today);
+  if (period === "7d") {
+    from.setDate(today.getDate() - 6);
+  }
+  if (period === "30d") {
+    from.setDate(today.getDate() - 29);
+  }
+  return `from=${dateInputValue(from)}&to=${dateInputValue(today)}`;
+}
+
+function latestSeen(seen: string[], prefix: string): string {
+  return [...seen].reverse().find((entry) => entry.startsWith(prefix)) ?? "";
+}
+
+test.describe("Workspace core operator screens", () => {
+  let seen: string[];
+
+  test.beforeEach(async ({ page }) => {
+    seen = [];
+    await installAuth(page);
+    await installMockStomp(page);
+    await installAppApiMocks(page, seen);
+  });
+
+  test.describe("Given an authenticated workspace operator", () => {
+    test.describe("When they open the dashboard", () => {
+      test("Then KPI, health, recommendation, and workflow ranking data are rendered", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/dashboard");
+
+        await expect(page.getByRole("heading", { name: "대시보드", exact: true })).toBeVisible();
+        await expect(page.getByText("총 상담")).toBeVisible();
+        await expect(page.getByText("최신 도메인 후보 확정")).toBeVisible();
+        await expect(page.getByText("환불 처리").first()).toBeVisible();
+        await expect(page.getByText("검토 후 운영 반영을 기다리고 있습니다.")).toBeVisible();
+        await captureScreen(page, testInfo, "workspace-dashboard");
+
+        const range = dashboardRangeQuery("7d");
+        expect(seen).toContain(`GET /workspaces/1/consultation/metrics?${range}`);
+        expect(seen).toContain(
+          `GET /workspaces/1/dashboard/action-recommendations?${range}`,
+        );
+        expect(seen).toContain("GET /workspaces/1/dashboard/knowledge-pack-health");
+        expect(seen).toContain(
+          `GET /workspaces/1/dashboard/workflow-rankings?${range}`,
+        );
+      });
+
+      test("Then compact filter controls update summaries, date queries, and action navigation", async ({
+        page,
+      }) => {
+        await page.goto("/workspaces/1/dashboard");
+
+        await page.getByRole("button", { name: "오늘" }).click();
+        await expect(page.getByLabel("대시보드 필터 요약")).toContainText("오늘");
+        await expect
+          .poll(() =>
+            seen.includes(
+              `GET /workspaces/1/consultation/metrics?${dashboardRangeQuery("today")}`,
+            ),
+          )
+          .toBe(true);
+
+        await page.getByLabel("운영 지식팩 버전 필터").selectOption("published");
+        await page.getByLabel("채널 필터").selectOption("email");
+        await page.getByLabel("워크플로우 상태 필터").selectOption("handoff");
+
+        const summary = page.getByLabel("대시보드 필터 요약");
+        await expect(summary).toContainText("운영 버전");
+        await expect(summary).toContainText("이메일");
+        await expect(summary).toContainText("상담원 연결");
+
+        await page.getByRole("button", { name: "사용자 지정" }).click();
+        await page.getByLabel("시작일").fill("2026-06-01");
+        await page.getByLabel("종료일").fill("2026-06-03");
+        await expect(summary).toContainText("2026-06-01 ~ 2026-06-03");
+        await expect
+          .poll(() =>
+            seen.includes("GET /workspaces/1/consultation/metrics?from=2026-06-01&to=2026-06-03"),
+          )
+          .toBe(true);
+
+        await page.getByRole("link", { name: /바로 보기/ }).click();
+        await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/900\/review/);
+        await expect(page.getByText("상담 도메인을 확정합니다.")).toBeVisible();
+      });
+    });
+
+    test.describe("When they search and open a workspace workflow", () => {
+      test("Then the workflow list settings and detail navigation are stable", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/workflows");
+        await expect(page.getByTestId("workspace-workflows")).toBeVisible();
+
+        await page.getByTestId("workspace-workflows-search-input").fill("환불");
+        await page.getByTestId("workspace-workflows-search-item-401").click();
+        await expect(page.getByTestId("workspace-workflows-filter-chip")).toContainText("환불 처리");
+
+        await page.getByTestId("workspace-workflows-settings-toggle").click();
+        await expect(page.getByTestId("workspace-workflows-settings")).toBeVisible();
+        await captureScreen(page, testInfo, "workspace-workflows");
+
+        await page.getByTestId("workspace-workflows-card-401-open").click();
+        await expect(page).toHaveURL(
+          /\/workspaces\/1\/domain-packs\/1\/workflows\/401\?versionId=1/,
+        );
+        await expect(page.getByText("주문번호를 확인하고 환불 정책에 따라 안내")).toBeVisible();
+      });
+    });
+
+    test.describe("When they switch workspaces from the shell", () => {
+      test("Then the marker opens the workspace list and navigates with the selected workspace id", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/dashboard");
+        await expect(page.getByTestId("workspace-marker")).toContainText("QA Workspace");
+
+        await page.getByTestId("workspace-marker").click();
+        await expect(page.getByTestId("workspace-marker-menu")).toBeVisible();
+        await expect(page.getByTestId("workspace-option-2")).toContainText("Ops Workspace");
+        await captureScreen(page, testInfo, "workspace-switcher");
+
+        await page.getByTestId("workspace-option-2").click();
+        await expect(page).toHaveURL(/\/workspaces\/2\/workflows$/);
+        await expect(page.getByTestId("workspace-marker")).toContainText("Ops Workspace");
+        await expect(page.getByTestId("workspace-workflows")).toContainText("환불 처리");
+        expect(seen).toContain("GET /workspaces/2");
+        expect(seen).toContain("GET /workspaces/2/domain-packs");
+        expect(seen).toContain("GET /workspaces/2/domain-packs/1");
+        expect(seen).toContain("GET /workspaces/2/domain-packs/1/versions/1/workflows");
+      });
+    });
+
+    test.describe("When they use the account menu", () => {
+      test("Then settings feedback and logout clear the authenticated session", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/dashboard");
+
+        await page.getByTestId("account-menu-trigger").click();
+        await expect(page.getByTestId("account-menu-popover")).toBeVisible();
+        await captureScreen(page, testInfo, "workspace-account-menu");
+
+        await page.getByTestId("account-menu-settings").click();
+        await expect(page.getByText("설정 화면은 준비 중입니다.")).toBeVisible();
+
+        await page.getByTestId("account-menu-trigger").click();
+        await page.getByTestId("account-menu-logout").click();
+
+        await expect(page).toHaveURL(/\/login$/);
+        await expect(page.getByRole("button", { name: "시스템 로그인" })).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(() => ({
+              accessToken: window.localStorage.getItem("accessToken"),
+              refreshToken: window.localStorage.getItem("refreshToken"),
+              user: window.localStorage.getItem("user"),
+            })),
+          )
+          .toEqual({ accessToken: null, refreshToken: null, user: null });
+      });
+    });
+
+    test.describe("When they filter workspace members", () => {
+      test("Then role and search filters drive the generated member endpoint", async ({ page }) => {
+        await page.goto("/workspaces/1/settings/members");
+        await expect(page.getByRole("heading", { name: "멤버" })).toBeVisible();
+        await expect(page.getByText("김상담")).toBeVisible();
+
+        await page.getByPlaceholder("이름 또는 이메일 검색").fill("리뷰");
+        await page.getByLabel("역할 필터").selectOption("REVIEWER");
+
+        await expect(page.getByText("박리뷰")).toBeVisible();
+        await expect(page.getByText("김상담")).toBeHidden();
+        expect(seen).toContain("GET /workspaces/1/members?q=%EB%A6%AC%EB%B7%B0&role=REVIEWER");
+
+        await page.getByPlaceholder("이름 또는 이메일 검색").fill("없는멤버");
+        await expect(page.getByTestId("workspace-members-empty")).toBeVisible();
+        expect(seen).toContain(
+          "GET /workspaces/1/members?q=%EC%97%86%EB%8A%94%EB%A9%A4%EB%B2%84&role=REVIEWER",
+        );
+
+        await page.getByLabel("역할 필터").selectOption("");
+        await expect(page.getByTestId("workspace-members-empty")).toBeVisible();
+        expect(seen).toContain("GET /workspaces/1/members?q=%EC%97%86%EB%8A%94%EB%A9%A4%EB%B2%84");
+      });
+    });
+
+    test.describe("When they review consultation history", () => {
+      test("Then search filters, empty state, detail navigation, and previous messages work", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/consultation/history");
+
+        await expect(page.getByLabel("채팅 기록 목록")).toContainText("김민지");
+        await expect(page.getByLabel("채팅 기록 목록")).not.toContainText("이준호");
+        await expect(page.getByText("좌측 목록에서 세션을 선택해주세요")).toBeVisible();
+        expect(seen).toContain(
+          "GET /workspaces/1/consultation/sessions?status=COMPLETED&page=0&size=20",
+        );
+
+        await page.getByRole("textbox", { name: "상담 기록 검색" }).fill("배송");
+        await page.getByRole("button", { name: "검색어로 상담 기록 검색" }).click();
+        await expect(page.getByText("검색 조건에 맞는 상담 기록이 없습니다")).toBeVisible();
+        await expect
+          .poll(() =>
+            seen.some(
+              (entry) =>
+                entry.startsWith("GET /workspaces/1/consultation/sessions?") &&
+                entry.includes("status=COMPLETED") &&
+                entry.includes("keyword=%EB%B0%B0%EC%86%A1"),
+            ),
+          )
+          .toBe(true);
+
+        await page.getByLabel("검색 필터 초기화").click();
+        await expect(page.getByLabel("채팅 기록 목록")).toContainText("김민지");
+        await page.getByLabel("상태 필터").selectOption("ALL");
+        await page.getByRole("textbox", { name: "상담 기록 검색" }).fill("환불");
+        await page.getByRole("button", { name: "검색어로 상담 기록 검색" }).click();
+        await page.getByLabel("시작일 필터").fill("2026-06-01");
+        await page.getByLabel("종료일 필터").fill("2026-06-04");
+        await page.getByLabel("담당 상담사 필터").fill("7");
+
+        await expect
+          .poll(() =>
+            seen.some(
+              (entry) =>
+                entry.startsWith("GET /workspaces/1/consultation/sessions?") &&
+                !entry.includes("status=") &&
+                entry.includes("keyword=%ED%99%98%EB%B6%88") &&
+                entry.includes("startedFrom=2026-06-01") &&
+                entry.includes("startedTo=2026-06-04") &&
+                entry.includes("assignedCounselorId=7"),
+            ),
+          )
+          .toBe(true);
+
+        await page.getByRole("button", { name: /김민지/ }).click();
+        await expect(page).toHaveURL(/\/workspaces\/1\/consultation\/history\/601\?/);
+        await expect(page.getByLabel("채팅 메시지 내역")).toContainText("환불 가능한지 확인해주세요.");
+        await expect(page.getByText("2/3개 메시지")).toBeVisible();
+
+        await page.getByRole("button", { name: "이전 메시지 불러오기" }).click();
+        await expect(page.getByText("환불 상담 세션이 시작되었습니다.")).toBeVisible();
+        await expect(page.getByText("3/3개 메시지")).toBeVisible();
+        expect(seen).toContain("GET /consultation/sessions/601/messages?page=1&size=50");
+        await captureScreen(page, testInfo, "consultation-history");
+      });
+    });
+
+    test.describe("When they upload consultation logs and enter pipeline review", () => {
+      test("Then upload, generation, review navigation, and domain confirmation are verified", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/upload");
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
+
+        await page.locator('input[type="file"]').setInputFiles({
+          name: "refund-log.zip",
+          mimeType: "application/zip",
+          buffer: Buffer.from("PK\u0003\u0004-e2e"),
+        });
+        await page.getByRole("button", { name: "처리 시작" }).click();
+        await expect(page.getByText("업로드 완료").first()).toBeVisible();
+        await page.getByRole("button", { name: "도메인팩 초안 생성 시작" }).click();
+        await expect(page.getByText("생성 요청 완료", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "검토 화면으로 이동" }).click();
+
+        await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/900\/review/);
+        await expect(page.getByText("상담 도메인을 확정합니다.")).toBeVisible();
+        await expect(page.getByText("환불/결제 도메인")).toBeVisible();
+        await captureScreen(page, testInfo, "pipeline-domain-review");
+
+        await page.getByRole("button", { name: /환불\/결제 도메인/ }).click();
+        await expect
+          .poll(() =>
+            seen.includes(
+              "POST /workspaces/1/pipeline-jobs/900/review-checkpoint/domain-confirmation",
+            ),
+          )
+          .toBe(true);
+        expect(seen).toContain("POST /workspaces/1/datasets/uploads:init");
+        expect(seen).toContain("PUT /e2e-upload/raw-log.zip");
+        expect(seen).toContain("POST /workspaces/1/datasets/uploads/77:complete");
+        expect(seen).toContain(
+          "POST /workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation",
+        );
+      });
+    });
+
+    test.describe("When they resolve a human feedback checkpoint", () => {
+      test("Then the decision draft is submitted for replay", async ({ page }) => {
+        await page.goto("/workspaces/1/pipeline-jobs/901/review");
+        await expect(page.getByText("애매한 클러스터 경계를 확인합니다.")).toBeVisible();
+
+        await page.getByRole("button", { name: "분리하기" }).click();
+        await page.getByRole("button", { name: "피드백 반영 후 replay" }).click();
+
+        await expect
+          .poll(() =>
+            seen.includes("POST /workspaces/1/pipeline-jobs/901/review-checkpoint/human-feedback"),
+          )
+          .toBe(true);
+      });
+    });
+
+    test.describe("When they run a simulation and save feedback", () => {
+      test("Then runtime state, feedback, and improvement candidate actions work", async ({
+        page,
+      }, testInfo) => {
+        await page.goto("/workspaces/1/simulation");
+        await expect(page.getByRole("heading", { name: "상담 시뮬레이션" })).toBeVisible();
+
+        await page.getByLabel("고객 이름").fill("최시뮬");
+        await page.getByLabel("시작 workflow 선택").selectOption("401");
+        await page.getByRole("button", { name: "세션 생성" }).click();
+        await expect(page.getByLabel("시뮬레이션 대화")).toContainText(
+          "환불 처리 기준으로 응답합니다.",
+        );
+
+        await page.getByPlaceholder("고객 역할 메시지 입력").fill("환불 가능한가요?");
+        await page.getByRole("button", { name: "전송" }).click();
+        await expect(page.getByText("주문번호를 알려주시면 환불 가능 여부")).toBeVisible();
+
+        await page.getByLabel("Turn 2 피드백 대상 선택").click();
+        await page.getByLabel("피드백 유형 선택").selectOption("MISSING_SLOT_QUESTION");
+        await page.getByLabel("피드백 심각도 선택").selectOption("HIGH");
+        await page.getByLabel("설명").fill("분류가 흔들립니다.");
+        await page.getByLabel("기대 응답/행동").fill("환불 문의로 고정해야 합니다.");
+        await page.getByRole("button", { name: "피드백 저장" }).click();
+        await expect(page.getByText("시뮬레이션 피드백을 남겼습니다.")).toBeVisible();
+        expect(seen).toContain(
+          "POST /workspaces/1/simulation/sessions/8801/feedback",
+        );
+
+        await page.getByRole("button", { name: "후보" }).click();
+        await expect(page.getByText("intent 설명/예시")).toBeVisible();
+        await page.getByRole("button", { name: "리뷰 요청" }).click();
+        await expect(page.getByText("개선 후보 상태를 변경했습니다.")).toBeVisible();
+        expect(latestSeen(seen, "PATCH /workspaces/1/simulation/improvement-candidates/9911/status")).toBe(
+          "PATCH /workspaces/1/simulation/improvement-candidates/9911/status",
+        );
+        await captureScreen(page, testInfo, "workspace-simulation");
+      });
+    });
+  });
+});

@@ -100,9 +100,7 @@ test.describe("Demo company picker", () => {
           page.getByTestId("chat-conversation-screen"),
         ).toBeVisible();
         await expect(page.getByTestId("chat-entry-screen")).toHaveCount(0);
-        await expect(
-          page.getByText("안녕하세요, 김민지님. 무엇을 도와드릴까요?"),
-        ).toBeVisible();
+        await expect(page.getByText("아직 메시지가 없습니다. 첫 메시지를 보내보세요!")).toBeVisible();
 
         await page.getByLabel("메시지 입력").fill("환불 문의입니다");
         await page.getByRole("button", { name: "메시지 보내기" }).click();
@@ -119,10 +117,10 @@ test.describe("Demo company picker", () => {
         page,
       }) => {
         await page.goto("/demo");
-        await page.getByTestId("demo-company-card-2").click();
+        await page.getByTestId("demo-company-card-3").click();
 
         await expect(page.getByTestId("demo-company-info")).toContainText(
-          "카드 이용내역 조회 상담",
+          "인디고발리 숙소 예약",
         );
         await expect(page.getByTestId("demo-start-chat")).toBeDisabled();
       });

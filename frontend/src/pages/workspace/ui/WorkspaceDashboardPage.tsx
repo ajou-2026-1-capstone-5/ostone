@@ -764,6 +764,7 @@ function DashboardFilters({
             value={filters.domainPackVersion}
             onChange={(event) => updateFilter("domainPackVersion", event.target.value)}
             aria-label="운영 지식팩 버전 필터"
+            size="sm"
           >
             {DOMAIN_PACK_VERSION_OPTIONS.map((option) => (
               <NativeSelectOption key={option.value} value={option.value}>
@@ -778,6 +779,7 @@ function DashboardFilters({
             value={filters.channel}
             onChange={(event) => updateFilter("channel", event.target.value)}
             aria-label="채널 필터"
+            size="sm"
           >
             {CHANNEL_OPTIONS.map((option) => (
               <NativeSelectOption key={option.value} value={option.value}>
@@ -792,6 +794,7 @@ function DashboardFilters({
             value={filters.workflowStatus}
             onChange={(event) => updateFilter("workflowStatus", event.target.value)}
             aria-label="워크플로우 상태 필터"
+            size="sm"
           >
             {WORKFLOW_STATUS_OPTIONS.map((option) => (
               <NativeSelectOption key={option.value} value={option.value}>

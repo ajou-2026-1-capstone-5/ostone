@@ -105,7 +105,7 @@ export function App() {
           <Route path="dashboard" element={<WorkspaceDashboardPage />} />
           <Route path="workflows" element={<WorkspaceWorkflowsPage />} />
           <Route path="simulation" element={<WorkspaceSimulationPage />} />
-          <Route path="pipeline" element={<Navigate to="upload" replace />} />
+          <Route path="pipeline" element={<Navigate to="../upload" replace />} />
           <Route path="consultation/history" element={<ChatHistoryPage />} />
           <Route path="consultation/history/:sessionId" element={<ChatHistoryPage />} />
           <Route path="consultation" element={<ConsultationPage />} />

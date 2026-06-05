@@ -58,10 +58,10 @@ const FEEDBACK_SEVERITIES: Array<{ value: SimulationFeedbackSeverity; label: str
 ];
 
 const FEEDBACK_STATUSES: Array<{ value: SimulationFeedbackStatus | ""; label: string }> = [
-  { value: "OPEN", label: "OPEN" },
-  { value: "CANDIDATE_CREATED", label: "CANDIDATE_CREATED" },
-  { value: "RESOLVED", label: "RESOLVED" },
-  { value: "DISMISSED", label: "DISMISSED" },
+  { value: "OPEN", label: "열림" },
+  { value: "CANDIDATE_CREATED", label: "후보 생성" },
+  { value: "RESOLVED", label: "해결됨" },
+  { value: "DISMISSED", label: "보류됨" },
   { value: "", label: "전체" },
 ];
 
@@ -69,10 +69,10 @@ const CANDIDATE_STATUSES: Array<{
   value: SimulationImprovementCandidateStatus | "";
   label: string;
 }> = [
-  { value: "DRAFT", label: "DRAFT" },
-  { value: "READY_FOR_REVIEW", label: "READY_FOR_REVIEW" },
-  { value: "APPLIED", label: "APPLIED" },
-  { value: "REJECTED", label: "REJECTED" },
+  { value: "DRAFT", label: "초안" },
+  { value: "READY_FOR_REVIEW", label: "리뷰 대기" },
+  { value: "APPLIED", label: "반영됨" },
+  { value: "REJECTED", label: "반려됨" },
   { value: "", label: "전체" },
 ];
 
@@ -146,6 +146,18 @@ function slotEntries(detail: SimulationSessionDetail | null) {
 
 function feedbackTypeLabel(type: SimulationFeedbackType): string {
   return FEEDBACK_TYPES.find((item) => item.value === type)?.label ?? type;
+}
+
+function feedbackSeverityLabel(severity: SimulationFeedbackSeverity): string {
+  return FEEDBACK_SEVERITIES.find((item) => item.value === severity)?.label ?? severity;
+}
+
+function feedbackStatusLabel(status: SimulationFeedbackStatus): string {
+  return FEEDBACK_STATUSES.find((item) => item.value === status)?.label ?? status;
+}
+
+function candidateStatusLabel(status: SimulationImprovementCandidateStatus): string {
+  return CANDIDATE_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
 
 function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"]): string {
@@ -572,7 +584,7 @@ export function WorkspaceSimulationPage() {
       await simulationApi.approveImprovementCandidate(parsedWorkspaceId, candidate.id, {
         reason: "시뮬레이션 리뷰 승인",
       });
-      toast.success("개선 후보를 draft version에 반영했습니다.");
+      toast.success("개선 후보를 초안 버전에 반영했습니다.");
       await Promise.all([reloadCandidates(), reloadFeedback()]);
     } catch {
       toast.error("개선 후보를 승인하지 못했습니다.");
@@ -1079,7 +1091,7 @@ export function WorkspaceSimulationPage() {
 
           <div className={styles.feedbackListPanel}>
             <div className={styles.feedbackPanelHeader}>
-              <h3>Workspace Feedback</h3>
+              <h3>워크스페이스 피드백</h3>
               <NativeSelect
                 value={feedbackStatusFilter}
                 onChange={(event) =>
@@ -1106,7 +1118,8 @@ export function WorkspaceSimulationPage() {
                       <div>
                         <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
                         <span>
-                          {feedback.severity} · {feedback.status}
+                          {feedbackSeverityLabel(feedback.severity)} ·{" "}
+                          {feedbackStatusLabel(feedback.status)}
                         </span>
                       </div>
                       <Button
@@ -1129,7 +1142,7 @@ export function WorkspaceSimulationPage() {
 
           <div className={styles.feedbackListPanel}>
             <div className={styles.feedbackPanelHeader}>
-              <h3>Improvement Candidates</h3>
+              <h3>개선 후보</h3>
               <NativeSelect
                 value={candidateStatusFilter}
                 onChange={(event) =>
@@ -1158,28 +1171,31 @@ export function WorkspaceSimulationPage() {
                       <div>
                         <strong>{candidateTypeLabel(candidate.candidateType)}</strong>
                         <span>
-                          version #{candidate.domainPackVersionId} · {candidate.targetElementType}
+                          버전 #{candidate.domainPackVersionId} · 대상:{" "}
+                          {candidate.targetElementType}
                         </span>
                       </div>
-                      <span className={styles.statusPill}>{candidate.status}</span>
+                      <span className={styles.statusPill}>
+                        {candidateStatusLabel(candidate.status)}
+                      </span>
                     </div>
                     <dl className={styles.candidateSummary}>
                       <div>
-                        <dt>Before</dt>
+                        <dt>변경 전</dt>
                         <dd>{candidate.beforeSummary}</dd>
                       </div>
                       <div>
-                        <dt>After</dt>
+                        <dt>변경 후</dt>
                         <dd>{candidate.afterSummary}</dd>
                       </div>
                       <div>
-                        <dt>Evidence</dt>
+                        <dt>근거</dt>
                         <dd>
                           {candidate.evidenceSummary}
                           <span className={styles.evidenceMeta}>
-                            session #{candidate.sessionId}
-                            {candidate.chatMessageId ? ` · turn #${candidate.chatMessageId}` : ""}
-                            {candidate.feedbackId ? ` · feedback #${candidate.feedbackId}` : ""}
+                            세션 #{candidate.sessionId}
+                            {candidate.chatMessageId ? ` · 메시지 #${candidate.chatMessageId}` : ""}
+                            {candidate.feedbackId ? ` · 피드백 #${candidate.feedbackId}` : ""}
                           </span>
                         </dd>
                       </div>

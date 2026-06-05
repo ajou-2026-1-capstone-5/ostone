@@ -11,6 +11,7 @@ import { useUpdatePolicy } from "../api/useUpdatePolicy";
 import { UPDATE_POLICY_STATUS_MUTATION_KEY } from "../api/useUpdatePolicyStatus";
 import { PolicyJsonFields } from "./PolicyJsonFields";
 import { PolicyStatusToggle } from "./PolicyStatusToggle";
+import styles from "./policy-edit-form.module.css";
 import type { PolicyDefinition, UpdatePolicyRequest } from "@/entities/policy";
 
 const SEVERITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
@@ -76,7 +77,16 @@ export function PolicyEditForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={styles.form}>
+        <div className={styles.actionBar}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isAnyPending}>
+            취소
+          </Button>
+          <Button type="submit" disabled={isAnyPending}>
+            저장
+          </Button>
+        </div>
+
         {textFields.map((textField) => (
           <FormField
             key={textField.name}
@@ -143,7 +153,7 @@ export function PolicyEditForm({
 
         <PolicyJsonFields />
 
-        <div className="flex flex-row items-center justify-between border-t pt-4">
+        <div className={styles.statusRow}>
           <span className="text-sm font-medium leading-none">상태</span>
           <PolicyStatusToggle
             workspaceId={workspaceId}
@@ -153,15 +163,6 @@ export function PolicyEditForm({
             currentStatus={(policy.status ?? "INACTIVE") as "ACTIVE" | "INACTIVE"}
             disabled={isAnyPending}
           />
-        </div>
-
-        <div className="flex gap-2 justify-end border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isAnyPending}>
-            취소
-          </Button>
-          <Button type="submit" disabled={isAnyPending}>
-            저장
-          </Button>
         </div>
       </form>
     </Form>

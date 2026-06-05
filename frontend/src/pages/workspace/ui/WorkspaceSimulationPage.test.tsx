@@ -578,6 +578,9 @@ describe("WorkspaceSimulationPage", () => {
     expect(screen.getByText("응답 문구")).toBeInTheDocument();
     expect(screen.getAllByText("기타")).toHaveLength(2);
     expect(screen.getByText("CUSTOM")).toBeInTheDocument();
+    expect(screen.getAllByText("초안").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("변경 전").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("근거").length).toBeGreaterThan(0);
   });
 
   it("개선 후보 목록 로드 실패를 토스트로 알린다", async () => {
@@ -648,7 +651,7 @@ describe("WorkspaceSimulationPage", () => {
         reason: "시뮬레이션 리뷰 승인",
       });
     });
-    expect(toast.success).toHaveBeenCalledWith("개선 후보를 draft version에 반영했습니다.");
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 초안 버전에 반영했습니다.");
     await waitFor(() => {
       expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
       expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);

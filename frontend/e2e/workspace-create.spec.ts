@@ -77,12 +77,12 @@ test.describe("Workspace creation", () => {
 
         await page.goto("/workspaces");
         await expect(page.getByRole("heading", { name: "워크스페이스 생성" })).toBeVisible();
-        await page.getByLabel("이름").fill("QA Workspace");
+        await page.getByLabel("제목").fill("QA Workspace");
         await page.getByRole("button", { name: "생성" }).click();
 
-        await expect(page).toHaveURL(/\/workspaces\/777\/workflows/);
+        await expect(page).toHaveURL(/\/workspaces\/777\/upload/);
         await expect(page.getByText("워크스페이스를 생성했습니다.")).toBeVisible();
-        await expect(page.getByText("워크플로우")).toBeVisible();
+        await expect(page.getByRole("heading", { name: "상담 로그 업로드" })).toBeVisible();
         expect(seen).toContain("POST /workspaces");
       });
     });

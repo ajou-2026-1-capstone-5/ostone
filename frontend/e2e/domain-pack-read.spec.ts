@@ -62,7 +62,7 @@ test.describe("Domain pack generated read screens", () => {
           /\/workspaces\/1\/domain-packs\/1\/slots\/301\?versionId=1/,
         );
         await expect(page.getByText("배송지 주소")).toBeVisible();
-        await expect(page.getByText("NO")).toBeVisible();
+        await expect(page.getByText("아니오")).toBeVisible();
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/slots");
         expect(seen).toContain("GET /workspaces/1/domain-packs/1/versions/1/slots/301");
       });

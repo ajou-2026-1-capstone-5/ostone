@@ -1,0 +1,74 @@
+name: Live E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Live target URL"
+        required: true
+        default: "https://app.ajou-cstone.com"
+      confirm_prod:
+        description: "Must equal app.ajou-cstone.com when targeting production"
+        required: true
+        default: "app.ajou-cstone.com"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-e2e-${{ github.event.inputs.base_url }}
+  cancel-in-progress: false
+
+jobs:
+  live-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_ALLOW_GITHUB_ACTIONS: "true"
+      E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+      E2E_CONFIRM_PROD: ${{ github.event.inputs.confirm_prod }}
+      E2E_EMAIL: ${{ secrets.LIVE_E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.LIVE_E2E_PASSWORD }}
+      E2E_ALLOW_POLLUTING: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: "./frontend/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install
+
+      - name: Install Playwright Chromium
+        working-directory: ./frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run live E2E smoke tests
+        working-directory: ./frontend
+        run: pnpm e2e:live
+
+      - name: Run polluting live E2E specs
+        working-directory: ./frontend
+        run: pnpm e2e:live:pollutes
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-e2e-playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            frontend/e2e/live/.cleanup/leftovers.log
+          if-no-files-found: ignore
+          retention-days: 14

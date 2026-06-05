@@ -100,6 +100,37 @@ describe("useUpdatePolicy", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("응대 기준이 수정되었습니다."));
   });
 
+  it("성공 시 raw API response 형태로 저장된 목록 캐시도 갱신한다", async () => {
+    const updatedPolicy = { ...stubPolicy, name: "새 정책", severity: "CRITICAL" };
+    mockedUpdatePolicy.mockResolvedValue({
+      data: updatedPolicy,
+      status: 200,
+      headers: new Headers(),
+    });
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    queryClient.setQueryData(policyKeys.list(1, 2, 3), {
+      data: [stubPolicy],
+      status: 200,
+    });
+    const { result } = renderHook(() => useUpdatePolicy(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ ...params, body: { name: "새 정책" } });
+    });
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("응대 기준이 수정되었습니다."));
+    expect(queryClient.getQueryData(policyKeys.list(1, 2, 3))).toEqual({
+      data: [
+        expect.objectContaining({
+          id: 4,
+          name: "새 정책",
+          severity: "CRITICAL",
+        }),
+      ],
+      status: 200,
+    });
+  });
+
   it("POLICY_NOT_EDITABLE 에러 시 전용 안내 메시지를 표시한다", async () => {
     mockedUpdatePolicy.mockRejectedValue(
       new ApiRequestError(400, "POLICY_NOT_EDITABLE", "수정 불가"),
@@ -176,6 +207,43 @@ describe("useUpdatePolicyStatus", () => {
       )?.status,
     ).toBe("INACTIVE");
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it("성공 시 raw API response 형태로 저장된 목록 캐시 상태도 갱신한다", async () => {
+    mockedUpdatePolicyStatus.mockResolvedValue({
+      data: {
+        ...stubPolicy,
+        description: undefined,
+        status: "INACTIVE",
+        updatedAt: "2026-04-17T10:00:00Z",
+      },
+      status: 200,
+      headers: new Headers(),
+    });
+    const { wrapper, queryClient } = makeWrapperWithClient();
+    const listKey = policyKeys.list(params.workspaceId, params.packId, params.versionId);
+    queryClient.setQueryData(listKey, {
+      data: [stubPolicy],
+      status: 200,
+    });
+
+    const { result } = renderHook(() => useUpdatePolicyStatus(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ ...params, status: "INACTIVE" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData(listKey)).toEqual({
+      data: [
+        expect.objectContaining({
+          id: 4,
+          status: "INACTIVE",
+          updatedAt: "2026-04-17T10:00:00Z",
+        }),
+      ],
+      status: 200,
+    });
   });
 
   it("POLICY_CODE_REFERENCED_BY_WORKFLOW 오류 시 rollback 후 전용 메시지를 표시한다", async () => {
