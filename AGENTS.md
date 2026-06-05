@@ -254,6 +254,11 @@ pnpm run ci:backend
 | ----------------- | ------------------------ |
 | 의존성 설치       | `pnpm install`           |
 | Husky 설치        | `pnpm run prepare`       |
+| 로컬 전체 실행    | `pnpm run dev`           |
+| 전체 품질 검사    | `pnpm run check`         |
+| API 코드 생성     | `pnpm run codegen`       |
+| 최소 구동 확인    | `pnpm run smoke`         |
+| 주요 로그 확인    | `pnpm run logs`          |
 | CI basic 재현     | `pnpm run ci`            |
 | Backend CI 재현   | `pnpm run ci:backend`    |
 | Frontend 의존성   | `pnpm run deps:frontend` |

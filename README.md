@@ -132,7 +132,7 @@ WebSocket(STOMP) 기반 실시간 상담 채널. 상담 대기열, 상담사 배
 
 ### 데모 시나리오 (튜토리얼)
 
-1. `docker compose up -d`로 로컬 스택을 띄운다. `local` 프로필에서 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다.
+1. `pnpm run dev`로 로컬 스택을 띄운다. `local` 프로필에서 **액티벤처 여행 상담**·**하나카드 카드 상담** 데모 Domain Pack과 데모 워크스페이스가 자동 시드된다.
 2. 운영자 콘솔(http://localhost:5173)에 데모 계정으로 로그인한다.
 3. Domain Pack 목록에서 시드된 팩을 열어 intent / slot / policy / risk / workflow 구조를 확인한다.
 4. 채팅 데모 화면에서 고객 발화를 입력하면 workflow가 상태를 전이하며 진행되는 모습을 본다.
@@ -388,6 +388,18 @@ pnpm install
 
 `package-lock.json`은 유지하지 않으며, 루트 `pnpm-lock.yaml`과 `frontend/pnpm-lock.yaml`을 각각 해당 디렉터리의 lockfile로 관리한다. 루트 Husky/lint-staged/format 명령과 CI 품질 검사의 공통 진입점은 루트 `package.json`의 package scripts로 관리한다.
 
+### 루트 개발 태스크
+
+자주 쓰는 개발 태스크는 루트 package scripts를 우선 진입점으로 사용한다. 기존 backend/frontend/ML 세부 명령은 유지되며, 아래 상위 명령이 필요한 하위 명령으로 위임한다.
+
+| 목적                | 루트 명령          | 수행 내용                                                 |
+| ------------------- | ------------------ | --------------------------------------------------------- |
+| 전체 로컬 스택 실행 | `pnpm run dev`     | `.env` 확인, `backend` JAR 패키징 후 Docker Compose 서비스 실행 |
+| 전체 품질 검사      | `pnpm run check`   | `check:backend` → `check:frontend` → `check:ml` 순차 실행 |
+| API 코드 생성       | `pnpm run codegen` | `.env` 확인 후 backend OpenAPI 생성 및 frontend Orval API 재생성 |
+| 최소 구동 확인      | `pnpm run smoke`   | `.env` 확인 후 주요 Docker Compose 서비스 running 검증    |
+| 주요 로그 확인      | `pnpm run logs`    | `.env` 확인 후 backend/frontend/Airflow 로그 follow       |
+
 ### 실행
 
 ```bash
@@ -395,14 +407,13 @@ pnpm install
 cp .env.example .env
 
 # 전체 로컬 스택 실행 (frontend는 컨테이너 안에서 dev server 구동)
-docker compose up -d
+pnpm run dev
 ```
 
-`docker compose up -d` 한 번으로 `postgres`, `backend`, `frontend`, Airflow 서비스(`airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`)가 함께 기동된다. `backend` 이미지는 선행 `bootJar` 빌드를 전제하므로, 필요 시 아래를 먼저 수행한다.
+`pnpm run dev`는 `.env`가 준비되어 있는지 확인하고 `backend` JAR를 패키징한 뒤 `docker compose up -d`를 실행한다. 이 명령 한 번으로 `postgres`, `backend`, `frontend`, Airflow 서비스(`airflow-init`, `airflow-apiserver`, `airflow-scheduler`, `airflow-dag-processor`)가 함께 기동된다. ML 개발 의존성은 필요 시 아래 명령으로 동기화한다.
 
 ```bash
-(cd backend && ./gradlew bootJar)   # backend 컨테이너 사용 시 선행 빌드
-(cd ml && uv sync)                  # ML 개발 의존성 동기화
+pnpm run deps:ml
 ```
 
 ### 접속 포인트
@@ -433,6 +444,8 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 | Backend  | `pnpm run ci:backend`           | H2 coverage: `pnpm run test:backend:coverage` / PostgreSQL: `pnpm run test:backend:pg`              |
 | Frontend | `pnpm run build:frontend`       | `pnpm run test:frontend:coverage`                                                                    |
 | ML       | `pnpm run deps:ml`              | `pnpm run test:ml:coverage`                                                                          |
+
+전체 품질 검사를 한 번에 실행할 때는 `pnpm run check`를 사용한다. 실패 시 `check:backend`, `check:frontend`, `check:ml` 중 어느 하위 명령에서 중단되었는지 로그에 표시된다.
 
 ### 품질 검사 스크립트
 
