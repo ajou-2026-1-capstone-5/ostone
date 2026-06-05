@@ -1,7 +1,9 @@
 package com.init.payment.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -9,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.init.fixtures.WithLongPrincipal;
+import com.init.payment.application.CancelPaymentCommand;
 import com.init.payment.application.PaymentResult;
 import com.init.payment.application.PaymentService;
 import com.init.payment.application.exception.PaymentAmountMismatchException;
@@ -17,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -117,6 +121,28 @@ class PaymentControllerTest {
                 .content("{\"cancelReason\":\"고객 요청\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("CANCELED"));
+  }
+
+  @Test
+  @DisplayName("결제 취소 시 Idempotency-Key 헤더를 서비스 명령으로 전달한다")
+  @WithLongPrincipal(55L)
+  void cancel_passesIdempotencyKeyHeader() throws Exception {
+    given(paymentService.cancelPayment(any())).willReturn(paymentResult("PARTIAL_CANCELED"));
+
+    mockMvc
+        .perform(
+            post(BASE_URL + "/pay_1/cancel")
+                .with(csrf())
+                .header("Idempotency-Key", "cancel-key-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cancelReason\":\"고객 요청\",\"cancelAmount\":10000}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("PARTIAL_CANCELED"));
+
+    ArgumentCaptor<CancelPaymentCommand> commandCaptor =
+        ArgumentCaptor.forClass(CancelPaymentCommand.class);
+    verify(paymentService).cancelPayment(commandCaptor.capture());
+    assertThat(commandCaptor.getValue().cancelIdempotencyKey()).isEqualTo("cancel-key-1");
   }
 
   @Test

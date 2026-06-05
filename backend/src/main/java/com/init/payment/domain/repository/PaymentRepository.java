@@ -20,6 +20,8 @@ public interface PaymentRepository {
 
   Optional<Payment> findByPaymentKeyAndWorkspaceId(String paymentKey, Long workspaceId);
 
+  Optional<Payment> findByPaymentKeyAndWorkspaceIdForUpdate(String paymentKey, Long workspaceId);
+
   List<Payment> findByWorkspaceIdOrderByCreatedAtDesc(Long workspaceId);
 
   /** 동일 주기 결제를 찾는다. 존재 시 재시도는 해당 행을 재사용하여 중복청구를 방지한다 (U-011). */

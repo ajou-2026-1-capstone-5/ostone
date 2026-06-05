@@ -163,9 +163,9 @@ public class Payment {
     this.rawResponse = rawResponse;
   }
 
-  /** 전액 취소. DONE -> CANCELED. */
+  /** 전액 취소. DONE/PARTIAL_CANCELED -> CANCELED. */
   public void markCanceled(String rawResponse) {
-    if (status != PaymentStatus.DONE) {
+    if (status != PaymentStatus.DONE && status != PaymentStatus.PARTIAL_CANCELED) {
       throw new IllegalStateException("markCanceled() 선행 상태가 올바르지 않습니다: " + status);
     }
     this.status = PaymentStatus.CANCELED;

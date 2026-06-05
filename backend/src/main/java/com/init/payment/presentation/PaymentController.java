@@ -10,13 +10,13 @@ import com.init.payment.presentation.dto.PaymentResponse;
 import com.init.shared.presentation.AuthenticationUtils;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -59,6 +59,7 @@ public class PaymentController {
       @PathVariable Long workspaceId,
       @PathVariable String paymentKey,
       @Valid @RequestBody CancelPaymentRequest request,
+      @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
       Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     PaymentResult result =
@@ -69,7 +70,7 @@ public class PaymentController {
                 paymentKey,
                 request.cancelReason(),
                 request.cancelAmount(),
-                UUID.randomUUID().toString().replace("-", "")));
+                idempotencyKey));
     return ResponseEntity.ok(PaymentResponse.from(result));
   }
 }

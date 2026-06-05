@@ -22,6 +22,5 @@ public interface JpaPaymentCancelRepository
   long sumCancelAmountByPaymentId(@Param("paymentId") Long paymentId);
 
   @Override
-  Optional<PaymentCancel> findFirstByPaymentIdAndCancelAmountOrderByIdDesc(
-      @Param("paymentId") Long paymentId, @Param("cancelAmount") long cancelAmount);
+  Optional<PaymentCancel> findByPaymentIdAndIdempotencyKey(Long paymentId, String idempotencyKey);
 }

@@ -64,6 +64,8 @@ class PaymentTest {
     partial.complete("pay_b", "카드", NOW, null, "{}");
     partial.markPartialCanceled("{}");
     assertThat(partial.getStatus()).isEqualTo(PaymentStatus.PARTIAL_CANCELED);
+    partial.markCanceled("{}");
+    assertThat(partial.getStatus()).isEqualTo(PaymentStatus.CANCELED);
 
     Payment aborted = Payment.createOrder(1L, 5L, "ord_c", 29000, "KRW", "Pro");
     aborted.markAborted("{}");

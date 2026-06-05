@@ -30,7 +30,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 일회성 결제 confirm(금액검증 + 멱등), 결제 내역 조회, 취소/부분환불.
  *
- * <p>NOTE: Toss 호출과 DB 갱신을 interleave하므로 TransactionTemplate으로 2-phase 처리한다.
+ * <p>NOTE: confirm은 Toss 호출과 DB 갱신을 interleave하므로 TransactionTemplate으로 2-phase 처리한다. 취소는 잔여 취소 가능
+ * 금액 계산과 저장을 같은 payment 행 잠금 안에서 직렬화한다.
  */
 @Service
 public class PaymentService {
@@ -141,54 +142,38 @@ public class PaymentService {
   public PaymentResult cancelPayment(CancelPaymentCommand command) {
     accessGuard.requireMember(command.workspaceId(), command.userId());
 
-    Payment loaded =
-        inTx(
-            () ->
-                paymentRepository
-                    .findByPaymentKeyAndWorkspaceId(command.paymentKey(), command.workspaceId())
-                    .orElseThrow(
-                        () -> new PaymentNotFoundException("paymentKey=" + command.paymentKey())));
-
-    if (!isCancelable(loaded)) {
-      throw new PaymentCancelNotAllowedException("취소할 수 없는 결제 상태입니다. status=" + loaded.getStatus());
-    }
-
-    long resolvedCancelAmount =
-        command.cancelAmount() != null ? command.cancelAmount() : loaded.getAmount();
-
-    if (command.cancelAmount() != null) {
-      long alreadyCanceled = paymentCancelRepository.sumCancelAmountByPaymentId(loaded.getId());
-      long remainingCancelable = loaded.getAmount() - alreadyCanceled;
-      if (command.cancelAmount() <= 0 || command.cancelAmount() > remainingCancelable) {
-        throw new PaymentCancelNotAllowedException(
-            "취소 금액이 유효하지 않습니다. cancelAmount="
-                + command.cancelAmount()
-                + ", remainingCancelable="
-                + remainingCancelable);
-      }
-    }
-
-    String cancelIdempotencyKey =
-        paymentCancelRepository
-            .findFirstByPaymentIdAndCancelAmountOrderByIdDesc(loaded.getId(), resolvedCancelAmount)
-            .map(PaymentCancel::getIdempotencyKey)
-            .filter(k -> k != null && !k.isBlank())
-            .orElse(command.cancelIdempotencyKey());
-
-    TossPaymentResult result =
-        tossPaymentPort.cancelPayment(
-            command.paymentKey(),
-            command.cancelReason(),
-            command.cancelAmount(),
-            cancelIdempotencyKey);
-
     Payment finalized =
         inTx(
             () -> {
               Payment payment =
                   paymentRepository
-                      .findById(loaded.getId())
-                      .orElseThrow(() -> new PaymentNotFoundException("id=" + loaded.getId()));
+                      .findByPaymentKeyAndWorkspaceIdForUpdate(
+                          command.paymentKey(), command.workspaceId())
+                      .orElseThrow(
+                          () -> new PaymentNotFoundException("paymentKey=" + command.paymentKey()));
+              String cancelIdempotencyKey = cancelIdempotencyKey(command);
+              if (hasText(cancelIdempotencyKey)
+                  && paymentCancelRepository
+                      .findByPaymentIdAndIdempotencyKey(payment.getId(), cancelIdempotencyKey)
+                      .isPresent()) {
+                return payment;
+              }
+              if (!isCancelable(payment)) {
+                throw new PaymentCancelNotAllowedException(
+                    "취소할 수 없는 결제 상태입니다. status=" + payment.getStatus());
+              }
+
+              long alreadyCanceled =
+                  paymentCancelRepository.sumCancelAmountByPaymentId(payment.getId());
+              long remainingCancelable = payment.getAmount() - alreadyCanceled;
+              long resolvedCancelAmount = resolveCancelAmount(command, remainingCancelable);
+
+              TossPaymentResult result =
+                  tossPaymentPort.cancelPayment(
+                      command.paymentKey(),
+                      command.cancelReason(),
+                      command.cancelAmount(),
+                      cancelIdempotencyKey);
               paymentCancelRepository.save(
                   PaymentCancel.create(
                       payment.getId(),
@@ -196,7 +181,8 @@ public class PaymentService {
                       command.cancelReason(),
                       result.transactionKey(),
                       cancelIdempotencyKey));
-              if (isPartialCancel(result, resolvedCancelAmount, payment.getAmount())) {
+              long canceledTotal = alreadyCanceled + resolvedCancelAmount;
+              if (isPartialCancel(result, canceledTotal, payment.getAmount())) {
                 payment.markPartialCanceled(result.maskedRawJson());
               } else {
                 payment.markCanceled(result.maskedRawJson());
@@ -205,6 +191,30 @@ public class PaymentService {
             });
 
     return PaymentResult.from(finalized);
+  }
+
+  private long resolveCancelAmount(CancelPaymentCommand command, long remainingCancelable) {
+    if (remainingCancelable <= 0) {
+      throw new PaymentCancelNotAllowedException("취소 가능한 금액이 없습니다.");
+    }
+    if (command.cancelAmount() == null) {
+      return remainingCancelable;
+    }
+    if (command.cancelAmount() <= 0 || command.cancelAmount() > remainingCancelable) {
+      throw new PaymentCancelNotAllowedException(
+          "취소 금액이 유효하지 않습니다. cancelAmount="
+              + command.cancelAmount()
+              + ", remainingCancelable="
+              + remainingCancelable);
+    }
+    return command.cancelAmount();
+  }
+
+  private String cancelIdempotencyKey(CancelPaymentCommand command) {
+    if (hasText(command.cancelIdempotencyKey())) {
+      return command.cancelIdempotencyKey().trim();
+    }
+    return PaymentIdentifiers.idempotencyKey();
   }
 
   private void activateSubscription(Long subscriptionId, Plan plan) {
@@ -236,14 +246,18 @@ public class PaymentService {
         || payment.getStatus() == PaymentStatus.PARTIAL_CANCELED;
   }
 
-  private boolean isPartialCancel(TossPaymentResult result, long cancelAmount, long totalAmount) {
+  private boolean isPartialCancel(TossPaymentResult result, long canceledTotal, long totalAmount) {
     if (result.isPartialCanceled()) {
       return true;
     }
     if (result.isCanceled()) {
       return false;
     }
-    return cancelAmount < totalAmount;
+    return canceledTotal < totalAmount;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private OffsetDateTime approvedAt(TossPaymentResult result) {
