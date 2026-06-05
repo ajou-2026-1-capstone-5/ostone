@@ -32,40 +32,40 @@
   --font-weight-body: 330;
   --font-weight-base: 340;
   --font-weight-heading: 540;
-  --bg-color: #ffffff;
-  --bg-secondary: rgba(0, 0, 0, 0.02);
-  --text-primary: #000000;
-  --text-secondary: rgba(0, 0, 0, 0.5);
-  --text-color: #000000;
-  --text-muted: rgba(0, 0, 0, 0.35);
-  --brand-primary: #000000;
-  --primary-color: #000000;
-  --primary-color-hover: #000000;
-  --secondary-color: rgba(0, 0, 0, 0.5);
-  --error-color: #b42318;
-  --success-color: #000000;
+  /* Legacy app aliases. New frontend code should use tokens from shared/ui/ostone/tokens.css. */
+  --bg-color: var(--paper);
+  --bg-secondary: var(--paper-2);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-color: var(--ink);
+  --text-muted: var(--ink-3);
+  --brand-primary: var(--ink);
+  --primary-color: var(--ink);
+  --primary-color-hover: var(--ink);
+  --secondary-color: var(--ink-2);
+  --error-color: var(--danger);
+  --success-color: var(--signal-ink);
   --glass-dark: rgba(0, 0, 0, 0.08);
   --glass-dark-soft: rgba(0, 0, 0, 0.045);
   --glass-light: rgba(255, 255, 255, 0.16);
-  --glass-bg: #ffffff;
-  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg: var(--paper);
+  --glass-border: var(--line);
   --glass-shadow: none;
   --glass-blur: none;
   --shadow-card: 0 18px 36px rgba(0, 0, 0, 0.05);
   --shadow-card-hover: 0 34px 72px rgba(0, 0, 0, 0.09);
   --shadow-panel: 0 20px 48px rgba(0, 0, 0, 0.04);
   --shadow-button: 0 18px 36px rgba(0, 0, 0, 0.18);
-  --radius-sm: 2px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 50px;
-  --radius-pill-row: 28px;
+  --radius-sm: var(--r-1);
+  --radius-md: var(--r-3);
+  --radius-lg: var(--r-3);
+  --radius-xl: var(--r-pill);
   --radius-full: 50%;
   --transition-fast: 0.15s ease-in-out;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --hover-bg: rgba(0, 0, 0, 0.03);
-  --hover-border: rgba(0, 0, 0, 0.14);
-  --divider-subtle: rgba(0, 0, 0, 0.04);
+  --hover-bg: var(--paper-2);
+  --hover-border: var(--line);
+  --divider-subtle: var(--line-2);
   --app-header-height: 72px;
   --overlay-bg: rgba(0, 0, 0, 0.45);
   --focus-ring: 0 0 0 3px rgba(0, 0, 0, 0.12);
@@ -113,8 +113,8 @@
   --node-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 14px rgba(15, 23, 42, 0.06);
   --node-shadow-active: 0 0 0 3px oklch(0.62 0.22 285 / 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
 
-  --radius-card: 12px;
-  --radius-pill: 999px;
+  --radius-card: var(--r-3);
+  --radius-pill: var(--r-pill);
 }
 
 * {
