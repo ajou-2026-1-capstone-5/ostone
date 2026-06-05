@@ -9,6 +9,14 @@ import { InteractiveGraphEditor } from "./InteractiveGraphEditor";
 import { toWorkflowGraph } from "../lib/graphToWorkflow";
 import type { WorkflowDetail, WorkflowGraph } from "@/entities/workflow";
 import { toFlow } from "@/entities/workflow";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/shared/ui/accordion";
+import { usePolicyNameMap } from "../model/usePolicyNameMap";
+import { WorkflowEditorLegend } from "./WorkflowEditorLegend";
 import styles from "./workflowEditForm.module.css";
 
 const EMPTY_GRAPH: WorkflowGraph = { direction: "LR", nodes: [], edges: [] };
@@ -45,6 +53,7 @@ export function WorkflowEditForm({
   onDirtyChange,
 }: WorkflowEditFormProps) {
   const { mutate, isPending } = useUpdateWorkflow();
+  const policyNames = usePolicyNameMap(wsId, packId, versionId);
   const [isGraphDirty, setGraphDirty] = useState(false);
 
   const parsedGraph = useRef(parseGraphJson(workflow.graphJson));
@@ -180,20 +189,6 @@ export function WorkflowEditForm({
           )}
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.fieldLabel} htmlFor="wf-code">
-            워크플로우 코드
-          </label>
-          <input
-            id="wf-code"
-            value={workflow.workflowCode ?? ""}
-            readOnly
-            disabled
-            className={styles.fieldInput}
-            data-testid="workflow-edit-code"
-          />
-        </div>
-
         <div className={`${styles.field} ${styles["field--description"]}`}>
           <label className={styles.fieldLabel} htmlFor="wf-description">
             설명
@@ -223,12 +218,39 @@ export function WorkflowEditForm({
         </div>
       </div>
 
+      <Accordion type="single" collapsible className={styles.advanced}>
+        <AccordionItem value="advanced">
+          <AccordionTrigger className={styles.advancedTrigger}>고급 · 실행 기준</AccordionTrigger>
+          <AccordionContent>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="wf-code">
+                워크플로우 코드
+              </label>
+              <input
+                id="wf-code"
+                value={workflow.workflowCode ?? ""}
+                readOnly
+                disabled
+                className={styles.fieldInput}
+                data-testid="workflow-edit-code"
+              />
+              <span className={styles.fieldHint}>
+                실행 엔진이 사용하는 내부 식별자입니다. 표시 이름과 달리 편집할 수 없습니다.
+              </span>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <WorkflowEditorLegend />
+
       <div className={styles.editorSlot}>
         <InteractiveGraphEditor
           key={workflow.id}
           initialNodes={initialFlow.current.nodes}
           initialEdges={initialFlow.current.edges}
           onStateChange={handleGraphStateChange}
+          policyNames={policyNames}
         />
       </div>
 

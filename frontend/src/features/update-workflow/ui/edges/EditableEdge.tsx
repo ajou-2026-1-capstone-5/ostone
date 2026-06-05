@@ -62,6 +62,7 @@ export function EditableEdge({
           onBlur={commitLabel}
           placeholder="전이 조건"
           aria-label="엣지 레이블"
+          title="이 조건을 만족할 때 다음 노드로 전환합니다. 분기에서 어떤 흐름으로 이어질지 결정하는 표시값입니다."
         />
       </EdgeLabelRenderer>
     </>

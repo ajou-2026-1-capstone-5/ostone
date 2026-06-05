@@ -6,6 +6,7 @@ import { EditableDecisionNode } from "./EditableDecisionNode";
 import { EditableAnswerNode } from "./EditableAnswerNode";
 import { EditableHandoffNode } from "./EditableHandoffNode";
 import { EditableTerminalNode } from "./EditableTerminalNode";
+import { PolicyNameContext } from "../PolicyNameContext";
 
 const updateNodeData = vi.fn();
 const deleteElements = vi.fn();
@@ -125,6 +126,43 @@ describe("EditableActionNode", () => {
     expect(screen.getByText("계정 자동 잠금 해제")).toBeInTheDocument();
     expect(screen.getByText("policy:unlock")).toBeInTheDocument();
     expect(screen.getByText("audit:on")).toBeInTheDocument();
+  });
+
+  it("policyRef 코드를 연결된 응대 기준 이름으로 표시한다", () => {
+    render(
+      <PolicyNameContext.Provider value={new Map([["PR-001", "환불 승인 기준"]])}>
+        <EditableActionNode
+          {...baseProps}
+          type="action"
+          data={{ label: "처리", policyRef: "PR-001" }}
+        />
+      </PolicyNameContext.Provider>,
+    );
+    expect(screen.getByTestId("policy-ref-name")).toHaveTextContent("환불 승인 기준");
+  });
+
+  it("등록되지 않은 policyRef 코드는 알 수 없는 기준으로 표시한다", () => {
+    render(
+      <PolicyNameContext.Provider value={new Map([["PR-001", "환불 승인 기준"]])}>
+        <EditableActionNode
+          {...baseProps}
+          type="action"
+          data={{ label: "처리", policyRef: "PR-999" }}
+        />
+      </PolicyNameContext.Provider>,
+    );
+    expect(screen.getByTestId("policy-ref-unknown")).toBeInTheDocument();
+    expect(screen.queryByTestId("policy-ref-name")).not.toBeInTheDocument();
+  });
+
+  it("policyRef가 비면 해석 힌트를 표시하지 않는다", () => {
+    render(
+      <PolicyNameContext.Provider value={new Map([["PR-001", "환불 승인 기준"]])}>
+        <EditableActionNode {...baseProps} type="action" data={{ label: "처리", policyRef: "" }} />
+      </PolicyNameContext.Provider>,
+    );
+    expect(screen.queryByTestId("policy-ref-name")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("policy-ref-unknown")).not.toBeInTheDocument();
   });
 });
 
