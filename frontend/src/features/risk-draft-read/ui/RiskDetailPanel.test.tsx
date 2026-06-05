@@ -49,7 +49,8 @@ describe("RiskDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("주의 사항을 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("선택된 주의 사항이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("목록에서 항목을 선택하면 상세 정보가 표시됩니다.")).toBeInTheDocument();
   });
 
   it("ready 상태에서는 주의 사항 상세와 JSON 필드를 보여준다", () => {

@@ -193,7 +193,7 @@
   box-shadow: var(--focus-ring);
 }
 
-@media (max-width: 1599px) {
+@media (max-width: 767px) {
   .panel {
     width: 100%;
     min-width: 0;

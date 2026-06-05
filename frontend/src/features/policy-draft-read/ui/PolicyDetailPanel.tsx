@@ -57,7 +57,8 @@ export function PolicyDetailPanel({
     return (
       <section className={styles.panel} aria-label="응대 기준 상세">
         <div className={styles.placeholder}>
-          <span>응대 기준을 선택하세요.</span>
+          <span>선택된 응대 기준이 없습니다.</span>
+          <span>목록에서 기준을 선택하면 상세 정보가 표시됩니다.</span>
         </div>
       </section>
     );

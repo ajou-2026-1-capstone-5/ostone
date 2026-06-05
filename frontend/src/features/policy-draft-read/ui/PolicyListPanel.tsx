@@ -85,7 +85,7 @@ function PolicyListContent({
   if (state.data.length === 0) {
     return (
       <div className={styles.emptyState}>
-        <span>등록된 응대 기준 초안이 없습니다.</span>
+        <span>응대 기준 목록이 비어 있습니다.</span>
       </div>
     );
   }

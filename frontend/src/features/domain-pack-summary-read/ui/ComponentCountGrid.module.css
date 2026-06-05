@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 178px;
   transition: box-shadow var(--transition-fast);
 }
 
@@ -38,32 +39,37 @@
   letter-spacing: 0.04em;
 }
 
-.cardArrowButton {
+.cardActionButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  padding: 2px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
+  gap: 4px;
+  width: 100%;
+  min-height: 32px;
+  margin-top: auto;
+  padding: 0 12px;
+  border: 1px solid var(--text-primary);
+  border-radius: var(--radius-xl);
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-size: 12px;
+  font-weight: var(--font-weight-heading);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-fast);
+  transition: opacity var(--transition-fast);
 }
 
-.cardArrowButton:hover {
-  color: var(--text-primary);
+.cardActionButton:hover {
+  opacity: 0.84;
 }
 
-.cardArrowButton:focus-visible {
+.cardActionButton:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-.cardArrowButton svg {
-  width: 18px;
-  height: 18px;
+.cardActionButton svg {
+  width: 14px;
+  height: 14px;
 }
 
 .countNumber {
@@ -108,6 +114,12 @@
   font-size: 11px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+.emptyNote {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
 .skeletonLine {

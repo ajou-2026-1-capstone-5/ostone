@@ -50,7 +50,8 @@ describe("PolicyDetailPanel", () => {
 
     renderPanel();
 
-    expect(screen.getByText("응대 기준을 선택하세요.")).toBeInTheDocument();
+    expect(screen.getByText("선택된 응대 기준이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("목록에서 기준을 선택하면 상세 정보가 표시됩니다.")).toBeInTheDocument();
   });
 
   it("ready 상태에서는 정책 상세와 수정 액션을 보여준다", () => {
