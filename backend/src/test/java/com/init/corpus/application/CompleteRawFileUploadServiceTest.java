@@ -253,6 +253,77 @@ class CompleteRawFileUploadServiceTest {
   }
 
   @Test
+  @DisplayName("should_throw_when_upload_session_expiresAt_missing")
+  void complete_missingExpiresAt_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"createdBy\":1}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("expiresAt");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_expiresAt_malformed")
+  void complete_malformedExpiresAt_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\"not-a-date\",\"createdBy\":1}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("expiresAt 형식");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
+  @DisplayName("should_throw_when_upload_session_createdBy_missing")
+  void complete_missingCreatedBy_throws() {
+    given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 1L)).willReturn(true);
+    Dataset dataset = uploadingDataset();
+    dataset.updateMetaJson(
+        "{\"upload\":{\"objectKey\":\""
+            + OBJECT_KEY
+            + "\",\"expectedSizeBytes\":"
+            + EXPECTED_SIZE
+            + ",\"filename\":\"data.zip\",\"contentType\":\"application/zip\",\"expiresAt\":\""
+            + OffsetDateTime.now().plusMinutes(15)
+            + "\"}}");
+    given(datasetRepository.findByIdAndWorkspaceIdForUpdate(42L, 1L))
+        .willReturn(Optional.of(dataset));
+
+    assertThatThrownBy(() -> service.complete(command()))
+        .isInstanceOf(InvalidUploadStateException.class)
+        .hasMessageContaining("createdBy");
+
+    verify(storagePort, never()).headObject(anyString());
+    verify(rawFileRepository, never()).save(any());
+    verify(triggerPort, never()).trigger(anyLong(), anyLong(), anyString());
+  }
+
+  @Test
   @DisplayName("should_throw_when_upload_session_createdBy_mismatches_request_user")
   void complete_createdByMismatch_throws() {
     given(workspaceMembershipRepository.existsByWorkspaceIdAndUserId(1L, 2L)).willReturn(true);
