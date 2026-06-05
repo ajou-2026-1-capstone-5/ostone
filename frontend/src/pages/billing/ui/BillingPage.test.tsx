@@ -308,6 +308,25 @@ describe("BillingPage", () => {
     expect(screen.getByText("기본 제공")).toBeTruthy();
   });
 
+  it("INCOMPLETE 구독이면 현재 플랜이 아닌 유료 플랜은 비활성 '선택 불가'로 막는다", () => {
+    // Pro INCOMPLETE 상태에서 Max '업그레이드'를 눌러도 planKey 가 무음 드롭되므로(백엔드 전환 미지원)
+    // 현재 플랜이 아닌 유료 플랜은 선택 자체를 막는다.
+    setupRegister(
+      { ...baseSubscription, status: "INCOMPLETE", planKey: "pro_monthly" },
+      { data: catalog },
+    );
+    render(<BillingPage />);
+    const disabled = screen.getByTestId("plan-switch-disabled-cta");
+    expect(disabled.textContent).toBe("선택 불가");
+    expect(disabled.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("미구독 시에는 유료 플랜을 막지 않는다('선택 불가' 없음)", () => {
+    setupRegister(null, { data: catalog });
+    render(<BillingPage />);
+    expect(screen.queryByTestId("plan-switch-disabled-cta")).toBeNull();
+  });
+
   it("workspaceId가 유효하지 않으면 Navigate 렌더링", () => {
     mockUseParams.mockReturnValue({ workspaceId: "not-a-number" });
     mockUseOutletContext.mockReturnValue({ setCrumbs: vi.fn() } as never);

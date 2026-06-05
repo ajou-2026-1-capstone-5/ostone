@@ -85,6 +85,22 @@ export function BillingPage() {
     if (entry.contactOnly) {
       return <EnterpriseContactDialog />;
     }
+    // 이미 구독(생성됨)이 있으면 다른 플랜으로의 전환은 지원하지 않는다(백엔드 전환 endpoint 부재).
+    // INCOMPLETE 구독은 '현재 플랜'의 결제수단 등록만 가능하므로, 그 외 유료 플랜 CTA 는 비활성화해
+    // 선택한 plan 이 무음으로 무시된 채 기존 플랜으로 결제 등록되는 일을 막는다.
+    if (subscription && !entry.current) {
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full rounded-full px-6"
+          disabled
+          data-testid="plan-switch-disabled-cta"
+        >
+          선택 불가
+        </Button>
+      );
+    }
     const planName = PLAN_COPY[entry.planKey]?.name ?? "플랜";
     return (
       <RegisterBillingButton
