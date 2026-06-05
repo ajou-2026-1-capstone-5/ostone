@@ -181,7 +181,7 @@ class AuthServiceTest {
 
     RefreshToken refreshToken =
         RefreshToken.create(1L, "sha256-hash-of-token", OffsetDateTime.now().plusDays(7));
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-of-token"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-of-token"))
         .willReturn(Optional.of(refreshToken));
 
     Claims claims = org.mockito.Mockito.mock(Claims.class);
@@ -210,6 +210,8 @@ class AuthServiceTest {
     assertThat(result.accessToken()).isEqualTo("new-access-token");
     assertThat(result.refreshToken()).isEqualTo("new-refresh-token");
     assertThat(result.tokenType()).isEqualTo("Bearer");
+    verify(refreshTokenRepository).findByTokenHashForUpdate("sha256-hash-of-token");
+    verify(refreshTokenRepository, never()).findByTokenHash("sha256-hash-of-token");
   }
 
   @Test
@@ -222,7 +224,7 @@ class AuthServiceTest {
     // 만료된 토큰 (expiresAt이 과거)
     RefreshToken expiredToken =
         RefreshToken.create(1L, "sha256-hash-expired", OffsetDateTime.now().minusSeconds(1));
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-expired"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-expired"))
         .willReturn(Optional.of(expiredToken));
 
     // when & then
@@ -237,7 +239,7 @@ class AuthServiceTest {
     // given
     TokenRefreshCommand command = new TokenRefreshCommand("unknown-token");
     given(tokenHasher.hash("unknown-token")).willReturn("sha256-hash-unknown");
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-unknown"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-unknown"))
         .willReturn(Optional.empty());
 
     // when & then
@@ -256,7 +258,7 @@ class AuthServiceTest {
     RefreshToken revokedToken =
         RefreshToken.create(1L, "sha256-hash-revoked", OffsetDateTime.now().plusDays(7));
     revokedToken.revoke();
-    given(refreshTokenRepository.findByTokenHash("sha256-hash-revoked"))
+    given(refreshTokenRepository.findByTokenHashForUpdate("sha256-hash-revoked"))
         .willReturn(Optional.of(revokedToken));
 
     // when & then

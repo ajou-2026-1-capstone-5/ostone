@@ -98,7 +98,7 @@ public class AuthService {
 
     RefreshToken refreshToken =
         refreshTokenRepository
-            .findByTokenHash(tokenHash)
+            .findByTokenHashForUpdate(tokenHash)
             .orElseThrow(() -> new InvalidTokenException("유효하지 않은 리프레시 토큰입니다."));
 
     if (!refreshToken.isValid()) {

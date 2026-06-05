@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -56,6 +57,7 @@ public class JwtService {
   public String generateRefreshToken(Long userId) {
     return Jwts.builder()
         .subject(String.valueOf(userId))
+        .id(UUID.randomUUID().toString())
         .claim("type", TOKEN_TYPE_REFRESH)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
