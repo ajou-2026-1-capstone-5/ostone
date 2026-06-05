@@ -280,8 +280,7 @@ test.describe("Workspace core operator screens", () => {
         });
         await page.getByRole("button", { name: "처리 시작" }).click();
         await expect(page.getByText("업로드 완료").first()).toBeVisible();
-        await page.getByRole("button", { name: "도메인팩 초안 생성 시작" }).click();
-        await expect(page.getByText("생성 요청 완료", { exact: true })).toBeVisible();
+        await expect(page.getByText("자동 생성 파이프라인")).toBeVisible();
         await page.getByRole("button", { name: "검토 화면으로 이동" }).click();
 
         await expect(page).toHaveURL(/\/workspaces\/1\/pipeline-jobs\/900\/review/);
@@ -301,7 +300,7 @@ test.describe("Workspace core operator screens", () => {
         expect(seen).toContain("PUT /e2e-upload/raw-log.zip");
         expect(seen).toContain("POST /workspaces/1/datasets/uploads/77:complete");
         expect(seen).toContain(
-          "POST /workspaces/1/datasets/77/pipeline-jobs/domain-pack-generation",
+          "GET /workspaces/1/datasets/77/pipeline-jobs/latest?jobType=INGESTION",
         );
       });
     });

@@ -43,7 +43,7 @@ export function useLatestDatasetPipelineJob(
   });
 }
 
-function shouldPollPipelineJob(job?: LatestPipelineJob | null): boolean {
+export function shouldPollPipelineJob(job?: LatestPipelineJob | null): boolean {
   if (!job) {
     return true;
   }

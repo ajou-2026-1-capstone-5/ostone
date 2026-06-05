@@ -50,6 +50,21 @@ interface LogUploadFormProps {
   isEntitlementLoading?: boolean;
 }
 
+interface PipelineStatusMeta {
+  title: string;
+  detail: string;
+  primaryActionLabel: string;
+}
+
+type PipelineJobStatusPanelProps = Readonly<{
+  queryState: { isLoading: boolean; isError: boolean; isFetching: boolean };
+  job: LatestPipelineJob | null;
+  reviewPath: string | null;
+  onRefresh: () => void;
+  onReset: () => void;
+  onNavigate: (path: string) => void;
+}>;
+
 const FREE_ONBOARDING_STATUS_META: Record<
   FreeOnboardingStatus,
   { label: string; copy: string }
@@ -252,6 +267,9 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
     !ingestionJob &&
     !ingestionJobQuery.isLoading &&
     !ingestionJobQuery.isError;
+  const handleIngestionRefresh = () => {
+    ingestionJobQuery.refetch();
+  };
 
   return (
     <div className={styles.container}>
@@ -323,7 +341,7 @@ export const LogUploadForm: React.FC<LogUploadFormProps> = ({
             }}
             job={ingestionJob}
             reviewPath={ingestionReviewPath}
-            onRefresh={() => void ingestionJobQuery.refetch()}
+            onRefresh={handleIngestionRefresh}
             onReset={handleReset}
             onNavigate={navigate}
           />
@@ -422,14 +440,7 @@ function PipelineJobStatusPanel({
   onRefresh,
   onReset,
   onNavigate,
-}: {
-  queryState: { isLoading: boolean; isError: boolean; isFetching: boolean };
-  job: LatestPipelineJob | null;
-  reviewPath: string | null;
-  onRefresh: () => void;
-  onReset: () => void;
-  onNavigate: (path: string) => void;
-}) {
+}: PipelineJobStatusPanelProps) {
   const statusMeta = pipelineStatusMeta(job?.status);
 
   if (queryState.isLoading) {
@@ -482,9 +493,9 @@ function PipelineJobStatusPanel({
       <div className={styles.pipelineMeta}>
         <span>DAG {job.airflowDagId ?? "-"}</span>
         <span>
-          {job.runningDurationSeconds != null
-            ? `실행 ${formatDuration(job.runningDurationSeconds)}`
-            : statusMeta.detail}
+          {job.runningDurationSeconds == null
+            ? statusMeta.detail
+            : `실행 ${formatDuration(job.runningDurationSeconds)}`}
         </span>
       </div>
       {job.lastErrorMessage && <p>{job.lastErrorMessage}</p>}
@@ -509,54 +520,49 @@ function PipelineJobStatusPanel({
   );
 }
 
-function pipelineStatusMeta(status?: string) {
-  if (status === "WAITING_DOMAIN_CONFIRMATION") {
-    return {
-      title: "도메인 확정 입력을 기다리고 있습니다.",
-      detail: "검토 화면에서 후보 도메인을 선택할 수 있습니다.",
-      primaryActionLabel: "검토 화면으로 이동",
-    };
-  }
-  if (status === "WAITING_HUMAN_FEEDBACK") {
-    return {
-      title: "클러스터 피드백 입력을 기다리고 있습니다.",
-      detail: "검토 화면에서 애매한 경계를 확정할 수 있습니다.",
-      primaryActionLabel: "검토 화면으로 이동",
-    };
-  }
-  if (status === "SUCCEEDED") {
-    return {
-      title: "파이프라인이 완료되었습니다.",
-      detail: "생성된 도메인팩 초안을 확인할 수 있습니다.",
-      primaryActionLabel: "상태 화면으로 이동",
-    };
-  }
-  if (status === "FAILED") {
-    return {
-      title: "파이프라인이 실패했습니다.",
-      detail: "실패 원인을 확인한 뒤 다시 시도할 수 있습니다.",
-      primaryActionLabel: "상태 화면으로 이동",
-    };
-  }
-  if (status === "CANCELLED") {
-    return {
-      title: "파이프라인이 취소되었습니다.",
-      detail: "필요하면 다시 업로드하거나 생성 요청을 다시 보낼 수 있습니다.",
-      primaryActionLabel: "상태 화면으로 이동",
-    };
-  }
-  if (status === "QUEUED") {
-    return {
-      title: "파이프라인이 대기열에 등록되었습니다.",
-      detail: "Airflow 실행 시작을 기다리고 있습니다.",
-      primaryActionLabel: "상태 화면으로 이동",
-    };
-  }
-  return {
-    title: "파이프라인이 실행 중입니다.",
-    detail: "Airflow가 상담 로그를 분석하고 있습니다.",
+const DEFAULT_PIPELINE_STATUS_META: PipelineStatusMeta = {
+  title: "파이프라인이 실행 중입니다.",
+  detail: "Airflow가 상담 로그를 분석하고 있습니다.",
+  primaryActionLabel: "상태 화면으로 이동",
+};
+
+const PIPELINE_STATUS_META: Record<string, PipelineStatusMeta> = {
+  WAITING_DOMAIN_CONFIRMATION: {
+    title: "도메인 확정 입력을 기다리고 있습니다.",
+    detail: "검토 화면에서 후보 도메인을 선택할 수 있습니다.",
+    primaryActionLabel: "검토 화면으로 이동",
+  },
+  WAITING_HUMAN_FEEDBACK: {
+    title: "클러스터 피드백 입력을 기다리고 있습니다.",
+    detail: "검토 화면에서 애매한 경계를 확정할 수 있습니다.",
+    primaryActionLabel: "검토 화면으로 이동",
+  },
+  SUCCEEDED: {
+    title: "파이프라인이 완료되었습니다.",
+    detail: "생성된 도메인팩 초안을 확인할 수 있습니다.",
     primaryActionLabel: "상태 화면으로 이동",
-  };
+  },
+  FAILED: {
+    title: "파이프라인이 실패했습니다.",
+    detail: "실패 원인을 확인한 뒤 다시 시도할 수 있습니다.",
+    primaryActionLabel: "상태 화면으로 이동",
+  },
+  CANCELLED: {
+    title: "파이프라인이 취소되었습니다.",
+    detail: "필요하면 다시 업로드하거나 생성 요청을 다시 보낼 수 있습니다.",
+    primaryActionLabel: "상태 화면으로 이동",
+  },
+  QUEUED: {
+    title: "파이프라인이 대기열에 등록되었습니다.",
+    detail: "Airflow 실행 시작을 기다리고 있습니다.",
+    primaryActionLabel: "상태 화면으로 이동",
+  },
+};
+
+function pipelineStatusMeta(status?: string): PipelineStatusMeta {
+  return status
+    ? (PIPELINE_STATUS_META[status] ?? DEFAULT_PIPELINE_STATUS_META)
+    : DEFAULT_PIPELINE_STATUS_META;
 }
 
 function formatDuration(seconds: number): string {
