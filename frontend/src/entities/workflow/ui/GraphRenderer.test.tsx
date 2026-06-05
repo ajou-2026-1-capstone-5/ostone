@@ -16,7 +16,7 @@ vi.mock("@xyflow/react", () => ({
   Controls: () => null,
 }));
 
-vi.mock("@/entities/workflow", () => ({
+vi.mock("../lib/graphConverter", () => ({
   toFlow: mockToFlow,
 }));
 
