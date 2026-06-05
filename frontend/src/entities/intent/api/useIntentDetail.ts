@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useGetIntent } from "@/shared/api/generated/endpoints/intent-definition-controller/intent-definition-controller";
 import { intentQueryKeys, requireApiData } from "@/shared/api";
-import { mapApiError } from "./mapApiError";
-import type { IntentDetail } from "../../../entities/intent";
+import { mapApiError } from "../lib/mapApiError";
+import type { IntentDetail } from "../model/types";
 
 export type IntentDetailState =
   | { status: "idle" }
