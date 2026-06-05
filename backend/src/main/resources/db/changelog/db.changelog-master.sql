@@ -1037,6 +1037,54 @@ ALTER TABLE runtime.simulation_improvement_candidate
 CREATE INDEX idx_simulation_improvement_candidate_review_task
     ON runtime.simulation_improvement_candidate (review_task_id);
 
+--changeset init:20260605-create-simulation-golden-case
+--comment: Store replayable simulation verification cases separately from operational chat sessions
+CREATE TABLE runtime.simulation_golden_case (
+    id                            BIGSERIAL PRIMARY KEY,
+    workspace_id                  BIGINT NOT NULL REFERENCES app.workspace(id) ON DELETE CASCADE,
+    source_chat_session_id        BIGINT NOT NULL REFERENCES runtime.chat_session(id) ON DELETE CASCADE,
+    source_domain_pack_version_id BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    name                          VARCHAR(255) NOT NULL,
+    input_messages_json           JSONB NOT NULL DEFAULT '[]'::jsonb,
+    expected_json                 JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_by                    BIGINT NOT NULL REFERENCES app.app_user(id),
+    created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_simulation_golden_case_workspace_created
+    ON runtime.simulation_golden_case (workspace_id, created_at DESC);
+
+CREATE INDEX idx_simulation_golden_case_source_session
+    ON runtime.simulation_golden_case (source_chat_session_id);
+
+--changeset init:20260605-create-simulation-golden-case-replay-result
+--comment: Store pass/fail replay results for simulation verification cases
+CREATE TABLE runtime.simulation_golden_case_replay_result (
+    id                     BIGSERIAL PRIMARY KEY,
+    workspace_id           BIGINT NOT NULL REFERENCES app.workspace(id) ON DELETE CASCADE,
+    golden_case_id         BIGINT NOT NULL REFERENCES runtime.simulation_golden_case(id) ON DELETE CASCADE,
+    domain_pack_version_id BIGINT NOT NULL REFERENCES pack.domain_pack_version(id) ON DELETE CASCADE,
+    replay_chat_session_id BIGINT NOT NULL REFERENCES runtime.chat_session(id) ON DELETE CASCADE,
+    status                 VARCHAR(20) NOT NULL,
+    expected_json          JSONB NOT NULL DEFAULT '{}'::jsonb,
+    actual_json            JSONB NOT NULL DEFAULT '{}'::jsonb,
+    failure_summary        TEXT,
+    created_by             BIGINT NOT NULL REFERENCES app.app_user(id),
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_simulation_golden_case_replay_status
+        CHECK (status IN ('PASS', 'FAIL'))
+);
+
+CREATE INDEX idx_simulation_golden_case_replay_case_created
+    ON runtime.simulation_golden_case_replay_result (golden_case_id, created_at DESC);
+
+CREATE INDEX idx_simulation_golden_case_replay_workspace_created
+    ON runtime.simulation_golden_case_replay_result (workspace_id, created_at DESC);
+
+CREATE INDEX idx_simulation_golden_case_replay_version_created
+    ON runtime.simulation_golden_case_replay_result (domain_pack_version_id, created_at DESC);
+
 --changeset init:20260601-add-response-mode-to-chat-session
 --comment: Add session-level AI response mode for counselor intervention control
 ALTER TABLE runtime.chat_session

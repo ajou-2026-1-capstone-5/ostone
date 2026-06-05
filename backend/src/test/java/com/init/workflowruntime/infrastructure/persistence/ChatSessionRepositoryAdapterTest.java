@@ -2,7 +2,6 @@ package com.init.workflowruntime.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
 import com.init.workflowruntime.domain.ChatSession;
 import com.init.workflowruntime.domain.ChatSessionStatus;
@@ -13,7 +12,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -51,16 +49,13 @@ class ChatSessionRepositoryAdapterTest {
   }
 
   @Test
-  @DisplayName("findFirstByWorkspaceIdAndStartedBy...: reusable 운영 세션 조회에서 SIMULATION 채널을 제외한다")
+  @DisplayName("findFirstByWorkspaceIdAndStartedBy...: reusable 운영 세션 조회를 위임한다")
   void should_excludeSimulationChannel_when_findingReusableSession() {
     ChatSession session =
         withId(ChatSession.create(10L, 20L, ChatSessionStatus.OPEN, "WEB", "{}"), 55L);
     List<ChatSessionStatus> statuses = List.of(ChatSessionStatus.OPEN, ChatSessionStatus.ACTIVE);
-    given(
-            jpaRepository
-                .findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
-                    10L, 7L, statuses, "SIMULATION"))
-        .willReturn(Optional.of(session));
+    given(jpaRepository.findReusableOperationalSessions(10L, 7L, statuses, PageRequest.of(0, 1)))
+        .willReturn(List.of(session));
     ChatSessionRepositoryAdapter adapter = new ChatSessionRepositoryAdapter(jpaRepository);
 
     Optional<ChatSession> result =
@@ -68,14 +63,6 @@ class ChatSessionRepositoryAdapterTest {
             10L, 7L, statuses);
 
     assertThat(result).contains(session);
-    ArgumentCaptor<String> channelCaptor = ArgumentCaptor.forClass(String.class);
-    verify(jpaRepository)
-        .findFirstByWorkspaceIdAndStartedByAndStatusInAndChannelNotOrderByStartedAtDescIdDesc(
-            org.mockito.ArgumentMatchers.eq(10L),
-            org.mockito.ArgumentMatchers.eq(7L),
-            org.mockito.ArgumentMatchers.eq(statuses),
-            channelCaptor.capture());
-    assertThat(channelCaptor.getValue()).isEqualTo("SIMULATION");
   }
 
   private ChatSession withId(ChatSession session, Long id) {

@@ -34,6 +34,10 @@ vi.mock("@/features/simulation", () => ({
     updateImprovementCandidateStatus: vi.fn(),
     approveImprovementCandidate: vi.fn(),
     rejectImprovementCandidate: vi.fn(),
+    listGoldenCases: vi.fn(),
+    createGoldenCase: vi.fn(),
+    replayGoldenCase: vi.fn(),
+    listGoldenCaseReplays: vi.fn(),
   },
 }));
 
@@ -76,7 +80,15 @@ const detail = {
     },
   ],
   matchedWorkflow: {
+    sessionId: 10,
+    workspaceId: 1,
+    domainPackId: 11,
+    domainPackVersionId: 101,
+    executionId: 77,
     intentName: "환불 문의",
+    intentCode: "refund_request",
+    workflowDefinitionId: 100,
+    workflowCode: "refund_workflow",
     workflowName: "환불 처리",
     currentState: "collect_order_no",
     executionStatus: "ACTIVE",
@@ -129,6 +141,35 @@ const candidate = {
   createdBy: 7,
   createdAt: "2026-06-04T10:45:00Z",
   updatedAt: "2026-06-04T10:45:00Z",
+} as const;
+
+const goldenCase = {
+  id: 950,
+  workspaceId: 1,
+  sourceSessionId: 10,
+  sourceDomainPackVersionId: 101,
+  name: "환불 검증",
+  inputMessagesJson: '[{"content":"환불하고 싶어요"}]',
+  expectedJson:
+    '{"intentCode":"refund_request","workflowCode":"refund_workflow","currentState":"collect_order_no","actionType":"ASK_SLOT"}',
+  createdBy: 7,
+  createdAt: "2026-06-05T10:45:00Z",
+  updatedAt: "2026-06-05T10:45:00Z",
+  latestReplayResult: null,
+} as const;
+
+const replayResult = {
+  id: 990,
+  workspaceId: 1,
+  goldenCaseId: 950,
+  domainPackVersionId: 101,
+  replaySessionId: 960,
+  status: "PASS",
+  expectedJson: "{}",
+  actualJson: "{}",
+  failureSummary: null,
+  createdBy: 7,
+  createdAt: "2026-06-05T10:46:00Z",
 } as const;
 
 function candidateWithType(
@@ -232,6 +273,15 @@ beforeEach(() => {
     status: "REJECTED",
     decisionReason: "근거가 부족합니다.",
   });
+  mockedSimulationApi.listGoldenCases.mockResolvedValue({
+    content: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  });
+  mockedSimulationApi.createGoldenCase.mockResolvedValue(goldenCase);
+  mockedSimulationApi.replayGoldenCase.mockResolvedValue(replayResult);
   mockedSimulationApi.sendMessage.mockResolvedValue({
     ...detail,
     messages: [
@@ -483,10 +533,7 @@ describe("WorkspaceSimulationPage", () => {
         candidateWithType(1005, "HANDOFF_CONDITION"),
         candidateWithType(1006, "RESPONSE_COPY"),
         candidateWithType(1007, "OTHER"),
-        candidateWithType(
-          1008,
-          "CUSTOM" as SimulationImprovementCandidate["candidateType"],
-        ),
+        candidateWithType(1008, "CUSTOM" as SimulationImprovementCandidate["candidateType"]),
       ],
       page: 0,
       size: 20,
@@ -608,6 +655,49 @@ describe("WorkspaceSimulationPage", () => {
       });
     });
     expect(toast.success).toHaveBeenCalledWith("개선 후보를 반려했습니다.");
+  });
+
+  it("현재 runtime snapshot을 검증 케이스로 저장한다", async () => {
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    fireEvent.change(await screen.findByLabelText("기대 action"), {
+      target: { value: "ASK_SLOT" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.createGoldenCase).toHaveBeenCalledWith(1, 10, {
+        name: "테스트 고객 검증 케이스",
+        expectedIntentCode: "refund_request",
+        expectedWorkflowCode: "refund_workflow",
+        expectedCurrentState: "collect_order_no",
+        expectedActionType: "ASK_SLOT",
+        expectedSlotValues: { orderNo: "A-100" },
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("검증 케이스를 저장했습니다.");
+  });
+
+  it("저장된 검증 케이스를 선택 version으로 replay한다", async () => {
+    mockedSimulationApi.listGoldenCases.mockResolvedValue({
+      content: [goldenCase],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    await screen.findByText("환불하고 싶어요");
+    fireEvent.click(await screen.findByRole("button", { name: "환불 검증 replay" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.replayGoldenCase).toHaveBeenCalledWith(1, 950, {
+        domainPackVersionId: 101,
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("검증 케이스 replay가 통과했습니다.");
   });
 
   it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {
