@@ -1,23 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ApiRequestError } from "@/shared/api";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
-import { Dot, Mono, Avatar } from "@/shared/ui/ostone/atoms";
-import { useStomp, type ConnectionStatus } from "@/shared/lib/websocket";
+import { Mono } from "@/shared/ui/ostone/atoms";
 import { getAuthUser } from "@/shared/lib/auth";
 import { QueuePanel } from "../../../features/consultation/ui/QueuePanel";
-import type { QueueCustomer } from "../../../features/consultation/ui/QueuePanel";
-import { ChatPanel } from "../../../features/consultation/ui/ChatPanel";
 import type {
   ChatComposerDraft,
   ChatMessage as UiChatMessage,
 } from "../../../features/consultation/ui/ChatPanel";
-import {
-  normalizeChatSenderRole,
-  type ChatSenderRole,
-} from "../../../features/consultation/lib/chatRoleLabels";
-import { formatWaitDuration } from "../../../features/consultation/lib/formatWaitDuration";
+import { normalizeChatSenderRole } from "../../../features/consultation/lib/chatRoleLabels";
 import { sortMessagesByServerOrder } from "../../../features/consultation/lib/messageOrder";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import {
@@ -25,578 +17,49 @@ import {
   type MessageDomainPackElements,
 } from "../../../features/consultation/api/consultationEvidenceApi";
 import type {
-  ChatSession,
-  ConsultationSessionStatus,
   ConsultationMetrics,
   ConsultationQueueEvent,
   ResolutionOutcome,
 } from "../../../features/consultation/api/consultationApi";
 import {
-  CustomerPanel,
-  type CustomerExtractedInfo,
-  type CustomerInfo,
-  type CustomerOrderInfo,
-} from "./sections/CustomerPanel";
-import { MatchedWorkflowBar, MatchedWorkflowBarSkeleton } from "./sections/MatchedWorkflowBar";
-import { MessageDetailPanel } from "../../../features/consultation/ui/MessageDetailPanel";
-import {
   getCurrentWorkflow,
   type MatchedWorkflow,
 } from "../../../features/consultation/api/llmToolWorkflowApi";
+import { ConsultationConversationPane } from "./sections/ConsultationConversationPane";
+import { ConsultationDetailPane } from "./sections/ConsultationDetailPane";
+import { ConsultationStatusRight } from "./sections/ConsultationStatusRight";
+import {
+  COUNSELOR_MESSAGE_ACK_TIMEOUT_MS,
+  EMPTY_COMPOSER_DRAFT,
+  MESSAGE_PAGE_SIZE,
+  RESOLUTION_OUTCOME_OPTIONS,
+  dedupePrependMessages,
+  findResolutionOutcomeOption,
+  formatTime,
+  getAssignmentView,
+  getClaimSessionErrorMessage,
+  getComposerDraftReleaseWarning,
+  getResponseStatusLabel,
+  isCounselorEchoRole,
+  isCustomerMessageRole,
+  markMessageSending,
+  mergeMessagesById,
+  reconcileCounselorEchoMessage,
+  replaceAssignedQueueCustomer,
+  shouldRefreshMatchedWorkflow,
+  sortQueueCustomers,
+  toQueueCustomer,
+  toUiMessage,
+  type EndSessionModalState,
+  type MessagePaginationState,
+  type MetricsViewState,
+  type PendingMessage,
+  type QueueCustomerWithPanelData,
+  type RealtimeChatMessage,
+  type ReleaseAssignmentModalState,
+} from "./model/consultationPageState";
+import { useConsultationRealtime } from "./model/useConsultationRealtime";
 import styles from "./consultation-page.module.css";
-
-const formatTime = (isoString: string) => {
-  if (!isoString) return "";
-  const d = new Date(isoString);
-  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-};
-
-type RealtimeChatMessage = {
-  id: string | number;
-  seqNo?: number | null;
-  senderRole: string;
-  content?: string | null;
-  createdAt?: string | null;
-  timestamp?: string | null;
-};
-
-type MessageLike = {
-  id?: string | number | null;
-  seqNo?: number | null;
-  senderRole?: string | null;
-  content?: string | null;
-  createdAt?: string | null;
-  timestamp?: string | null;
-};
-
-type PendingMessage = {
-  id: string;
-  sessionId: string;
-  content: string;
-  isNote: boolean;
-  timeoutId: ReturnType<typeof setTimeout>;
-  createdAt: number;
-};
-
-type SessionMeta = {
-  customerName?: string;
-  membershipTier?: string;
-  contact?: string;
-  email?: string;
-  customerInfo?: {
-    membershipTier?: string | null;
-    contact?: string | null;
-    email?: string | null;
-  };
-  orderInfo?: CustomerOrderInfo | null;
-  extractedInfo?: CustomerExtractedInfo | null;
-  handoffRequired?: boolean;
-  handoffReason?: string;
-  handoffAt?: string;
-  handoffNodeId?: string;
-  title?: string;
-  lastMessagePreview?: string;
-  lastMessageRole?: string;
-  lastMessageAt?: string;
-};
-
-type QueueCustomerPanelData = {
-  customerInfo: Pick<CustomerInfo, "membershipTier" | "contact" | "email">;
-  orderInfo: CustomerOrderInfo | null;
-  extractedInfo: CustomerExtractedInfo | null;
-};
-
-type QueueCustomerWithPanelData = QueueCustomer & QueueCustomerPanelData;
-
-const COUNSELOR_MESSAGE_ACK_TIMEOUT_MS = 8000;
-const MESSAGE_PAGE_SIZE = 50;
-const DEFAULT_RESPONSE_MODE = "AI_ACTIVE" as const;
-
-type MessagePaginationState = {
-  nextPage: number;
-  totalPages: number;
-  isLoadingPrevious: boolean;
-};
-
-const EMPTY_COMPOSER_DRAFT: ChatComposerDraft = {
-  input: "",
-  isNoteMode: false,
-};
-
-const getComposerDraftReleaseWarning = (draft: ChatComposerDraft) => {
-  if (!draft.input.trim()) return null;
-  return draft.isNoteMode
-    ? "메시지 입력창에 작성 중인 내부 메모가 있습니다."
-    : "메시지 입력창에 작성 중인 답변이 있습니다.";
-};
-
-type EndSessionModalState =
-  | { open: false }
-  | {
-      open: true;
-      sessionId: string;
-      customerName: string;
-      outcome: ResolutionOutcome | null;
-      reason: string;
-      isSubmitting: boolean;
-      error: string | null;
-    };
-
-type ReleaseAssignmentModalState =
-  | { open: false }
-  | {
-      open: true;
-      sessionId: string;
-      customerName: string;
-      isSubmitting: boolean;
-      error: string | null;
-    };
-
-type ResolutionOutcomeOption = {
-  value: ResolutionOutcome;
-  label: string;
-  description: string;
-  status: Extract<ConsultationSessionStatus, "RESOLVED" | "COMPLETED">;
-  followUpRequired: boolean;
-};
-
-const RESOLUTION_OUTCOME_OPTIONS: ResolutionOutcomeOption[] = [
-  {
-    value: "RESOLVED",
-    label: "해결됨",
-    description: "문제가 해결되어 상담 기록을 해결 상태로 남깁니다.",
-    status: "RESOLVED",
-    followUpRequired: false,
-  },
-  {
-    value: "CUSTOMER_LEFT",
-    label: "고객 이탈",
-    description: "고객 응답 없이 상담을 완전히 종료합니다.",
-    status: "COMPLETED",
-    followUpRequired: false,
-  },
-  {
-    value: "PENDING",
-    label: "보류",
-    description: "현재 상담은 대기열에서 제거하고 후속 확인 대상으로 남깁니다.",
-    status: "RESOLVED",
-    followUpRequired: true,
-  },
-  {
-    value: "FOLLOW_UP_REQUIRED",
-    label: "후속 연락 필요",
-    description: "상담 기록에 후속 연락 필요 여부를 명확히 남깁니다.",
-    status: "RESOLVED",
-    followUpRequired: true,
-  },
-];
-
-const findResolutionOutcomeOption = (outcome: ResolutionOutcome | null) =>
-  RESOLUTION_OUTCOME_OPTIONS.find((option) => option.value === outcome) ?? null;
-
-const toUiMessage = (message: MessageLike): UiChatMessage => {
-  const rawCreatedAt = message.createdAt ?? message.timestamp ?? null;
-  const displayCreatedAt = rawCreatedAt ?? new Date().toISOString();
-  return {
-    id: String(message.id ?? `message-${displayCreatedAt}-${message.content ?? ""}`),
-    ...(message.seqNo != null ? { seqNo: message.seqNo } : {}),
-    ...(rawCreatedAt != null ? { createdAt: rawCreatedAt } : {}),
-    senderRole: normalizeChatSenderRole(message.senderRole),
-    content: message.content ?? "",
-    timestamp: formatTime(displayCreatedAt),
-  };
-};
-
-const mergeMessagesById = (
-  currentMessages: UiChatMessage[],
-  nextMessages: UiChatMessage[],
-): UiChatMessage[] => {
-  const byId = new Map<string, UiChatMessage>();
-  [...currentMessages, ...nextMessages].forEach((message) => {
-    byId.set(message.id, message);
-  });
-  return sortMessagesByServerOrder(Array.from(byId.values()));
-};
-
-const shouldRefreshMatchedWorkflow = (role: ChatSenderRole) =>
-  role === "ASSISTANT" || role === "SYSTEM";
-
-const isCounselorEchoRole = (role: ChatSenderRole) =>
-  role === "COUNSELOR" || role === "AGENT" || role === "NOTE";
-
-const pendingRoleMatchesEcho = (pending: PendingMessage, role: ChatSenderRole) =>
-  pending.isNote ? role === "NOTE" : role === "COUNSELOR" || role === "AGENT";
-
-const hasSendingMessage = (messages: UiChatMessage[], pendingId: string) =>
-  messages.some((message) => message.id === pendingId && message.deliveryStatus === "sending");
-
-const findPendingEchoMatch = (
-  pendingMessages: Iterable<PendingMessage>,
-  messages: UiChatMessage[],
-  sessionId: string,
-  role: ChatSenderRole,
-  content: string,
-) =>
-  [...pendingMessages]
-    .filter(
-      (pending) =>
-        pending.sessionId === sessionId &&
-        pendingRoleMatchesEcho(pending, role) &&
-        pending.content === content &&
-        hasSendingMessage(messages, pending.id),
-    )
-    .sort((a, b) => a.createdAt - b.createdAt)[0];
-
-const reconcileCounselorEchoMessage = (
-  messages: UiChatMessage[],
-  pendingMessages: Map<string, PendingMessage>,
-  sessionId: string,
-  role: ChatSenderRole,
-  realtimeMessage: RealtimeChatMessage,
-) => {
-  const serverMessage = {
-    ...toUiMessage(realtimeMessage),
-    deliveryStatus: "sent" as const,
-  };
-  if (messages.some((message) => message.id === serverMessage.id)) {
-    return messages;
-  }
-
-  const pendingMatch = findPendingEchoMatch(
-    pendingMessages.values(),
-    messages,
-    sessionId,
-    role,
-    realtimeMessage.content ?? "",
-  );
-  if (!pendingMatch) {
-    return messages;
-  }
-
-  clearTimeout(pendingMatch.timeoutId);
-  pendingMessages.delete(pendingMatch.id);
-  return sortMessagesByServerOrder(
-    messages.map((message) => (message.id === pendingMatch.id ? serverMessage : message)),
-  );
-};
-
-const markMessageSending = (messages: UiChatMessage[], messageId: string) =>
-  messages.map((message) =>
-    message.id === messageId
-      ? {
-          ...message,
-          deliveryStatus: "sending" as const,
-          retryable: false,
-          errorMessage: undefined,
-          timestamp: formatTime(new Date().toISOString()),
-        }
-      : message,
-  );
-
-const calcWaitMinutes = (isoString: string) => {
-  if (!isoString) return 0;
-  const d = new Date(isoString);
-  const diffMs = new Date().getTime() - d.getTime();
-  return Math.max(0, Math.floor(diffMs / 60000));
-};
-
-const formatLastMessageTimeLabel = (isoString?: string | null) => {
-  if (!isoString) return "";
-  const d = new Date(isoString);
-  const timestamp = d.getTime();
-  if (Number.isNaN(timestamp)) return "";
-  const diffMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
-  return diffMinutes === 0 ? "방금 전" : `${formatWaitDuration(diffMinutes)} 전`;
-};
-
-const parseSessionMeta = (metaJson?: string | null): SessionMeta => {
-  try {
-    if (!metaJson) return {};
-    const meta = JSON.parse(metaJson) as SessionMeta;
-    return meta && typeof meta === "object" ? meta : {};
-  } catch (e) {
-    console.error("Failed to parse metaJson", e);
-    return {};
-  }
-};
-
-const normalizePanelText = (value?: string | null) => {
-  const normalized = value?.trim();
-  return normalized || undefined;
-};
-
-const buildCustomerPanelData = (meta: SessionMeta): QueueCustomerPanelData => ({
-  customerInfo: {
-    membershipTier: normalizePanelText(meta.customerInfo?.membershipTier ?? meta.membershipTier),
-    contact: normalizePanelText(meta.customerInfo?.contact ?? meta.contact),
-    email: normalizePanelText(meta.customerInfo?.email ?? meta.email),
-  },
-  orderInfo: meta.orderInfo ?? null,
-  extractedInfo: meta.extractedInfo ?? null,
-});
-
-const getSessionStatusLabel = (
-  status?: string | null,
-  assignedCounselorId?: number | null,
-  currentCounselorId?: number | null,
-  handoffRequired?: boolean,
-) => {
-  const prefix = handoffRequired ? "상담사 연결 요청 · " : "";
-  if (status === "COMPLETED") return "상담 종료";
-  if (status === "RESOLVED") return "해결됨";
-  if (assignedCounselorId && assignedCounselorId === currentCounselorId)
-    return `${prefix}내게 배정됨`;
-  if (assignedCounselorId) return `${prefix}다른 상담사 배정`;
-  if (status === "ACTIVE") return `${prefix}미배정`;
-  if (status === "OPEN") return `${prefix}미배정`;
-  return status ?? "상태 미확인";
-};
-
-type AssignmentView = {
-  label: string;
-  description: string;
-};
-
-const getAssignmentView = (
-  status?: string | null,
-  assignedCounselorId?: number | null,
-  currentCounselorId?: number | null,
-): AssignmentView => {
-  if (status === "COMPLETED" || status === "RESOLVED") {
-    return {
-      label: status === "RESOLVED" ? "해결됨" : "상담 종료",
-      description: "종료된 세션이므로 메시지를 보낼 수 없습니다.",
-    };
-  }
-
-  if (assignedCounselorId && assignedCounselorId === currentCounselorId) {
-    return {
-      label: "내게 배정됨",
-      description: "이 세션에 응답하고 내부 메모를 남길 수 있습니다.",
-    };
-  }
-
-  if (assignedCounselorId) {
-    return {
-      label: "다른 상담사 배정",
-      description: "다른 상담사가 응대 중인 세션이므로 메시지를 보낼 수 없습니다.",
-    };
-  }
-
-  return {
-    label: "미배정",
-    description: "배정받기 전에는 메시지와 내부 메모를 보낼 수 없습니다.",
-  };
-};
-
-const getResponseStatusLabel = (
-  status?: string | null,
-  assignedCounselorId?: number | null,
-) => {
-  if (status === "COMPLETED") return "상담 종료";
-  if (status === "RESOLVED") return "해결됨";
-  return assignedCounselorId ? "상담사 응대중" : "AI 응대";
-};
-
-const isCustomerMessageRole = (role?: string | null) => {
-  const normalizedRole = normalizeChatSenderRole(role);
-  return normalizedRole === "USER" || normalizedRole === "CUSTOMER";
-};
-
-const getQueueSortTime = (customer: QueueCustomer) => {
-  const timeSource =
-    customer.handoffRequired && customer.handoffAt
-      ? customer.handoffAt
-      : (customer.lastMessageAt ?? customer.startedAt);
-  if (!timeSource) return 0;
-  const timestamp = new Date(timeSource).getTime();
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-};
-
-const toQueueCustomer = (
-  session: ChatSession,
-  currentCounselorId: number | null,
-  previous?: QueueCustomerWithPanelData,
-  options?: { hasUnread?: boolean },
-): QueueCustomerWithPanelData => {
-  const meta = parseSessionMeta(session.metaJson);
-  const panelData = buildCustomerPanelData(meta);
-  const hasSessionMetaJson = session.metaJson !== undefined && session.metaJson !== null;
-  const assignedCounselorId =
-    session.assignedCounselorId !== undefined
-      ? session.assignedCounselorId
-      : (previous?.assignedCounselorId ?? null);
-  const responseMode =
-    session.responseMode ??
-    previous?.responseMode ??
-    (assignedCounselorId ? "HUMAN_ACTIVE" : DEFAULT_RESPONSE_MODE);
-  const status = session.status !== undefined ? session.status : (previous?.status ?? null);
-  const startedAt = session.startedAt ?? previous?.startedAt ?? null;
-  const lastMessagePreview = meta.lastMessagePreview?.trim() || previous?.lastMessagePreview || "";
-  const lastMessageRole = meta.lastMessageRole ?? previous?.lastMessageRole;
-  const lastMessageAt = meta.lastMessageAt ?? previous?.lastMessageAt ?? null;
-  const handoffRequired = meta.handoffRequired ?? previous?.handoffRequired ?? false;
-  const handoffAt = meta.handoffAt ?? previous?.handoffAt ?? null;
-  const handoffNodeId = meta.handoffNodeId ?? previous?.handoffNodeId ?? null;
-  const lastMessageTimeLabel =
-    formatLastMessageTimeLabel(lastMessageAt) || previous?.lastMessageTimeLabel;
-
-  return {
-    id: String(session.id ?? previous?.id ?? ""),
-    name: meta.customerName?.trim() || previous?.name || "Unknown",
-    title: meta.title?.trim() || previous?.title || "",
-    channel: session.channel ?? previous?.channel ?? "",
-    handoffReason: meta.handoffReason ?? previous?.handoffReason ?? "",
-    handoffRequired,
-    handoffAt,
-    handoffNodeId,
-    waitMinutes: startedAt ? calcWaitMinutes(startedAt) : (previous?.waitMinutes ?? 0),
-    hasUnread: options?.hasUnread ?? previous?.hasUnread ?? false,
-    lastMessagePreview,
-    lastMessageRole,
-    lastMessageAt,
-    lastMessageTimeLabel,
-    status,
-    statusLabel: getSessionStatusLabel(
-      status,
-      assignedCounselorId,
-      currentCounselorId,
-      handoffRequired,
-    ),
-    assignedCounselorId,
-    responseMode,
-    startedAt,
-    customerInfo: {
-      membershipTier: hasSessionMetaJson
-        ? panelData.customerInfo.membershipTier
-        : previous?.customerInfo.membershipTier,
-      contact: hasSessionMetaJson ? panelData.customerInfo.contact : previous?.customerInfo.contact,
-      email: hasSessionMetaJson ? panelData.customerInfo.email : previous?.customerInfo.email,
-    },
-    orderInfo: hasSessionMetaJson ? panelData.orderInfo : (previous?.orderInfo ?? null),
-    extractedInfo: hasSessionMetaJson ? panelData.extractedInfo : (previous?.extractedInfo ?? null),
-  };
-};
-
-const sortQueueCustomers = (customers: QueueCustomerWithPanelData[]) =>
-  [...customers].sort((a, b) => {
-    const aIsHandoff = a.handoffRequired === true;
-    const bIsHandoff = b.handoffRequired === true;
-    if (aIsHandoff !== bIsHandoff) {
-      return aIsHandoff ? -1 : 1;
-    }
-    if (aIsHandoff && bIsHandoff) {
-      return getQueueSortTime(a) - getQueueSortTime(b);
-    }
-    return getQueueSortTime(b) - getQueueSortTime(a);
-  });
-
-const replaceAssignedQueueCustomer = (
-  customers: QueueCustomerWithPanelData[],
-  sessionId: string,
-  assignedSession: ChatSession,
-  currentCounselorId: number,
-) =>
-  sortQueueCustomers(
-    customers.map((customer) =>
-      customer.id === sessionId
-        ? toQueueCustomer(assignedSession, currentCounselorId, customer)
-        : customer,
-    ),
-  );
-
-const getClaimSessionErrorMessage = (error: unknown) => {
-  if (error instanceof ApiRequestError) {
-    switch (error.code) {
-      case "SESSION_ALREADY_ASSIGNED":
-        return "이미 다른 상담사에게 배정된 상담입니다.";
-      case "SESSION_NOT_ASSIGNABLE":
-        return "현재 배정할 수 없는 상담 상태입니다.";
-      case "SESSION_NOT_FOUND":
-        return "상담 세션을 찾을 수 없습니다.";
-      case "WORKSPACE_ACCESS_DENIED":
-      case "FORBIDDEN":
-        return "상담 배정 권한이 없습니다.";
-      default:
-        return "상담 세션 배정에 실패했습니다.";
-    }
-  }
-  return "상담 세션 배정에 실패했습니다.";
-};
-
-const dedupePrependMessages = (
-  olderMessages: UiChatMessage[],
-  currentMessages: UiChatMessage[],
-) => {
-  const existingIds = new Set(currentMessages.map((message) => message.id));
-  return [...olderMessages.filter((message) => !existingIds.has(message.id)), ...currentMessages];
-};
-
-const formatAverageFirstResponse = (seconds?: number | null) => {
-  if (seconds == null) return "--";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return minutes > 0 ? `${minutes}분 ${remainingSeconds}초` : `${remainingSeconds}초`;
-};
-
-const formatHandledTodayCount = (count?: number | null) => {
-  return count == null ? "--" : `${count}건`;
-};
-
-type MetricsViewState = "loading" | "error" | "empty" | "ready";
-
-type StatusRightProps = {
-  metricsViewState: MetricsViewState;
-  averageFirstResponseSeconds?: number | null;
-  handledTodayCount?: number | null;
-};
-
-const formatMetricValue = (
-  metricsViewState: MetricsViewState,
-  value: number | null | undefined,
-  formatter: (value?: number | null) => string,
-) => {
-  if (metricsViewState === "loading") return "로딩중";
-  if (metricsViewState === "error") return "오류";
-  if (metricsViewState === "empty") return "--";
-  return formatter(value);
-};
-
-const StatusRight = ({
-  metricsViewState,
-  averageFirstResponseSeconds,
-  handledTodayCount,
-}: StatusRightProps) => {
-  const averageLabel = formatMetricValue(
-    metricsViewState,
-    averageFirstResponseSeconds,
-    formatAverageFirstResponse,
-  );
-  const handledLabel = formatMetricValue(
-    metricsViewState,
-    handledTodayCount,
-    formatHandledTodayCount,
-  );
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Dot tone="signal" />
-        <span style={{ fontSize: 12 }}>응대 가능</span>
-      </div>
-      <div style={{ width: 1, height: 16, background: "var(--line)" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>평균 첫응답</Mono>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{averageLabel}</span>
-      </div>
-      <div style={{ width: 1, height: 16, background: "var(--line)" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Mono style={{ fontSize: 11, color: "var(--ink-3)" }}>오늘 처리</Mono>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{handledLabel}</span>
-      </div>
-    </div>
-  );
-};
 
 export const ConsultationPage: React.FC = () => {
   const { setTopbarRight, setCrumbs, workspace } = useOutletContext<ShellContext>();
@@ -657,8 +120,6 @@ export const ConsultationPage: React.FC = () => {
   const pendingMessagesRef = useRef<Map<string, PendingMessage>>(new Map());
   const tempCounterRef = useRef(0);
   const activeCustomerIdRef = useRef<string | null>(null);
-  const hasQueueLoadedRef = useRef(false);
-  const previousConnectionStatusRef = useRef<ConnectionStatus>("DISCONNECTED");
   const metricsErrorToastShownRef = useRef(false);
   const metricsRequestIdRef = useRef(0);
   const queueErrorToastShownRef = useRef(false);
@@ -711,8 +172,6 @@ export const ConsultationPage: React.FC = () => {
     [failPendingMessage],
   );
 
-  const { connectionStatus, subscribe, sendTo } = useStomp({ onServerError: handleServerError });
-
   const activeCustomer = queue.find((c) => c.id === activeCustomerId) || null;
   const activeCustomerName = activeCustomer?.name?.trim() || "Unknown";
   const activeCustomerInitial = activeCustomerName.charAt(0) || "?";
@@ -761,10 +220,6 @@ export const ConsultationPage: React.FC = () => {
   const activeResponseStatusLabel = activeCustomer
     ? getResponseStatusLabel(activeCustomer.status, activeCustomer.assignedCounselorId)
     : null;
-  const queueSyncNotice =
-    workspaceId && connectionStatus !== "CONNECTED"
-      ? "실시간 연결이 불안정합니다. 복구되면 대기열을 다시 동기화합니다."
-      : null;
 
   const clearActiveConversation = useCallback(() => {
     setActiveCustomerId(null);
@@ -827,12 +282,8 @@ export const ConsultationPage: React.FC = () => {
   }, [activeCustomerId]);
 
   useEffect(() => {
-    hasQueueLoadedRef.current = hasQueueLoaded;
-  }, [hasQueueLoaded]);
-
-  useEffect(() => {
     setTopbarRight(
-      <StatusRight
+      <ConsultationStatusRight
         metricsViewState={metricsViewState}
         averageFirstResponseSeconds={activeMetrics?.averageFirstResponseSeconds ?? null}
         handledTodayCount={activeMetrics?.handledTodayCount ?? null}
@@ -1023,17 +474,6 @@ export const ConsultationPage: React.FC = () => {
     void loadQueue();
   }, [loadQueue]);
 
-  useEffect(() => {
-    const previousStatus = previousConnectionStatusRef.current;
-    previousConnectionStatusRef.current = connectionStatus;
-
-    if (!workspaceId) return;
-    if (connectionStatus !== "CONNECTED" || previousStatus === "CONNECTED") return;
-    if (!hasQueueLoadedRef.current) return;
-
-    void loadQueue();
-  }, [connectionStatus, loadQueue, workspaceId]);
-
   const activateCustomer = useCallback((id: string) => {
     setActiveCustomerId(id);
     setSelectedMessageId(null);
@@ -1084,19 +524,6 @@ export const ConsultationPage: React.FC = () => {
     routeSessionIdParam,
     workspaceIdParam,
   ]);
-
-  useEffect(() => {
-    if (!workspaceId) return;
-
-    const unsubscribe = subscribe(
-      `/topic/workspaces.${workspaceId}.consultation.queue`,
-      handleQueueEvent,
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [handleQueueEvent, subscribe, workspaceId]);
 
   useEffect(() => {
     if (!activeCustomerId) {
@@ -1273,23 +700,20 @@ export const ConsultationPage: React.FC = () => {
     }
   }, [activeCustomerId, messagePagination, messagesCustomerId]);
 
-  useEffect(() => {
-    if (!activeCustomerId) return;
-
-    const topic = `/topic/chat.${activeCustomerId}`;
-    const unsubscribe = subscribe(topic, (raw) => {
+  const handleChatMessage = useCallback(
+    (raw: unknown, sessionId: string) => {
       const msg = raw as RealtimeChatMessage;
       const normalizedRole = normalizeChatSenderRole(msg.senderRole);
       if (shouldRefreshMatchedWorkflow(normalizedRole)) {
-        scheduleMatchedWorkflowRefresh(Number(activeCustomerId));
+        scheduleMatchedWorkflowRefresh(Number(sessionId));
       }
       if (isCounselorEchoRole(normalizedRole)) {
-        setMessagesCustomerId(activeCustomerId);
+        setMessagesCustomerId(sessionId);
         setMessages((prev) =>
           reconcileCounselorEchoMessage(
             prev,
             pendingMessagesRef.current,
-            activeCustomerId,
+            sessionId,
             normalizedRole,
             msg,
           ),
@@ -1297,21 +721,41 @@ export const ConsultationPage: React.FC = () => {
         return;
       }
       const msgId = String(msg.id);
-      setMessagesCustomerId(activeCustomerId);
+      setMessagesCustomerId(sessionId);
       setMessages((prev) => {
         if (prev.some((m) => m.id === msgId)) return prev;
         return sortMessagesByServerOrder([...prev, toUiMessage(msg)]);
       });
-    });
+    },
+    [scheduleMatchedWorkflowRefresh],
+  );
 
-    return () => {
-      unsubscribe();
-      if (workflowRefetchTimerRef.current) {
-        clearTimeout(workflowRefetchTimerRef.current);
-        workflowRefetchTimerRef.current = null;
-      }
-    };
-  }, [activeCustomerId, subscribe, scheduleMatchedWorkflowRefresh]);
+  const handleRealtimeReconnect = useCallback(() => {
+    void loadQueue();
+  }, [loadQueue]);
+
+  const handleChatUnsubscribe = useCallback(() => {
+    if (workflowRefetchTimerRef.current) {
+      clearTimeout(workflowRefetchTimerRef.current);
+      workflowRefetchTimerRef.current = null;
+    }
+  }, []);
+
+  const { connectionStatus, sendTo } = useConsultationRealtime({
+    workspaceId,
+    activeCustomerId,
+    hasQueueLoaded,
+    onQueueEvent: handleQueueEvent,
+    onChatMessage: handleChatMessage,
+    onServerError: handleServerError,
+    onReconnect: handleRealtimeReconnect,
+    onChatUnsubscribe: handleChatUnsubscribe,
+  });
+
+  const queueSyncNotice =
+    workspaceId && connectionStatus !== "CONNECTED"
+      ? "실시간 연결이 불안정합니다. 복구되면 대기열을 다시 동기화합니다."
+      : null;
 
   const registerPendingMessage = useCallback(
     (message: Omit<PendingMessage, "timeoutId">) => {
@@ -1673,151 +1117,61 @@ export const ConsultationPage: React.FC = () => {
         />
       </div>
 
-      <div className={styles.conversationPane}>
-        {activeCustomer && (
-          <div className={styles.conversationHeader}>
-            <div className={styles.conversationHeaderTop}>
-              <div className={styles.customerTitle}>
-                <Avatar initial={activeCustomerInitial} tone="warn" size={36} />
-                <div>
-                  <div className={styles.customerName}>{activeCustomerName} 고객</div>
-                  <Mono style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                    {activeCustomer.channel ?? ""} ·{" "}
-                    {formatWaitDuration(activeCustomer.waitMinutes)} 대기 중
-                  </Mono>
-                </div>
-              </div>
-            </div>
-            <div className={styles.conversationActions}>
-              {activeResponseStatusLabel && (
-                <div
-                  className={styles.responseStatusBadge}
-                  role="status"
-                  aria-label="응대 상태"
-                  data-testid="conversation-response-status"
-                >
-                  {activeResponseStatusLabel}
-                </div>
-              )}
-              {isActiveSessionUnassigned && !isActiveSessionClosed && (
-                <button
-                  type="button"
-                  className={styles.claimButton}
-                  onClick={handleClaimSession}
-                  disabled={!currentCounselorId || isClaimingActiveSession}
-                >
-                  {isClaimingActiveSession ? "배정 중..." : "배정받기"}
-                </button>
-              )}
-              <button
-                className={styles.linkButton}
-                onClick={handleOpenReleaseAssignment}
-                disabled={!isAssignedToCurrentCounselor}
-              >
-                배정 해제
-              </button>
-              <button
-                onClick={handleOpenEndSession}
-                className={styles.dangerButton}
-                disabled={!isAssignedToCurrentCounselor}
-              >
-                상담 종료
-              </button>
-            </div>
-          </div>
-        )}
+      <ConsultationConversationPane
+        activeCustomer={activeCustomer}
+        activeCustomerId={activeCustomerId}
+        activeCustomerName={activeCustomerName}
+        activeCustomerInitial={activeCustomerInitial}
+        activeResponseStatusLabel={activeResponseStatusLabel}
+        activeAssignment={activeAssignment}
+        currentCounselorId={currentCounselorId}
+        isActiveSessionUnassigned={isActiveSessionUnassigned}
+        isActiveSessionClosed={isActiveSessionClosed}
+        isClaimingActiveSession={isClaimingActiveSession}
+        isAssignedToCurrentCounselor={isAssignedToCurrentCounselor}
+        messageInputDisabledReason={messageInputDisabledReason}
+        urlSessionUnavailable={urlSessionUnavailable}
+        visibleMessages={visibleMessages}
+        selectedMessageId={selectedMessageId}
+        hasPreviousMessages={hasPreviousMessages}
+        messagePagination={messagePagination}
+        matchedWorkflow={matchedWorkflow}
+        isDraftResponseLoading={isDraftResponseLoading}
+        activeComposerDraft={activeComposerDraft}
+        onClaimSession={handleClaimSession}
+        onOpenReleaseAssignment={handleOpenReleaseAssignment}
+        onOpenEndSession={handleOpenEndSession}
+        onSendMessage={handleSendMessage}
+        onRetryMessage={handleRetryMessage}
+        onSelectMessage={setSelectedMessageId}
+        onLoadPreviousMessages={handleLoadPreviousMessages}
+        onInsertDraftResponse={handleInsertDraftResponse}
+        onComposerDraftChange={(draft) => {
+          if (!activeCustomerId) return;
+          setComposerDrafts((prev) => ({ ...prev, [activeCustomerId]: draft }));
+        }}
+      />
 
-        <div className={styles.chatPanelSlot}>
-          {urlSessionUnavailable ? (
-            <div className={styles.urlSessionState} role="status" aria-live="polite">
-              <p className={styles.urlSessionTitle}>요청한 상담 세션을 찾을 수 없습니다</p>
-              <p className={styles.urlSessionText}>
-                상담이 종료되었거나 현재 대기열에서 접근할 수 없는 세션입니다.
-              </p>
-            </div>
-          ) : (
-            <ChatPanel
-              sessionId={activeCustomerId}
-              customerName={activeCustomer ? activeCustomerName : null}
-              channel={activeCustomer?.channel || null}
-              messages={visibleMessages}
-              onSendMessage={handleSendMessage}
-              onRetryMessage={handleRetryMessage}
-              selectedMessageId={selectedMessageId}
-              onSelectMessage={setSelectedMessageId}
-              sessionStatusLabel={activeResponseStatusLabel ?? activeAssignment?.label}
-              disabledReason={messageInputDisabledReason}
-              disabled={!isAssignedToCurrentCounselor}
-              hasPreviousMessages={hasPreviousMessages}
-              isLoadingPreviousMessages={messagePagination.isLoadingPrevious}
-              onLoadPreviousMessages={handleLoadPreviousMessages}
-              draftResponseAction={
-                matchedWorkflow && isAssignedToCurrentCounselor
-                  ? {
-                      isLoading: isDraftResponseLoading,
-                      onInsert: handleInsertDraftResponse,
-                    }
-                  : undefined
-              }
-              composerDraft={activeComposerDraft}
-              onComposerDraftChange={(draft) => {
-                if (!activeCustomerId) return;
-                setComposerDrafts((prev) => ({ ...prev, [activeCustomerId]: draft }));
-              }}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className={styles.detailPane}>
-        {activeCustomerId && (isMatchedWorkflowLoading || matchedWorkflow) && (
-          <div className={styles.detailPaneTop}>
-            {matchedWorkflow ? (
-              <MatchedWorkflowBar workflow={matchedWorkflow} />
-            ) : (
-              <MatchedWorkflowBarSkeleton />
-            )}
-          </div>
-        )}
-        <div className={styles.detailPaneBody}>
-          {selectedMessage ? (
-            <MessageDetailPanel
-              message={selectedMessage}
-              domainPackElements={messageDomainPackElements}
-              isDomainPackElementsLoading={isMessageDomainPackElementsLoading}
-              domainPackElementsError={messageDomainPackElementsError}
-              onOpenDomainPackElement={(path) => navigate(path)}
-              onClose={() => setSelectedMessageId(null)}
-            />
-          ) : (
-            <CustomerPanel
-              customer={
-                activeCustomer
-                  ? {
-                      name: activeCustomerName,
-                      channel: activeCustomer.channel,
-                      handoffRequired: activeCustomer.handoffRequired,
-                      handoffReason: activeCustomer.handoffReason,
-                      handoffAt: activeCustomer.handoffAt,
-                      membershipTier: activeCustomer.customerInfo.membershipTier,
-                      contact: activeCustomer.customerInfo.contact,
-                      email: activeCustomer.customerInfo.email,
-                    }
-                  : null
-              }
-              orderInfo={activeCustomer?.orderInfo ?? null}
-              extractedInfo={activeCustomer?.extractedInfo ?? null}
-              memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
-              onMemoChange={(val) => {
-                if (activeCustomerId) {
-                  setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
-                }
-              }}
-              onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
-            />
-          )}
-        </div>
-      </div>
+      <ConsultationDetailPane
+        activeCustomer={activeCustomer}
+        activeCustomerId={activeCustomerId}
+        activeCustomerName={activeCustomerName}
+        selectedMessage={selectedMessage}
+        matchedWorkflow={matchedWorkflow}
+        isMatchedWorkflowLoading={isMatchedWorkflowLoading}
+        messageDomainPackElements={messageDomainPackElements}
+        isMessageDomainPackElementsLoading={isMessageDomainPackElementsLoading}
+        messageDomainPackElementsError={messageDomainPackElementsError}
+        memo={activeCustomerId ? memos[activeCustomerId] || "" : ""}
+        onMemoChange={(val) => {
+          if (activeCustomerId) {
+            setMemos((prev) => ({ ...prev, [activeCustomerId]: val }));
+          }
+        }}
+        onMemoSave={isAssignedToCurrentCounselor ? handleSaveMemo : undefined}
+        onOpenDomainPackElement={(path) => navigate(path)}
+        onCloseMessageDetail={() => setSelectedMessageId(null)}
+      />
 
       {endSessionModal.open && (
         <div className={styles.modalOverlay}>
