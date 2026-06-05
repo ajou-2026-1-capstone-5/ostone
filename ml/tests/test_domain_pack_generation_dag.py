@@ -202,6 +202,86 @@ def test_run_evaluation_stage_delegates_to_evaluation_run(monkeypatch: pytest.Mo
     assert calls == ["/tmp/upstream.json"]
 
 
+@pytest.mark.parametrize("value", ["true", "TRUE", " 1 ", "yes", "Y", "on"])
+def test_conf_bool_accepts_true_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    class DagRun:
+        conf = {"skip_feedback_checkpoint": value}
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {"dag_run": DagRun()},
+    )
+
+    assert dag_module._conf_bool("skip_feedback_checkpoint") is True
+
+
+@pytest.mark.parametrize("value", ["false", "FALSE", " 0 ", "no", "N", "off"])
+def test_conf_bool_accepts_false_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    class DagRun:
+        conf = {"skip_feedback_checkpoint": value}
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {"dag_run": DagRun()},
+    )
+
+    assert dag_module._conf_bool("skip_feedback_checkpoint", default=True) is False
+
+
+@pytest.mark.parametrize(("raw_value", "expected"), [(True, True), (False, False), (1, True), (0, False)])
+def test_conf_bool_accepts_json_boolean_and_numeric_values(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: bool | int,
+    expected: bool,
+) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    class DagRun:
+        conf = {"skip_feedback_checkpoint": raw_value}
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {"dag_run": DagRun()},
+    )
+
+    assert dag_module._conf_bool("skip_feedback_checkpoint", default=not expected) is expected
+
+
+def test_conf_bool_uses_default_when_value_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {"dag_run": type("DagRun", (), {"conf": {}})()},
+    )
+
+    assert dag_module._conf_bool("skip_feedback_checkpoint", default=True) is True
+
+
+def test_conf_bool_rejects_unknown_strings(monkeypatch: pytest.MonkeyPatch) -> None:
+    dag_module = _import_dag_module(monkeypatch)
+
+    class DagRun:
+        conf = {"skip_feedback_checkpoint": "treu"}
+
+    monkeypatch.setattr(
+        dag_module,
+        "get_current_context",
+        lambda: {"dag_run": DagRun()},
+    )
+
+    with pytest.raises(PipelineConfigurationError, match="skip_feedback_checkpoint"):
+        dag_module._conf_bool("skip_feedback_checkpoint")
+
+
 def test_validated_replay_manifest_path_requires_artifact_root(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
