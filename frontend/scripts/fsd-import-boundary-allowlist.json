@@ -1,0 +1,4 @@
+{
+  "description": "Allowlist for intentional FSD import boundary exceptions. Each entry must explain why the boundary cannot be corrected yet.",
+  "entries": []
+}
