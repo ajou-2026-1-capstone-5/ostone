@@ -2,7 +2,15 @@
   "name": "ajou-2026-1-capstone-5",
   "private": true,
   "packageManager": "pnpm@10.33.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "10.33.0",
+      "onFail": "error"
+    }
+  },
   "scripts": {
+    "preinstall": "node -e \"const ua=process.env.npm_config_user_agent||''; if(!ua.startsWith('pnpm/')){console.error('Use pnpm for root dependencies. Run: corepack enable && pnpm install'); process.exit(1)}\"",
     "prepare": "husky",
     "format": "prettier --write ."
   },

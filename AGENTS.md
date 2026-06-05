@@ -250,10 +250,11 @@ docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NO
 
 ### Root Scripts
 
-| 목적       | 커맨드            |
-| ---------- | ----------------- |
-| Husky 설치 | `npm run prepare` |
-| 전체 포맷  | `npm run format`  |
+| 목적        | 커맨드             |
+| ----------- | ------------------ |
+| 의존성 설치 | `pnpm install`     |
+| Husky 설치  | `pnpm run prepare` |
+| 전체 포맷   | `pnpm run format`  |
 
 ---
 
@@ -263,8 +264,8 @@ docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NO
 
 ```
 .husky/
-├── pre-commit    # npx lint-staged
-└── commit-msg   # npx commitlint --edit
+├── pre-commit    # pnpm exec lint-staged
+└── commit-msg   # pnpm exec commitlint --edit
 ```
 
 **lint-staged 설정** (`lint-staged.config.js`):
@@ -281,7 +282,7 @@ docker exec ostone-test-pg psql -U postgres -d testdb -c "CREATE EXTENSION IF NO
 
 ```yaml
 backend: # ./gradlew build (checkstyle 스킵)
-frontend: # pnpm install && pnpm test && pnpm build
+frontend: # pnpm install --frozen-lockfile && pnpm test && pnpm build
 ml: # uv sync && uv run pytest
 ```
 

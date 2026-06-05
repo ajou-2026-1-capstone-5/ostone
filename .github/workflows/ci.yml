@@ -176,8 +176,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.TOOL_PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -188,7 +186,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
         working-directory: ./frontend
@@ -276,8 +274,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.TOOL_PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

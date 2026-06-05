@@ -355,7 +355,7 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 ### 사전 요구사항
 
 - **Java 21** (Backend)
-- **Node.js 22.13.0 + pnpm 10.33.0** (Frontend)
+- **Node.js 22.13.0 + pnpm 10.33.0** (Root / Frontend)
 - **Python 3.13 + uv 0.11.19** (ML)
 - **Docker / Docker Compose** (전체 스택)
 
@@ -376,6 +376,17 @@ workflow는 발화 트리가 아니라 **상태 기반 graph(state machine)**로
 | Embedding | `EMBEDDING_MODEL_NAME`, `EMBEDDING_MAX_LENGTH` | 임베딩 모델·길이 |
 
 > `.env.example`의 모든 비밀 값은 placeholder다. 실제 값은 절대 커밋하지 않는다. 운영 값은 GitHub Actions prod environment와 AWS Secrets Manager에서 관리한다.
+
+### 패키지 매니저
+
+루트와 `frontend/` Node.js 의존성은 모두 pnpm만 사용한다.
+
+```bash
+corepack enable
+pnpm install
+```
+
+`package-lock.json`은 유지하지 않으며, 루트 `pnpm-lock.yaml`과 `frontend/pnpm-lock.yaml`을 각각 해당 디렉터리의 lockfile로 관리한다. 루트 Husky/lint-staged/format 명령도 `pnpm` 기준으로 실행한다.
 
 ### 실행
 
@@ -433,7 +444,7 @@ Backend는 `local` 프로필에서 springdoc 기반 OpenAPI 문서/Swagger UI를
 
 - **paths-filter**: 변경 파일에 따라 관련 모듈만 빌드/테스트한다.
   - `backend`: `./gradlew testPg build -x test -x checkstyleMain -x checkstyleTest` (PostgreSQL/Liquibase 테스트 후 CI 속도 최적화용 체크스타일 스킵)
-  - `frontend`: `pnpm install && pnpm test && pnpm build`
+  - `frontend`: `pnpm install --frozen-lockfile && pnpm test && pnpm build`
   - `ml`: `uv sync && uv run pytest`
 - **spec-check**: `feature/*`, `fix/*`, `spec/*` 브랜치는 `.agent/specs/{이슈번호}.md` 스펙 파일을 필수 검증한다.
 - Backend의 빠른 로컬 테스트(`./gradlew test` 또는 `./gradlew testH2`)는 H2 인메모리(`jdbc:h2:mem:testdb`)를 사용하고 Liquibase를 비활성화한다.
