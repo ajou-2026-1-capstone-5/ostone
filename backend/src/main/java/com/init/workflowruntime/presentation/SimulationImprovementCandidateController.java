@@ -2,11 +2,15 @@ package com.init.workflowruntime.presentation;
 
 import com.init.shared.presentation.AuthenticationUtils;
 import com.init.workflowruntime.application.SimulationImprovementCandidateService;
+import com.init.workflowruntime.application.command.ApproveSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.CreateSimulationImprovementCandidateCommand;
+import com.init.workflowruntime.application.command.RejectSimulationImprovementCandidateCommand;
 import com.init.workflowruntime.application.command.UpdateSimulationImprovementCandidateStatusCommand;
 import com.init.workflowruntime.application.dto.SimulationImprovementCandidatePageResponse;
 import com.init.workflowruntime.application.dto.SimulationImprovementCandidateResponse;
+import com.init.workflowruntime.presentation.dto.ApproveSimulationImprovementCandidateRequest;
 import com.init.workflowruntime.presentation.dto.CreateSimulationImprovementCandidateRequest;
+import com.init.workflowruntime.presentation.dto.RejectSimulationImprovementCandidateRequest;
 import com.init.workflowruntime.presentation.dto.UpdateSimulationImprovementCandidateStatusRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -89,5 +93,32 @@ public class SimulationImprovementCandidateController {
         candidateService.updateStatus(
             new UpdateSimulationImprovementCandidateStatusCommand(
                 workspaceId, userId, candidateId, request.status())));
+  }
+
+  @PostMapping("/{candidateId}/approve")
+  public ResponseEntity<SimulationImprovementCandidateResponse> approve(
+      @PathVariable Long workspaceId,
+      @PathVariable Long candidateId,
+      @RequestBody(required = false) ApproveSimulationImprovementCandidateRequest request,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    String reason = request == null ? null : request.reason();
+    return ResponseEntity.ok(
+        candidateService.approve(
+            new ApproveSimulationImprovementCandidateCommand(
+                workspaceId, userId, candidateId, reason)));
+  }
+
+  @PostMapping("/{candidateId}/reject")
+  public ResponseEntity<SimulationImprovementCandidateResponse> reject(
+      @PathVariable Long workspaceId,
+      @PathVariable Long candidateId,
+      @Valid @RequestBody RejectSimulationImprovementCandidateRequest request,
+      Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(
+        candidateService.reject(
+            new RejectSimulationImprovementCandidateCommand(
+                workspaceId, userId, candidateId, request.reason())));
   }
 }

@@ -1023,6 +1023,20 @@ CREATE INDEX idx_simulation_improvement_candidate_workspace_status_created
 CREATE INDEX idx_simulation_improvement_candidate_workspace_created
     ON runtime.simulation_improvement_candidate (workspace_id, created_at DESC);
 
+--changeset init:20260604-link-simulation-improvement-candidate-review
+--comment: Link simulation improvement candidates to review tasks and track review decisions
+ALTER TABLE runtime.simulation_improvement_candidate
+    ADD COLUMN review_session_id BIGINT REFERENCES review.review_session(id) ON DELETE SET NULL,
+    ADD COLUMN review_task_id BIGINT REFERENCES review.review_task(id) ON DELETE SET NULL,
+    ADD COLUMN applied_domain_pack_version_id BIGINT REFERENCES pack.domain_pack_version(id) ON DELETE SET NULL,
+    ADD COLUMN draft_patch_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ADD COLUMN decision_reason TEXT,
+    ADD COLUMN decided_by BIGINT REFERENCES app.app_user(id),
+    ADD COLUMN decided_at TIMESTAMPTZ;
+
+CREATE INDEX idx_simulation_improvement_candidate_review_task
+    ON runtime.simulation_improvement_candidate (review_task_id);
+
 --changeset init:20260601-add-response-mode-to-chat-session
 --comment: Add session-level AI response mode for counselor intervention control
 ALTER TABLE runtime.chat_session

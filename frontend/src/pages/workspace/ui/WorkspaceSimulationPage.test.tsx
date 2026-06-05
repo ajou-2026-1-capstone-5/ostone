@@ -32,6 +32,8 @@ vi.mock("@/features/simulation", () => ({
     createImprovementCandidate: vi.fn(),
     listImprovementCandidates: vi.fn(),
     updateImprovementCandidateStatus: vi.fn(),
+    approveImprovementCandidate: vi.fn(),
+    rejectImprovementCandidate: vi.fn(),
   },
 }));
 
@@ -116,6 +118,13 @@ const candidate = {
   beforeSummary: "주문번호를 묻지 않았습니다.",
   afterSummary: "주문번호를 먼저 요청합니다.",
   evidenceSummary: "simulation feedback #900",
+  reviewSessionId: null,
+  reviewTaskId: null,
+  appliedDomainPackVersionId: null,
+  draftPatchJson: "{}",
+  decisionReason: null,
+  decidedBy: null,
+  decidedAt: null,
   status: "DRAFT",
   createdBy: 7,
   createdAt: "2026-06-04T10:45:00Z",
@@ -211,6 +220,17 @@ beforeEach(() => {
   mockedSimulationApi.updateImprovementCandidateStatus.mockResolvedValue({
     ...candidate,
     status: "READY_FOR_REVIEW",
+  });
+  mockedSimulationApi.approveImprovementCandidate.mockResolvedValue({
+    ...candidate,
+    status: "APPLIED",
+    appliedDomainPackVersionId: 102,
+    decisionReason: "시뮬레이션 리뷰 승인",
+  });
+  mockedSimulationApi.rejectImprovementCandidate.mockResolvedValue({
+    ...candidate,
+    status: "REJECTED",
+    decisionReason: "근거가 부족합니다.",
   });
   mockedSimulationApi.sendMessage.mockResolvedValue({
     ...detail,
@@ -412,9 +432,7 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    fireEvent.change(await screen.findByLabelText("개선 후보 상태 변경"), {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(await screen.findByRole("button", { name: "리뷰 요청" }));
 
     await waitFor(() => {
       expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
@@ -437,13 +455,11 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
     mockedSimulationApi.listImprovementCandidates.mockRejectedValueOnce(
       new Error("refresh failed"),
     );
-    fireEvent.change(statusSelect, {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(requestButton);
 
     await waitFor(() => {
       expect(mockedSimulationApi.updateImprovementCandidateStatus).toHaveBeenCalledWith(1, 1000, {
@@ -522,17 +538,76 @@ describe("WorkspaceSimulationPage", () => {
     });
     renderPage();
 
-    const statusSelect = await screen.findByLabelText("개선 후보 상태 변경");
+    const requestButton = await screen.findByRole("button", { name: "리뷰 요청" });
     mockedSimulationApi.updateImprovementCandidateStatus.mockRejectedValueOnce(
       new Error("update failed"),
     );
-    fireEvent.change(statusSelect, {
-      target: { value: "READY_FOR_REVIEW" },
-    });
+    fireEvent.click(requestButton);
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("개선 후보 상태를 변경하지 못했습니다.");
     });
+  });
+
+  it("READY_FOR_REVIEW 개선 후보를 승인하고 목록을 새로고침한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "승인" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.approveImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+        reason: "시뮬레이션 리뷰 승인",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 draft version에 반영했습니다.");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledTimes(2);
+      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("READY_FOR_REVIEW 개선 후보를 반려하고 사유를 전달한다", async () => {
+    mockedSimulationApi.listImprovementCandidates.mockResolvedValue({
+      content: [
+        {
+          ...candidate,
+          status: "READY_FOR_REVIEW",
+          reviewSessionId: 200,
+          reviewTaskId: 300,
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText("개선 후보 반려 사유"), {
+      target: { value: "근거가 부족합니다." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "반려" }));
+
+    await waitFor(() => {
+      expect(mockedSimulationApi.rejectImprovementCandidate).toHaveBeenCalledWith(1, 1000, {
+        reason: "근거가 부족합니다.",
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith("개선 후보를 반려했습니다.");
   });
 
   it("개선 후보 상태 필터를 변경해 목록을 다시 조회한다", async () => {

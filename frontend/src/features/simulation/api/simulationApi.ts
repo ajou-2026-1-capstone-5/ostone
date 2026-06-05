@@ -118,6 +118,13 @@ export interface SimulationImprovementCandidate {
   beforeSummary: string;
   afterSummary: string;
   evidenceSummary: string;
+  reviewSessionId: number | null;
+  reviewTaskId: number | null;
+  appliedDomainPackVersionId: number | null;
+  draftPatchJson: string;
+  decisionReason: string | null;
+  decidedBy: number | null;
+  decidedAt: string | null;
   status: SimulationImprovementCandidateStatus;
   createdBy: number;
   createdAt: string;
@@ -142,6 +149,14 @@ export interface CreateSimulationImprovementCandidatePayload {
 
 export interface UpdateSimulationImprovementCandidateStatusPayload {
   status: SimulationImprovementCandidateStatus;
+}
+
+export interface ReviewSimulationImprovementCandidatePayload {
+  reason?: string;
+}
+
+export interface RejectSimulationImprovementCandidatePayload {
+  reason: string;
 }
 
 type MaybeWrapped<T> = T | { data?: T };
@@ -339,6 +354,42 @@ export const simulationApi = {
     return requireApiData<SimulationImprovementCandidate>(
       response,
       "시뮬레이션 개선 후보 상태 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  approveImprovementCandidate: async (
+    workspaceId: number,
+    candidateId: number,
+    payload: ReviewSimulationImprovementCandidatePayload = {},
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}/approve`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 승인 응답을 확인할 수 없습니다.",
+    );
+  },
+
+  rejectImprovementCandidate: async (
+    workspaceId: number,
+    candidateId: number,
+    payload: RejectSimulationImprovementCandidatePayload,
+  ): Promise<SimulationImprovementCandidate> => {
+    const response = await customFetch<MaybeWrapped<SimulationImprovementCandidate>>(
+      `/api/v1/workspaces/${workspaceId}/simulation/improvement-candidates/${candidateId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return requireApiData<SimulationImprovementCandidate>(
+      response,
+      "시뮬레이션 개선 후보 반려 응답을 확인할 수 없습니다.",
     );
   },
 };

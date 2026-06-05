@@ -18,6 +18,7 @@ public class ReviewSession {
   public static final String STATUS_CLOSED = "CLOSED";
   public static final String KIND_DOMAIN_CONFIRMATION = "DOMAIN_CONFIRMATION";
   public static final String KIND_HUMAN_FEEDBACK = "HUMAN_FEEDBACK";
+  public static final String KIND_SIMULATION_IMPROVEMENT = "SIMULATION_IMPROVEMENT";
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -84,6 +85,28 @@ public class ReviewSession {
     return session;
   }
 
+  public static ReviewSession createDomainPackReview(
+      Long workspaceId,
+      Long domainPackVersionId,
+      String reviewKind,
+      String title,
+      String description,
+      Long createdBy,
+      String metaJson,
+      OffsetDateTime openedAt) {
+    ReviewSession session = new ReviewSession();
+    session.workspaceId = workspaceId;
+    session.domainPackVersionId = domainPackVersionId;
+    session.reviewKind = reviewKind;
+    session.status = STATUS_OPEN;
+    session.title = title;
+    session.description = description;
+    session.createdBy = createdBy;
+    session.metaJson = metaJson != null ? metaJson : "{}";
+    session.openedAt = openedAt;
+    return session;
+  }
+
   public void close(OffsetDateTime closedAt) {
     this.status = STATUS_CLOSED;
     this.closedAt = closedAt;
@@ -99,6 +122,10 @@ public class ReviewSession {
 
   public Long getPipelineJobId() {
     return pipelineJobId;
+  }
+
+  public Long getDomainPackVersionId() {
+    return domainPackVersionId;
   }
 
   public Long getDatasetId() {

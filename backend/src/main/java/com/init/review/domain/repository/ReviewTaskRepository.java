@@ -10,6 +10,9 @@ public interface ReviewTaskRepository {
 
   Optional<ReviewTask> findById(Long id);
 
+  Optional<ReviewTask> findFirstByReviewSessionIdAndTargetTypeAndTargetIdOrderByIdDesc(
+      Long reviewSessionId, String targetType, Long targetId);
+
   <S extends ReviewTask> S save(S reviewTask);
 
   <S extends ReviewTask> List<S> saveAll(Iterable<S> reviewTasks);

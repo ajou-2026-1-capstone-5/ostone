@@ -53,6 +53,33 @@ class ReviewSessionTest {
   }
 
   @Test
+  @DisplayName("domain pack review session을 생성한다")
+  void createDomainPackReview_setsOpenSessionFields() {
+    ReviewSession session =
+        ReviewSession.createDomainPackReview(
+            1L,
+            11L,
+            ReviewSession.KIND_SIMULATION_IMPROVEMENT,
+            "시뮬레이션 개선 후보 검토",
+            "설명",
+            5L,
+            null,
+            OPENED_AT);
+
+    assertThat(session.getWorkspaceId()).isEqualTo(1L);
+    assertThat(session.getDomainPackVersionId()).isEqualTo(11L);
+    assertThat(session.getReviewKind()).isEqualTo(ReviewSession.KIND_SIMULATION_IMPROVEMENT);
+    assertThat(session.getStatus()).isEqualTo(ReviewSession.STATUS_OPEN);
+    assertThat(session.getTitle()).isEqualTo("시뮬레이션 개선 후보 검토");
+    assertThat(session.getDescription()).isEqualTo("설명");
+    assertThat(session.getMetaJson()).isEqualTo("{}");
+    assertThat(ReflectionTestUtils.getField(session, "createdBy")).isEqualTo(5L);
+    assertThat(ReflectionTestUtils.getField(session, "pipelineJobId")).isNull();
+    assertThat(ReflectionTestUtils.getField(session, "datasetId")).isNull();
+    assertThat(ReflectionTestUtils.getField(session, "openedAt")).isEqualTo(OPENED_AT);
+  }
+
+  @Test
   @DisplayName("세션을 닫으면 상태와 닫힌 시간을 기록한다")
   void close_marksClosed() {
     ReviewSession session =

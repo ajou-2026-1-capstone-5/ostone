@@ -65,12 +65,14 @@ class SimulationImprovementCandidateTest {
   void shouldFillLifecycleDefaultsOnPersist() {
     SimulationImprovementCandidate candidate = candidate();
     ReflectionTestUtils.setField(candidate, "status", null);
+    ReflectionTestUtils.setField(candidate, "draftPatchJson", null);
 
     candidate.onPersist();
 
     assertThat(candidate.getCreatedAt()).isNotNull();
     assertThat(candidate.getUpdatedAt()).isNotNull();
     assertThat(candidate.getStatus()).isEqualTo(SimulationImprovementCandidateStatus.DRAFT);
+    assertThat(candidate.getDraftPatchJson()).isEqualTo("{}");
   }
 
   @Test
@@ -125,6 +127,84 @@ class SimulationImprovementCandidateTest {
                     7L))
         .isInstanceOf(InvalidSimulationImprovementCandidateException.class)
         .hasMessageContaining("beforeSummary must not be blank");
+  }
+
+  @Test
+  @DisplayName("defineDraftPatch: 비어 있는 patch는 빈 JSON으로 정규화한다")
+  void shouldNormalizeBlankDraftPatch() {
+    SimulationImprovementCandidate candidate = candidate();
+
+    candidate.defineDraftPatch(" ");
+
+    assertThat(candidate.getDraftPatchJson()).isEqualTo("{}");
+  }
+
+  @Test
+  @DisplayName("submitForReview: DRAFT 후보에 review session/task를 연결한다")
+  void shouldSubmitForReview() {
+    SimulationImprovementCandidate candidate = candidate();
+
+    candidate.submitForReview(2000L, 3000L);
+
+    assertThat(candidate.getStatus())
+        .isEqualTo(SimulationImprovementCandidateStatus.READY_FOR_REVIEW);
+    assertThat(candidate.getReviewSessionId()).isEqualTo(2000L);
+    assertThat(candidate.getReviewTaskId()).isEqualTo(3000L);
+  }
+
+  @Test
+  @DisplayName("submitForReview: DRAFT가 아니면 review 요청할 수 없다")
+  void shouldRejectSubmitForReviewWhenNotDraft() {
+    SimulationImprovementCandidate candidate = candidate();
+    candidate.submitForReview(2000L, 3000L);
+    candidate.markRejected(7L, "근거 부족", OffsetDateTime.parse("2026-06-04T10:00:00Z"));
+
+    assertThatThrownBy(() -> candidate.submitForReview(2000L, 3001L))
+        .isInstanceOf(InvalidSimulationImprovementCandidateException.class)
+        .hasMessageContaining("DRAFT or READY_FOR_REVIEW candidate");
+  }
+
+  @Test
+  @DisplayName("markApplied: READY 후보를 적용 완료로 전환하고 결정 정보를 기록한다")
+  void shouldMarkApplied() {
+    SimulationImprovementCandidate candidate = candidate();
+    OffsetDateTime decidedAt = OffsetDateTime.parse("2026-06-04T10:00:00+09:00");
+    candidate.submitForReview(2000L, 3000L);
+
+    candidate.markApplied(101L, 7L, "반영합니다.", decidedAt);
+
+    assertThat(candidate.getStatus()).isEqualTo(SimulationImprovementCandidateStatus.APPLIED);
+    assertThat(candidate.getAppliedDomainPackVersionId()).isEqualTo(101L);
+    assertThat(candidate.getDecidedBy()).isEqualTo(7L);
+    assertThat(candidate.getDecisionReason()).isEqualTo("반영합니다.");
+    assertThat(candidate.getDecidedAt()).isEqualTo(decidedAt);
+  }
+
+  @Test
+  @DisplayName("markRejected: READY 후보를 반려로 전환하고 결정 정보를 기록한다")
+  void shouldMarkRejected() {
+    SimulationImprovementCandidate candidate = candidate();
+    OffsetDateTime decidedAt = OffsetDateTime.parse("2026-06-04T10:00:00+09:00");
+    candidate.submitForReview(2000L, 3000L);
+
+    candidate.markRejected(7L, "근거 부족", decidedAt);
+
+    assertThat(candidate.getStatus()).isEqualTo(SimulationImprovementCandidateStatus.REJECTED);
+    assertThat(candidate.getDecidedBy()).isEqualTo(7L);
+    assertThat(candidate.getDecisionReason()).isEqualTo("근거 부족");
+    assertThat(candidate.getDecidedAt()).isEqualTo(decidedAt);
+  }
+
+  @Test
+  @DisplayName("markApplied: READY가 아니면 적용 완료로 전환할 수 없다")
+  void shouldRejectMarkAppliedWhenNotReady() {
+    SimulationImprovementCandidate candidate = candidate();
+
+    assertThatThrownBy(
+            () ->
+                candidate.markApplied(101L, 7L, null, OffsetDateTime.parse("2026-06-04T10:00:00Z")))
+        .isInstanceOf(InvalidSimulationImprovementCandidateException.class)
+        .hasMessageContaining("READY_FOR_REVIEW");
   }
 
   private static SimulationImprovementCandidate candidate() {

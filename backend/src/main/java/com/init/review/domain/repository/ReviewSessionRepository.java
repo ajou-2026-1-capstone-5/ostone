@@ -10,5 +10,9 @@ public interface ReviewSessionRepository {
   Optional<ReviewSession> findFirstByPipelineJobIdAndReviewKindOrderByOpenedAtDesc(
       Long pipelineJobId, String reviewKind);
 
+  Optional<ReviewSession>
+      findFirstByWorkspaceIdAndDomainPackVersionIdAndReviewKindAndStatusOrderByOpenedAtDesc(
+          Long workspaceId, Long domainPackVersionId, String reviewKind, String status);
+
   <S extends ReviewSession> S save(S reviewSession);
 }
