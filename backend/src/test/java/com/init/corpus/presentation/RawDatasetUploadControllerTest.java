@@ -1,7 +1,9 @@
 package com.init.corpus.presentation;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -287,5 +289,24 @@ class RawDatasetUploadControllerTest {
                 .with(csrf()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
+  @DisplayName("JSON 본문 크기 초과 → 413 RAW_JSON_UPLOAD_TOO_LARGE")
+  @WithLongPrincipal(1L)
+  void uploadRawDatasetOversizedJsonBodyReturns413BeforeService() throws Exception {
+    String oversizedBody = "{\"oversized\":\"" + "x".repeat(1024 * 1024 + 1) + "\"}";
+
+    mockMvc
+        .perform(
+            post("/api/v1/workspaces/1/datasets/raw")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(oversizedBody)
+                .with(csrf()))
+        .andExpect(status().is(413))
+        .andExpect(jsonPath("$.code").value(RawDatasetUploadJsonSizeFilter.ERROR_CODE))
+        .andExpect(jsonPath("$.message").value(containsString("uploads:init")));
+
+    verifyNoInteractions(rawDatasetUploadService);
   }
 }
