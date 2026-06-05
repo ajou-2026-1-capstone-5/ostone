@@ -268,6 +268,21 @@ output "airflow_init_task_definition_arn" {
   value       = aws_ecs_task_definition.airflow_init.arn
 }
 
+output "airflow_apiserver_task_definition_arn" {
+  description = "Airflow API server ECS task definition ARN."
+  value       = aws_ecs_task_definition.airflow_apiserver.arn
+}
+
+output "airflow_scheduler_task_definition_arn" {
+  description = "Airflow scheduler ECS task definition ARN."
+  value       = aws_ecs_task_definition.airflow_scheduler.arn
+}
+
+output "airflow_dag_processor_task_definition_arn" {
+  description = "Airflow DAG processor ECS task definition ARN."
+  value       = aws_ecs_task_definition.airflow_dag_processor.arn
+}
+
 output "embedding_model_cache_file_system_id" {
   description = "EFS file system ID for the embedding model cache."
   value       = aws_efs_file_system.embedding_model_cache.id
