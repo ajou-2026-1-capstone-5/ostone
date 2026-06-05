@@ -134,6 +134,18 @@ locals {
       value = "10"
     },
     {
+      name  = "STORAGE_S3_BUCKET"
+      value = aws_s3_bucket.buckets["ml_input"].bucket
+    },
+    {
+      name  = "STORAGE_S3_REGION"
+      value = var.aws_region
+    },
+    {
+      name  = "STORAGE_S3_PATH_STYLE"
+      value = "false"
+    },
+    {
       name  = "ML_ARTIFACT_STORE"
       value = "s3"
     },
