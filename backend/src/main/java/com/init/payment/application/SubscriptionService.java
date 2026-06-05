@@ -1,6 +1,8 @@
 package com.init.payment.application;
 
 import com.init.payment.application.exception.ActiveSubscriptionExistsException;
+import com.init.payment.application.exception.PaymentGatewayException;
+import com.init.payment.application.exception.PaymentRejectedException;
 import com.init.payment.application.exception.PlanNotFoundException;
 import com.init.payment.application.exception.SubscriptionNotFoundException;
 import com.init.payment.application.port.BillingKeyCipher;
@@ -128,76 +130,129 @@ public class SubscriptionService {
   public BillingAuthorizationResult issueBillingKey(IssueBillingKeyCommand command) {
     accessGuard.requireMember(command.workspaceId(), command.userId());
 
-    Subscription subscription =
-        inTx(
-            () ->
-                subscriptionRepository
-                    .findCurrentByWorkspaceId(command.workspaceId())
-                    .orElseThrow(() -> new SubscriptionNotFoundException(command.workspaceId())));
-    if (subscription.getStatus() != SubscriptionStatus.INCOMPLETE) {
-      throw new ActiveSubscriptionExistsException(command.workspaceId());
-    }
-    Plan plan = requirePlan(subscription.getPlanId());
-    String customerKey = subscription.getCustomerKey();
+    BillingAuthorizationClaim claim = claimBillingAuthorization(command.workspaceId());
+    Plan plan = requirePlan(claim.planId());
 
-    TossBillingKeyResult issued = tossPaymentPort.issueBillingKey(command.authKey(), customerKey);
-    byte[] encrypted = billingKeyCipher.encrypt(issued.billingKey());
+    try {
+      String customerKey = claim.customerKey();
+      TossBillingKeyResult issued = tossPaymentPort.issueBillingKey(command.authKey(), customerKey);
+      byte[] encrypted = billingKeyCipher.encrypt(issued.billingKey());
 
-    BillingKey billingKey =
-        inTx(
-            () ->
-                billingKeyRepository.save(
-                    BillingKey.create(
-                        command.workspaceId(),
-                        customerKey,
-                        encrypted,
-                        issued.cardCompany(),
-                        issued.cardNumberMasked())));
+      BillingKey billingKey =
+          inTx(
+              () ->
+                  billingKeyRepository.save(
+                      BillingKey.create(
+                          command.workspaceId(),
+                          customerKey,
+                          encrypted,
+                          issued.cardCompany(),
+                          issued.cardNumberMasked())));
 
-    OffsetDateTime periodStart = OffsetDateTime.now(clock);
-    OffsetDateTime periodEnd = plan.getBillingInterval().advance(periodStart);
-    String orderId = PaymentIdentifiers.orderId();
-    String periodKey = PaymentIdentifiers.periodKey(periodStart);
+      OffsetDateTime periodStart = OffsetDateTime.now(clock);
+      OffsetDateTime periodEnd = plan.getBillingInterval().advance(periodStart);
+      String orderId = PaymentIdentifiers.orderId();
+      String periodKey = PaymentIdentifiers.periodKey(periodStart);
 
-    TossPaymentResult charge =
-        tossPaymentPort.executeBilling(
-            new TossBillingExecuteCommand(
-                issued.billingKey(), customerKey, plan.getAmount(), orderId, plan.getName()));
+      TossPaymentResult charge =
+          tossPaymentPort.executeBilling(
+              new TossBillingExecuteCommand(
+                  issued.billingKey(), customerKey, plan.getAmount(), orderId, plan.getName()));
 
-    Subscription activated =
-        inTx(
-            () -> {
-              Subscription current =
-                  subscriptionRepository
-                      .findById(subscription.getId())
-                      .orElseThrow(() -> new SubscriptionNotFoundException(command.workspaceId()));
-              Payment payment =
-                  Payment.createRecurring(
+      Subscription finalized =
+          inTx(
+              () ->
+                  finalizeBillingAuthorization(
                       command.workspaceId(),
-                      current.getId(),
+                      claim.subscriptionId(),
+                      plan,
+                      customerKey,
                       orderId,
-                      plan.getAmount(),
-                      plan.getCurrency(),
-                      plan.getName(),
                       periodKey,
-                      PaymentIdentifiers.idempotencyKey());
-              if (charge.isDone()) {
-                payment.complete(
-                    charge.paymentKey(),
-                    charge.method(),
-                    chargeApprovedAt(charge),
-                    charge.receiptUrl(),
-                    charge.maskedRawJson());
-                current.activate(periodStart, periodEnd, customerKey);
-              } else {
-                payment.markAborted(charge.maskedRawJson());
-              }
-              paymentRepository.save(payment);
-              return subscriptionRepository.save(current);
-            });
+                      periodStart,
+                      periodEnd,
+                      charge));
 
-    return new BillingAuthorizationResult(
-        SubscriptionResult.from(activated, plan), BillingKeySummary.from(billingKey));
+      return new BillingAuthorizationResult(
+          SubscriptionResult.from(finalized, plan), BillingKeySummary.from(billingKey));
+    } catch (PaymentGatewayException | PaymentRejectedException ex) {
+      resetBillingAuthorization(claim.subscriptionId());
+      throw ex;
+    }
+  }
+
+  private BillingAuthorizationClaim claimBillingAuthorization(Long workspaceId) {
+    return inTx(
+        () -> {
+          Subscription subscription =
+              subscriptionRepository
+                  .findCurrentByWorkspaceIdForUpdate(workspaceId)
+                  .orElseThrow(() -> new SubscriptionNotFoundException(workspaceId));
+          if (subscription.getStatus() != SubscriptionStatus.INCOMPLETE) {
+            throw new ActiveSubscriptionExistsException(workspaceId);
+          }
+          subscription.beginAuthorization();
+          Subscription saved = subscriptionRepository.save(subscription);
+          return new BillingAuthorizationClaim(
+              saved.getId(), saved.getPlanId(), saved.getCustomerKey());
+        });
+  }
+
+  private Subscription finalizeBillingAuthorization(
+      Long workspaceId,
+      Long subscriptionId,
+      Plan plan,
+      String customerKey,
+      String orderId,
+      String periodKey,
+      OffsetDateTime periodStart,
+      OffsetDateTime periodEnd,
+      TossPaymentResult charge) {
+    Subscription current =
+        subscriptionRepository
+            .findByIdForUpdate(subscriptionId)
+            .orElseThrow(() -> new SubscriptionNotFoundException(workspaceId));
+    if (current.getStatus() != SubscriptionStatus.AUTHORIZING) {
+      throw new ActiveSubscriptionExistsException(workspaceId);
+    }
+
+    Payment payment =
+        Payment.createRecurring(
+            workspaceId,
+            current.getId(),
+            orderId,
+            plan.getAmount(),
+            plan.getCurrency(),
+            plan.getName(),
+            periodKey,
+            PaymentIdentifiers.idempotencyKey());
+    if (charge.isDone()) {
+      payment.complete(
+          charge.paymentKey(),
+          charge.method(),
+          chargeApprovedAt(charge),
+          charge.receiptUrl(),
+          charge.maskedRawJson());
+      current.activate(periodStart, periodEnd, customerKey);
+    } else {
+      payment.markAborted(charge.maskedRawJson());
+      current.resetAuthorization();
+    }
+    paymentRepository.save(payment);
+    return subscriptionRepository.save(current);
+  }
+
+  private void resetBillingAuthorization(Long subscriptionId) {
+    inTxRun(
+        () ->
+            subscriptionRepository
+                .findByIdForUpdate(subscriptionId)
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.AUTHORIZING)
+                .ifPresent(
+                    subscription -> {
+                      subscription.resetAuthorization();
+                      subscriptionRepository.save(subscription);
+                    }));
   }
 
   private OffsetDateTime chargeApprovedAt(TossPaymentResult charge) {
@@ -213,6 +268,12 @@ public class SubscriptionService {
   private <T> T inTx(Supplier<T> callback) {
     return transactionTemplate.execute(status -> callback.get());
   }
+
+  private void inTxRun(Runnable callback) {
+    transactionTemplate.executeWithoutResult(status -> callback.run());
+  }
+
+  private record BillingAuthorizationClaim(Long subscriptionId, Long planId, String customerKey) {}
 
   private Subscription saveNewSubscription(Subscription subscription, Long workspaceId) {
     try {

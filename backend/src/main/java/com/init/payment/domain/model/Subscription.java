@@ -86,7 +86,24 @@ public class Subscription {
     this.customerKey = customerKey;
   }
 
-  /** 첫 결제 성공 시 구독 활성화. INCOMPLETE/PAST_DUE -> ACTIVE. */
+  /** billing key 발급과 첫 과금을 진행 중으로 표시해 동일 구독의 외부 과금 중복 실행을 막는다. */
+  public void beginAuthorization() {
+    if (status != SubscriptionStatus.INCOMPLETE) {
+      throw new IllegalStateException(
+          "billing authorization은 INCOMPLETE 구독에서만 시작할 수 있습니다: " + status);
+    }
+    this.status = SubscriptionStatus.AUTHORIZING;
+  }
+
+  /** billing key 발급 또는 첫 과금이 완료되지 못하면 재시도 가능한 상태로 되돌린다. */
+  public void resetAuthorization() {
+    if (status != SubscriptionStatus.AUTHORIZING) {
+      throw new IllegalStateException("AUTHORIZING 구독만 재시도 상태로 되돌릴 수 있습니다: " + status);
+    }
+    this.status = SubscriptionStatus.INCOMPLETE;
+  }
+
+  /** 첫 결제 성공 시 구독 활성화. INCOMPLETE/AUTHORIZING/PAST_DUE -> ACTIVE. */
   public void activate(OffsetDateTime periodStart, OffsetDateTime periodEnd, String customerKey) {
     if (periodStart == null || periodEnd == null || !periodEnd.isAfter(periodStart)) {
       throw new IllegalArgumentException("periodEnd는 periodStart 이후여야 합니다.");

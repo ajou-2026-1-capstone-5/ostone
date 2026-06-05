@@ -11,8 +11,12 @@ public interface SubscriptionRepository {
 
   Optional<Subscription> findById(Long id);
 
+  Optional<Subscription> findByIdForUpdate(Long id);
+
   /** 워크스페이스의 현재(미해지) 구독. 워크스페이스당 활성 구독은 1개 (U-010). */
   Optional<Subscription> findCurrentByWorkspaceId(Long workspaceId);
+
+  Optional<Subscription> findCurrentByWorkspaceIdForUpdate(Long workspaceId);
 
   /** 정기결제 대상: ACTIVE, 기간 만료, 기간말 해지 예약 없음. */
   List<Subscription> findChargeable(OffsetDateTime now);
