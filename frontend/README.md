@@ -4,15 +4,16 @@
 
 ## Quick Commands
 
-| 목적          | 명령어         |
-| ------------- | -------------- |
-| 개발 서버     | `pnpm dev`     |
-| 빌드          | `pnpm build`   |
-| 테스트        | `pnpm test`    |
+| 목적          | 명령어                          |
+| ------------- | ------------------------------- |
+| 개발 서버     | `pnpm dev`                      |
+| 빌드          | `pnpm build`                    |
+| 테스트        | `pnpm test`                     |
 | 커버리지 검증 | `pnpm test -- --coverage --run` |
-| 린트          | `pnpm lint`    |
-| 포맷          | `pnpm format`  |
-| API 코드 생성 | `pnpm api:gen` |
+| API 감사      | `pnpm audit:api`                |
+| 린트          | `pnpm lint`                     |
+| 포맷          | `pnpm format`                   |
+| API 코드 생성 | `pnpm api:gen`                  |
 
 ## Coverage Gate
 
@@ -75,6 +76,17 @@ Orval `afterAllFilesWrite` hook이 `pnpm api:gen` 실행 시 자동 갱신하는
 - wrapper는 unwrap/select, query key 표준화, toast/error mapping, optimistic update, response normalization 목적일 때만 유지
 - 수동 endpoint 호출을 남길 때는 해당 파일에 OpenAPI 미생성 endpoint임을 주석으로 남김
 - generated 파일은 직접 수정하지 않고 backend OpenAPI 갱신 후 `pnpm api:gen`으로 재생성
+
+### 수동 API 호출 감사
+
+`pnpm lint`와 `pnpm test`는 본 작업 전에 `pnpm audit:api`를 실행해 production source의 `apiClient`/`customFetch` 직접 호출을 검사한다. 신규 직접 호출은 기본적으로 실패하며, generated endpoint로 전환할 수 없는 예외만 `scripts/manual-api-call-allowlist.json`에 파일, 호출 대상, endpoint fingerprint, 사유, 범위, wrapper 목적을 남긴다.
+
+예외를 추가해야 하는 경우:
+
+1. generated endpoint function/hook으로 대체 가능한지 먼저 확인한다.
+2. 대체할 수 없으면 해당 파일에 OpenAPI 미생성 endpoint 또는 wrapper 목적을 간단히 주석으로 남긴다.
+3. `pnpm audit:api` 실패 출력의 fingerprint를 allowlist에 등록한다.
+4. `pnpm lint`로 감사와 ESLint를 함께 확인한다.
 
 **예시**:
 

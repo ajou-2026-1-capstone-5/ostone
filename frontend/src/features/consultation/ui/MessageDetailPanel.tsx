@@ -1,4 +1,9 @@
-import { FileSearch, MessageSquare } from "lucide-react";
+import {
+  AlertCircle,
+  FileSearch,
+  LoaderCircle,
+  MessageSquare,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { getChatRolePresentation } from "../lib/chatRoleLabels";
 import styles from "./MessageDetailPanel.module.css";
@@ -8,18 +13,27 @@ export interface SlotTag {
   name: string;
   extracted: boolean;
   value?: string;
+  detailPath?: string;
 }
 
 export interface PolicyTag {
   name: string;
   extracted: boolean;
   matched: boolean;
+  detailPath?: string;
 }
 
 export interface RiskTag {
   name: string;
   extracted: boolean;
   level: "low" | "medium" | "high";
+  detailPath?: string;
+}
+
+export interface DomainPackElements {
+  slots: SlotTag[];
+  policies: PolicyTag[];
+  risks: RiskTag[];
 }
 
 export interface MessageDetailPanelProps {
@@ -29,11 +43,10 @@ export interface MessageDetailPanelProps {
     content: string;
     timestamp: string;
   } | null;
-  domainPackElements?: {
-    slots: SlotTag[];
-    policies: PolicyTag[];
-    risks: RiskTag[];
-  };
+  domainPackElements?: DomainPackElements;
+  isDomainPackElementsLoading?: boolean;
+  domainPackElementsError?: string | null;
+  onOpenDomainPackElement?: (path: string) => void;
   onClose: () => void;
 }
 
@@ -65,48 +78,111 @@ function Section({
     <div className={styles.section}>
       <div className={styles.sectionTitle}>{title}</div>
       <div className={styles.tagList}>
-        {hasItems ? children : <span className={styles.sectionEmpty}>{emptyText}</span>}
+        {hasItems ? (
+          children
+        ) : (
+          <span className={styles.sectionEmpty}>{emptyText}</span>
+        )}
       </div>
     </div>
   );
 }
 
-function SlotTagItem({ slot }: { slot: SlotTag }) {
+function EvidenceTag({
+  className,
+  detailPath,
+  onOpen,
+  children,
+}: {
+  className: string;
+  detailPath?: string;
+  onOpen?: (path: string) => void;
+  children: ReactNode;
+}) {
+  if (detailPath && onOpen) {
+    return (
+      <button
+        type="button"
+        className={`${className} ${styles.tagButton}`}
+        onClick={() => onOpen(detailPath)}
+      >
+        {children}
+      </button>
+    );
+  }
+  return <span className={className}>{children}</span>;
+}
+
+function SlotTagItem({
+  slot,
+  onOpen,
+}: {
+  slot: SlotTag;
+  onOpen?: (path: string) => void;
+}) {
   const cls = slot.extracted
     ? `${styles.tag} ${styles.tagExtracted}`
     : `${styles.tag} ${styles.tagNotExtracted}`;
   return (
-    <span className={cls}>
+    <EvidenceTag className={cls} detailPath={slot.detailPath} onOpen={onOpen}>
       {slot.name}
       {slot.value && <span className={styles.tagValue}>{slot.value}</span>}
-    </span>
+    </EvidenceTag>
   );
 }
 
-function PolicyTagItem({ policy }: { policy: PolicyTag }) {
+function PolicyTagItem({
+  policy,
+  onOpen,
+}: {
+  policy: PolicyTag;
+  onOpen?: (path: string) => void;
+}) {
   const cls =
     policy.extracted && policy.matched
       ? `${styles.tag} ${styles.tagExtracted}`
       : `${styles.tag} ${styles.tagNotExtracted}`;
-  return <span className={cls}>{policy.name}</span>;
+  return (
+    <EvidenceTag className={cls} detailPath={policy.detailPath} onOpen={onOpen}>
+      {policy.name}
+    </EvidenceTag>
+  );
 }
 
-function RiskTagItem({ risk }: { risk: RiskTag }) {
+function RiskTagItem({
+  risk,
+  onOpen,
+}: {
+  risk: RiskTag;
+  onOpen?: (path: string) => void;
+}) {
   const cls = riskTagClass(risk);
-  return <span className={cls}>{risk.name}</span>;
+  return (
+    <EvidenceTag className={cls} detailPath={risk.detailPath} onOpen={onOpen}>
+      {risk.name}
+    </EvidenceTag>
+  );
 }
 
 /* ─── Component ─── */
 export function MessageDetailPanel({
   message,
   domainPackElements,
+  isDomainPackElementsLoading = false,
+  domainPackElementsError = null,
+  onOpenDomainPackElement,
   onClose,
 }: MessageDetailPanelProps) {
   const slots = domainPackElements?.slots ?? [];
   const policies = domainPackElements?.policies ?? [];
   const risks = domainPackElements?.risks ?? [];
-  const hasDomainPackElements = slots.length > 0 || policies.length > 0 || risks.length > 0;
-  const roleLabel = message ? getChatRolePresentation(message.senderRole).label : "";
+  const hasDomainPackElements =
+    !isDomainPackElementsLoading &&
+    !domainPackElementsError &&
+    (slots.length > 0 || policies.length > 0 || risks.length > 0);
+  const roleLabel = message
+    ? getChatRolePresentation(message.senderRole).label
+    : "";
 
   if (!message) {
     return (
@@ -129,31 +205,77 @@ export function MessageDetailPanel({
         <p className={styles.messagePreview}>{message.content}</p>
       </div>
 
-      {hasDomainPackElements ? (
+      {isDomainPackElementsLoading ? (
+        <div
+          className={styles.domainEmpty}
+          data-testid="message-domain-loading"
+          role="status"
+        >
+          <LoaderCircle size={28} className={styles.domainLoadingIcon} />
+          <strong>근거를 불러오는 중입니다</strong>
+          <p>선택한 메시지와 연결된 도메인팩 요소를 확인하고 있습니다.</p>
+        </div>
+      ) : domainPackElementsError ? (
+        <div
+          className={styles.domainEmpty}
+          data-testid="message-domain-error"
+          role="alert"
+        >
+          <AlertCircle size={28} className={styles.domainEmptyIcon} />
+          <strong>근거를 불러오지 못했습니다</strong>
+          <p>{domainPackElementsError}</p>
+        </div>
+      ) : hasDomainPackElements ? (
         <>
-          <Section title="확인 항목" emptyText="확인된 항목 없음" hasItems={slots.length > 0}>
+          <Section
+            title="확인 항목"
+            emptyText="확인된 항목 없음"
+            hasItems={slots.length > 0}
+          >
             {slots.map((slot) => (
-              <SlotTagItem key={slot.name} slot={slot} />
+              <SlotTagItem
+                key={`${slot.name}-${slot.detailPath ?? ""}`}
+                slot={slot}
+                onOpen={onOpenDomainPackElement}
+              />
             ))}
           </Section>
 
-          <Section title="응대 기준" emptyText="적용된 응대 기준 없음" hasItems={policies.length > 0}>
+          <Section
+            title="응대 기준"
+            emptyText="적용된 응대 기준 없음"
+            hasItems={policies.length > 0}
+          >
             {policies.map((policy) => (
-              <PolicyTagItem key={policy.name} policy={policy} />
+              <PolicyTagItem
+                key={`${policy.name}-${policy.detailPath ?? ""}`}
+                policy={policy}
+                onOpen={onOpenDomainPackElement}
+              />
             ))}
           </Section>
 
-          <Section title="주의 사항" emptyText="감지된 주의 사항 없음" hasItems={risks.length > 0}>
+          <Section
+            title="주의 사항"
+            emptyText="감지된 주의 사항 없음"
+            hasItems={risks.length > 0}
+          >
             {risks.map((risk) => (
-              <RiskTagItem key={risk.name} risk={risk} />
+              <RiskTagItem
+                key={`${risk.name}-${risk.detailPath ?? ""}`}
+                risk={risk}
+                onOpen={onOpenDomainPackElement}
+              />
             ))}
           </Section>
         </>
       ) : (
         <div className={styles.domainEmpty} data-testid="message-domain-empty">
           <FileSearch size={28} className={styles.domainEmptyIcon} />
-          <strong>연결된 도메인 팩 요소가 없습니다</strong>
-          <p>확인 항목, 응대 기준, 주의 사항이 연결되면 이 영역에 표시됩니다.</p>
+          <strong>연결된 근거 없음</strong>
+          <p>
+            확인 항목, 응대 기준, 주의 사항이 연결되면 이 영역에 표시됩니다.
+          </p>
         </div>
       )}
 

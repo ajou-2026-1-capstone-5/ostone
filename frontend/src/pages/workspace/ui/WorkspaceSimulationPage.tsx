@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
+import {
+  Navigate,
+  useOutletContext,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import {
   CheckCircleIcon,
   FlagIcon,
@@ -25,7 +30,10 @@ import {
   type SimulationImprovementCandidateStatus,
   type SimulationSessionDetail,
 } from "@/features/simulation";
-import type { ChatMessage, ChatSession } from "@/features/consultation/api/consultationApi";
+import type {
+  ChatMessage,
+  ChatSession,
+} from "@/features/consultation/api/consultationApi";
 import { parseRouteId } from "@/shared/lib/parseRouteId";
 import type { ShellContext } from "@/shared/ui/ostone/chrome";
 import { Button } from "@/shared/ui/button";
@@ -40,24 +48,31 @@ const PAGE_SIZE = 20;
 const DEFAULT_FEEDBACK_TYPE: SimulationFeedbackType = "INTENT_MISMATCH";
 const DEFAULT_FEEDBACK_SEVERITY: SimulationFeedbackSeverity = "MEDIUM";
 
-const FEEDBACK_TYPES: Array<{ value: SimulationFeedbackType; label: string }> = [
-  { value: "INTENT_MISMATCH", label: "잘못된 intent 매칭" },
-  { value: "MISSING_SLOT_QUESTION", label: "누락된 slot 질문" },
-  { value: "INAPPROPRIATE_RESPONSE", label: "부적절한 응답 문구" },
-  { value: "POLICY_CONDITION_MISSING", label: "policy 조건 누락" },
-  { value: "RISK_HANDOFF_REQUIRED", label: "risk/handoff 필요" },
-  { value: "WORKFLOW_BRANCH_ERROR", label: "workflow 분기 오류" },
-  { value: "OTHER", label: "기타" },
-];
+const FEEDBACK_TYPES: Array<{ value: SimulationFeedbackType; label: string }> =
+  [
+    { value: "INTENT_MISMATCH", label: "잘못된 intent 매칭" },
+    { value: "MISSING_SLOT_QUESTION", label: "누락된 slot 질문" },
+    { value: "INAPPROPRIATE_RESPONSE", label: "부적절한 응답 문구" },
+    { value: "POLICY_CONDITION_MISSING", label: "policy 조건 누락" },
+    { value: "RISK_HANDOFF_REQUIRED", label: "risk/handoff 필요" },
+    { value: "WORKFLOW_BRANCH_ERROR", label: "workflow 분기 오류" },
+    { value: "OTHER", label: "기타" },
+  ];
 
-const FEEDBACK_SEVERITIES: Array<{ value: SimulationFeedbackSeverity; label: string }> = [
+const FEEDBACK_SEVERITIES: Array<{
+  value: SimulationFeedbackSeverity;
+  label: string;
+}> = [
   { value: "LOW", label: "낮음" },
   { value: "MEDIUM", label: "보통" },
   { value: "HIGH", label: "높음" },
   { value: "CRITICAL", label: "긴급" },
 ];
 
-const FEEDBACK_STATUSES: Array<{ value: SimulationFeedbackStatus | ""; label: string }> = [
+const FEEDBACK_STATUSES: Array<{
+  value: SimulationFeedbackStatus | "";
+  label: string;
+}> = [
   { value: "OPEN", label: "열림" },
   { value: "CANDIDATE_CREATED", label: "후보 생성" },
   { value: "RESOLVED", label: "해결됨" },
@@ -76,9 +91,32 @@ const CANDIDATE_STATUSES: Array<{
   { value: "", label: "전체" },
 ];
 
-const ACTION_TYPES = ["ASK_SLOT", "ADVANCE", "ANSWER", "COMPLETED", "HANDOFF", "WAIT"] as const;
+const ACTION_TYPES = [
+  "ASK_SLOT",
+  "ADVANCE",
+  "ANSWER",
+  "COMPLETED",
+  "HANDOFF",
+  "WAIT",
+] as const;
 
-function readFeedbackStatusParam(searchParams: URLSearchParams): SimulationFeedbackStatus | "" {
+type SimulationSideTab = "state" | "feedback" | "candidates";
+
+const SIDE_TABS: Array<{ value: SimulationSideTab; label: string }> = [
+  { value: "state", label: "상태" },
+  { value: "feedback", label: "피드백" },
+  { value: "candidates", label: "개선 후보" },
+];
+
+function readInitialSideTab(searchParams: URLSearchParams): SimulationSideTab {
+  if (searchParams.has("candidateStatus")) return "candidates";
+  if (searchParams.has("feedbackStatus")) return "feedback";
+  return "state";
+}
+
+function readFeedbackStatusParam(
+  searchParams: URLSearchParams,
+): SimulationFeedbackStatus | "" {
   const value = searchParams.get("feedbackStatus");
   return FEEDBACK_STATUSES.some((status) => status.value === value)
     ? (value as SimulationFeedbackStatus | "")
@@ -141,7 +179,9 @@ function customerName(session: ChatSession | null): string {
 
 function slotEntries(detail: SimulationSessionDetail | null) {
   const values = detail?.slotValues ?? {};
-  return Object.entries(values).filter(([, value]) => value !== null && value !== undefined);
+  return Object.entries(values).filter(
+    ([, value]) => value !== null && value !== undefined,
+  );
 }
 
 function feedbackTypeLabel(type: SimulationFeedbackType): string {
@@ -149,18 +189,29 @@ function feedbackTypeLabel(type: SimulationFeedbackType): string {
 }
 
 function feedbackSeverityLabel(severity: SimulationFeedbackSeverity): string {
-  return FEEDBACK_SEVERITIES.find((item) => item.value === severity)?.label ?? severity;
+  return (
+    FEEDBACK_SEVERITIES.find((item) => item.value === severity)?.label ??
+    severity
+  );
 }
 
 function feedbackStatusLabel(status: SimulationFeedbackStatus): string {
-  return FEEDBACK_STATUSES.find((item) => item.value === status)?.label ?? status;
+  return (
+    FEEDBACK_STATUSES.find((item) => item.value === status)?.label ?? status
+  );
 }
 
-function candidateStatusLabel(status: SimulationImprovementCandidateStatus): string {
-  return CANDIDATE_STATUSES.find((item) => item.value === status)?.label ?? status;
+function candidateStatusLabel(
+  status: SimulationImprovementCandidateStatus,
+): string {
+  return (
+    CANDIDATE_STATUSES.find((item) => item.value === status)?.label ?? status
+  );
 }
 
-function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"]): string {
+function candidateTypeLabel(
+  type: SimulationImprovementCandidate["candidateType"],
+): string {
   switch (type) {
     case "INTENT_DESCRIPTION_EXAMPLE":
       return "intent 설명/예시";
@@ -183,7 +234,9 @@ function candidateTypeLabel(type: SimulationImprovementCandidate["candidateType"
   }
 }
 
-function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): string {
+function replayStatusLabel(
+  status?: SimulationGoldenCaseReplayStatus | null,
+): string {
   switch (status) {
     case "PASS":
       return "PASS";
@@ -194,7 +247,10 @@ function replayStatusLabel(status?: SimulationGoldenCaseReplayStatus | null): st
   }
 }
 
-function readExpectedField(goldenCase: SimulationGoldenCase, field: string): string | null {
+function readExpectedField(
+  goldenCase: SimulationGoldenCase,
+  field: string,
+): string | null {
   try {
     const parsed = JSON.parse(goldenCase.expectedJson);
     if (parsed && typeof parsed === "object" && field in parsed) {
@@ -216,7 +272,10 @@ export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.toString();
-  const querySearchParams = useMemo(() => new URLSearchParams(searchQuery), [searchQuery]);
+  const querySearchParams = useMemo(
+    () => new URLSearchParams(searchQuery),
+    [searchQuery],
+  );
   const feedbackStatusFromQuery = useMemo(
     () => readFeedbackStatusParam(querySearchParams),
     [querySearchParams],
@@ -229,21 +288,30 @@ export function WorkspaceSimulationPage() {
   const { setCrumbs } = useOutletContext<ShellContext>();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [detail, setDetail] = useState<SimulationSessionDetail | null>(null);
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(
+    null,
+  );
   const [customerNameInput, setCustomerNameInput] = useState("시뮬레이션 고객");
   const [workflowDefinitionId, setWorkflowDefinitionId] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [feedbackItems, setFeedbackItems] = useState<SimulationFeedback[]>([]);
-  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<SimulationFeedbackStatus | "">(
-    () => feedbackStatusFromQuery,
-  );
-  const [candidateItems, setCandidateItems] = useState<SimulationImprovementCandidate[]>([]);
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<
+    SimulationFeedbackStatus | ""
+  >(() => feedbackStatusFromQuery);
+  const [candidateItems, setCandidateItems] = useState<
+    SimulationImprovementCandidate[]
+  >([]);
   const [goldenCases, setGoldenCases] = useState<SimulationGoldenCase[]>([]);
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<
     SimulationImprovementCandidateStatus | ""
   >(() => candidateStatusFromQuery);
+  const [activeSideTab, setActiveSideTab] = useState<SimulationSideTab>(() =>
+    readInitialSideTab(querySearchParams),
+  );
   const [feedbackTarget, setFeedbackTarget] = useState("session");
-  const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(DEFAULT_FEEDBACK_TYPE);
+  const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(
+    DEFAULT_FEEDBACK_TYPE,
+  );
   const [feedbackSeverity, setFeedbackSeverity] =
     useState<SimulationFeedbackSeverity>(DEFAULT_FEEDBACK_SEVERITY);
   const [feedbackDescription, setFeedbackDescription] = useState("");
@@ -260,16 +328,28 @@ export function WorkspaceSimulationPage() {
   const [isSending, setIsSending] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isCreatingGoldenCase, setIsCreatingGoldenCase] = useState(false);
-  const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<number | null>(null);
-  const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(null);
-  const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(null);
-  const [candidateRejectReasons, setCandidateRejectReasons] = useState<Record<number, string>>({});
+  const [replayingGoldenCaseId, setReplayingGoldenCaseId] = useState<
+    number | null
+  >(null);
+  const [creatingCandidateId, setCreatingCandidateId] = useState<number | null>(
+    null,
+  );
+  const [updatingCandidateId, setUpdatingCandidateId] = useState<number | null>(
+    null,
+  );
+  const [candidateRejectReasons, setCandidateRejectReasons] = useState<
+    Record<number, string>
+  >({});
   const [error, setError] = useState<string | null>(null);
 
-  const workflows = useListAllWorkspaceWorkflows({ workspaceId: parsedWorkspaceId });
+  const workflows = useListAllWorkspaceWorkflows({
+    workspaceId: parsedWorkspaceId,
+  });
   const selectedWorkflow = useMemo(() => {
     const numericId = Number(workflowDefinitionId);
-    return workflows.entries.find((entry) => entry.workflowId === numericId) ?? null;
+    return (
+      workflows.entries.find((entry) => entry.workflowId === numericId) ?? null
+    );
   }, [workflowDefinitionId, workflows.entries]);
   const matched = detail?.matchedWorkflow ?? null;
 
@@ -285,11 +365,14 @@ export function WorkspaceSimulationPage() {
 
   const reloadCandidates = async (status = candidateStatusFilter) => {
     if (parsedWorkspaceId === null) return;
-    const page = await simulationApi.listImprovementCandidates(parsedWorkspaceId, {
-      status,
-      page: 0,
-      size: PAGE_SIZE,
-    });
+    const page = await simulationApi.listImprovementCandidates(
+      parsedWorkspaceId,
+      {
+        status,
+        page: 0,
+        size: PAGE_SIZE,
+      },
+    );
     setCandidateItems(page.content);
   };
 
@@ -310,7 +393,8 @@ export function WorkspaceSimulationPage() {
   useEffect(() => {
     setFeedbackStatusFilter(feedbackStatusFromQuery);
     setCandidateStatusFilter(candidateStatusFromQuery);
-  }, [candidateStatusFromQuery, feedbackStatusFromQuery]);
+    setActiveSideTab(readInitialSideTab(querySearchParams));
+  }, [candidateStatusFromQuery, feedbackStatusFromQuery, querySearchParams]);
 
   useEffect(() => {
     setFeedbackTarget("session");
@@ -378,7 +462,8 @@ export function WorkspaceSimulationPage() {
         if (active) setFeedbackItems(page.content);
       })
       .catch(() => {
-        if (active) toast.error("시뮬레이션 피드백 목록을 불러오지 못했습니다.");
+        if (active)
+          toast.error("시뮬레이션 피드백 목록을 불러오지 못했습니다.");
       })
       .finally(() => {
         if (active) setIsLoadingFeedback(false);
@@ -468,7 +553,10 @@ export function WorkspaceSimulationPage() {
   }
 
   const reloadSessions = async () => {
-    const page = await simulationApi.listSessions(parsedWorkspaceId, { page: 0, size: PAGE_SIZE });
+    const page = await simulationApi.listSessions(parsedWorkspaceId, {
+      page: 0,
+      size: PAGE_SIZE,
+    });
     setSessions(page.content);
   };
 
@@ -478,7 +566,9 @@ export function WorkspaceSimulationPage() {
     try {
       const created = await simulationApi.createSession(parsedWorkspaceId, {
         customerName: customerNameInput,
-        ...(workflowDefinitionId ? { workflowDefinitionId: Number(workflowDefinitionId) } : {}),
+        ...(workflowDefinitionId
+          ? { workflowDefinitionId: Number(workflowDefinitionId) }
+          : {}),
       });
       setDetail(created);
       setSelectedSessionId(created.session.id ?? null);
@@ -496,9 +586,13 @@ export function WorkspaceSimulationPage() {
     setIsSending(true);
     setError(null);
     try {
-      const nextDetail = await simulationApi.sendMessage(parsedWorkspaceId, detail.session.id, {
-        content,
-      });
+      const nextDetail = await simulationApi.sendMessage(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          content,
+        },
+      );
       setDetail(nextDetail);
       setMessageInput("");
       await reloadSessions();
@@ -513,16 +607,21 @@ export function WorkspaceSimulationPage() {
     const description = feedbackDescription.trim();
     const expectedBehavior = feedbackExpectedBehavior.trim();
     if (!description || !expectedBehavior || detail?.session.id == null) return;
-    const chatMessageId = feedbackTarget === "session" ? null : Number.parseInt(feedbackTarget, 10);
+    const chatMessageId =
+      feedbackTarget === "session" ? null : Number.parseInt(feedbackTarget, 10);
     setIsSubmittingFeedback(true);
     try {
-      const nextDetail = await simulationApi.createFeedback(parsedWorkspaceId, detail.session.id, {
-        chatMessageId: Number.isNaN(chatMessageId) ? null : chatMessageId,
-        feedbackType,
-        description,
-        expectedBehavior,
-        severity: feedbackSeverity,
-      });
+      const nextDetail = await simulationApi.createFeedback(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          chatMessageId: Number.isNaN(chatMessageId) ? null : chatMessageId,
+          feedbackType,
+          description,
+          expectedBehavior,
+          severity: feedbackSeverity,
+        },
+      );
       setDetail(nextDetail);
       setFeedbackDescription("");
       setFeedbackExpectedBehavior("");
@@ -542,8 +641,12 @@ export function WorkspaceSimulationPage() {
   const handleCreateCandidate = async (feedback: SimulationFeedback) => {
     setCreatingCandidateId(feedback.id);
     try {
-      await simulationApi.createImprovementCandidate(parsedWorkspaceId, feedback.id);
+      await simulationApi.createImprovementCandidate(
+        parsedWorkspaceId,
+        feedback.id,
+      );
       toast.success("개선 후보를 생성했습니다.");
+      setActiveSideTab("candidates");
       try {
         await Promise.all([reloadFeedback(), reloadCandidates()]);
       } catch {
@@ -562,9 +665,13 @@ export function WorkspaceSimulationPage() {
   ) => {
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.updateImprovementCandidateStatus(parsedWorkspaceId, candidate.id, {
-        status,
-      });
+      await simulationApi.updateImprovementCandidateStatus(
+        parsedWorkspaceId,
+        candidate.id,
+        {
+          status,
+        },
+      );
       toast.success("개선 후보 상태를 변경했습니다.");
       try {
         await reloadCandidates();
@@ -578,12 +685,18 @@ export function WorkspaceSimulationPage() {
     }
   };
 
-  const handleApproveCandidate = async (candidate: SimulationImprovementCandidate) => {
+  const handleApproveCandidate = async (
+    candidate: SimulationImprovementCandidate,
+  ) => {
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.approveImprovementCandidate(parsedWorkspaceId, candidate.id, {
-        reason: "시뮬레이션 리뷰 승인",
-      });
+      await simulationApi.approveImprovementCandidate(
+        parsedWorkspaceId,
+        candidate.id,
+        {
+          reason: "시뮬레이션 리뷰 승인",
+        },
+      );
       toast.success("개선 후보를 초안 버전에 반영했습니다.");
       await Promise.all([reloadCandidates(), reloadFeedback()]);
     } catch {
@@ -593,7 +706,9 @@ export function WorkspaceSimulationPage() {
     }
   };
 
-  const handleRejectCandidate = async (candidate: SimulationImprovementCandidate) => {
+  const handleRejectCandidate = async (
+    candidate: SimulationImprovementCandidate,
+  ) => {
     const reason = (candidateRejectReasons[candidate.id] ?? "").trim();
     if (!reason) {
       toast.error("반려 사유를 입력하세요.");
@@ -601,7 +716,11 @@ export function WorkspaceSimulationPage() {
     }
     setUpdatingCandidateId(candidate.id);
     try {
-      await simulationApi.rejectImprovementCandidate(parsedWorkspaceId, candidate.id, { reason });
+      await simulationApi.rejectImprovementCandidate(
+        parsedWorkspaceId,
+        candidate.id,
+        { reason },
+      );
       toast.success("개선 후보를 반려했습니다.");
       setCandidateRejectReasons((current) => {
         const next = { ...current };
@@ -620,7 +739,8 @@ export function WorkspaceSimulationPage() {
     if (detail?.session.id == null) return;
     if (
       messages.filter(
-        (message) => message.senderRole === "USER" || message.senderRole === "CUSTOMER",
+        (message) =>
+          message.senderRole === "USER" || message.senderRole === "CUSTOMER",
       ).length === 0
     ) {
       toast.error("고객 메시지가 있어야 검증 케이스로 저장할 수 있습니다.");
@@ -628,14 +748,18 @@ export function WorkspaceSimulationPage() {
     }
     setIsCreatingGoldenCase(true);
     try {
-      await simulationApi.createGoldenCase(parsedWorkspaceId, detail.session.id, {
-        name: optionalText(goldenCaseName),
-        expectedIntentCode: optionalText(matched?.intentCode),
-        expectedWorkflowCode: optionalText(matched?.workflowCode),
-        expectedCurrentState: optionalText(matched?.currentState),
-        expectedActionType: optionalText(expectedActionType),
-        expectedSlotValues: detail.slotValues ?? {},
-      });
+      await simulationApi.createGoldenCase(
+        parsedWorkspaceId,
+        detail.session.id,
+        {
+          name: optionalText(goldenCaseName),
+          expectedIntentCode: optionalText(matched?.intentCode),
+          expectedWorkflowCode: optionalText(matched?.workflowCode),
+          expectedCurrentState: optionalText(matched?.currentState),
+          expectedActionType: optionalText(expectedActionType),
+          expectedSlotValues: detail.slotValues ?? {},
+        },
+      );
       toast.success("검증 케이스를 저장했습니다.");
       try {
         await reloadGoldenCases();
@@ -657,9 +781,13 @@ export function WorkspaceSimulationPage() {
     }
     setReplayingGoldenCaseId(goldenCase.id);
     try {
-      const result = await simulationApi.replayGoldenCase(parsedWorkspaceId, goldenCase.id, {
-        domainPackVersionId: versionId,
-      });
+      const result = await simulationApi.replayGoldenCase(
+        parsedWorkspaceId,
+        goldenCase.id,
+        {
+          domainPackVersionId: versionId,
+        },
+      );
       toast.success(
         result.status === "PASS"
           ? "검증 케이스 replay가 통과했습니다."
@@ -680,9 +808,13 @@ export function WorkspaceSimulationPage() {
   const messages = detail?.messages ?? [];
   const slots = slotEntries(detail);
   const feedbackCounts = detail?.feedback?.messageFeedbackCounts ?? {};
-  const selectedFeedbackTarget = messages.find((message) => String(message.id) === feedbackTarget);
+  const selectedFeedbackTarget = messages.find(
+    (message) => String(message.id) === feedbackTarget,
+  );
   const selectedTargetLabel =
-    feedbackTarget === "session" ? "세션 전체" : `Turn ${selectedFeedbackTarget?.seqNo ?? ""}`;
+    feedbackTarget === "session"
+      ? "세션 전체"
+      : `Turn ${selectedFeedbackTarget?.seqNo ?? ""}`;
 
   return (
     <div className={styles.pageWrapper}>
@@ -691,7 +823,8 @@ export function WorkspaceSimulationPage() {
           <p className={styles.eyebrow}>Simulation Lab</p>
           <h1 className={styles.pageTitle}>상담 시뮬레이션</h1>
           <p className={styles.pageSubtitle}>
-            운영 중인 Domain Pack 기준으로 고객 문의를 시험하고 매칭된 workflow 상태를 확인합니다.
+            운영 중인 Domain Pack 기준으로 고객 문의를 시험하고 매칭된 workflow
+            상태를 확인합니다.
           </p>
         </div>
         <Button
@@ -712,7 +845,10 @@ export function WorkspaceSimulationPage() {
 
       {error ? <ErrorState message={error} /> : null}
 
-      <section className={styles.createPanel} aria-labelledby="simulation-create-title">
+      <section
+        className={styles.createPanel}
+        aria-labelledby="simulation-create-title"
+      >
         <div>
           <h2 id="simulation-create-title" className={styles.sectionTitle}>
             새 시뮬레이션
@@ -738,13 +874,20 @@ export function WorkspaceSimulationPage() {
           >
             <NativeSelectOption value="">자동 매칭</NativeSelectOption>
             {workflows.entries.map((workflow) => (
-              <NativeSelectOption key={workflow.workflowId} value={String(workflow.workflowId)}>
+              <NativeSelectOption
+                key={workflow.workflowId}
+                value={String(workflow.workflowId)}
+              >
                 {workflow.packName} · {workflow.name}
               </NativeSelectOption>
             ))}
           </NativeSelect>
         </label>
-        <Button type="button" onClick={handleCreateSession} disabled={isCreating}>
+        <Button
+          type="button"
+          onClick={handleCreateSession}
+          disabled={isCreating}
+        >
           <PlusIcon className={styles.buttonIcon} />
           <span>{isCreating ? "생성 중" : "세션 생성"}</span>
         </Button>
@@ -790,9 +933,12 @@ export function WorkspaceSimulationPage() {
         <section className={styles.chatPane} aria-label="시뮬레이션 대화">
           <div className={styles.paneHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>{customerName(detail?.session ?? null)}</h2>
+              <h2 className={styles.sectionTitle}>
+                {customerName(detail?.session ?? null)}
+              </h2>
               <p className={styles.sectionDescription}>
-                {selectedWorkflow ? selectedWorkflow.name : "자동 매칭"} 기준으로 응답합니다.
+                {selectedWorkflow ? selectedWorkflow.name : "자동 매칭"}{" "}
+                기준으로 응답합니다.
               </p>
             </div>
             <span className={styles.channelBadge}>SIMULATION</span>
@@ -811,15 +957,29 @@ export function WorkspaceSimulationPage() {
             <>
               <div className={styles.messageList}>
                 {messages.length === 0 ? (
-                  <p className={styles.emptyMessage}>고객 메시지를 입력하면 응답이 생성됩니다.</p>
+                  <p className={styles.emptyMessage}>
+                    고객 메시지를 입력하면 응답이 생성됩니다.
+                  </p>
                 ) : (
                   messages.map((message, index) => (
                     <MessageBubble
-                      key={message.id ?? `${message.seqNo ?? index}-${message.createdAt ?? ""}`}
+                      key={
+                        message.id ??
+                        `${message.seqNo ?? index}-${message.createdAt ?? ""}`
+                      }
                       message={message}
-                      feedbackCount={message.id ? (feedbackCounts[String(message.id)] ?? 0) : 0}
+                      feedbackCount={
+                        message.id
+                          ? (feedbackCounts[String(message.id)] ?? 0)
+                          : 0
+                      }
                       onFeedbackClick={
-                        message.id ? () => setFeedbackTarget(String(message.id)) : undefined
+                        message.id
+                          ? () => {
+                              setFeedbackTarget(String(message.id));
+                              setActiveSideTab("feedback");
+                            }
+                          : undefined
                       }
                     />
                   ))
@@ -852,414 +1012,552 @@ export function WorkspaceSimulationPage() {
           )}
         </section>
 
-        <aside className={styles.statePane} aria-label="매칭 상태">
-          <h2 className={styles.sectionTitle}>Runtime State</h2>
-          <dl className={styles.stateList}>
-            <div>
-              <dt>Intent</dt>
-              <dd>{matched?.intentName ?? matched?.intentCode ?? "미매칭"}</dd>
-            </div>
-            <div>
-              <dt>Workflow</dt>
-              <dd>{matched?.workflowName ?? matched?.workflowCode ?? "미매칭"}</dd>
-            </div>
-            <div>
-              <dt>Current State</dt>
-              <dd>{matched?.currentState ?? "대기"}</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>{matched?.executionStatus ?? detail?.session.status ?? "대기"}</dd>
-            </div>
-          </dl>
-
-          <div className={styles.slotPanel}>
-            <h3>수집된 Slot</h3>
-            {slots.length === 0 ? (
-              <p>아직 수집된 slot 값이 없습니다.</p>
-            ) : (
-              <ul>
-                {slots.map(([key, value]) => (
-                  <li key={key}>
-                    <span>{key}</span>
-                    <strong>{String(value)}</strong>
-                  </li>
-                ))}
-              </ul>
-            )}
+        <aside
+          className={styles.statePane}
+          aria-label="시뮬레이션 상태와 개선 작업"
+        >
+          <div
+            className={styles.sideTabList}
+            role="tablist"
+            aria-label="시뮬레이션 우측 패널"
+          >
+            {SIDE_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                id={`simulation-side-tab-${tab.value}`}
+                type="button"
+                role="tab"
+                aria-selected={activeSideTab === tab.value}
+                aria-controls={`simulation-side-panel-${tab.value}`}
+                className={`${styles.sideTab} ${activeSideTab === tab.value ? styles.sideTabActive : ""}`}
+                onClick={() => setActiveSideTab(tab.value)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          <div className={styles.goldenCasePanel}>
-            <div className={styles.feedbackPanelHeader}>
-              <h3>검증 케이스</h3>
-              <span>{goldenCases.length}</span>
-            </div>
-            <label className={styles.feedbackField}>
-              <span>이름</span>
-              <input
-                value={goldenCaseName}
-                onChange={(event) => setGoldenCaseName(event.target.value)}
-                maxLength={255}
-                aria-label="검증 케이스 이름"
-              />
-            </label>
-            <label className={styles.feedbackField}>
-              <span>기대 action</span>
-              <NativeSelect
-                value={expectedActionType}
-                onChange={(event) => setExpectedActionType(event.target.value)}
-                aria-label="기대 action"
-              >
-                <NativeSelectOption value="">현재 replay에서 비교 안 함</NativeSelectOption>
-                {ACTION_TYPES.map((type) => (
-                  <NativeSelectOption key={type} value={type}>
-                    {type}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className={styles.feedbackField}>
-              <span>Replay version</span>
-              <input
-                value={replayVersionId}
-                onChange={(event) => setReplayVersionId(event.target.value)}
-                inputMode="numeric"
-                aria-label="Replay version"
-              />
-            </label>
-            <Button
-              type="button"
-              onClick={handleCreateGoldenCase}
-              disabled={isCreatingGoldenCase || detail === null}
+          {activeSideTab === "state" ? (
+            <div
+              id="simulation-side-panel-state"
+              className={styles.sideTabPanel}
+              role="tabpanel"
+              aria-labelledby="simulation-side-tab-state"
             >
-              <CheckCircleIcon className={styles.buttonIcon} />
-              <span>{isCreatingGoldenCase ? "저장 중" : "등록"}</span>
-            </Button>
-            {isLoadingGoldenCases ? (
-              <p className={styles.feedbackMuted}>검증 케이스를 불러오는 중입니다.</p>
-            ) : goldenCases.length === 0 ? (
-              <p className={styles.feedbackMuted}>저장된 검증 케이스가 없습니다.</p>
-            ) : (
-              <ul className={styles.goldenCaseList}>
-                {goldenCases.map((goldenCase) => {
-                  const replayStatus = goldenCase.latestReplayResult?.status;
-                  const state = readExpectedField(goldenCase, "currentState");
-                  const action = readExpectedField(goldenCase, "actionType");
-                  return (
-                    <li key={goldenCase.id}>
-                      <div className={styles.feedbackRowHeader}>
-                        <div>
-                          <strong>{goldenCase.name}</strong>
-                          <span>
-                            version #{goldenCase.sourceDomainPackVersionId}
-                            {state ? ` · ${state}` : ""}
-                            {action ? ` · ${action}` : ""}
-                          </span>
-                        </div>
-                        <span
-                          className={`${styles.replayStatus} ${
-                            replayStatus === "PASS"
-                              ? styles.replayStatusPass
-                              : replayStatus === "FAIL"
-                                ? styles.replayStatusFail
-                                : ""
-                          }`}
-                        >
-                          {replayStatus === "FAIL" ? (
-                            <XCircleIcon className={styles.buttonIcon} />
-                          ) : replayStatus === "PASS" ? (
-                            <CheckCircleIcon className={styles.buttonIcon} />
-                          ) : (
-                            <PlayIcon className={styles.buttonIcon} />
-                          )}
-                          {replayStatusLabel(replayStatus)}
-                        </span>
-                      </div>
-                      {goldenCase.latestReplayResult?.failureSummary ? (
-                        <p className={styles.failureSummary}>
-                          {goldenCase.latestReplayResult.failureSummary}
-                        </p>
-                      ) : null}
-                      <div className={styles.candidateActions}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleReplayGoldenCase(goldenCase)}
-                          disabled={replayingGoldenCaseId === goldenCase.id}
-                          aria-label={`${goldenCase.name} replay`}
-                        >
-                          <PlayIcon className={styles.buttonIcon} />
-                          <span>
-                            {replayingGoldenCaseId === goldenCase.id ? "Replay 중" : "Replay"}
-                          </span>
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+              <h2 className={styles.sectionTitle}>Runtime State</h2>
+              <dl className={styles.stateList}>
+                <div>
+                  <dt>Intent</dt>
+                  <dd>
+                    {matched?.intentName ?? matched?.intentCode ?? "미매칭"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Workflow</dt>
+                  <dd>
+                    {matched?.workflowName ?? matched?.workflowCode ?? "미매칭"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Current State</dt>
+                  <dd>{matched?.currentState ?? "대기"}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>
+                    {matched?.executionStatus ??
+                      detail?.session.status ??
+                      "대기"}
+                  </dd>
+                </div>
+              </dl>
 
-          <div className={styles.feedbackPanel}>
-            <div className={styles.feedbackPanelHeader}>
-              <h3>Feedback</h3>
-              <span>{selectedTargetLabel}</span>
-            </div>
-            <label className={styles.feedbackField}>
-              <span>대상</span>
-              <NativeSelect
-                value={feedbackTarget}
-                onChange={(event) => setFeedbackTarget(event.target.value)}
-                aria-label="피드백 대상 선택"
-              >
-                <NativeSelectOption value="session">세션 전체</NativeSelectOption>
-                {messages.map((message) => (
-                  <NativeSelectOption
-                    key={message.id ?? message.seqNo}
-                    value={String(message.id ?? "")}
-                    disabled={message.id == null}
+              <div className={styles.slotPanel}>
+                <h3>수집된 Slot</h3>
+                {slots.length === 0 ? (
+                  <p>아직 수집된 slot 값이 없습니다.</p>
+                ) : (
+                  <ul>
+                    {slots.map(([key, value]) => (
+                      <li key={key}>
+                        <span>{key}</span>
+                        <strong>{String(value)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className={styles.goldenCasePanel}>
+                <div className={styles.feedbackPanelHeader}>
+                  <h3>검증 케이스</h3>
+                  <span>{goldenCases.length}</span>
+                </div>
+                <label className={styles.feedbackField}>
+                  <span>이름</span>
+                  <input
+                    value={goldenCaseName}
+                    onChange={(event) => setGoldenCaseName(event.target.value)}
+                    maxLength={255}
+                    aria-label="검증 케이스 이름"
+                  />
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>기대 action</span>
+                  <NativeSelect
+                    value={expectedActionType}
+                    onChange={(event) =>
+                      setExpectedActionType(event.target.value)
+                    }
+                    aria-label="기대 action"
                   >
-                    Turn {message.seqNo} · {roleLabel(message.senderRole)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className={styles.feedbackField}>
-              <span>유형</span>
-              <NativeSelect
-                value={feedbackType}
-                onChange={(event) => setFeedbackType(event.target.value as SimulationFeedbackType)}
-                aria-label="피드백 유형 선택"
-              >
-                {FEEDBACK_TYPES.map((item) => (
-                  <NativeSelectOption key={item.value} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className={styles.feedbackField}>
-              <span>심각도</span>
-              <NativeSelect
-                value={feedbackSeverity}
-                onChange={(event) =>
-                  setFeedbackSeverity(event.target.value as SimulationFeedbackSeverity)
-                }
-                aria-label="피드백 심각도 선택"
-              >
-                {FEEDBACK_SEVERITIES.map((item) => (
-                  <NativeSelectOption key={item.value} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </label>
-            <label className={styles.feedbackField}>
-              <span>설명</span>
-              <textarea
-                value={feedbackDescription}
-                onChange={(event) => setFeedbackDescription(event.target.value)}
-                maxLength={2000}
-                rows={3}
-              />
-            </label>
-            <label className={styles.feedbackField}>
-              <span>기대 응답/행동</span>
-              <textarea
-                value={feedbackExpectedBehavior}
-                onChange={(event) => setFeedbackExpectedBehavior(event.target.value)}
-                maxLength={2000}
-                rows={3}
-              />
-            </label>
-            <Button
-              type="button"
-              onClick={handleSubmitFeedback}
-              disabled={
-                isSubmittingFeedback ||
-                detail === null ||
-                !feedbackDescription.trim() ||
-                !feedbackExpectedBehavior.trim()
-              }
+                    <NativeSelectOption value="">
+                      현재 replay에서 비교 안 함
+                    </NativeSelectOption>
+                    {ACTION_TYPES.map((type) => (
+                      <NativeSelectOption key={type} value={type}>
+                        {type}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>Replay version</span>
+                  <input
+                    value={replayVersionId}
+                    onChange={(event) => setReplayVersionId(event.target.value)}
+                    inputMode="numeric"
+                    aria-label="Replay version"
+                  />
+                </label>
+                <Button
+                  type="button"
+                  onClick={handleCreateGoldenCase}
+                  disabled={isCreatingGoldenCase || detail === null}
+                >
+                  <CheckCircleIcon className={styles.buttonIcon} />
+                  <span>{isCreatingGoldenCase ? "저장 중" : "등록"}</span>
+                </Button>
+                {isLoadingGoldenCases ? (
+                  <p className={styles.feedbackMuted}>
+                    검증 케이스를 불러오는 중입니다.
+                  </p>
+                ) : goldenCases.length === 0 ? (
+                  <p className={styles.feedbackMuted}>
+                    저장된 검증 케이스가 없습니다.
+                  </p>
+                ) : (
+                  <ul className={styles.goldenCaseList}>
+                    {goldenCases.map((goldenCase) => {
+                      const replayStatus =
+                        goldenCase.latestReplayResult?.status;
+                      const state = readExpectedField(
+                        goldenCase,
+                        "currentState",
+                      );
+                      const action = readExpectedField(
+                        goldenCase,
+                        "actionType",
+                      );
+                      return (
+                        <li key={goldenCase.id}>
+                          <div className={styles.feedbackRowHeader}>
+                            <div>
+                              <strong>{goldenCase.name}</strong>
+                              <span>
+                                version #{goldenCase.sourceDomainPackVersionId}
+                                {state ? ` · ${state}` : ""}
+                                {action ? ` · ${action}` : ""}
+                              </span>
+                            </div>
+                            <span
+                              className={`${styles.replayStatus} ${
+                                replayStatus === "PASS"
+                                  ? styles.replayStatusPass
+                                  : replayStatus === "FAIL"
+                                    ? styles.replayStatusFail
+                                    : ""
+                              }`}
+                            >
+                              {replayStatus === "FAIL" ? (
+                                <XCircleIcon className={styles.buttonIcon} />
+                              ) : replayStatus === "PASS" ? (
+                                <CheckCircleIcon
+                                  className={styles.buttonIcon}
+                                />
+                              ) : (
+                                <PlayIcon className={styles.buttonIcon} />
+                              )}
+                              {replayStatusLabel(replayStatus)}
+                            </span>
+                          </div>
+                          {goldenCase.latestReplayResult?.failureSummary ? (
+                            <p className={styles.failureSummary}>
+                              {goldenCase.latestReplayResult.failureSummary}
+                            </p>
+                          ) : null}
+                          <div className={styles.candidateActions}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                void handleReplayGoldenCase(goldenCase)
+                              }
+                              disabled={replayingGoldenCaseId === goldenCase.id}
+                              aria-label={`${goldenCase.name} replay`}
+                            >
+                              <PlayIcon className={styles.buttonIcon} />
+                              <span>
+                                {replayingGoldenCaseId === goldenCase.id
+                                  ? "Replay 중"
+                                  : "Replay"}
+                              </span>
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {activeSideTab === "feedback" ? (
+            <div
+              id="simulation-side-panel-feedback"
+              className={styles.sideTabPanel}
+              role="tabpanel"
+              aria-labelledby="simulation-side-tab-feedback"
             >
-              <FlagIcon className={styles.buttonIcon} />
-              <span>{isSubmittingFeedback ? "저장 중" : "피드백 저장"}</span>
-            </Button>
-          </div>
-
-          <div className={styles.feedbackListPanel}>
-            <div className={styles.feedbackPanelHeader}>
-              <h3>워크스페이스 피드백</h3>
-              <NativeSelect
-                value={feedbackStatusFilter}
-                onChange={(event) =>
-                  setFeedbackStatusFilter(event.target.value as SimulationFeedbackStatus | "")
-                }
-                aria-label="피드백 상태 필터"
-              >
-                {FEEDBACK_STATUSES.map((item) => (
-                  <NativeSelectOption key={item.value || "ALL"} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
-            {isLoadingFeedback ? (
-              <p className={styles.feedbackMuted}>피드백을 불러오는 중입니다.</p>
-            ) : feedbackItems.length === 0 ? (
-              <p className={styles.feedbackMuted}>조건에 맞는 피드백이 없습니다.</p>
-            ) : (
-              <ul className={styles.feedbackList}>
-                {feedbackItems.map((feedback) => (
-                  <li key={feedback.id}>
-                    <div className={styles.feedbackRowHeader}>
-                      <div>
-                        <strong>{feedbackTypeLabel(feedback.feedbackType)}</strong>
-                        <span>
-                          {feedbackSeverityLabel(feedback.severity)} ·{" "}
-                          {feedbackStatusLabel(feedback.status)}
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleCreateCandidate(feedback)}
-                        disabled={feedback.status !== "OPEN" || creatingCandidateId === feedback.id}
+              <div className={styles.feedbackPanel}>
+                <div className={styles.feedbackPanelHeader}>
+                  <h3>Feedback</h3>
+                  <span>{selectedTargetLabel}</span>
+                </div>
+                <label className={styles.feedbackField}>
+                  <span>대상</span>
+                  <NativeSelect
+                    value={feedbackTarget}
+                    onChange={(event) => setFeedbackTarget(event.target.value)}
+                    aria-label="피드백 대상 선택"
+                  >
+                    <NativeSelectOption value="session">
+                      세션 전체
+                    </NativeSelectOption>
+                    {messages.map((message) => (
+                      <NativeSelectOption
+                        key={message.id ?? message.seqNo}
+                        value={String(message.id ?? "")}
+                        disabled={message.id == null}
                       >
-                        <LightbulbIcon className={styles.buttonIcon} />
-                        <span>{creatingCandidateId === feedback.id ? "생성 중" : "후보"}</span>
-                      </Button>
-                    </div>
-                    <p>{feedback.description}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                        Turn {message.seqNo} · {roleLabel(message.senderRole)}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>유형</span>
+                  <NativeSelect
+                    value={feedbackType}
+                    onChange={(event) =>
+                      setFeedbackType(
+                        event.target.value as SimulationFeedbackType,
+                      )
+                    }
+                    aria-label="피드백 유형 선택"
+                  >
+                    {FEEDBACK_TYPES.map((item) => (
+                      <NativeSelectOption key={item.value} value={item.value}>
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>심각도</span>
+                  <NativeSelect
+                    value={feedbackSeverity}
+                    onChange={(event) =>
+                      setFeedbackSeverity(
+                        event.target.value as SimulationFeedbackSeverity,
+                      )
+                    }
+                    aria-label="피드백 심각도 선택"
+                  >
+                    {FEEDBACK_SEVERITIES.map((item) => (
+                      <NativeSelectOption key={item.value} value={item.value}>
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>설명</span>
+                  <textarea
+                    value={feedbackDescription}
+                    onChange={(event) =>
+                      setFeedbackDescription(event.target.value)
+                    }
+                    maxLength={2000}
+                    rows={3}
+                  />
+                </label>
+                <label className={styles.feedbackField}>
+                  <span>기대 응답/행동</span>
+                  <textarea
+                    value={feedbackExpectedBehavior}
+                    onChange={(event) =>
+                      setFeedbackExpectedBehavior(event.target.value)
+                    }
+                    maxLength={2000}
+                    rows={3}
+                  />
+                </label>
+                <Button
+                  type="button"
+                  onClick={handleSubmitFeedback}
+                  disabled={
+                    isSubmittingFeedback ||
+                    detail === null ||
+                    !feedbackDescription.trim() ||
+                    !feedbackExpectedBehavior.trim()
+                  }
+                >
+                  <FlagIcon className={styles.buttonIcon} />
+                  <span>
+                    {isSubmittingFeedback ? "저장 중" : "피드백 저장"}
+                  </span>
+                </Button>
+              </div>
 
-          <div className={styles.feedbackListPanel}>
-            <div className={styles.feedbackPanelHeader}>
-              <h3>개선 후보</h3>
-              <NativeSelect
-                value={candidateStatusFilter}
-                onChange={(event) =>
-                  setCandidateStatusFilter(
-                    event.target.value as SimulationImprovementCandidateStatus | "",
-                  )
-                }
-                aria-label="개선 후보 상태 필터"
-              >
-                {CANDIDATE_STATUSES.map((item) => (
-                  <NativeSelectOption key={item.value || "ALL"} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
-            {isLoadingCandidates ? (
-              <p className={styles.feedbackMuted}>개선 후보를 불러오는 중입니다.</p>
-            ) : candidateItems.length === 0 ? (
-              <p className={styles.feedbackMuted}>조건에 맞는 개선 후보가 없습니다.</p>
-            ) : (
-              <ul className={styles.candidateList}>
-                {candidateItems.map((candidate) => (
-                  <li key={candidate.id}>
-                    <div className={styles.feedbackRowHeader}>
-                      <div>
-                        <strong>{candidateTypeLabel(candidate.candidateType)}</strong>
-                        <span>
-                          버전 #{candidate.domainPackVersionId} · 대상:{" "}
-                          {candidate.targetElementType}
-                        </span>
-                      </div>
-                      <span className={styles.statusPill}>
-                        {candidateStatusLabel(candidate.status)}
-                      </span>
-                    </div>
-                    <dl className={styles.candidateSummary}>
-                      <div>
-                        <dt>변경 전</dt>
-                        <dd>{candidate.beforeSummary}</dd>
-                      </div>
-                      <div>
-                        <dt>변경 후</dt>
-                        <dd>{candidate.afterSummary}</dd>
-                      </div>
-                      <div>
-                        <dt>근거</dt>
-                        <dd>
-                          {candidate.evidenceSummary}
-                          <span className={styles.evidenceMeta}>
-                            세션 #{candidate.sessionId}
-                            {candidate.chatMessageId ? ` · 메시지 #${candidate.chatMessageId}` : ""}
-                            {candidate.feedbackId ? ` · 피드백 #${candidate.feedbackId}` : ""}
-                          </span>
-                        </dd>
-                      </div>
-                    </dl>
-                    {candidate.status === "DRAFT" ? (
-                      <div className={styles.candidateActions}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={updatingCandidateId === candidate.id}
-                          onClick={() =>
-                            void handleCandidateStatusChange(candidate, "READY_FOR_REVIEW")
-                          }
-                        >
-                          <span>
-                            {updatingCandidateId === candidate.id ? "요청 중" : "리뷰 요청"}
-                          </span>
-                        </Button>
-                      </div>
-                    ) : null}
-                    {candidate.status === "READY_FOR_REVIEW" ? (
-                      <div className={styles.candidateReviewForm}>
-                        <input
-                          value={candidateRejectReasons[candidate.id] ?? ""}
-                          onChange={(event) =>
-                            setCandidateRejectReasons((current) => ({
-                              ...current,
-                              [candidate.id]: event.target.value,
-                            }))
-                          }
-                          maxLength={500}
-                          placeholder="반려 사유"
-                          aria-label="개선 후보 반려 사유"
-                        />
-                        <div className={styles.candidateActions}>
+              <div className={styles.feedbackListPanel}>
+                <div className={styles.feedbackPanelHeader}>
+                  <h3>워크스페이스 피드백</h3>
+                  <NativeSelect
+                    value={feedbackStatusFilter}
+                    onChange={(event) =>
+                      setFeedbackStatusFilter(
+                        event.target.value as SimulationFeedbackStatus | "",
+                      )
+                    }
+                    aria-label="피드백 상태 필터"
+                  >
+                    {FEEDBACK_STATUSES.map((item) => (
+                      <NativeSelectOption
+                        key={item.value || "ALL"}
+                        value={item.value}
+                      >
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                {isLoadingFeedback ? (
+                  <p className={styles.feedbackMuted}>
+                    피드백을 불러오는 중입니다.
+                  </p>
+                ) : feedbackItems.length === 0 ? (
+                  <p className={styles.feedbackMuted}>
+                    조건에 맞는 피드백이 없습니다.
+                  </p>
+                ) : (
+                  <ul className={styles.feedbackList}>
+                    {feedbackItems.map((feedback) => (
+                      <li key={feedback.id}>
+                        <div className={styles.feedbackRowHeader}>
+                          <div>
+                            <strong>
+                              {feedbackTypeLabel(feedback.feedbackType)}
+                            </strong>
+                            <span>
+                              {feedbackSeverityLabel(feedback.severity)} ·{" "}
+                              {feedbackStatusLabel(feedback.status)}
+                            </span>
+                          </div>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            disabled={updatingCandidateId === candidate.id}
-                            onClick={() => void handleRejectCandidate(candidate)}
+                            onClick={() => void handleCreateCandidate(feedback)}
+                            disabled={
+                              feedback.status !== "OPEN" ||
+                              creatingCandidateId === feedback.id
+                            }
                           >
-                            <span>반려</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={updatingCandidateId === candidate.id}
-                            onClick={() => void handleApproveCandidate(candidate)}
-                          >
-                            <span>승인</span>
+                            <LightbulbIcon className={styles.buttonIcon} />
+                            <span>
+                              {creatingCandidateId === feedback.id
+                                ? "생성 중"
+                                : "후보"}
+                            </span>
                           </Button>
                         </div>
-                      </div>
-                    ) : null}
-                    {candidate.decisionReason ? (
-                      <p className={styles.decisionReason}>결정 사유: {candidate.decisionReason}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                        <p>{feedback.description}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {activeSideTab === "candidates" ? (
+            <div
+              id="simulation-side-panel-candidates"
+              className={styles.sideTabPanel}
+              role="tabpanel"
+              aria-labelledby="simulation-side-tab-candidates"
+            >
+              <div className={styles.feedbackListPanel}>
+                <div className={styles.feedbackPanelHeader}>
+                  <h3>개선 후보</h3>
+                  <NativeSelect
+                    value={candidateStatusFilter}
+                    onChange={(event) =>
+                      setCandidateStatusFilter(
+                        event.target.value as
+                          | SimulationImprovementCandidateStatus
+                          | "",
+                      )
+                    }
+                    aria-label="개선 후보 상태 필터"
+                  >
+                    {CANDIDATE_STATUSES.map((item) => (
+                      <NativeSelectOption
+                        key={item.value || "ALL"}
+                        value={item.value}
+                      >
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                {isLoadingCandidates ? (
+                  <p className={styles.feedbackMuted}>
+                    개선 후보를 불러오는 중입니다.
+                  </p>
+                ) : candidateItems.length === 0 ? (
+                  <p className={styles.feedbackMuted}>
+                    조건에 맞는 개선 후보가 없습니다.
+                  </p>
+                ) : (
+                  <ul className={styles.candidateList}>
+                    {candidateItems.map((candidate) => (
+                      <li key={candidate.id}>
+                        <div className={styles.feedbackRowHeader}>
+                          <div>
+                            <strong>
+                              {candidateTypeLabel(candidate.candidateType)}
+                            </strong>
+                            <span>
+                              버전 #{candidate.domainPackVersionId} · 대상:{" "}
+                              {candidate.targetElementType}
+                            </span>
+                          </div>
+                          <span className={styles.statusPill}>
+                            {candidateStatusLabel(candidate.status)}
+                          </span>
+                        </div>
+                        <dl className={styles.candidateSummary}>
+                          <div>
+                            <dt>변경 전</dt>
+                            <dd>{candidate.beforeSummary}</dd>
+                          </div>
+                          <div>
+                            <dt>변경 후</dt>
+                            <dd>{candidate.afterSummary}</dd>
+                          </div>
+                          <div>
+                            <dt>근거</dt>
+                            <dd>
+                              {candidate.evidenceSummary}
+                              <span className={styles.evidenceMeta}>
+                                세션 #{candidate.sessionId}
+                                {candidate.chatMessageId
+                                  ? ` · 메시지 #${candidate.chatMessageId}`
+                                  : ""}
+                                {candidate.feedbackId
+                                  ? ` · 피드백 #${candidate.feedbackId}`
+                                  : ""}
+                              </span>
+                            </dd>
+                          </div>
+                        </dl>
+                        {candidate.status === "DRAFT" ? (
+                          <div className={styles.candidateActions}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={updatingCandidateId === candidate.id}
+                              onClick={() =>
+                                void handleCandidateStatusChange(
+                                  candidate,
+                                  "READY_FOR_REVIEW",
+                                )
+                              }
+                            >
+                              <span>
+                                {updatingCandidateId === candidate.id
+                                  ? "요청 중"
+                                  : "리뷰 요청"}
+                              </span>
+                            </Button>
+                          </div>
+                        ) : null}
+                        {candidate.status === "READY_FOR_REVIEW" ? (
+                          <div className={styles.candidateReviewForm}>
+                            <input
+                              value={candidateRejectReasons[candidate.id] ?? ""}
+                              onChange={(event) =>
+                                setCandidateRejectReasons((current) => ({
+                                  ...current,
+                                  [candidate.id]: event.target.value,
+                                }))
+                              }
+                              maxLength={500}
+                              placeholder="반려 사유"
+                              aria-label="개선 후보 반려 사유"
+                            />
+                            <div className={styles.candidateActions}>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={updatingCandidateId === candidate.id}
+                                onClick={() =>
+                                  void handleRejectCandidate(candidate)
+                                }
+                              >
+                                <span>반려</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={updatingCandidateId === candidate.id}
+                                onClick={() =>
+                                  void handleApproveCandidate(candidate)
+                                }
+                              >
+                                <span>승인</span>
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+                        {candidate.decisionReason ? (
+                          <p className={styles.decisionReason}>
+                            결정 사유: {candidate.decisionReason}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>
@@ -1272,14 +1570,23 @@ type MessageBubbleProps = Readonly<{
   onFeedbackClick?: () => void;
 }>;
 
-function MessageBubble({ message, feedbackCount, onFeedbackClick }: MessageBubbleProps) {
-  const isCustomer = message.senderRole === "USER" || message.senderRole === "CUSTOMER";
+function MessageBubble({
+  message,
+  feedbackCount,
+  onFeedbackClick,
+}: MessageBubbleProps) {
+  const isCustomer =
+    message.senderRole === "USER" || message.senderRole === "CUSTOMER";
   return (
-    <article className={`${styles.message} ${isCustomer ? styles.messageCustomer : ""}`}>
+    <article
+      className={`${styles.message} ${isCustomer ? styles.messageCustomer : ""}`}
+    >
       <div className={styles.messageMeta}>
         <span>{roleLabel(message.senderRole)}</span>
         <div className={styles.messageActions}>
-          {feedbackCount > 0 ? <span className={styles.feedbackBadge}>{feedbackCount}</span> : null}
+          {feedbackCount > 0 ? (
+            <span className={styles.feedbackBadge}>{feedbackCount}</span>
+          ) : null}
           {onFeedbackClick ? (
             <button
               type="button"

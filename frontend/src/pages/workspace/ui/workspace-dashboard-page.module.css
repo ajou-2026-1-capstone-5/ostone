@@ -44,7 +44,10 @@
 
 .filterBar {
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) minmax(420px, 1.45fr);
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) minmax(
+      420px,
+      1.45fr
+    );
   align-items: end;
   gap: var(--s-3);
   padding: var(--s-4);
@@ -773,55 +776,6 @@
   color: var(--ink-3);
 }
 
-.slotGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--s-4);
-}
-
-.slotCard {
-  min-height: 220px;
-  padding: var(--s-5);
-  border: 1px solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--paper);
-}
-
-.slotCard h3 {
-  margin: var(--s-3) 0 0;
-  color: var(--ink);
-  font-size: 17px;
-  font-weight: 540;
-  letter-spacing: 0;
-}
-
-.slotCard p {
-  margin: var(--s-2) 0 var(--s-5);
-  color: var(--ink-2);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.slotPlaceholder {
-  display: grid;
-  gap: var(--s-2);
-}
-
-.slotPlaceholder span {
-  display: block;
-  height: 12px;
-  border-radius: var(--r-pill);
-  background: var(--paper-3);
-}
-
-.slotPlaceholder span:nth-child(2) {
-  width: 76%;
-}
-
-.slotPlaceholder span:nth-child(3) {
-  width: 52%;
-}
-
 @media (max-width: 960px) {
   .pageHeader,
   .emptyPanel,
@@ -833,7 +787,6 @@
   .filterSummary,
   .metricGrid,
   .coverageGrid,
-  .slotGrid,
   .recommendationGrid,
   .hotpathTopGrid {
     grid-template-columns: 1fr;

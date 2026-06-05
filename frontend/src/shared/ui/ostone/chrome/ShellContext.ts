@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { WorkspaceResponse } from "@/entities/workspace";
+import type { WorkspaceResponse } from "@/shared/api/generated/zod";
 
 export interface ShellContext {
   setTopbarRight: (node: ReactNode | undefined) => void;

@@ -1,6 +1,7 @@
 package com.init.workflowruntime.presentation;
 
 import com.init.shared.presentation.AuthenticationUtils;
+import com.init.workflowruntime.application.ConsultationEvidenceService;
 import com.init.workflowruntime.application.ConsultationService;
 import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
@@ -11,6 +12,7 @@ import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
+import com.init.workflowruntime.application.dto.MessageDomainPackElementsResponse;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConsultationController {
 
   private final ConsultationService consultationService;
+  private final ConsultationEvidenceService consultationEvidenceService;
   private final LlmToolService llmToolService;
   private final CounselorDraftResponseService counselorDraftResponseService;
 
@@ -45,9 +48,11 @@ public class ConsultationController {
    */
   public ConsultationController(
       ConsultationService consultationService,
+      ConsultationEvidenceService consultationEvidenceService,
       LlmToolService llmToolService,
       CounselorDraftResponseService counselorDraftResponseService) {
     this.consultationService = consultationService;
+    this.consultationEvidenceService = consultationEvidenceService;
     this.llmToolService = llmToolService;
     this.counselorDraftResponseService = counselorDraftResponseService;
   }
@@ -82,6 +87,15 @@ public class ConsultationController {
       Authentication authentication) {
     Long userId = AuthenticationUtils.getUserId(authentication);
     return ResponseEntity.ok(consultationService.sendMessage(sessionId, request, userId));
+  }
+
+  /** 선택한 메시지의 상세 패널에 표시할 최신 도메인팩 근거 요소를 조회합니다. */
+  @GetMapping("/sessions/{sessionId}/messages/{messageId}/domain-pack-elements")
+  public ResponseEntity<MessageDomainPackElementsResponse> getMessageDomainPackElements(
+      @PathVariable Long sessionId, @PathVariable Long messageId, Authentication authentication) {
+    Long userId = AuthenticationUtils.getUserId(authentication);
+    return ResponseEntity.ok(
+        consultationEvidenceService.getMessageDomainPackElements(sessionId, messageId, userId));
   }
 
   /**

@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import shutil
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
-from traceback import format_exc
 from typing import Any
 
 from airflow.exceptions import AirflowSkipException
 from airflow.sdk import dag, get_current_context, task
 
+from pipeline.airflow_failure_reporter import notify_failure_callback
+from pipeline.airflow_stage_runner import (
+    STAGE_EXECUTION_MODE_ECS,
+    StageRunRequest,
+    create_stage_runner,
+    stage_execution_mode_from_env,
+)
+from pipeline.common.airflow_context import context_value, stage_context_from_airflow_context
 from pipeline.common.artifact_io import is_s3_uri, read_json_file, read_json_uri, write_json_uri
 from pipeline.common.artifacts import write_stage_manifest
 from pipeline.common.callbacks import post_callback
@@ -21,45 +27,22 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.dag_defaults import default_dag_args
 from pipeline.common.exceptions import PipelineConfigurationError
-from pipeline.ecs_stage_task import run_stage_task
 from pipeline.ecs_stage_worker import STAGE_MODULES
-
-logger = logging.getLogger(__name__)
 
 RUN_MODE_INITIAL = "INITIAL"
 RUN_MODE_DOMAIN_CONFIRMED_REPLAY = "DOMAIN_CONFIRMED_REPLAY"
 RUN_MODE_FEEDBACK_REPLAY = "FEEDBACK_REPLAY"
 CALLBACK_DOMAIN_CONFIRMATION = "domain-confirmation-checkpoints"
 CALLBACK_HUMAN_FEEDBACK = "human-feedback-checkpoints"
-CALLBACK_FAILURE = "failures"
-STAGE_EXECUTION_MODE_DIRECT = "direct"
-STAGE_EXECUTION_MODE_ECS = "ecs"
 evaluation_run: Callable[[str], Mapping[str, object] | None] | None = None
 
 
 def _build_stage_context(stage_name: str) -> StageContext:
-    context = get_current_context()
-    return StageContext(
-        dag_id=context["dag"].dag_id,
-        run_id=context["run_id"],
-        stage_name=stage_name,
-        workspace_id=_context_value(context, "workspace_id"),
-        dataset_id=_context_value(context, "dataset_id"),
-        pipeline_job_id=_context_value(context, "pipeline_job_id"),
-    )
+    return stage_context_from_airflow_context(get_current_context(), stage_name)
 
 
 def _context_value(context: Mapping[str, object], key: str) -> str | None:
-    dag_run = context.get("dag_run")
-    conf = getattr(dag_run, "conf", None)
-    if isinstance(conf, Mapping) and conf.get(key) not in (None, ""):
-        return str(conf[key])
-
-    params = context.get("params")
-    if isinstance(params, Mapping) and params.get(key) not in (None, ""):
-        return str(params[key])
-
-    return None
+    return context_value(context, key)
 
 
 def _run_mode() -> str:
@@ -114,10 +97,7 @@ def _conf_json_file(key: str, filename: str) -> str | None:
 
 
 def _stage_execution_mode() -> str:
-    value = os.getenv("PIPELINE_STAGE_EXECUTION_MODE", STAGE_EXECUTION_MODE_DIRECT).strip().lower()
-    if value not in {STAGE_EXECUTION_MODE_DIRECT, STAGE_EXECUTION_MODE_ECS}:
-        raise PipelineConfigurationError("PIPELINE_STAGE_EXECUTION_MODE must be one of: direct, ecs.")
-    return value
+    return stage_execution_mode_from_env()
 
 
 def _run_stage(
@@ -127,64 +107,24 @@ def _run_stage(
 ) -> dict[str, str]:
     stage_context = _build_stage_context(stage_name)
     runtime_config = PipelineRuntimeConfig.from_env()
-    if _stage_execution_mode() == STAGE_EXECUTION_MODE_ECS:
-        return run_stage_task(
-            stage_name,
-            stage_context,
-            runtime_config,
-            upstream_manifest_path,
-            raw_object_key=_raw_object_key_for_stage(stage_name),
-        )
-    if stage_callable is None:
+    execution_mode = _stage_execution_mode()
+    if stage_callable is None and execution_mode != STAGE_EXECUTION_MODE_ECS:
         stage_callable = _stage_callable(stage_name)
-    manifest_payload: dict[str, object] = {
-        "backend_base_url": runtime_config.backend_base_url,
-        "upstream_manifest_path": upstream_manifest_path,
-    }
-    try:
-        stage_result = stage_callable(upstream_manifest_path)
-    except Exception as exc:
-        manifest_payload.update(_manifest_payload_from_exception(exc))
-        manifest_payload["status"] = "failed"
-        manifest_payload["error"] = {
-            "type": type(exc).__name__,
-            "message": str(exc),
-            "traceback": format_exc(),
-        }
-        try:
-            write_stage_manifest(stage_context, runtime_config, manifest_payload)
-        except Exception:
-            logger.exception("Failed to write failure manifest for stage '%s'", stage_name)
-        raise
-    else:
-        if stage_result is not None:
-            artifact_manifest_path = _artifact_manifest_path_from(stage_result)
-            if artifact_manifest_path is not None:
-                return {"artifact_manifest_path": artifact_manifest_path}
-            manifest_payload.update(stage_result)
-        manifest_payload["status"] = "completed"
-        manifest_path: Path = write_stage_manifest(stage_context, runtime_config, manifest_payload)
-    return {"artifact_manifest_path": str(manifest_path)}
+    request = StageRunRequest(
+        stage_name=stage_name,
+        stage_context=stage_context,
+        runtime_config=runtime_config,
+        upstream_manifest_path=upstream_manifest_path,
+        stage_callable=stage_callable,
+        raw_object_key=_raw_object_key_for_stage(stage_name),
+    )
+    return create_stage_runner(execution_mode).run(request)
 
 
 def _raw_object_key_for_stage(stage_name: str) -> str | None:
     if stage_name != "ingestion":
         return None
     return _conf_value("object_key") or _conf_value("objectKey")
-
-
-def _manifest_payload_from_exception(exc: BaseException) -> dict[str, object]:
-    manifest_payload = getattr(exc, "manifest_payload", None)
-    if isinstance(manifest_payload, Mapping):
-        return dict(manifest_payload)
-    return {}
-
-
-def _artifact_manifest_path_from(stage_result: Mapping[str, object]) -> str | None:
-    artifact_manifest_path = stage_result.get("artifact_manifest_path")
-    if isinstance(artifact_manifest_path, str) and artifact_manifest_path:
-        return artifact_manifest_path
-    return None
 
 
 def _passthrough_manifest_from_conf() -> dict[str, str]:
@@ -369,55 +309,6 @@ def _require_pipeline_job_id(value: str | None) -> str:
     return value
 
 
-def _notify_failure_callback(context: Mapping[str, object]) -> None:
-    try:
-        runtime_config = PipelineRuntimeConfig.from_env()
-        if not runtime_config.callback_enabled:
-            return
-        pipeline_job_id = _context_value(context, "pipeline_job_id")
-        if not pipeline_job_id:
-            logger.warning("Skip failure callback because pipeline_job_id is missing.")
-            return
-        dag = context.get("dag")
-        dag_run = context.get("dag_run")
-        task_instance = context.get("task_instance")
-        exception = context.get("exception")
-        dag_id = str(getattr(dag, "dag_id", "") or _context_value(context, "dag_id") or "")
-        dag_run_id = str(getattr(dag_run, "run_id", "") or context.get("run_id") or "")
-        failed_stage = str(getattr(task_instance, "task_id", "") or "unknown")
-        reason = type(exception).__name__ if exception is not None else "TaskFailed"
-        message = str(exception).strip() if exception is not None else "Airflow task failed."
-        post_callback(
-            runtime_config.backend_base_url,
-            pipeline_job_id,
-            CALLBACK_FAILURE,
-            {
-                "externalEventId": _failure_external_event_id(dag_id, dag_run_id, failed_stage),
-                "dagId": dag_id,
-                "dagRunId": dag_run_id,
-                "failedStage": failed_stage,
-                "reason": reason[:100] or "TaskFailed",
-                "message": message[:5000] or "Airflow task failed.",
-                "occurredAt": datetime.now(timezone.utc).isoformat(),
-                "error": {
-                    "type": reason,
-                    "message": message,
-                },
-            },
-            runtime_config.airflow_webhook_secret or "",
-            runtime_config.callback_timeout_seconds,
-        )
-    except Exception:
-        logger.exception("Failed to send pipeline failure callback.")
-
-
-def _failure_external_event_id(dag_id: str, dag_run_id: str, failed_stage: str) -> str:
-    value = f"{dag_id}:{dag_run_id}:{failed_stage}:{CALLBACK_FAILURE}"
-    if len(value) <= 255:
-        return value
-    return f"{dag_id[:48]}:{dag_run_id[:120]}:{failed_stage[:48]}:{CALLBACK_FAILURE}"
-
-
 def _run_evaluation_stage(upstream_manifest_path: str | None) -> Mapping[str, object] | None:
     if upstream_manifest_path is None:
         raise PipelineConfigurationError("evaluation stage requires an upstream manifest path.")
@@ -447,7 +338,7 @@ def _stage_callable(stage_name: str) -> Callable[[str | None], Mapping[str, obje
     dagrun_timeout=timedelta(hours=2),
     max_active_runs=int(os.getenv("PIPELINE_DAG_MAX_ACTIVE_RUNS", "4")),
     max_active_tasks=int(os.getenv("PIPELINE_DAG_MAX_ACTIVE_TASKS", "1")),
-    on_failure_callback=_notify_failure_callback,
+    on_failure_callback=notify_failure_callback,
     params={
         "workspace_id": "local-workspace",
         "dataset_id": "local-dataset",

@@ -5,7 +5,6 @@ import {
   CheckCircle2Icon,
   FileUpIcon,
   FlaskConicalIcon,
-  PackagePlusIcon,
   RefreshCwIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -108,7 +107,10 @@ function toDateInputValue(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function buildMetricDateRange(filters: DashboardFilters): { from?: string; to?: string } {
+function buildMetricDateRange(filters: DashboardFilters): {
+  from?: string;
+  to?: string;
+} {
   if (filters.period === "custom") {
     return filters.customFrom && filters.customTo
       ? { from: filters.customFrom, to: filters.customTo }
@@ -145,9 +147,15 @@ function buildPeriodSummary(filters: DashboardFilters): string {
 function FilterSummary({ filters }: { filters: DashboardFilters }) {
   const summaryItems = [
     ["기간", buildPeriodSummary(filters)],
-    ["운영 지식팩", getOptionLabel(DOMAIN_PACK_VERSION_OPTIONS, filters.domainPackVersion)],
+    [
+      "운영 지식팩",
+      getOptionLabel(DOMAIN_PACK_VERSION_OPTIONS, filters.domainPackVersion),
+    ],
     ["채널", getOptionLabel(CHANNEL_OPTIONS, filters.channel)],
-    ["워크플로우", getOptionLabel(WORKFLOW_STATUS_OPTIONS, filters.workflowStatus)],
+    [
+      "워크플로우",
+      getOptionLabel(WORKFLOW_STATUS_OPTIONS, filters.workflowStatus),
+    ],
   ];
 
   return (
@@ -169,7 +177,10 @@ function formatCount(value: MetricValue, state: DashboardDataState): string {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
-function formatDuration(seconds: MetricValue, state: DashboardDataState): string {
+function formatDuration(
+  seconds: MetricValue,
+  state: DashboardDataState,
+): string {
   if (state === "loading") return "로딩중";
   if (state === "error") return "--";
   if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "--";
@@ -179,9 +190,16 @@ function formatDuration(seconds: MetricValue, state: DashboardDataState): string
   return remainder === 0 ? `${minutes}분` : `${minutes}분 ${remainder}초`;
 }
 
-function formatDelta(delta: number | null | undefined, state: DashboardDataState): string {
+function formatDelta(
+  delta: number | null | undefined,
+  state: DashboardDataState,
+): string {
   if (state === "loading") return "전 기간 계산 중";
-  if (state === "error" || typeof delta !== "number" || !Number.isFinite(delta)) {
+  if (
+    state === "error" ||
+    typeof delta !== "number" ||
+    !Number.isFinite(delta)
+  ) {
     return "전 기간 --";
   }
   const sign = delta > 0 ? "+" : "";
@@ -206,7 +224,9 @@ function hasMetricData(metrics: ConsultationMetrics | null): boolean {
   );
 }
 
-function hasWorkflowRankingData(rankings: WorkspaceWorkflowRankingResponse | null): boolean {
+function hasWorkflowRankingData(
+  rankings: WorkspaceWorkflowRankingResponse | null,
+): boolean {
   return (rankings?.rankings?.length ?? 0) > 0;
 }
 
@@ -368,7 +388,10 @@ function TopWorkflowCard({
   }
 
   return (
-    <article className={styles.hotpathCard} data-testid={`hotpath-top-${item.rank}`}>
+    <article
+      className={styles.hotpathCard}
+      data-testid={`hotpath-top-${item.rank}`}
+    >
       {body}
       <span className={styles.unavailableText}>상세 준비 중</span>
     </article>
@@ -382,7 +405,8 @@ function AutomationCoveragePanel({
   coverage: ConsultationCoverageMetrics | null | undefined;
   state: DashboardDataState;
 }) {
-  const needsInstrumentation = coverage?.measurementStatus === "NEEDS_INSTRUMENTATION";
+  const needsInstrumentation =
+    coverage?.measurementStatus === "NEEDS_INSTRUMENTATION";
   const measurementStatus =
     state === "loading" ? "LOADING" : (coverage?.measurementStatus ?? "EMPTY");
   const measurementLabel =
@@ -394,10 +418,16 @@ function AutomationCoveragePanel({
           ? "계측 확인"
           : "--";
   const trend = coverage?.trend ?? [];
-  const maxTrendTotal = Math.max(1, ...trend.map((point) => point.totalConsultationCount));
+  const maxTrendTotal = Math.max(
+    1,
+    ...trend.map((point) => point.totalConsultationCount),
+  );
 
   return (
-    <section className={styles.coveragePanel} aria-labelledby="automation-coverage-title">
+    <section
+      className={styles.coveragePanel}
+      aria-labelledby="automation-coverage-title"
+    >
       <div className={styles.coverageHeader}>
         <div>
           <span className={styles.panelEyebrow}>Automation Coverage</span>
@@ -408,7 +438,10 @@ function AutomationCoveragePanel({
             운영 지식팩이 실제 상담을 workflow로 얼마나 커버했는지 확인합니다.
           </p>
         </div>
-        <span className={styles.measurementBadge} data-status={measurementStatus}>
+        <span
+          className={styles.measurementBadge}
+          data-status={measurementStatus}
+        >
           {measurementLabel}
         </span>
       </div>
@@ -427,7 +460,10 @@ function AutomationCoveragePanel({
         />
         <CoverageMetricCard
           label="Intent Success"
-          value={formatPercent(coverage?.intentClassificationSuccessRate, state)}
+          value={formatPercent(
+            coverage?.intentClassificationSuccessRate,
+            state,
+          )}
           description={`${formatCount(coverage?.intentClassificationSuccessCount, state)}건의 intent 분류 성공`}
         />
         <CoverageMetricCard
@@ -519,7 +555,10 @@ function WorkflowRankingTable({
                 <td>#{item.rank}</td>
                 <td>
                   {item.detailPath ? (
-                    <Link to={item.detailPath} className={styles.workflowDetailLink}>
+                    <Link
+                      to={item.detailPath}
+                      className={styles.workflowDetailLink}
+                    >
                       {workflowName}
                     </Link>
                   ) : (
@@ -538,7 +577,9 @@ function WorkflowRankingTable({
                 <td>
                   <span className={styles.changeCell}>
                     {formatDelta(item.changeRate, state)}
-                    {item.surging ? <span className={styles.surgeBadge}>급증</span> : null}
+                    {item.surging ? (
+                      <span className={styles.surgeBadge}>급증</span>
+                    ) : null}
                   </span>
                 </td>
               </tr>
@@ -563,7 +604,10 @@ function HotpathWorkflowRankingPanel({
   const allRankings = rankings?.rankings ?? [];
 
   return (
-    <section className={styles.hotpathPanel} aria-labelledby="hotpath-ranking-title">
+    <section
+      className={styles.hotpathPanel}
+      aria-labelledby="hotpath-ranking-title"
+    >
       <div className={styles.panelHeader}>
         <div>
           <span className={styles.panelEyebrow}>HOTPATH</span>
@@ -571,7 +615,8 @@ function HotpathWorkflowRankingPanel({
             핫패스 워크플로우 랭킹
           </h2>
           <p className={styles.sectionDescription}>
-            선택 기간의 실행량과 전 기간 대비 증가율을 기준으로 우선 개선 대상을 확인합니다.
+            선택 기간의 실행량과 전 기간 대비 증가율을 기준으로 우선 개선 대상을
+            확인합니다.
           </p>
         </div>
         <span className={styles.totalBadge}>
@@ -588,13 +633,17 @@ function HotpathWorkflowRankingPanel({
       {!error && state === "loading" ? (
         <div className={styles.hotpathState} data-testid="hotpath-loading">
           <LoadingSpinner />
-          <p className={styles.stateText}>워크플로우 랭킹을 불러오는 중입니다.</p>
+          <p className={styles.stateText}>
+            워크플로우 랭킹을 불러오는 중입니다.
+          </p>
         </div>
       ) : null}
 
       {!error && state !== "loading" && allRankings.length === 0 ? (
         <div className={styles.hotpathState} data-testid="hotpath-empty">
-          <p className={styles.stateText}>선택 기간에 집계할 워크플로우 실행이 없습니다.</p>
+          <p className={styles.stateText}>
+            선택 기간에 집계할 워크플로우 실행이 없습니다.
+          </p>
         </div>
       ) : null}
 
@@ -616,12 +665,18 @@ function HotpathWorkflowRankingPanel({
   );
 }
 
-function ActionRecommendationCard({ item }: { item: WorkspaceDashboardActionRecommendation }) {
+function ActionRecommendationCard({
+  item,
+}: {
+  item: WorkspaceDashboardActionRecommendation;
+}) {
   return (
     <Link to={item.targetPath} className={styles.recommendationCard}>
       <span className={styles.recommendationMeta}>
         <span className={styles.sourceBadge}>{item.sourceLabel}</span>
-        <span className={styles.ruleBadge}>{item.ruleCode.replaceAll("_", " ")}</span>
+        <span className={styles.ruleBadge}>
+          {item.ruleCode.replaceAll("_", " ")}
+        </span>
       </span>
       <h3>{item.title}</h3>
       <p>{item.description}</p>
@@ -651,7 +706,10 @@ function ActionRecommendationsPanel({
   const items = recommendations?.recommendations ?? [];
 
   return (
-    <section className={styles.recommendationPanel} aria-labelledby="action-recommendation-title">
+    <section
+      className={styles.recommendationPanel}
+      aria-labelledby="action-recommendation-title"
+    >
       <div className={styles.panelHeader}>
         <div>
           <span className={styles.panelEyebrow}>Next Actions</span>
@@ -665,20 +723,29 @@ function ActionRecommendationsPanel({
       </div>
 
       {error ? (
-        <div className={styles.recommendationState} data-testid="recommendation-error">
+        <div
+          className={styles.recommendationState}
+          data-testid="recommendation-error"
+        >
           <ErrorState message={error} />
         </div>
       ) : null}
 
       {!error && state === "loading" ? (
-        <div className={styles.recommendationState} data-testid="recommendation-loading">
+        <div
+          className={styles.recommendationState}
+          data-testid="recommendation-loading"
+        >
           <LoadingSpinner />
           <p className={styles.stateText}>추천 액션을 계산하는 중입니다.</p>
         </div>
       ) : null}
 
       {!error && state !== "loading" && items.length === 0 ? (
-        <div className={styles.recommendationState} data-testid="recommendation-empty">
+        <div
+          className={styles.recommendationState}
+          data-testid="recommendation-empty"
+        >
           <CheckCircle2Icon aria-hidden="true" className={styles.panelIcon} />
           <p className={styles.stateText}>현재 큰 이상 없음</p>
         </div>
@@ -702,19 +769,26 @@ function DashboardFilters({
   filters: DashboardFilters;
   onChange: (filters: DashboardFilters) => void;
 }) {
-  const updateFilter = <K extends keyof DashboardFilters>(key: K, value: DashboardFilters[K]) => {
+  const updateFilter = <K extends keyof DashboardFilters>(
+    key: K,
+    value: DashboardFilters[K],
+  ) => {
     onChange({ ...filters, [key]: value });
   };
 
   return (
-    <section className={styles.filterBar} aria-labelledby="dashboard-filter-title">
+    <section
+      className={styles.filterBar}
+      aria-labelledby="dashboard-filter-title"
+    >
       <div className={styles.filterHeader}>
         <div>
           <h2 id="dashboard-filter-title" className={styles.sectionTitle}>
             공통 필터
           </h2>
           <p className={styles.sectionDescription}>
-            아래 카드와 차트가 같은 기준을 바라보도록 필터 상태를 먼저 고정합니다.
+            대시보드 섹션이 같은 기간과 운영 조건을 기준으로 집계되도록
+            설정합니다.
           </p>
         </div>
       </div>
@@ -743,7 +817,9 @@ function DashboardFilters({
             <input
               type="date"
               value={filters.customFrom}
-              onChange={(event) => updateFilter("customFrom", event.target.value)}
+              onChange={(event) =>
+                updateFilter("customFrom", event.target.value)
+              }
             />
           </label>
           <label className={styles.field}>
@@ -762,7 +838,9 @@ function DashboardFilters({
           <span>운영 지식팩 버전</span>
           <NativeSelect
             value={filters.domainPackVersion}
-            onChange={(event) => updateFilter("domainPackVersion", event.target.value)}
+            onChange={(event) =>
+              updateFilter("domainPackVersion", event.target.value)
+            }
             aria-label="운영 지식팩 버전 필터"
             size="sm"
           >
@@ -792,7 +870,9 @@ function DashboardFilters({
           <span>Workflow Status</span>
           <NativeSelect
             value={filters.workflowStatus}
-            onChange={(event) => updateFilter("workflowStatus", event.target.value)}
+            onChange={(event) =>
+              updateFilter("workflowStatus", event.target.value)
+            }
             aria-label="워크플로우 상태 필터"
             size="sm"
           >
@@ -808,33 +888,17 @@ function DashboardFilters({
   );
 }
 
-function DashboardSlot({
-  label,
-  title,
-  description,
-}: {
-  label: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <article className={styles.slotCard}>
-      <span className={styles.slotLabel}>{label}</span>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <div className={styles.slotPlaceholder} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    </article>
-  );
-}
-
-export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelProps) {
+export function DashboardStatePanel({
+  state,
+  workspaceId,
+}: DashboardStatePanelProps) {
   if (state === "loading") {
     return (
-      <section className={styles.statePanel} data-testid="dashboard-loading" aria-live="polite">
+      <section
+        className={styles.statePanel}
+        data-testid="dashboard-loading"
+        aria-live="polite"
+      >
         <LoadingSpinner />
         <p className={styles.stateText}>대시보드 데이터를 불러오는 중입니다.</p>
       </section>
@@ -853,9 +917,12 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
     return (
       <section className={styles.partialPanel} data-testid="dashboard-partial">
         <div>
-          <span className={styles.panelEyebrow}>METRICS CONNECTED</span>
-          <h2>상담 처리 요약 지표가 연결되었습니다.</h2>
-          <p>차트와 운영 주의 항목은 같은 필터 기준을 유지하며 후속 데이터 연결을 기다립니다.</p>
+          <span className={styles.panelEyebrow}>PARTIAL DATA</span>
+          <h2>일부 운영 데이터만 확인됩니다.</h2>
+          <p>
+            선택 기간에 수집된 상담 로그 기준으로 확인 가능한 지표를 먼저
+            표시합니다. 값이 없는 항목은 해당 운영 기록이 쌓이면 계산됩니다.
+          </p>
         </div>
         <RefreshCwIcon aria-hidden="true" className={styles.panelIcon} />
       </section>
@@ -868,25 +935,34 @@ export function DashboardStatePanel({ state, workspaceId }: DashboardStatePanelP
         <span className={styles.panelEyebrow}>GET STARTED</span>
         <h2>아직 대시보드에 표시할 운영 데이터가 없습니다.</h2>
         <p>
-          상담 로그를 업로드하고 운영 지식팩을 준비한 뒤, 시뮬레이션으로 워크플로우 흐름을
-          확인하세요.
+          상담 로그를 업로드하고 운영 지식팩 검토를 마친 뒤, 시뮬레이션으로
+          워크플로우 흐름을 확인하세요.
         </p>
       </div>
       <div className={styles.ctaGrid}>
         <Button asChild variant="default">
-          <Link to={`/workspaces/${workspaceId}/upload`} data-testid="dashboard-upload-cta">
+          <Link
+            to={`/workspaces/${workspaceId}/upload`}
+            data-testid="dashboard-upload-cta"
+          >
             <FileUpIcon aria-hidden="true" />
             상담 업로드
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to={`/workspaces/${workspaceId}/domain-packs`} data-testid="dashboard-pack-cta">
-            <PackagePlusIcon aria-hidden="true" />
-            지식팩 생성
+          <Link
+            to={`/workspaces/${workspaceId}/domain-packs`}
+            data-testid="dashboard-pack-cta"
+          >
+            <CheckCircle2Icon aria-hidden="true" />
+            지식팩 검토
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to={buildDemoChatPath(workspaceId)} data-testid="dashboard-simulation-cta">
+          <Link
+            to={buildDemoChatPath(workspaceId)}
+            data-testid="dashboard-simulation-cta"
+          >
             <FlaskConicalIcon aria-hidden="true" />
             시뮬레이션 시작
           </Link>
@@ -904,16 +980,24 @@ export function WorkspaceDashboardPage() {
   const [metrics, setMetrics] = useState<ConsultationMetrics | null>(null);
   const [isMetricsLoading, setIsMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
-  const [workflowRankings, setWorkflowRankings] = useState<WorkspaceWorkflowRankingResponse | null>(
-    null,
-  );
-  const [isWorkflowRankingsLoading, setIsWorkflowRankingsLoading] = useState(false);
-  const [workflowRankingsError, setWorkflowRankingsError] = useState<string | null>(null);
+  const [workflowRankings, setWorkflowRankings] =
+    useState<WorkspaceWorkflowRankingResponse | null>(null);
+  const [isWorkflowRankingsLoading, setIsWorkflowRankingsLoading] =
+    useState(false);
+  const [workflowRankingsError, setWorkflowRankingsError] = useState<
+    string | null
+  >(null);
   const [actionRecommendations, setActionRecommendations] =
     useState<WorkspaceDashboardActionRecommendations | null>(null);
-  const [isActionRecommendationsLoading, setIsActionRecommendationsLoading] = useState(false);
-  const [actionRecommendationsError, setActionRecommendationsError] = useState<string | null>(null);
-  const metricDateRange = useMemo(() => buildMetricDateRange(filters), [filters]);
+  const [isActionRecommendationsLoading, setIsActionRecommendationsLoading] =
+    useState(false);
+  const [actionRecommendationsError, setActionRecommendationsError] = useState<
+    string | null
+  >(null);
+  const metricDateRange = useMemo(
+    () => buildMetricDateRange(filters),
+    [filters],
+  );
   const metricsState = useMemo<DashboardDataState>(() => {
     if (isMetricsLoading) return "loading";
     if (metricsError) return "error";
@@ -931,20 +1015,33 @@ export function WorkspaceDashboardPage() {
     if (actionRecommendationsError) return "error";
     if (hasActionRecommendationData(actionRecommendations)) return "partial";
     return "empty";
-  }, [isActionRecommendationsLoading, actionRecommendationsError, actionRecommendations]);
-  const dataState = useMemo<DashboardDataState>(() => {
+  }, [
+    isActionRecommendationsLoading,
+    actionRecommendationsError,
+    actionRecommendations,
+  ]);
+  const dataState = useMemo<DashboardDataState | null>(() => {
     const hasAnyData =
       hasMetricData(metrics) ||
       hasWorkflowRankingData(workflowRankings) ||
       hasActionRecommendationData(actionRecommendations);
     if (
-      (isMetricsLoading || isWorkflowRankingsLoading || isActionRecommendationsLoading) &&
+      (isMetricsLoading ||
+        isWorkflowRankingsLoading ||
+        isActionRecommendationsLoading) &&
       !hasAnyData
     ) {
       return "loading";
     }
-    if (hasAnyData) return "partial";
-    if (metricsError && workflowRankingsError && actionRecommendationsError) return "error";
+    if (metricsError && workflowRankingsError && actionRecommendationsError)
+      return "error";
+    if (
+      hasAnyData &&
+      (metricsError || workflowRankingsError || actionRecommendationsError)
+    ) {
+      return "partial";
+    }
+    if (hasAnyData) return null;
     return "empty";
   }, [
     isMetricsLoading,
@@ -984,7 +1081,10 @@ export function WorkspaceDashboardPage() {
       setIsMetricsLoading(true);
       setMetricsError(null);
       try {
-        const data = await consultationApi.getMetrics(parsedWorkspaceId, metricDateRange);
+        const data = await consultationApi.getMetrics(
+          parsedWorkspaceId,
+          metricDateRange,
+        );
         if (ignore) return;
         setMetrics(data);
       } catch (error) {
@@ -1036,7 +1136,10 @@ export function WorkspaceDashboardPage() {
         setActionRecommendations(data);
       } catch (error) {
         if (ignore) return;
-        console.error("Failed to load dashboard action recommendations:", error);
+        console.error(
+          "Failed to load dashboard action recommendations:",
+          error,
+        );
         setActionRecommendations(null);
         setActionRecommendationsError("추천 액션을 불러오지 못했습니다.");
         toast.error("추천 액션을 불러오지 못했습니다.");
@@ -1075,7 +1178,10 @@ export function WorkspaceDashboardPage() {
       setIsWorkflowRankingsLoading(true);
       setWorkflowRankingsError(null);
       try {
-        const data = await consultationApi.getWorkflowRankings(parsedWorkspaceId, metricDateRange);
+        const data = await consultationApi.getWorkflowRankings(
+          parsedWorkspaceId,
+          metricDateRange,
+        );
         if (ignore) return;
         setWorkflowRankings(data);
       } catch (error) {
@@ -1109,7 +1215,8 @@ export function WorkspaceDashboardPage() {
           <span className={styles.eyebrow}>Workspace Dashboard</span>
           <h1 className={styles.pageTitle}>대시보드</h1>
           <p className={styles.pageSubtitle}>
-            고객 상담 운영 지표가 연결될 공통 홈입니다. 필터와 배치 구조를 먼저 고정합니다.
+            상담 처리 흐름, 자동화 커버리지, 운영 지식팩 상태를 한 화면에서
+            확인합니다.
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
@@ -1128,32 +1235,22 @@ export function WorkspaceDashboardPage() {
         error={actionRecommendationsError}
       />
       <DashboardMetricsGrid metrics={metrics} state={metricsState} />
-      <AutomationCoveragePanel coverage={metrics?.coverage} state={metricsState} />
+      <AutomationCoveragePanel
+        coverage={metrics?.coverage}
+        state={metricsState}
+      />
       <KnowledgePackHealthPanel workspaceId={parsedWorkspaceId} />
       <HotpathWorkflowRankingPanel
         rankings={workflowRankings}
         state={workflowRankingState}
         error={workflowRankingsError}
       />
-      <DashboardStatePanel state={dataState} workspaceId={parsedWorkspaceId} />
-
-      <section className={styles.slotGrid} aria-label="대시보드 카드와 차트 배치 영역">
-        <DashboardSlot
-          label="Metric"
-          title="상담 처리 KPI"
-          description="처리량, 평균 응답 시간, 완료율 카드가 연결될 자리입니다."
+      {dataState ? (
+        <DashboardStatePanel
+          state={dataState}
+          workspaceId={parsedWorkspaceId}
         />
-        <DashboardSlot
-          label="Chart"
-          title="워크플로우 흐름 추이"
-          description="기간 필터 기준으로 세션과 상태 변화 차트가 연결될 자리입니다."
-        />
-        <DashboardSlot
-          label="Table"
-          title="운영 주의 항목"
-          description="부분 데이터와 오류 상태에서도 같은 폭을 유지하는 목록 슬롯입니다."
-        />
-      </section>
+      ) : null}
     </div>
   );
 }

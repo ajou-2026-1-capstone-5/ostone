@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.init.shared.application.exception.BadRequestException;
 import com.init.shared.application.exception.NotFoundException;
 import com.init.shared.infrastructure.security.JwtAuthenticationFilter;
+import com.init.workflowruntime.application.ConsultationEvidenceService;
 import com.init.workflowruntime.application.ConsultationService;
 import com.init.workflowruntime.application.CounselorDraftResponseService;
 import com.init.workflowruntime.application.LlmToolService;
@@ -26,6 +27,10 @@ import com.init.workflowruntime.application.dto.ChatMessageResponse;
 import com.init.workflowruntime.application.dto.ChatSessionResponse;
 import com.init.workflowruntime.application.dto.GenerateWorkflowAwareResponseResult;
 import com.init.workflowruntime.application.dto.LlmToolWorkflowResponse;
+import com.init.workflowruntime.application.dto.MessageDomainPackElementsResponse;
+import com.init.workflowruntime.application.dto.MessageDomainPackElementsResponse.PolicyElement;
+import com.init.workflowruntime.application.dto.MessageDomainPackElementsResponse.RiskElement;
+import com.init.workflowruntime.application.dto.MessageDomainPackElementsResponse.SlotElement;
 import com.init.workflowruntime.application.dto.SendMessageRequest;
 import com.init.workflowruntime.application.dto.UpdateStatusRequest;
 import com.init.workspace.application.exception.WorkspaceAccessDeniedException;
@@ -64,6 +69,10 @@ class ConsultationControllerTest {
   @SuppressWarnings("removal")
   @MockBean
   private ConsultationService consultationService;
+
+  @SuppressWarnings("removal")
+  @MockBean
+  private ConsultationEvidenceService consultationEvidenceService;
 
   @SuppressWarnings("removal")
   @MockBean
@@ -237,6 +246,43 @@ class ConsultationControllerTest {
         .perform(get("/api/v1/consultation/sessions/999/messages").principal(auth()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/v1/consultation/sessions/{sessionId}/messages/{messageId}/domain-pack-elements - 메시지 근거 반환")
+  void should_도메인팩근거반환_when_메시지상세근거조회() throws Exception {
+    MessageDomainPackElementsResponse response =
+        new MessageDomainPackElementsResponse(
+            1L,
+            100L,
+            2L,
+            3L,
+            50L,
+            "collect_refund_info",
+            List.of(new SlotElement(10L, "orderNumber", "주문 번호", true, "ORD-1", null)),
+            List.of(
+                new PolicyElement(
+                    20L, "refund_policy", "환불 정책", true, true, "조건 충족", "policy_check", null)),
+            List.of(new RiskElement(30L, "high_refund", "고액 환불", true, "high", null)));
+    given(consultationEvidenceService.getMessageDomainPackElements(1L, 100L, 7L))
+        .willReturn(response);
+
+    mockMvc
+        .perform(
+            get("/api/v1/consultation/sessions/1/messages/100/domain-pack-elements")
+                .principal(auth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sessionId").value(1))
+        .andExpect(jsonPath("$.messageId").value(100))
+        .andExpect(jsonPath("$.executionId").value(50))
+        .andExpect(jsonPath("$.slots[0].name").value("주문 번호"))
+        .andExpect(jsonPath("$.slots[0].value").value("ORD-1"))
+        .andExpect(jsonPath("$.policies[0].matched").value(true))
+        .andExpect(jsonPath("$.policies[0].nodeId").value("policy_check"))
+        .andExpect(jsonPath("$.risks[0].level").value("high"));
+
+    verify(consultationEvidenceService).getMessageDomainPackElements(1L, 100L, 7L);
   }
 
   @Test

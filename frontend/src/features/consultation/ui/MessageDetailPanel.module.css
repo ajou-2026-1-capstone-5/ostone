@@ -123,6 +123,17 @@
   color: var(--ink-4);
 }
 
+.domainLoadingIcon {
+  color: var(--ink-4);
+  animation: domainSpin 0.9s linear infinite;
+}
+
+@keyframes domainSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .domainEmpty strong {
   display: block;
   margin-top: 10px;
@@ -158,6 +169,16 @@
 
 .tag:hover {
   filter: brightness(0.95);
+}
+
+.tagButton {
+  border: 0;
+  cursor: pointer;
+}
+
+.tagButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .tagExtracted {

@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import "@testing-library/jest-dom/vitest";
 import { ConsultationPage } from "./ConsultationPage";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
+import { consultationEvidenceApi } from "../../../features/consultation/api/consultationEvidenceApi";
 import { getCurrentWorkflow } from "../../../features/consultation/api/llmToolWorkflowApi";
 import { toast } from "sonner";
 import { ApiRequestError } from "@/shared/api";
@@ -173,6 +174,14 @@ vi.mock("../../../features/consultation/api/consultationApi", () => ({
       Promise.resolve({
         content: "주문번호를 확인해주시면 환불 상태를 안내드리겠습니다.",
       }),
+    ),
+  },
+}));
+
+vi.mock("../../../features/consultation/api/consultationEvidenceApi", () => ({
+  consultationEvidenceApi: {
+    getMessageDomainPackElements: vi.fn(() =>
+      Promise.resolve({ slots: [], policies: [], risks: [] }),
     ),
   },
 }));
@@ -504,6 +513,73 @@ describe("ConsultationPage", () => {
     expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
     expect(consultationApi.assignSession).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "배정받기" })).toBeInTheDocument();
+  });
+
+  it("loads selected message domain pack evidence into the detail panel", async () => {
+    vi.mocked(consultationEvidenceApi.getMessageDomainPackElements).mockResolvedValueOnce({
+      slots: [{ name: "주문 번호", extracted: true, value: "ORD-1" }],
+      policies: [{ name: "환불 정책", extracted: true, matched: true }],
+      risks: [{ name: "고액 환불", extracted: true, level: "high" }],
+    });
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("김민지"));
+
+    await waitFor(() => {
+      expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+    });
+
+    const messageItem = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    if (messageItem) {
+      fireEvent.click(messageItem);
+    }
+
+    await waitFor(() => {
+      expect(consultationEvidenceApi.getMessageDomainPackElements).toHaveBeenCalledWith(1, 100, {
+        workspaceId: 2,
+        packId: null,
+        versionId: null,
+      });
+    });
+    expect(screen.getByText("주문 번호")).toBeInTheDocument();
+    expect(screen.getByText("ORD-1")).toBeInTheDocument();
+    expect(screen.getByText("환불 정책")).toBeInTheDocument();
+    expect(screen.getByText("고액 환불")).toBeInTheDocument();
+  });
+
+  it("keeps the consultation page usable when selected message evidence fails to load", async () => {
+    vi.mocked(consultationEvidenceApi.getMessageDomainPackElements).mockRejectedValueOnce(
+      new Error("evidence failed"),
+    );
+
+    render(<ConsultationPage />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText("김민지")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("김민지"));
+
+    await waitFor(() => {
+      expect(screen.getByText("환불 문의 드립니다.")).toBeInTheDocument();
+    });
+
+    const messageItem = screen.getByText("환불 문의 드립니다.").closest('[role="button"]');
+    if (messageItem) {
+      fireEvent.click(messageItem);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByTestId("message-domain-error")).toHaveTextContent(
+        "근거를 불러오지 못했습니다",
+      );
+    });
+    expect(screen.getByPlaceholderText("메시지를 입력하세요...")).toBeInTheDocument();
   });
 
   it("loads previous message pages from the top of the live chat", async () => {
@@ -1774,7 +1850,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByText("닫기"));
@@ -1802,7 +1878,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     });
 
     fireEvent.click(messageEl);
@@ -1832,7 +1908,7 @@ describe("ConsultationPage", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     });
 
     messageButton.focus();
@@ -1863,7 +1939,7 @@ describe("ConsultationPage", () => {
     await user.keyboard(" ");
 
     await waitFor(() => {
-      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     });
   });
 
@@ -2070,7 +2146,7 @@ describe("ConsultationPage", () => {
     fireEvent.click(messageEl);
 
     await waitFor(() => {
-      expect(screen.getByText("연결된 도메인 팩 요소가 없습니다")).toBeInTheDocument();
+      expect(screen.getByText("연결된 근거 없음")).toBeInTheDocument();
     });
 
     vi.mocked(consultationApi.getMessagePage).mockResolvedValueOnce({
@@ -2086,7 +2162,7 @@ describe("ConsultationPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("고객 정보")).toBeInTheDocument();
-      expect(screen.queryByText("연결된 도메인 팩 요소가 없습니다")).not.toBeInTheDocument();
+      expect(screen.queryByText("연결된 근거 없음")).not.toBeInTheDocument();
     });
   });
 
