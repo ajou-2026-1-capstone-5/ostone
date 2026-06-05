@@ -1,6 +1,6 @@
-/* ostone redesign — design tokens */
+/* ostone redesign — canonical design tokens */
 :root {
-  /* paper / ink palette — warm-cool neutral */
+  /* paper / ink palette */
   --paper: oklch(0.985 0.003 100);
   --paper-2: oklch(0.972 0.004 100);
   --paper-3: oklch(0.955 0.005 100);
@@ -37,7 +37,7 @@
   --mono: var(--font-mono);
   --serif: var(--font-sans);
 
-  /* radii — small, technical */
+  /* radius scale */
   --r-1: 2px;
   --r-2: 4px;
   --r-3: 6px;

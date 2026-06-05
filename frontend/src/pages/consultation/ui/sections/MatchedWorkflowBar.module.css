@@ -2,7 +2,7 @@
   display: block;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-3);
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -28,7 +28,7 @@
   padding: 10px 14px;
   background: transparent;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--r-3);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -99,7 +99,7 @@
   margin: 0;
   padding: 8px 10px;
   border: 1px solid var(--line-2);
-  border-radius: 8px;
+  border-radius: var(--r-3);
   background: var(--paper-2);
   color: var(--ink);
   font-family: var(--sans);
@@ -128,7 +128,7 @@
 .graphSlot {
   height: 160px;
   background: var(--paper-2);
-  border-radius: 10px;
+  border-radius: var(--r-3);
   border: 1px solid var(--line-2);
   overflow: hidden;
   display: flex;
@@ -149,7 +149,7 @@
   padding: 10px 14px;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-3);
 }
 
 .skeletonBar {

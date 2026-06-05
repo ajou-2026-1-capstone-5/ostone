@@ -22,7 +22,7 @@
 .icon {
   position: absolute;
   left: 14px;
-  color: rgba(0, 0, 0, 0.35);
+  color: var(--ink-4);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -31,9 +31,9 @@
 .input {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
   color: var(--text-primary);
   font-family: inherit;
   font-size: 0.95rem;
@@ -44,9 +44,9 @@
 
 .input:focus-visible {
   outline: none;
-  border-color: #000000;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
-  background: #ffffff;
+  border-color: var(--ink);
+  box-shadow: var(--focus-ring);
+  background: var(--paper);
 }
 
 .hasIcon {
@@ -54,11 +54,11 @@
 }
 
 .input::placeholder {
-  color: rgba(0, 0, 0, 0.35);
+  color: var(--ink-4);
 }
 
 .input:hover:not(:focus) {
-  border-color: rgba(0, 0, 0, 0.2);
+  border-color: var(--ink-3);
 }
 
 .errorInput {
@@ -67,7 +67,7 @@
 
 .errorInput:focus-visible {
   border-color: var(--error-color);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--focus-ring);
   outline: none;
 }
 
