@@ -12,6 +12,8 @@ export type MessageDeliveryStatus = "sending" | "sent" | "failed";
 export interface ChatMessage {
   id: string;
   seqNo?: number;
+  /** 서버 확정 순서 정렬용 raw ISO 타임스탬프. 표시에는 `timestamp`를 사용한다. */
+  createdAt?: string;
   senderRole: ChatSenderRole;
   content: string;
   timestamp: string;

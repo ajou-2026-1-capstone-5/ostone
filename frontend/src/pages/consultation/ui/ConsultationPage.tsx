@@ -18,6 +18,7 @@ import {
   type ChatSenderRole,
 } from "../../../features/consultation/lib/chatRoleLabels";
 import { formatWaitDuration } from "../../../features/consultation/lib/formatWaitDuration";
+import { sortMessagesByServerOrder } from "../../../features/consultation/lib/messageOrder";
 import { consultationApi } from "../../../features/consultation/api/consultationApi";
 import {
   consultationEvidenceApi,
@@ -194,30 +195,17 @@ const findResolutionOutcomeOption = (outcome: ResolutionOutcome | null) =>
   RESOLUTION_OUTCOME_OPTIONS.find((option) => option.value === outcome) ?? null;
 
 const toUiMessage = (message: MessageLike): UiChatMessage => {
-  const createdAt = message.createdAt ?? message.timestamp ?? new Date().toISOString();
+  const rawCreatedAt = message.createdAt ?? message.timestamp ?? null;
+  const displayCreatedAt = rawCreatedAt ?? new Date().toISOString();
   return {
-    id: String(message.id ?? `message-${createdAt}-${message.content ?? ""}`),
+    id: String(message.id ?? `message-${displayCreatedAt}-${message.content ?? ""}`),
     ...(message.seqNo != null ? { seqNo: message.seqNo } : {}),
+    ...(rawCreatedAt != null ? { createdAt: rawCreatedAt } : {}),
     senderRole: normalizeChatSenderRole(message.senderRole),
     content: message.content ?? "",
-    timestamp: formatTime(createdAt),
+    timestamp: formatTime(displayCreatedAt),
   };
 };
-
-const sortMessagesByServerOrder = (messages: UiChatMessage[]) =>
-  messages
-    .map((message, index) => ({ message, index }))
-    .sort((a, b) => {
-      const leftSeqNo = a.message.seqNo;
-      const rightSeqNo = b.message.seqNo;
-      if (leftSeqNo != null && rightSeqNo != null && leftSeqNo !== rightSeqNo) {
-        return leftSeqNo - rightSeqNo;
-      }
-      if (leftSeqNo != null && rightSeqNo == null) return -1;
-      if (leftSeqNo == null && rightSeqNo != null) return 1;
-      return a.index - b.index;
-    })
-    .map(({ message }) => message);
 
 const mergeMessagesById = (
   currentMessages: UiChatMessage[],
