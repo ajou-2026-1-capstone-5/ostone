@@ -13,6 +13,7 @@ export interface ChatMessageResponse {
 
 export interface RealtimeChatMessage {
   id: number | string;
+  seqNo?: number;
   senderRole: string;
   content: string;
   createdAt: string;
@@ -69,6 +70,7 @@ export function isRealtimeChatMessage(message: unknown): message is RealtimeChat
   const candidate = message as Partial<RealtimeChatMessage>;
   return (
     (typeof candidate.id === "number" || typeof candidate.id === "string") &&
+    (candidate.seqNo === undefined || typeof candidate.seqNo === "number") &&
     typeof candidate.senderRole === "string" &&
     typeof candidate.content === "string" &&
     typeof candidate.createdAt === "string"
@@ -95,6 +97,7 @@ export function toChatMessage(message: ChatMessageResponse, sessionId: number): 
     sessionId,
     content: message.content ?? "",
     senderType: toSenderType(message.senderRole ?? "BOT"),
+    ...(message.seqNo != null ? { seqNo: message.seqNo } : {}),
     createdAt: stableCreatedAt,
   };
 }
@@ -111,12 +114,36 @@ export function toRealtimeChatMessage(
     content: message.content,
     senderType,
     ...(senderType === "USER" ? { senderName: customerName } : {}),
+    ...(message.seqNo != null ? { seqNo: message.seqNo } : {}),
     createdAt: message.createdAt,
   };
 }
 
-export function compareMessageCreatedAt(a: ChatMessage, b: ChatMessage): number {
-  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+// seqNo가 없는 메시지(optimistic/local 등)는 seqNo가 있는 서버 확정 메시지 뒤로 보낸다.
+const SEQ_NO_FALLBACK = Number.POSITIVE_INFINITY;
+
+function toComparableTime(createdAt: string): number {
+  const time = new Date(createdAt).getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+}
+
+/**
+ * 두 메시지의 서버 순서를 비교한다. 서버가 확정한 `seqNo`를 1순위로, 없으면
+ * `createdAt`을 2순위로 사용한다. 0을 반환하면(같은 `seqNo`/같은 시각, 또는
+ * 둘 다 없는 optimistic 메시지) 순서를 구분할 수 없으므로 호출 측에서 원래
+ * 순서를 안정 tie-breaker로 사용해야 한다. 이렇게 하면 WebSocket 이벤트가
+ * 역순으로 도착하거나 거의 동시에 도착해도 화면 순서가 뒤바뀌지 않는다.
+ */
+export function compareMessageOrder(a: ChatMessage, b: ChatMessage): number {
+  const seqA = a.seqNo ?? SEQ_NO_FALLBACK;
+  const seqB = b.seqNo ?? SEQ_NO_FALLBACK;
+  if (seqA !== seqB) return seqA - seqB;
+
+  const timeA = toComparableTime(a.createdAt);
+  const timeB = toComparableTime(b.createdAt);
+  if (timeA !== timeB) return timeA - timeB;
+
+  return 0;
 }
 
 export function mergeMessages(
@@ -127,7 +154,15 @@ export function mergeMessages(
   [...currentMessages, ...nextMessages].forEach((message) => {
     byId.set(message.id, message);
   });
-  return Array.from(byId.values()).sort(compareMessageCreatedAt);
+  // `seqNo`/`createdAt`으로 구분되지 않는 메시지는 원래(병합) 순서를 유지하도록
+  // 원본 인덱스를 명시적 tie-breaker로 사용한다(Array.sort 안정성에 의존하지 않음).
+  return Array.from(byId.values())
+    .map((message, index) => ({ message, index }))
+    .sort((a, b) => {
+      const byServerOrder = compareMessageOrder(a.message, b.message);
+      return byServerOrder !== 0 ? byServerOrder : a.index - b.index;
+    })
+    .map(({ message }) => message);
 }
 
 export function withCustomerNames(messages: ChatMessage[], customerName: string): ChatMessage[] {
