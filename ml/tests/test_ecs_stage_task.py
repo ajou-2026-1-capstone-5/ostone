@@ -117,6 +117,49 @@ def test_run_stage_task_forwards_raw_object_key_to_ingestion(monkeypatch) -> Non
     assert {"name": "PIPELINE_RAW_OBJECT_KEY", "value": "completed/workspaces/1/raw.zip"} in environment
 
 
+def test_run_stage_task_forwards_raw_storage_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: dict[str, Any] = {}
+
+    class FakeEcsClient:
+        def run_task(self, **kwargs: Any) -> dict[str, Any]:
+            calls["run_task"] = kwargs
+            return {"tasks": [{"taskArn": "arn:aws:ecs:task/ingestion"}]}
+
+        def describe_tasks(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "tasks": [
+                    {
+                        "lastStatus": "STOPPED",
+                        "stoppedReason": "Essential container in task exited",
+                        "containers": [{"name": "ml-stage-cpu", "exitCode": 0}],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("pipeline.ecs_stage_task.boto3.client", lambda service: FakeEcsClient())
+    monkeypatch.setattr(
+        "pipeline.ecs_stage_task.read_json_uri",
+        lambda uri: {"artifact_manifest_path": "s3://artifacts/domain-pack/dag/run/ingestion/manifest.json"},
+    )
+    _set_required_ecs_env(monkeypatch)
+    monkeypatch.setenv("STORAGE_S3_BUCKET", "raw-files")
+    monkeypatch.setenv("STORAGE_S3_REGION", "ap-northeast-2")
+    monkeypatch.setenv("STORAGE_S3_ENDPOINT", "https://s3.example.test")
+    monkeypatch.setenv("STORAGE_S3_ACCESS_KEY", "access")
+    monkeypatch.setenv("STORAGE_S3_SECRET_KEY", "secret")
+    monkeypatch.setenv("STORAGE_S3_PATH_STYLE", "true")
+
+    run_stage_task("ingestion", _stage_context("ingestion"), _runtime_config(), None)
+
+    environment = calls["run_task"]["overrides"]["containerOverrides"][0]["environment"]
+    assert {"name": "STORAGE_S3_BUCKET", "value": "raw-files"} in environment
+    assert {"name": "STORAGE_S3_REGION", "value": "ap-northeast-2"} in environment
+    assert {"name": "STORAGE_S3_ENDPOINT", "value": "https://s3.example.test"} in environment
+    assert {"name": "STORAGE_S3_ACCESS_KEY", "value": "access"} in environment
+    assert {"name": "STORAGE_S3_SECRET_KEY", "value": "secret"} in environment
+    assert {"name": "STORAGE_S3_PATH_STYLE", "value": "true"} in environment
+
+
 def test_config_from_env_requires_network_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("PIPELINE_ECS_CLUSTER", "cluster")
     monkeypatch.setenv("PIPELINE_ECS_CPU_TASK_DEFINITION", "cpu-task")

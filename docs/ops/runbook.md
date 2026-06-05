@@ -142,6 +142,8 @@ The production LLM endpoint is an internal OpenAI-compatible ECS service behind 
 - `AIRFLOW_SIMPLE_ADMIN_PASSWORD`
 - `AIRFLOW_SIMPLE_VIEWER_PASSWORD`
 - `PIPELINE_BACKEND_BASE_URL` = `https://api.<domain>`
+- `STORAGE_S3_BUCKET` = `$(terraform -chdir=infra/terraform output -json s3_bucket_names | jq -r .ml_input)`
+- `STORAGE_S3_REGION` = `ap-northeast-2`
 - `ML_ARTIFACT_BUCKET` = `$(terraform -chdir=infra/terraform output -json s3_bucket_names | jq -r .ml_artifacts)`
 - `ECS_GPU_CLUSTER_NAME` = `$(terraform -chdir=infra/terraform output -raw ecs_cluster_name)`
 - `ECS_GPU_CAPACITY_PROVIDER` = `$(terraform -chdir=infra/terraform output -raw gpu_capacity_provider_name)`
