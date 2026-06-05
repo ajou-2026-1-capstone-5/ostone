@@ -18,3 +18,8 @@ spring:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+auth:
+  refresh-cookie:
+    secure: ${AUTH_REFRESH_COOKIE_SECURE:true}
+    same-site: ${AUTH_REFRESH_COOKIE_SAME_SITE:Lax}

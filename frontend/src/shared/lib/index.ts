@@ -2,7 +2,6 @@ export {
   saveAuthSession,
   clearAuthSession,
   getAccessToken,
-  getRefreshToken,
   getAuthUser,
   isAuthenticated,
 } from "./auth";

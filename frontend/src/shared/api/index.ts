@@ -1,7 +1,6 @@
 import {
   clearAuthSession,
   getAccessToken,
-  getRefreshToken,
   saveAuthTokens,
   type AuthTokens,
 } from "@/shared/lib/auth";
@@ -47,7 +46,6 @@ function selectTokenRefreshBody(body: unknown): AuthTokens | null {
   const tokens = candidate as Partial<AuthTokens>;
   if (
     typeof tokens.accessToken !== "string" ||
-    typeof tokens.refreshToken !== "string" ||
     typeof tokens.tokenType !== "string" ||
     typeof tokens.expiresIn !== "number"
   ) {
@@ -56,7 +54,6 @@ function selectTokenRefreshBody(body: unknown): AuthTokens | null {
 
   return {
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
     tokenType: tokens.tokenType,
     expiresIn: tokens.expiresIn,
   };
@@ -139,19 +136,10 @@ class ApiClient {
   }
 
   private async requestTokenRefresh(): Promise<boolean> {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      clearAuthSession();
-      return false;
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/auth/refresh`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
       });
 
       if (!response.ok) {

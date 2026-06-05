@@ -64,7 +64,6 @@ describe("LoginForm", () => {
     localStorage.clear();
     mockedLoginApi.mockResolvedValue({
       accessToken: "access-token",
-      refreshToken: "refresh-token",
       tokenType: "Bearer",
       expiresIn: 1800,
       user: { id: 1, email: "admin@ostone.com", name: "Admin", role: "OWNER" },
@@ -80,12 +79,14 @@ describe("LoginForm", () => {
     );
 
     renderLoginForm();
+    localStorage.setItem("refreshToken", "legacy-refresh-token");
     await submitLoginForm();
 
     await waitFor(() => {
       expect(screen.getByTestId("location")).toHaveTextContent("/workspaces/7/workflows");
     });
     expect(mockedListWorkspaces).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("refreshToken")).toBeNull();
   });
 
   it("허용된 return-to 경로가 있으면 워크스페이스 조회 없이 해당 경로를 우선한다", async () => {
