@@ -81,6 +81,7 @@ class WorkspaceDashboardControllerTest {
                 .principal(auth()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.recommendations[0].ruleCode").value("HOTPATH_SURGE"))
+        .andExpect(jsonPath("$.recommendations[0].sourceLabel").value("운영 지표 기반"))
         .andExpect(jsonPath("$.recommendations[0].evidenceValue").value("+33.3%"))
         .andExpect(jsonPath("$.recommendations[0].targetPath").value("/workspaces/1/workflows"));
   }
@@ -104,6 +105,7 @@ class WorkspaceDashboardControllerTest {
             new WorkspaceDashboardActionRecommendationResult(
                 "HOTPATH_SURGE",
                 85,
+                "운영 지표 기반",
                 "workflow 점검",
                 "선택 기간 실행량이 전 기간보다 크게 증가했습니다.",
                 "전 기간 대비",

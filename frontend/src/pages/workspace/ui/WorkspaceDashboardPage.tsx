@@ -619,7 +619,10 @@ function HotpathWorkflowRankingPanel({
 function ActionRecommendationCard({ item }: { item: WorkspaceDashboardActionRecommendation }) {
   return (
     <Link to={item.targetPath} className={styles.recommendationCard}>
-      <span className={styles.ruleBadge}>{item.ruleCode.replaceAll("_", " ")}</span>
+      <span className={styles.recommendationMeta}>
+        <span className={styles.sourceBadge}>{item.sourceLabel}</span>
+        <span className={styles.ruleBadge}>{item.ruleCode.replaceAll("_", " ")}</span>
+      </span>
       <h3>{item.title}</h3>
       <p>{item.description}</p>
       <dl>

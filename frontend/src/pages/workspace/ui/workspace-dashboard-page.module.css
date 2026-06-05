@@ -477,6 +477,28 @@
   text-transform: uppercase;
 }
 
+.recommendationMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.sourceBadge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-3);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 450;
+  letter-spacing: 0;
+}
+
 .recommendationCard dd {
   margin: 0;
   color: var(--ink);

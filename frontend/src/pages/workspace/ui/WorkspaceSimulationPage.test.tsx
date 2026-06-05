@@ -323,6 +323,27 @@ describe("WorkspaceSimulationPage", () => {
     expect(screen.getByText("A-100")).toBeInTheDocument();
   });
 
+  it("대시보드 추천 query로 피드백과 개선 후보 상태 필터를 초기화한다", async () => {
+    renderPage("/workspaces/1/simulation?feedbackStatus=RESOLVED&candidateStatus=READY_FOR_REVIEW");
+
+    expect(await screen.findByLabelText("피드백 상태 필터")).toHaveValue("RESOLVED");
+    expect(screen.getByLabelText("개선 후보 상태 필터")).toHaveValue("READY_FOR_REVIEW");
+    await waitFor(() => {
+      expect(mockedSimulationApi.listFeedback).toHaveBeenCalledWith(1, {
+        status: "RESOLVED",
+        page: 0,
+        size: 20,
+      });
+    });
+    await waitFor(() => {
+      expect(mockedSimulationApi.listImprovementCandidates).toHaveBeenCalledWith(1, {
+        status: "READY_FOR_REVIEW",
+        page: 0,
+        size: 20,
+      });
+    });
+  });
+
   it("workflow를 선택해 시뮬레이션 세션을 생성한다", async () => {
     renderPage();
 

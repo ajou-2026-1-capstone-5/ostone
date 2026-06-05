@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useOutletContext, useParams } from "react-router-dom";
+import { Navigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import {
   CheckCircleIcon,
   FlagIcon,
@@ -77,6 +77,22 @@ const CANDIDATE_STATUSES: Array<{
 ];
 
 const ACTION_TYPES = ["ASK_SLOT", "ADVANCE", "ANSWER", "COMPLETED", "HANDOFF", "WAIT"] as const;
+
+function readFeedbackStatusParam(searchParams: URLSearchParams): SimulationFeedbackStatus | "" {
+  const value = searchParams.get("feedbackStatus");
+  return FEEDBACK_STATUSES.some((status) => status.value === value)
+    ? (value as SimulationFeedbackStatus | "")
+    : "OPEN";
+}
+
+function readCandidateStatusParam(
+  searchParams: URLSearchParams,
+): SimulationImprovementCandidateStatus | "" {
+  const value = searchParams.get("candidateStatus");
+  return CANDIDATE_STATUSES.some((status) => status.value === value)
+    ? (value as SimulationImprovementCandidateStatus | "")
+    : "DRAFT";
+}
 
 type Meta = {
   customerName?: string;
@@ -186,6 +202,17 @@ function optionalText(value?: string | null): string | undefined {
 
 export function WorkspaceSimulationPage() {
   const { workspaceId } = useParams();
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.toString();
+  const querySearchParams = useMemo(() => new URLSearchParams(searchQuery), [searchQuery]);
+  const feedbackStatusFromQuery = useMemo(
+    () => readFeedbackStatusParam(querySearchParams),
+    [querySearchParams],
+  );
+  const candidateStatusFromQuery = useMemo(
+    () => readCandidateStatusParam(querySearchParams),
+    [querySearchParams],
+  );
   const parsedWorkspaceId = parseRouteId(workspaceId);
   const { setCrumbs } = useOutletContext<ShellContext>();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -196,13 +223,13 @@ export function WorkspaceSimulationPage() {
   const [messageInput, setMessageInput] = useState("");
   const [feedbackItems, setFeedbackItems] = useState<SimulationFeedback[]>([]);
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<SimulationFeedbackStatus | "">(
-    "OPEN",
+    () => feedbackStatusFromQuery,
   );
   const [candidateItems, setCandidateItems] = useState<SimulationImprovementCandidate[]>([]);
   const [goldenCases, setGoldenCases] = useState<SimulationGoldenCase[]>([]);
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<
     SimulationImprovementCandidateStatus | ""
-  >("DRAFT");
+  >(() => candidateStatusFromQuery);
   const [feedbackTarget, setFeedbackTarget] = useState("session");
   const [feedbackType, setFeedbackType] = useState<SimulationFeedbackType>(DEFAULT_FEEDBACK_TYPE);
   const [feedbackSeverity, setFeedbackSeverity] =
@@ -267,6 +294,11 @@ export function WorkspaceSimulationPage() {
     setCrumbs(["시뮬레이션"]);
     return () => setCrumbs([]);
   }, [setCrumbs]);
+
+  useEffect(() => {
+    setFeedbackStatusFilter(feedbackStatusFromQuery);
+    setCandidateStatusFilter(candidateStatusFromQuery);
+  }, [candidateStatusFromQuery, feedbackStatusFromQuery]);
 
   useEffect(() => {
     setFeedbackTarget("session");

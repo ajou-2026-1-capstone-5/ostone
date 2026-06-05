@@ -9,4 +9,5 @@ public record WorkspaceDashboardRecommendationSignalsResult(
     WorkspaceDashboardDecisionSignalResult currentDecisionSignals,
     WorkspaceDashboardDecisionSignalResult previousDecisionSignals,
     WorkspaceDashboardWorkflowRecommendationSignal hotpathSurgeWorkflow,
-    WorkspaceDashboardWorkflowRecommendationSignal lowCompletionWorkflow) {}
+    WorkspaceDashboardWorkflowRecommendationSignal lowCompletionWorkflow,
+    WorkspaceDashboardSimulationSignalResult simulationSignals) {}
