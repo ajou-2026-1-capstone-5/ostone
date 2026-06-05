@@ -14,6 +14,13 @@ from pipeline.common.config import PipelineRuntimeConfig
 from pipeline.common.context import StageContext
 from pipeline.common.exceptions import PipelineStageError
 from pipeline.common.logging import get_stage_logger
+from pipeline.stages.draft_generation.contracts import (
+    ClustersArtifact,
+    DraftGenerationCandidateArtifact,
+    PreprocessedArtifact,
+    ProcessedWorkflow,
+    WorkflowDraftArtifact,
+)
 from pipeline.stages.draft_generation.description_enrichment import enrich_candidate_descriptions
 from pipeline.stages.draft_generation.knowledge_extraction import (
     build_evidence_based_slot_draft,
@@ -280,8 +287,9 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
 
     logger.info("draft_generation.start %s", stage_context)
 
-    clusters_payload = _read_clusters(runtime_config, stage_context)
-    clusters = clusters_payload.get("clusters") or []
+    clusters_artifact = _read_clusters(runtime_config, stage_context)
+    clusters_payload = clusters_artifact.payload
+    clusters = clusters_artifact.clusters
     logger.info("draft_generation.cluster_loaded cluster_count=%d", len(clusters))
 
     preprocessed_index = _read_preprocessed_index(runtime_config, stage_context)
@@ -350,7 +358,7 @@ def run(upstream_manifest_path: str | None = None) -> dict[str, object]:
     return {"candidateArtifactPath": str(candidate_path), "artifact_manifest_path": str(manifest)}
 
 
-def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> dict[str, Any]:
+def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageContext) -> ClustersArtifact:
     flow_split_path = _upstream_stage_dir("flow_splitting", runtime_config, stage_context) / DEFAULT_CLUSTERS_ARTIFACT
     clusters_path = (
         flow_split_path
@@ -365,7 +373,7 @@ def _read_clusters(runtime_config: PipelineRuntimeConfig, stage_context: StageCo
         raise PipelineStageError(f"Failed to read clusters.json: {clusters_path}") from exc
     if not isinstance(payload, dict):
         raise PipelineStageError(f"clusters.json must be a JSON object: {clusters_path}")
-    return payload
+    return ClustersArtifact.from_payload(payload, clusters_path)
 
 
 def _read_preprocessed_index(
@@ -383,37 +391,7 @@ def _read_preprocessed_index(
         raise PipelineStageError(f"Failed to read preprocessed_data.json: {preprocessed_path}") from exc
     if not isinstance(data, dict):
         raise PipelineStageError(f"preprocessed_data.json must be a JSON object: {preprocessed_path}")
-    conversations = data.get("conversations")
-    if not isinstance(conversations, list):
-        raise PipelineStageError(f"preprocessed_data.json conversations must be a list: {preprocessed_path}")
-    index = {conv["id"]: conv for conv in conversations if isinstance(conv, dict) and "id" in conv}
-    caselets = data.get("issueCaselets")
-    if isinstance(caselets, list):
-        for caselet in caselets:
-            if isinstance(caselet, dict) and isinstance(caselet.get("caseletId"), str):
-                index[str(caselet["caseletId"])] = _caselet_index_row(caselet)
-    return index
-
-
-def _caselet_index_row(caselet: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "id": caselet.get("caseletId", ""),
-        "source_conversation_id": caselet.get("conversationId"),
-        "turn_start": caselet.get("turnStart"),
-        "turn_end": caselet.get("turnEnd"),
-        "evidence_turn_ids": caselet.get("evidenceTurnIds", []),
-        "canonical_text": caselet.get("canonicalText", ""),
-        "customer_problem_text": caselet.get("customerIssueText", ""),
-        "agent_resolution_text": caselet.get("agentResolutionText", ""),
-        "agent_action_text": caselet.get("agentActionText", ""),
-        "ended_status": caselet.get("outcome"),
-        "flow_events": caselet.get("flowEvents", []),
-        "action_object_frame": caselet.get("actionObjectFrame", {}),
-        "workflow_signal": caselet.get("workflowSignal", {}),
-        "source_quality_flags": caselet.get("sourceQualityFlags", []),
-        "filtered": caselet.get("filtered") is True,
-        "quality_score": caselet.get("qualityScore"),
-    }
+    return PreprocessedArtifact.from_payload(data, preprocessed_path).conversation_index()
 
 
 def _upstream_stage_dir(
@@ -1183,7 +1161,7 @@ def _process_cluster_entry(
     slot_names_by_code: dict[str, str] | None = None,
     risk_refs: list[str] | None = None,
     risk_names_by_code: dict[str, str] | None = None,
-) -> tuple[dict[str, Any], int, int, int, bool, dict[str, Any], float, float, float, dict[str, int | bool]] | None:
+) -> ProcessedWorkflow | None:
     if not isinstance(cluster, dict):
         return None
     cluster_id = cluster.get("cluster_id")
@@ -1289,17 +1267,17 @@ def _process_cluster_entry(
             "needs_review" if cluster.get("needs_human_review") is True or review_only_reasons else "auto_acceptable"
         ),
     }
-    return (
-        workflow,
-        kw_count,
-        ex_count,
-        mb_count,
-        not evidence_items,
-        signal,
-        workflow_path_support,
-        workflow_precision,
-        workflow_specificity,
-        graph_specific_metrics,
+    return ProcessedWorkflow(
+        workflow=workflow,
+        keyword_count=kw_count,
+        exemplar_count=ex_count,
+        member_count=mb_count,
+        is_empty_evidence=not evidence_items,
+        signal=signal,
+        path_support=workflow_path_support,
+        precision=workflow_precision,
+        specificity=workflow_specificity,
+        graph_specific_metrics=graph_specific_metrics,
     )
 
 
@@ -1914,48 +1892,36 @@ def _build_workflow_draft(
         )
         if result is None:
             continue
-        (
-            workflow,
-            kw,
-            ex,
-            mb,
-            is_empty,
-            signal,
-            path_support,
-            workflow_precision,
-            workflow_specificity,
-            graph_specific_metrics,
-        ) = result
-        workflows.append(workflow)
-        keyword_total += kw
-        exemplar_total += ex
-        member_total += mb
-        empty_evidence_count += is_empty
-        workflow_path_support_total += path_support
-        workflow_precision_total += workflow_precision
-        workflow_specificity_total += workflow_specificity
-        route_condition_count += _has_route_condition(workflow)
-        workflows_with_specific_nodes += bool(graph_specific_metrics["has_specific_node"])
-        workflows_with_slot_refs += bool(graph_specific_metrics["has_slot_ref"])
+        workflows.append(result.workflow)
+        keyword_total += result.keyword_count
+        exemplar_total += result.exemplar_count
+        member_total += result.member_count
+        empty_evidence_count += result.is_empty_evidence
+        workflow_path_support_total += result.path_support
+        workflow_precision_total += result.precision
+        workflow_specificity_total += result.specificity
+        route_condition_count += _has_route_condition(result.workflow)
+        workflows_with_specific_nodes += bool(result.graph_specific_metrics["has_specific_node"])
+        workflows_with_slot_refs += bool(result.graph_specific_metrics["has_slot_ref"])
         workflows_requiring_slot_refs += bool(slot_refs)
-        workflows_with_policy_control += bool(graph_specific_metrics["has_policy_control"])
-        workflows_with_risk_refs += bool(graph_specific_metrics["has_risk_ref"])
+        workflows_with_policy_control += bool(result.graph_specific_metrics["has_policy_control"])
+        workflows_with_risk_refs += bool(result.graph_specific_metrics["has_risk_ref"])
         workflows_requiring_risk_refs += bool(risk_refs)
-        review_only_count += _is_review_only_workflow(workflow)
-        action_node_total += int(graph_specific_metrics["action_node_count"])
-        specific_action_node_total += int(graph_specific_metrics["specific_action_node_count"])
+        review_only_count += _is_review_only_workflow(result.workflow)
+        action_node_total += int(result.graph_specific_metrics["action_node_count"])
+        specific_action_node_total += int(result.graph_specific_metrics["specific_action_node_count"])
         workflow_count += 1
-        identify_count += bool(signal.get("requires_user_identification"))
-        payment_count += bool(signal.get("requires_payment_check"))
-        escalation_count += bool(signal.get("has_escalation_cases"))
+        identify_count += bool(result.signal.get("requires_user_identification"))
+        payment_count += bool(result.signal.get("requires_payment_check"))
+        escalation_count += bool(result.signal.get("has_escalation_cases"))
 
-    draft = {
-        "slots": [],
-        "policies": [] if policy_refs_by_cluster is not None else [_default_dummy_policy()],
-        "risks": [],
-        "workflows": workflows,
-        "intentSlotBindings": [],
-    }
+    draft = WorkflowDraftArtifact(
+        slots=[],
+        policies=[] if policy_refs_by_cluster is not None else [_default_dummy_policy()],
+        risks=[],
+        workflows=workflows,
+        intent_slot_bindings=[],
+    )
     workflow_metrics = {
         "workflow_count": workflow_count,
         "workflow_with_identify_count": identify_count,
@@ -1982,7 +1948,7 @@ def _build_workflow_draft(
         "review_only_workflow_count": review_only_count,
         "low_support_workflow_rate": review_only_count / workflow_count if workflow_count else 0.0,
     }
-    return draft, workflow_metrics
+    return draft.to_json_dict(), workflow_metrics
 
 
 def _cluster_workflow_events(
@@ -2173,15 +2139,13 @@ def _build_candidate(
         "packKey": pack_key,
         "packName": pack_name,
     }
-    return {
-        "schemaVersion": "1.0",
-        "domainPackDraft": domain_pack_draft,
-        "intentDraft": {
-            "intents": intents,
-        },
-        "workflowDraft": workflow_draft,
-        "evaluationInputs": evaluation_inputs or {},
-    }
+    candidate = DraftGenerationCandidateArtifact(
+        domain_pack_draft=domain_pack_draft,
+        intents=intents,
+        workflow_draft=WorkflowDraftArtifact.from_payload(workflow_draft),
+        evaluation_inputs=evaluation_inputs or {},
+    )
+    return candidate.to_json_dict()
 
 
 def _write_candidate(

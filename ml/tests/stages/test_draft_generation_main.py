@@ -19,6 +19,7 @@ from pipeline.stages.draft_generation.main import (
     _evaluation_inputs,
     _hydrate_case,
     _label_metrics,
+    _process_cluster_entry,
     _read_clusters,
     _read_preprocessed_index,
     _resolve_cases_per_intent,
@@ -336,9 +337,53 @@ def test_read_clusters_success(tmp_path: Path) -> None:
     clusters_dir = runtime_config.artifact_root / "dag" / "run1" / "intent_discovery"
     _write_clusters(clusters_dir, [{"cluster_id": 0, "exemplar_conv_ids": ["c1"]}])
 
-    payload = _read_clusters(runtime_config, context)
+    artifact = _read_clusters(runtime_config, context)
 
-    assert len(payload["clusters"]) == 1
+    assert len(artifact.clusters) == 1
+    assert artifact.payload["clusters"] == artifact.clusters
+    assert artifact.source_path == clusters_dir / "clusters.json"
+
+
+def test_read_clusters_prefers_flow_splitting_artifact(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    intent_dir = runtime_config.artifact_root / "dag" / "run1" / "intent_discovery"
+    flow_dir = runtime_config.artifact_root / "dag" / "run1" / "flow_splitting"
+    _write_clusters(intent_dir, [{"cluster_id": 0, "exemplar_conv_ids": ["intent"]}])
+    _write_clusters(flow_dir, [{"cluster_id": 1, "exemplar_conv_ids": ["flow"]}])
+
+    artifact = _read_clusters(runtime_config, context)
+
+    assert artifact.clusters[0]["cluster_id"] == 1
+    assert artifact.source_path == flow_dir / "clusters.json"
+
+
+def test_read_clusters_raises_with_field_path_when_clusters_is_not_list(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    clusters_dir = runtime_config.artifact_root / "dag" / "run1" / "intent_discovery"
+    clusters_dir.mkdir(parents=True)
+    (clusters_dir / "clusters.json").write_text(
+        json.dumps({"schema_version": "1.0", "clusters": {"cluster_id": 0}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match=r"clusters\.json field 'clusters' must be a list"):
+        _read_clusters(runtime_config, context)
+
+
+def test_read_clusters_raises_with_field_path_when_cluster_item_is_not_object(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    clusters_dir = runtime_config.artifact_root / "dag" / "run1" / "intent_discovery"
+    clusters_dir.mkdir(parents=True)
+    (clusters_dir / "clusters.json").write_text(
+        json.dumps({"schema_version": "1.0", "clusters": [{"cluster_id": 0}, "bad"]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PipelineStageError, match=r"clusters\.json field 'clusters\[1\]' must be a JSON object"):
+        _read_clusters(runtime_config, context)
 
 
 def test_read_preprocessed_index_success(tmp_path: Path) -> None:
@@ -350,6 +395,40 @@ def test_read_preprocessed_index_success(tmp_path: Path) -> None:
     index = _read_preprocessed_index(runtime_config, context)
 
     assert set(index.keys()) == {"c1", "c2"}
+
+
+def test_read_preprocessed_index_raises_with_field_path_when_conversations_is_not_list(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    preprocessed_dir = runtime_config.artifact_root / "dag" / "run1" / "preprocessing"
+    preprocessed_dir.mkdir(parents=True)
+    (preprocessed_dir / "preprocessed_data.json").write_text(
+        json.dumps({"schema_version": "1.0", "conversations": {"id": "c1"}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        PipelineStageError,
+        match=r"preprocessed_data\.json field 'conversations' must be a list",
+    ):
+        _read_preprocessed_index(runtime_config, context)
+
+
+def test_read_preprocessed_index_raises_with_field_path_when_conversation_id_is_missing(tmp_path: Path) -> None:
+    runtime_config = _runtime_config(tmp_path)
+    context = _stage_context()
+    preprocessed_dir = runtime_config.artifact_root / "dag" / "run1" / "preprocessing"
+    preprocessed_dir.mkdir(parents=True)
+    (preprocessed_dir / "preprocessed_data.json").write_text(
+        json.dumps({"schema_version": "1.0", "conversations": [{"canonical_text": "text"}]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        PipelineStageError,
+        match=r"preprocessed_data\.json field 'conversations\[0\]\.id' must be a non-empty string",
+    ):
+        _read_preprocessed_index(runtime_config, context)
 
 
 def test_resolve_cases_per_intent_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -737,6 +816,19 @@ def test_build_workflow_draft_single_cluster() -> None:
     assert meta["sampleReviewReasonCodes"] == ["weak_label_sample"]
     assert meta["reviewReasonCodes"] == []
     assert meta["reviewOnlyCandidate"] is True
+
+
+def test_process_cluster_entry_returns_named_workflow_result() -> None:
+    result = _process_cluster_entry({"cluster_id": 0, "suggested_name": "환불 문의", "workflow_signal": {}})
+
+    assert result is not None
+    assert result.workflow["workflowCode"] == "WORKFLOW_0"
+    assert result.keyword_count == 0
+    assert result.exemplar_count == 0
+    assert result.member_count == 0
+    assert result.is_empty_evidence is True
+    assert result.path_support == 0.0
+    assert "has_specific_node" in result.graph_specific_metrics
 
 
 def test_route_condition_uses_core_terms_without_dialogue_fillers() -> None:
